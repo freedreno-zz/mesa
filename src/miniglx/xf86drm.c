@@ -41,13 +41,10 @@
 # include <signal.h>
 # include <sys/types.h>
 # include <sys/stat.h>
-# define stat_t struct stat
 # include <sys/ioctl.h>
 # include <sys/mman.h>
 # include <sys/time.h>
 # include <stdarg.h>
-# define _DRM_MALLOC malloc
-# define _DRM_FREE   free
 # include "drm.h"
 
 /* Not all systems have MAP_FAILED defined */
@@ -82,7 +79,6 @@
 #define makedev(x,y)    ((dev_t)(((x) << 8) | (y)))
 #endif
 
-#define DRM_MSG_VERBOSITY 3
 
 static void
 drmMsg(const char *format, ...)
@@ -98,13 +94,10 @@ drmMsg(const char *format, ...)
     }
 }
 
-#define drmMalloc malloc
-#define drmFree free
-#define drmStrdup strdup
 
 static unsigned long drmGetKeyFromFd(int fd)
 {
-    stat_t     st;
+    struct stat     st;
 
     st.st_rdev = 0;
     fstat(fd, &st);
@@ -114,7 +107,7 @@ static unsigned long drmGetKeyFromFd(int fd)
 
 static int drmOpenDevice(long dev, int minor)
 {
-    stat_t          st;
+    struct stat          st;
     char            buf[64];
     int             fd;
     mode_t          devmode = DRM_DEV_MODE;
@@ -328,19 +321,19 @@ int drmOpen(const char *name, const char *busid)
 void drmFreeVersion(drmVersionPtr v)
 {
     if (!v) return;
-    if (v->name) drmFree(v->name);
-    if (v->date) drmFree(v->date);
-    if (v->desc) drmFree(v->desc);
-    drmFree(v);
+    if (v->name) free(v->name);
+    if (v->date) free(v->date);
+    if (v->desc) free(v->desc);
+    free(v);
 }
 
 static void drmFreeKernelVersion(drm_version_t *v)
 {
     if (!v) return;
-    if (v->name) drmFree(v->name);
-    if (v->date) drmFree(v->date);
-    if (v->desc) drmFree(v->desc);
-    drmFree(v);
+    if (v->name) free(v->name);
+    if (v->date) free(v->date);
+    if (v->desc) free(v->desc);
+    free(v);
 }
 
 static void drmCopyVersion(drmVersionPtr d, const drm_version_t *s)
@@ -349,11 +342,11 @@ static void drmCopyVersion(drmVersionPtr d, const drm_version_t *s)
     d->version_minor      = s->version_minor;
     d->version_patchlevel = s->version_patchlevel;
     d->name_len           = s->name_len;
-    d->name               = drmStrdup(s->name);
+    d->name               = strdup(s->name);
     d->date_len           = s->date_len;
-    d->date               = drmStrdup(s->date);
+    d->date               = strdup(s->date);
     d->desc_len           = s->desc_len;
-    d->desc               = drmStrdup(s->desc);
+    d->desc               = strdup(s->desc);
 }
 
 /* drmGet Version obtains the driver version information via an ioctl.  Similar
@@ -362,7 +355,7 @@ static void drmCopyVersion(drmVersionPtr d, const drm_version_t *s)
 drmVersionPtr drmGetVersion(int fd)
 {
     drmVersionPtr retval;
-    drm_version_t *version = drmMalloc(sizeof(*version));
+    drm_version_t *version = malloc(sizeof(*version));
 
 				/* First, get the lengths */
     version->name_len    = 0;
@@ -379,11 +372,11 @@ drmVersionPtr drmGetVersion(int fd)
 
 				/* Now, allocate space and get the data */
     if (version->name_len)
-	version->name    = drmMalloc(version->name_len + 1);
+	version->name    = malloc(version->name_len + 1);
     if (version->date_len)
-	version->date    = drmMalloc(version->date_len + 1);
+	version->date    = malloc(version->date_len + 1);
     if (version->desc_len)
-	version->desc    = drmMalloc(version->desc_len + 1);
+	version->desc    = malloc(version->desc_len + 1);
 
     if (ioctl(fd, DRM_IOCTL_VERSION, version)) {
 	drmFreeKernelVersion(version);
@@ -399,7 +392,7 @@ drmVersionPtr drmGetVersion(int fd)
 
 				/* Now, copy it all back into the
                                    client-visible data structure... */
-    retval = drmMalloc(sizeof(*retval));
+    retval = malloc(sizeof(*retval));
     drmCopyVersion(retval, version);
     drmFreeKernelVersion(version);
     return retval;
@@ -410,7 +403,7 @@ drmVersionPtr drmGetVersion(int fd)
 
 drmVersionPtr drmGetLibVersion(int fd)
 {
-    drm_version_t *version = drmMalloc(sizeof(*version));
+    drm_version_t *version = malloc(sizeof(*version));
 
     /* Version history:
      *   revision 1.0.x = original DRM interface with no drmGetLibVersion
@@ -427,7 +420,7 @@ drmVersionPtr drmGetLibVersion(int fd)
 
 void drmFreeBusid(const char *busid)
 {
-    drmFree((void *)busid);
+    free((void *)busid);
 }
 
 char *drmGetBusid(int fd)
@@ -438,7 +431,7 @@ char *drmGetBusid(int fd)
     u.unique     = NULL;
 
     if (ioctl(fd, DRM_IOCTL_GET_UNIQUE, &u)) return NULL;
-    u.unique = drmMalloc(u.unique_len + 1);
+    u.unique = malloc(u.unique_len + 1);
     if (ioctl(fd, DRM_IOCTL_GET_UNIQUE, &u)) return NULL;
     u.unique[u.unique_len] = '\0';
     return u.unique;
@@ -486,12 +479,6 @@ int drmAddMap(int fd,
     drm_map_t map;
 
     map.offset  = offset;
-/* No longer needed with CVS kernel modules on alpha
-#ifdef __alpha__
-    if (type != DRM_SHM)
-	map.offset += BUS_BASE;
-#endif
-*/
     map.size    = size;
     map.handle  = 0;
     map.type    = type;
@@ -530,19 +517,6 @@ int drmFreeBufs(int fd, int count, int *list)
 
 int drmClose(int fd)
 {
-#if 0
-    unsigned long key    = drmGetKeyFromFd(fd);
-    drmHashEntry  *entry = drmGetEntry(fd);
-
-    drmHashDestroy(entry->tagTable);
-    entry->fd       = 0;
-    entry->f        = NULL;
-    entry->tagTable = NULL;
-
-    drmHashDelete(drmHashTable, key);
-    drmFree(entry);
-#endif
-
     return close(fd);
 }
 
@@ -582,18 +556,18 @@ drmBufMapPtr drmMapBufs(int fd)
     if (ioctl(fd, DRM_IOCTL_MAP_BUFS, &bufs)) return NULL;
 
     if (bufs.count) {
-	if (!(bufs.list = drmMalloc(bufs.count * sizeof(*bufs.list))))
+	if (!(bufs.list = malloc(bufs.count * sizeof(*bufs.list))))
 	    return NULL;
 
 	if (ioctl(fd, DRM_IOCTL_MAP_BUFS, &bufs)) {
-	    drmFree(bufs.list);
+	    free(bufs.list);
 	    return NULL;
 	}
 				/* Now, copy it all back into the
                                    client-visible data structure... */
-	retval = drmMalloc(sizeof(*retval));
+	retval = malloc(sizeof(*retval));
 	retval->count = bufs.count;
-	retval->list  = drmMalloc(bufs.count * sizeof(*retval->list));
+	retval->list  = malloc(bufs.count * sizeof(*retval->list));
 	for (i = 0; i < bufs.count; i++) {
 	    retval->list[i].idx     = bufs.list[i].idx;
 	    retval->list[i].total   = bufs.list[i].total;
@@ -873,44 +847,6 @@ int drmGetInterruptFromBusID(int fd, int busnum, int devnum, int funcnum)
     return p.irq;
 }
 
-int drmGetMap(int fd, int idx, drmHandle *offset, drmSize *size,
-	      drmMapType *type, drmMapFlags *flags, drmHandle *handle,
-	      int *mtrr)
-{
-    drm_map_t map;
-
-    map.offset = idx;
-    if (ioctl(fd, DRM_IOCTL_GET_MAP, &map)) return -errno;
-    *offset = map.offset;
-    *size   = map.size;
-    *type   = map.type;
-    *flags  = map.flags;
-    *handle = (unsigned long)map.handle;
-    *mtrr   = map.mtrr;
-    return 0;
-}
-
-int drmGetClient(int fd, int idx, int *auth, int *pid, int *uid,
-		 unsigned long *magic, unsigned long *iocs)
-{
-    drm_client_t client;
-
-    client.idx = idx;
-    if (ioctl(fd, DRM_IOCTL_GET_CLIENT, &client)) return -errno;
-    *auth      = client.auth;
-    *pid       = client.pid;
-    *uid       = client.uid;
-    *magic     = client.magic;
-    *iocs      = client.iocs;
-    return 0;
-}
-
-int drmGetStats(int fd, drmStatsT *stats)
-{
-    stats->count = 0;
-    memset(stats, 0, sizeof(*stats));
-    return 0;
-}
 
 int drmCommandNone(int fd, unsigned long drmCommandIndex)
 {
