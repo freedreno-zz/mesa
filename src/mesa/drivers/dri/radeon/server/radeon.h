@@ -30,7 +30,7 @@
 #ifndef _RADEON_H_
 #define _RADEON_H_
 
-#include "dri.h"
+#include "xf86drm.h"		/* drmHandle, etc */
 
 #define PCI_CHIP_RADEON_LW		0x4C57
 #define PCI_CHIP_RADEON_LX		0x4C58
@@ -74,97 +74,87 @@ typedef enum {
     CHIP_FAMILY_R300
 } RADEONChipFamily;
 
+typedef unsigned long memType;
+
+
 typedef struct {
-    pciVideoPtr       PciInfo;
+   int               Chipset;
+   RADEONChipFamily  ChipFamily;
 
-    int               Chipset;
-    RADEONChipFamily  ChipFamily;
+   unsigned long     LinearAddr;       /* Frame buffer physical address     */
+   unsigned long     MMIOAddr;         /* MMIO region physical address      */
+   unsigned long     BIOSAddr;         /* BIOS physical address             */
 
-    Bool              FBDev;
-
-    unsigned long     LinearAddr;       /* Frame buffer physical address     */
-    unsigned long     MMIOAddr;         /* MMIO region physical address      */
-    unsigned long     BIOSAddr;         /* BIOS physical address             */
-
-    unsigned char     *MMIO;            /* Map of MMIO region                */
-    unsigned char     *FB;              /* Map of frame buffer               */
-    CARD8             *VBIOS;           /* Video BIOS pointer                */
+   unsigned char     *MMIO;            /* Map of MMIO region                */
+   unsigned char     *FB;              /* Map of frame buffer               */
 
 
+   int               drmFD;
 
-    Bool              directRenderingEnabled;
-    DRIInfoPtr        pDRIInfo;	        /* XXX: defined in dri.h */
-    int               drmFD;
+   drmHandle         fbHandle;
 
-    drmHandle         fbHandle;
+   drmSize           registerSize;
+   drmHandle         registerHandle;
 
-    drmSize           registerSize;
-    drmHandle         registerHandle;
-
-    drmSize           agpSize;
-    drmHandle         agpMemHandle;     /* Handle from drmAgpAlloc */
-    unsigned long     agpOffset;
-    unsigned char     *AGP;             /* Map */
-    int               agpMode;
-    int               agpFastWrite;
+   drmSize           agpSize;
+   drmHandle         agpMemHandle;     /* Handle from drmAgpAlloc */
+   unsigned long     agpOffset;
+   unsigned char     *AGP;             /* Map */
+   int               agpMode;
+   int               agpFastWrite;
 
    /* CP ring buffer data */
-    unsigned long     ringStart;        /* Offset into AGP space */
-    drmHandle         ringHandle;       /* Handle from drmAddMap */
-    drmSize           ringMapSize;      /* Size of map */
-    int               ringSize;         /* Size of ring (in MB) */
-    unsigned char     *ring;            /* Map */
-    int               ringSizeLog2QW;
+   unsigned long     ringStart;        /* Offset into AGP space */
+   drmHandle         ringHandle;       /* Handle from drmAddMap */
+   drmSize           ringMapSize;      /* Size of map */
+   int               ringSize;         /* Size of ring (in MB) */
+   unsigned char     *ring;            /* Map */
+   int               ringSizeLog2QW;
 
-    unsigned long     ringReadOffset;   /* Offset into AGP space */
-    drmHandle         ringReadPtrHandle; /* Handle from drmAddMap */
-    drmSize           ringReadMapSize;  /* Size of map */
-    unsigned char     *ringReadPtr;     /* Map */
+   unsigned long     ringReadOffset;   /* Offset into AGP space */
+   drmHandle         ringReadPtrHandle; /* Handle from drmAddMap */
+   drmSize           ringReadMapSize;  /* Size of map */
+   unsigned char     *ringReadPtr;     /* Map */
 
    /* CP vertex/indirect buffer data */
-    unsigned long     bufStart;         /* Offset into AGP space */
-    drmHandle         bufHandle;        /* Handle from drmAddMap */
-    drmSize           bufMapSize;       /* Size of map */
-    int               bufSize;          /* Size of buffers (in MB) */
-    unsigned char     *buf;             /* Map */
-    int               bufNumBufs;       /* Number of buffers */
-    drmBufMapPtr      buffers;          /* Buffer map */
+   unsigned long     bufStart;         /* Offset into AGP space */
+   drmHandle         bufHandle;        /* Handle from drmAddMap */
+   drmSize           bufMapSize;       /* Size of map */
+   int               bufSize;          /* Size of buffers (in MB) */
+   unsigned char     *buf;             /* Map */
+   int               bufNumBufs;       /* Number of buffers */
+   drmBufMapPtr      buffers;          /* Buffer map */
 
    /* CP AGP Texture data */
-    unsigned long     agpTexStart;      /* Offset into AGP space */
-    drmHandle         agpTexHandle;     /* Handle from drmAddMap */
-    drmSize           agpTexMapSize;    /* Size of map */
-    int               agpTexSize;       /* Size of AGP tex space (in MB) */
-    unsigned char     *agpTex;          /* Map */
-    int               log2AGPTexGran;
+   unsigned long     agpTexStart;      /* Offset into AGP space */
+   drmHandle         agpTexHandle;     /* Handle from drmAddMap */
+   drmSize           agpTexMapSize;    /* Size of map */
+   int               agpTexSize;       /* Size of AGP tex space (in MB) */
+   unsigned char     *agpTex;          /* Map */
+   int               log2AGPTexGran;
 
+   int               drmMinor;
 
-    int               frontOffset;
-    int               frontPitch;
-    int               backOffset;
-    int               backPitch;
-    int               depthOffset;
-    int               depthPitch;
-    int               textureOffset;
-    int               textureSize;
-    int               log2TexGran;
+   int               frontOffset;
+   int               frontPitch;
+   int               backOffset;
+   int               backPitch;
+   int               depthOffset;
+   int               depthPitch;
+   int               textureOffset;
+   int               textureSize;
+   int               log2TexGran;
 
-    CARD32            frontPitchOffset;
-    CARD32            backPitchOffset;
-    CARD32            depthPitchOffset;
+   unsigned int            frontPitchOffset;
+   unsigned int            backPitchOffset;
+   unsigned int            depthPitchOffset;
 
-    CARD32            dst_pitch_offset;
+   unsigned int            dst_pitch_offset;
 
-    int               irq;
-    CARD32            gen_int_cntl;
+   int               irq;
+   unsigned int            gen_int_cntl;
 
 } RADEONInfoRec, *RADEONInfoPtr;
 
-extern Bool        RADEONDRIScreenInit(ScreenPtr pScreen);
-extern void        RADEONDRICloseScreen(ScreenPtr pScreen);
-extern Bool        RADEONDRIFinishScreenInit(ScreenPtr pScreen);
-
-
-#endif /* XF86DRI */
 
 #endif /* _RADEON_H_ */

@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.1.2.3 2002/12/11 14:44:50 keithw Exp $
+# $Id: Makefile,v 1.1.2.4 2002/12/19 10:16:18 keithw Exp $
 
 # Mesa 3-D graphics library
 # Version:  5.0
@@ -24,7 +24,8 @@ COREMESA = 	$(MESABUILDDIR)/swrast_setup/swrast_setup.a \
 		$(MESABUILDDIR)/swrast/swrast.a \
 		$(MESABUILDDIR)/mesa.a 
 
-DRIVER_SOURCES = radeon_compat.c \
+DRIVER_SOURCES = server/radeon_dri.c \
+	  	 radeon_compat.c \
 		 radeon_context.c \
 		 radeon_ioctl.c \
 		 radeon_lock.c \

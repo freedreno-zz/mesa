@@ -60,14 +60,6 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "GL/internal/glcore.h"  /* for __GLcontextModes */
 #include "miniglxP.h"		/* XID, etc */
 
-/* Warning : Do not change XF86DRIClipRect without changing the kernel 
- * structure! */
-typedef struct _XF86DRIClipRect {
-    unsigned short	x1; /* Upper left: inclusive */
-    unsigned short	y1;
-    unsigned short	x2; /* Lower right: exclusive */
-    unsigned short	y2;
-} XF86DRIClipRectRec, *XF86DRIClipRectPtr;
 
 
 typedef struct __DRIdisplayPrivateRec  __DRIdisplayPrivate;

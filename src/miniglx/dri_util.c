@@ -38,38 +38,6 @@ __driUtilMessage(const char *f, ...)
 
 
 
-/* KW: this looks like a reasonable place to hook in the
- *     hardware init lifted from the 2d driver.
- */
-static void GetDeviceInfo(Display* dpy,
-			  int screen,
-			  drmHandlePtr hFrameBuffer,
-			  int* fbOrigin,
-			  int* fbSize,
-			  int* fbStride,
-			  int* devPrivateSize,
-			  void** pDevPrivate)
-{
-#if 0
-    DRIScreenPrivPtr pDRIPriv = DRI_SCREEN_PRIV(pScreen);
-
-    *hFrameBuffer = pDRIPriv->hFrameBuffer;
-    *fbOrigin = 0;
-    *fbSize = pDRIPriv->pDriverInfo->frameBufferSize;
-    *fbStride = pDRIPriv->pDriverInfo->frameBufferStride;
-    *devPrivateSize = 0;
-    *pDevPrivate = 0;
-#else
-    /* typical observed values: */
-    *hFrameBuffer = 0xd0000000;
-    *fbOrigin = 0;  /* duplicates values in pDevPriv on radeon */
-    *fbSize = 128 * 1024 * 1024; /* needed for drmMap/Unmap */
-    *fbStride = 1600 * 4;   /* ? */
-    *devPrivateSize = 100;  /* RADEONDRIRec from Xserver */
-    *pDevPrivate = calloc(1, *devPrivateSize); /* pointer to RADEONDRIRec */
-#endif
-}
-
 
 
 
@@ -443,7 +411,6 @@ static void driDestroyScreen(Display *dpy, int scrn, void *screenPrivate)
 
 	if (psp->fd) {
 	   (void)drmUnmap((drmAddress)psp->pSAREA, SAREA_MAX);
-	   (void)drmUnmap((drmAddress)psp->pFB, psp->fbSize);
 	   (void)drmClose(psp->fd);
 	}
 
@@ -476,20 +443,12 @@ __driUtilCreateScreen(Display *dpy, int scrn, __DRIscreen *psc,
 
    hSAREA = 0xe090c000;
    BusID = "PCI:1:0:0";
-
+   
    printf("hSAREA = 0x%x  BusID = %s\n", (int) hSAREA, BusID);
 
    psp->fd = drmOpen(NULL,BusID);
    if (psp->fd < 0) {
       fprintf(stderr, "libGL error: failed to open DRM: %s\n", strerror(-psp->fd));
-      fprintf(stderr, "libGL error: reverting to (slow) indirect rendering\n");
-      free(psp);
-      return NULL;
-   }
-
-   if (drmGetMagic(psp->fd, &magic)) {
-      fprintf(stderr, "libGL error: drmGetMagic failed\n");
-      (void)drmClose(psp->fd);
       free(psp);
       return NULL;
    }
@@ -503,9 +462,10 @@ __driUtilCreateScreen(Display *dpy, int scrn, __DRIscreen *psc,
 	 drmFreeVersion(version);
       }
       else {
-	 psp->drmMajor = -1;
-	 psp->drmMinor = -1;
-	 psp->drmPatch = -1;
+	 fprintf(stderr, "libGL error: failed to get drm version: %s\n", 
+		 strerror(-psp->fd));
+	 free(psp);
+	 return NULL;
       }
    }
 
@@ -522,8 +482,6 @@ __driUtilCreateScreen(Display *dpy, int scrn, __DRIscreen *psc,
    psp->driMajor = XF86DRI_MAJOR_VERSION;
    psp->driMinor = XF86DRI_MINOR_VERSION;
    psp->driPatch = XF86DRI_PATCH_VERSION;
-   printf("ClientDriver %d %d %d\n", psp->driMajor, psp->driMinor,
-	  psp->driPatch);
 
    /* install driver's callback functions */
    memcpy(&psp->DriverAPI, driverAPI, sizeof(struct __DriverAPIRec));
@@ -534,34 +492,16 @@ __driUtilCreateScreen(Display *dpy, int scrn, __DRIscreen *psc,
     * that has information about the screen size, depth, pitch,
     * ancilliary buffers, DRM mmap handles, etc.
     */
-   GetDeviceInfo(dpy, scrn,
-		 &hFB,
-		 &psp->fbOrigin,
-		 &psp->fbSize,
-		 &psp->fbStride,
-		 &psp->devPrivSize,
-		 &psp->pDevPriv);
-   
+   psp->pFB = dpy->FrameBuffer;
+   psp->fbOrigin = 0;  
+   psp->fbSize = dpy->FrameBufferSize; 
+   psp->fbStride = dpy->VarInfo.xres_virtual * dpy->cpp; 
+   psp->devPrivSize = dpy->driverInfoSize;
+   psp->pDevPriv = dpy->driverInfo;
    psp->fbWidth = dpy->VarInfo.xres;
    psp->fbHeight = dpy->VarInfo.yres;
    psp->fbBPP = dpy->VarInfo.bits_per_pixel;
 
-   printf("hFB = 0x%x\n", (int) hFB);
-   printf("fbOrigin=%d  fbSize=%d  fbStride=%d  devPrivSize=%d pDevPriv=%p\n",
-	  psp->fbOrigin, psp->fbSize, psp->fbStride, psp->devPrivSize,
-	  psp->pDevPriv);
-   printf("w=%d h=%d\n", psp->fbWidth, psp->fbHeight);
-
-   /*
-    * Map the framebuffer region.
-    */
-   if (drmMap(psp->fd, hFB, psp->fbSize, (drmAddressPtr)&psp->pFB)) {
-      fprintf(stderr, "libGL error: drmMap of framebuffer failed\n");
-      free(psp->pDevPriv);
-      (void)drmClose(psp->fd);
-      free(psp);
-      return NULL;
-   }
 
    /*
     * Map the SAREA region.  Further mmap regions may be setup in
@@ -569,7 +509,6 @@ __driUtilCreateScreen(Display *dpy, int scrn, __DRIscreen *psc,
     */
    if (drmMap(psp->fd, hSAREA, SAREA_MAX, (drmAddressPtr)&psp->pSAREA)) {
       fprintf(stderr, "libGL error: drmMap of sarea failed\n");
-      (void)drmUnmap((drmAddress)psp->pFB, psp->fbSize);
       free(psp->pDevPriv);
       (void)drmClose(psp->fd);
       free(psp);
@@ -581,7 +520,6 @@ __driUtilCreateScreen(Display *dpy, int scrn, __DRIscreen *psc,
       if (!(*psp->DriverAPI.InitDriver)(psp)) {
 	 fprintf(stderr, "libGL error: InitDriver failed\n");
 	 (void)drmUnmap((drmAddress)psp->pSAREA, SAREA_MAX);
-	 (void)drmUnmap((drmAddress)psp->pFB, psp->fbSize);
 	 free(psp->pDevPriv);
 	 (void)drmClose(psp->fd);
 	 free(psp);
@@ -615,20 +553,9 @@ __driUtilCreateScreenNoDRM(Display *dpy, int scrn, __DRIscreen *psc,
     if (!psp) 
 	return NULL;
 
-    /*
-     * Get device name (like "tdfx") and the ddx version numbers.
-     * We'll check the version in each DRI driver's "createScreen"
-     * function.
-     */
-    GetClientDriverName(dpy, scrn,
-			&psp->ddxMajor,
-			&psp->ddxMinor,
-			&psp->ddxPatch,
-			&driverName);
-
-    /* Screen private information -- yet another duplicate of
-     * fbdev info.
-     */
+    psp->ddxMajor = 4;
+    psp->ddxMinor = 0;
+    psp->ddxPatch = 1;
     psp->driMajor = XF86DRI_MAJOR_VERSION;
     psp->driMinor = XF86DRI_MINOR_VERSION;
     psp->driPatch = XF86DRI_PATCH_VERSION;

@@ -88,6 +88,8 @@ typedef struct __DRIdrawableRec __DRIdrawable;
 typedef void *(*CreateScreenFunc)(Display *dpy, int scrn, __DRIscreen *psc,
                                   int numConfigs, __GLXvisualConfig *config);
 
+typedef void *(*InitFBDevFunc)( Display *dpy );
+
 
 /*
 ** Screen dependent methods.  This structure is initialized during the
@@ -252,17 +254,53 @@ struct MiniGLXDisplayRec {
    int width;
    int height;
    int bpp;
+   int cpp;
 
    int numConfigs;
    __GLXvisualConfig *configs;
 
    /* From __GLXdisplayPrivate */
-/*    ScreenInitFunc screenInit; */
+   InitFBDevFunc driverInitFBDev;
    CreateScreenFunc createScreen;
    __DRIscreen driScreen;
    void *dlHandle;
+
+
+   /* Configuration details -- will come from a file, hardcoded for now 
+    * Can we get chipset from fbdev?  -- kindof, see fbdevhw.c
+    */
+   const char *fbdevDevice;
+   const char *clientDriverName;
+   const char *drmModuleName;
+   const char *pciBusID;
+   int pciBus;
+   int pciDevice;
+   int pciFunc;
+   int chipset;
+
+   /* From DRIInfoRec
+    */
+   int drmFD;
+   unsigned long hSAREA;
+   int SAREASize;
+   void *pSAREA;
+
+
+   /* Driver private, poplulated by __driInitFBDev();
+    */
+   void *driverPrivate;
+   void *driverInfo;
+   int driverInfoSize;
 };
 
+/* Warning : Do not change XF86DRIClipRect without changing the kernel 
+ * structure! */
+typedef struct _XF86DRIClipRect {
+    unsigned short	x1; /* Upper left: inclusive */
+    unsigned short	y1;
+    unsigned short	x2; /* Lower right: exclusive */
+    unsigned short	y2;
+} XF86DRIClipRectRec, *XF86DRIClipRectPtr;
 
 
 extern __DRIscreen *__glXFindDRIScreen(Display *dpy, int scrn);

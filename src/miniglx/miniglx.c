@@ -1,4 +1,4 @@
-/* $Id: miniglx.c,v 1.1.4.15 2002/12/16 18:55:44 keithw Exp $ */
+/* $Id: miniglx.c,v 1.1.4.16 2002/12/19 10:16:19 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -177,7 +177,7 @@ OpenFBDev( Display *dpy )
    }
 
    /* open the framebuffer device */
-   dpy->FrameBufferFD = open("/dev/fb0", O_RDWR);
+   dpy->FrameBufferFD = open(dpy->fbdevDevice, O_RDWR);
    if (dpy->FrameBufferFD < 0) {
       fprintf(stderr, "Error opening /dev/fb0: %s\n", strerror(errno));
       return GL_FALSE;
@@ -341,6 +341,7 @@ SetupFBDev( Display *dpy, Window win )
       return GL_FALSE;
    }
 
+   if (0)
    {
       int x, y;
       char *scrn = (char *)dpy->FrameBuffer;
@@ -371,6 +372,8 @@ SetupFBDev( Display *dpy, Window win )
               strerror(errno));
       return GL_FALSE;
    }
+
+   /* TODO:  Tell kernel not to use accelerated functions -- see fbdevhw.c */
 
    return GL_TRUE;
 }
@@ -495,6 +498,24 @@ InitializeScreenConfigs(int *numConfigs, __GLXvisualConfig **configs)
 /* Public API functions (Xlib and GLX)                                */
 /**********************************************************************/
 
+
+/* Replace with a config file read at runtime, eventually...
+ */
+int __read_config_file( Display *dpy )
+{
+   dpy->fbdevDevice = "/dev/fb0";
+   dpy->clientDriverName = "radeon_dri.so";
+   dpy->drmModuleName = "radeon.o";
+   dpy->pciBus = 1;
+   dpy->pciDevice = 0;
+   dpy->pciFunc = 0;
+   dpy->chipset = 0x5144;	/* radeon qd */
+   dpy->pciBusID = malloc(64);
+   sprintf((char *)dpy->pciBusID, "PCI:%d:%d:%d", 
+	   dpy->pciBus, dpy->pciDevice, dpy->pciFunc);
+}
+
+
 /* Jose:  This function not stable
  */
 Display *
@@ -505,6 +526,14 @@ XOpenDisplay( const char *display_name )
    dpy = (Display *) CALLOC(sizeof(Display));
    if (!dpy)
       return NULL;
+
+
+   if (!__read_config_file( dpy )) {
+      fprintf(stderr, "Couldn't get configuration details\n");
+      FREE(dpy);
+      return NULL;
+   }
+
 
    if (!OpenFBDev(dpy)) {
       fprintf(stderr, "OpenFBDev failed\n");
@@ -519,20 +548,31 @@ XOpenDisplay( const char *display_name )
     * We're kind of combining the per-display and per-screen information
     * which was kept separate in XFree86/DRI's libGL.
     */
-#define DRIVER_DRI_SO "fb_dri.so"
-   dpy->dlHandle = dlopen(DRIVER_DRI_SO, RTLD_NOW | RTLD_GLOBAL);
+   dpy->dlHandle = dlopen(dpy->clientDriverName, RTLD_NOW | RTLD_GLOBAL);
    if (!dpy->dlHandle) {
-      fprintf(stderr, "Unable to open %s: %s\n", DRIVER_DRI_SO, dlerror());
+      fprintf(stderr, "Unable to open %s: %s\n", dpy->clientDriverName,
+	      dlerror());
       CleanupFBDev(dpy);
       FREE(dpy);
       return NULL;
    }
 
+   dpy->driverInitFBDev = (InitFBDevFunc) dlsym(dpy->dlHandle, 
+						"__driInitFBDev");
+   if (!dpy->driverInitFBDev) {
+      fprintf(stderr, "Couldn't find __driInitFBDev in %s\n",
+              dpy->clientDriverName);
+      dlclose(dpy->dlHandle);
+      FREE(dpy);
+      return NULL;
+   }
+
+
    dpy->createScreen = (CreateScreenFunc) dlsym(dpy->dlHandle,
                                                 "__driCreateScreen");
    if (!dpy->createScreen) {
       fprintf(stderr, "Couldn't find __driCreateScreen in %s\n",
-              DRIVER_DRI_SO);
+              dpy->clientDriverName);
       dlclose(dpy->dlHandle);
       FREE(dpy);
       return NULL;
