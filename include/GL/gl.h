@@ -1,4 +1,4 @@
-/* $Id: gl.h,v 1.59.2.8 2002/09/13 19:38:56 brianp Exp $ */
+/* $Id: gl.h,v 1.59.2.9 2002/09/19 16:29:48 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -62,6 +62,10 @@
 #  define GLAPI extern
 #  define GLAPIENTRY
 #endif /* WIN32 / CYGWIN bracket */
+
+#if (defined(__BEOS__) && defined(__POWERPC__)) || defined(__QUICKDRAW__)
+#  define PRAGMA_EXPORT_SUPPORTED		1
+#endif
 
 #if defined(_WIN32) && !defined(_WINGDI_) && !defined(_GNU_H_WINDOWS32_DEFINES) && !defined(OPENSTEP) && !defined(__CYGWIN__)
 #include <gl/mesa_wgl.h>
@@ -2540,7 +2544,7 @@ GLAPI void GLAPIENTRY glTracePointerRangeMESA( const GLvoid* first, const GLvoid
 /**********************************************************************
  * Begin system-specific stuff
  */
-#if defined(__BEOS__) || defined(__QUICKDRAW__)
+#if defined(PRAGMA_EXPORT_SUPPORTED)
 #pragma export off
 #endif
 
