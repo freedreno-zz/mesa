@@ -1,8 +1,8 @@
-/* $Id: glapi.c,v 1.58 2001/10/17 13:34:08 brianp Exp $ */
+/* $Id: glapi.c,v 1.58.2.1 2001/11/18 23:24:49 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.5
+ * Version:  4.0.1
  *
  * Copyright (C) 1999-2001  Brian Paul   All Rights Reserved.
  *
@@ -971,8 +971,7 @@ static struct name_address_offset static_functions[] = {
 #undef NAME
 
 	/* ARB 12. GL_ARB_texture_compression */
-#if 000
-#if defined(GL_ARB_texture_compression) && defined(_gloffset_CompressedTexImage3DARB)
+#ifdef GL_ARB_texture_compression
 #define NAME(X) (GLvoid *) X
 #else
 #define NAME(X) (GLvoid *) NotImplemented
@@ -985,7 +984,6 @@ static struct name_address_offset static_functions[] = {
 	{ "glCompressedTexSubImage1DARB", NAME(glCompressedTexSubImage1DARB), _gloffset_CompressedTexSubImage1DARB },
 	{ "glGetCompressedTexImageARB", NAME(glGetCompressedTexImageARB), _gloffset_GetCompressedTexImageARB },
 #undef NAME
-#endif
 
 	/* 2. GL_EXT_blend_color */
 #ifdef GL_EXT_blend_color
@@ -1109,9 +1107,20 @@ static struct name_address_offset static_functions[] = {
 #define NAME(X) (GLvoid *) NotImplemented
 #endif
 	{ "glPixelTexGenParameterfSGIS", NAME(glPixelTexGenParameterfSGIS), _gloffset_PixelTexGenParameterfSGIS },
+	{ "glPixelTexGenParameterfvSGIS", NAME(glPixelTexGenParameterfvSGIS), _gloffset_PixelTexGenParameterfvSGIS },
 	{ "glPixelTexGenParameteriSGIS", NAME(glPixelTexGenParameteriSGIS), _gloffset_PixelTexGenParameteriSGIS },
+	{ "glPixelTexGenParameterivSGIS", NAME(glPixelTexGenParameterivSGIS), _gloffset_PixelTexGenParameterivSGIS },
 	{ "glGetPixelTexGenParameterfvSGIS", NAME(glGetPixelTexGenParameterfvSGIS), _gloffset_GetPixelTexGenParameterfvSGIS },
 	{ "glGetPixelTexGenParameterivSGIS", NAME(glGetPixelTexGenParameterivSGIS), _gloffset_GetPixelTexGenParameterivSGIS },
+#undef NAME
+
+	/* 15a. GL_SGIX_pixel_texture */
+#ifdef GL_SGIX_pixel_texture
+#define NAME(X) (GLvoid *) X
+#else
+#define NAME(X) (GLvoid *) NotImplemented
+#endif
+	{ "glPixelTexGenSGIX", NAME(glPixelTexGenSGIX), _gloffset_PixelTexGenSGIX },
 #undef NAME
 
 	/* 16. GL_SGIS_texture4D */
@@ -1511,7 +1520,7 @@ static struct name_address_offset static_functions[] = {
 	{ "glFogCoordfEXT", NAME(glFogCoordfEXT), _gloffset_FogCoordfEXT },
 	{ "glFogCoordfvEXT", NAME(glFogCoordfvEXT), _gloffset_FogCoordfvEXT },
 	{ "glFogCoorddEXT", NAME(glFogCoorddEXT), _gloffset_FogCoorddEXT },
-	{ "glFogCoorddEXT", NAME(glFogCoorddEXT), _gloffset_FogCoorddEXT },
+	{ "glFogCoorddvEXT", NAME(glFogCoorddvEXT), _gloffset_FogCoorddvEXT },
 	{ "glFogCoordPointerEXT", NAME(glFogCoordPointerEXT), _gloffset_FogCoordPointerEXT },
 #undef NAME
 
@@ -1699,7 +1708,30 @@ static struct name_address_offset static_functions[] = {
 #else
 #define NAME(X) (GLvoid *) NotImplemented
 #endif
+        { "glWindowPos2iMESA", NAME(glWindowPos2iMESA), _gloffset_WindowPos2iMESA },
+        { "glWindowPos2sMESA", NAME(glWindowPos2sMESA), _gloffset_WindowPos2sMESA },
+	{ "glWindowPos2fMESA", NAME(glWindowPos2fMESA), _gloffset_WindowPos2fMESA },
+	{ "glWindowPos2dMESA", NAME(glWindowPos2dMESA), _gloffset_WindowPos2dMESA },
+	{ "glWindowPos2ivMESA", NAME(glWindowPos2ivMESA), _gloffset_WindowPos2ivMESA },
+	{ "glWindowPos2svMESA", NAME(glWindowPos2svMESA), _gloffset_WindowPos2svMESA },
+	{ "glWindowPos2fvMESA", NAME(glWindowPos2fvMESA), _gloffset_WindowPos2fvMESA },
+	{ "glWindowPos2dvMESA", NAME(glWindowPos2dvMESA), _gloffset_WindowPos2dvMESA },
+	{ "glWindowPos3iMESA", NAME(glWindowPos3iMESA), _gloffset_WindowPos3iMESA },
+	{ "glWindowPos3sMESA", NAME(glWindowPos3sMESA), _gloffset_WindowPos3sMESA },
+	{ "glWindowPos3fMESA", NAME(glWindowPos3fMESA), _gloffset_WindowPos3fMESA },
+	{ "glWindowPos3dMESA", NAME(glWindowPos3dMESA), _gloffset_WindowPos3dMESA },
+	{ "glWindowPos3ivMESA", NAME(glWindowPos3ivMESA), _gloffset_WindowPos3ivMESA },
+	{ "glWindowPos3svMESA", NAME(glWindowPos3svMESA), _gloffset_WindowPos3svMESA },
+	{ "glWindowPos3fvMESA", NAME(glWindowPos3fvMESA), _gloffset_WindowPos3fvMESA },
+	{ "glWindowPos3dvMESA", NAME(glWindowPos3dvMESA), _gloffset_WindowPos3dvMESA },
+	{ "glWindowPos4iMESA", NAME(glWindowPos4iMESA), _gloffset_WindowPos4iMESA },
+	{ "glWindowPos4sMESA", NAME(glWindowPos4sMESA), _gloffset_WindowPos4sMESA },
 	{ "glWindowPos4fMESA", NAME(glWindowPos4fMESA), _gloffset_WindowPos4fMESA },
+	{ "glWindowPos4dMESA", NAME(glWindowPos4dMESA), _gloffset_WindowPos4dMESA },
+	{ "glWindowPos4ivMESA", NAME(glWindowPos4ivMESA), _gloffset_WindowPos4ivMESA },
+	{ "glWindowPos4svMESA", NAME(glWindowPos4svMESA), _gloffset_WindowPos4svMESA },
+	{ "glWindowPos4fvMESA", NAME(glWindowPos4fvMESA), _gloffset_WindowPos4fvMESA },
+	{ "glWindowPos4dvMESA", NAME(glWindowPos4dvMESA), _gloffset_WindowPos4dvMESA },
 #undef NAME
 
 	/* 209. WGL_EXT_multisample */
