@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.1.2.12 2003/01/20 14:50:18 keithw Exp $
+# $Id: Makefile,v 1.1.2.13 2003/01/22 09:53:49 keithw Exp $
 
 # Mesa 3-D graphics library
 # Version:  5.0
@@ -12,7 +12,7 @@ MESABUILDDIR = ../..
 INCLUDES = -I$(MESABUILDDIR) -I$(MESA)/include -I. -I../common \
 	   -I$(MESABUILDDIR)/miniglx -Iserver
 
-DEFINES = -D_HAVE_SWRAST=1 -D_HAVE_SWTNL=1 -D_HAVE_SANITY=1
+DEFINES = -D_HAVE_SWRAST=0 -D_HAVE_SWTNL=0 -D_HAVE_SANITY=1
 CFLAGS = $(INCLUDES) $(DEFINES) -g -MD -DGLX_DIRECT_RENDERING
 
 # The .a files for each mesa module required by this driver:
