@@ -37,6 +37,12 @@
 
 int gl_x86_cpu_features = 0;
 
+static void message(const char *msg)
+{
+   if (getenv("MESA_DEBUG"))
+      fprintf(stderr, "%s\n", msg);
+}
+
 
 void gl_init_all_x86_asm (void)
 {
@@ -48,7 +54,7 @@ void gl_init_all_x86_asm (void)
       gl_x86_cpu_features = 0;
 
    if (gl_x86_cpu_features & GL_CPU_GenuineIntel) {
-      fprintf (stderr, "GenuineIntel cpu detected.\n");
+      message("GenuineIntel cpu detected.");
    }
 
    if (gl_x86_cpu_features) {
@@ -59,7 +65,7 @@ void gl_init_all_x86_asm (void)
    if (gl_x86_cpu_features & GL_CPU_MMX) {
       char *s = getenv( "MESA_NO_MMX" );
       if (s == NULL) { 
-         fprintf (stderr, "MMX cpu detected.\n");
+         message("MMX cpu detected.");
       } else {
          gl_x86_cpu_features &= (~GL_CPU_MMX); 
       }
@@ -71,7 +77,7 @@ void gl_init_all_x86_asm (void)
    if (gl_x86_cpu_features & GL_CPU_3Dnow) {
       char *s = getenv( "MESA_NO_3DNOW" );
       if (s == NULL) {
-         fprintf (stderr, "3Dnow cpu detected.\n");
+         message("3Dnow cpu detected.");
          gl_init_3dnow_asm_transforms ();
       } else {
          gl_x86_cpu_features &= (~GL_CPU_3Dnow); 
