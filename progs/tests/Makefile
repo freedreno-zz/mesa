@@ -6,9 +6,9 @@
 
 CC = gcc
 CFLAGS = -g -I../include
-LIBS = -L../lib -lGL -lm
+LIBS = -L../lib -lGL -lglut -lm
 
-PROGS = miniglxtest miniglxsample
+PROGS = miniglxtest miniglxsample manytex 
 
 
 ##### RULES #####
