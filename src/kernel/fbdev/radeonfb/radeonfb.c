@@ -140,6 +140,9 @@
 
 #include <linux/radeonfb.h>
 
+#ifndef FB_ACCEL_ATI_RADEON
+#define FB_ACCEL_ATI_RADEON	38
+#endif
 
 #define DEBUG	0
 
