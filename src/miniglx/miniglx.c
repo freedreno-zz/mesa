@@ -22,7 +22,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: miniglx.c,v 1.1.4.47 2003/03/13 17:13:56 keithw Exp $ */
+/* $Id: miniglx.c,v 1.1.4.48 2003/03/22 08:45:57 keithw Exp $ */
 
 
 /**
@@ -213,10 +213,18 @@ Bool XCheckWindowEvent(Display *display, Window w, long event_mask,
 	 er->xexpose.send_event = False;
 	 er->xexpose.display = display;
 	 er->xexpose.window = w;
-	 er->xexpose.x = 0;
-	 er->xexpose.y = 0;
-	 er->xexpose.width = w->w;
-	 er->xexpose.height = w->h;
+	 if (display->rotateMode) {
+	    er->xexpose.x = w->y;
+	    er->xexpose.y = w->x;
+	    er->xexpose.width = w->h;
+	    er->xexpose.height = w->w;
+	 }
+	 else {
+	    er->xexpose.x = w->x;
+	    er->xexpose.y = w->y;
+	    er->xexpose.width = w->w;
+	    er->xexpose.height = w->h;
+	 }
 	 er->xexpose.count = 0;
 	 display->exposeNotifyCount = display->aquireVTCount;
 	 return True;
@@ -864,6 +872,7 @@ static int __read_config_file( Display *dpy )
    dpy->virtualHeight = 1024;
    dpy->bpp = 32;
    dpy->cpp = 4;
+   dpy->rotateMode = 0;
 
    fname = getenv("MINIGLX_CONF");
    if (!fname) fname = "/etc/miniglx.conf";
@@ -900,6 +909,8 @@ static int __read_config_file( Display *dpy )
 	 dpy->fbdevDevice = strdup(val);
       else if (strcmp(opt, "clientDriverName") == 0)
 	 dpy->clientDriverName = strdup(val);
+      else if (strcmp(opt, "rotateMode") == 0)
+	 dpy->rotateMode = atoi(val) ? 1 : 0;
       else if (strcmp(opt, "pciBusID") == 0) {
 	 if (sscanf(val, "PCI:%d:%d:%d",
 		    &dpy->pciBus, &dpy->pciDevice, &dpy->pciFunc) != 3) {
@@ -1170,6 +1181,14 @@ XCreateWindow( Display *display, Window parent, int x, int y,
    if (!win)
       return NULL;
 
+   /* In rotated mode, translate incoming x,y,width,height into
+    * 'normal' coordinates.
+    */
+   if (display->rotateMode) {
+      int tmp;
+      tmp = width; width = height; height = tmp;
+      tmp = x; x = y; y = tmp;
+   }
 
    /* init other per-window fields */
    win->x = 0;

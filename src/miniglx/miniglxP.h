@@ -309,6 +309,7 @@ struct MiniGLXDisplayRec {
    int MMIOSize;         /**< \brief size of the mmap'd MMIO region in bytes */
    int NumWindows;       /**< \brief number of open windows */
    Window TheWindow;     /**< \brief open window - only allow one window for now */
+   int rotateMode;
 
 
    int haveVT;
