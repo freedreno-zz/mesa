@@ -1,4 +1,4 @@
-/* $Id: texformat_tmp.h,v 1.3.2.2 2002/09/13 19:34:40 brianp Exp $ */
+/* $Id: texformat_tmp.h,v 1.3.2.3 2002/09/13 23:18:22 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -295,22 +295,22 @@ static void FETCH(ycbcr)( const struct gl_texture_image *texImage,
    const GLushort *src0 = USHORT_SRC( texImage, (i & ~1), j, k ); /* even */
    const GLushort *src1 = src0 + 1;                               /* odd */
    const GLubyte y0 = (*src0 >> 8) & 0xff;  /* luminance */
-   const GLubyte cr = *src0 & 0xff;         /* chroma U */
+   const GLubyte cb = *src0 & 0xff;         /* chroma U */
    const GLubyte y1 = (*src1 >> 8) & 0xff;  /* luminance */
-   const GLubyte cb = *src1 & 0xff;         /* chroma V */
+   const GLubyte cr = *src1 & 0xff;         /* chroma V */
    GLchan *rgba = (GLchan *) texel;
    GLint r, g, b;
    if (i & 1) {
       /* odd pixel: use y1,cr,cb */
-      r = (GLint) (1.164 * (y0-16) + 1.596 * (cr-128));
-      g = (GLint) (1.164 * (y0-16) - 0.813 * (cr-128) - 0.391 * (cb-128));
-      b = (GLint) (1.164 * (y0-16) + 2.018 * (cb-128));
-   }
-   else {
-      /* even pixel: use y0,cr,cb */
       r = (GLint) (1.164 * (y1-16) + 1.596 * (cr-128));
       g = (GLint) (1.164 * (y1-16) - 0.813 * (cr-128) - 0.391 * (cb-128));
       b = (GLint) (1.164 * (y1-16) + 2.018 * (cb-128));
+   }
+   else {
+      /* even pixel: use y0,cr,cb */
+      r = (GLint) (1.164 * (y0-16) + 1.596 * (cr-128));
+      g = (GLint) (1.164 * (y0-16) - 0.813 * (cr-128) - 0.391 * (cb-128));
+      b = (GLint) (1.164 * (y0-16) + 2.018 * (cb-128));
    }
    rgba[RCOMP] = CLAMP(r, 0, CHAN_MAX);
    rgba[GCOMP] = CLAMP(g, 0, CHAN_MAX);
@@ -332,15 +332,15 @@ static void FETCH(ycbcr_rev)( const struct gl_texture_image *texImage,
    GLint r, g, b;
    if (i & 1) {
       /* odd pixel: use y1,cr,cb */
-      r = (GLint) (1.164 * (y0-16) + 1.596 * (cr-128));
-      g = (GLint) (1.164 * (y0-16) - 0.813 * (cr-128) - 0.391 * (cb-128));
-      b = (GLint) (1.164 * (y0-16) + 2.018 * (cb-128));
-   }
-   else {
-      /* even pixel: use y0,cr,cb */
       r = (GLint) (1.164 * (y1-16) + 1.596 * (cr-128));
       g = (GLint) (1.164 * (y1-16) - 0.813 * (cr-128) - 0.391 * (cb-128));
       b = (GLint) (1.164 * (y1-16) + 2.018 * (cb-128));
+   }
+   else {
+      /* even pixel: use y0,cr,cb */
+      r = (GLint) (1.164 * (y0-16) + 1.596 * (cr-128));
+      g = (GLint) (1.164 * (y0-16) - 0.813 * (cr-128) - 0.391 * (cb-128));
+      b = (GLint) (1.164 * (y0-16) + 2.018 * (cb-128));
    }
    rgba[RCOMP] = CLAMP(r, 0, CHAN_MAX);
    rgba[GCOMP] = CLAMP(g, 0, CHAN_MAX);
