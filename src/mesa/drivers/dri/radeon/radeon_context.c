@@ -293,8 +293,9 @@ radeonCreateContext( const __GLcontextModes *glVisual,
    rmesa->sarea = (RADEONSAREAPrivPtr)((GLubyte *)sPriv->pSAREA +
 				       radeonScreen->sarea_priv_offset);
 
-
+#if _HAVE_FULL_GL
    rmesa->dma.buf0_address = rmesa->radeonScreen->buffers->list[0].address;
+#endif
 
    for ( i = 0 ; i < radeonScreen->numTexHeaps ; i++ ) {
       make_empty_list( &rmesa->texture.objects[i] );
@@ -733,6 +734,7 @@ void radeonNotifyFocus( int have_focus )
    
    if (have_focus && !rmesa->radeonScreen->buffers) {
       rmesa->radeonScreen->buffers = drmMapBufs( rmesa->dri.fd );
+      rmesa->dma.buf0_address = rmesa->radeonScreen->buffers->list[0].address;
 
       /* Use mprotect rather than unmapping the framebuffer due to the
        * large number of derived pointers into the sarea which would
@@ -748,7 +750,7 @@ void radeonNotifyFocus( int have_focus )
       drmUnmapBufs( rmesa->radeonScreen->buffers );
       rmesa->radeonScreen->buffers = 0;
       
-      mprotect(rmesa->dri.screen->pSAREA, SAREASize, PROT_NONE);
+      mprotect(rmesa->dri.screen->pSAREA, SAREASize, PROT_READ);
 
       assert(!rmesa->dma.current.buf); 
    }
