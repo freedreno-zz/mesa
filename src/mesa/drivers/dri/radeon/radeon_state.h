@@ -75,7 +75,6 @@ extern void radeonFallback( GLcontext *ctx, GLuint bit, GLboolean mode );
 #define TEXMAT_2   5
 
 extern void radeonUpdateSpecular( GLcontext *ctx );
-extern void radeonClipPlane( GLcontext *ctx, GLenum plane, const GLfloat *eq );
 
 extern void radeonUploadMatrixTranspose( radeonContextPtr rmesa, GLfloat *src, 
 					 int idx );
@@ -83,5 +82,18 @@ extern void radeonUploadMatrix( radeonContextPtr rmesa, GLfloat *src, int idx );
 
 extern void radeonUpdateScissor( GLcontext *ctx );
 
+/* radeon_lighting.c
+ */
+extern void radeonInitLightStateFuncs( GLcontext *ctx );
+extern void radeonColorMaterial( GLcontext *ctx, GLenum face, GLenum mode );
+extern void check_twoside_fallback( GLcontext *ctx );
+extern void radeonUpdateLighting( GLcontext *ctx );
+
+
+/* radeon_userclip.c
+ */
+extern void radeonClipPlane( GLcontext *ctx, GLenum plane, const GLfloat *eq );
+extern void radeonInitUserClip( GLcontext *ctx );
+extern void radeonUpdateClipPlanes( GLcontext *ctx );
 
 #endif

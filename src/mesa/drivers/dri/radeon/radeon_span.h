@@ -38,5 +38,6 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #define __RADEON_SPAN_H__
 
 extern void radeonInitSpanFuncs( GLcontext *ctx );
+extern void radeonCreateSwrastContext( GLcontext *ctx );
 
 #endif

@@ -53,7 +53,7 @@
 /* Update on colormaterial, material emmissive/ambient, 
  * lightmodel.globalambient
  */
- void update_global_ambient( GLcontext *ctx )
+void update_global_ambient( GLcontext *ctx )
 {
    radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
    float *fcmd = (float *)RADEON_DB_STATE( glt );
@@ -137,7 +137,7 @@ void check_twoside_fallback( GLcontext *ctx )
    TCL_FALLBACK( ctx, RADEON_TCL_FALLBACK_LIGHT_TWOSIDE, fallback );
 }
 
- void radeonColorMaterial( GLcontext *ctx, GLenum face, GLenum mode )
+void radeonColorMaterial( GLcontext *ctx, GLenum face, GLenum mode )
 {
    if (ctx->Light.ColorMaterialEnabled) {
       radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
@@ -321,8 +321,9 @@ void radeonUpdateLighting( GLcontext *ctx )
    }
 }
 
- void radeonLightfv( GLcontext *ctx, GLenum light,
-			   GLenum pname, const GLfloat *params )
+
+void radeonLightfv( GLcontext *ctx, GLenum light,
+		    GLenum pname, const GLfloat *params )
 {
    radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
    GLint p = light - GL_LIGHT0;
@@ -395,8 +396,8 @@ void radeonUpdateLighting( GLcontext *ctx )
 		  
 
 
- void radeonLightModelfv( GLcontext *ctx, GLenum pname,
-				const GLfloat *param )
+void radeonLightModelfv( GLcontext *ctx, GLenum pname,
+			 const GLfloat *param )
 {
    radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
 

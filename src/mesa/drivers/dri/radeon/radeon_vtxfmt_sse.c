@@ -35,7 +35,7 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "glheader.h"
 #include "imports.h"
 #include "simple_list.h" 
-#include "radeon_vtxfmt.h"
+#include "radeon_context.h"
 
 #if defined(USE_SSE_ASM) && _HAVE_CODEGEN
 #include "X86/common_x86_asm.h"

@@ -140,6 +140,36 @@ struct radeon_vbinfo {
    GLvertexformat vtxfmt;
 };
 
+struct radeon_vb {
+   /* Keep these first: referenced from codegen templates:
+    */
+   GLint counter, initial_counter;
+   GLint *dmaptr;
+   void (*notify)( void );
+   GLint vertex_size;
+
+   /* A maximum total of 15 elements per vertex:  3 floats for position, 3
+    * floats for normal, 4 floats for color, 4 bytes for secondary color,
+    * 2 floats for each texture unit (4 floats total).
+    * 
+    * As soon as the 3rd TMU is supported or cube maps (or 3D textures) are
+    * supported, this value will grow.
+    * 
+    * The position data is never actually stored here, so 3 elements could be
+    * trimmed out of the buffer.
+    */
+   union { float f; int i; radeon_color_t color; } vertex[15];
+
+   GLfloat *normalptr;
+   GLfloat *floatcolorptr;
+   radeon_color_t *colorptr;
+   GLfloat *floatspecptr;
+   radeon_color_t *specptr;
+   GLfloat *texcoordptr[2];
+
+   GLcontext *context;		/* current context : Single thread only! */
+};
+
 
 extern struct radeon_vb vb;
 

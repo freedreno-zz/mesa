@@ -36,7 +36,7 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "imports.h"
 #include "mmath.h" 
 #include "simple_list.h" 
-#include "radeon_vtxfmt.h"
+#include "radeon_context.h"
 
 #if defined(USE_X86_ASM)
 

@@ -33,12 +33,11 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
  *
  */
 
-#ifndef __RADEON_TRIS_H__
-#define __RADEON_TRIS_H__
+#ifndef __RADEON_SWTCL_H__
+#define __RADEON_SWTCL_H__
 
 #include "mtypes.h"
 #include "swrast/swrast.h"
-
 
 /* Flags for software fallback cases */
 /* See correponding strings in radeon_swtcl.c */
@@ -94,6 +93,7 @@ struct radeon_swtcl_info {
    struct radeon_dma_region indexed_verts;
 };
 
+extern void radeonCreateTnlContext( GLcontext *ctx );
 extern void radeonInitSwtcl( GLcontext *ctx );
 extern void radeonDestroySwtcl( GLcontext *ctx );
 

@@ -39,6 +39,9 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 extern void radeonUpdateTextureState( GLcontext *ctx );
+extern void radeonUpdateTextureMatrix( GLcontext *ctx );
+extern GLboolean radeonUpdateTexgen( GLcontext *ctx, GLuint unit );
+extern GLboolean radeonUpdateTextureEnvCombine( GLcontext *ctx, int unit );
 
 extern int radeonUploadTexImages( radeonContextPtr rmesa, radeonTexObjPtr t );
 
@@ -51,5 +54,8 @@ extern void radeonPrintGlobalLRU( radeonContextPtr rmesa, int heap );
 extern void radeonUpdateTexLRU( radeonContextPtr rmesa, radeonTexObjPtr t );
 
 extern void radeonInitTextureFuncs( GLcontext *ctx );
+
+extern void radeonInitTexTransform( GLcontext *ctx );
+
 
 #endif /* __RADEON_TEX_H__ */

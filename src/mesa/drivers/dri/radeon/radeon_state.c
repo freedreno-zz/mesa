@@ -1307,8 +1307,8 @@ static void radeonEnable( GLcontext *ctx, GLenum cap, GLboolean state )
    case GL_CLIP_PLANE2:
    case GL_CLIP_PLANE3:
    case GL_CLIP_PLANE4:
-   case GL_CLIP_PLANE5: 
-      p = cap-GL_CLIP_PLANE0;
+   case GL_CLIP_PLANE5: {
+      GLuint p = cap-GL_CLIP_PLANE0;
       RADEON_STATECHANGE( rmesa, tcl );
       if (state) {
 	 rmesa->hw.tcl.cmd[TCL_UCP_VERT_BLEND_CTL] |= (RADEON_UCP_ENABLE_0<<p);
@@ -1318,6 +1318,7 @@ static void radeonEnable( GLcontext *ctx, GLenum cap, GLboolean state )
 	 rmesa->hw.tcl.cmd[TCL_UCP_VERT_BLEND_CTL] &= ~(RADEON_UCP_ENABLE_0<<p);
       }
       break;
+   }
 #endif
 
    case GL_CULL_FACE:

@@ -38,7 +38,7 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "api_noop.h"
 #include "vtxfmt.h"
 
-#include "radeon_vtxfmt.h"
+#include "radeon_context.h"
 
 /* Fallback versions of all the entrypoints for situations where
  * codegen isn't available.  This is still a lot faster than the

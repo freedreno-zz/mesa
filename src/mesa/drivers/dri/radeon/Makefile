@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.1.2.25 2003/02/23 20:24:11 keithw Exp $
+# $Id: Makefile,v 1.1.2.26 2003/03/04 17:29:56 keithw Exp $
 
 # Mesa 3-D graphics library
 # Version:  5.0
@@ -7,12 +7,25 @@
 
 
 MESA = ../../..
-MESABUILDDIR = ../..
+default: radeon_dri.so 
+include $(MESA)/Makefile.include
 
-SHARED_INCLUDES = -I$(MESABUILDDIR) -I$(MESA)/include -I. -I../common -Iserver
+
+SHARED_INCLUDES= -I$(MESABUILDDIR) -I$(MESA)/include -I. -I../common -Iserver
 MINIGLX_INCLUDES = -I$(MESABUILDDIR)/miniglx 
 DRI_INCLUDES = -I$(MESABUILDDIR)/dri
 
+ifeq ($(FULL_DRIVER),true)
+DEFINES = \
+	-D_HAVE_SWRAST=1 \
+	-D_HAVE_SWTNL=1 \
+	-D_HAVE_SANITY=1 \
+	-D_HAVE_CODEGEN=1 \
+	-D_HAVE_LIGHTING=1 \
+	-D_HAVE_TEXGEN=1 \
+	-D_HAVE_USERCLIP=1 \
+	-D_HAVE_FULL_GL=1
+else
 DEFINES = \
 	-D_HAVE_SWRAST=0 \
 	-D_HAVE_SWTNL=0 \
@@ -22,10 +35,7 @@ DEFINES = \
 	-D_HAVE_TEXGEN=0 \
 	-D_HAVE_USERCLIP=0 \
 	-D_HAVE_FULL_GL=0
-
-CFLAGS = $(INCLUDES) $(DEFINES) -g -MD -Wall -Wpointer-arith \
-	 -Wstrict-prototypes -Wmissing-prototypes \
-	 -Wmissing-declarations -Wnested-externs
+endif
 
 # The .a files for each mesa module required by this driver:
 #
@@ -40,7 +50,7 @@ FULL_MESA = 	$(MESABUILDDIR)/swrast_setup/swrast_setup.a \
 SUBSET_MESA = 	$(MESABUILDDIR)/mesa.a \
 		$(MESABUILDDIR)/math/math.a
 
-DRI =           $(MESABUILDDIR)/dri/dri.a
+
 
 MINIGLX_SOURCES = server/radeon_dri.c 
 
@@ -63,6 +73,7 @@ FULL_DRIVER_SOURCES = 	\
 		 radeon_tex.c \
 		 radeon_texmem.c \
 		 radeon_texstate.c \
+		 radeon_texcombine.c \
 		 radeon_lighting.c \
 		 radeon_userclip.c \
 		 radeon_texgen.c \
@@ -81,55 +92,44 @@ FULL_DRIVER_SOURCES = 	\
 INCLUDES = $(MINIGLX_INCLUDES) \
 	   $(SHARED_INCLUDES)
 
+
+ifeq ($(FULL_DRIVER),true)
+C_SOURCES = $(DRIVER_SOURCES) \
+	    $(FULL_DRIVER_SOURCES) \
+	    $(MINIGLX_SOURCES) 
+MESA_MODULES = $(FULL_MESA)
+else
 C_SOURCES = $(DRIVER_SOURCES) \
 	    $(SUBSET_DRIVER_SOURCES) \
 	    $(MINIGLX_SOURCES) 
+MESA_MODULES = $(FULL_MESA)
+endif
+
+
+ifeq ($(WINDOW_SYSTEM),dri)
+WINOBJ=$(MESABUILDDIR)/dri/dri.a
+WINLIB=
+else
+WINOBJ=
+WINLIB=-L$(MESA)/src/miniglx
+endif
 
 ASM_SOURCES = 
-
 OBJECTS = $(C_SOURCES:.c=.o) \
 	  $(ASM_SOURCES:.S=.o) 
 
 
 
-##### RULES #####
-
-.S.o:
-	$(CC) -c $(CFLAGS) $< -o $@
-
-.c.o: 
-	$(CC) -c $(CFLAGS) $< -o $@
-
 ##### TARGETS #####
 
-default: radeon_dri.so install
 
-radeon_dri.so:  $(SUBSET_MESA) $(OBJECTS) Makefile
-	rm -f $@ && gcc -o $@ -shared $(OBJECTS) $(SUBSET_MESA) -L$(MESA)/src/miniglx -lGL -lc -lm
-
-#radeon_dri.so:  $(SUBSET_MESA) $(DRI) $(OBJECTS) Makefile
-#	rm -f $@ && gcc -o $@ -shared $(OBJECTS) $(SUBSET_MESA) $(DRI) -lc -lm
-
-
-loc:
-	wc -l $(DRIVER_SOURCES) $(SUBSET_DRIVER_SOURCES)
-	wc -l $(DRIVER_SOURCES) $(FULL_DRIVER_SOURCES) radeon_maos_verts.c radeon_maos_vbtmp.h
-
-install:
+# Build the subset or full driver?
+#
+radeon_dri.so:  $(OBJECTS) $(MESA_MODULES) $(WINOBJ) Makefile
+	rm -f $@ && gcc -o $@ -shared $(OBJECTS) $(MESA_MODULES) $(WINOBJ) $(WINLIB) -lGL -lc -lm
 	rm -f $(MESA)/lib/radeon_dri.so && \
 	install radeon_dri.so $(MESA)/lib/radeon_dri.so
-
-clean:
-	-rm -f *.o *~ *.d .\#* *.so
-
-tags:
-	etags `find . -name \*.[ch]` `find ../include`
 
 ##### DEPENDENCIES #####
 
 -include $(C_SOURCES:.c=.d)
-
-.SUFFIXES: .c .d
-
-.c.d:
-	$(CC) -M $(INCLUDES) $(DEFINES) $< > $@

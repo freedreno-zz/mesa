@@ -49,8 +49,46 @@ typedef struct radeon_context *radeonContextPtr;
 #include "radeon_screen.h"
 #include "mm.h"
 
+/**
+ * \brief Reference counting on DMA buffers.
+ */
+struct radeon_dma_buffer {
+   int refcount;	/**< \brief number of retained regions in radeon_dma_buffer::buf */
+   drmBufPtr buf;	/**< \brief DMA buffer */
+};
+
+/**
+ * \brief Get the start of a DMA region.
+ *
+ * \param rvb pointer to a radeon_dma_region structure.
+ *
+ * \return pointer to the region start.
+ */
+#define GET_START(rvb) (rmesa->radeonScreen->agp_buffer_offset +	\
+			(rvb)->address - rmesa->dma.buf0_address +	\
+			(rvb)->start)
+
+/**
+ * \brief A retained DMA region.
+ *
+ * e.g. vertices for indexed vertices.
+ */
+struct radeon_dma_region {
+   struct radeon_dma_buffer *buf;	/**< \brief DMA buffer */
+   char *address;			/**< \brief buf->address */
+   int start;				/**< \brief start offset from start of radeon_dma_region::buf */
+   int end;				/**< \brief end offset from start of radeon_dma_region::buf */
+   int ptr;				/**< \brief offsets from start of radeon_dma_region::buf */
+   int aos_start;			/**< \brief array of structures start */
+   int aos_stride;			/**< \brief array of structures stride */
+   int aos_size;			/**< \brief array of structures size */
+};
+
 #if _HAVE_SWTNL
 #include "radeon_swtcl.h"
+#endif
+#if _HAVE_FULL_GL
+#include "radeon_vtxfmt.h"
 #endif
 
 /**
@@ -478,40 +516,6 @@ struct radeon_texture {
    GLint numHeaps;				/**< \brief number of active heaps */
 };
 
-/**
- * \brief Reference counting on DMA buffers.
- */
-struct radeon_dma_buffer {
-   int refcount;	/**< \brief number of retained regions in radeon_dma_buffer::buf */
-   drmBufPtr buf;	/**< \brief DMA buffer */
-};
-
-/**
- * \brief Get the start of a DMA region.
- *
- * \param rvb pointer to a radeon_dma_region structure.
- *
- * \return pointer to the region start.
- */
-#define GET_START(rvb) (rmesa->radeonScreen->agp_buffer_offset +	\
-			(rvb)->address - rmesa->dma.buf0_address +	\
-			(rvb)->start)
-
-/**
- * \brief A retained DMA region.
- *
- * e.g. vertices for indexed vertices.
- */
-struct radeon_dma_region {
-   struct radeon_dma_buffer *buf;	/**< \brief DMA buffer */
-   char *address;			/**< \brief buf->address */
-   int start;				/**< \brief start offset from start of radeon_dma_region::buf */
-   int end;				/**< \brief end offset from start of radeon_dma_region::buf */
-   int ptr;				/**< \brief offsets from start of radeon_dma_region::buf */
-   int aos_start;			/**< \brief array of structures start */
-   int aos_stride;			/**< \brief array of structures stride */
-   int aos_size;			/**< \brief array of structures size */
-};
 
 
 /**
@@ -709,8 +713,9 @@ struct radeon_context {
 
    /* radeon_vtxfmt.c
     */
-/*    struct radeon_vbinfo vb; */
-
+#if _HAVE_FULL_GL
+   struct radeon_vbinfo vb;
+#endif
    /**
     * \brief Mirrors of some DRI state
     */

@@ -40,6 +40,8 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "mtypes.h"
 #include "enums.h"
 
+#include "radeon_context.h"
+
 #if _HAVE_SWTNL
 #include "array_cache/acache.h"
 #include "tnl/tnl.h"
@@ -48,7 +50,6 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "radeon_maos.h"
 #endif
 
-#include "radeon_context.h"
 #include "radeon_state.h"
 #include "radeon_ioctl.h"
 #include "radeon_tex.h"

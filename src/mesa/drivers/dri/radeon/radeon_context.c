@@ -51,6 +51,8 @@
 #include "radeon_tcl.h"
 #include "radeon_vtxfmt.h"
 #include "radeon_tex.h"
+#include "radeon_span.h"
+#include "radeon_maos.h"
 #else
 #include "radeon_subset.h"
 #endif
@@ -202,8 +204,10 @@ static void radeonInitDriverFuncs( GLcontext *ctx )
     ctx->Driver.ResizeBuffers           = ResizeBuffers;
     ctx->Driver.Error			= NULL;
     ctx->Driver.DrawPixels		= NULL;
+#if !_HAVE_SWRAST
     ctx->Driver.Bitmap			= radeonPointsBitmap;
     ctx->Driver.ReadPixels		= radeonReadPixels;
+#endif
 }
 
 
@@ -366,8 +370,9 @@ radeonCreateContext( const __GLcontextModes *glVisual,
 #if _HAVE_SWTNL
    radeonInitSwtcl( ctx );
 #endif
+#if !_HAVE_FULL_GL
    radeonInitSelect( ctx );
-
+#endif
 
    rmesa->do_irqs = (rmesa->radeonScreen->irq && !getenv("RADEON_NO_IRQS"));
    rmesa->irqsEmitted = 0;
