@@ -37,7 +37,9 @@ install:
 	ln -s libGLU.so.1 $(MESA)/lib/libGLU.so
 
 
-clean::
+clean: clean_here
+
+clean_here:
 	rm -f ../lib/libGLU.so*
 
 
