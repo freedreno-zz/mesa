@@ -188,7 +188,7 @@ radeonScreenPtr radeonCreateScreen( __DRIscreenPrivate *sPriv )
    radeonScreen->scratch = (__volatile__ GLuint *)
       ((GLubyte *)radeonScreen->status.map + RADEON_SCRATCH_REG_OFFSET);
 
-#if !_HAVE_FULL_GL
+#if _HAVE_FULL_GL
    radeonScreen->buffers = drmMapBufs( sPriv->fd );
    if ( !radeonScreen->buffers ) {
       drmUnmap( radeonScreen->status.map, radeonScreen->status.size );
