@@ -1,4 +1,4 @@
-/* $Id: stencil.c,v 1.29 2002/10/24 23:57:21 brianp Exp $ */
+/* $Id: stencil.c,v 1.29.4.1 2003/03/18 08:55:20 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -195,6 +195,7 @@ _mesa_StencilOp(GLenum fail, GLenum zfail, GLenum zpass)
 }
 
 
+#if _HAVE_FULL_GL
 /* GL_EXT_stencil_two_side */
 void
 _mesa_ActiveStencilFaceEXT(GLenum face)
@@ -211,4 +212,4 @@ _mesa_ActiveStencilFaceEXT(GLenum face)
       (*ctx->Driver.ActiveStencilFace)( ctx, (GLuint) ctx->Stencil.ActiveFace );
    }
 }
-
+#endif
