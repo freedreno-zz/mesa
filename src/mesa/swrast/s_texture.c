@@ -1,8 +1,8 @@
-/* $Id: s_texture.c,v 1.41.2.1 2002/03/13 04:45:35 brianp Exp $ */
+/* $Id: s_texture.c,v 1.41.2.2 2002/04/04 17:04:50 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  4.0.2
+ * Version:  4.0.3
  *
  * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
  *
@@ -2048,7 +2048,7 @@ texture_combine(const GLcontext *ctx,
             const GLchan (*arg0)[4] = (const GLchan (*)[4]) argRGB[0];
             const GLchan (*arg1)[4] = (const GLchan (*)[4]) argRGB[1];
 #if CHAN_TYPE != GL_FLOAT
-            const GLint shift = 8 - RGBshift;
+            const GLint shift = CHAN_BITS - RGBshift;
 #endif
             for (i = 0; i < n; i++) {
 #if CHAN_TYPE == GL_FLOAT
@@ -2115,7 +2115,7 @@ texture_combine(const GLcontext *ctx,
             const GLchan (*arg1)[4] = (const GLchan (*)[4]) argRGB[1];
             const GLchan (*arg2)[4] = (const GLchan (*)[4]) argRGB[2];
 #if CHAN_TYPE != GL_FLOAT
-            const GLint shift = 8 - RGBshift;
+            const GLint shift = CHAN_BITS - RGBshift;
 #endif
             for (i = 0; i < n; i++) {
 #if CHAN_TYPE == GL_FLOAT
@@ -2220,7 +2220,7 @@ texture_combine(const GLcontext *ctx,
             const GLchan (*arg0)[4] = (const GLchan (*)[4]) argA[0];
             const GLchan (*arg1)[4] = (const GLchan (*)[4]) argA[1];
 #if CHAN_TYPE != GL_FLOAT
-            const GLint shift = 8 - Ashift;
+            const GLint shift = CHAN_BITS - Ashift;
 #endif
             for (i = 0; i < n; i++) {
 #if CHAN_TYPE == GL_FLOAT
@@ -2267,7 +2267,7 @@ texture_combine(const GLcontext *ctx,
             const GLchan (*arg1)[4] = (const GLchan (*)[4]) argA[1];
             const GLchan (*arg2)[4] = (const GLchan (*)[4]) argA[2];
 #if CHAN_TYPE != GL_FLOAT
-            const GLint shift = 8 - Ashift;
+            const GLint shift = CHAN_BITS - Ashift;
 #endif
             for (i=0; i<n; i++) {
 #if CHAN_TYPE == GL_FLOAT
@@ -2285,13 +2285,13 @@ texture_combine(const GLcontext *ctx,
          break;
       case GL_SUBTRACT_ARB:
          {
-            const GLchan (*arg0)[4] = (const GLchan (*)[4]) argRGB[0];
-            const GLchan (*arg1)[4] = (const GLchan (*)[4]) argRGB[1];
+            const GLchan (*arg0)[4] = (const GLchan (*)[4]) argA[0];
+            const GLchan (*arg1)[4] = (const GLchan (*)[4]) argA[1];
             for (i = 0; i < n; i++) {
 #if CHAN_TYPE == GL_FLOAT
                rgba[i][ACOMP] = (arg0[i][ACOMP] - arg1[i][ACOMP]) * Amult;
 #else
-               GLint a = ((GLint) arg0[i][ACOMP] - (GLint) arg1[i][ACOMP]) << RGBshift;
+               GLint a = ((GLint) arg0[i][ACOMP] - (GLint) arg1[i][ACOMP]) << Ashift;
                rgba[i][ACOMP] = (GLchan) CLAMP(a, 0, CHAN_MAX);
 #endif
             }
