@@ -1,4 +1,4 @@
-# $Id: Make-config,v 1.25.4.4 2000/11/03 01:35:30 brianp Exp $
+# $Id: Make-config,v 1.25.4.5 2000/11/03 01:58:06 brianp Exp $
 
 MESA_MAJOR=3
 MESA_MINOR=4
@@ -572,7 +572,7 @@ linux-glide:
 	"GL_LIB_DEPS = -L/usr/X11R6/lib -lX11 -lXext -lm -lpthread -L/usr/local/glide/lib -lglide2x" \
 	"GLU_LIB_DEPS = -L../lib -lGL -lm" \
 	"GLUT_LIB_DEPS = -L../lib -lGLU -lGL -L/usr/X11R6/lib -lX11 -lXmu -lXt -lXi -lm" \
-	"APP_LIB_DEPS = -lglut -lGLU -lGL"
+	"APP_LIB_DEPS = -L/usr/local/glide/lib -lglide2x -lglut -lGLU -lGL"
 
 linux-386-glide:
 	$(MAKE) $(MFLAGS) -f Makefile.X11 targets \
@@ -586,7 +586,7 @@ linux-386-glide:
 	"GL_LIB_DEPS = -L/usr/X11R6/lib -lX11 -lXext -lm -L/usr/local/glide/lib -lglide2x -lm -lpthread" \
 	"GLU_LIB_DEPS = -L../lib -lGL -lm" \
 	"GLUT_LIB_DEPS = -L../lib -lGLU -lGL -L/usr/X11R6/lib -lX11 -lXmu -lXt -lXi -lm" \
-	"APP_LIB_DEPS = -lm" \
+	"APP_LIB_DEPS = -L/usr/local/glide/lib -lglide2x -lm" \
 	"ASM_SOURCES = X86/common_x86_asm.S X86/glapi_x86.S \
 		X86/x86_xform_raw2.S X86/x86_xform_raw3.S \
 		X86/x86_xform_raw4.S X86/x86_xform_masked2.S \
@@ -605,7 +605,7 @@ linux-386-opt-glide:
 	"GL_LIB_DEPS = -L/usr/X11R6/lib -lX11 -lXext -lm -L/usr/local/glide/lib -lglide2x -lm -lpthread" \
 	"GLU_LIB_DEPS = -L../lib -lGL -lm" \
 	"GLUT_LIB_DEPS = -L../lib -lGLU -lGL -L/usr/X11R6/lib -lX11 -lXmu -lXt -lXi -lm" \
-	"APP_LIB_DEPS = -lm" \
+	"APP_LIB_DEPS = -L/usr/local/glide/lib -lglide2x -lm" \
 	"ASM_SOURCES = X86/common_x86_asm.S X86/glapi_x86.S \
 		X86/x86_xform_raw2.S X86/x86_xform_raw3.S \
 		X86/x86_xform_raw4.S X86/x86_xform_masked2.S \
@@ -624,7 +624,7 @@ linux-386-opt-V2-glide:
 	"GL_LIB_DEPS = -L/usr/X11R6/lib -lX11 -lXext -lm -L/usr/local/glide/lib -lglide2x -lm -lpthread" \
 	"GLU_LIB_DEPS = -L../lib -lGL -lm" \
 	"GLUT_LIB_DEPS = -L../lib -lGLU -lGL -L/usr/X11R6/lib -lX11 -lXmu -lXt -lXi -lm" \
-	"APP_LIB_DEPS = -lm" \
+	"APP_LIB_DEPS = -L/usr/local/glide/lib -lglide2x -lm" \
 	"ASM_SOURCES = X86/common_x86_asm.S X86/glapi_x86.S \
 		X86/x86_xform_raw2.S X86/x86_xform_raw3.S \
 		X86/x86_xform_raw4.S X86/x86_xform_masked2.S \
@@ -643,7 +643,7 @@ linux-x86-glide:
 	"GL_LIB_DEPS = -L/usr/X11R6/lib -lX11 -lXext -lm -L/usr/local/glide/lib -lglide2x -lm -lpthread" \
 	"GLU_LIB_DEPS = -L../lib -lGL -lm" \
 	"GLUT_LIB_DEPS = -L../lib -lGLU -lGL -L/usr/X11R6/lib -lX11 -lXmu -lXt -lXi -lm" \
-	"APP_LIB_DEPS = -lm" \
+	"APP_LIB_DEPS = -L/usr/local/glide/lib -lglide2x -lm" \
 	"ASM_SOURCES = X86/common_x86_asm.S X86/glapi_x86.S \
 		X86/x86_xform_raw2.S X86/x86_xform_raw3.S \
 		X86/x86_xform_raw4.S X86/x86_xform_masked2.S \
@@ -1275,7 +1275,7 @@ linux-debug:
 	"GL_LIB_DEPS = -L/usr/X11R6/lib -lX11 -lXext -lm -lpthread -lvga -L/usr/local/glide/lib -lglide2x" \
 	"GLU_LIB_DEPS = -L../lib -lGL -lm" \
 	"GLUT_LIB_DEPS = -L../lib -lGLU -lGL -L/usr/X11R6/lib -lX11 -lXmu -lXt -lXi -lm" \
-	"APP_LIB_DEPS = -lglut -lGLU -lGL"
+	"APP_LIB_DEPS = -L/usr/local/glide/lib -lglide2x -lglut -lGLU -lGL"
 
 linux-static-debug:
 	$(MAKE) $(MFLAGS) -f Makefile.X11 targets \
