@@ -1,4 +1,4 @@
-# $Id: Make-config,v 1.10.2.4 2000/05/03 15:03:17 brianp Exp $
+# $Id: Make-config,v 1.10.2.5 2000/05/08 18:19:49 brianp Exp $
 
 MESA_MAJOR=3
 MESA_MINOR=2
@@ -634,10 +634,10 @@ linux-alpha:
 	$(MAKE) $(MFLAGS) -f Makefile.X11 targets \
 	"GL_LIB = libGL.a" \
 	"GLU_LIB = libGLU.a" \
-	"GLUT_LIB = libglut.so" \
+	"GLUT_LIB = libglut.a" \
 	"GLW_LIB = libGLw.a" \
 	"CC = gcc" \
-	"CFLAGS = -O3 -mieee -pedantic -L/usr/X11R6/lib -D_XOPEN_SOURCE -DSHM" \
+	"CFLAGS = -O3 -mcpu=ev5 -ansi -mieee -pedantic -L/usr/X11R6/lib -D_XOPEN_SOURCE -DSHM" \
 	"MAKELIB = ../bin/mklib.ar-ruv" \
 	"XLIBS = -L/usr/X11R6/lib -lX11 -lm"
 
@@ -648,7 +648,7 @@ linux-alpha-elf:
 	"GLUT_LIB = libglut.so" \
 	"GLW_LIB = libGLw.so" \
 	"CC = gcc" \
-	"CFLAGS = -ansi -mieee -pedantic -fPIC -D_XOPEN_SOURCE -DSHM" \
+	"CFLAGS = -O3 -mcpu=ev5 -ansi -mieee -pedantic -fPIC -D_XOPEN_SOURCE -DSHM" \
 	"MAKELIB = ../bin/mklib.linux" \
 	"XLIBS = -L/usr/X11R6/lib -lX11 -lXext -lXmu -lXi -lm"
 
