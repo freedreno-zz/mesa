@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.1.2.26 2003/03/04 17:29:56 keithw Exp $
+# $Id: Makefile,v 1.1.2.27 2003/03/05 13:16:20 keithw Exp $
 
 # Mesa 3-D graphics library
 # Version:  5.0
@@ -102,7 +102,7 @@ else
 C_SOURCES = $(DRIVER_SOURCES) \
 	    $(SUBSET_DRIVER_SOURCES) \
 	    $(MINIGLX_SOURCES) 
-MESA_MODULES = $(FULL_MESA)
+MESA_MODULES = $(SUBSET_MESA)
 endif
 
 
