@@ -1,4 +1,4 @@
-$Id: VERSIONS,v 1.38.2.32 2001/04/03 16:21:18 brianp Exp $
+$Id: VERSIONS,v 1.38.2.33 2001/04/03 16:26:52 brianp Exp $
 
 
 Mesa Version History
@@ -808,3 +808,4 @@ post-3.4.1
 	- using fog could result in random vertex alpha values
 	- AA triangle rendering could touch pixels outside right window bound
 	- fixed byteswapping problem in clear_32bit_ximage() function
+	- fixed bugs in wglUseFontBitmapsA(), by Frank Warmerdam
