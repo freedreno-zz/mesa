@@ -19,6 +19,9 @@
 
 typedef unsigned long XID;
 
+/**
+ * \brief GLX-specific attributes.
+ */
 typedef struct __GLXvisualConfigRec {
     VisualID vid;
     int class;
@@ -62,7 +65,9 @@ typedef void *(*InitFBDevFunc)( Display *dpy );
 /**
  * \brief Screen dependent methods.
  *
- * This structure is initialized during the \c (*createScreen)() call.
+ * \internal
+ * This structure is initialized during the MiniGLXDisplayRec::createScreen
+ * call.
  */
 struct __DRIscreenRec {
     /**
@@ -108,7 +113,8 @@ struct __DRIscreenRec {
 /**
  * \brief Context dependent methods. 
  * 
- * This structure is initialized during the (*createContext)() call.
+ * \internal
+ * This structure is initialized during the __DRIscreenRec::createContext call.
  */
 struct __DRIcontextRec {
     /**
@@ -143,9 +149,11 @@ struct __DRIcontextRec {
 /**
  * \brief Drawable dependent methods.
  *
- * This structure is initialized during the (*createDrawable)() call.
- * createDrawable() is not called by libGL at this time.  It's currently used
- * via the dri_util.c utility code instead.
+ * \internal
+ * This structure is initialized during the __DRIscreenRec::createDrawable call.
+ *
+ * __DRIscreenRec::createDrawable is not called by libGL at this time.  It's
+ * currently used via the dri_util.c utility code instead.
  */
 struct __DRIdrawableRec {
     /**
@@ -171,47 +179,57 @@ struct __DRIdrawableRec {
 
 /**
  * \brief X Visual type.
+ *
+ * \sa ::Visual, \ref datatypes.
  */
 struct MiniGLXVisualRec {
    const __GLXvisualConfig *glxConfig;
-   XVisualInfo *visInfo;     /**< pointer back to corresponding XVisualInfo */
+   XVisualInfo *visInfo;     /**< \brief pointer back to corresponding ::XVisualInfo */
    Display *dpy;
-   GLuint pixelFormat;       /**< one of \c PF_* values */
-}; /* Visual */
+   GLuint pixelFormat;       /**< \brief one of \link pixelformats PF_* values \endlink */
+};
 
 
 /**
  * \brief X Window type.
+ *
+ * \sa ::Window, \ref datatypes.
  */
 struct MiniGLXWindowRec {
    Visual *visual;
-   int x, y;                       /**< pos (always 0,0) */
-   unsigned int w, h;              /**< size */
-   void *frontStart;               /**< start of front color buffer */
-   void *backStart;                /**< start of back color buffer */
-   size_t size;                    /**< color buffer size, in bytes */
+                                   /** \brief position (always 0,0) */
+   int x, y;
+                                   /** \brief size */
+   unsigned int w, h;
+   void *frontStart;               /**< \brief start of front color buffer */
+   void *backStart;                /**< \brief start of back color buffer */
+   size_t size;                    /**< \brief color buffer size, in bytes */
    GLuint bytesPerPixel;
-   GLuint rowStride;               /**< in bytes */
-   GLubyte *frontBottom;           /**< pointer to last row */
-   GLubyte *backBottom;            /**< pointer to last row */
-   GLubyte *curBottom;             /**< = frontBottom or backBottom */
+   GLuint rowStride;               /**< \brief in bytes */
+   GLubyte *frontBottom;           /**< \brief pointer to last row */
+   GLubyte *backBottom;            /**< \brief pointer to last row */
+   GLubyte *curBottom;             /**<  = frontBottom or backBottom */
    __DRIdrawable driDrawable;
-}; /* Window */
+};
 
 
 /**
  * \brief GLXContext type.
+ *
+ * \sa ::GLXContext, \ref datatypes.
  */
 struct MiniGLXContextRec {
    Window drawBuffer;
    Window curBuffer;
    VisualID vid;
    __DRIcontext driContext;
-}; /* GLXContext */
+};
 
 
 /**
  * \brief X Display type
+ *
+ * \sa ::Display, \ref datatypes.
  */
 struct MiniGLXDisplayRec {
    struct fb_fix_screeninfo FixedInfo;
@@ -220,17 +238,22 @@ struct MiniGLXDisplayRec {
    int OriginalVT;
    int ConsoleFD;
    int FrameBufferFD;
-   caddr_t FrameBuffer;  /**< start of mmap'd framebuffer */
+   caddr_t FrameBuffer;  /**< \brief start of mmap'd framebuffer */
    int FrameBufferSize;  /**< in bytes */
-   caddr_t MMIOAddress;  /**< start of mmap'd MMIO region */
+   caddr_t MMIOAddress;  /**< \brief start of mmap'd MMIO region */
    int MMIOSize;         /**< in bytes */
    int NumWindows;
    Window TheWindow;     /**< only allow one window for now */
 
    int cpp; 
 
-   int numConfigs;
-   __GLXvisualConfig *configs;
+   /**
+    * \name Visual configurations
+    */
+   /*@{*/
+   int numConfigs;             /**< \brief number of visuals */
+   __GLXvisualConfig *configs; /**< \brief list of visuals */
+   /*@}*/
 
    /**
     * \name From __GLXdisplayPrivate
@@ -239,7 +262,10 @@ struct MiniGLXDisplayRec {
    InitFBDevFunc driverInitFBDev;
    CreateScreenFunc createScreen;
    __DRIscreen driScreen;
-   void *dlHandle;
+   void *dlHandle;                /**<
+				   * \brief handle to the client dynamic
+				   * library 
+				   */
    /*@}*/
 
 
@@ -285,7 +311,7 @@ struct MiniGLXDisplayRec {
 };
 
 /**
- * \warning Do not change _XF86DRIClipRect without changing the kernel
+ * \warning Do not change ::_XF86DRIClipRect without changing the kernel
  * structure!
  */
 typedef struct _XF86DRIClipRect {

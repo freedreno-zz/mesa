@@ -19,7 +19,8 @@
 
 
 /**
- * Print message to stderr if \c LIBGL_DEBUG env var is set.
+ * \brief Print message to \c stderr if the \c LIBGL_DEBUG environment variable
+ * is set.
  * 
  * \note Called from drivers.
  */

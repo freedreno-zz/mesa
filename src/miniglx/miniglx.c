@@ -22,7 +22,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: miniglx.c,v 1.1.4.22 2002/12/21 19:06:07 jrfonseca Exp $ */
+/* $Id: miniglx.c,v 1.1.4.23 2002/12/22 17:11:05 jrfonseca Exp $ */
 
 
 /**
@@ -54,8 +54,11 @@
  *   Release 6.4, ftp://ftp.x.org/pub/R6.4/xc/doc/hardcopy/X11/xlib.PS.gz
  * - XFree86 Man pages, The XFree86 Project, Inc.,
  *   http://www.xfree86.org/current/manindex3.html
- *  
- * \section notes Notes on the XVisualInfo, Visual, and __GLXvisualConfig data types
+ *   
+ */
+
+/**
+ * \page datatypes Notes on the XVisualInfo, Visual, and __GLXvisualConfig data types
  * 
  * -# X is kind of silly in that it has two (or three) datatypes which
  *    describe visuals.  In a perfect world there would just be one.
@@ -100,11 +103,18 @@
 
 
 
+/**
+ * \defgroup pixelformats Pixel formats
+ *
+ * \sa MiniGLXVisualRec::pixelFormat.
+ */
+/*@{*/
 #define PF_B8G8R8     1
 #define PF_B8G8R8A8   2
 #define PF_B5G6R5     3
 #define PF_B5G5R5     4
 #define PF_CI8        5
+/*@}*/
 
 
 
@@ -124,7 +134,7 @@ static GLXContext CurrentContext = NULL;
 /**
  * \brief Do first part of setting up fbdev.
  *
- * This is called during XOpenDisplay().
+ * \sa This is called during XOpenDisplay().
  */
 static GLboolean
 OpenFBDev( Display *dpy )
@@ -226,7 +236,7 @@ OpenFBDev( Display *dpy )
 /**
  * \brief Setup up our desired fbdev framebuffer mode.  
  *
- * This is called during XCreateWindow().
+ * \sa This is called during XCreateWindow().
  */
 static GLboolean
 SetupFBDev( Display *dpy, Window win )
@@ -410,7 +420,7 @@ SetupFBDev( Display *dpy, Window win )
 /**
  * \brief Restore framebuffer to state it was in before we started.
  * 
- * Called from XDestroyWindow().
+ * \sa Called from XDestroyWindow().
  */
 static GLboolean
 RestoreFBDev( Display *dpy )
@@ -429,7 +439,7 @@ RestoreFBDev( Display *dpy )
 /**
  * \brief Close FBDev.  
  *
- * Called from XCloseDisplay().
+ * \sa Called from XCloseDisplay().
  */
 static void
 CleanupFBDev( Display *dpy )
@@ -491,7 +501,7 @@ _glthread_GetID(void)
 
 /**
  * The idea is to establish the set of visuals available for the display.
- * The DRI drivers (or dri_util.c) requires the __GLXvisualConfig data type.
+ * The DRI drivers (or dri_util.c) requires the ::__GLXvisualConfig data type.
  *
  * \todo XXX This code might be moved into the driver.
  */
@@ -535,6 +545,12 @@ InitializeScreenConfigs(int *numConfigs, __GLXvisualConfig **configs)
 /*@{*/
 
 /**
+ * \brief Read settings from a configuration file.
+ * 
+ * \return non-zeros on success, zero otherwise.
+ * 
+ * \internal 
+ * 
  * \todo Replace with a config file read at runtime, eventually...
  */
 int __read_config_file( Display *dpy )
@@ -549,6 +565,8 @@ int __read_config_file( Display *dpy )
    dpy->pciBusID = malloc(64);
    sprintf((char *)dpy->pciBusID, "PCI:%d:%d:%d", 
 	   dpy->pciBus, dpy->pciDevice, dpy->pciFunc);
+
+   return 1;
 }
 
 
@@ -559,6 +577,8 @@ int __read_config_file( Display *dpy )
  * \return a pointer to a #Display if the function is able to initialize
  * the graphics system, NULL otherwise.
  * 
+ * \internal
+ *
  * \attention This function not stable.
  */
 Display *
@@ -631,6 +651,12 @@ XOpenDisplay( const char *display_name )
  * graphics system can be released by calling this function.
  * 
  * \param display display handle. It becomes invalid at this point.
+ * 
+ * \internal 
+ * This function frees the \p display structure, after calling the
+ * __DRIscreenRec::destroyScreen method pointed by MiniGLXDisplayRec::driScreen
+ * attribute of \p display, closing the dynamic library handle
+ * MiniGLXDisplayRec::dlHandle and calling CleanupFBDev() to close the fbdev.
  */
 void
 XCloseDisplay( Display *display )
@@ -674,6 +700,14 @@ XCloseDisplay( Display *display )
  * \note For Mini GLX, windows are full-screen; they cover the entire frame
  * buffer.  Also, Mini GLX imposes a limit of one window. A second window
  * cannot be created until the first one is destroyed.
+ *
+ * \internal 
+ * This function creates and initializes a ::MiniGLXWindowRec structure after
+ * ensuring that there is no other window created, and calls SetupFBDev() to
+ * setup the framebuffer device mode and get its geometry. It performs the
+ * client-side initialization calling MiniGLXDisplayRec::createScreen and
+ * __DRIscreenRec::createDrawable methods.
+ * 
  */
 Window
 XCreateWindow( Display *display, Window parent, int x, int y,
@@ -787,10 +821,17 @@ XCreateWindow( Display *display, Window parent, int x, int y,
 
 
 /**
- * \brief Destroy Window.
+ * \brief Destroy window.
  *
  * \param display display handle.
  * \param w window handle.
+ *
+ * \internal
+ * This function frees \p w after calling __DRIdrawableRec::destroyDrawable to destroy the
+ * private data and restoring the framebuffer via RestoreFBDev().
+ * 
+ * In case of destroying the current buffer first unbinds the GLX context by calling
+ * glXMakeCurrent() with no drawable.
  */
 void
 XDestroyWindow( Display *display, Window w )
@@ -817,25 +858,27 @@ XDestroyWindow( Display *display, Window w )
 /**
  * \brief Map Window.
  *
- * \param display display handle.
- * \param w window handle.
+ * \param display the display handle as returned by XOpenDisplay().
+ * \param w the window handle.
  * 
  * This function does nothing in Mini GLX but is required for Xlib/GLX
  * compatibility.
+ * 
+ * \internal
+ * This function is only provided to ease porting.  no-op
  */
 void
 XMapWindow( Display *display, Window w )
 {
-   /* Only provided to ease porting.  no-op */
    (void) display;
    (void) w;
 }
 
 
 /**
- * \brief Create colormap structure.
+ * \brief Create color map structure.
  *
- * \param dpy The display handle as returned by XOpenDisplay().
+ * \param dpy the display handle as returned by XOpenDisplay().
  * \param w the window on whose screen you want to create a colormap. This
  * parameter is ignored by Mini GLX but should be the value returned by the
  * \code RootWindow(display, 0) \endcode macro.
@@ -844,11 +887,16 @@ XMapWindow( Display *display, Window w )
  * glXChooseVisual().
  * \param alloc the colormap entries to be allocated. This parameter is ignored
  * by Mini GLX but should be set to #AllocNone.
+ *
+ * \return the color map.
+ * 
+ * \internal
+ * This function is only provided to ease porting.  Practically a no-op. 
+ * Returns a pointer to an one-byte chunk of memory allocated with #MALLOC.
  */
 Colormap
 XCreateColormap( Display *dpy, Window w, Visual *visual, int alloc )
 {
-   /* We only provide this function to ease porting.  Practically a no-op. */
    (void) dpy;
    (void) w;
    (void) visual;
@@ -862,6 +910,10 @@ XCreateColormap( Display *dpy, Window w, Visual *visual, int alloc )
  *
  * \param display The display handle as returned by XOpenDisplay().
  * \param colormap the colormap to destroy.
+ *
+ * \internal
+ * This function is only provided to ease porting.  Practically a no-op. 
+ * Frees the chunk of memory pointed by \p colormap with #FREE.
  */
 void
 XFreeColormap( Display *display, Colormap colormap )
@@ -871,10 +923,14 @@ XFreeColormap( Display *display, Colormap colormap )
    FREE(colormap);
 }
 
+
 /**
  * \brief Free client data.
  *
  * \param data the data that is to be freed.
+ *
+ * \internal
+ * This function frees the memory pointed by \p data with #FREE.
  */
 void
 XFree( void *data )
@@ -889,14 +945,14 @@ XFree( void *data )
  * \param dpy the display handle, as returned by XOpenDisplay().
  * \param vinfo_mask a bitmask indicating which fields of the \p vinfo_template
  * are to be matched.  The value must be \c VisualScreenMask.
- * \param vinfo_template a template whose fields indicate which visual attributes
- * must be matched by the results.  The XVisualInfo::screen field of this
- * structure must be zero.
+ * \param vinfo_template a template whose fields indicate which visual
+ * attributes must be matched by the results.  The XVisualInfo::screen field of
+ * this structure must be zero.
  * \param nitens_return Returns the number of visuals returned.
  *
  * \return the address of an array of all available visuals.
  * 
- * An example of using XGetVisualInfo to get all available visuals follows:
+ * An example of using XGetVisualInfo() to get all available visuals follows:
  * 
  * \code
  * XVisualInfo vinfo_template, *results;
@@ -906,10 +962,9 @@ XFree( void *data )
  * results = XGetVisualInfo(dpy, VisualScreenMask, &vinfo_template, &nitens_return);
  * \endcode
  * 
- */
-
-/*
- * Return list of all XVisualInfos we have (one per __GLXvisualConfig).
+ * \internal
+ * Returns the list of all ::XVisualInfos available, one per
+ * ::__GLXvisualConfig stored in MiniGLXDisplayRec::configs.
  */
 XVisualInfo *
 XGetVisualInfo( Display *dpy, long vinfo_mask, XVisualInfo *vinfo_template, int *nitens_return )
@@ -964,30 +1019,30 @@ XGetVisualInfo( Display *dpy, long vinfo_mask, XVisualInfo *vinfo_template, int 
  * format. It is terminated by the token \c None. 
  *
  * The attributes are as follows:
- * \arg \c GLX_USE_GL:
+ * \arg GLX_USE_GL:
  * This attribute should always be present in order to maintain compatibility
  * with GLX.
- * \arg \c GLX_RGBA:
+ * \arg GLX_RGBA:
  * If present, only RGBA pixel formats will be considered. Otherwise, only
  * color index formats are considered.
- * \arg \c GLX_DOUBLEBUFFER:
+ * \arg GLX_DOUBLEBUFFER:
  * if present, only double-buffered pixel formats will be chosen.
- * \arg \c GLX_RED_SIZE \e n:
+ * \arg GLX_RED_SIZE \e n:
  * Must be followed by a non-negative integer indicating the minimum number of
  * bits per red pixel component that is acceptable.
- * \arg \c GLX_GREEN_SIZE \e n:
+ * \arg GLX_GREEN_SIZE \e n:
  * Must be followed by a non-negative integer indicating the minimum number of
  * bits per green pixel component that is acceptable.
- * \arg \c GLX_BLUE_SIZE \e n:
+ * \arg GLX_BLUE_SIZE \e n:
  * Must be followed by a non-negative integer indicating the minimum number of
  * bits per blue pixel component that is acceptable.
- * \arg \c GLX_ALPHA_SIZE \e n:
+ * \arg GLX_ALPHA_SIZE \e n:
  * Must be followed by a non-negative integer indicating the minimum number of
  * bits per alpha pixel component that is acceptable.
- * \arg \c GLX_STENCIL_SIZE \e n:
+ * \arg GLX_STENCIL_SIZE \e n:
  * Must be followed by a non-negative integer indicating the minimum number of
  * bits per stencil value that is acceptable.
- * \arg \c None:
+ * \arg None:
  * This token is used to terminate the attribute list.
  *
  * \return a pointer to an #XVisualInfo object which most closely matches the
@@ -996,7 +1051,12 @@ XGetVisualInfo( Display *dpy, long vinfo_mask, XVisualInfo *vinfo_template, int 
  *
  * \note Visuals with accumulation buffers and depth buffers are not available.
  *
- * \par Implementation:
+ * \internal
+ * This function searches the list of available visual configurations in
+ * MiniGLXDisplayRec::configs for a configuration which best matches the GLX
+ * attribute list parameter.  A new ::XVisualInfo object is created which
+ * describes the visual configuration.  The match criteria is described in the
+ * specification.
  */
 XVisualInfo*
 glXChooseVisual( Display *dpy, int screen, int *attribList )
@@ -1151,6 +1211,11 @@ glXChooseVisual( Display *dpy, int screen, int *attribList )
  * \return zero if no error occurs, \c GLX_INVALID_ATTRIBUTE if the attribute
  * parameter is invalid, or \c GLX_BAD_VISUAL if the \p vis parameter is
  * invalid.
+ *
+ * \internal
+ * Returns the appropriate attribute of ::__GLXvisualConfig pointed by MiniGLXVisualRec::glxConfig of XVisualInfo::visual.
+ *
+ * \sa datatypes.
  */
 int
 glXGetConfig( Display *dpy, XVisualInfo *vis, int attrib, int *value )
@@ -1210,8 +1275,13 @@ glXGetConfig( Display *dpy, XVisualInfo *vis, int attrib, int *value )
  * \param direct whether direct or indirect rendering is desired. For Mini GLX
  * this value is ignored but it should be set to \c True.
  *
- * \return a #GLXContext handle if it succeeds or zero if it fails due to
+ * \return a ::GLXContext handle if it succeeds or zero if it fails due to
  * invalid parameter or insufficient resources.
+ *
+ * \internal
+ * This function creates and initializes a ::MiniGLXContextRec structure and
+ * calls the __DRIscreenRec::createContext method to initalize the client
+ * private data.
  */ 
 GLXContext
 glXCreateContext( Display *dpy, XVisualInfo *vis,
@@ -1249,6 +1319,11 @@ glXCreateContext( Display *dpy, XVisualInfo *vis,
  *
  * \param dpy the display handle, as returned by XOpenDisplay().
  * \param ctx the GLX context to be destroyed.
+ * 
+ * \internal
+ * This function frees the \p ctx parameter after unbinding the current context
+ * by calling the __DRIcontextRec::bindContext method with zeros and calling
+ * the __DRIcontextRec::destroyContext method.
  */
 void
 glXDestroyContext( Display *dpy, GLXContext ctx )
@@ -1284,6 +1359,14 @@ glXDestroyContext( Display *dpy, GLXContext ctx )
  * needed. Note that binding a rendering context is generally not a
  * light-weight operation.  Most simple OpenGL applications create only one
  * rendering context.
+ *
+ * \internal
+ * This function first unbinds any old context via
+ * __DRIcontextRec::unbindContext and binds the new one via
+ * __DRIcontextRec::bindContext.
+ *
+ * If /p drawable is zero it unbinds the GLX context by calling
+ * __DRIcontextRec::bindContext with zeros.
  */
 Bool
 glXMakeCurrent( Display *dpy, GLXDrawable drawable, GLXContext ctx)
@@ -1321,6 +1404,10 @@ glXMakeCurrent( Display *dpy, GLXDrawable drawable, GLXContext ctx)
  * takes place.
  * 
  * Calling glXSwapBuffers() on a window which is single-buffered has no effect.
+ *
+ * \internal
+ * This function just calls the __DRIdrawableRec::swapBuffers method to do the
+ * work.
  */
 void
 glXSwapBuffers( Display *dpy, GLXDrawable drawable )
@@ -1339,6 +1426,9 @@ glXSwapBuffers( Display *dpy, GLXDrawable drawable )
  * context is currently bound.
  *
  * \sa glXCreateContext(), glXMakeCurrent()
+ *
+ * \internal
+ * Returns the value of the ::CurrentContext global variable.
  */
 GLXContext
 glXGetCurrentContext( void )
@@ -1352,6 +1442,10 @@ glXGetCurrentContext( void )
  *
  * \return the current drawable, as specified by glXMakeCurrent(), or zero if
  * no drawable is currently bound.
+ *
+ * \internal
+ * This function gets the current context via glXGetCurrentContext() and
+ * returns the MiniGLXContextRec::drawbuffer attribute.
  */
 GLXDrawable
 glXGetCurrentDrawable( void )
@@ -1381,6 +1475,9 @@ glXGetCurrentDrawable( void )
  * to hard-code calls to the new functions in the application but doing so will
  * prevent linking the application with older versions of the library.
  * 
+ * \internal
+ * Returns the function address by looking up its name in a static (name, func)
+ * pair structure list.
  */
 const void *
 glXGetProcAddress( const GLubyte *procName )
@@ -1430,7 +1527,10 @@ glXGetProcAddress( const GLubyte *procName )
  * \return \c True if the function succeeds, \c False if the function fails due
  * to invalid parameters.
  *
- * \sa \c MINI_GLX_VERSION_1_0
+ * \sa #MINI_GLX_VERSION_1_0.
+ * 
+ * \internal
+ * Returns the hardcoded Mini GLX version.
  */
 Bool
 glXQueryVersion( Display *dpy, int *major, int *minor )
