@@ -1,10 +1,10 @@
-/* $Id: s_texture.c,v 1.75 2002/11/12 19:27:24 brianp Exp $ */
+/* $Id: s_texture.c,v 1.75.2.1 2003/02/06 13:47:32 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  5.0
+ * Version:  5.0.1
  *
- * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2003  Brian Paul   All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -3680,7 +3680,7 @@ _swrast_texture_span( GLcontext *ctx, struct sw_span *span )
             (swrast->TexelBuffer + unit * (span->end * 4 * sizeof(GLchan)));
 
          /* adjust texture lod (lambda) */
-         if (span->arrayMask | SPAN_LAMBDA) {
+         if (span->arrayMask & SPAN_LAMBDA) {
             if (texUnit->LodBias != 0.0F) {
                /* apply LOD bias, but don't clamp yet */
                GLuint i;
