@@ -1,4 +1,4 @@
-/* $Id: s_blend.c,v 1.9.2.3 2002/04/10 16:32:50 brianp Exp $ */
+/* $Id: s_blend.c,v 1.9.2.4 2002/06/30 15:57:52 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -185,10 +185,17 @@ blend_add( GLcontext *ctx, GLuint n, const GLubyte mask[],
 
    for (i=0;i<n;i++) {
       if (mask[i]) {
+#if CHAN_TYPE == GL_FLOAT
+         GLfloat r = rgba[i][RCOMP] + dest[i][RCOMP];
+         GLfloat g = rgba[i][GCOMP] + dest[i][GCOMP];
+         GLfloat b = rgba[i][BCOMP] + dest[i][BCOMP];
+         GLfloat a = rgba[i][ACOMP] + dest[i][ACOMP];
+#else
          GLint r = rgba[i][RCOMP] + dest[i][RCOMP];
          GLint g = rgba[i][GCOMP] + dest[i][GCOMP];
          GLint b = rgba[i][BCOMP] + dest[i][BCOMP];
          GLint a = rgba[i][ACOMP] + dest[i][ACOMP];
+#endif
          rgba[i][RCOMP] = (GLchan) MIN2( r, CHAN_MAX );
          rgba[i][GCOMP] = (GLchan) MIN2( g, CHAN_MAX );
          rgba[i][BCOMP] = (GLchan) MIN2( b, CHAN_MAX );
@@ -297,8 +304,13 @@ blend_general( GLcontext *ctx, GLuint n, const GLubyte mask[],
 
    for (i=0;i<n;i++) {
       if (mask[i]) {
+#if CHAN_TYPE == GL_FLOAT
+         GLfloat Rs, Gs, Bs, As;  /* Source colors */
+         GLfloat Rd, Gd, Bd, Ad;  /* Dest colors */
+#else
          GLint Rs, Gs, Bs, As;  /* Source colors */
          GLint Rd, Gd, Bd, Ad;  /* Dest colors */
+#endif
          GLfloat sR, sG, sB, sA;  /* Source scaling */
          GLfloat dR, dG, dB, dA;  /* Dest scaling */
          GLfloat r, g, b, a;
@@ -572,6 +584,37 @@ blend_general( GLcontext *ctx, GLuint n, const GLubyte mask[],
          ASSERT( dA <= 1.0 );
 
          /* compute blended color */
+#if CHAN_TYPE == GL_FLOAT
+         if (ctx->Color.BlendEquation==GL_FUNC_ADD_EXT) {
+            r = Rs * sR + Rd * dR;
+            g = Gs * sG + Gd * dG;
+            b = Bs * sB + Bd * dB;
+            a = As * sA + Ad * dA;
+         }
+         else if (ctx->Color.BlendEquation==GL_FUNC_SUBTRACT_EXT) {
+            r = Rs * sR - Rd * dR;
+            g = Gs * sG - Gd * dG;
+            b = Bs * sB - Bd * dB;
+            a = As * sA - Ad * dA;
+         }
+         else if (ctx->Color.BlendEquation==GL_FUNC_REVERSE_SUBTRACT_EXT) {
+            r = Rd * dR - Rs * sR;
+            g = Gd * dG - Gs * sG;
+            b = Bd * dB - Bs * sB;
+            a = Ad * dA - As * sA;
+         }
+         else {
+            /* should never get here */
+            r = g = b = a = 0.0F;  /* silence uninitialized var warning */
+            _mesa_problem(ctx, "unexpected BlendEquation in blend_general()");
+         }
+
+         /* final clamping */
+         rgba[i][RCOMP] = CLAMP( r, 0.0F, CHAN_MAXF );
+         rgba[i][GCOMP] = CLAMP( g, 0.0F, CHAN_MAXF );
+         rgba[i][BCOMP] = CLAMP( b, 0.0F, CHAN_MAXF );
+         rgba[i][ACOMP] = CLAMP( a, 0.0F, CHAN_MAXF );
+#else
          if (ctx->Color.BlendEquation==GL_FUNC_ADD_EXT) {
             r = Rs * sR + Rd * dR + 0.5F;
             g = Gs * sG + Gd * dG + 0.5F;
@@ -601,6 +644,7 @@ blend_general( GLcontext *ctx, GLuint n, const GLubyte mask[],
          rgba[i][GCOMP] = (GLchan) (GLint) CLAMP( g, 0.0F, CHAN_MAXF );
          rgba[i][BCOMP] = (GLchan) (GLint) CLAMP( b, 0.0F, CHAN_MAXF );
          rgba[i][ACOMP] = (GLchan) (GLint) CLAMP( a, 0.0F, CHAN_MAXF );
+#endif
       }
    }
 }
