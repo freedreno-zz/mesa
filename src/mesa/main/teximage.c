@@ -1,4 +1,4 @@
-/* $Id: teximage.c,v 1.104.2.9 2002/09/14 16:50:08 brianp Exp $ */
+/* $Id: teximage.c,v 1.104.2.10 2002/09/15 17:35:05 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -657,18 +657,6 @@ _mesa_init_teximage_fields(GLcontext *ctx, GLenum target,
    img->Depth2 = 1 << img->DepthLog2;
    img->MaxLog2 = MAX2(img->WidthLog2, img->HeightLog2);
    img->IsCompressed = is_compressed_format(ctx, internalFormat);
-   /* Compute Width/Height/DepthScale for mipmap lod computation */
-   if (target == GL_TEXTURE_RECTANGLE_NV) {
-      /* scale = 1.0 since texture coords directly map to texels */
-      img->WidthScale = 1.0;
-      img->HeightScale = 1.0;
-      img->DepthScale = 1.0;
-   }
-   else {
-      img->WidthScale = (GLfloat) img->Width;
-      img->HeightScale = (GLfloat) img->Height;
-      img->DepthScale = (GLfloat) img->Depth;
-   }
 }
 
 

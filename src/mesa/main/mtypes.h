@@ -1,4 +1,4 @@
-/* $Id: mtypes.h,v 1.51.2.9 2002/09/13 19:34:39 brianp Exp $ */
+/* $Id: mtypes.h,v 1.51.2.10 2002/09/15 17:35:05 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -808,9 +808,6 @@ struct gl_texture_image {
    GLuint HeightLog2;		/* = log2(Height2) */
    GLuint DepthLog2;		/* = log2(Depth2) */
    GLuint MaxLog2;		/* = MAX(WidthLog2, HeightLog2) */
-   GLfloat WidthScale;		/* used for mipmap lod computation */
-   GLfloat HeightScale;		/* used for mipmap lod computation */
-   GLfloat DepthScale;		/* used for mipmap lod computation */
    GLvoid *Data;		/* Image data, accessed via FetchTexel() */
 
    const struct gl_texture_format *TexFormat;
