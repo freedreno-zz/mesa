@@ -1,4 +1,4 @@
-/* $Id: context.c,v 1.18.2.12 2000/06/30 14:16:37 brianp Exp $ */
+/* $Id: context.c,v 1.18.2.13 2000/07/12 12:02:33 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -1307,9 +1307,12 @@ GLcontext *gl_create_context( GLvisual *visual,
    }
 
    for (i = 0 ; i < 4 ; i++) {
-      ctx->ShineTable[i] = ctx->ShineTabList->prev;
+      ctx->ShineTable[i] = ctx->ShineTabList->next;
       ctx->ShineTable[i]->refcount++;
    }
+
+   for (i = 0 ; i < 4 ; i++) 
+      gl_compute_shine_table( ctx, i, 0.0 );
 
    if (visual->DBflag) {
       ctx->Color.DrawBuffer = GL_BACK;
