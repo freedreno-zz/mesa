@@ -1,4 +1,4 @@
-/* $Id: svgamesa.c,v 1.1.1.1.2.2 2000/01/22 20:05:28 brianp Exp $ */
+/* $Id: svgamesa.c,v 1.1.1.1.2.3 2000/01/22 20:06:20 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -185,7 +185,6 @@ void SVGAMesaSetCI(int ndx, GLubyte red, GLubyte green, GLubyte blue)
 
 static void copy_buffer( GLubyte * buffer) {
  int size = SVGABuffer.BufferSize, page = 0;
- unsigned long start,stop;
 
 #ifdef SVGA_DEBUG
    sprintf(cbuf,"copy_buffer: copy %p to %p",buffer,SVGABuffer.VideoRam);
