@@ -1,4 +1,4 @@
-/* $Id: miniglx.c,v 1.1.4.8 2002/12/04 15:33:12 keithw Exp $ */
+/* $Id: miniglx.c,v 1.1.4.9 2002/12/06 16:21:28 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -63,7 +63,7 @@
 #define STRCMP(A, B)  strcmp(A, B)
 
 
-#define DRIVER_DRI_SO "radeon_dri.so"
+#define DRIVER_DRI_SO "fb_dri.so"
 
 
 #define PF_B8G8R8     1
@@ -465,7 +465,7 @@ InitializeScreenConfigs(int *numConfigs, __GLXvisualConfig **configs)
 /**********************************************************************/
 
 Display *
-WRAP(XOpenDisplay)( const char *display_name )
+XOpenDisplay( const char *display_name )
 {
    Display *dpy;
 
@@ -518,7 +518,7 @@ WRAP(XOpenDisplay)( const char *display_name )
 
 
 void
-WRAP(XCloseDisplay)( Display *dpy )
+XCloseDisplay( Display *dpy )
 {
    (*dpy->driScreen.destroyScreen)(dpy, 0, dpy->driScreen.private);
    dlclose(dpy->dlHandle);
@@ -529,7 +529,7 @@ WRAP(XCloseDisplay)( Display *dpy )
 
 
 Window
-WRAP(XCreateWindow)( Display *dpy, Window parent, int x, int y,
+XCreateWindow( Display *dpy, Window parent, int x, int y,
                unsigned int width, unsigned int height,
                unsigned int border_width, int depth, unsigned int class,
                Visual *visual, unsigned long valuemask,
@@ -606,7 +606,7 @@ WRAP(XCreateWindow)( Display *dpy, Window parent, int x, int y,
 
 
 int
-WRAP(DefaultScreen)( Display *dpy )
+DefaultScreen( Display *dpy )
 {
    (void) dpy;
    return 0;
@@ -614,21 +614,21 @@ WRAP(DefaultScreen)( Display *dpy )
 
 
 Window
-WRAP(RootWindow)( Display *display, int scrNum )
+RootWindow( Display *display, int scrNum )
 {
    return 0;
 }
 
 
 void
-WRAP(XDestroyWindow)( Display *dpy, Window win )
+XDestroyWindow( Display *dpy, Window win )
 {
    assert(dpy);
    if (win) {
       /* check if destroying the current buffer */
-      Window curDraw = WRAP(glXGetCurrentDrawable)();
+      Window curDraw = glXGetCurrentDrawable();
       if (win == curDraw) {
-         WRAP(glXMakeCurrent)( dpy, NULL, NULL);
+         glXMakeCurrent( dpy, NULL, NULL);
       }
       (*win->driDrawable.destroyDrawable)(dpy, win->driDrawable.private);
       /* put framebuffer back to initial state */
@@ -643,7 +643,7 @@ WRAP(XDestroyWindow)( Display *dpy, Window win )
 
 
 void
-WRAP(XMapWindow)( Display *dpy, Window w )
+XMapWindow( Display *dpy, Window w )
 {
    /* Only provided to ease porting.  no-op */
    (void) dpy;
@@ -652,7 +652,7 @@ WRAP(XMapWindow)( Display *dpy, Window w )
 
 
 Colormap
-WRAP(XCreateColormap)( Display *dpy, Window w, Visual *visual, int alloc )
+XCreateColormap( Display *dpy, Window w, Visual *visual, int alloc )
 {
    /* We only provide this function to ease porting.  Practically a no-op. */
    (void) dpy;
@@ -664,7 +664,7 @@ WRAP(XCreateColormap)( Display *dpy, Window w, Visual *visual, int alloc )
 
 
 void
-WRAP(XFreeColormap)( Display *dpy, Colormap cmap )
+XFreeColormap( Display *dpy, Colormap cmap )
 {
    (void) dpy;
    (void) cmap;
@@ -672,7 +672,7 @@ WRAP(XFreeColormap)( Display *dpy, Colormap cmap )
 }
 
 void
-WRAP(XFree)( void *pointer )
+XFree( void *pointer )
 {
    FREE(pointer);
 }
@@ -680,7 +680,7 @@ WRAP(XFree)( void *pointer )
 
 
 XVisualInfo*
-WRAP(glXChooseVisual)( Display *dpy, int screen, int *attribs )
+glXChooseVisual( Display *dpy, int screen, int *attribs )
 {
    Visual *vis;
    XVisualInfo *visInfo;
@@ -816,7 +816,7 @@ WRAP(glXChooseVisual)( Display *dpy, int screen, int *attribs )
 
 
 GLXContext
-WRAP(glXCreateContext)( Display *dpy, XVisualInfo *vis,
+glXCreateContext( Display *dpy, XVisualInfo *vis,
                         GLXContext shareList, Bool direct )
 {
    GLXContext ctx;
@@ -827,6 +827,8 @@ WRAP(glXCreateContext)( Display *dpy, XVisualInfo *vis,
    ctx = CALLOC_STRUCT(MiniGLXContextRec);
    if (!ctx)
       return NULL;
+
+   ctx->vid = vis->visualid;
 
    if (shareList)
       sharePriv = shareList->driContext.private;
@@ -845,9 +847,9 @@ WRAP(glXCreateContext)( Display *dpy, XVisualInfo *vis,
 
 
 void
-WRAP(glXDestroyContext)( Display *dpy, GLXContext ctx )
+glXDestroyContext( Display *dpy, GLXContext ctx )
 {
-   GLXContext glxctx = WRAP(glXGetCurrentContext)();
+   GLXContext glxctx = glXGetCurrentContext();
 
    if (glxctx) {
       if (glxctx == ctx) {
@@ -861,11 +863,11 @@ WRAP(glXDestroyContext)( Display *dpy, GLXContext ctx )
 
 
 Bool
-WRAP(glXMakeCurrent)( Display *dpy, GLXDrawable drawable, GLXContext ctx)
+glXMakeCurrent( Display *dpy, GLXDrawable drawable, GLXContext ctx)
 {
    if (dpy && drawable && ctx) {
-      GLXContext oldContext = WRAP(glXGetCurrentContext)();
-      GLXDrawable oldDrawable = WRAP(glXGetCurrentDrawable)();
+      GLXContext oldContext = glXGetCurrentContext();
+      GLXDrawable oldDrawable = glXGetCurrentDrawable();
       /* unbind old */
       if (oldContext) {
          (*oldContext->driContext.unbindContext)(dpy, 0, oldDrawable,
@@ -886,7 +888,7 @@ WRAP(glXMakeCurrent)( Display *dpy, GLXDrawable drawable, GLXContext ctx)
 
 
 void
-WRAP(glXSwapBuffers)( Display *dpy, GLXDrawable drawable )
+glXSwapBuffers( Display *dpy, GLXDrawable drawable )
 {
    if (!dpy || !drawable)
       return;
@@ -896,16 +898,16 @@ WRAP(glXSwapBuffers)( Display *dpy, GLXDrawable drawable )
 
 
 GLXContext
-WRAP(glXGetCurrentContext)( void )
+glXGetCurrentContext( void )
 {
    return CurrentContext;
 }
 
 
 GLXDrawable
-WRAP(glXGetCurrentDrawable)( void )
+glXGetCurrentDrawable( void )
 {
-   GLXContext glxctx = WRAP(glXGetCurrentContext)();
+   GLXContext glxctx = glXGetCurrentContext();
    if (glxctx)
       return glxctx->drawBuffer;
    else
@@ -914,21 +916,21 @@ WRAP(glXGetCurrentDrawable)( void )
 
 
 const void *
-WRAP(glXGetProcAddress)( const GLubyte *procName )
+glXGetProcAddress( const GLubyte *procName )
 {
    struct name_address {
       const char *name;
       const void *func;
    };
    static const struct name_address functions[] = {
-      { "glXChooseVisual", (void *) WRAP(glXChooseVisual) },
-      { "glXCreateContext", (void *) WRAP(glXCreateContext) },
-      { "glXDestroyContext", (void *) WRAP(glXDestroyContext) },
-      { "glXMakeCurrent", (void *) WRAP(glXMakeCurrent) },
-      { "glXSwapBuffers", (void *) WRAP(glXSwapBuffers) },
-      { "glXGetCurrentContext", (void *) WRAP(glXGetCurrentContext) },
-      { "glXGetCurrentDrawable", (void *) WRAP(glXGetCurrentDrawable) },
-      { "glXGetProcAddress", (void *) WRAP(glXGetProcAddress) },
+      { "glXChooseVisual", (void *) glXChooseVisual },
+      { "glXCreateContext", (void *) glXCreateContext },
+      { "glXDestroyContext", (void *) glXDestroyContext },
+      { "glXMakeCurrent", (void *) glXMakeCurrent },
+      { "glXSwapBuffers", (void *) glXSwapBuffers },
+      { "glXGetCurrentContext", (void *) glXGetCurrentContext },
+      { "glXGetCurrentDrawable", (void *) glXGetCurrentDrawable },
+      { "glXGetProcAddress", (void *) glXGetProcAddress },
       { NULL, NULL }
    };
    const struct name_address *entry;
@@ -942,7 +944,7 @@ WRAP(glXGetProcAddress)( const GLubyte *procName )
 
 
 Bool
-WRAP(glXQueryVersion)( Display *dpy, int *major, int *minor )
+glXQueryVersion( Display *dpy, int *major, int *minor )
 {
    (void) dpy;
    *major = 1;

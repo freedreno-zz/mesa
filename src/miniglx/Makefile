@@ -2,8 +2,13 @@
 # Indirect rendering not supported, etc.
 
 
-#SOURCES = glxext.c dispatch.c glapi.c
-SOURCES = miniglx.c dispatch.c glapi.c XF86dri.c
+SOURCES = dispatch.c \
+	  dri_util.c \
+	  glapi.c \
+	  miniglx.c \
+	  xf86drm.c \
+	  XF86dri.c
+
 OBJS = $(SOURCES:.c=.o)
 
 INCLUDES = -I. -I.. -I../../include
@@ -29,7 +34,10 @@ glapi.c: ../glapi.c
 	ln -s ../glapi.c .
 
 clean:
-	rm -f *~ *.o libGL.so* glapi.c *.d
+	rm -f *~ .*~ *.o libGL.so* glapi.c *.d
+
+tags:
+	etags *.[ch]
 
 include $(SOURCES:.c=.d)
 

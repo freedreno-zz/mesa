@@ -57,21 +57,21 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
 
-#ifdef GLX_DIRECT_RENDERING
 
 #include <assert.h>
 #include <stdarg.h>
 #include <unistd.h>
-#include <X11/Xlibint.h>
-#include <Xext.h>
-#include <extutil.h>
 #include <stdio.h>
-#include "glxclient.h"
+#include "GL/miniglx.h"
+#include "miniglxP.h"
 
 #include "xf86dri.h"
 
 #include "sarea.h"
 #include "dri_util.h"
+
+#define Xmalloc malloc
+#define Xfree free
 
 
 /* forward declarations */
@@ -128,19 +128,19 @@ __driUtilMessage(const char *f, ...)
 static __GLXvisualConfig *
 __driFindGlxConfig(Display *dpy, int scrn, VisualID vid)
 {
-    __GLXdisplayPrivate *priv;
-    __GLXscreenConfigs *glxScrnConfigs;
+/*     __GLXdisplayPrivate *priv; */
+/*     __GLXscreenConfigs *glxScrnConfigs; */
     __GLXvisualConfig *glxConfigs;
     int numConfigs, i;
 
-    priv = __glXInitialize(dpy);
-    assert(priv);
+/*     priv = __glXInitialize(dpy); */
+/*     assert(priv); */
 
-    glxScrnConfigs = priv->screenConfigs;
-    assert(glxScrnConfigs);
+/*     glxScrnConfigs = priv->screenConfigs; */
+/*     assert(glxScrnConfigs); */
 
-    numConfigs = glxScrnConfigs[scrn].numConfigs;
-    glxConfigs = glxScrnConfigs[scrn].configs;
+    numConfigs = dpy->numConfigs;
+    glxConfigs = dpy->configs;
 
     for (i = 0; i < numConfigs; i++) {
         if (glxConfigs[i].vid == vid) {
@@ -199,6 +199,7 @@ __glXFormatGLModes(__GLcontextModes *modes, const __GLXvisualConfig *config)
 
 /* Maintain a list of drawables */
 
+#if 0
 static Bool __driAddDrawable(void *drawHash, __DRIdrawable *pdraw)
 {
     __DRIdrawablePrivate *pdp = (__DRIdrawablePrivate *)pdraw->private;
@@ -246,14 +247,14 @@ static void __driGarbageCollectDrawables(void *drawHash)
 	    if (!__glXWindowExists(dpy, draw)) {
 		/* Destroy the local drawable data in the hash table, if the
 		   drawable no longer exists in the Xserver */
-		__driRemoveDrawable(drawHash, pdraw);
+/* 		__driRemoveDrawable(drawHash, pdraw); */
 		(*pdraw->destroyDrawable)(dpy, pdraw->private);
 		Xfree(pdraw);
 	    }
 	} while (drmHashNext(drawHash, &draw, (void **)&pdraw));
     }
 }
-
+#endif
 /*****************************************************************/
 
 static Bool driUnbindContext(Display *dpy, int scrn,
@@ -286,7 +287,8 @@ static Bool driUnbindContext(Display *dpy, int scrn,
 
     pcp = (__DRIcontextPrivate *)gc->driContext.private;
 
-    pdraw = __driFindDrawable(psp->drawHash, draw);
+/*     pdraw = __driFindDrawable(psp->drawHash, draw); */
+    pdraw = &draw->driDrawable;
     if (!pdraw) {
 	/* ERROR!!! */
 	return GL_FALSE;
@@ -333,7 +335,7 @@ static Bool driUnbindContext(Display *dpy, int scrn,
 	** Below is an example of what needs to go into the destroy
 	** drawable routine to support GLX 1.3.
 	*/
-	__driRemoveDrawable(psp->drawHash, pdraw);
+/* 	__driRemoveDrawable(psp->drawHash, pdraw); */
 	(*pdraw->destroyDrawable)(dpy, pdraw->private);
 	Xfree(pdraw);
 #endif
@@ -391,7 +393,8 @@ static Bool driBindContext2(Display *dpy, int scrn,
     }
 
     /* Find the _DRIdrawable which corresponds to the writing GLXDrawable */
-    pdraw = __driFindDrawable(psp->drawHash, draw);
+/*     pdraw = __driFindDrawable(psp->drawHash, draw); */
+    pdraw = &draw->driDrawable;
     if (!pdraw) {
 	/* Allocate a new drawable */
 	pdraw = (__DRIdrawable *)Xmalloc(sizeof(__DRIdrawable));
@@ -410,12 +413,14 @@ static Bool driBindContext2(Display *dpy, int scrn,
 	}
 
 	/* Add pdraw to drawable list */
+#if 0
 	if (!__driAddDrawable(psp->drawHash, pdraw)) {
 	    /* ERROR!!! */
 	    (*pdraw->destroyDrawable)(dpy, pdraw->private);
 	    Xfree(pdraw);
 	    return GL_FALSE;
 	}
+#endif
     }
     pdp = (__DRIdrawablePrivate *) pdraw->private;
 
@@ -425,7 +430,8 @@ static Bool driBindContext2(Display *dpy, int scrn,
         prp = pdp;
     }
     else {
-        pread = __driFindDrawable(psp->drawHash, read);
+/*         pread = __driFindDrawable(psp->drawHash, read); */
+       pread = &read->driDrawable;
         if (!pread) {
             /* Allocate a new drawable */
             pread = (__DRIdrawable *)Xmalloc(sizeof(__DRIdrawable));
@@ -444,12 +450,14 @@ static Bool driBindContext2(Display *dpy, int scrn,
             }
 
             /* Add pread to drawable list */
+#if 0
             if (!__driAddDrawable(psp->drawHash, pread)) {
                 /* ERROR!!! */
                 (*pread->destroyDrawable)(dpy, pread->private);
                 Xfree(pread);
                 return GL_FALSE;
             }
+#endif
         }
         prp = (__DRIdrawablePrivate *) pread->private;
     }
@@ -593,7 +601,7 @@ void __driUtilUpdateDrawableInfo(__DRIdrawablePrivate *pdp)
 	Xfree(pdp->pBackClipRects); 
     }
 
-    DRM_SPINUNLOCK(&psp->pSAREA->drawable_lock, psp->drawLockID);
+/*     DRM_SPINUNLOCK(&psp->pSAREA->drawable_lock, psp->drawLockID); */
 
 #if 1
     /* faked in new xf86dri.c */
@@ -614,7 +622,7 @@ void __driUtilUpdateDrawableInfo(__DRIdrawablePrivate *pdp)
     }
 #endif
 
-    DRM_SPINLOCK(&psp->pSAREA->drawable_lock, psp->drawLockID);
+/*     DRM_SPINLOCK(&psp->pSAREA->drawable_lock, psp->drawLockID); */
 
     pdp->pStamp = &(psp->pSAREA->drawableTable[pdp->index].stamp);
 }
@@ -692,7 +700,7 @@ static void *driCreateDrawable(Display *dpy, int scrn, GLXDrawable draw,
 
     if (drmCreateDrawable(psp->fd, &pdp->hHWDrawable)) {
        printf(">>> drmCreateDrawable failed\n");
-       xfree(pDRIDrawablePriv);
+       Xfree(pdp);
        return NULL;
     }
     else {
@@ -730,7 +738,8 @@ static __DRIdrawable *driGetDrawable(Display *dpy, GLXDrawable draw,
     ** Make sure this routine returns NULL if the drawable is not bound
     ** to a direct rendering context!
     */
-    return __driFindDrawable(psp->drawHash, draw);
+/*     return __driFindDrawable(psp->drawHash, draw); */
+    return &draw->driDrawable;
 }
 
 static void driDestroyDrawable(Display *dpy, void *drawablePrivate)
@@ -777,7 +786,7 @@ static void driDestroyContext(Display *dpy, int scrn, void *contextPrivate)
  		psp->fullscreen = NULL;
  	    }
 	}
-	__driGarbageCollectDrawables(pcp->driScreenPriv->drawHash);
+/* 	__driGarbageCollectDrawables(pcp->driScreenPriv->drawHash); */
 	(*pcp->driScreenPriv->DriverAPI.DestroyContext)(pcp);
 #if 0
 	(void)XF86DRIDestroyContext(dpy, scrn, pcp->contextID);
@@ -802,7 +811,7 @@ static void *driCreateContext(Display *dpy, XVisualInfo *vis,
     __GLcontextModes modes;
     void *shareCtx;
 
-    if (!(pDRIScreen = __glXFindDRIScreen(dpy, vis->screen))) {
+    if (!(pDRIScreen = __glXFindDRIScreen(dpy, 0))) {
 	/* ERROR!!! */
 	return NULL;
     } else if (!(psp = (__DRIscreenPrivate *)pDRIScreen->private)) {
@@ -812,7 +821,7 @@ static void *driCreateContext(Display *dpy, XVisualInfo *vis,
 
     if (!psp->dummyContextPriv.driScreenPriv) {
 #if 1
-	if (!XF86DRICreateContext(dpy, vis->screen, vis->visual,
+	if (!XF86DRICreateContext(dpy, 0, vis->visual,
 				  &psp->dummyContextPriv.contextID,
 				  &psp->dummyContextPriv.hHWContext)) {
 	    return NULL;
@@ -827,7 +836,7 @@ static void *driCreateContext(Display *dpy, XVisualInfo *vis,
     }
 
     /* Create the hash table */
-    if (!psp->drawHash) psp->drawHash = drmHashCreate();
+/*     if (!psp->drawHash) psp->drawHash = drmHashCreate(); */
 
     pcp = (__DRIcontextPrivate *)Xmalloc(sizeof(__DRIcontextPrivate));
     if (!pcp) {
@@ -880,7 +889,7 @@ static void *driCreateContext(Display *dpy, XVisualInfo *vis,
     /* Setup a __GLcontextModes struct corresponding to vis->visualid
      * and create the rendering context.
      */
-    config = __driFindGlxConfig(dpy, vis->screen, vis->visualid);
+    config = __driFindGlxConfig(dpy, 0, vis->visualid);
     if (!config)
         return NULL;
 
@@ -900,7 +909,7 @@ static void *driCreateContext(Display *dpy, XVisualInfo *vis,
     pctx->bindContext    = driBindContext;
     pctx->unbindContext  = driUnbindContext;
 
-    __driGarbageCollectDrawables(pcp->driScreenPriv->drawHash);
+/*     __driGarbageCollectDrawables(pcp->driScreenPriv->drawHash); */
 
     return pcp;
 }
@@ -1069,9 +1078,9 @@ __driUtilCreateScreen(Display *dpy, int scrn, __DRIscreen *psc,
 	return NULL;
     }
 #else
-    pdp->ddxMajor = 4;
-    pdp->ddxMinor = 0;
-    pdp->ddxPatch = 1;
+    psp->ddxMajor = 4;
+    psp->ddxMinor = 0;
+    psp->ddxPatch = 1;
     driverName = "r200";
 #endif
 
@@ -1120,9 +1129,12 @@ __driUtilCreateScreen(Display *dpy, int scrn, __DRIscreen *psc,
 	(void)XF86DRICloseConnection(dpy, scrn);
 	return NULL;
     }
-    psp->fbWidth = DisplayWidth(dpy, scrn);
-    psp->fbHeight = DisplayHeight(dpy, scrn);
-    psp->fbBPP = 32; /* NOT_DONE: Get this from X server */
+/*     psp->fbWidth = DisplayWidth(dpy, scrn); */
+/*     psp->fbHeight = DisplayHeight(dpy, scrn); */
+
+    psp->fbWidth = dpy->width;
+    psp->fbHeight = dpy->height;
+    psp->fbBPP = dpy->bpp;
 
     printf("hFB = 0x%x\n", (int) hFB);
     printf("fbOrigin=%d  fbSize=%d  fbStride=%d  devPrivSize=%d pDevPriv=%p\n",
@@ -1207,4 +1219,3 @@ __driUtilCreateScreen(Display *dpy, int scrn, __DRIscreen *psc,
 }
 
 
-#endif

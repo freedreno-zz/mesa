@@ -7,19 +7,27 @@ dispatch.c
 	- The libGL.so dispatch table.
 
 dri_util.c
+dri_util.h
+
+	- Previously part of the driver.so file.
+	- Contains a lot of window-system specific code, but has only
+	  a single entrypoint.  Better located in libGL.so?
+
 
 glxclient.h
+	- removed
 
 glxext.c
-
-Makefile
-
-CLIENT-SIDE CODE (LIBGL.SO)
----------------------------
+	- removed
 
 miniglx.c
 
 	- Miniglx bindings.  Not currently referenced by the makefile.
+
+miniglxP.h 
+	
+	- Cut down version of glxclient.h
+
 
 SERVER-SIDE CODE
 ----------------
@@ -34,34 +42,6 @@ dristruct.h
 	- Structs for dri.c
 
 
-radeon_common.h
-	- Kernel structs for radeon_dri.c.
-	- Only a fraction of this is referenced.
-
-	--> Why not just reference the kernel include directly?
-
-	--> The radeon client driver also pulls this in, so maybe it's
-            better to keep it.  (Though it's never been explained why
-            the client driver can't just reference the kernel header
-            directly either).
-
-radeon_dri.c
-
-	- Radeon-specific hardware initialization has been pulled into
-          this file from radeon_driver.c and radeon_dri.c in the DDX
-          driver.
-
-radeon_dri.h
-
-	- Define the struct passed to radeon_dri.so for it's
-          initialization.
-	- Also referenced by the files used to build radeon_dri.so.
-	- Why isn't this a part of radeon_common.h?
-	
-
-radeon.h
-
-	- Define the RADEONInfoPtr structure.
 
 XF86dri.c
 

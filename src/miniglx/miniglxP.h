@@ -133,7 +133,6 @@ struct __DRIscreenRec {
     void *private;
 };
 
-
 /*
 ** Context dependent methods.  This structure is initialized during the
 ** (*createContext)() call.
@@ -165,7 +164,6 @@ struct __DRIcontextRec {
     */
     void *private;
 };
-
 
 /*
 ** Drawable dependent methods.  This structure is initialized during the
@@ -229,6 +227,7 @@ struct MiniGLXWindowRec {
 struct MiniGLXContextRec {
    Window drawBuffer;
    Window curBuffer;
+   VisualID vid;
    __DRIcontext driContext;
 }; /* GLXContext */
 
@@ -249,6 +248,10 @@ struct MiniGLXDisplayRec {
    int MMIOSize;         /* in bytes */
    int NumWindows;
    Window TheWindow;     /* only allow one window for now */
+
+   int width;
+   int height;
+   int bpp;
 
    int numConfigs;
    __GLXvisualConfig *configs;

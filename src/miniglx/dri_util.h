@@ -53,8 +53,6 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #ifndef _DRI_UTIL_H_
 #define _DRI_UTIL_H_
 
-#ifdef GLX_DIRECT_RENDERING
-
 #define CAPI  /* XXX this should be globally defined somewhere */
 
 #include "GL/miniglx.h"           /* for GLXDrawable */
@@ -373,7 +371,5 @@ __driCreateScreen(Display *dpy, int scrn, __DRIscreen *psc,
 extern void
 __driRegisterExtensions( void );
 
-
-#endif /* GLX_DIRECT_RENDERING */
 
 #endif /* _DRI_UTIL_H_ */
