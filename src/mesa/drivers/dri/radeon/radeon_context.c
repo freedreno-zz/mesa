@@ -248,6 +248,12 @@ static void ResizeBuffers( GLframebuffer *buffer )
 #endif
 }
 
+
+extern void radeonPointsBitmap( GLcontext *ctx, GLint px, GLint py,
+				GLsizei width, GLsizei height,
+				const struct gl_pixelstore_attrib *unpack,
+				const GLubyte *bitmap );
+
 /* Initialize the driver's misc functions.
  */
 static void radeonInitDriverFuncs( GLcontext *ctx )
@@ -257,7 +263,7 @@ static void radeonInitDriverFuncs( GLcontext *ctx )
     ctx->Driver.ResizeBuffers           = ResizeBuffers;
     ctx->Driver.Error			= NULL;
     ctx->Driver.DrawPixels		= NULL;
-    ctx->Driver.Bitmap			= NULL;
+    ctx->Driver.Bitmap			= radeonPointsBitmap;
 }
 
 
