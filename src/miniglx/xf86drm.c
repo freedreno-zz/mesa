@@ -458,25 +458,6 @@ int drmSetBusid(int fd, const char *busid)
     return 0;
 }
 
-int drmGetMagic(int fd, drmMagicPtr magic)
-{
-    drm_auth_t auth;
-
-    *magic = 0;
-    if (ioctl(fd, DRM_IOCTL_GET_MAGIC, &auth)) return -errno;
-    *magic = auth.magic;
-    return 0;
-}
-
-int drmAuthMagic(int fd, drmMagic magic)
-{
-    drm_auth_t auth;
-
-    auth.magic = magic;
-    if (ioctl(fd, DRM_IOCTL_AUTH_MAGIC, &auth)) return -errno;
-    return 0;
-}
-
 int drmAddMap(int fd,
 	      drmHandle offset,
 	      drmSize size,
