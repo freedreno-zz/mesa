@@ -517,6 +517,285 @@ static void RADEONDRIIrqInit(struct MiniGLXDisplayRec *dpy,
 	      info->irq);
 }
 
+static int RADEONCheckDRMVersion( struct MiniGLXDisplayRec *dpy,
+				  RADEONInfoPtr info )
+{
+   drmVersionPtr  version;
+
+   version = drmGetVersion(dpy->drmFD);
+   if (version) {
+      int req_minor, req_patch;
+
+      /* Need 1.8.x for proper cleanup-on-client-exit behaviour.
+       */
+      req_minor = 8;
+      req_patch = 0;	
+
+      if (version->version_major != 1 ||
+	  version->version_minor < req_minor ||
+	  (version->version_minor == req_minor && 
+	   version->version_patchlevel < req_patch)) {
+	 /* Incompatible drm version */
+	 fprintf(stderr,
+		 "[dri] RADEONDRIScreenInit failed because of a version "
+		 "mismatch.\n"
+		 "[dri] radeon.o kernel module version is %d.%d.%d "
+		 "but version 1.%d.%d or newer is needed.\n"
+		 "[dri] Disabling DRI.\n",
+		 version->version_major,
+		 version->version_minor,
+		 version->version_patchlevel,
+		 req_minor,
+		 req_patch);
+	 drmFreeVersion(version);
+	 return 0;
+      }
+
+      info->drmMinor = version->version_minor;
+      drmFreeVersion(version);
+   }
+
+   return 1;
+}
+
+static int RADEONMemoryInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
+{
+   int        width_bytes = dpy->virtualWidth * dpy->cpp;
+   int        cpp         = dpy->cpp;
+   int        bufferSize  = ((dpy->virtualHeight * width_bytes
+			      + RADEON_BUFFER_ALIGN)
+			     & ~RADEON_BUFFER_ALIGN);
+   int        depthSize   = ((((dpy->virtualHeight+15) & ~15) * width_bytes
+			      + RADEON_BUFFER_ALIGN)
+			     & ~RADEON_BUFFER_ALIGN);
+   int        l;
+
+   info->frontOffset = 0;
+   info->frontPitch = dpy->virtualWidth;
+
+   fprintf(stderr, 
+	   "Using %d MB AGP aperture\n", info->agpSize);
+   fprintf(stderr, 
+	   "Using %d MB for the ring buffer\n", info->ringSize);
+   fprintf(stderr, 
+	   "Using %d MB for vertex/indirect buffers\n", info->bufSize);
+   fprintf(stderr, 
+	   "Using %d MB for AGP textures\n", info->agpTexSize);
+
+   /* Front, back and depth buffers - everything else texture??
+    */
+   info->textureSize = dpy->FrameBufferSize - 2 * bufferSize - depthSize;
+
+   if (info->textureSize < 0) 
+      return 0;
+
+   l = RADEONMinBits((info->textureSize-1) / RADEON_NR_TEX_REGIONS);
+   if (l < RADEON_LOG_TEX_GRANULARITY) l = RADEON_LOG_TEX_GRANULARITY;
+
+   /* Round the texture size up to the nearest whole number of
+    * texture regions.  Again, be greedy about this, don't
+    * round down.
+    */
+   info->log2TexGran = l;
+   info->textureSize = (info->textureSize >> l) << l;
+
+   /* Set a minimum usable local texture heap size.  This will fit
+    * two 256x256x32bpp textures.
+    */
+   if (info->textureSize < 512 * 1024) {
+      info->textureOffset = 0;
+      info->textureSize = 0;
+   }
+
+   /* Reserve space for textures */
+   info->textureOffset = ((dpy->FrameBufferSize - info->textureSize +
+			   RADEON_BUFFER_ALIGN) &
+			  ~RADEON_BUFFER_ALIGN);
+
+   /* Reserve space for the shared depth
+    * buffer.
+    */
+   info->depthOffset = ((info->textureOffset - depthSize +
+			 RADEON_BUFFER_ALIGN) &
+			~RADEON_BUFFER_ALIGN);
+   info->depthPitch = dpy->virtualWidth;
+
+   info->backOffset = ((info->depthOffset - bufferSize +
+			RADEON_BUFFER_ALIGN) &
+		       ~RADEON_BUFFER_ALIGN);
+   info->backPitch = dpy->virtualWidth;
+
+
+   fprintf(stderr, 
+	   "Will use back buffer at offset 0x%x\n",
+	   info->backOffset);
+   fprintf(stderr, 
+	   "Will use depth buffer at offset 0x%x\n",
+	   info->depthOffset);
+   fprintf(stderr, 
+	   "Will use %d kb for textures at offset 0x%x\n",
+	   info->textureSize/1024, info->textureOffset);
+
+   info->frontPitchOffset = (((info->frontPitch * cpp / 64) << 22) |
+			     (info->frontOffset >> 10));
+
+   info->backPitchOffset = (((info->backPitch * cpp / 64) << 22) |
+			    (info->backOffset >> 10));
+
+   info->depthPitchOffset = (((info->depthPitch * cpp / 64) << 22) |
+			     (info->depthOffset >> 10));
+
+   return 1;
+} 
+
+static int RADEONGetParam( int fd, int param, int *value )
+{
+   drmRadeonGetParam p;
+   int ret;
+
+   p.param = param;
+   p.value = value;
+
+   ret = drmCommandWriteRead(fd, DRM_RADEON_GETPARAM, &p, sizeof(p));
+
+   return ret == 0;
+}
+
+static void print_client_msg(   RADEONDRIPtr   pRADEONDRI )
+{
+   fprintf(stderr, "deviceID 0x%x\n", pRADEONDRI->deviceID);
+   fprintf(stderr, "width 0x%x\n", pRADEONDRI->width);
+   fprintf(stderr, "height 0x%x\n", pRADEONDRI->height);
+   fprintf(stderr, "depth 0x%x\n", pRADEONDRI->depth);
+   fprintf(stderr, "bpp 0x%x\n", pRADEONDRI->bpp);
+   fprintf(stderr, "IsPCI 0x%x\n", pRADEONDRI->IsPCI);
+   fprintf(stderr, "AGPMode 0x%x\n", pRADEONDRI->AGPMode);
+   fprintf(stderr, "frontOffset 0x%x\n", pRADEONDRI->frontOffset);
+   fprintf(stderr, "frontPitch 0x%x\n", pRADEONDRI->frontPitch);
+   fprintf(stderr, "backOffset 0x%x\n", pRADEONDRI->backOffset);
+   fprintf(stderr, "backPitch 0x%x\n", pRADEONDRI->backPitch);
+   fprintf(stderr, "depthOffset 0x%x\n", pRADEONDRI->depthOffset);
+   fprintf(stderr, "depthPitch 0x%x\n", pRADEONDRI->depthPitch);
+   fprintf(stderr, "textureOffset 0x%x\n", pRADEONDRI->textureOffset);
+   fprintf(stderr, "textureSize 0x%x\n", pRADEONDRI->textureSize);
+   fprintf(stderr, "log2TexGran 0x%x\n", pRADEONDRI->log2TexGran);
+   fprintf(stderr, "registerHandle 0x%x\n", (unsigned)pRADEONDRI->registerHandle);
+   fprintf(stderr, "registerSize 0x%x\n", pRADEONDRI->registerSize);
+   fprintf(stderr, "statusHandle 0x%x\n", (unsigned)pRADEONDRI->statusHandle);
+   fprintf(stderr, "statusSize 0x%x\n", pRADEONDRI->statusSize);
+   fprintf(stderr, "agpTexHandle 0x%x\n", (unsigned)pRADEONDRI->agpTexHandle);
+   fprintf(stderr, "agpTexMapSize 0x%x\n", pRADEONDRI->agpTexMapSize);
+   fprintf(stderr, "log2AGPTexGran 0x%x\n", pRADEONDRI->log2AGPTexGran);
+   fprintf(stderr, "agpTexOffset 0x%x\n", pRADEONDRI->agpTexOffset);
+   fprintf(stderr, "sarea_priv_offset 0x%x\n", pRADEONDRI->sarea_priv_offset);
+}
+
+
+static int RADEONScreenJoin( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
+{
+   int            s, l;
+   RADEONDRIPtr   pRADEONDRI;
+
+   /* Check the radeon DRM version */
+   if (!RADEONCheckDRMVersion(dpy, info)) {
+      return 0;
+   }
+
+   /* Memory manager setup */
+   if (!RADEONMemoryInit(dpy, info)) {
+      return 0;
+   }
+
+   /* Query the kernel for the various map handles (a handle is an
+    * offset into the mmap of dpy->drmFD).
+    */
+   if (!RADEONGetParam(dpy->drmFD, RADEON_PARAM_REGISTER_HANDLE, 
+		       (int *)&info->registerHandle) ||
+       !RADEONGetParam(dpy->drmFD, RADEON_PARAM_STATUS_HANDLE, 
+		       (int *)&info->ringReadPtrHandle)||
+       !RADEONGetParam(dpy->drmFD, RADEON_PARAM_SAREA_HANDLE, 
+		       (int *)&dpy->hSAREA)||
+       !RADEONGetParam(dpy->drmFD, RADEON_PARAM_AGP_TEX_HANDLE, 
+		       (int *)&info->agpTexHandle)) {
+      fprintf(stderr, "[drm] kernel parameter query failed\n");
+      return 0;
+   }
+
+   dpy->SAREASize = DRM_PAGE_SIZE;
+
+   /* Need to map this one here:
+    */
+   if (drmMap( dpy->drmFD,
+	       dpy->hSAREA,
+	       dpy->SAREASize,
+	       (drmAddressPtr)(&dpy->pSAREA)) < 0)
+   {
+      fprintf(stderr, "[drm] drmMap failed\n");
+      return 0;
+   }
+
+
+   /* These assume that the default values set in __driInitFBDev are
+    * actually the ones in use by the kernel.  These include:
+    *
+    *   info->agpSize       = RADEON_DEFAULT_AGP_SIZE;
+    *   info->agpTexSize    = RADEON_DEFAULT_AGP_TEX_SIZE;
+    *   info->bufSize       = RADEON_DEFAULT_BUFFER_SIZE;
+    *   info->ringSize      = RADEON_DEFAULT_RING_SIZE;
+    *
+    * Probably this should all be queried/deduced here.
+    */
+   info->agpOffset       = 0;
+   info->ringStart       = info->agpOffset;
+   info->ringMapSize     = info->ringSize*1024*1024 + DRM_PAGE_SIZE;
+   info->ringReadOffset  = info->ringStart + info->ringMapSize;
+   info->ringReadMapSize = DRM_PAGE_SIZE;
+   info->bufStart        = info->ringReadOffset + info->ringReadMapSize;
+   info->bufMapSize      = info->bufSize*1024*1024;
+   info->agpTexStart     = info->bufStart + info->bufMapSize;
+   s = (info->agpSize*1024*1024 - info->agpTexStart);
+   l = RADEONMinBits((s-1) / RADEON_NR_TEX_REGIONS);
+   if (l < RADEON_LOG_TEX_GRANULARITY) l = RADEON_LOG_TEX_GRANULARITY;
+   info->agpTexMapSize   = (s >> l) << l;
+   info->log2AGPTexGran  = l;
+
+   info->registerSize = dpy->FixedInfo.mmio_len;
+
+   /* This is the struct passed to radeon_dri.so for its initialization */
+   dpy->driverClientMsg = malloc(sizeof(RADEONDRIRec));
+   dpy->driverClientMsgSize = sizeof(RADEONDRIRec);
+   pRADEONDRI                    = (RADEONDRIPtr)dpy->driverClientMsg;
+   pRADEONDRI->deviceID          = info->Chipset;
+   pRADEONDRI->width             = dpy->virtualWidth;
+   pRADEONDRI->height            = dpy->virtualHeight;
+   pRADEONDRI->depth             = dpy->bpp; /* XXX: depth */
+   pRADEONDRI->bpp               = dpy->bpp;
+   pRADEONDRI->IsPCI             = 0;
+   pRADEONDRI->AGPMode           = info->agpMode; /* query */
+   pRADEONDRI->frontOffset       = info->frontOffset;
+   pRADEONDRI->frontPitch        = info->frontPitch;
+   pRADEONDRI->backOffset        = info->backOffset;
+   pRADEONDRI->backPitch         = info->backPitch;
+   pRADEONDRI->depthOffset       = info->depthOffset;
+   pRADEONDRI->depthPitch        = info->depthPitch;
+   pRADEONDRI->textureOffset     = info->textureOffset;
+   pRADEONDRI->textureSize       = info->textureSize;
+   pRADEONDRI->log2TexGran       = info->log2TexGran;
+   pRADEONDRI->registerHandle    = info->registerHandle; /* param? */
+   pRADEONDRI->registerSize      = info->registerSize; 
+   pRADEONDRI->statusHandle      = info->ringReadPtrHandle; /* param? */
+   pRADEONDRI->statusSize        = info->ringReadMapSize;
+   pRADEONDRI->agpTexHandle      = info->agpTexHandle; /* param? */
+   pRADEONDRI->agpTexMapSize     = info->agpTexMapSize;
+   pRADEONDRI->log2AGPTexGran    = info->log2AGPTexGran;
+   pRADEONDRI->agpTexOffset      = info->agpTexStart; 
+   pRADEONDRI->sarea_priv_offset = sizeof(XF86DRISAREARec);
+
+
+   print_client_msg( pRADEONDRI );
+   
+   return 1;
+}
 
 
 /**
@@ -539,8 +818,8 @@ static void RADEONDRIIrqInit(struct MiniGLXDisplayRec *dpy,
 static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
 {
    RADEONDRIPtr   pRADEONDRI;
-   drmVersionPtr  version;
    int err;
+   unsigned int serverContext;	
 
    usleep(100);
 
@@ -568,13 +847,21 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
       return 0;
    }
 
+   info->registerSize = dpy->FixedInfo.mmio_len;
+   dpy->SAREASize = DRM_PAGE_SIZE;
 
    /* Note that drmOpen will try to load the kernel module, if needed. */
    dpy->drmFD = drmOpen("radeon", NULL );
    if (dpy->drmFD < 0) {
       /* failed to open DRM */
-      fprintf(stderr, "[drm] drmOpen failed\n");
-      return 0;
+      fprintf(stderr, "[drm] drmOpen failed, trying open by BusID\n");
+
+      dpy->drmFD = drmOpen( NULL, dpy->pciBusID );
+      if (dpy->drmFD >= 0) {
+	 fprintf(stderr, "[drm] drmOpen by BusID succeeds...\n");
+	 fprintf(stderr, "[drm] ...joining existing session\n");
+	 return RADEONScreenJoin( dpy, info );
+      }
    }
 
    if ((err = drmSetBusid(dpy->drmFD, dpy->pciBusID)) < 0) {
@@ -583,9 +870,7 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
       return 0;
    }
 
-   
-   dpy->SAREASize = DRM_PAGE_SIZE;
-   
+     
    if (drmAddMap( dpy->drmFD,
 		  0,
 		  dpy->SAREASize,
@@ -628,7 +913,6 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
 
 
 
-   info->registerSize = dpy->FixedInfo.mmio_len;
    if (drmAddMap(dpy->drmFD, 
 		 dpy->FixedInfo.mmio_start,
 		 dpy->FixedInfo.mmio_len,
@@ -642,37 +926,8 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
 	   "[drm] register handle = 0x%08lx\n", info->registerHandle);
 
    /* Check the radeon DRM version */
-   version = drmGetVersion(dpy->drmFD);
-   if (version) {
-      int req_minor, req_patch;
-
-      /* Need 1.8.x for proper cleanup-on-client-exit behaviour.
-       */
-      req_minor = 8;
-      req_patch = 0;	
-
-      if (version->version_major != 1 ||
-	  version->version_minor < req_minor ||
-	  (version->version_minor == req_minor && 
-	   version->version_patchlevel < req_patch)) {
-	 /* Incompatible drm version */
-	 fprintf(stderr,
-		 "[dri] RADEONDRIScreenInit failed because of a version "
-		 "mismatch.\n"
-		 "[dri] radeon.o kernel module version is %d.%d.%d "
-		 "but version 1.%d.%d or newer is needed.\n"
-		 "[dri] Disabling DRI.\n",
-		 version->version_major,
-		 version->version_minor,
-		 version->version_patchlevel,
-		 req_minor,
-		 req_patch);
-	 drmFreeVersion(version);
-	 return 0;
-      }
-
-      info->drmMinor = version->version_minor;
-      drmFreeVersion(version);
+   if (!RADEONCheckDRMVersion(dpy, info)) {
+      return 0;
    }
 
    /* Initialize AGP */
@@ -682,114 +937,31 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
 
 
    /* Memory manager setup */
-   {
-      int        width_bytes = dpy->virtualWidth * dpy->cpp;
-      int        cpp         = dpy->cpp;
-      int        bufferSize  = ((dpy->virtualHeight * width_bytes
-				 + RADEON_BUFFER_ALIGN)
-				& ~RADEON_BUFFER_ALIGN);
-      int        depthSize   = ((((dpy->virtualHeight+15) & ~15) * width_bytes
-				 + RADEON_BUFFER_ALIGN)
-				& ~RADEON_BUFFER_ALIGN);
-      int        l;
-
-      info->frontOffset = 0;
-      info->frontPitch = dpy->virtualWidth;
-
-      fprintf(stderr, 
-	      "Using %d MB AGP aperture\n", info->agpSize);
-      fprintf(stderr, 
-	      "Using %d MB for the ring buffer\n", info->ringSize);
-      fprintf(stderr, 
-	      "Using %d MB for vertex/indirect buffers\n", info->bufSize);
-      fprintf(stderr, 
-	      "Using %d MB for AGP textures\n", info->agpTexSize);
-
-      /* Front, back and depth buffers - everything else texture??
-       */
-      info->textureSize = dpy->FrameBufferSize - 2 * bufferSize - depthSize;
-
-      if (info->textureSize < 0) 
-	 return 0;
-
-      l = RADEONMinBits((info->textureSize-1) / RADEON_NR_TEX_REGIONS);
-      if (l < RADEON_LOG_TEX_GRANULARITY) l = RADEON_LOG_TEX_GRANULARITY;
-
-      /* Round the texture size up to the nearest whole number of
-       * texture regions.  Again, be greedy about this, don't
-       * round down.
-       */
-      info->log2TexGran = l;
-      info->textureSize = (info->textureSize >> l) << l;
-
-      /* Set a minimum usable local texture heap size.  This will fit
-       * two 256x256x32bpp textures.
-       */
-      if (info->textureSize < 512 * 1024) {
-	 info->textureOffset = 0;
-	 info->textureSize = 0;
-      }
-
-      /* Reserve space for textures */
-      info->textureOffset = ((dpy->FrameBufferSize - info->textureSize +
-			      RADEON_BUFFER_ALIGN) &
-			     ~RADEON_BUFFER_ALIGN);
-
-      /* Reserve space for the shared depth
-       * buffer.
-       */
-      info->depthOffset = ((info->textureOffset - depthSize +
-			    RADEON_BUFFER_ALIGN) &
-			   ~RADEON_BUFFER_ALIGN);
-      info->depthPitch = dpy->virtualWidth;
-
-      info->backOffset = ((info->depthOffset - bufferSize +
-			   RADEON_BUFFER_ALIGN) &
-			  ~RADEON_BUFFER_ALIGN);
-      info->backPitch = dpy->virtualWidth;
-
-
-      fprintf(stderr, 
-	      "Will use back buffer at offset 0x%x\n",
-	      info->backOffset);
-      fprintf(stderr, 
-	      "Will use depth buffer at offset 0x%x\n",
-	      info->depthOffset);
-      fprintf(stderr, 
-	      "Will use %d kb for textures at offset 0x%x\n",
-	      info->textureSize/1024, info->textureOffset);
-
-      info->frontPitchOffset = (((info->frontPitch * cpp / 64) << 22) |
-				(info->frontOffset >> 10));
-
-      info->backPitchOffset = (((info->backPitch * cpp / 64) << 22) |
-			       (info->backOffset >> 10));
-
-      info->depthPitchOffset = (((info->depthPitch * cpp / 64) << 22) |
-				(info->depthOffset >> 10));
-   } 
+   if (!RADEONMemoryInit(dpy, info)) {
+      return 0;
+   }
 
    /* Create a 'server' context so we can grab the lock for
     * initialization ioctls.
     */
-   if ((err = drmCreateContext(dpy->drmFD, &dpy->serverContext)) != 0) {
+   if ((err = drmCreateContext(dpy->drmFD, &serverContext)) != 0) {
       fprintf(stderr, "%s: drmCreateContext failed %d\n", __FUNCTION__, err);
       return 0;
    }
 
-   DRM_LOCK(dpy->drmFD, dpy->pSAREA, dpy->serverContext, 0); 
+   DRM_LOCK(dpy->drmFD, dpy->pSAREA, serverContext, 0); 
 
    /* Initialize the kernel data structures */
    if (!RADEONDRIKernelInit(dpy, info)) {
       fprintf(stderr, "RADEONDRIKernelInit failed\n");
-      DRM_UNLOCK(dpy->drmFD, dpy->pSAREA, dpy->serverContext);
+      DRM_UNLOCK(dpy->drmFD, dpy->pSAREA, serverContext);
       return 0;
    }
 
    /* Initialize the vertex buffers list */
    if (!RADEONDRIBufInit(dpy, info)) {
       fprintf(stderr, "RADEONDRIBufInit failed\n");
-      DRM_UNLOCK(dpy->drmFD, dpy->pSAREA, dpy->serverContext);
+      DRM_UNLOCK(dpy->drmFD, dpy->pSAREA, serverContext);
       return 0;
    }
 
@@ -804,7 +976,7 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
    /* Initialize and start the CP if required */
    if ((err = drmCommandNone(dpy->drmFD, DRM_RADEON_CP_START)) != 0) {
       fprintf(stderr, "%s: CP start %d\n", __FUNCTION__, err);
-      DRM_UNLOCK(dpy->drmFD, dpy->pSAREA, dpy->serverContext);
+      DRM_UNLOCK(dpy->drmFD, dpy->pSAREA, serverContext);
       return 0;
    }
 
@@ -818,7 +990,7 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
    }
 
    /* Can release the lock now */
-   DRM_UNLOCK(dpy->drmFD, dpy->pSAREA, dpy->serverContext);
+   DRM_UNLOCK(dpy->drmFD, dpy->pSAREA, serverContext);
 
    /* This is the struct passed to radeon_dri.so for its initialization */
    dpy->driverClientMsg = malloc(sizeof(RADEONDRIRec));
@@ -849,6 +1021,8 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
    pRADEONDRI->log2AGPTexGran    = info->log2AGPTexGran;
    pRADEONDRI->agpTexOffset      = info->agpTexStart;
    pRADEONDRI->sarea_priv_offset = sizeof(XF86DRISAREARec);
+
+   print_client_msg( pRADEONDRI );
 
    return 1;
 }
