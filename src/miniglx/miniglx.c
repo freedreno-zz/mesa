@@ -1,4 +1,4 @@
-/* $Id: miniglx.c,v 1.1.4.17 2002/12/19 13:48:27 keithw Exp $ */
+/* $Id: miniglx.c,v 1.1.4.18 2002/12/20 01:28:15 jrfonseca Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -25,9 +25,34 @@
  */
 
 
-/*
- * *PROTOTYPE* mini-GLX interface, layered on fbdev.
+/**
+ * \file miniglx.c
+ * \brief Mini GLX interface, layered on fbdev.
+ * \author Brian Paul
+ * \note *PROTOTYPE*
+ */
+
+/**
+ * \mainpage Mini GLX
  *
+ * \section intro Introduction
+ *
+ * The Mini GLX interface facilitates OpenGL rendering on embedded devices. The
+ * interface is a subset of the GLX interface, plus a minimal set of Xlib-like
+ * functions.
+ *
+ * Programs written to the Mini GLX specification should run unchanged on
+ * systems with the X Window System and the GLX extension. The intention is to
+ * allow flexibility for prototyping and testing.
+ *
+ * \section references References
+ *
+ * - Mini GLX Specification, Tungsten Graphics, Inc.
+ * - OpenGL Graphics with the X Window System, Silicon Graphics, Inc.,
+ *   ftp://ftp.sgi.com/opengl/doc/opengl1.2/glx1.3.ps
+ * - XFree86 Man pages, The XFree86 Project, Inc.,
+ *   http://www.xfree86.org/current/manindex3.html
+ *  
  */
 
 /*
@@ -518,7 +543,14 @@ int __read_config_file( Display *dpy )
 }
 
 
-/* Jose:  This function not stable
+/**
+ * \brief Initialize the graphics system.
+ * 
+ * \param display_name currently ignored. It is recommended to pass it as NULL.
+ * \return a pointer to a #Display if the function is able to initialize
+ * the graphics system, NULL otherwise.
+ * 
+ * \note XXX: This function not stable.
  */
 Display *
 XOpenDisplay( const char *display_name )
@@ -583,6 +615,14 @@ XOpenDisplay( const char *display_name )
 }
 
 
+/**
+ * \brief Release display resources.
+ * 
+ * When the application is about to exit, the resources associated with the
+ * graphics system can be released by calling this function.
+ * 
+ * \param dpy display handle. It becomes invalid at this point.
+ */
 void
 XCloseDisplay( Display *dpy )
 {
@@ -593,7 +633,38 @@ XCloseDisplay( Display *dpy )
 }
 
 
-
+/**
+ * \brief Window creation.
+ *
+ * \param dpy a #Display pointer, as returned by XOpenDisplay().
+ * \param parent the parent window for the new window. For Mini GLX this should
+ * be \code RootWindow(dpy, 0) \endcode .
+ * \param x the window abscissa. For Mini GLX, it should be zero.
+ * \param y the window ordinate. For Mini GLX, it should be zero.
+ * \param width the window width. For Mini GLX, this specifies the desired
+ * screen width such as 1024 or 1280. 
+ * \param height the window height. For Mini GLX, this specifies the desired
+ * screen height such as 768 or 1024.
+ * \param border_width This parameter should be zero.
+ * \param depth the window pixel depth. For Mini GLX this should be the depth
+ * found in the #XVisualInfo object returned by glxChooseVisual() 
+ * \param class the window class. For Mini GLX this value should be
+ * #InputOutput.
+ * \param visual the visual type. It should be the visual field of the
+ * #XVisualInfo object returned by glxChooseVisual().
+ * \param valuemask which fields of the XSetWindowAttributes() are to be used.
+ * For Mini GLX this is typically the bitmask \code CWBackPixel | CWBorderPixel
+ * | CWColormap \endcode
+ * \param attributes initial window attributes. Of the fields in the
+ * XSetWindowAttributes() structure, the \p background_pixel, \p border_pixel and
+ * \p colormap fields should be set.
+ *
+ * \return a window handle if it succeeds or zero if it fails.
+ * 
+ * \note For Mini GLX, windows are full-screen; they cover the entire frame
+ * buffer.  Also, Mini GLX imposes a limit of one window. A second window
+ * cannot be created until the first one is destroyed.
+ */
 Window
 XCreateWindow( Display *dpy, Window parent, int x, int y,
                unsigned int width, unsigned int height,
@@ -701,6 +772,12 @@ XCreateWindow( Display *dpy, Window parent, int x, int y,
 }
 
 
+/**
+ * \brief Destroy Window.
+ *
+ * \param dpy display handle.
+ * \param win window handle.
+ */
 void
 XDestroyWindow( Display *dpy, Window win )
 {
@@ -723,6 +800,15 @@ XDestroyWindow( Display *dpy, Window win )
 }
 
 
+/**
+ * \brief Map Window.
+ *
+ * \param dpy display handle.
+ * \param w window handle.
+ * 
+ * \note This function does nothing in Mini GLX but is required for Xlib/GLX
+ * compatibility.
+ */
 void
 XMapWindow( Display *dpy, Window w )
 {
@@ -758,6 +844,31 @@ XFree( void *pointer )
    FREE(pointer);
 }
 
+
+/**
+ * \brief Query available visuals.
+ *
+ * \param dpy the display handle, as returned by XOpenDisplay().
+ * \param visMask a bitmask indicating which fields of the \p vinfoTemplate are to
+ * be matched.  The value must be #VisualScreenMask.
+ * \param visTemplate a template whose fields indicate which visual attributes
+ * must be matched by the results.  The \p screen field of this structure must
+ * be zero.
+ * \param numVisuals Returns the number of visuals returned.
+ *
+ * \return the address of an array of all available visuals.
+ * 
+ * An example of using XGetVisualInfo to get all available visuals follows:
+ * 
+ * \code
+ * XVisualInfo visTemplate, *results;
+ * int numVisuals;
+ * Display *dpy = XOpenDisplay(NULL);
+ * visTemplate.screen = 0;
+ * results = XGetVisualInfo(dpy, VisualScreenMask, &visTemplate, &numVisuals);
+ * \endcode
+ * 
+ */
 
 /*
  * Return list of all XVisualInfos we have (one per __GLXvisualConfig).
