@@ -1,8 +1,8 @@
-/* $Id: texstate.c,v 1.58.2.1 2001/11/06 15:51:07 brianp Exp $ */
+/* $Id: texstate.c,v 1.58.2.2 2001/12/13 16:02:32 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.5
+ * Version:  4.0.1
  *
  * Copyright (C) 1999-2001  Brian Paul   All Rights Reserved.
  *
@@ -897,6 +897,7 @@ _mesa_TexParameterfv( GLenum target, GLenum pname, const GLfloat *params )
              || eparam==GL_LINEAR_MIPMAP_NEAREST
              || eparam==GL_NEAREST_MIPMAP_LINEAR
              || eparam==GL_LINEAR_MIPMAP_LINEAR) {
+            FLUSH_VERTICES(ctx, _NEW_TEXTURE);
             texObj->MinFilter = eparam;
          }
          else {
@@ -910,6 +911,7 @@ _mesa_TexParameterfv( GLenum target, GLenum pname, const GLfloat *params )
             return;
 
          if (eparam==GL_NEAREST || eparam==GL_LINEAR) {
+            FLUSH_VERTICES(ctx, _NEW_TEXTURE);
             texObj->MagFilter = eparam;
          }
          else {
@@ -927,6 +929,7 @@ _mesa_TexParameterfv( GLenum target, GLenum pname, const GLfloat *params )
               ctx->Extensions.ARB_texture_border_clamp) ||
              (eparam == GL_MIRRORED_REPEAT_ARB &&
               ctx->Extensions.ARB_texture_mirrored_repeat)) {
+            FLUSH_VERTICES(ctx, _NEW_TEXTURE);
             texObj->WrapS = eparam;
          }
          else {
@@ -944,6 +947,7 @@ _mesa_TexParameterfv( GLenum target, GLenum pname, const GLfloat *params )
               ctx->Extensions.ARB_texture_border_clamp) ||
              (eparam == GL_MIRRORED_REPEAT_ARB &&
               ctx->Extensions.ARB_texture_mirrored_repeat)) {
+            FLUSH_VERTICES(ctx, _NEW_TEXTURE);
             texObj->WrapT = eparam;
          }
          else {
@@ -961,6 +965,7 @@ _mesa_TexParameterfv( GLenum target, GLenum pname, const GLfloat *params )
               ctx->Extensions.ARB_texture_border_clamp) ||
              (eparam == GL_MIRRORED_REPEAT_ARB &&
               ctx->Extensions.ARB_texture_mirrored_repeat)) {
+            FLUSH_VERTICES(ctx, _NEW_TEXTURE);
             texObj->WrapR = eparam;
          }
          else {
@@ -968,15 +973,22 @@ _mesa_TexParameterfv( GLenum target, GLenum pname, const GLfloat *params )
          }
          break;
       case GL_TEXTURE_BORDER_COLOR:
+         FLUSH_VERTICES(ctx, _NEW_TEXTURE);
          UNCLAMPED_FLOAT_TO_CHAN(texObj->BorderColor[0], params[0]);
          UNCLAMPED_FLOAT_TO_CHAN(texObj->BorderColor[1], params[1]);
          UNCLAMPED_FLOAT_TO_CHAN(texObj->BorderColor[2], params[2]);
          UNCLAMPED_FLOAT_TO_CHAN(texObj->BorderColor[3], params[3]);
          break;
       case GL_TEXTURE_MIN_LOD:
+         if (texObj->MinLod == params[0])
+            return;
+         FLUSH_VERTICES(ctx, _NEW_TEXTURE);
          texObj->MinLod = params[0];
          break;
       case GL_TEXTURE_MAX_LOD:
+         if (texObj->MaxLod == params[0])
+            return;
+         FLUSH_VERTICES(ctx, _NEW_TEXTURE);
          texObj->MaxLod = params[0];
          break;
       case GL_TEXTURE_BASE_LEVEL:
@@ -984,6 +996,7 @@ _mesa_TexParameterfv( GLenum target, GLenum pname, const GLfloat *params )
             _mesa_error(ctx, GL_INVALID_VALUE, "glTexParameter(param)" );
             return;
          }
+         FLUSH_VERTICES(ctx, _NEW_TEXTURE);
          texObj->BaseLevel = (GLint) params[0];
          break;
       case GL_TEXTURE_MAX_LEVEL:
@@ -991,10 +1004,12 @@ _mesa_TexParameterfv( GLenum target, GLenum pname, const GLfloat *params )
             _mesa_error(ctx, GL_INVALID_VALUE, "glTexParameter(param)" );
             return;
          }
+         FLUSH_VERTICES(ctx, _NEW_TEXTURE);
          texObj->MaxLevel = (GLint) params[0];
          break;
       case GL_TEXTURE_PRIORITY:
          /* (keithh@netcomuk.co.uk) */
+         FLUSH_VERTICES(ctx, _NEW_TEXTURE);
          texObj->Priority = CLAMP( params[0], 0.0F, 1.0F );
          break;
       case GL_TEXTURE_MAX_ANISOTROPY_EXT:
@@ -1003,6 +1018,7 @@ _mesa_TexParameterfv( GLenum target, GLenum pname, const GLfloat *params )
 	       _mesa_error(ctx, GL_INVALID_VALUE, "glTexParameter(param)" );
 	       return;
 	    }
+            FLUSH_VERTICES(ctx, _NEW_TEXTURE);
             texObj->MaxAnisotropy = params[0];
          }
          else {
@@ -1013,6 +1029,7 @@ _mesa_TexParameterfv( GLenum target, GLenum pname, const GLfloat *params )
          break;
       case GL_TEXTURE_COMPARE_SGIX:
          if (ctx->Extensions.SGIX_shadow) {
+            FLUSH_VERTICES(ctx, _NEW_TEXTURE);
             texObj->CompareFlag = params[0] ? GL_TRUE : GL_FALSE;
          }
          else {
@@ -1026,6 +1043,7 @@ _mesa_TexParameterfv( GLenum target, GLenum pname, const GLfloat *params )
             GLenum op = (GLenum) params[0];
             if (op == GL_TEXTURE_LEQUAL_R_SGIX ||
                 op == GL_TEXTURE_GEQUAL_R_SGIX) {
+               FLUSH_VERTICES(ctx, _NEW_TEXTURE);
                texObj->CompareOperator = op;
             }
             else {
@@ -1040,6 +1058,7 @@ _mesa_TexParameterfv( GLenum target, GLenum pname, const GLfloat *params )
          break;
       case GL_SHADOW_AMBIENT_SGIX:
          if (ctx->Extensions.SGIX_shadow_ambient) {
+            FLUSH_VERTICES(ctx, _NEW_TEXTURE);
             UNCLAMPED_FLOAT_TO_CHAN(texObj->ShadowAmbient, params[0]);
          }
          else {
@@ -1050,6 +1069,7 @@ _mesa_TexParameterfv( GLenum target, GLenum pname, const GLfloat *params )
          break;
       case GL_GENERATE_MIPMAP_SGIS:
          if (ctx->Extensions.SGIS_generate_mipmap) {
+            FLUSH_VERTICES(ctx, _NEW_TEXTURE);
             texObj->GenerateMipmap = params[0] ? GL_TRUE : GL_FALSE;
          }
          else {
@@ -1067,7 +1087,6 @@ _mesa_TexParameterfv( GLenum target, GLenum pname, const GLfloat *params )
          return;
    }
 
-   ctx->NewState |= _NEW_TEXTURE;
    texObj->Complete = GL_FALSE;
 
    if (ctx->Driver.TexParameter) {
