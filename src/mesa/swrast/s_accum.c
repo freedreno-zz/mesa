@@ -1,4 +1,4 @@
-/* $Id: s_accum.c,v 1.13.2.1 2002/03/16 00:50:14 brianp Exp $ */
+/* $Id: s_accum.c,v 1.13.2.2 2002/03/19 16:42:41 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -73,13 +73,13 @@ _mesa_alloc_accum_buffer( GLframebuffer *buffer )
    GLint n;
 
    if (buffer->Accum) {
-      FREE( buffer->Accum );
+      MESA_PBUFFER_FREE( buffer->Accum );
       buffer->Accum = NULL;
    }
 
    /* allocate accumulation buffer if not already present */
    n = buffer->Width * buffer->Height * 4 * sizeof(GLaccum);
-   buffer->Accum = (GLaccum *) MALLOC( n );
+   buffer->Accum = (GLaccum *) MESA_PBUFFER_ALLOC( n );
    if (!buffer->Accum) {
       /* unable to setup accumulation buffer */
       _mesa_error( NULL, GL_OUT_OF_MEMORY, "glAccum" );
@@ -241,7 +241,6 @@ _swrast_Accum( GLcontext *ctx, GLenum op, GLfloat value,
    GLfloat acc_scale;
    GLchan rgba[MAX_WIDTH][4];
    const GLuint colorMask = *((GLuint *) &ctx->Color.ColorMask);
-
 
    if (SWRAST_CONTEXT(ctx)->NewState)
       _swrast_validate_derived( ctx );

@@ -1,4 +1,4 @@
-/* $Id: s_depth.c,v 1.9.2.1 2002/03/16 00:50:14 brianp Exp $ */
+/* $Id: s_depth.c,v 1.9.2.2 2002/03/19 16:42:41 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -1494,7 +1494,7 @@ _mesa_alloc_depth_buffer( GLframebuffer *buffer )
 
    /* deallocate current depth buffer if present */
    if (buffer->DepthBuffer) {
-      FREE(buffer->DepthBuffer);
+      MESA_PBUFFER_FREE(buffer->DepthBuffer);
       buffer->DepthBuffer = NULL;
    }
 
@@ -1504,7 +1504,7 @@ _mesa_alloc_depth_buffer( GLframebuffer *buffer )
    else
       bytesPerValue = sizeof(GLuint);
 
-   buffer->DepthBuffer =MALLOC(buffer->Width * buffer->Height * bytesPerValue);
+   buffer->DepthBuffer = MESA_PBUFFER_ALLOC(buffer->Width * buffer->Height * bytesPerValue);
 
    if (!buffer->DepthBuffer) {
       /* out of memory */
