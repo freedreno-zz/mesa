@@ -224,6 +224,7 @@ void APIENTRY glutMainLoop (void)
    GLboolean idle;
    GLboolean have_event;
    XEvent evt;
+   int visible = 0;
 
    glutPostRedisplay();
    if (reshape_func) reshape_func(g_width, g_height);
@@ -232,7 +233,7 @@ void APIENTRY glutMainLoop (void)
       idle = GL_TRUE;
 
 
-      if (idle_func) 
+      if (visible && idle_func) 
 	 have_event = XCheckWindowEvent( dpy, win, ~0, &evt );
       else 
 	 have_event = XNextEvent( dpy, &evt );
@@ -242,10 +243,16 @@ void APIENTRY glutMainLoop (void)
 	 idle = GL_FALSE;
 	 switch(evt.type) {
 	 case MapNotify:
-	    if (visibility_func) visibility_func(GLUT_VISIBLE);
+	    if (visibility_func) {
+	       visibility_func(GLUT_VISIBLE);
+	    }
+	    visible = 1;
 	    break;
 	 case UnmapNotify:
-	    if (visibility_func) visibility_func(GLUT_NOT_VISIBLE);
+	    if (visibility_func) {
+	       visibility_func(GLUT_NOT_VISIBLE);
+	    }
+	    visible = 0;
 	    break;
 	 case Expose:
 	    g_redisplay = 1;
@@ -253,14 +260,14 @@ void APIENTRY glutMainLoop (void)
 	 }
       }
 
-      if (g_redisplay && display_func) {
+      if (visible && g_redisplay && display_func) {
 	 idle        = GL_FALSE;
 	 g_redisplay = GL_FALSE;
 
 	 display_func();
       }
 
-      if (idle && idle_func) {
+      if (visible && idle && idle_func) {
 	 idle_func();
       }
    }
