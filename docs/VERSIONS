@@ -1,4 +1,4 @@
-$Id: VERSIONS,v 1.73.2.4 2001/11/09 22:05:10 brianp Exp $
+$Id: VERSIONS,v 1.73.2.5 2001/11/13 00:26:07 brianp Exp $
 
 
 Mesa Version History
@@ -899,6 +899,8 @@ Mesa Version History
 	- fixed 3DNow! code to not read past end of arrays (Andrew Lewycky)
 
 4.0.1 Month, ??, 200?
+    New:
+	- better sub-pixel sample positions for AA triangles (Ray Tice)
     Bug fixes:
 	- added missing break statements in glGet*() for multisample cases
 	- fixed uninitialized hash table mutex bug (display lists / texobjs)
