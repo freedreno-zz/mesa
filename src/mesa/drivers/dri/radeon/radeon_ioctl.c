@@ -163,7 +163,7 @@ void radeonEmitState( radeonContextPtr rmesa )
 
 
 /**
- * Fire a section of the retained (indexed_verts) buffer as a regular
+ * \brief Fire a section of the retained buffer as a regular
  * primitive.  
  *
  * \param rmesa Radeon context.
@@ -294,13 +294,13 @@ void radeonEmitAOS( radeonContextPtr rmesa,
 
 
 /**
- * \brief Emit vertex.
+ * \brief Emit vertex array of structures.
  *
  * \param rmesa Radeon context.
  * \param vertex_size size of the vertex buffer.
  * \param offset offset of the vertex buffer.
  * 
- * Updates radeon_context::ioctl with the parameters given.
+ * Updates radeon_context::ioctl with the given parameters.
  */
 void radeonEmitVertexAOS( radeonContextPtr rmesa,
 			  GLuint vertex_size,
@@ -325,8 +325,7 @@ void radeonEmitVertexAOS( radeonContextPtr rmesa,
  * If debugging is enabled, it prints several debug information and performs a
  * sanity check before.
  * 
- * \note Does not emit any commands to avoid recursion on
- * radeonAllocCmdBuf().
+ * \note Does not emit any commands to avoid recursion on radeonAllocCmdBuf().
  */ 
 static int radeonFlushCmdBufLocked( radeonContextPtr rmesa, 
 				    const char * caller )
@@ -692,7 +691,8 @@ static void radeonWaitIrq( radeonContextPtr rmesa )
  *
  * \param rmesa Radeon context.
  *
- * Waits until the number of processed frames reaches the one specifies in the SAREA.
+ * Waits until the number of processed frames reaches the one specifies in the
+ * SAREA.
  *
  * If IRQs are enabled and one has been emited then wait on the IRQ and send
  * one afterwards.
@@ -869,8 +869,31 @@ void radeonPageFlip( const __DRIdrawablePrivate *dPriv )
  */
 /*@{*/
 
+/**
+ * \brief Maximum number of clears to buffer.
+ */
 #define RADEON_MAX_CLEARS	256
 
+/**
+ * \brief Clear buffers.
+ *
+ * \param ctx GL context.
+ * \param mask buffer clear mask.
+ * \param all whether to clear them all or just a rectangle.
+ * \param cx clearing rectangle abcissa.
+ * \param cy clearing rectangle ordinate.
+ * \param cw clearing rectangle width.
+ * \param ch clearing rectangle height.
+ *
+ * First emits the current state, fires the vertices and calculate the clearing
+ * flags to pass to the clear IOCTL later.
+ *
+ * Locks the hardware and throttles the number of clear IOCTLS done, allowing
+ * up to #RADEON_MAX_CLEARS. For each set of cliprects, intersects them with
+ * the clearing rectangle (if not clearing all) and uploads them to the SAREA,
+ * setups a drmRadeonClearType structure sends it to the DRM_RADEON_CLEAR
+ * command.
+ */
 static void radeonClear( GLcontext *ctx, GLbitfield mask, GLboolean all,
 			 GLint cx, GLint cy, GLint cw, GLint ch )
 {
@@ -1180,6 +1203,8 @@ void radeonFinish( GLcontext *ctx )
 
 /**
  * \brief Setup the GL context callbacks.
+ *
+ * \param ctx GL context.
  *
  * \sa Called by radeonCreateContext().
  */

@@ -67,7 +67,7 @@ union vertex_dword { float f; int i; };
 
 
 /**
- * \brief Vertex global data.
+ * \brief Global vertex buffer data.
  */
 static struct vb_t {
    /* \brief Notification mechanism.  
@@ -104,7 +104,7 @@ static struct vb_t {
    /*@}*/
 
    /**
-    * \brief Pointer to the context.
+    * \brief Pointer to the GL context.
     */
    GLcontext *context;
 
@@ -129,11 +129,11 @@ static void radeonFlushVertices( GLcontext *, GLuint );
  * \brief Primitive information table.
  */
 static struct prims_t { 
-   int start,  /**< \brief start vertex count */
-       incr,   /**< \brief vertex increment */
+   int start,  /**< \brief vertex count for the starting primitive */
+       incr,   /**< \brief vertex increment for a further primitive */
        hwprim; /**< \brief hardware primitive */
 } prims[10] = {
-   { 1, 1, RADEON_CP_VC_CNTL_PRIM_TYPE_POINT},
+   { 1, 1, RADEON_CP_VC_CNTL_PRIM_TYPE_POINT },
    { 2, 2, RADEON_CP_VC_CNTL_PRIM_TYPE_LINE }, 
    { 2, 1, RADEON_CP_VC_CNTL_PRIM_TYPE_LINE_STRIP },
    { 2, 1, RADEON_CP_VC_CNTL_PRIM_TYPE_LINE_STRIP },
@@ -146,6 +146,13 @@ static struct prims_t {
 };
 
 
+/**
+ * \brief Finish the primitive in the vertex buffer.
+ *
+ * \param rmesa Radeon context.
+ *
+ * Truncates any redundant vertices off the end of the buffer and 
+ */
 static void finish_prim( radeonContextPtr rmesa )
 {
    GLuint prim_end = vb.stack[0].initial_vertspace - vb.stack[0].vertspace;

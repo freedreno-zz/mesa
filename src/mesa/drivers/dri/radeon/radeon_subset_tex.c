@@ -505,6 +505,16 @@ static GLuint radeon_alpha_combine[][RADEON_MAX_COMBFUNC] =
  */
 /*@{*/
 
+/**
+ * \brief Update the texture environment.
+ *
+ * \param ctx GL context
+ * \param unit texture unit to update.
+ *
+ * Sets the state of the RADEON_TEX_PP_TXCBLEND and RADEON_TEX_PP_TXABLEND
+ * registers using the radeon_colot_combine and radeon_alpha_combine tables,
+ * and informs of the state change.
+ */
 static void radeonUpdateTextureEnv( GLcontext *ctx, int unit )
 {
    radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
@@ -598,6 +608,7 @@ static void radeonUpdateTextureEnv( GLcontext *ctx, int unit )
    }
 }
 
+
 #define TEXOBJ_TXFILTER_MASK (RADEON_MAX_MIP_LEVEL_MASK |	\
 			      RADEON_MIN_FILTER_MASK | 		\
 			      RADEON_MAG_FILTER_MASK |		\
@@ -679,7 +690,19 @@ void radeonUpdateTextureState( GLcontext *ctx )
 
 
 
-
+/**
+ * \brief Choose texture format.
+ *
+ * \param ctx GL context.
+ * \param internalFormat texture internal format.
+ * \param format pixel format. Not used.
+ * \param type pixel data type. Not used.
+ *
+ * \return pointer to choosen texture format.
+ *
+ * Returns a pointer to one of the Mesa texture formats which is supported by
+ * Radeon and matches the internal format.
+ */
 static const struct gl_texture_format *
 radeonChooseTextureFormat( GLcontext *ctx, GLint internalFormat,
                            GLenum format, GLenum type )
@@ -703,7 +726,16 @@ radeonChooseTextureFormat( GLcontext *ctx, GLint internalFormat,
    }
 }
 
-
+/**
+ * \brief Allocate a Radeon texture object.
+ *
+ * \param texObj texture object.
+ *
+ * \return pointer to the device specific texture object on sucess, or NULL on failure.
+ *
+ * Allocates and initializes a radeon_tex_obj structure and connects to the
+ * driver private data pointer in \p texObj.
+ */
 static radeonTexObjPtr radeonAllocTexObj( struct gl_texture_object *texObj )
 {
    radeonTexObjPtr t;
@@ -720,6 +752,25 @@ static radeonTexObjPtr radeonAllocTexObj( struct gl_texture_object *texObj )
 }
 
 
+/**
+ * \brief Load a texture image.
+ *
+ * \param ctx GL context.
+ * \param texObj texture object
+ * \param target target texture.
+ * \param level level of detail number.
+ * \param internalFormat internal format.
+ * \param width texture image width.
+ * \param height texture image height.
+ * \param border border width.
+ * \param format pixel format.
+ * \param type pixel data type.
+ * \param pixels image data.
+ * \param packing passed to _mesa_store_teximage2d() unchanged.
+ * \param texImage passed to _mesa_store_teximage2d() unchanged.
+ * 
+ * If there is a device specific texture object associated with the given texture object then swaps that texture out. Calls _mesa_store_teximage2d() with all other parameters unchanged.
+ */
 static void radeonTexImage2D( GLcontext *ctx, GLenum target, GLint level,
                               GLint internalFormat,
                               GLint width, GLint height, GLint border,
@@ -740,7 +791,17 @@ static void radeonTexImage2D( GLcontext *ctx, GLenum target, GLint level,
                           &ctx->Unpack, texObj, texImage);
 }
 
-
+/**
+ * \brief Set texture environment parameters.
+ *
+ * \param ctx GL context.
+ * \param target texture environment.
+ * \param pname texture parameter. Accepted value is GL_TEXTURE_ENV_COLOR.
+ * \param pvalue texture value.
+ *
+ * Updates the current unit's RADEON_TEX_PP_TFACTOR register and informs of the
+ * state change.
+ */
 static void radeonTexEnv( GLcontext *ctx, GLenum target,
 			  GLenum pname, const GLfloat *param )
 {
@@ -766,6 +827,21 @@ static void radeonTexEnv( GLcontext *ctx, GLenum target,
    }
 }
 
+/**
+ * \brief Set texture parameter.
+ *
+ * \param ctx GL context.
+ * \param target target texture.
+ * \param texObj texture object.
+ * \param pname texture parameter.
+ * \param params parameter value.
+ * 
+ * Allocates the device specific texture object data if it doesn't exist
+ * already.
+ * 
+ * Updates the texture object radeon_tex_obj::pp_txfilter register and marks
+ * the texture state (radeon_tex_obj::dirty_state) as dirty.
+ */
 static void radeonTexParameter( GLcontext *ctx, GLenum target,
 				struct gl_texture_object *texObj,
 				GLenum pname, const GLfloat *params )
@@ -845,8 +921,15 @@ static void radeonTexParameter( GLcontext *ctx, GLenum target,
    t->dirty_state = TEX_ALL;
 }
 
-
-
+/**
+ * \brief Bind texture.
+ *
+ * \param ctx GL context.
+ * \param target not used.
+ * \param texObj texture object.
+ * 
+ * Allocates the device specific texture data if it doesn't exist already.
+ */
 static void radeonBindTexture( GLcontext *ctx, GLenum target,
 			       struct gl_texture_object *texObj )
 {
@@ -854,6 +937,15 @@ static void radeonBindTexture( GLcontext *ctx, GLenum target,
       radeonAllocTexObj( texObj );
 }
 
+/**
+ * \brief Delete texture.
+ *
+ * \param ctx GL context.
+ * \param texObj texture object.
+ *
+ * Fires any outstanding vertices and destroy the device specific texture
+ * object.
+ */ 
 static void radeonDeleteTexture( GLcontext *ctx,
 				 struct gl_texture_object *texObj )
 {
@@ -867,6 +959,14 @@ static void radeonDeleteTexture( GLcontext *ctx,
    }
 }
 
+/**
+ * \brief Initialize context texture object data.
+ * 
+ * \param ctx GL context.
+ *
+ * Called by radeonInitTextureFuncs() to setup the context initial texture
+ * objects.
+ */
 static void radeonInitTextureObjects( GLcontext *ctx )
 {
    radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
@@ -884,7 +984,13 @@ static void radeonInitTextureObjects( GLcontext *ctx )
    ctx->Texture.CurrentUnit = tmp;
 }
 
-
+/**
+ * \brief Setup the GL context driver callbacks.
+ *
+ * \param ctx GL context.
+ *
+ * \sa Called by radeonCreateContext().
+ */
 void radeonInitTextureFuncs( GLcontext *ctx )
 {
    ctx->Driver.ChooseTextureFormat	= radeonChooseTextureFormat;

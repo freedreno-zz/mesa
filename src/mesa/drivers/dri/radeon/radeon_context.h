@@ -129,12 +129,18 @@ struct radeon_tex_obj {
    /* Total size of the texture including all mipmap levels */
    GLint totalSize;
 
-   GLuint pp_txfilter;		        /* hardware register values */
+   /**
+    * \name Hardware register values.
+    */
+   /*@{*/
+   GLuint pp_txfilter;
    GLuint pp_txformat;
    GLuint pp_txoffset;
    GLuint pp_border_color;
+   /*@}*/
 
-   /* \name Images to upload
+   /**
+    * \name Images to upload
     * 
     * texObj->Image[firstLevel] through texObj->Image[lastLevel] are the
     * images to upload.
@@ -214,14 +220,14 @@ struct radeon_state_atom {
 #define MSK_RB3D_PLANEMASK      3
 #define MSK_STATE_SIZE          4
 
-#define VPT_CMD_0           0
+#define VPT_CMD_0                    0
 #define VPT_SE_VPORT_XSCALE          1
 #define VPT_SE_VPORT_XOFFSET         2
 #define VPT_SE_VPORT_YSCALE          3
 #define VPT_SE_VPORT_YOFFSET         4
 #define VPT_SE_VPORT_ZSCALE          5
 #define VPT_SE_VPORT_ZOFFSET         6
-#define VPT_STATE_SIZE      7
+#define VPT_STATE_SIZE               7
 
 #define MSC_CMD_0               0
 #define MSC_RE_MISC             1
@@ -238,12 +244,12 @@ struct radeon_state_atom {
 #define TEX_PP_BORDER_COLOR         8
 #define TEX_STATE_SIZE              9
 
-#define ZBS_CMD_0              0
-#define ZBS_SE_ZBIAS_FACTOR             1
-#define ZBS_SE_ZBIAS_CONSTANT           2
-#define ZBS_STATE_SIZE         3
+#define ZBS_CMD_0                   0
+#define ZBS_SE_ZBIAS_FACTOR         1
+#define ZBS_SE_ZBIAS_CONSTANT       2
+#define ZBS_STATE_SIZE              3
 
-#define TCL_CMD_0                        0
+#define TCL_CMD_0                 0
 #define TCL_OUTPUT_VTXFMT         1
 #define TCL_OUTPUT_VTXSEL         2
 #define TCL_MATRIX_SELECT_0       3
@@ -255,7 +261,7 @@ struct radeon_state_atom {
 #define TCL_PER_LIGHT_CTL_1       9
 #define TCL_PER_LIGHT_CTL_2       10
 #define TCL_PER_LIGHT_CTL_3       11
-#define TCL_STATE_SIZE                   12
+#define TCL_STATE_SIZE            12
 
 #define MTL_CMD_0            0	
 #define MTL_EMMISSIVE_RED    1	
@@ -426,78 +432,102 @@ struct radeon_state {
    struct radeon_texture_state texture;
 };
 
+/**
+ * \brief Texture information
+ */
 struct radeon_texture {
-   radeonTexObj objects[RADEON_NR_TEX_HEAPS];
-   radeonTexObj swapped;
+   radeonTexObj objects[RADEON_NR_TEX_HEAPS];	/**< \brief texture objects */
+   radeonTexObj swapped;			/**< \brief swapped texture lists */
 
-   memHeap_t *heap[RADEON_NR_TEX_HEAPS];
-   GLint age[RADEON_NR_TEX_HEAPS];
+   memHeap_t *heap[RADEON_NR_TEX_HEAPS];	/**< \brief texture heaps */
+   GLint age[RADEON_NR_TEX_HEAPS];		/**< \brief aging */
 
-   GLint numHeaps;
+   GLint numHeaps;				/**< \brief number of active heaps */
 };
 
 /**
  * \brief Reference counting on DMA buffers.
  */
 struct radeon_dma_buffer {
-   int refcount;	/**< \brief the number of retained regions in \p buf */
-   drmBufPtr buf;
+   int refcount;	/**< \brief number of retained regions in radeon_dma_buffer::buf */
+   drmBufPtr buf;	/**< \brief DMA buffer */
 };
 
+/**
+ * \brief Get the start of a DMA region.
+ *
+ * \param rvb pointer to a radeon_dma_region structure.
+ *
+ * \return pointer to the region start.
+ */
 #define GET_START(rvb) (rmesa->radeonScreen->agp_buffer_offset +	\
 			(rvb)->address - rmesa->dma.buf0_address +	\
 			(rvb)->start)
 
 /**
- * \brief A retained region.
+ * \brief A retained DMA region.
  *
  * e.g. vertices for indexed vertices.
  */
 struct radeon_dma_region {
    struct radeon_dma_buffer *buf;
-   char *address;		/**< \brief == buf->address */
-   int start, end, ptr;		/**< \brief offsets from start of \p buf */
-   int aos_start;
-   int aos_stride;
-   int aos_size;
+   char *address;		/**< \brief buf->address */
+   int start, end, ptr;		/**< \brief offsets from start of radeon_dma_region::buf */
+   int aos_start;		/**< \brief array of structures start */
+   int aos_stride;		/**< \brief array of structures stride */
+   int aos_size;		/**< \brief array of structures size */
 };
 
 
+/**
+ * \brief DMA information
+ */
 struct radeon_dma {
    /**
     * \brief Active dma region.  
     *
     * Allocations for vertices and retained regions come from here.  Also used
     * for emitting random vertices, these may be flushed by calling
-    * flush_current();
+    * radeon_dma::flush_current.
     */
    struct radeon_dma_region current;
    
+   /**
+    * \brief Callback to flush the vertices in radeon_dma::current.
+    */
    void (*flush)( radeonContextPtr );
 
    char *buf0_address;		/**< \brief start of buf[0], for index calcs */
    GLuint nr_released_bufs;	/**< \brief flush after so many buffers released */
 };
 
+/**
+ * \brief Mirror some DRI context.
+ */
 struct radeon_dri_mirror {
    __DRIcontextPrivate	*context;	/**< \brief DRI context */
    __DRIscreenPrivate	*screen;	/**< \brief DRI screen */
-   __DRIdrawablePrivate	*drawable;	/**< \brief DRI drawable bound to this ctx */
+   __DRIdrawablePrivate	*drawable;	/**< \brief DRI drawable bound to this context */
 
-   drmContext hwContext;
-   drmLock *hwLock;
-   int fd;
-   int drmMinor;
+   drmContext hwContext;		
+   drmLock *hwLock;			/**< \brief hardware lock */
+   int fd;				/**< \brief DRM device file descriptor */
+   int drmMinor;			/**< \brief DRM device minor number */
 };
 
-
+/**
+ * \brief Command buffer size
+ */
 #define RADEON_CMD_BUF_SZ  (8*1024) 
 
+/**
+ * \brief Command buffering.
+ */
 struct radeon_store {
-   GLuint statenr;
-   GLuint primnr;
-   char cmd_buf[RADEON_CMD_BUF_SZ];
-   int cmd_used;   
+   GLuint statenr;                  /**< \brief state number */
+   GLuint primnr;                   /**< \brief primitive number */
+   char cmd_buf[RADEON_CMD_BUF_SZ]; /**< \brief command buffer */
+   int cmd_used;                    /**< \brief used commands */
    int elts_start;
 };
 
@@ -580,7 +610,7 @@ struct radeon_context {
    /*@{*/
    struct radeon_ioctl ioctl;
    struct radeon_dma dma;
-   struct radeon_store store;
+   struct radeon_store store; /**< \ brief Command buffer */
    /*@}*/
 
    /**
@@ -593,7 +623,7 @@ struct radeon_context {
     */
    /*@{*/
    GLuint do_usleeps;
-   GLuint do_irqs;
+   GLuint do_irqs;		/**< \brief Do IRQs */
    GLuint irqsEmitted;
    drmRadeonIrqWait iw;
    /*@}*/
@@ -602,11 +632,11 @@ struct radeon_context {
     * \name Drawable, cliprect and scissor information
     */
    /*@{*/
-   GLuint numClipRects;			/**< \brief Cliprects for the draw buffer */
-   XF86DRIClipRectPtr pClipRects;
+   GLuint numClipRects;			/**< \brief Number of cliprects */
+   XF86DRIClipRectPtr pClipRects;	/**< \brief cliprects for the draw buffer */
    unsigned int lastStamp;
    GLboolean lost_context;
-   radeonScreenPtr radeonScreen;	/**< Screen private DRI data */
+   radeonScreenPtr radeonScreen;	/**< \brief Screen private DRI data */
    RADEONSAREAPrivPtr sarea;		/**< \brief Private SAREA data */
    /*@}*/
 
@@ -650,11 +680,22 @@ struct radeon_context {
 
 
 /**
- * Macro to get the pointer to the Radeon context from the GL context.
+ * \brief Get the pointer to the Radeon context from the GL context.
  */
 #define RADEON_CONTEXT(ctx)		((radeonContextPtr)(ctx->DriverCtx))
 
 
+/** 
+ * \brief Pack color.
+ *
+ * \param cpp desired characters (bytes) per pixel. Either 2 or 4.
+ * \param r red color component.
+ * \param r green color component.
+ * \param b blue color component.
+ * \param a alpha color component.
+ *
+ * \return the packed color, or zero if \p cpp is not supported.
+ */
 static __inline GLuint radeonPackColor( GLuint cpp,
 					GLubyte r, GLubyte g,
 					GLubyte b, GLubyte a )

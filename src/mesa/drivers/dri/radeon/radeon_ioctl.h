@@ -163,7 +163,7 @@ do {							\
 } while (0)
 
 /**
- * \brief Allocate space in the command buffer
+ * \brief Allocate space in the command buffer.
  * 
  * \param rmesa Radeon context.
  * \param bytes number of bytes to allocate.
