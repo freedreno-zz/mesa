@@ -30,6 +30,7 @@
 
 #include "glheader.h"
 #include "imports.h"
+#include "api_arrayelt.h"
 #include "api_loopback.h"
 #include "config.h"
 #if FEATURE_ARB_vertex_program || FEATURE_ARB_fragment_program
@@ -293,6 +294,26 @@ typedef enum {
         /* GL_ARB_vertex/fragment_program */
         OPCODE_PROGRAM_STRING_ARB,
         OPCODE_PROGRAM_ENV_PARAMETER_ARB,
+
+
+	/* Vertex attributes -- fallback for when optimized display
+	 * list build isn't active.
+	 */
+	OPCODE_ATTR_1F,
+	OPCODE_ATTR_2F,
+	OPCODE_ATTR_3F,
+	OPCODE_ATTR_4F,
+	OPCODE_MATERIAL,
+	OPCODE_INDEX,
+	OPCODE_EDGEFLAG,
+	OPCODE_BEGIN,
+	OPCODE_END,
+	OPCODE_RECTF,
+	OPCODE_EVAL_C1,
+	OPCODE_EVAL_C2,
+	OPCODE_EVAL_P1,
+	OPCODE_EVAL_P2,
+
 
 	/* The following three are meta instructions */
 	OPCODE_ERROR,	        /* raise compiled-in error */
@@ -734,6 +755,20 @@ void _mesa_init_lists( void )
       InstSize[OPCODE_PROGRAM_STRING_ARB] = 5;
       InstSize[OPCODE_PROGRAM_ENV_PARAMETER_ARB] = 7;
 #endif
+      InstSize[OPCODE_ATTR_1F] = 3;
+      InstSize[OPCODE_ATTR_2F] = 4;
+      InstSize[OPCODE_ATTR_3F] = 5;
+      InstSize[OPCODE_ATTR_4F] = 6;
+      InstSize[OPCODE_MATERIAL] = 7;
+      InstSize[OPCODE_INDEX] = 2;
+      InstSize[OPCODE_EDGEFLAG] = 2;
+      InstSize[OPCODE_BEGIN] = 2;
+      InstSize[OPCODE_END] = 1;
+      InstSize[OPCODE_RECTF] = 5;
+      InstSize[OPCODE_EVAL_C1] = 2;
+      InstSize[OPCODE_EVAL_C2] = 3;
+      InstSize[OPCODE_EVAL_P1] = 2;
+      InstSize[OPCODE_EVAL_P2] = 3;
    }
    init_flag = 1;
 }
@@ -4533,6 +4568,544 @@ save_ProgramEnvParameter4dvARB(GLenum target, GLuint index,
 
 
 
+
+static void save_Attr1f( GLenum attr, GLfloat x )
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   n = ALLOC_INSTRUCTION( ctx, OPCODE_ATTR_1F, 2 );
+   if (n) {
+      n[1].e = attr;
+      n[2].f = x;
+   }
+   if (ctx->ExecuteFlag) {
+      (*ctx->Exec->VertexAttrib1fNV)( attr, x );
+   }
+}
+
+static void save_Attr2f( GLenum attr, GLfloat x, GLfloat y )
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   n = ALLOC_INSTRUCTION( ctx, OPCODE_ATTR_2F, 3 );
+   if (n) {
+      n[1].e = attr;
+      n[2].f = x;
+      n[3].f = y;
+   }
+   if (ctx->ExecuteFlag) {
+      (*ctx->Exec->VertexAttrib2fNV)( attr, x, y );
+   }
+}
+
+static void save_Attr3f( GLenum attr, GLfloat x, GLfloat y, GLfloat z )
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   n = ALLOC_INSTRUCTION( ctx, OPCODE_ATTR_3F, 4 );
+   if (n) {
+      n[1].e = attr;
+      n[2].f = x;
+      n[3].f = y;
+      n[4].f = z;
+   }
+   if (ctx->ExecuteFlag) {
+      (*ctx->Exec->VertexAttrib3fNV)( attr, x, y, z );
+   }
+}
+
+static void save_Attr4f( GLenum attr, GLfloat x, GLfloat y, GLfloat z,
+			 GLfloat w )
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   n = ALLOC_INSTRUCTION( ctx, OPCODE_ATTR_4F, 5 );
+   if (n) {
+      n[1].e = attr;
+      n[2].f = x;
+      n[3].f = y;
+      n[4].f = z;
+      n[5].f = w;
+   }
+   if (ctx->ExecuteFlag) {
+      (*ctx->Exec->VertexAttrib4fNV)( attr, x, y, z, w );
+   }
+}
+
+static void save_EvalCoord1f( GLfloat x )
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   n = ALLOC_INSTRUCTION( ctx, OPCODE_EVAL_C1, 1 );
+   if (n) {
+      n[1].f = x;
+   }
+   if (ctx->ExecuteFlag) {
+      (*ctx->Exec->EvalCoord1f)( x );
+   }
+}
+
+static void save_EvalCoord1fv( const GLfloat *v )
+{
+   save_EvalCoord1f( v[0] );
+}
+
+static void save_EvalCoord2f( GLfloat x, GLfloat y )
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   n = ALLOC_INSTRUCTION( ctx, OPCODE_EVAL_C2, 2 );
+   if (n) {
+      n[1].f = x;
+      n[2].f = y;
+   }
+   if (ctx->ExecuteFlag) {
+      (*ctx->Exec->EvalCoord2f)( x, y );
+   }
+}
+
+static void save_EvalCoord2fv( const GLfloat *v )
+{
+   save_EvalCoord2f( v[0], v[1] );
+}
+
+
+static void save_EvalPoint1( GLint x )
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   n = ALLOC_INSTRUCTION( ctx, OPCODE_EVAL_P1, 1 );
+   if (n) {
+      n[1].i = x;
+   }
+   if (ctx->ExecuteFlag) {
+      (*ctx->Exec->EvalPoint1)( x );
+   }
+}
+
+static void save_EvalPoint2( GLint x, GLint y )
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   n = ALLOC_INSTRUCTION( ctx, OPCODE_EVAL_P2, 2 );
+   if (n) {
+      n[1].i = x;
+      n[2].i = y;
+   }
+   if (ctx->ExecuteFlag) {
+      (*ctx->Exec->EvalPoint2)( x, y );
+   }
+}
+
+static void save_Indexf( GLfloat x )
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   n = ALLOC_INSTRUCTION( ctx, OPCODE_INDEX, 1 );
+   if (n) {
+      n[1].f = x;
+   }
+   if (ctx->ExecuteFlag) {
+      (*ctx->Exec->Indexi)( x );
+   }
+}
+
+static void save_Indexfv( const GLfloat *v )
+{
+   save_Indexf( v[0] );
+}
+
+static void save_EdgeFlag( GLboolean x )
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   n = ALLOC_INSTRUCTION( ctx, OPCODE_EDGEFLAG, 1 );
+   if (n) {
+      n[1].b = x;
+   }
+   if (ctx->ExecuteFlag) {
+      (*ctx->Exec->EdgeFlag)( x );
+   }
+}
+
+static void save_EdgeFlagv( const GLboolean *v )
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   n = ALLOC_INSTRUCTION( ctx, OPCODE_EDGEFLAG, 1 );
+   if (n) {
+      n[1].b = v[0];
+   }
+   if (ctx->ExecuteFlag) {
+      (*ctx->Exec->EdgeFlagv)( v );
+   }
+}
+
+static void save_Materialfv( GLenum face, GLenum pname, const GLfloat *param )
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   int args, i;
+
+   switch (pname) {
+   case GL_EMISSION:
+   case GL_AMBIENT:
+   case GL_DIFFUSE:
+   case GL_SPECULAR:
+   case GL_AMBIENT_AND_DIFFUSE:
+      args = 4;
+      break;
+   case GL_SHININESS:
+      args = 1;
+      break;
+   case GL_COLOR_INDEXES:
+      args = 3;
+      break;
+   default:
+      _mesa_compile_error( ctx, GL_INVALID_ENUM, __FUNCTION__ );
+      return;
+   }
+
+   n = ALLOC_INSTRUCTION( ctx, OPCODE_MATERIAL, 6 );
+   if (n) {
+      n[1].e = face;
+      n[2].e = pname;
+      for (i = 0 ; i < args ; i++)
+	 n[2+i].f = param[i];
+   }
+
+   if (ctx->ExecuteFlag) {
+      (*ctx->Exec->Materialfv)( face, pname, param );
+   }
+}
+
+static void save_Begin( GLenum mode )
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   GLboolean error = GL_FALSE;
+
+   if (mode < GL_POINTS || mode > GL_POLYGON) {
+      _mesa_compile_error( ctx, GL_INVALID_ENUM, "Begin (mode)");
+      error = GL_TRUE;
+   }
+   else if (ctx->Driver.CurrentSavePrimitive == PRIM_UNKNOWN) {
+      /* Typically the first begin.  This may raise an error on
+       * playback, depending on whether CallList is issued from inside
+       * a begin/end or not.
+       */
+      ctx->Driver.CurrentSavePrimitive = PRIM_INSIDE_UNKNOWN_PRIM;
+   }
+   else if (ctx->Driver.CurrentSavePrimitive == PRIM_OUTSIDE_BEGIN_END) {
+      ctx->Driver.CurrentSavePrimitive = mode;
+   }
+   else {
+      _mesa_compile_error( ctx, GL_INVALID_OPERATION, "recursive begin" );
+      error = GL_TRUE;
+   }
+
+   if (!error) {
+      /* Give the driver an opportunity to hook in an optimized
+       * display list compiler.
+       */
+#if 0
+      if (ctx->Driver.NotifySaveBegin( ctx, mode ))
+	 return;
+#endif
+
+      n = ALLOC_INSTRUCTION( ctx, OPCODE_BEGIN, 1 );
+      if (n) {
+	 n[1].e = mode;
+      }
+   }
+
+   if (ctx->ExecuteFlag) {
+      (*ctx->Exec->Begin)( mode );
+   }
+}
+
+static void save_End( void )
+{
+   GET_CURRENT_CONTEXT(ctx);
+   ALLOC_INSTRUCTION( ctx, OPCODE_END, 0 );
+   if (ctx->ExecuteFlag) {
+      (*ctx->Exec->End)( );
+   }
+}
+
+static void save_Rectf( GLfloat a, GLfloat b,
+			GLfloat c, GLfloat d )
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   n = ALLOC_INSTRUCTION( ctx, OPCODE_RECTF, 4 );
+   if (n) {
+      n[1].f = a;
+      n[2].f = b;
+      n[3].f = c;
+      n[4].f = d;
+   }
+   if (ctx->ExecuteFlag) {
+      (*ctx->Exec->Rectf)( a, b, c, d );
+   }
+}
+
+/*
+ */
+static void save_Vertex2f( GLfloat x, GLfloat y )
+{
+   save_Attr2f( VERT_ATTRIB_POS, x, y );
+}
+
+static void save_Vertex2fv( const GLfloat *v )
+{
+   save_Attr2f( VERT_ATTRIB_POS, v[0], v[1] );
+}
+
+static void save_Vertex3f( GLfloat x, GLfloat y, GLfloat z )
+{
+   save_Attr3f( VERT_ATTRIB_POS, x, y, z );
+}
+
+static void save_Vertex3fv( const GLfloat *v )
+{
+   save_Attr3f( VERT_ATTRIB_POS, v[0], v[1], v[2] );
+}
+
+static void save_Vertex4f( GLfloat x, GLfloat y, GLfloat z, GLfloat w )
+{
+   save_Attr4f( VERT_ATTRIB_POS, x, y, z, w );
+}
+
+static void save_Vertex4fv( const GLfloat *v )
+{
+   save_Attr4f( VERT_ATTRIB_POS, v[0], v[1], v[2], v[3] );
+}
+
+static void save_TexCoord1f( GLfloat x )
+{
+   save_Attr1f( VERT_ATTRIB_TEX0, x );
+}
+
+static void save_TexCoord1fv( const GLfloat *v )
+{
+   save_Attr1f( VERT_ATTRIB_TEX0, v[0] );
+}
+
+static void save_TexCoord2f( GLfloat x, GLfloat y )
+{
+   save_Attr2f( VERT_ATTRIB_TEX0, x, y );
+}
+
+static void save_TexCoord2fv( const GLfloat *v )
+{
+   save_Attr2f( VERT_ATTRIB_TEX0, v[0], v[1] );
+}
+
+static void save_TexCoord3f( GLfloat x, GLfloat y, GLfloat z )
+{
+   save_Attr3f( VERT_ATTRIB_TEX0, x, y, z );
+}
+
+static void save_TexCoord3fv( const GLfloat *v )
+{
+   save_Attr3f( VERT_ATTRIB_TEX0, v[0], v[1], v[2] );
+}
+
+static void save_TexCoord4f( GLfloat x, GLfloat y, GLfloat z, GLfloat w )
+{
+   save_Attr4f( VERT_ATTRIB_TEX0, x, y, z, w );
+}
+
+static void save_TexCoord4fv( const GLfloat *v )
+{
+   save_Attr4f( VERT_ATTRIB_TEX0, v[0], v[1], v[2], v[3] );
+}
+
+static void save_Normal3f( GLfloat x, GLfloat y, GLfloat z )
+{
+   save_Attr3f( VERT_ATTRIB_NORMAL, x, y, z );
+}
+
+static void save_Normal3fv( const GLfloat *v )
+{
+   save_Attr3f( VERT_ATTRIB_NORMAL, v[0], v[1], v[2] );
+}
+
+static void save_FogCoordfEXT( GLfloat x )
+{
+   save_Attr1f( VERT_ATTRIB_FOG, x );
+}
+
+static void save_FogCoordfvEXT( const GLfloat *v )
+{
+   save_Attr1f( VERT_ATTRIB_FOG, v[0] );
+}
+
+static void save_Color3f( GLfloat x, GLfloat y, GLfloat z )
+{
+   save_Attr3f( VERT_ATTRIB_COLOR0, x, y, z );
+}
+
+static void save_Color3fv( const GLfloat *v )
+{
+   save_Attr3f( VERT_ATTRIB_COLOR0, v[0], v[1], v[2] );
+}
+
+static void save_Color4f( GLfloat x, GLfloat y, GLfloat z, GLfloat w )
+{
+   save_Attr4f( VERT_ATTRIB_COLOR0, x, y, z, w );
+}
+
+static void save_Color4fv( const GLfloat *v )
+{
+   save_Attr4f( VERT_ATTRIB_COLOR0, v[0], v[1], v[2], v[3] );
+}
+
+static void save_SecondaryColor3fEXT( GLfloat x, GLfloat y, GLfloat z )
+{
+   save_Attr3f( VERT_ATTRIB_COLOR1, x, y, z );
+}
+
+static void save_SecondaryColor3fvEXT( const GLfloat *v )
+{
+   save_Attr3f( VERT_ATTRIB_COLOR1, v[0], v[1], v[2] );
+}
+
+
+/* Just call the respective ATTR for texcoord
+ */
+static void save_MultiTexCoord1f( GLenum target, GLfloat x  )
+{
+   GLuint attr = (target & 0x7) + VERT_ATTRIB_TEX0;
+   save_Attr1f( attr, x );
+}
+
+static void save_MultiTexCoord1fv( GLenum target, const GLfloat *v )
+{
+   GLuint attr = (target & 0x7) + VERT_ATTRIB_TEX0;
+   save_Attr1f( attr, v[0] );
+}
+
+static void save_MultiTexCoord2f( GLenum target, GLfloat x, GLfloat y )
+{
+   GLuint attr = (target & 0x7) + VERT_ATTRIB_TEX0;
+   save_Attr2f( attr, x, y );
+}
+
+static void save_MultiTexCoord2fv( GLenum target, const GLfloat *v )
+{
+   GLuint attr = (target & 0x7) + VERT_ATTRIB_TEX0;
+   save_Attr2f( attr, v[0], v[1] );
+}
+
+static void save_MultiTexCoord3f( GLenum target, GLfloat x, GLfloat y,
+				    GLfloat z)
+{
+   GLuint attr = (target & 0x7) + VERT_ATTRIB_TEX0;
+   save_Attr3f( attr, x, y, z );
+}
+
+static void save_MultiTexCoord3fv( GLenum target, const GLfloat *v )
+{
+   GLuint attr = (target & 0x7) + VERT_ATTRIB_TEX0;
+   save_Attr3f( attr, v[0], v[1], v[2] );
+}
+
+static void save_MultiTexCoord4f( GLenum target, GLfloat x, GLfloat y,
+				  GLfloat z, GLfloat w )
+{
+   GLuint attr = (target & 0x7) + VERT_ATTRIB_TEX0;
+   save_Attr4f( attr, x, y, z, w );
+}
+
+static void save_MultiTexCoord4fv( GLenum target, const GLfloat *v )
+{
+   GLuint attr = (target & 0x7) + VERT_ATTRIB_TEX0;
+   save_Attr4f( attr, v[0], v[1], v[2], v[3] );
+}
+
+
+static void enum_error() 
+{
+   GET_CURRENT_CONTEXT( ctx );
+   _mesa_error( ctx, GL_INVALID_ENUM, "VertexAttribfNV" );
+}
+
+/* First level for NV_vertex_program:
+ *
+ * Check for errors at compile time?.
+ */
+static void save_VertexAttrib1fNV( GLuint index, GLfloat x )
+{
+   if (index < VERT_ATTRIB_MAX)
+      save_Attr1f( index, x );
+   else
+      enum_error(); 
+}
+
+static void save_VertexAttrib1fvNV( GLuint index, const GLfloat *v )
+{
+   if (index < VERT_ATTRIB_MAX)
+      save_Attr1f( index, v[0] );
+   else
+      enum_error();
+}
+
+static void save_VertexAttrib2fNV( GLuint index, GLfloat x, GLfloat y )
+{
+   if (index < VERT_ATTRIB_MAX)
+      save_Attr2f( index, x, y );
+   else
+      enum_error();
+}
+
+static void save_VertexAttrib2fvNV( GLuint index, const GLfloat *v )
+{
+   if (index < VERT_ATTRIB_MAX)
+      save_Attr2f( index, v[0], v[1] );
+   else
+      enum_error();
+}
+
+static void save_VertexAttrib3fNV( GLuint index, GLfloat x, GLfloat y, 
+				   GLfloat z )
+{
+   if (index < VERT_ATTRIB_MAX)
+      save_Attr3f( index, x, y, z );
+   else
+      enum_error();
+}
+
+static void save_VertexAttrib3fvNV( GLuint index, const GLfloat *v )
+{
+   if (index < VERT_ATTRIB_MAX)
+      save_Attr3f( index, v[0], v[1], v[2] );
+   else
+      enum_error();
+}
+
+static void save_VertexAttrib4fNV( GLuint index, GLfloat x, GLfloat y,
+				   GLfloat z, GLfloat w )
+{
+   if (index < VERT_ATTRIB_MAX)
+      save_Attr4f( index, x, y, z, w );
+   else
+      enum_error();
+}
+
+static void save_VertexAttrib4fvNV( GLuint index, const GLfloat *v )
+{
+   if (index < VERT_ATTRIB_MAX)
+      save_Attr4f( index, v[0], v[1], v[2], v[3] );
+   else
+      enum_error();
+}
+
+
+
+
+
 /* KW: Compile commands
  *
  * Will appear in the list before the vertex buffer containing the
@@ -5291,6 +5864,53 @@ execute_list( GLcontext *ctx, GLuint list )
                                                    n[4].f, n[5].f, n[6].f);
             break;
 #endif
+
+	 case OPCODE_ATTR_1F:
+	    (*ctx->Exec->VertexAttrib1fNV)(n[1].e, n[2].f);
+	    break;
+	 case OPCODE_ATTR_2F:
+	    (*ctx->Exec->VertexAttrib2fvNV)(n[1].e, &n[2].f);
+	    break;
+	 case OPCODE_ATTR_3F:
+	    (*ctx->Exec->VertexAttrib3fvNV)(n[1].e, &n[2].f);
+	    break;
+	 case OPCODE_ATTR_4F:
+	    (*ctx->Exec->VertexAttrib4fvNV)(n[1].e, &n[2].f);
+	    break;
+	 case OPCODE_MATERIAL:
+	    (*ctx->Exec->Materialfv)(n[1].e, n[2].e, &n[3].f);
+	    break;
+	 case OPCODE_INDEX:
+	    (*ctx->Exec->Indexi)(n[1].i);
+	    break;
+	 case OPCODE_EDGEFLAG:
+	    (*ctx->Exec->EdgeFlag)(n[1].b);
+	    break;
+	 case OPCODE_BEGIN:
+	    (*ctx->Exec->Begin)(n[1].e);
+	    break;
+	 case OPCODE_END:
+	    (*ctx->Exec->End)();
+	    break;
+	 case OPCODE_RECTF:
+	    (*ctx->Exec->Rectf)(n[1].f, n[2].f, n[3].f, n[4].f);
+	    break;
+	 case OPCODE_EVAL_C1:
+	    (*ctx->Exec->EvalCoord1f)(n[1].f);
+	    break;
+	 case OPCODE_EVAL_C2:
+	    (*ctx->Exec->EvalCoord2fv)(&n[1].f);
+	    break;
+	 case OPCODE_EVAL_P1:
+	    (*ctx->Exec->EvalPoint1)(n[1].i);
+	    break;
+	 case OPCODE_EVAL_P2:
+	    (*ctx->Exec->EvalPoint2)(n[1].i, n[2].i);
+	    break;
+
+
+
+
 	 case OPCODE_CONTINUE:
 	    n = (Node *) n[1].next;
 	    break;
@@ -5443,6 +6063,7 @@ _mesa_NewList( GLuint list, GLenum mode )
    ctx->CompileFlag = GL_TRUE;
    ctx->ExecuteFlag = (mode == GL_COMPILE_AND_EXECUTE);
 
+   ctx->Driver.CurrentSavePrimitive = PRIM_UNKNOWN;
    ctx->Driver.NewList( ctx, list, mode );
 
    ctx->CurrentDispatch = ctx->Save;
@@ -7027,5 +7648,76 @@ void _mesa_init_display_list( GLcontext * ctx )
 
    /* Display List group */
    ctx->List.ListBase = 0;
+}
 
+
+void _mesa_save_vtxfmt_init( GLvertexformat *vfmt )
+{
+   vfmt->ArrayElement = _ae_loopback_array_elt;	        /* generic helper */
+   vfmt->Begin = save_Begin;
+   vfmt->CallList = _mesa_CallList;
+   vfmt->Color3f = save_Color3f;
+   vfmt->Color3fv = save_Color3fv;
+   vfmt->Color4f = save_Color4f;
+   vfmt->Color4fv = save_Color4fv;
+   vfmt->EdgeFlag = save_EdgeFlag;
+   vfmt->EdgeFlagv = save_EdgeFlagv;
+   vfmt->End = save_End;
+   vfmt->EvalCoord1f = save_EvalCoord1f;
+   vfmt->EvalCoord1fv = save_EvalCoord1fv;
+   vfmt->EvalCoord2f = save_EvalCoord2f;
+   vfmt->EvalCoord2fv = save_EvalCoord2fv;
+   vfmt->EvalPoint1 = save_EvalPoint1;
+   vfmt->EvalPoint2 = save_EvalPoint2;
+   vfmt->FogCoordfEXT = save_FogCoordfEXT;
+   vfmt->FogCoordfvEXT = save_FogCoordfvEXT;
+   vfmt->Indexf = save_Indexf;
+   vfmt->Indexfv = save_Indexfv;
+   vfmt->Materialfv = save_Materialfv;
+   vfmt->MultiTexCoord1fARB = save_MultiTexCoord1f;
+   vfmt->MultiTexCoord1fvARB = save_MultiTexCoord1fv;
+   vfmt->MultiTexCoord2fARB = save_MultiTexCoord2f;
+   vfmt->MultiTexCoord2fvARB = save_MultiTexCoord2fv;
+   vfmt->MultiTexCoord3fARB = save_MultiTexCoord3f;
+   vfmt->MultiTexCoord3fvARB = save_MultiTexCoord3fv;
+   vfmt->MultiTexCoord4fARB = save_MultiTexCoord4f;
+   vfmt->MultiTexCoord4fvARB = save_MultiTexCoord4fv;
+   vfmt->Normal3f = save_Normal3f;
+   vfmt->Normal3fv = save_Normal3fv;
+   vfmt->SecondaryColor3fEXT = save_SecondaryColor3fEXT;
+   vfmt->SecondaryColor3fvEXT = save_SecondaryColor3fvEXT;
+   vfmt->TexCoord1f = save_TexCoord1f;
+   vfmt->TexCoord1fv = save_TexCoord1fv;
+   vfmt->TexCoord2f = save_TexCoord2f;
+   vfmt->TexCoord2fv = save_TexCoord2fv;
+   vfmt->TexCoord3f = save_TexCoord3f;
+   vfmt->TexCoord3fv = save_TexCoord3fv;
+   vfmt->TexCoord4f = save_TexCoord4f;
+   vfmt->TexCoord4fv = save_TexCoord4fv;
+   vfmt->Vertex2f = save_Vertex2f;
+   vfmt->Vertex2fv = save_Vertex2fv;
+   vfmt->Vertex3f = save_Vertex3f;
+   vfmt->Vertex3fv = save_Vertex3fv;
+   vfmt->Vertex4f = save_Vertex4f;
+   vfmt->Vertex4fv = save_Vertex4fv;
+   vfmt->VertexAttrib1fNV = save_VertexAttrib1fNV;
+   vfmt->VertexAttrib1fvNV = save_VertexAttrib1fvNV;
+   vfmt->VertexAttrib2fNV = save_VertexAttrib2fNV;
+   vfmt->VertexAttrib2fvNV = save_VertexAttrib2fvNV;
+   vfmt->VertexAttrib3fNV = save_VertexAttrib3fNV;
+   vfmt->VertexAttrib3fvNV = save_VertexAttrib3fvNV;
+   vfmt->VertexAttrib4fNV = save_VertexAttrib4fNV;
+   vfmt->VertexAttrib4fvNV = save_VertexAttrib4fvNV;
+
+   vfmt->Rectf = save_Rectf;
+
+   /* TODO:  These all need outside-begin-end checks:
+    */
+#if 0
+   vfmt->DrawArrays = _mesa_noop_DrawArrays;
+   vfmt->DrawElements = _mesa_noop_DrawElements;
+   vfmt->DrawRangeElements = _mesa_noop_DrawRangeElements;
+   vfmt->EvalMesh1 = _mesa_noop_EvalMesh1;
+   vfmt->EvalMesh2 = _mesa_noop_EvalMesh2;
+#endif
 }
