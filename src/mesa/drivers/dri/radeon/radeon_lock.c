@@ -46,6 +46,53 @@ char *prevLockFile = NULL;
 int prevLockLine = 0;
 #endif
 
+void radeonUpdateViewportOffset( GLcontext *ctx )
+{
+   radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
+   __DRIdrawablePrivate *dPriv = rmesa->dri.drawable;
+   GLfloat xoffset = (GLfloat)dPriv->x;
+   GLfloat yoffset = (GLfloat)dPriv->y + dPriv->h;
+   const GLfloat *v = ctx->Viewport._WindowMap.m;
+
+   GLfloat tx = v[MAT_TX] + xoffset;
+   GLfloat ty = (- v[MAT_TY]) + yoffset;
+
+   if ( rmesa->hw.vpt.cmd[VPT_SE_VPORT_XOFFSET] != *(GLuint *)&tx ||
+	rmesa->hw.vpt.cmd[VPT_SE_VPORT_YOFFSET] != *(GLuint *)&ty )
+   {
+      /* Note: this should also modify whatever data the context reset
+       * code uses...
+       */
+      rmesa->hw.vpt.cmd[VPT_SE_VPORT_XOFFSET] = *(GLuint *)&tx;
+      rmesa->hw.vpt.cmd[VPT_SE_VPORT_YOFFSET] = *(GLuint *)&ty;
+      
+      /* update polygon stipple x/y screen offset */
+      {
+         GLuint stx, sty;
+         GLuint m = rmesa->hw.msc.cmd[MSC_RE_MISC];
+
+         m &= ~(RADEON_STIPPLE_X_OFFSET_MASK |
+                RADEON_STIPPLE_Y_OFFSET_MASK);
+
+         /* add magic offsets, then invert */
+         stx = 31 - ((rmesa->dri.drawable->x - 1) & RADEON_STIPPLE_COORD_MASK);
+         sty = 31 - ((rmesa->dri.drawable->y + rmesa->dri.drawable->h - 1)
+                     & RADEON_STIPPLE_COORD_MASK);
+
+         m |= ((stx << RADEON_STIPPLE_X_OFFSET_SHIFT) |
+               (sty << RADEON_STIPPLE_Y_OFFSET_SHIFT));
+
+         if ( rmesa->hw.msc.cmd[MSC_RE_MISC] != m ) {
+            RADEON_STATECHANGE( rmesa, msc );
+	    rmesa->hw.msc.cmd[MSC_RE_MISC] = m;
+         }
+      }
+   }
+
+   radeonUpdateScissor( ctx );
+}
+
+
 /* Turn on/off page flipping according to the flags in the sarea:
  */
 static void

@@ -593,13 +593,8 @@ static void ELT_FALLBACK( GLcontext *ctx,
 #define GET_SUBSEQUENT_VB_MAX_VERTS() \
   ((RADEON_BUFFER_SIZE) / (rmesa->swtcl.vertex_size*4))
 
-#if RADEON_OLD_PACKETS
 # define GET_CURRENT_VB_MAX_ELTS() \
   ((RADEON_CMD_BUF_SZ - (rmesa->store.cmd_used + 24)) / 2)
-#else
-# define GET_CURRENT_VB_MAX_ELTS() \
-  ((RADEON_CMD_BUF_SZ - (rmesa->store.cmd_used + 16)) / 2)
-#endif
 #define GET_SUBSEQUENT_VB_MAX_ELTS() \
   ((RADEON_CMD_BUF_SZ - 1024) / 2)
 
@@ -1136,6 +1131,115 @@ void radeonFallback( GLcontext *ctx, GLuint bit, GLboolean mode )
    }
 }
 
+static void radeonWrapRunPipeline( GLcontext *ctx )
+{
+   radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
+   TNLcontext *tnl = TNL_CONTEXT(ctx);
+
+   if (0)
+      fprintf(stderr, "%s, newstate: %x\n", __FUNCTION__, rmesa->NewGLState);
+
+   /* Validate state:
+    */
+   if (rmesa->NewGLState)
+      radeonValidateState( ctx );
+
+   if (tnl->vb.Material) {
+      TCL_FALLBACK( ctx, RADEON_TCL_FALLBACK_MATERIAL, GL_TRUE );
+   }
+
+   /* Run the pipeline.
+    */ 
+   _tnl_run_pipeline( ctx );
+
+   if (tnl->vb.Material) {
+      TCL_FALLBACK( ctx, RADEON_TCL_FALLBACK_MATERIAL, GL_FALSE );
+      radeonUpdateMaterial( ctx ); /* not needed any more? */
+   }
+}
+
+
+
+static void radeonPolygonMode( GLcontext *ctx, GLenum face, GLenum mode )
+{
+   radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
+   GLboolean flag = (ctx->_TriangleCaps & DD_TRI_UNFILLED) != 0;
+
+   /* Can't generally do unfilled via tcl, but some good special
+    * cases work. 
+    */
+   TCL_FALLBACK( ctx, RADEON_TCL_FALLBACK_UNFILLED, flag);
+   if (rmesa->TclFallback) {
+      radeonChooseRenderState( ctx );
+      radeonChooseVertexState( ctx );
+   }
+}
+
+
+extern const struct gl_pipeline_stage _radeon_render_stage;
+extern const struct gl_pipeline_stage _radeon_tcl_stage;
+
+static const struct gl_pipeline_stage *radeon_pipeline[] = {
+
+   /* Try and go straight to t&l
+    */
+   &_radeon_tcl_stage,  
+
+   /* Catch any t&l fallbacks
+    */
+   &_tnl_vertex_transform_stage,
+   &_tnl_normal_transform_stage,
+   &_tnl_lighting_stage,
+   &_tnl_fog_coordinate_stage,
+   &_tnl_texgen_stage,
+   &_tnl_texture_transform_stage,
+
+   /* Try again to go to tcl? 
+    *     - no good for asymmetric-twoside (do with multipass)
+    *     - no good for asymmetric-unfilled (do with multipass)
+    *     - good for material
+    *     - good for texgen
+    *     - need to manipulate a bit of state
+    *
+    * - worth it/not worth it?
+    */
+			
+   /* Else do them here.
+    */
+   &_radeon_render_stage,
+   &_tnl_render_stage,		/* FALLBACK:  */
+   0,
+};
+
+void radeonCreateTnlContext( GLcontext *ctx )
+{
+   _ae_create_context( ctx );
+   _ac_CreateContext( ctx );
+   _tnl_CreateContext( ctx );
+
+   /* Install the customized pipeline:
+    */
+   _tnl_destroy_pipeline( ctx );
+   _tnl_install_pipeline( ctx, radeon_pipeline );
+
+   /* Try and keep materials and vertices separate:
+    */
+   _tnl_isolate_materials( ctx, GL_TRUE );
+
+#if _HAVE_SWRAST
+   _swsetup_CreateContext( ctx );
+#endif
+
+   /* Set maxlocksize (and hence vb size) small enough to avoid
+    * fallbacks in radeon_tcl.c.  ie. guarentee that all vertices can
+    * fit in a single dma buffer for indexed rendering of quad strips,
+    * etc.
+    */
+/*     ctx->Const.MaxArrayLockSize =  */
+/*        MIN2( ctx->Const.MaxArrayLockSize, */
+/*  	    RADEON_BUFFER_SIZE / RADEON_MAX_TCL_VERTSIZE ); */
+
+}
 
 /**********************************************************************/
 /*                            Initialization.                         */
@@ -1159,12 +1263,20 @@ void radeonInitSwtcl( GLcontext *ctx )
    tnl->Driver.Render.PrimitiveNotify = radeonRenderPrimitive;
    tnl->Driver.Render.ResetLineStipple = radeonResetLineStipple;
    tnl->Driver.Render.BuildVertices = radeonBuildVertices;
+   tnl->Driver.NotifyMaterialChange = radeonUpdateMaterial;
+   tnl->Driver.RunPipeline = radeonWrapRunPipeline;
 
    rmesa->swtcl.verts = (char *)ALIGN_MALLOC( size * 16 * 4, 32 );
    rmesa->swtcl.RenderIndex = ~0;
    rmesa->swtcl.render_primitive = GL_TRIANGLES;
    rmesa->swtcl.hw_primitive = 0;
+
+   ctx->Driver.PolygonMode		= radeonPolygonMode
+   ctx->Driver.LightingSpaceChange      = radeonLightingSpaceChange;
+
 }
+
+
 
 
 void radeonDestroySwtcl( GLcontext *ctx )

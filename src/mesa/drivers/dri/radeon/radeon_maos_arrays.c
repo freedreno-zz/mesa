@@ -51,6 +51,54 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "radeon_swtcl.h"
 #include "radeon_maos.h"
 
+
+void radeonEmitAOS( radeonContextPtr rmesa,
+		    struct radeon_dma_region **component,
+		    GLuint nr,
+		    GLuint offset )
+{
+   drmRadeonCmdHeader *cmd;
+   int sz = 3 + (nr/2 * 3) + (nr & 1) * 2;
+   int i;
+   int *tmp;
+
+   if (RADEON_DEBUG & DEBUG_IOCTL)
+      fprintf(stderr, "%s\n", __FUNCTION__);
+
+   assert(rmesa->dri.drmMinor >= 3); 
+
+   cmd = (drmRadeonCmdHeader *)radeonAllocCmdBuf( rmesa, sz * sizeof(int),
+						  __FUNCTION__ );
+   cmd[0].i = 0;
+   cmd[0].header.cmd_type = RADEON_CMD_PACKET3;
+   cmd[1].i = RADEON_CP_PACKET3_3D_LOAD_VBPNTR | ((sz-3) << 16);
+   cmd[2].i = nr;
+   tmp = &cmd[0].i;
+   cmd += 3;
+
+   for (i = 0 ; i < nr ; i++) {
+      if (i & 1) {
+	 cmd[0].i |= ((component[i]->aos_stride << 24) | 
+		      (component[i]->aos_size << 16));
+	 cmd[2].i = (component[i]->aos_start + 
+		     offset * component[i]->aos_stride * 4);
+	 cmd += 3;
+      }
+      else {
+	 cmd[0].i = ((component[i]->aos_stride << 8) | 
+		     (component[i]->aos_size << 0));
+	 cmd[1].i = (component[i]->aos_start + 
+		     offset * component[i]->aos_stride * 4);
+      }
+   }
+
+   if (RADEON_DEBUG & DEBUG_VERTS) {
+      fprintf(stderr, "%s:\n", __FUNCTION__);
+      for (i = 0 ; i < sz ; i++)
+	 fprintf(stderr, "   %d: %x\n", i, tmp[i]);
+   }
+}
+
 /* Usage:
  *   - from radeon_tcl_render
  *   - call radeonEmitArrays to ensure uptodate arrays in dma

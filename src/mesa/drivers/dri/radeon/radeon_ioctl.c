@@ -163,7 +163,6 @@ extern void radeonEmitVbufPrim( radeonContextPtr rmesa,
       fprintf(stderr, "%s cmd_used/4: %d\n", __FUNCTION__,
 	      rmesa->store.cmd_used/4);
    
-#if RADEON_OLD_PACKETS
    cmd = (drmRadeonCmdHeader *)radeonAllocCmdBuf( rmesa, 6 * sizeof(*cmd),
 						  __FUNCTION__ );
    cmd[0].header.cmd_type = RADEON_CMD_PACKET3_CLIP;
@@ -181,26 +180,6 @@ extern void radeonEmitVbufPrim( radeonContextPtr rmesa,
       fprintf(stderr, "%s: header 0x%x offt 0x%x vfmt 0x%x vfcntl %x \n",
 	      __FUNCTION__,
 	      cmd[1].i, cmd[2].i, cmd[4].i, cmd[5].i);
-#else
-   cmd = (drmRadeonCmdHeader *)radeonAllocCmdBuf( rmesa, 4 * sizeof(*cmd),
-						  __FUNCTION__ );
-   cmd[0].i = 0;
-   cmd[0].header.cmd_type = RADEON_CMD_PACKET3_CLIP;
-   cmd[1].i = RADEON_CP_PACKET3_3D_DRAW_VBUF | (1 << 16);
-   cmd[2].i = vertex_format;
-   cmd[3].i = (primitive | 
-	       RADEON_CP_VC_CNTL_PRIM_WALK_LIST |
-	       RADEON_CP_VC_CNTL_COLOR_ORDER_RGBA |
-	       RADEON_CP_VC_CNTL_MAOS_ENABLE |
-	       RADEON_CP_VC_CNTL_VTX_FMT_RADEON_MODE |
-	       (vertex_nr << RADEON_CP_VC_CNTL_NUM_SHIFT));
-
-
-   if (RADEON_DEBUG & DEBUG_PRIMS)
-      fprintf(stderr, "%s: header 0x%x vfmt 0x%x vfcntl %x \n",
-	      __FUNCTION__,
-	      cmd[1].i, cmd[2].i, cmd[3].i);
-#endif
 }
 
 
@@ -208,11 +187,7 @@ void radeonFlushElts( radeonContextPtr rmesa )
 {
    int *cmd = (int *)(rmesa->store.cmd_buf + rmesa->store.elts_start);
    int dwords;
-#if RADEON_OLD_PACKETS
    int nr = (rmesa->store.cmd_used - (rmesa->store.elts_start + 24)) / 2;
-#else
-   int nr = (rmesa->store.cmd_used - (rmesa->store.elts_start + 16)) / 2;
-#endif
 
    if (RADEON_DEBUG & DEBUG_IOCTL)
       fprintf(stderr, "%s\n", __FUNCTION__);
@@ -225,13 +200,8 @@ void radeonFlushElts( radeonContextPtr rmesa )
    rmesa->store.cmd_used = (rmesa->store.cmd_used + 2) & ~2;
    dwords = (rmesa->store.cmd_used - rmesa->store.elts_start) / 4;
 
-#if RADEON_OLD_PACKETS
    cmd[1] |= (dwords - 3) << 16;
    cmd[5] |= nr << RADEON_CP_VC_CNTL_NUM_SHIFT;
-#else
-   cmd[1] |= (dwords - 3) << 16;
-   cmd[3] |= nr << RADEON_CP_VC_CNTL_NUM_SHIFT;
-#endif
 }
 
 
@@ -251,7 +221,6 @@ GLushort *radeonAllocEltsOpenEnded( radeonContextPtr rmesa,
    
    radeonEmitState( rmesa );
    
-#if RADEON_OLD_PACKETS
    cmd = (drmRadeonCmdHeader *)radeonAllocCmdBuf( rmesa, 
 						  24 + min_nr*2,
 						  __FUNCTION__ );
@@ -267,22 +236,6 @@ GLushort *radeonAllocEltsOpenEnded( radeonContextPtr rmesa,
 	       RADEON_CP_VC_CNTL_VTX_FMT_RADEON_MODE);
 
    retval = (GLushort *)(cmd+6);
-#else   
-   cmd = (drmRadeonCmdHeader *)radeonAllocCmdBuf( rmesa, 
-						  16 + min_nr*2,
-						  __FUNCTION__ );
-   cmd[0].i = 0;
-   cmd[0].header.cmd_type = RADEON_CMD_PACKET3_CLIP;
-   cmd[1].i = RADEON_CP_PACKET3_3D_DRAW_INDX;
-   cmd[2].i = vertex_format;
-   cmd[3].i = (primitive | 
-	       RADEON_CP_VC_CNTL_PRIM_WALK_IND |
-	       RADEON_CP_VC_CNTL_COLOR_ORDER_RGBA |
-	       RADEON_CP_VC_CNTL_MAOS_ENABLE |
-	       RADEON_CP_VC_CNTL_VTX_FMT_RADEON_MODE);
-
-   retval = (GLushort *)(cmd+4);
-#endif
 
    if (RADEON_DEBUG & DEBUG_PRIMS)
       fprintf(stderr, "%s: header 0x%x vfmt 0x%x prim %x \n",
@@ -303,27 +256,8 @@ void radeonEmitVertexAOS( radeonContextPtr rmesa,
 			  GLuint vertex_size,
 			  GLuint offset )
 {
-#if RADEON_OLD_PACKETS
    rmesa->ioctl.vertex_size = vertex_size;
    rmesa->ioctl.vertex_offset = offset;
-#else
-   drmRadeonCmdHeader *cmd;
-   assert(rmesa->dri.drmMinor >= 3); 
-
-   if (RADEON_DEBUG & (DEBUG_PRIMS|DEBUG_IOCTL))
-      fprintf(stderr, "%s:  vertex_size 0x%x offset 0x%x \n",
-	      __FUNCTION__, vertex_size, offset);
-
-   cmd = (drmRadeonCmdHeader *)radeonAllocCmdBuf( rmesa, 5 * sizeof(int),
-						  __FUNCTION__ );
-
-   cmd[0].i = 0;
-   cmd[0].header.cmd_type = RADEON_CMD_PACKET3;
-   cmd[1].i = RADEON_CP_PACKET3_3D_LOAD_VBPNTR | (2 << 16);
-   cmd[2].i = 1;
-   cmd[3].i = vertex_size | (vertex_size << 8);
-   cmd[4].i = offset;
-#endif
 }
 		       
 
@@ -332,54 +266,11 @@ void radeonEmitAOS( radeonContextPtr rmesa,
 		    GLuint nr,
 		    GLuint offset )
 {
-#if RADEON_OLD_PACKETS
    assert( nr == 1 );
    assert( component[0]->aos_size == component[0]->aos_stride );
    rmesa->ioctl.vertex_size = component[0]->aos_size;
    rmesa->ioctl.vertex_offset = 
       (component[0]->aos_start + offset * component[0]->aos_stride * 4);
-#else
-   drmRadeonCmdHeader *cmd;
-   int sz = 3 + (nr/2 * 3) + (nr & 1) * 2;
-   int i;
-   int *tmp;
-
-   if (RADEON_DEBUG & DEBUG_IOCTL)
-      fprintf(stderr, "%s\n", __FUNCTION__);
-
-   assert(rmesa->dri.drmMinor >= 3); 
-
-   cmd = (drmRadeonCmdHeader *)radeonAllocCmdBuf( rmesa, sz * sizeof(int),
-						  __FUNCTION__ );
-   cmd[0].i = 0;
-   cmd[0].header.cmd_type = RADEON_CMD_PACKET3;
-   cmd[1].i = RADEON_CP_PACKET3_3D_LOAD_VBPNTR | ((sz-3) << 16);
-   cmd[2].i = nr;
-   tmp = &cmd[0].i;
-   cmd += 3;
-
-   for (i = 0 ; i < nr ; i++) {
-      if (i & 1) {
-	 cmd[0].i |= ((component[i]->aos_stride << 24) | 
-		      (component[i]->aos_size << 16));
-	 cmd[2].i = (component[i]->aos_start + 
-		     offset * component[i]->aos_stride * 4);
-	 cmd += 3;
-      }
-      else {
-	 cmd[0].i = ((component[i]->aos_stride << 8) | 
-		     (component[i]->aos_size << 0));
-	 cmd[1].i = (component[i]->aos_start + 
-		     offset * component[i]->aos_stride * 4);
-      }
-   }
-
-   if (RADEON_DEBUG & DEBUG_VERTS) {
-      fprintf(stderr, "%s:\n", __FUNCTION__);
-      for (i = 0 ; i < sz ; i++)
-	 fprintf(stderr, "   %d: %x\n", i, tmp[i]);
-   }
-#endif
 }
 
 
@@ -548,8 +439,6 @@ void radeonRefillCurrentDmaRegion( radeonContextPtr rmesa )
    rmesa->dma.current.end = dmabuf->buf->total;
    rmesa->dma.current.start = 0;
    rmesa->dma.current.ptr = 0;
-
-   rmesa->c_vertexBuffers++;
 }
 
 void radeonReleaseDmaRegion( radeonContextPtr rmesa,
@@ -1021,20 +910,10 @@ void radeonWaitForIdleLocked( radeonContextPtr rmesa )
     int to = 0;
     int ret, i = 0;
 
-    rmesa->c_drawWaits++;
-
     do {
         do {
             ret = drmCommandNone( fd, DRM_RADEON_CP_IDLE);
         } while ( ret && errno == EBUSY && i++ < RADEON_IDLE_RETRY );
-        if (ret && ret != -EBUSY) {
-            /*
-             * JO - I'm reluctant to print this message while holding the lock
-             *
-            xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
-                   "%s: CP idle %d\n", __FUNCTION__, ret);
-             */
-        }
     } while ( ( ret == -EBUSY ) && ( to++ < RADEON_TIMEOUT ) );
 
     if ( ret < 0 ) {

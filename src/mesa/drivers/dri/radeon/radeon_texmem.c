@@ -66,9 +66,6 @@ void radeonDestroyTexObj( radeonContextPtr rmesa, radeonTexObjPtr t )
       t->tObj->DriverData = NULL;
 
    if ( rmesa ) {
-      /* Bump the performace counter */
-      rmesa->c_textureSwaps++;
-
       if ( t == rmesa->state.texture.unit[0].texobj ) {
          rmesa->state.texture.unit[0].texobj = NULL;
 	 remove_from_list( &rmesa->hw.tex[0] );
@@ -94,9 +91,6 @@ void radeonSwapOutTexObj( radeonContextPtr rmesa, radeonTexObjPtr t )
    if ( RADEON_DEBUG & DEBUG_TEXTURE ) {
       fprintf( stderr, "%s( %p, %p )\n", __FUNCTION__, t, t->tObj );
    }
-
-   /* Bump the performace counter */
-   rmesa->c_textureSwaps++;
 
    if ( t->memBlock ) {
       mmFreeMem( t->memBlock );

@@ -513,52 +513,11 @@ void radeonInitState( radeonContextPtr rmesa )
        (RADEON_LM_SOURCE_STATE_PREMULT << RADEON_DIFFUSE_SOURCE_SHIFT) |
        (RADEON_LM_SOURCE_STATE_PREMULT << RADEON_SPECULAR_SOURCE_SHIFT)); 
 
-   for (i = 0 ; i < 8; i++) {
-      struct gl_light *l = &ctx->Light.Light[i];
-      GLenum p = GL_LIGHT0 + i;
-      *(float *)&(rmesa->hw.lit[i].cmd[LIT_RANGE_CUTOFF]) = FLT_MAX;
-
-      ctx->Driver.Lightfv( ctx, p, GL_AMBIENT, l->Ambient );
-      ctx->Driver.Lightfv( ctx, p, GL_DIFFUSE, l->Diffuse );
-      ctx->Driver.Lightfv( ctx, p, GL_SPECULAR, l->Specular );
-      ctx->Driver.Lightfv( ctx, p, GL_POSITION, 0 );
-      ctx->Driver.Lightfv( ctx, p, GL_SPOT_DIRECTION, 0 );
-      ctx->Driver.Lightfv( ctx, p, GL_SPOT_EXPONENT, &l->SpotExponent );
-      ctx->Driver.Lightfv( ctx, p, GL_SPOT_CUTOFF, &l->SpotCutoff );
-      ctx->Driver.Lightfv( ctx, p, GL_CONSTANT_ATTENUATION,
-			   &l->ConstantAttenuation );
-      ctx->Driver.Lightfv( ctx, p, GL_LINEAR_ATTENUATION, 
-			   &l->LinearAttenuation );
-      ctx->Driver.Lightfv( ctx, p, GL_QUADRATIC_ATTENUATION, 
-		     &l->QuadraticAttenuation );
-   }
-
-   ctx->Driver.LightModelfv( ctx, GL_LIGHT_MODEL_AMBIENT, 
-			     ctx->Light.Model.Ambient );
 
 #if _HAVE_SWTNL
    TNL_CONTEXT(ctx)->Driver.NotifyMaterialChange( ctx );
 #endif
 
-   for (i = 0 ; i < 6; i++) {
-      ctx->Driver.ClipPlane( ctx, GL_CLIP_PLANE0 + i, NULL );
-   }
-
-   ctx->Driver.Fogfv( ctx, GL_FOG_MODE, 0 );
-   ctx->Driver.Fogfv( ctx, GL_FOG_DENSITY, &ctx->Fog.Density );
-   ctx->Driver.Fogfv( ctx, GL_FOG_START, &ctx->Fog.Start );
-   ctx->Driver.Fogfv( ctx, GL_FOG_END, &ctx->Fog.End );
-   ctx->Driver.Fogfv( ctx, GL_FOG_COLOR, ctx->Fog.Color );
-   ctx->Driver.Fogfv( ctx, GL_FOG_COORDINATE_SOURCE_EXT, 0 );
-   
-   
-   /* Set up vector and scalar state commands:
-    */
-/*     upload_matrix( rmesa, ctx->ModelView.m, MODEL ); */
-/*     upload_matrix_t( rmesa, ctx->ModelView.inv, MODEL_IT ); */
-/*     upload_matrix( rmesa, ctx->TextureMatrix[0].m, TEXMAT_0 ); */
-/*     upload_matrix( rmesa, ctx->TextureMatrix[1].m, TEXMAT_1 ); */
-/*     upload_matrix( rmesa, ctx->_ModelProjectMatrix.m, TEXMAT_2 ); */
 
    rmesa->hw.grd.cmd[GRD_VERT_GUARD_CLIP_ADJ] = IEEE_ONE;
    rmesa->hw.grd.cmd[GRD_VERT_GUARD_DISCARD_ADJ] = IEEE_ONE;

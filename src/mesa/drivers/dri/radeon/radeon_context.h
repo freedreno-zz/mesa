@@ -755,17 +755,6 @@ struct radeon_context {
    /* Mirrors of some DRI state
     */
    struct radeon_dri_mirror dri;
-
- 
-   /* Performance counters
-    */
-   GLuint boxes;			/* Draw performance boxes */
-   GLuint hardwareWentIdle;
-   GLuint c_clears;
-   GLuint c_drawWaits;
-   GLuint c_textureSwaps;
-   GLuint c_textureBytes;
-   GLuint c_vertexBuffers;
 };
 
 #define RADEON_CONTEXT(ctx)		((radeonContextPtr)(ctx->DriverCtx))

@@ -43,20 +43,6 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "matrix.h"
 #include "extensions.h"
 
-#if _HAVE_SWRAST
-#include "swrast/swrast.h"
-#include "swrast_setup/swrast_setup.h"
-#include "radeon_span.h"
-#endif
-
-#if _HAVE_SWTNL
-#include "array_cache/acache.h"
-#include "tnl/tnl.h"
-#include "tnl/t_pipeline.h"
-#include "radeon_swtcl.h"
-#include "radeon_maos.h"
-#endif
-
 #include "radeon_context.h"
 #include "radeon_ioctl.h"
 #include "radeon_state.h"
@@ -204,42 +190,6 @@ static void radeonInitExtensions( GLcontext *ctx )
    }
 }
 
-#if _HAVE_SWTNL
-extern const struct gl_pipeline_stage _radeon_render_stage;
-extern const struct gl_pipeline_stage _radeon_tcl_stage;
-
-static const struct gl_pipeline_stage *radeon_pipeline[] = {
-
-   /* Try and go straight to t&l
-    */
-   &_radeon_tcl_stage,  
-
-   /* Catch any t&l fallbacks
-    */
-   &_tnl_vertex_transform_stage,
-   &_tnl_normal_transform_stage,
-   &_tnl_lighting_stage,
-   &_tnl_fog_coordinate_stage,
-   &_tnl_texgen_stage,
-   &_tnl_texture_transform_stage,
-
-   /* Try again to go to tcl? 
-    *     - no good for asymmetric-twoside (do with multipass)
-    *     - no good for asymmetric-unfilled (do with multipass)
-    *     - good for material
-    *     - good for texgen
-    *     - need to manipulate a bit of state
-    *
-    * - worth it/not worth it?
-    */
-			
-   /* Else do them here.
-    */
-   &_radeon_render_stage,
-   &_tnl_render_stage,		/* FALLBACK:  */
-   0,
-};
-#endif
 
 static void ResizeBuffers( GLframebuffer *buffer )
 {
@@ -373,57 +323,19 @@ radeonCreateContext( const __GLcontextModes *glVisual,
    ctx->Const.MaxLineWidthAA = 10.0;
    ctx->Const.LineWidthGranularity = 0.0625;
 
-   /* Set maxlocksize (and hence vb size) small enough to avoid
-    * fallbacks in radeon_tcl.c.  ie. guarentee that all vertices can
-    * fit in a single dma buffer for indexed rendering of quad strips,
-    * etc.
-    */
-/*     ctx->Const.MaxArrayLockSize =  */
-/*        MIN2( ctx->Const.MaxArrayLockSize, */
-/*  	    RADEON_BUFFER_SIZE / RADEON_MAX_TCL_VERTSIZE ); */
-
-   if (getenv("LIBGL_PERFORMANCE_BOXES"))
-      rmesa->boxes = 1;
-   else
-      rmesa->boxes = 0;
-
-
-   /* Initialize the software rasterizer and helper modules.
-    */
 #if _HAVE_SWRAST
-   _swrast_CreateContext( ctx );
-
-   /* Configure swrast to match hardware characteristics:
-    */
-   _swrast_allow_pixel_fog( ctx, GL_FALSE );
-   _swrast_allow_vertex_fog( ctx, GL_TRUE );
+   radeonCreateSwrastContext( ctx );
 #endif
-   _ae_create_context( ctx );
 #if _HAVE_SWTNL
-   _ac_CreateContext( ctx );
-   _tnl_CreateContext( ctx );
-
-   /* Install the customized pipeline:
-    */
-   _tnl_destroy_pipeline( ctx );
-   _tnl_install_pipeline( ctx, radeon_pipeline );
-
-   /* Try and keep materials and vertices separate:
-    */
-   _tnl_isolate_materials( ctx, GL_TRUE );
-#if _HAVE_SWRAST
-   _swsetup_CreateContext( ctx );
-#endif
+   radeonCreateTnlContext( ctx );
 #endif
 
-
-   _math_matrix_ctr( &rmesa->TexGenMatrix[0] );
-   _math_matrix_ctr( &rmesa->TexGenMatrix[1] );
-   _math_matrix_ctr( &rmesa->tmpmat );
-   _math_matrix_set_identity( &rmesa->TexGenMatrix[0] );
-   _math_matrix_set_identity( &rmesa->TexGenMatrix[1] );
-   _math_matrix_set_identity( &rmesa->tmpmat );
-
+#if _HAVE_TEXGEN
+   radeonInitTexTransform( ctx );
+#endif
+#if _HAVE_LIGHTING
+   radeonInitLightStateFuncs( ctx );
+#endif
    radeonInitExtensions( ctx );
    radeonInitDriverFuncs( ctx );
    radeonInitIoctlFuncs( ctx );

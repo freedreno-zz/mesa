@@ -1153,115 +1153,6 @@ static void import_tex_obj_state( radeonContextPtr rmesa,
 
 
 
-static void set_texgen_matrix( radeonContextPtr rmesa, 
-			       GLuint unit,
-			       GLfloat *s_plane,
-			       GLfloat *t_plane )
-{
-   static const GLfloat scale_identity[4] = { 1,1,1,1 };
-
-   if (!TEST_EQ_4V( s_plane, scale_identity) ||
-      !(TEST_EQ_4V( t_plane, scale_identity))) {
-      rmesa->TexGenEnabled |= RADEON_TEXMAT_0_ENABLE<<unit;
-      rmesa->TexGenMatrix[unit].m[0]  = s_plane[0];
-      rmesa->TexGenMatrix[unit].m[4]  = s_plane[1];
-      rmesa->TexGenMatrix[unit].m[8]  = s_plane[2];
-      rmesa->TexGenMatrix[unit].m[12] = s_plane[3];
-
-      rmesa->TexGenMatrix[unit].m[1]  = t_plane[0];
-      rmesa->TexGenMatrix[unit].m[5]  = t_plane[1];
-      rmesa->TexGenMatrix[unit].m[9]  = t_plane[2];
-      rmesa->TexGenMatrix[unit].m[13] = t_plane[3];
-      rmesa->NewGLState |= _NEW_TEXTURE_MATRIX;
-   }
-}
-
-/* Ignoring the Q texcoord for now.
- *
- * Returns GL_FALSE if fallback required.  
- */
-static GLboolean radeon_validate_texgen( GLcontext *ctx, GLuint unit )
-{  
-   radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
-   struct gl_texture_unit *texUnit = &ctx->Texture.Unit[unit];
-   GLuint inputshift = RADEON_TEXGEN_0_INPUT_SHIFT + unit*4;
-   GLuint tmp = rmesa->TexGenEnabled;
-
-   rmesa->TexGenEnabled &= ~(RADEON_TEXGEN_TEXMAT_0_ENABLE<<unit);
-   rmesa->TexGenEnabled &= ~(RADEON_TEXMAT_0_ENABLE<<unit);
-   rmesa->TexGenEnabled &= ~(RADEON_TEXGEN_INPUT_MASK<<inputshift);
-   rmesa->TexGenNeedNormals[unit] = 0;
-
-   if (0)
-   fprintf(stderr, "%s unit %d cleared texgenEnabled %x\n", __FUNCTION__,
-	   unit, rmesa->TexGenEnabled);
-
-   if ((texUnit->TexGenEnabled & (S_BIT|T_BIT)) == 0) {
-      /* Disabled, no fallback:
-       */
-      rmesa->TexGenEnabled |= 
-	 (RADEON_TEXGEN_INPUT_TEXCOORD_0+unit) << inputshift;
-      return GL_TRUE;
-   }
-   else if (texUnit->TexGenEnabled & Q_BIT) {
-      /* Very easy to do this, in fact would remove a fallback case
-       * elsewhere, but I haven't done it yet...  Fallback: 
-       */
-      fprintf(stderr, "fallback Q_BIT\n");
-      return GL_FALSE;
-   }
-   else if ((texUnit->TexGenEnabled & (S_BIT|T_BIT)) != (S_BIT|T_BIT) ||
-	    texUnit->GenModeS != texUnit->GenModeT) {
-      /* Mixed modes, fallback:
-       */
-/*        fprintf(stderr, "fallback mixed texgen\n"); */
-      return GL_FALSE;
-   }
-   else
-      rmesa->TexGenEnabled |= RADEON_TEXGEN_TEXMAT_0_ENABLE << unit;
-
-   switch (texUnit->GenModeS) {
-   case GL_OBJECT_LINEAR:
-      rmesa->TexGenEnabled |= RADEON_TEXGEN_INPUT_OBJ << inputshift;
-      set_texgen_matrix( rmesa, unit, 
-			 texUnit->ObjectPlaneS,
-			 texUnit->ObjectPlaneT);
-      break;
-
-   case GL_EYE_LINEAR:
-      rmesa->TexGenEnabled |= RADEON_TEXGEN_INPUT_EYE << inputshift;
-      set_texgen_matrix( rmesa, unit, 
-			 texUnit->EyePlaneS,
-			 texUnit->EyePlaneT);
-      break;
-
-   case GL_REFLECTION_MAP_NV:
-      rmesa->TexGenNeedNormals[unit] = GL_TRUE;
-      rmesa->TexGenEnabled |= RADEON_TEXGEN_INPUT_EYE_REFLECT<<inputshift;
-      break;
-
-   case GL_NORMAL_MAP_NV:
-      rmesa->TexGenNeedNormals[unit] = GL_TRUE;
-      rmesa->TexGenEnabled |= RADEON_TEXGEN_INPUT_EYE_NORMAL<<inputshift;
-      break;
-
-   case GL_SPHERE_MAP:
-   default:
-      /* Unsupported mode, fallback:
-       */
-      /*  fprintf(stderr, "fallback unsupported texgen\n"); */
-      return GL_FALSE;
-   }
-
-   if (tmp != rmesa->TexGenEnabled) {
-      rmesa->NewGLState |= _NEW_TEXTURE_MATRIX;
-   }
-
-/*     fprintf(stderr, "%s unit %d texgenEnabled %x\n", __FUNCTION__, */
-/*  	   unit, rmesa->TexGenEnabled); */
-   return GL_TRUE;
-}
-
 
 
 
@@ -1322,13 +1213,15 @@ static GLboolean radeonUpdateTextureUnit( GLcontext *ctx, int unit )
       if (t->dirty_state & (1<<unit)) {
 	 import_tex_obj_state( rmesa, unit, t );
       }
-      
+
+#if _HAVE_TEXGEN      
       if (rmesa->recheck_texgen[unit]) {
 	 GLboolean fallback = !radeon_validate_texgen( ctx, unit );
 	 TCL_FALLBACK( ctx, (RADEON_TCL_FALLBACK_TEXGEN_0<<unit), fallback);
 	 rmesa->recheck_texgen[unit] = 0;
 	 rmesa->NewGLState |= _NEW_TEXTURE_MATRIX;
       }
+#endif
 
       format = tObj->Image[tObj->BaseLevel]->Format;
       if ( rmesa->state.texture.unit[unit].format != format ||
@@ -1367,12 +1260,11 @@ static GLboolean radeonUpdateTextureUnit( GLcontext *ctx, int unit )
       }
 
 
+#if _HAVE_TEXGEN
       if (rmesa->TclFallback & (RADEON_TCL_FALLBACK_TEXGEN_0<<unit)) {
 	 TCL_FALLBACK( ctx, (RADEON_TCL_FALLBACK_TEXGEN_0<<unit), GL_FALSE);
 	 rmesa->recheck_texgen[unit] = GL_TRUE;
       }
-
-
 
       {
 	 GLuint inputshift = RADEON_TEXGEN_0_INPUT_SHIFT + unit*4;
@@ -1390,6 +1282,8 @@ static GLboolean radeonUpdateTextureUnit( GLcontext *ctx, int unit )
 	    rmesa->NewGLState |= _NEW_TEXTURE_MATRIX;
 	 }
       }
+#endif
+
    }
 
    return GL_TRUE;
