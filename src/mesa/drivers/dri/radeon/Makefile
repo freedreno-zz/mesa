@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.1.2.1 2002/12/04 15:31:04 keithw Exp $
+# $Id: Makefile,v 1.1.2.2 2002/12/04 16:00:05 keithw Exp $
 
 # Mesa 3-D graphics library
 # Version:  5.0
@@ -79,4 +79,4 @@ include $(C_SOURCES:.c=.d)
 .SUFFIXES: .c .d
 
 .c.d:
-	$(CC) -M $(INCLUDES) $< -o $@
+	$(CC) -M $(INCLUDES) $< > $@

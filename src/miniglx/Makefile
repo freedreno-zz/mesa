@@ -36,4 +36,4 @@ include $(SOURCES:.c=.d)
 .SUFFIXES: .c .d
 
 .c.d:
-	$(CC) -M $(INCLUDES) -DUSE_DRI=1 $< -o $@
+	$(CC) -M $(INCLUDES) $< > $@
