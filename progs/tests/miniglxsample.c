@@ -12,6 +12,16 @@
 #include <X11/Xlib.h>
 #endif
 
+static void _subset_Rectf( GLfloat x1, GLfloat y1, GLfloat x2, GLfloat y2 )
+{
+   glBegin( GL_QUADS );
+   glVertex2f( x1, y1 );
+   glVertex2f( x2, y1 );
+   glVertex2f( x2, y2 );
+   glVertex2f( x1, y2 );
+   glEnd();
+}
+
 
 /*
  * Create a simple double-buffered RGBA window.
@@ -87,9 +97,10 @@ DrawFrames(Display * dpy, Window win)
       glColor3f(1.0, 1.0, 0.0);
       glPushMatrix();
       glRotatef(angle, 0, 0, 1);
-      glRectf(-0.8, -0.8, 0.8, 0.8);
+      _subset_Rectf(-0.8, -0.8, 0.8, 0.8);
       glPopMatrix();
       glXSwapBuffers(dpy, win);
+      sleep(1);
    }
 }
 
