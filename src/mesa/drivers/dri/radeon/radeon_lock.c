@@ -170,10 +170,22 @@ void radeonGetLock( radeonContextPtr rmesa, GLuint flags )
    RADEONSAREAPrivPtr sarea = rmesa->sarea;
    int i;
 
-   fprintf(stderr, "%s\n", __FUNCTION__);
-   drmGetLock( rmesa->dri.fd, rmesa->dri.hwContext, flags );
 
-   validate_drawable( rmesa );
+   while (1) {
+      drmGetLock( rmesa->dri.fd, rmesa->dri.hwContext, flags );
+
+      validate_drawable( rmesa );
+
+      fprintf(stderr, "%s %d\n", __FUNCTION__, rmesa->numClipRects);
+
+      if (rmesa->numClipRects)
+	 break;
+
+      drmUnlock( rmesa->dri.fd, rmesa->dri.hwContext );
+      
+      sleep(10);
+   }
+
 
    if ( sarea->ctxOwner != rmesa->dri.hwContext ) {
       sarea->ctxOwner = rmesa->dri.hwContext;
@@ -187,12 +199,24 @@ void radeonGetLock( radeonContextPtr rmesa, GLuint flags )
    }
 }
 
+
+extern void __miniglx_release_vt( void );
+
 /* In the current miniglx, cliprects can change while the lock is
  * held...  Probably need to fix this.
  */
 void radeonUnlock( radeonContextPtr rmesa )
 {
    fprintf(stderr, "%s\n", __FUNCTION__);
-   validate_drawable( rmesa );
+
    drmUnlock( rmesa->dri.fd, rmesa->dri.hwContext );
+
+   validate_drawable( rmesa );
+
+   /* This only happens if the VT switch was requested inside the
+    * locked region.
+    */
+   if (!rmesa->numClipRects)
+      __miniglx_release_vt();
+      
 }
