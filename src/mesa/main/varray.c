@@ -1,4 +1,4 @@
-/* $Id: varray.c,v 1.22.4.3 2000/11/26 21:10:26 brianp Exp $*/
+/* $Id: varray.c,v 1.22.4.4 2000/12/13 00:57:24 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -781,11 +781,11 @@ _mesa_DrawArrays(GLenum mode, GLint start, GLsizei count)
 #endif
       GLint remaining = count;
       GLint i;
-      struct gl_client_array *Normal;
-      struct gl_client_array *Color;
-      struct gl_client_array *Index;
+      struct gl_client_array *Normal = 0;
+      struct gl_client_array *Color = 0;
+      struct gl_client_array *Index = 0;
       struct gl_client_array *TexCoord[MAX_TEXTURE_UNITS];
-      struct gl_client_array *EdgeFlag;
+      struct gl_client_array *EdgeFlag = 0;
       struct immediate *IM = VB->IM;
       struct gl_pipeline *elt = &ctx->CVA.elt;
       GLboolean relock;
@@ -1367,12 +1367,12 @@ void
 _mesa_InterleavedArrays(GLenum format, GLsizei stride, const GLvoid *pointer)
 {
    GET_CURRENT_CONTEXT(ctx);
-   GLboolean tflag, cflag, nflag;  /* enable/disable flags */
-   GLint tcomps, ccomps, vcomps;   /* components per texcoord, color, vertex */
+   GLboolean tflag, cflag, nflag;              /* enable/disable flags */
+   GLint tcomps, ccomps, vcomps;               /* components per texcoord, color, vertex */
 
-   GLenum ctype;                   /* color type */
-   GLint coffset, noffset, voffset;/* color, normal, vertex offsets */
-   GLint defstride;                /* default stride */
+   GLenum ctype = 0;                           /* color type */
+   GLint coffset = 0, noffset = 0, voffset = 0;/* color, normal, vertex offsets */
+   GLint defstride;                            /* default stride */
    GLint c, f;
    GLint coordUnitSave;
    

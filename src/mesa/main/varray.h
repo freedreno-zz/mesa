@@ -1,4 +1,3 @@
-/* $Id: varray.h,v 1.7 2000/06/12 15:30:52 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -138,5 +137,10 @@ extern void gl_exec_array_elements( GLcontext *ctx,
 
 extern void gl_update_client_state( GLcontext *ctx );
 
+
+#ifdef VAO
+struct gl_array_object *
+_mesa_alloc_vertex_array_object(GLcontext *ctx, GLuint name);
+#endif
 
 #endif
