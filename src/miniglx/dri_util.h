@@ -57,7 +57,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #define CAPI  /* XXX this should be globally defined somewhere */
 
-#include "glxclient.h"           /* for GLXDrawable */
+#include "GL/miniglx.h"           /* for GLXDrawable */
 #include "xf86dri.h"             /* for XF86DRIClipRectPtr */
 #include "sarea.h"               /* for XF86DRISAREAPtr */
 #include "GL/internal/glcore.h"  /* for __GLcontextModes */

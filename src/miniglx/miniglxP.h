@@ -48,12 +48,6 @@
  * Define replacements for some X datatypes and define the DRI-related
  * datastructures.
  */
-
-
-#ifndef USE_DRI
-#error "USE_DRI must be zero or one"
-#endif
-
 #include <linux/fb.h>
 
 #include <GL/miniglx.h>
@@ -203,11 +197,7 @@ struct __DRIdrawableRec {
  * X Visual type.
  */
 struct MiniGLXVisualRec {
-#if USE_DRI
    const __GLXvisualConfig *glxConfig;
-#else
-   GLvisual glvisual;        /* OpenGL attribs */
-#endif
    XVisualInfo *visInfo;     /* pointer back to corresponding XVisualInfo */
    Display *dpy;
    GLuint pixelFormat;       /* one of PF_* values */
@@ -218,9 +208,6 @@ struct MiniGLXVisualRec {
  * X Window type.
  */
 struct MiniGLXWindowRec {
-#if !USE_DRI
-   GLframebuffer glframebuffer;    /* must be first */
-#endif
    Visual *visual;
    int x, y;                       /* pos (always 0,0) */
    unsigned int w, h;              /* size */
@@ -232,9 +219,7 @@ struct MiniGLXWindowRec {
    GLubyte *frontBottom;           /* pointer to last row */
    GLubyte *backBottom;            /* pointer to last row */
    GLubyte *curBottom;             /* = frontBottom or backBottom */
-#if USE_DRI
    __DRIdrawable driDrawable;
-#endif
 }; /* Window */
 
 
@@ -242,14 +227,9 @@ struct MiniGLXWindowRec {
  * GLXContext type.
  */
 struct MiniGLXContextRec {
-#if !USE_DRI
-   GLcontext glcontext;  /* must be first */
-#endif
    Window drawBuffer;
    Window curBuffer;
-#if USE_DRI
    __DRIcontext driContext;
-#endif
 }; /* GLXContext */
 
 
@@ -273,12 +253,11 @@ struct MiniGLXDisplayRec {
    int numConfigs;
    __GLXvisualConfig *configs;
 
-#if USE_DRI
    /* From __GLXdisplayPrivate */
+/*    ScreenInitFunc screenInit; */
    CreateScreenFunc createScreen;
    __DRIscreen driScreen;
    void *dlHandle;
-#endif
 };
 
 

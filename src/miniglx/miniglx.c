@@ -1,4 +1,4 @@
-/* $Id: miniglx.c,v 1.1.4.7 2002/12/04 15:25:37 brianp Exp $ */
+/* $Id: miniglx.c,v 1.1.4.8 2002/12/04 15:33:12 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -31,6 +31,8 @@
  * NOTE!!!!
  * This driver has two distinct personalities:
  *   1. a software-based Mesa driver
+ *             ==> Turn this into a demonstration dri driver.  Moved
+ *             to miniglx_standalone.c
  *   2. a DRI driver loader
  *
  */
@@ -52,8 +54,6 @@
 
 #include "miniglxP.h"
 
-#if USE_DRI
-
 #include "glapi.h"
 
 #define MALLOC(N) malloc(N)
@@ -62,28 +62,8 @@
 #define FREE(P)   free(P)
 #define STRCMP(A, B)  strcmp(A, B)
 
-#else
 
-#include "context.h"
-#include "extensions.h"
-#include "imports.h"
-#include "matrix.h"
-#include "texformat.h"
-#include "texstore.h"
-#include "array_cache/acache.h"
-#include "swrast/swrast.h"
-#include "swrast_setup/swrast_setup.h"
-#include "tnl/tnl.h"
-#include "tnl/t_context.h"
-#include "tnl/t_pipeline.h"
-
-#define STRCMP(A, B)  _mesa_strcmp(A, B)
-
-#endif
-
-#if USE_DRI
 #define DRIVER_DRI_SO "radeon_dri.so"
-#endif
 
 
 #define PF_B8G8R8     1
@@ -94,217 +74,12 @@
 
 
 
-#if USE_DRI
 static GLXContext CurrentContext = NULL;
-#endif
 
 
 /**********************************************************************/
 /* Internal device driver functions                                   */
 /**********************************************************************/
-#if !USE_DRI
-
-/* this stuff is only used for software-based rendering */
-
-#define MINIGLX_CONTEXT(CTX)  ((GLXContext) (CTX))
-#define MINIGLX_BUFFER(BUF)  ((GLXDrawable) (BUF))
-
-
-static const GLubyte *
-get_string(GLcontext *ctx, GLenum pname)
-{
-   (void) ctx;
-   switch (pname) {
-      case GL_RENDERER:
-         return (const GLubyte *) "Mesa miniglx";
-      default:
-         return NULL;
-   }
-}
-
-
-static void
-update_state( GLcontext *ctx, GLuint new_state )
-{
-   /* not much to do here - pass it on */
-   _swrast_InvalidateState( ctx, new_state );
-   _swsetup_InvalidateState( ctx, new_state );
-   _ac_InvalidateState( ctx, new_state );
-   _tnl_InvalidateState( ctx, new_state );
-}
-
-
-static void
-get_buffer_size( GLframebuffer *buffer, GLuint *width, GLuint *height )
-{
-   Window win = MINIGLX_BUFFER(buffer);
-   *width = win->w;
-   *height = win->h;
-}
-
-
-/* specifies the buffer for swrast span rendering/reading */
-static void
-set_buffer( GLcontext *ctx, GLframebuffer *buffer, GLuint bufferBit )
-{
-   GLXContext fbdevctx = MINIGLX_CONTEXT(ctx);
-   GLXDrawable fbdevbuf = MINIGLX_BUFFER(buffer);
-   fbdevctx->curBuffer = fbdevbuf;
-   switch (bufferBit) {
-   case FRONT_LEFT_BIT:
-      fbdevbuf->curBottom = fbdevbuf->frontBottom;
-      break;
-   case BACK_LEFT_BIT:
-      fbdevbuf->curBottom = fbdevbuf->backBottom;
-      break;
-   default:
-      _mesa_problem(ctx, "bad bufferBit in set_buffer()");
-   }
-}
-
-
-static void
-init_core_functions( GLcontext *ctx )
-{
-   ctx->Driver.GetString = get_string;
-   ctx->Driver.UpdateState = update_state;
-   ctx->Driver.ResizeBuffers = _swrast_alloc_buffers;
-   ctx->Driver.GetBufferSize = get_buffer_size;
-
-   ctx->Driver.Accum = _swrast_Accum;
-   ctx->Driver.Bitmap = _swrast_Bitmap;
-   ctx->Driver.Clear = _swrast_Clear;  /* would be good to optimize */
-   ctx->Driver.CopyPixels = _swrast_CopyPixels;
-   ctx->Driver.DrawPixels = _swrast_DrawPixels;
-   ctx->Driver.ReadPixels = _swrast_ReadPixels;
-   ctx->Driver.DrawBuffer = _swrast_DrawBuffer;
-
-   ctx->Driver.ChooseTextureFormat = _mesa_choose_tex_format;
-   ctx->Driver.TexImage1D = _mesa_store_teximage1d;
-   ctx->Driver.TexImage2D = _mesa_store_teximage2d;
-   ctx->Driver.TexImage3D = _mesa_store_teximage3d;
-   ctx->Driver.TexSubImage1D = _mesa_store_texsubimage1d;
-   ctx->Driver.TexSubImage2D = _mesa_store_texsubimage2d;
-   ctx->Driver.TexSubImage3D = _mesa_store_texsubimage3d;
-   ctx->Driver.TestProxyTexImage = _mesa_test_proxy_teximage;
-
-   ctx->Driver.CompressedTexImage1D = _mesa_store_compressed_teximage1d;
-   ctx->Driver.CompressedTexImage2D = _mesa_store_compressed_teximage2d;
-   ctx->Driver.CompressedTexImage3D = _mesa_store_compressed_teximage3d;
-   ctx->Driver.CompressedTexSubImage1D = _mesa_store_compressed_texsubimage1d;
-   ctx->Driver.CompressedTexSubImage2D = _mesa_store_compressed_texsubimage2d;
-   ctx->Driver.CompressedTexSubImage3D = _mesa_store_compressed_texsubimage3d;
-
-   ctx->Driver.CopyTexImage1D = _swrast_copy_teximage1d;
-   ctx->Driver.CopyTexImage2D = _swrast_copy_teximage2d;
-   ctx->Driver.CopyTexSubImage1D = _swrast_copy_texsubimage1d;
-   ctx->Driver.CopyTexSubImage2D = _swrast_copy_texsubimage2d;
-   ctx->Driver.CopyTexSubImage3D = _swrast_copy_texsubimage3d;
-   ctx->Driver.CopyColorTable = _swrast_CopyColorTable;
-   ctx->Driver.CopyColorSubTable = _swrast_CopyColorSubTable;
-   ctx->Driver.CopyConvolutionFilter1D = _swrast_CopyConvolutionFilter1D;
-   ctx->Driver.CopyConvolutionFilter2D = _swrast_CopyConvolutionFilter2D;
-}
-
-
-/*
- * Generate code for span functions.
- */
-
-/* 24-bit BGR */
-#define NAME(PREFIX) PREFIX##_B8G8R8
-#define SPAN_VARS \
-   const GLXContext fbdevctx = MINIGLX_CONTEXT(ctx); \
-   const GLXDrawable fbdevbuf = fbdevctx->curBuffer;
-#define INIT_PIXEL_PTR(P, X, Y) \
-   GLubyte *P = fbdevbuf->curBottom - (Y) * fbdevbuf->rowStride + (X) * 3
-#define INC_PIXEL_PTR(P) P += 3
-#define STORE_RGB_PIXEL(P, R, G, B) \
-   P[0] = B;  P[1] = G;  P[2] = R
-#define STORE_RGBA_PIXEL(P, R, G, B, A) \
-   P[0] = B;  P[1] = G;  P[2] = R
-#define FETCH_RGBA_PIXEL(R, G, B, A, P) \
-   R = P[2];  G = P[1];  B = P[0];  A = CHAN_MAX
-
-#include "swrast/s_spantemp.h"
-
-
-/* 32-bit BGRA */
-#define NAME(PREFIX) PREFIX##_B8G8R8A8
-#define SPAN_VARS \
-   const GLXContext fbdevctx = MINIGLX_CONTEXT(ctx); \
-   const GLXDrawable fbdevbuf = fbdevctx->curBuffer;
-#define INIT_PIXEL_PTR(P, X, Y) \
-   GLubyte *P = fbdevbuf->curBottom - (Y) * fbdevbuf->rowStride + (X) * 4
-#define INC_PIXEL_PTR(P) P += 4
-#define STORE_RGB_PIXEL(P, R, G, B) \
-   P[0] = B;  P[1] = G;  P[2] = R;  P[3] = 255
-#define STORE_RGBA_PIXEL(P, R, G, B, A) \
-   P[0] = B;  P[1] = G;  P[2] = R;  P[3] = A
-#define FETCH_RGBA_PIXEL(R, G, B, A, P) \
-   R = P[2];  G = P[1];  B = P[0];  A = P[3]
-
-#include "swrast/s_spantemp.h"
-
-
-/* 16-bit BGR (XXX implement dithering someday) */
-#define NAME(PREFIX) PREFIX##_B5G6R5
-#define SPAN_VARS \
-   const GLXContext fbdevctx = MINIGLX_CONTEXT(ctx); \
-   const GLXDrawable fbdevbuf = fbdevctx->curBuffer;
-#define INIT_PIXEL_PTR(P, X, Y) \
-   GLushort *P = (GLushort *) (fbdevbuf->curBottom - (Y) * fbdevbuf->rowStride + (X) * 2)
-#define INC_PIXEL_PTR(P) P += 1
-#define STORE_RGB_PIXEL(P, R, G, B) \
-   *P = ( (((R) & 0xf8) << 8) | (((G) & 0xfc) << 3) | ((B) >> 3) )
-#define STORE_RGBA_PIXEL(P, R, G, B, A) \
-   *P = ( (((R) & 0xf8) << 8) | (((G) & 0xfc) << 3) | ((B) >> 3) )
-#define FETCH_RGBA_PIXEL(R, G, B, A, P) \
-   R = ( (((*P) >> 8) & 0xf8) | (((*P) >> 11) & 0x7) ); \
-   G = ( (((*P) >> 3) & 0xfc) | (((*P) >>  5) & 0x3) ); \
-   B = ( (((*P) << 3) & 0xf8) | (((*P)      ) & 0x7) ); \
-   A = CHAN_MAX
-
-#include "swrast/s_spantemp.h"
-
-
-/* 15-bit BGR (XXX implement dithering someday) */
-#define NAME(PREFIX) PREFIX##_B5G5R5
-#define SPAN_VARS \
-   const GLXContext fbdevctx = MINIGLX_CONTEXT(ctx); \
-   const GLXDrawable fbdevbuf = fbdevctx->curBuffer;
-#define INIT_PIXEL_PTR(P, X, Y) \
-   GLushort *P = (GLushort *) (fbdevbuf->curBottom - (Y) * fbdevbuf->rowStride + (X) * 2)
-#define INC_PIXEL_PTR(P) P += 1
-#define STORE_RGB_PIXEL(P, R, G, B) \
-   *P = ( (((R) & 0xf8) << 7) | (((G) & 0xf8) << 2) | ((B) >> 3) )
-#define STORE_RGBA_PIXEL(P, R, G, B, A) \
-   *P = ( (((R) & 0xf8) << 7) | (((G) & 0xf8) << 2) | ((B) >> 3) )
-#define FETCH_RGBA_PIXEL(R, G, B, A, P) \
-   R = ( (((*P) >> 7) & 0xf8) | (((*P) >> 10) & 0x7) ); \
-   G = ( (((*P) >> 2) & 0xf8) | (((*P) >>  5) & 0x7) ); \
-   B = ( (((*P) << 3) & 0xf8) | (((*P)      ) & 0x7) ); \
-   A = CHAN_MAX
-
-#include "swrast/s_spantemp.h"
-
-
-/* 8-bit color index */
-#define NAME(PREFIX) PREFIX##_CI8
-#define SPAN_VARS \
-   const GLXContext fbdevctx = MINIGLX_CONTEXT(ctx); \
-   const GLXDrawable fbdevbuf = fbdevctx->curBuffer;
-#define INIT_PIXEL_PTR(P, X, Y) \
-   GLubyte *P = fbdevbuf->curBottom - (Y) * fbdevbuf->rowStride + (X)
-#define INC_PIXEL_PTR(P) P += 1
-#define STORE_CI_PIXEL(P, CI) \
-   P[0] = CI
-#define FETCH_CI_PIXEL(CI, P) \
-   CI = P[0]
-
-#include "swrast/s_spantemp.h"
-
-#endif /* !USE_DRI */
 
 
 /**********************************************************************/
@@ -629,8 +404,6 @@ CleanupFBDev( Display *dpy )
 /* Misc functions needed for DRI drivers                              */
 /**********************************************************************/
 
-#if USE_DRI
-
 __DRIscreen *
 __glXFindDRIScreen(Display *dpy, int scrn)
 {
@@ -652,8 +425,6 @@ _glthread_GetID(void)
 {
    return 0;
 }
-
-#endif
 
 
 
@@ -710,7 +481,6 @@ WRAP(XOpenDisplay)( const char *display_name )
 
    InitializeScreenConfigs(&dpy->numConfigs, &dpy->configs);
 
-#if USE_DRI
    /*
     * Begin DRI setup.
     * We're kind of combining the per-display and per-screen information
@@ -742,7 +512,6 @@ WRAP(XOpenDisplay)( const char *display_name )
       FREE(dpy);
       return NULL;
    }
-#endif
 
    return dpy;
 }
@@ -751,11 +520,8 @@ WRAP(XOpenDisplay)( const char *display_name )
 void
 WRAP(XCloseDisplay)( Display *dpy )
 {
-#if USE_DRI
    (*dpy->driScreen.destroyScreen)(dpy, 0, dpy->driScreen.private);
    dlclose(dpy->dlHandle);
-#endif
-
    CleanupFBDev(dpy);
    FREE(dpy);
 }
@@ -789,17 +555,6 @@ WRAP(XCreateWindow)( Display *dpy, Window parent, int x, int y,
    if (!win)
       return NULL;
 
-#if !USE_DRI
-   /* init Mesa framebuffer data */
-   _mesa_initialize_framebuffer(&win->glframebuffer, &visual->glvisual,
-                                visual->glvisual.haveDepthBuffer,   /* sw? */
-                                visual->glvisual.haveStencilBuffer, /* sw? */
-                                visual->glvisual.haveAccumBuffer,   /* sw? */
-                                GL_FALSE /* sw alpha? */
-                                );
-   win->glframebuffer.Width = width;
-   win->glframebuffer.Height = height;
-#endif
 
    /* init other per-window fields */
    win->x = 0;
@@ -822,11 +577,7 @@ WRAP(XCreateWindow)( Display *dpy, Window parent, int x, int y,
    win->frontBottom = (GLubyte *) win->frontStart
                     + (height - 1) * win->rowStride;
 
-#if USE_DRI
    if (visual->glxConfig->doubleBuffer) {
-#else
-   if (visual->glvisual.doubleBufferMode) {
-#endif
       win->backStart = (GLubyte *) win->frontStart + win->size;
       win->backBottom = (GLubyte *) win->backStart
                       + (height - 1) * win->rowStride;
@@ -839,7 +590,6 @@ WRAP(XCreateWindow)( Display *dpy, Window parent, int x, int y,
       win->curBottom = win->frontBottom;
    }
 
-#if USE_DRI
    win->driDrawable.private = dpy->driScreen.createDrawable(dpy, 0, win,
                              visual->visInfo->visualid, &(win->driDrawable));
    if (!win->driDrawable.private) {
@@ -847,7 +597,6 @@ WRAP(XCreateWindow)( Display *dpy, Window parent, int x, int y,
       FREE(win);
       return NULL;
    }
-#endif
 
    dpy->NumWindows++;
    dpy->TheWindow = win;
@@ -881,15 +630,9 @@ WRAP(XDestroyWindow)( Display *dpy, Window win )
       if (win == curDraw) {
          WRAP(glXMakeCurrent)( dpy, NULL, NULL);
       }
-#if USE_DRI
       (*win->driDrawable.destroyDrawable)(dpy, win->driDrawable.private);
-#endif
       /* put framebuffer back to initial state */
       RestoreFBDev(dpy);
-#if !USE_DRI
-      /* free the software depth, stencil, accum buffers */
-      FREE_framebuffer_data(&win->glframebuffer);
-#endif
       FREE(win);
       /* unlink window from display */
       dpy->NumWindows--;
@@ -1031,7 +774,6 @@ WRAP(glXChooseVisual)( Display *dpy, int screen, int *attribs )
       }
    }
 
-#if USE_DRI
    /* search screen configs for suitable visual */
    (void) numSamples;
    (void) indexBits;
@@ -1052,21 +794,6 @@ WRAP(glXChooseVisual)( Display *dpy, int screen, int *attribs )
          break;
       }          
    }
-
-#else
-
-   if (!_mesa_initialize_visual(&vis->glvisual, rgbFlag, dbFlag, stereoFlag,
-                                redBits, greenBits, blueBits, alphaBits,
-                                indexBits, depthBits, stencilBits,
-                                accumRedBits, accumGreenBits,
-                                accumBlueBits, accumAlphaBits,
-                                numSamples)) {
-      /* something was invalid */
-      FREE(vis);
-      FREE(visInfo);
-      return NULL;
-   }
-#endif
 
    /* compute depth and bpp */
    if (rgbFlag) {
@@ -1093,11 +820,7 @@ WRAP(glXCreateContext)( Display *dpy, XVisualInfo *vis,
                         GLXContext shareList, Bool direct )
 {
    GLXContext ctx;
-#if USE_DRI
    void *sharePriv;
-#else
-   GLcontext *glctx;
-#endif
 
    ASSERT(vis);
 
@@ -1105,7 +828,6 @@ WRAP(glXCreateContext)( Display *dpy, XVisualInfo *vis,
    if (!ctx)
       return NULL;
 
-#if USE_DRI
    if (shareList)
       sharePriv = shareList->driContext.private;
    else
@@ -1117,88 +839,6 @@ WRAP(glXCreateContext)( Display *dpy, XVisualInfo *vis,
       return NULL;
    }
 
-#else
-
-   if (!_mesa_initialize_context(&ctx->glcontext, &vis->visual->glvisual,
-                                 shareList ? &shareList->glcontext : NULL,
-                                 (void *) ctx, GL_FALSE)) {
-      FREE(ctx);
-      return NULL;
-   }
-
-   /* Create module contexts */
-   glctx = (GLcontext *) &ctx->glcontext;
-   init_core_functions( glctx );
-   _swrast_CreateContext( glctx );
-   _ac_CreateContext( glctx );
-   _tnl_CreateContext( glctx );
-   _swsetup_CreateContext( glctx );
-   _swsetup_Wakeup( glctx );
-
-   /* swrast init */
-   {
-      struct swrast_device_driver *swdd;
-      swdd = _swrast_GetDeviceDriverReference( glctx );
-      swdd->SetBuffer = set_buffer;
-      if (vis->visual->pixelFormat == PF_B8G8R8) {
-         swdd->WriteRGBASpan = write_rgba_span_B8G8R8;
-         swdd->WriteRGBSpan = write_rgb_span_B8G8R8;
-         swdd->WriteMonoRGBASpan = write_monorgba_span_B8G8R8;
-         swdd->WriteRGBAPixels = write_rgba_pixels_B8G8R8;
-         swdd->WriteMonoRGBAPixels = write_monorgba_pixels_B8G8R8;
-         swdd->ReadRGBASpan = read_rgba_span_B8G8R8;
-         swdd->ReadRGBAPixels = read_rgba_pixels_B8G8R8;
-      }
-      else if (vis->visual->pixelFormat == PF_B8G8R8A8) {
-         swdd->WriteRGBASpan = write_rgba_span_B8G8R8A8;
-         swdd->WriteRGBSpan = write_rgb_span_B8G8R8A8;
-         swdd->WriteMonoRGBASpan = write_monorgba_span_B8G8R8A8;
-         swdd->WriteRGBAPixels = write_rgba_pixels_B8G8R8A8;
-         swdd->WriteMonoRGBAPixels = write_monorgba_pixels_B8G8R8A8;
-         swdd->ReadRGBASpan = read_rgba_span_B8G8R8A8;
-         swdd->ReadRGBAPixels = read_rgba_pixels_B8G8R8A8;
-      }
-      else if (vis->visual->pixelFormat == PF_B5G6R5) {
-         swdd->WriteRGBASpan = write_rgba_span_B5G6R5;
-         swdd->WriteRGBSpan = write_rgb_span_B5G6R5;
-         swdd->WriteMonoRGBASpan = write_monorgba_span_B5G6R5;
-         swdd->WriteRGBAPixels = write_rgba_pixels_B5G6R5;
-         swdd->WriteMonoRGBAPixels = write_monorgba_pixels_B5G6R5;
-         swdd->ReadRGBASpan = read_rgba_span_B5G6R5;
-         swdd->ReadRGBAPixels = read_rgba_pixels_B5G6R5;
-      }
-      else if (vis->visual->pixelFormat == PF_B5G5R5) {
-         swdd->WriteRGBASpan = write_rgba_span_B5G5R5;
-         swdd->WriteRGBSpan = write_rgb_span_B5G5R5;
-         swdd->WriteMonoRGBASpan = write_monorgba_span_B5G5R5;
-         swdd->WriteRGBAPixels = write_rgba_pixels_B5G5R5;
-         swdd->WriteMonoRGBAPixels = write_monorgba_pixels_B5G5R5;
-         swdd->ReadRGBASpan = read_rgba_span_B5G5R5;
-         swdd->ReadRGBAPixels = read_rgba_pixels_B5G5R5;
-      }
-      else if (vis->visual->pixelFormat == PF_CI8) {
-         swdd->WriteCI32Span = write_index32_span_CI8;
-         swdd->WriteCI8Span = write_index8_span_CI8;
-         swdd->WriteMonoCISpan = write_monoindex_span_CI8;
-         swdd->WriteCI32Pixels = write_index_pixels_CI8;
-         swdd->WriteMonoCIPixels = write_monoindex_pixels_CI8;
-         swdd->ReadCI32Span = read_index_span_CI8;
-         swdd->ReadCI32Pixels = read_index_pixels_CI8;
-      }
-      else {
-         _mesa_printf("bad pixelformat: %d\n", vis->visual->pixelFormat);
-      }
-   }
-
-   /* use default TCL pipeline */
-   {
-      TNLcontext *tnl = TNL_CONTEXT(glctx);
-      tnl->Driver.RunPipeline = _tnl_run_pipeline;
-   }
-
-   _mesa_enable_sw_extensions(glctx);
-
-#endif /* USE_DRI */
 
    return ctx;
 }
@@ -1212,18 +852,9 @@ WRAP(glXDestroyContext)( Display *dpy, GLXContext ctx )
    if (glxctx) {
       if (glxctx == ctx) {
          /* destroying current context */
-#if USE_DRI
          (*ctx->driContext.bindContext)(dpy, 0, 0, 0);
-#else
-         _mesa_make_current2(NULL, NULL, NULL);
-#endif
       }
-#if USE_DRI
       (*ctx->driContext.destroyContext)(dpy, 0, ctx->driContext.private);
-#else
-      _mesa_notifyDestroy(&ctx->glcontext);
-      _mesa_free_context_data(&ctx->glcontext);
-#endif
       FREE(ctx);
    }
 }
@@ -1233,7 +864,6 @@ Bool
 WRAP(glXMakeCurrent)( Display *dpy, GLXDrawable drawable, GLXContext ctx)
 {
    if (dpy && drawable && ctx) {
-#if USE_DRI
       GLXContext oldContext = WRAP(glXGetCurrentContext)();
       GLXDrawable oldDrawable = WRAP(glXGetCurrentDrawable)();
       /* unbind old */
@@ -1244,24 +874,12 @@ WRAP(glXMakeCurrent)( Display *dpy, GLXDrawable drawable, GLXContext ctx)
       /* bind new */
       CurrentContext = ctx;
       (*ctx->driContext.bindContext)(dpy, 0, drawable, ctx);
-#else
-      _mesa_make_current2( &ctx->glcontext,
-                           &drawable->glframebuffer,
-                           &drawable->glframebuffer );
-      if (ctx->glcontext.Viewport.Width == 0) {
-         _mesa_Viewport(0, 0, drawable->w, drawable->h);
-      }
-#endif
       ctx->drawBuffer = drawable;
       ctx->curBuffer = drawable;
    }
    else {
       /* unbind */
-#if USE_DRI
       (*ctx->driContext.bindContext)(dpy, 0, 0, 0);
-#else
-      _mesa_make_current2( NULL, NULL, NULL );
-#endif
    }
    return True;
 }
@@ -1270,38 +888,17 @@ WRAP(glXMakeCurrent)( Display *dpy, GLXDrawable drawable, GLXContext ctx)
 void
 WRAP(glXSwapBuffers)( Display *dpy, GLXDrawable drawable )
 {
-#if !USE_DRI
-   GLXContext glxctx = WRAP(glXGetCurrentContext)();
-#endif
-
    if (!dpy || !drawable)
       return;
 
-#if USE_DRI
    (*drawable->driDrawable.swapBuffers)(dpy, drawable->driDrawable.private);
-#else
-   /* check if swapping currently bound buffer */
-   if (glxctx->drawBuffer == drawable) {
-      /* flush pending rendering */
-      _mesa_notifySwapBuffers(&glxctx->glcontext);
-   }
-
-   ASSERT(drawable->frontStart);
-   ASSERT(drawable->backStart);
-   _mesa_memcpy(drawable->frontStart, drawable->backStart, drawable->size);
-#endif
 }
 
 
 GLXContext
 WRAP(glXGetCurrentContext)( void )
 {
-#if USE_DRI
    return CurrentContext;
-#else
-   GET_CURRENT_CONTEXT(ctx);
-   return (GLXContext) ctx;
-#endif
 }
 
 
