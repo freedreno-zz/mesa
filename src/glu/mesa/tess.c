@@ -1,4 +1,4 @@
-/* $Id: tess.c,v 1.20.2.1 1999/11/15 21:21:31 gareth Exp $ */
+/* $Id: tess.c,v 1.20.2.2 1999/11/16 11:07:22 gareth Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -51,6 +51,9 @@ static void init_callbacks( tess_callbacks_t *callbacks );
 
 static void tess_cleanup( GLUtesselator *tobj );
 static void inspect_current_contour( GLUtesselator *tobj );
+
+GLdouble twice_contour_area( tess_vertex_t *vertex,
+			     tess_vertex_t *last_vertex );
 
 void delete_contour( tess_contour_t **contour );
 static void delete_all_contours( GLUtesselator *tobj );
@@ -743,9 +746,6 @@ static GLenum find_normal( GLUtesselator *tobj )
 /*****************************************************************************
  * project_current_contour
  *****************************************************************************/
-static GLdouble twice_contour_area( tess_vertex_t *vertex,
-				    tess_vertex_t *last_vertex );
-
 static void project_current_contour( GLUtesselator *tobj )
 {
     tess_contour_t	*current = tobj->current_contour;
@@ -804,8 +804,8 @@ static void project_current_contour( GLUtesselator *tobj )
 	ACC_BBOX_2V( vertex->v, current->mins, current->maxs );
     }
 
-    area = twice_contour_area( current->vertices,
-			       current->last_vertex );
+    area = twice_contour_area( current->vertices, current->last_vertex );
+
     if ( area >= 0.0 )
     {
 	current->orientation = GLU_CCW;
@@ -823,8 +823,8 @@ static void project_current_contour( GLUtesselator *tobj )
 /*****************************************************************************
  * twice_contour_area
  *****************************************************************************/
-static GLdouble twice_contour_area( tess_vertex_t *vertex,
-				    tess_vertex_t *last_vertex )
+GLdouble twice_contour_area( tess_vertex_t *vertex,
+			     tess_vertex_t *last_vertex )
 {
     tess_vertex_t	*next;
     GLdouble		area, x, y;
