@@ -55,6 +55,8 @@
 extern "C" {
 #endif
 
+#define GL_GLEXT_PROTOTYPES 1
+#include "fxdrv.h"
 #include <windows.h>
 #include "GL/gl.h"
 
@@ -64,7 +66,6 @@ extern "C" {
 
 #include <stdio.h>
 #include "GL/fxmesa.h"
-#include "fxdrv.h"
 
 #define MAX_MESA_ATTRS  20
 
@@ -867,4 +868,4 @@ BOOL GLAPIENTRY SwapBuffers(HDC hdc)
   return wglSwapBuffers(hdc);
 }
 
-#endif /* FX */
+#endif /* __WIN32__ */
