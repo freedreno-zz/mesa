@@ -1,4 +1,4 @@
-/* $Id: glfbdevtest.c,v 1.1.4.1 2002/11/20 02:10:37 brianp Exp $ */
+/* $Id: glfbdevtest.c,v 1.1.4.2 2002/11/22 15:26:56 brianp Exp $ */
 
 /*
  * Test the GLFBDev interface.
@@ -53,6 +53,15 @@ initialize_fbdev( void )
       fprintf(stderr, "error: you need to be root\n");
       exit(1);
    }
+
+#if 1
+   /* open the framebuffer device */
+   FrameBufferFD = open("/dev/fb0", O_RDWR);
+   if (FrameBufferFD < 0) {
+      fprintf(stderr, "Error opening /dev/fb0: %s\n", strerror(errno));
+      exit(1);
+   }
+#endif
 
    /* open /dev/tty0 and get the vt number */
    if ((fd = open("/dev/tty0", O_WRONLY, 0)) < 0) {
@@ -117,12 +126,15 @@ initialize_fbdev( void )
       exit(1);
    }
 
+
+#if 0
    /* open the framebuffer device */
    FrameBufferFD = open("/dev/fb0", O_RDWR);
    if (FrameBufferFD < 0) {
       fprintf(stderr, "Error opening /dev/fb0: %s\n", strerror(errno));
       exit(1);
    }
+#endif
 
   /* get the variable screen info */
    if (ioctl(FrameBufferFD, FBIOGET_VSCREENINFO, &VarInfo)) {
@@ -134,8 +146,13 @@ initialize_fbdev( void )
    /* set the depth, resolution, etc */
    if (DesiredDepth)
       VarInfo.bits_per_pixel = DesiredDepth;
-   VarInfo.xres_virtual = VarInfo.xres;
-   VarInfo.yres_virtual = VarInfo.yres;
+#if 0
+   VarInfo.xres_virtual = VarInfo.xres = 1280;
+   VarInfo.yres_virtual = VarInfo.yres = 1024;
+   VarInfo.bits_per_pixel = 32;
+#endif
+   printf("xres=%d yres=%d\n", VarInfo.xres, VarInfo.yres);
+   printf("bits_per_pixel=%d\n", VarInfo.bits_per_pixel);
    VarInfo.xoffset = 0;
    VarInfo.yoffset = 0;
    VarInfo.nonstd = 0;
@@ -143,7 +160,8 @@ initialize_fbdev( void )
 
    /* set variable screen info */
    if (ioctl(FrameBufferFD, FBIOPUT_VSCREENINFO, &VarInfo)) {
-      fprintf(stderr, "Unable to set screen to depth %d\n", DesiredDepth);
+      fprintf(stderr, "ioctl(FBIOPUT_VSCREENINFO failed): %s\n",
+              strerror(errno));
       exit(1);
    }
 
@@ -154,9 +172,33 @@ initialize_fbdev( void )
       exit(1);
    }
 
-   if (FixedInfo.visual != FB_VISUAL_TRUECOLOR ) {
-      fprintf(stderr, "non-TRUECOLOR visuals not supported by this demo.\n");
+   if (FixedInfo.visual != FB_VISUAL_TRUECOLOR &&
+       FixedInfo.visual != FB_VISUAL_DIRECTCOLOR) {
+      fprintf(stderr, "non-TRUE/DIRECT-COLOR visuals (0x%x) not supported by this demo.\n", FixedInfo.visual);
       exit(1);
+   }
+
+   /* initialize colormap */
+   if (FixedInfo.visual == FB_VISUAL_DIRECTCOLOR) {
+      struct fb_cmap cmap;
+      unsigned short red, green, blue;
+      int i, j;
+
+      cmap.len = 1;
+      cmap.red = &red;
+      cmap.green = &green;
+      cmap.blue = &blue;
+      cmap.transp = NULL;
+      for (i = 0; i < 256; i++) {
+         cmap.start = i;
+         red = (i << 8) | i;
+         green = (i << 8) | i;
+         blue = (i << 8) | i;
+         j = ioctl(FrameBufferFD, FBIOPUTCMAP, (void *) &cmap);
+         if (j < 0) {
+            fprintf(stderr, "ioctl(FBIOPUTCMAP) failed [%d]\n", i);
+         }
+      }
    }
 
    /* mmap the framebuffer into our address space */
@@ -220,7 +262,7 @@ gltest( void )
    printf("GLFBDEV_VERSION = %s\n", glFBDevGetString(GLFBDEV_VERSION));
 
    /* framebuffer size */
-   bytes = VarInfo.xres_virtual * VarInfo.yres_virtual * 3;
+   bytes = VarInfo.xres_virtual * VarInfo.yres_virtual * 4;
 
    vis = glFBDevCreateVisual( &FixedInfo, &VarInfo, attribs );
    assert(vis);
