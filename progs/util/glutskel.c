@@ -1,4 +1,4 @@
-/* $Id: glutskel.c,v 1.1 1999/08/19 00:55:42 jtg Exp $ */
+/* $Id: glutskel.c,v 1.1.1.1 1999/08/19 00:55:42 jtg Exp $ */
 
 /*
  * A skeleton/template GLUT program
@@ -9,8 +9,8 @@
 
 /*
  * $Log: glutskel.c,v $
- * Revision 1.1  1999/08/19 00:55:42  jtg
- * Initial revision
+ * Revision 1.1.1.1  1999/08/19 00:55:42  jtg
+ * Imported sources
  *
  * Revision 1.2  1998/11/07 14:20:14  brianp
  * added simple rotation, animation of cube

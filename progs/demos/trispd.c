@@ -1,4 +1,4 @@
-/* $Id: trispd.c,v 1.1 1999/08/19 00:55:40 jtg Exp $ */
+/* $Id: trispd.c,v 1.1.1.1 1999/08/19 00:55:40 jtg Exp $ */
 
 /*
  * Simple GLUT program to measure triangle strip rendering speed.
@@ -7,8 +7,8 @@
 
 /*
  * $Log: trispd.c,v $
- * Revision 1.1  1999/08/19 00:55:40  jtg
- * Initial revision
+ * Revision 1.1.1.1  1999/08/19 00:55:40  jtg
+ * Imported sources
  *
  * Revision 3.4  1999/03/28 18:24:37  brianp
  * minor clean-up

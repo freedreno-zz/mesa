@@ -1,4 +1,4 @@
-/* $Id: ggimesa.h,v 1.1 1999/08/19 00:55:40 jtg Exp $ */
+/* $Id: ggimesa.h,v 1.1.1.1 1999/08/19 00:55:40 jtg Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -24,8 +24,8 @@
 
 /*
  * $Log: ggimesa.h,v $
- * Revision 1.1  1999/08/19 00:55:40  jtg
- * Initial revision
+ * Revision 1.1.1.1  1999/08/19 00:55:40  jtg
+ * Imported sources
  *
  * Revision 1.2  1998/09/29 01:46:40  brianp
  * applied Emmanuel Marty's patches for latest GGI

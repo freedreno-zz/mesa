@@ -1,4 +1,4 @@
-/* $Id: glinfo.c,v 1.1 1999/08/19 00:55:40 jtg Exp $ */
+/* $Id: glinfo.c,v 1.1.1.1 1999/08/19 00:55:40 jtg Exp $ */
 
 /*
  * Print GL, GLU and GLUT version and extension info
@@ -10,8 +10,8 @@
 
 /*
  * $Log: glinfo.c,v $
- * Revision 1.1  1999/08/19 00:55:40  jtg
- * Initial revision
+ * Revision 1.1.1.1  1999/08/19 00:55:40  jtg
+ * Imported sources
  *
  * Revision 3.2  1999/02/02 04:45:49  brianp
  * include stdio.h before glut.h

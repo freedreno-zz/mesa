@@ -1,4 +1,4 @@
-/* $Id: glxpixmap.c,v 1.1 1999/08/19 00:55:43 jtg Exp $ */
+/* $Id: glxpixmap.c,v 1.1.1.1 1999/08/19 00:55:43 jtg Exp $ */
 
 
 /*
@@ -10,7 +10,7 @@
 
 
 /*
- * $Id: glxpixmap.c,v 1.1 1999/08/19 00:55:43 jtg Exp $
+ * $Id: glxpixmap.c,v 1.1.1.1 1999/08/19 00:55:43 jtg Exp $
  */
 
 

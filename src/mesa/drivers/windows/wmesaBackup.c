@@ -1,4 +1,4 @@
-/* $Id: wmesaBackup.c,v 1.1 1999/08/19 00:55:42 jtg Exp $ */
+/* $Id: wmesaBackup.c,v 1.1.1.1 1999/08/19 00:55:42 jtg Exp $ */
 
 /*
 *   File name   :   wmesa.c
@@ -22,8 +22,8 @@
 
 /*
  * $Log: wmesaBackup.c,v $
- * Revision 1.1  1999/08/19 00:55:42  jtg
- * Initial revision
+ * Revision 1.1.1.1  1999/08/19 00:55:42  jtg
+ * Imported sources
  *
  * Revision 1.1  1999/01/03 03:08:57  brianp
  * Initial revision

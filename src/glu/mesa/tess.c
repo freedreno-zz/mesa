@@ -1,4 +1,4 @@
-/* $Id: tess.c,v 1.1 1999/08/19 00:55:42 jtg Exp $ */
+/* $Id: tess.c,v 1.1.1.1 1999/08/19 00:55:42 jtg Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -23,8 +23,8 @@
 
 /*
  * $Log: tess.c,v $
- * Revision 1.1  1999/08/19 00:55:42  jtg
- * Initial revision
+ * Revision 1.1.1.1  1999/08/19 00:55:42  jtg
+ * Imported sources
  *
  * Revision 1.11  1999/02/27 13:55:31  brianp
  * fixed BeOS-related GLU typedef problems

@@ -1,4 +1,4 @@
-/* $Id: paltex.c,v 1.1 1999/08/19 00:55:40 jtg Exp $ */
+/* $Id: paltex.c,v 1.1.1.1 1999/08/19 00:55:40 jtg Exp $ */
 
 /*
  * Paletted texture demo.  Written by Brian Paul.  This file in public domain.
@@ -6,8 +6,8 @@
 
 /*
  * $Log: paltex.c,v $
- * Revision 1.1  1999/08/19 00:55:40  jtg
- * Initial revision
+ * Revision 1.1.1.1  1999/08/19 00:55:40  jtg
+ * Imported sources
  *
  * Revision 3.1  1999/03/28 18:20:49  brianp
  * minor clean-up

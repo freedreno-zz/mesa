@@ -1,5 +1,5 @@
 
-/* $Id: gamma.c,v 1.1 1999/08/19 00:55:40 jtg Exp $ */
+/* $Id: gamma.c,v 1.1.1.1 1999/08/19 00:55:40 jtg Exp $ */
 
 /* Draw test patterns to help determine correct gamma value for a display.
    When the intensities of the inner squares nearly match the intensities
@@ -25,8 +25,8 @@
 
 /*
  * $Log: gamma.c,v $
- * Revision 1.1  1999/08/19 00:55:40  jtg
- * Initial revision
+ * Revision 1.1.1.1  1999/08/19 00:55:40  jtg
+ * Imported sources
  *
  * Revision 3.1  1999/06/19 01:35:38  brianp
  * merged in Kai Schuetz's RGB changes

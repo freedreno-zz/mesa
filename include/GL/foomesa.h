@@ -1,4 +1,4 @@
-/* $Id: foomesa.h,v 1.1 1999/08/19 00:55:40 jtg Exp $ */
+/* $Id: foomesa.h,v 1.1.1.1 1999/08/19 00:55:40 jtg Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -23,8 +23,8 @@
 
 /*
  * $Log: foomesa.h,v $
- * Revision 1.1  1999/08/19 00:55:40  jtg
- * Initial revision
+ * Revision 1.1.1.1  1999/08/19 00:55:40  jtg
+ * Imported sources
  *
  * Revision 1.1  1998/06/02 01:34:18  brianp
  * Initial revision

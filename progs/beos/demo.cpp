@@ -1,4 +1,4 @@
-// $Id: demo.cpp,v 1.1 1999/08/19 00:55:40 jtg Exp $
+// $Id: demo.cpp,v 1.1.1.1 1999/08/19 00:55:40 jtg Exp $
 
 // Simple BeOS GLView demo
 // Written by Brian Paul

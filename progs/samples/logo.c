@@ -1,4 +1,4 @@
-/* $Id: logo.c,v 1.1 1999/08/19 00:55:41 jtg Exp $ */
+/* $Id: logo.c,v 1.1.1.1 1999/08/19 00:55:41 jtg Exp $ */
 
 /*
  * Copyright (c) 1991, 1992, 1993 Silicon Graphics, Inc.

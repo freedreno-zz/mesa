@@ -1,4 +1,4 @@
-/* $Id: fog.h,v 1.1 1999/08/19 00:55:41 jtg Exp $ */
+/* $Id: fog.h,v 1.1.1.1 1999/08/19 00:55:41 jtg Exp $ */
 
 /*
  * Mesa 3-D graphics library

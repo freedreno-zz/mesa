@@ -1,4 +1,4 @@
-/* $Id: all.h,v 1.1 1999/08/19 00:55:42 jtg Exp $ */
+/* $Id: all.h,v 1.1.1.1 1999/08/19 00:55:42 jtg Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -23,8 +23,8 @@
 
 /*
  * $Log: all.h,v $
- * Revision 1.1  1999/08/19 00:55:42  jtg
- * Initial revision
+ * Revision 1.1.1.1  1999/08/19 00:55:42  jtg
+ * Imported sources
  *
  * Revision 1.2  1997/11/20 00:28:20  brianp
  * changed PCH to PC_HEADER

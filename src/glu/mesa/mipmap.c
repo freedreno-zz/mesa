@@ -1,4 +1,4 @@
-/* $Id: mipmap.c,v 1.1 1999/08/19 00:55:42 jtg Exp $ */
+/* $Id: mipmap.c,v 1.1.1.1 1999/08/19 00:55:42 jtg Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -23,8 +23,8 @@
 
 /*
  * $Log: mipmap.c,v $
- * Revision 1.1  1999/08/19 00:55:42  jtg
- * Initial revision
+ * Revision 1.1.1.1  1999/08/19 00:55:42  jtg
+ * Imported sources
  *
  * Revision 1.13  1999/03/05 17:49:06  brianp
  * added support for GL_EXT_abgr (devernay@istar.fr)

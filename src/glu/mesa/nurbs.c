@@ -1,4 +1,4 @@
-/* $Id: nurbs.c,v 1.1 1999/08/19 00:55:42 jtg Exp $ */
+/* $Id: nurbs.c,v 1.1.1.1 1999/08/19 00:55:42 jtg Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -23,8 +23,8 @@
 
 /*
  * $Log: nurbs.c,v $
- * Revision 1.1  1999/08/19 00:55:42  jtg
- * Initial revision
+ * Revision 1.1.1.1  1999/08/19 00:55:42  jtg
+ * Imported sources
  *
  * Revision 1.14  1999/01/03 03:23:15  brianp
  * now using GLAPIENTRY and GLCALLBACK keywords (Ted Jump)

@@ -13,8 +13,8 @@
 
 /*
  * $Log: pointblast.c,v $
- * Revision 1.1  1999/08/19 00:55:40  jtg
- * Initial revision
+ * Revision 1.1.1.1  1999/08/19 00:55:40  jtg
+ * Imported sources
  *
  * Revision 3.3  1998/07/26 01:24:27  brianp
  * removed include of gl.h

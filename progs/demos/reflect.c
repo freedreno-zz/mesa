@@ -1,4 +1,4 @@
-/* $Id: reflect.c,v 1.1 1999/08/19 00:55:40 jtg Exp $ */
+/* $Id: reflect.c,v 1.1.1.1 1999/08/19 00:55:40 jtg Exp $ */
 
 /*
  * Demo of a reflective, texture-mapped surface with OpenGL.
@@ -31,8 +31,8 @@
 
 /*
  * $Log: reflect.c,v $
- * Revision 1.1  1999/08/19 00:55:40  jtg
- * Initial revision
+ * Revision 1.1.1.1  1999/08/19 00:55:40  jtg
+ * Imported sources
  *
  * Revision 3.4  1999/03/28 18:22:05  brianp
  * minor clean-up

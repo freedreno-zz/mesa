@@ -1,4 +1,4 @@
-/* $Id: glu.c,v 1.1 1999/08/19 00:55:42 jtg Exp $ */
+/* $Id: glu.c,v 1.1.1.1 1999/08/19 00:55:42 jtg Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -23,8 +23,8 @@
 
 /*
  * $Log: glu.c,v $
- * Revision 1.1  1999/08/19 00:55:42  jtg
- * Initial revision
+ * Revision 1.1.1.1  1999/08/19 00:55:42  jtg
+ * Imported sources
  *
  * Revision 1.13  1999/03/31 19:07:28  brianp
  * added GL_EXT_abgr to extensions

@@ -1,4 +1,4 @@
-/* $Id: nurbscrv.c,v 1.1 1999/08/19 00:55:42 jtg Exp $ */
+/* $Id: nurbscrv.c,v 1.1.1.1 1999/08/19 00:55:42 jtg Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -23,8 +23,8 @@
 
 /*
  * $Log: nurbscrv.c,v $
- * Revision 1.1  1999/08/19 00:55:42  jtg
- * Initial revision
+ * Revision 1.1.1.1  1999/08/19 00:55:42  jtg
+ * Imported sources
  *
  * Revision 1.6  1997/07/24 01:28:44  brianp
  * changed precompiled header symbol from PCH to PC_HEADER

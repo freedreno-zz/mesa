@@ -1,4 +1,4 @@
-/* $Id: renormal.c,v 1.1 1999/08/19 00:55:40 jtg Exp $ */
+/* $Id: renormal.c,v 1.1.1.1 1999/08/19 00:55:40 jtg Exp $ */
 
 /*
  * Test GL_EXT_rescale_normal extension
@@ -6,7 +6,7 @@
  */
 
 /*
- * $Id: renormal.c,v 1.1 1999/08/19 00:55:40 jtg Exp $
+ * $Id: renormal.c,v 1.1.1.1 1999/08/19 00:55:40 jtg Exp $
  */
 
 

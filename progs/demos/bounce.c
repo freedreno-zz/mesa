@@ -1,4 +1,4 @@
-/* $Id: bounce.c,v 1.1 1999/08/19 00:55:40 jtg Exp $ */
+/* $Id: bounce.c,v 1.1.1.1 1999/08/19 00:55:40 jtg Exp $ */
 
 /*
  * Bouncing ball demo.  Color index mode only!
@@ -12,8 +12,8 @@
 
 /*
  * $Log: bounce.c,v $
- * Revision 1.1  1999/08/19 00:55:40  jtg
- * Initial revision
+ * Revision 1.1.1.1  1999/08/19 00:55:40  jtg
+ * Imported sources
  *
  * Revision 3.3  1999/03/18 08:16:14  joukj
  *

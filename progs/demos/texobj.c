@@ -1,4 +1,4 @@
-/* $Id: texobj.c,v 1.1 1999/08/19 00:55:40 jtg Exp $ */
+/* $Id: texobj.c,v 1.1.1.1 1999/08/19 00:55:40 jtg Exp $ */
 
 /*
  * Example of using the 1.1 texture object functions.
@@ -10,8 +10,8 @@
 
 /*
  * $Log: texobj.c,v $
- * Revision 1.1  1999/08/19 00:55:40  jtg
- * Initial revision
+ * Revision 1.1.1.1  1999/08/19 00:55:40  jtg
+ * Imported sources
  *
  * Revision 3.1  1999/03/28 18:24:37  brianp
  * minor clean-up

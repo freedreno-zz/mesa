@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.1 1999/08/19 00:55:40 jtg Exp $
+# $Id: Makefile,v 1.1.1.1 1999/08/19 00:55:40 jtg Exp $
 
 # Makefile for BeOS demos
 

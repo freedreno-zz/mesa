@@ -1,4 +1,4 @@
-/* $Id: tessdemo.c,v 1.1 1999/08/19 00:55:40 jtg Exp $ */
+/* $Id: tessdemo.c,v 1.1.1.1 1999/08/19 00:55:40 jtg Exp $ */
 
 /*
  * A demo of the GLU polygon tesselation functions written by Bogdan Sikorski.
@@ -11,8 +11,8 @@
 
 /*
  * $Log: tessdemo.c,v $
- * Revision 1.1  1999/08/19 00:55:40  jtg
- * Initial revision
+ * Revision 1.1.1.1  1999/08/19 00:55:40  jtg
+ * Imported sources
  *
  * Revision 3.5  1999/03/28 18:24:37  brianp
  * minor clean-up

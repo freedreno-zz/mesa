@@ -1,4 +1,4 @@
-/* $Id: stex3d.c,v 1.1 1999/08/19 00:55:40 jtg Exp $ */
+/* $Id: stex3d.c,v 1.1.1.1 1999/08/19 00:55:40 jtg Exp $ */
 
 /*----------------------------- 
  * stex3d.c GL example of the mesa 3d-texture extention to simulate procedural
@@ -17,8 +17,8 @@
 
 /*
  * $Log: stex3d.c,v $
- * Revision 1.1  1999/08/19 00:55:40  jtg
- * Initial revision
+ * Revision 1.1.1.1  1999/08/19 00:55:40  jtg
+ * Imported sources
  *
  * Revision 3.1  1998/06/09 01:53:49  brianp
  * main() should return an int

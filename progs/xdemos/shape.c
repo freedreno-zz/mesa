@@ -1,4 +1,4 @@
-/* $Id: shape.c,v 1.1 1999/08/19 00:55:43 jtg Exp $ */
+/* $Id: shape.c,v 1.1.1.1 1999/08/19 00:55:43 jtg Exp $ */
 
 /*
  * Example of using the X "shape" extension with OpenGL:  render a spinning

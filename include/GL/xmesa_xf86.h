@@ -30,7 +30,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  * Authors:
  *   Kevin E. Martin <kevin@precisioninsight.com>
  *
- * $Header: /home/krh/git/sync/mesa-cvs-repo/Mesa/include/GL/xmesa_xf86.h,v 1.1 1999/08/19 00:55:40 jtg Exp $
+ * $Header: /home/krh/git/sync/mesa-cvs-repo/Mesa/include/GL/xmesa_xf86.h,v 1.1.1.1 1999/08/19 00:55:40 jtg Exp $
  */
 
 #ifndef _XMESA_XF86_H_

@@ -1,4 +1,4 @@
-# $Id: Make-config,v 1.1 1999/08/19 00:55:39 jtg Exp $
+# $Id: Make-config,v 1.1.1.1 1999/08/19 00:55:39 jtg Exp $
 
 MAJOR=3
 MINOR=1

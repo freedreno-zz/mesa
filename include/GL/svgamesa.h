@@ -1,4 +1,4 @@
-/* $Id: svgamesa.h,v 1.1 1999/08/19 00:55:40 jtg Exp $ */
+/* $Id: svgamesa.h,v 1.1.1.1 1999/08/19 00:55:40 jtg Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -23,8 +23,8 @@
 
 /*
  * $Log: svgamesa.h,v $
- * Revision 1.1  1999/08/19 00:55:40  jtg
- * Initial revision
+ * Revision 1.1.1.1  1999/08/19 00:55:40  jtg
+ * Imported sources
  *
  * Revision 3.0  1998/02/20 05:07:24  brianp
  * initial rev

@@ -1,4 +1,4 @@
-/* $Id: glu.h,v 1.1 1999/08/19 00:55:40 jtg Exp $ */
+/* $Id: glu.h,v 1.1.1.1 1999/08/19 00:55:40 jtg Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -23,8 +23,8 @@
 
 /*
  * $Log: glu.h,v $
- * Revision 1.1  1999/08/19 00:55:40  jtg
- * Initial revision
+ * Revision 1.1.1.1  1999/08/19 00:55:40  jtg
+ * Imported sources
  *
  * Revision 3.6  1999/02/14 03:39:45  brianp
  * updated for BeOS R4

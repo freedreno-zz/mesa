@@ -1,4 +1,4 @@
-/* $Id: gears.c,v 1.1 1999/08/19 00:55:40 jtg Exp $ */
+/* $Id: gears.c,v 1.1.1.1 1999/08/19 00:55:40 jtg Exp $ */
 
 /*
  * 3-D gear wheels.  This program is in the public domain.
@@ -10,8 +10,8 @@
 
 /*
  * $Log: gears.c,v $
- * Revision 1.1  1999/08/19 00:55:40  jtg
- * Initial revision
+ * Revision 1.1.1.1  1999/08/19 00:55:40  jtg
+ * Imported sources
  *
  * Revision 3.2  1999/06/03 17:07:36  brianp
  * an extra quad was being drawn in front and back faces

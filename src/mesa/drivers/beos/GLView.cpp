@@ -1,4 +1,4 @@
-/* $Id: GLView.cpp,v 1.1 1999/08/19 00:55:41 jtg Exp $ */
+/* $Id: GLView.cpp,v 1.1.1.1 1999/08/19 00:55:41 jtg Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -27,8 +27,8 @@
 
 /*
  * $Log: GLView.cpp,v $
- * Revision 1.1  1999/08/19 00:55:41  jtg
- * Initial revision
+ * Revision 1.1.1.1  1999/08/19 00:55:41  jtg
+ * Imported sources
  *
  * Revision 1.7  1999/03/28 21:08:17  brianp
  * updated SetBuffer driver function

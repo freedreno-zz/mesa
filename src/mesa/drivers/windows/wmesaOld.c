@@ -20,8 +20,8 @@
 
 /*
  * $Log: wmesaOld.c,v $
- * Revision 1.1  1999/08/19 00:55:42  jtg
- * Initial revision
+ * Revision 1.1.1.1  1999/08/19 00:55:42  jtg
+ * Imported sources
  *
  * Revision 1.2  1999/01/03 03:08:57  brianp
  * Ted Jump's changes

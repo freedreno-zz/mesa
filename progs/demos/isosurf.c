@@ -1,4 +1,4 @@
-/* $Id: isosurf.c,v 1.1 1999/08/19 00:55:40 jtg Exp $ */
+/* $Id: isosurf.c,v 1.1.1.1 1999/08/19 00:55:40 jtg Exp $ */
 
 /*
  * Display an isosurface of 3-D wind speed volume.  Use arrow keys to
@@ -8,8 +8,8 @@
 
 /*
  * $Log: isosurf.c,v $
- * Revision 1.1  1999/08/19 00:55:40  jtg
- * Initial revision
+ * Revision 1.1.1.1  1999/08/19 00:55:40  jtg
+ * Imported sources
  *
  * Revision 3.4  1999/04/24 01:10:47  keithw
  * clip planes, materials

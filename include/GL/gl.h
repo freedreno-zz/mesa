@@ -1,4 +1,4 @@
-/* $Id: gl.h,v 1.1 1999/08/19 00:55:40 jtg Exp $ */
+/* $Id: gl.h,v 1.1.1.1 1999/08/19 00:55:40 jtg Exp $ */
 
 /*
  * Mesa 3-D graphics library

@@ -1,4 +1,4 @@
-/* $Id: polytest.c,v 1.1 1999/08/19 00:55:42 jtg Exp $ */
+/* $Id: polytest.c,v 1.1.1.1 1999/08/19 00:55:42 jtg Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -23,8 +23,8 @@
 
 /*
  * $Log: polytest.c,v $
- * Revision 1.1  1999/08/19 00:55:42  jtg
- * Initial revision
+ * Revision 1.1.1.1  1999/08/19 00:55:42  jtg
+ * Imported sources
  *
  * Revision 1.7  1999/06/08 00:44:51  brianp
  * OpenStep updates (pete@ohm.york.ac.uk)

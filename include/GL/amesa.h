@@ -1,4 +1,4 @@
-/* $Id: amesa.h,v 1.1 1999/08/19 00:55:40 jtg Exp $ */
+/* $Id: amesa.h,v 1.1.1.1 1999/08/19 00:55:40 jtg Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -27,8 +27,8 @@
 
 /*
  * $Log: amesa.h,v $
- * Revision 1.1  1999/08/19 00:55:40  jtg
- * Initial revision
+ * Revision 1.1.1.1  1999/08/19 00:55:40  jtg
+ * Imported sources
  *
  * Revision 1.1  1999/03/16 01:24:13  brianp
  * initial check-in

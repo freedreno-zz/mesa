@@ -1,4 +1,4 @@
-/* $Id: wmesa.c,v 1.1 1999/08/19 00:55:42 jtg Exp $ */
+/* $Id: wmesa.c,v 1.1.1.1 1999/08/19 00:55:42 jtg Exp $ */
 
 /*
 *   File name   :   wmesa.c
@@ -22,8 +22,8 @@
 
 /*
  * $Log: wmesa.c,v $
- * Revision 1.1  1999/08/19 00:55:42  jtg
- * Initial revision
+ * Revision 1.1.1.1  1999/08/19 00:55:42  jtg
+ * Imported sources
  *
  * Revision 3.10  1999/06/15 01:35:06  brianp
  * small change to wmSetPixel() from TWILMOT@cpr.fr

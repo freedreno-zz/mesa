@@ -1,4 +1,4 @@
-# $Id: Makefile.DJ,v 1.1 1999/08/19 00:55:41 jtg Exp $
+# $Id: Makefile.DJ,v 1.1.1.1 1999/08/19 00:55:41 jtg Exp $
 
 # Makefile for core library for MS-DOS using djgpp
 
@@ -22,8 +22,8 @@
 
 
 # $Log: Makefile.DJ,v $
-# Revision 1.1  1999/08/19 00:55:41  jtg
-# Initial revision
+# Revision 1.1.1.1  1999/08/19 00:55:41  jtg
+# Imported sources
 #
 # Revision 1.1  1999/01/01 14:35:09  brianp
 # Initial revision

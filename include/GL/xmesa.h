@@ -1,4 +1,4 @@
-/* $Id: xmesa.h,v 1.1 1999/08/19 00:55:40 jtg Exp $ */
+/* $Id: xmesa.h,v 1.1.1.1 1999/08/19 00:55:40 jtg Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -27,8 +27,8 @@
 
 /*
  * $Log: xmesa.h,v $
- * Revision 1.1  1999/08/19 00:55:40  jtg
- * Initial revision
+ * Revision 1.1.1.1  1999/08/19 00:55:40  jtg
+ * Imported sources
  *
  * Revision 1.3  1999/02/24 22:43:27  jens
  * Name changes to get XMesa to compile standalone inside XFree86

@@ -1,4 +1,4 @@
-/* $Id: dosmesa.c,v 1.1 1999/08/19 00:55:41 jtg Exp $ */
+/* $Id: dosmesa.c,v 1.1.1.1 1999/08/19 00:55:41 jtg Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -23,8 +23,8 @@
 
 /*
  * $Log: dosmesa.c,v $
- * Revision 1.1  1999/08/19 00:55:41  jtg
- * Initial revision
+ * Revision 1.1.1.1  1999/08/19 00:55:41  jtg
+ * Imported sources
  *
  * Revision 1.2  1999/03/28 21:11:57  brianp
  * updated SetBuffer driver function
