@@ -1,10 +1,10 @@
-/* $Id: s_drawpix.c,v 1.22.2.1 2002/01/15 21:50:15 brianp Exp $ */
+/* $Id: s_drawpix.c,v 1.22.2.2 2002/02/15 03:38:29 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.5
+ * Version:  4.0.2
  *
- * Copyright (C) 1999-2001  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -643,7 +643,7 @@ draw_depth_pixels( GLcontext *ctx, GLint x, GLint y,
       }
    }
 
-   if (type==GL_UNSIGNED_SHORT && sizeof(GLdepth)==sizeof(GLushort)
+   if (type==GL_UNSIGNED_SHORT && ctx->Visual.depthBits == 16
        && !bias_or_scale && !zoom && ctx->Visual.rgbMode) {
       /* Special case: directly write 16-bit depth values */
       GLint row;
@@ -686,7 +686,7 @@ draw_depth_pixels( GLcontext *ctx, GLint x, GLint y,
             const GLfloat zs = ctx->DepthMaxF;
             GLint i;
             for (i = 0; i < drawWidth; i++) {
-               zspan[i] = (GLdepth) (fspan[i] * zs);
+               zspan[i] = (GLdepth) (fspan[i] * zs + 0.5F);
             }
          }
 
