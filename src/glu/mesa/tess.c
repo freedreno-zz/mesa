@@ -1,4 +1,4 @@
-/* $Id: tess.c,v 1.20.2.3 1999/11/20 02:37:20 gareth Exp $ */
+/* $Id: tess.c,v 1.20.2.4 1999/11/29 18:16:11 gareth Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -751,7 +751,7 @@ static void project_current_contour( GLUtesselator *tobj )
     GLdouble		area;
     GLdouble		zaxis[3] = { 0.0, 0.0, 1.0 }, znormal[3], xnormal[3];
     GLdouble		dot, rotx, roty;
-    GLuint		i;
+    GLint		i;
 
     MSG( 15, "      -> project_current_contour( tobj:%p )\n", tobj );
 
@@ -854,7 +854,7 @@ static GLenum save_current_contour( GLUtesselator *tobj )
 {
     tess_contour_t	*current = tobj->current_contour;
     tess_vertex_t	*vertex;
-    GLuint			i;
+    GLint		i;
 
     if ( current == NULL ) { return GLU_ERROR; }
 
@@ -896,7 +896,7 @@ static GLenum save_current_contour( GLUtesselator *tobj )
 void delete_contour( tess_contour_t **contour )
 {
     tess_vertex_t	*vertex, *next;
-    GLuint		i;
+    GLint		i;
 
     if ( *contour == NULL ) { return; }
 
@@ -919,7 +919,7 @@ void delete_contour( tess_contour_t **contour )
 static void delete_all_contours( GLUtesselator *tobj )
 {
     tess_contour_t	*current, *next_contour;
-    GLuint		i;
+    GLint		i;
 
     if ( tobj->current_contour != NULL ) {
 	delete_contour( &tobj->current_contour );
@@ -928,7 +928,7 @@ static void delete_all_contours( GLUtesselator *tobj )
     for ( current = tobj->contours, i = 0 ; i < tobj->num_contours ; i++ )
     {
 	tess_vertex_t	*vertex = current->vertices, *next_vertex;
-	GLuint		j;
+	GLint		j;
 
 	for ( j = 0 ; j < current->num_vertices ; j ++ )
 	{
