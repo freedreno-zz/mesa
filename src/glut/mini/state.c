@@ -48,7 +48,7 @@ int APIENTRY glutGet (GLenum type)
       return 1;
    case GLUT_ELAPSED_TIME: {
       static int inited = 0;
-      struct timeval elapsed, beginning, now;
+      static struct timeval elapsed, beginning, now;
       if (!inited) {
 	 gettimeofday(&beginning, 0);
 	 inited = 1;
