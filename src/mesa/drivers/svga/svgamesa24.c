@@ -1,4 +1,4 @@
-/* $Id: svgamesa24.c,v 1.1.2.3 2000/01/23 17:48:12 brianp Exp $ */
+/* $Id: svgamesa24.c,v 1.1.2.4 2000/01/25 20:21:10 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -34,6 +34,7 @@
 _RGB * rgbBuffer;
 
 #if 0
+/* this doesn't compile with GCC on RedHat 6.1 */
 inline int RGB2BGR24(int c)
 {
 	asm("rorw  $8, %0\n"	 
@@ -44,13 +45,10 @@ inline int RGB2BGR24(int c)
     return c;
 }
 #else
-int RGB2BGR24(int c)
+static unsigned long RGB2BGR24(unsigned long color)
 {
-   /* XXX this isn't right */
-   return c;
+   return (color & 0xff00)|(color>>16)|((color & 0xff)<<16);
 }
-
-
 #endif
 
 int __svga_drawpixel24(int x, int y, GLubyte r, GLubyte g, GLubyte b)
