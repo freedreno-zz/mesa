@@ -1,4 +1,4 @@
-/* $Id: s_span.c,v 1.18.2.1 2002/04/19 01:10:48 brianp Exp $ */
+/* $Id: s_span.c,v 1.18.2.2 2002/04/20 17:59:43 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -1134,7 +1134,7 @@ _mesa_read_rgba_span( GLcontext *ctx, GLframebuffer *buffer,
 {
    SWcontext *swrast = SWRAST_CONTEXT(ctx);
    const GLint bufWidth = (GLint) buffer->Width;
-   const GLint bufHeight = (GLint) buffer->Width;
+   const GLint bufHeight = (GLint) buffer->Height;
 
    if (y < 0 || y >= bufHeight || x + (GLint) n < 0 || x >= bufWidth) {
       /* completely above, below, or right */
@@ -1190,7 +1190,7 @@ _mesa_read_index_span( GLcontext *ctx, GLframebuffer *buffer,
 {
    SWcontext *swrast = SWRAST_CONTEXT(ctx);
    const GLint bufWidth = (GLint) buffer->Width;
-   const GLint bufHeight = (GLint) buffer->Width;
+   const GLint bufHeight = (GLint) buffer->Height;
 
    if (y < 0 || y >= bufHeight || x + (GLint) n < 0 || x >= bufWidth) {
       /* completely above, below, or right */
