@@ -170,6 +170,9 @@ typedef struct {
         unsigned int *mask;
 } drmRadeonStipple;
 
+/**
+ * \brief Texture image for drmRadeonTexture.
+ */
 typedef struct {
         unsigned int x;
         unsigned int y;

@@ -846,8 +846,10 @@ void radeonCopyBuffer( const __DRIdrawablePrivate *dPriv )
  * \param dPriv DRI drawable speficic data.
  *
  * Fires the existing vertices and waits for frame completion and vertical
- * retrace. Sends the DRM_RADEON_FLIP command and swaps the front and back
- * buffer offsets and pitches.
+ * retrace. Sends the DRM_RADEON_FLIP command and updates the value of
+ * radeon_colorbuffer_state::drawOffset and
+ * radeon_colorbuffer_state::drawPitch to point to the front or back color
+ * buffer.
  */
 void radeonPageFlip( const __DRIdrawablePrivate *dPriv )
 {

@@ -15,9 +15,10 @@ default:
 	doxygen swrast_setup.doxy
 	doxygen tnl.doxy
 	doxygen miniglx.doxy
+	doxygen radeon_subset.doxy
 
 
 clean:
-	rm -rf array_cache core math swrast swrast_setup tnl_dd tnl miniglx
+	rm -rf array_cache core math swrast swrast_setup tnl_dd tnl miniglx radeon_subset
 	rm -rf *.tag
 

@@ -59,7 +59,7 @@ typedef struct radeon_context *radeonContextPtr;
 struct radeon_colorbuffer_state {
    GLuint clear;	/**< \brief Clear value */	
    GLint drawOffset;	/**< \brief Drawing offset */
-   Glint drawPitch;	/**< \brief Drawing pitch */
+   GLint drawPitch;	/**< \brief Drawing pitch */
 };
 
 /**
@@ -75,7 +75,7 @@ struct radeon_depthbuffer_state {
  */
 struct radeon_pixel_state {
    GLint readOffset;	/**< \brief Reading offset */
-   Glint readPitch;	/**< \brief Reading pitch */
+   GLint readPitch;	/**< \brief Reading pitch */
 };
 
 /**

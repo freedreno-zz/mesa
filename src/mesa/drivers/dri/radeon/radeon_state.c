@@ -1158,6 +1158,12 @@ void radeonSetCliprects( radeonContextPtr rmesa, GLenum mode )
  * \param mode which color buffers to be drawn into.
  *
  * \sa glDrawBuffer().
+ *
+ * Fires the vertices and sets the cliprects via radeonSetCliprects() according with the mode.
+ *
+ * Updates the value of radeon_colorbuffer_state::drawOffset and
+ * radeon_colorbuffer_state::drawPitch to point to the back or front color
+ * buffer.
  */
 static void radeonDrawBuffer( GLcontext *ctx, GLenum mode )
 {

@@ -55,13 +55,16 @@
 /**
  * \brief Union for vertex data.
  */
-union vertex_dword { float f; int i; };
+union vertex_dword { 
+	float f; /**< \brief floating point value */
+	int i;   /**< \brief integer point value */
+};
 
 
 /**
  * \brief Maxium number of dwords per vertex.
  *
- * For \c xyzw \c rgba \c st.
+ * Defined as 10 to hold: \code xyzw rgba st \endcode
  */
 #define MAX_VERTEX_DWORDS 10
 
@@ -70,7 +73,8 @@ union vertex_dword { float f; int i; };
  * \brief Global vertex buffer data.
  */
 static struct vb_t {
-   /* \brief Notification mechanism.  
+   /**
+    * \brief Notification mechanism.  
     *
     * These are treated as a stack to allow us to do things like build quads in
     * temporary storage and then emit them as triangles.
@@ -267,7 +271,7 @@ static void notify_wrap_buffer( void );
  * \brief Resets the vertex buffer notifycation mechanism.
  *
  * Fills in vb_t::stack with the values from the current DMA region in
- * radeon_dma::current and sets points the notification callback to
+ * radeon_dma::current and sets the notification callback to
  * notify_wrap_buffer().
  */
 static void reset_notify( void )
@@ -544,9 +548,8 @@ static void radeonVtxfmtValidate( GLcontext *ctx )
 } while (0)
 
 
-
 /**
- * \brief Process glBegin/glEnd.
+ * \brief Process glBegin().
  *
  * \param mode primitive.
  */
@@ -626,7 +629,10 @@ static void radeon_Begin( GLenum mode )
 }
 
 
-
+/**
+ * \brief Process glEnd().
+ *
+ */
 static void radeon_End( void )
 {
    GLcontext *ctx = vb.context;
@@ -693,7 +699,8 @@ static void radeonFlushVertices( GLcontext *ctx, GLuint flags )
  * \param y y vertex coordinate.
  * \param z z vertex coordinate.
  * 
- * Set the current vertex coordinates. If run out of space in this buffer call the notification callback.
+ * Set the current vertex coordinates. If run out of space in this buffer call
+ * the notification callback.
  */
 static __inline__ void radeon_Vertex3f( GLfloat x, GLfloat y, GLfloat z )
 {
@@ -731,14 +738,12 @@ static __inline__  void radeon_Color4f( GLfloat r, GLfloat g,
 }
 
 /**
- * \brief Set current vertex color.
+ * \brief Set current vertex texture coordinates.
  *
- * \param r red color component.
- * \param g gree color component.
- * \param b blue color component.
- * \param a alpha color component.
+ * \param s texture coordinate.
+ * \param t texture coordinate.
  *
- * Sets the current vertex color via vb_t::floatcolorptr.
+ * Sets the current vertex color via vb_t::texcoordptr.
  */
 static __inline__ void radeon_TexCoord2f( GLfloat s, GLfloat t )
 {
@@ -818,7 +823,7 @@ static void radeon_TexCoord2fv( const GLfloat *v )
  * Setups the GL context callbacks and links _glapi_table entries related to
  * the glBegin()/glEnd() pairs to the functions in this module.
  * 
- * Called by radeonCreateContext().
+ * Called by radeonCreateContext() and radeonRenderMode().
  */
 void radeonVtxfmtInit( GLcontext *ctx )
 {

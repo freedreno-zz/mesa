@@ -56,11 +56,10 @@
 #include "miniglxP.h"		/* XID, etc */
 
 
-
-typedef struct __DRIdisplayPrivateRec  __DRIdisplayPrivate;
-typedef struct __DRIscreenPrivateRec   __DRIscreenPrivate;
-typedef struct __DRIcontextPrivateRec  __DRIcontextPrivate;
-typedef struct __DRIdrawablePrivateRec __DRIdrawablePrivate;
+typedef struct __DRIdisplayPrivateRec  __DRIdisplayPrivate;  /**< \brief Alias for __DRIdisplayPrivateRec */
+typedef struct __DRIscreenPrivateRec   __DRIscreenPrivate;   /**< \brief Alias for __DRIscreenPrivateRec */
+typedef struct __DRIcontextPrivateRec  __DRIcontextPrivate;  /**< \brief Alias for __DRIcontextPrivateRec */
+typedef struct __DRIdrawablePrivateRec __DRIdrawablePrivate; /**< \brief Alias for __DRIdrawablePrivateRec */
 
 
 /**

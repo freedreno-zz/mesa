@@ -27,7 +27,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: radeon_subset_select.c,v 1.1.2.3 2003/02/22 09:17:11 jrfonseca Exp $ */
+/* $Id: radeon_subset_select.c,v 1.1.2.4 2003/02/23 16:50:48 jrfonseca Exp $ */
 
 
 #include "glheader.h"
@@ -46,20 +46,23 @@
  * \brief Vertex.
  */
 typedef struct {
-   struct { GLfloat x, y, z, w; } pos,      /**< \brief position */
-                                  eyePos,   /**< \brief position, eye coordinates */
-				  clipPos,  /**< \brief clipped coordiantes */
-				  winPos;   /**< \brief position, windows coordinates */
+   struct { GLfloat x, y, z, w; } pos;      /**< \brief position */
+   struct { GLfloat x, y, z, w; } eyePos;   /**< \brief position, eye coordinates */
+   struct { GLfloat x, y, z, w; } clipPos;  /**< \brief clipped coordiantes */
+   struct { GLfloat x, y, z, w; } winPos;   /**< \brief position, windows coordinates */
    struct { GLfloat s, t; } texCoord;       /**< \brief texture coordinates */
    struct { GLfloat r, g, b, a; } color;    /**< \brief color */
 } vertex;
 
 
-static struct {
-   GLuint    vCount;
-   vertex  vBuffer[4];
+/**
+ * \brief Vertex buffer.
+ */
+static struct select_vb_t {
+   GLuint    vCount;		/**< \brief vertex count */
+   vertex  vBuffer[4];		/**< \brief vertex buffer */
    GLboolean lineReset;
-   GLboolean partialLineLoop;
+   GLboolean partialLineLoop;	/**< \brief whether we are in a middle of a line loop */
 } vb;
 
 
@@ -183,7 +186,7 @@ clip_point(const vertex *v)
  * \brief Clipping utility macro.
  * 
  * We use 6 instances of this code in each of the clip_line() and
- * clip_polygon() to clip agains the 6 planes.  For each plane, we define the
+ * clip_polygon() to clip against the 6 planes.  For each plane, we define the
  * #OUTSIDE and #COMPUTE_INTERSECTION macros appropriately.
  */
 
@@ -196,7 +199,7 @@ clip_point(const vertex *v)
  * \param v0new output start vertice
  * \param v1new output end vertice
  *
- * \return GL_TRUE if the line segment is visible, ot GL_FALSE if it is totally
+ * \return GL_TRUE if the line segment is visible, or GL_FALSE if it is totally
  * clipped.
  *
  * \sa #GENERAL_CLIP.
@@ -322,7 +325,7 @@ clip_line(const vertex *v0in, const vertex *v1in,
  * \param inCount number of input vertices
  * \param vOut array of output vertices.
  *
- * \return number of vertices in /p vOut.
+ * \return number of vertices in \p vOut.
  *
  * \sa #GENERAL_CLIP.
  */
@@ -479,7 +482,14 @@ clip_polygon(const vertex *vIn, unsigned int inCount, vertex *vOut)
 /**********************************************************************/
 /*@{*/
 
-
+/**
+ * \brief Select point.
+ * 
+ * \param v vertex.
+ *
+ * If the clipped point is visible then maps the vertex into window coordinates
+ * and calls _mesa_update_hitflag().
+ */
 static void
 select_point(const vertex *v)
 {
@@ -492,7 +502,15 @@ select_point(const vertex *v)
    }
 }
 
-
+/**
+ * \brief Select line.
+ * 
+ * \param v0 first vertex.
+ * \param v1 second vertex.
+ *
+ * If the clipped line is visible then maps the vertices into window coordinates
+ * and calls _mesa_update_hitflag().
+ */
 static void
 select_line(const vertex *v0, const vertex *v1)
 {
@@ -507,7 +525,16 @@ select_line(const vertex *v0, const vertex *v1)
    }
 }
 
-
+/**
+ * \brief Select line.
+ * 
+ * \param v0 first vertex.
+ * \param v1 second vertex.
+ * \param v2 third vertex.
+ *
+ * If the clipped polygon is visible then maps the vertices into window
+ * coordinates and calls _mesa_update_hitflag().
+ */
 static void
 select_triangle(const vertex *v0,
 		const vertex *v1,
@@ -527,7 +554,18 @@ select_triangle(const vertex *v0,
    }
 }
 
-
+/**
+ * \brief Set current vertex coordinates.
+ *
+ * \param x x vertex coordinate.
+ * \param y y vertex coordinate.
+ * \param z z vertex coordinate.
+ * 
+ * Stores the vertex and current attributes in ::vb, transforms it into eye space and then clip space.
+ * 
+ * If a sufficient number of vertices is stored calls one of select_point(),
+ * select_line() or select_triangle(), according to the current primtive.
+ */
 static void
 radeon_select_Vertex4f(GLfloat x, GLfloat y, GLfloat z, GLfloat w)
 {
@@ -724,29 +762,48 @@ radeon_select_Vertex4f(GLfloat x, GLfloat y, GLfloat z, GLfloat w)
    }
 }
 
+/**
+ * \brief Calls radeon_select_Vertex4f().
+ */
 static void radeon_select_Vertex2f(GLfloat x, GLfloat y)
 {
    radeon_select_Vertex4f(x, y, 0.0, 1.0);
 }
 
+/**
+ * \brief Calls radeon_select_Vertex4f().
+ */
 static void radeon_select_Vertex2fv(const GLfloat * v)
 {
    radeon_select_Vertex4f(v[0], v[1], 0.0, 1.0);
 }
 
+/**
+ * \brief Calls radeon_select_Vertex4f().
+ */
 static void radeon_select_Vertex3f(GLfloat x, GLfloat y, GLfloat z)
 {
    radeon_select_Vertex4f(x, y, z, 1.0);
 }
 
+/**
+ * \brief Calls radeon_select_Vertex4f().
+ */
 static void radeon_select_Vertex3fv(const GLfloat * v)
 {
    radeon_select_Vertex4f(v[0], v[1], v[2], 1.0);
 }
 
 
-/* 
- * Color
+/**
+ * \brief Set current vertex color.
+ *
+ * \param r red color component.
+ * \param g gree color component.
+ * \param b blue color component.
+ * \param a alpha color component.
+ *
+ * Updates the GL context's current vertex color.
  */
 static void radeon_select_Color4f( GLfloat r, GLfloat g,
 				   GLfloat b, GLfloat a )
@@ -759,23 +816,37 @@ static void radeon_select_Color4f( GLfloat r, GLfloat g,
    dest[3] = a;
 }
 
+/**
+ * \brief Calls radeon_select_Color4f().
+ */
 static void radeon_select_Color4fv( const GLfloat *v )
 {
    radeon_select_Color4f( v[0], v[1], v[2], v[3] );
 }
 
+/**
+ * \brief Calls radeon_select_Color4f().
+ */
 static void radeon_select_Color3f( GLfloat r, GLfloat g, GLfloat b )
 {
    radeon_select_Color4f( r, g, b, 1.0 );
 }
 
+/**
+ * \brief Calls radeon_select_Color4f().
+ */
 static void radeon_select_Color3fv( const GLfloat *v )
 {
    radeon_select_Color4f( v[0], v[1], v[2], 1.0 );
 }
 
-/*
- * TexCoord
+/**
+ * \brief Set current vertex texture coordinates.
+ *
+ * \param s texture coordinate.
+ * \param t texture coordinate.
+ *
+ * Updates the GL context's current vertex texture coordinates.
  */
 static __inline__ void radeon_select_TexCoord2f( GLfloat s, GLfloat t )
 {
@@ -785,14 +856,19 @@ static __inline__ void radeon_select_TexCoord2f( GLfloat s, GLfloat t )
    dest[1] = t;
 }
 
+/**
+ * \brief Calls radeon_select_TexCoord2f().
+ */
 static void radeon_select_TexCoord2fv( const GLfloat *v )
 {
    radeon_select_TexCoord2f( v[0], v[1] );
 }
 
 
-/*
- * Begin/End
+/**
+ * \brief Process glBegin().
+ *
+ * \param mode primitive.
  */ 
 static void radeon_select_Begin(GLenum mode)
 {
@@ -815,6 +891,9 @@ static void radeon_select_Begin(GLenum mode)
    vb.partialLineLoop = GL_FALSE;
 }
 
+/**
+ * \brief Process glEnd().
+ */
 static void radeon_select_End(void)
 {
    GET_CURRENT_CONTEXT(ctx);
@@ -834,14 +913,28 @@ static void radeon_select_End(void)
    ctx->Driver.CurrentExecPrimitive = GL_POLYGON+1;
 }
 
-/*
- * Nothing much to do here, as we don't buffer anything:
+/**
+ * \brief Flush vertices.
+ * 
+ * \param ctx GL context.
+ * \param flags not used.
+ *
+ * Nothing much to do here, besides marking the vertices as flushed, as we
+ * don't buffer anything.
  */
 static void radeonSelectFlushVertices( GLcontext *ctx, GLuint flags )
 {
    ctx->Driver.NeedFlush = 0;
 }
 
+/**
+ * \brief Install the select callbacks.
+ *
+ * \param ctx GL context.
+ *
+ * Installs the glBegin()/glEnd() associated select callbacks into the glapi
+ * table.
+ */
 void radeon_select_Install( GLcontext *ctx )
 {
    struct _glapi_table *exec = ctx->Exec;
@@ -862,6 +955,15 @@ void radeon_select_Install( GLcontext *ctx )
    ctx->Driver.FlushVertices = radeonSelectFlushVertices;
 }
 
+/**
+ * \brief Set rasterization mode.
+ *
+ * \param ctx GL context.
+ * \param mode rasterization mode. Supports GL_RENDER or
+ *
+ * Calls either radeonVtxfmtInit() or radeon_select_Install() according \p mode
+ * is GL_RENDER or GL_SELECT.
+ */
 static void radeonRenderMode( GLcontext *ctx, GLenum mode )
 {
    switch (mode) {
@@ -876,6 +978,13 @@ static void radeonRenderMode( GLcontext *ctx, GLenum mode )
    }
 }
 
+/**
+ * \brief Setup the GL context driver callbacks.
+ *
+ * \param ctx GL context.
+ *
+ * \sa Called by radeonCreateContext().
+ */
 void radeonInitSelect( GLcontext *ctx )
 {
    ctx->Driver.RenderMode = radeonRenderMode;

@@ -59,7 +59,7 @@
  * \param rmesa Radeon context.
  * \param t Radeon texture object to be destroyed.
  *
- * Frees the momery associated with the texture and if the texture is bound to
+ * Frees the memory associated with the texture and if the texture is bound to
  * a texture unit cleans the associated hardware state.
  */
 void radeonDestroyTexObj( radeonContextPtr rmesa, radeonTexObjPtr t )
@@ -90,7 +90,8 @@ void radeonDestroyTexObj( radeonContextPtr rmesa, radeonTexObjPtr t )
  * 
  * \param rmesa Radeon context.
  * \param t Radeon texture object.
- * Frees the memory associated with the texture, signal all mipmap images in
+ *
+ * Frees the memory associated with the texture, marks all mipmap images in
  * the texture as dirty and add it to the radeon_texture::swapped list.
  */
 static void radeonSwapOutTexObj( radeonContextPtr rmesa, radeonTexObjPtr t )
@@ -381,7 +382,7 @@ enum {
    RADEON_DECAL		= 3, /**< \brief decal function */
    RADEON_BLEND		= 4, /**< \brief blend function */
    RADEON_MAX_COMBFUNC	= 5  /**< \brief max number of combine functions */
-}
+} ;
 
 
 /**
@@ -512,7 +513,7 @@ static GLuint radeon_alpha_combine[][RADEON_MAX_COMBFUNC] =
  * \param unit texture unit to update.
  *
  * Sets the state of the RADEON_TEX_PP_TXCBLEND and RADEON_TEX_PP_TXABLEND
- * registers using the radeon_colot_combine and radeon_alpha_combine tables,
+ * registers using the ::radeon_color_combine and ::radeon_alpha_combine tables,
  * and informs of the state change.
  */
 static void radeonUpdateTextureEnv( GLcontext *ctx, int unit )
@@ -731,9 +732,9 @@ radeonChooseTextureFormat( GLcontext *ctx, GLint internalFormat,
  *
  * \param texObj texture object.
  *
- * \return pointer to the device specific texture object on sucess, or NULL on failure.
+ * \return pointer to the device specific texture object on success, or NULL on failure.
  *
- * Allocates and initializes a radeon_tex_obj structure and connects to the
+ * Allocates and initializes a radeon_tex_obj structure to connect it to the
  * driver private data pointer in \p texObj.
  */
 static radeonTexObjPtr radeonAllocTexObj( struct gl_texture_object *texObj )
@@ -769,7 +770,9 @@ static radeonTexObjPtr radeonAllocTexObj( struct gl_texture_object *texObj )
  * \param packing passed to _mesa_store_teximage2d() unchanged.
  * \param texImage passed to _mesa_store_teximage2d() unchanged.
  * 
- * If there is a device specific texture object associated with the given texture object then swaps that texture out. Calls _mesa_store_teximage2d() with all other parameters unchanged.
+ * If there is a device specific texture object associated with the given
+ * texture object then swaps that texture out. Calls _mesa_store_teximage2d()
+ * with all other parameters unchanged.
  */
 static void radeonTexImage2D( GLcontext *ctx, GLenum target, GLint level,
                               GLint internalFormat,
