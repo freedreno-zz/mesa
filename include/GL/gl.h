@@ -1,8 +1,8 @@
-/* $Id: gl.h,v 1.17.2.6 2000/03/20 17:54:44 brianp Exp $ */
+/* $Id: gl.h,v 1.17.2.7 2000/07/13 17:44:20 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.2
+ * Version:  3.2.1
  *
  * Copyright (C) 1999-2000  Brian Paul   All Rights Reserved.
  *
@@ -1096,7 +1096,7 @@ enum {
 	GL_CLIENT_PIXEL_STORE_BIT	= 0x00000001,
 	GL_CLIENT_VERTEX_ARRAY_BIT	= 0x00000002
 };
-#define GL_CLIENT_ALL_ATTRIB_BITS 0xFFFFFFFF
+#define GL_ALL_CLIENT_ATTRIB_BITS 0xFFFFFFFF
 
 
 typedef unsigned int GLbitfield;
