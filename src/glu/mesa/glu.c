@@ -1,4 +1,4 @@
-/* $Id: glu.c,v 1.16.2.1 1999/11/19 21:22:07 brianp Exp $ */
+/* $Id: glu.c,v 1.16.2.2 1999/11/22 22:18:13 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -23,6 +23,9 @@
 
 /*
  * $Log: glu.c,v $
+ * Revision 1.16.2.2  1999/11/22 22:18:13  brianp
+ * removed GLU_EXT_get_proc_address from ext string
+ *
  * Revision 1.16.2.1  1999/11/19 21:22:07  brianp
  * replace encounteed with encountered
  *
@@ -370,7 +373,7 @@ const GLubyte* GLAPIENTRY gluErrorString( GLenum errorCode )
 
 const GLubyte* GLAPIENTRY gluGetString( GLenum name )
 {
-   static char *extensions = "GL_EXT_abgr GLU_EXT_get_proc_address";
+   static char *extensions = "GL_EXT_abgr";
    static char *version = "1.2 Mesa 3.1";
 
    switch (name) {
