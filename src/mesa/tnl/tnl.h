@@ -1,4 +1,4 @@
-/* $Id: tnl.h,v 1.10 2002/10/29 20:29:04 brianp Exp $ */
+/* $Id: tnl.h,v 1.10.4.1 2002/12/30 15:20:38 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -29,6 +29,10 @@
 
 #ifndef _TNL_H
 #define _TNL_H
+
+#if !_HAVE_SWTNL
+#error "_HAVE_SWTNL not set"
+#endif
 
 #include "mtypes.h"
 

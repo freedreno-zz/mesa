@@ -1,4 +1,4 @@
-/* $Id: t_context.h,v 1.43 2002/10/09 19:45:53 brianp Exp $ */
+/* $Id: t_context.h,v 1.43.6.1 2002/12/30 15:20:38 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -40,6 +40,9 @@
 #include "math/m_vector.h"
 #include "math/m_xform.h"
 
+#if !_HAVE_SWTNL
+#error "_HAVE_SWTNL not set"
+#endif
 
 #define MAX_PIPELINE_STAGES     30
 

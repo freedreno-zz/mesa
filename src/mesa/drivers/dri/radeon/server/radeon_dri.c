@@ -179,7 +179,7 @@ static int RADEONEngineRestore( struct MiniGLXDisplayRec *dpy,
    OUTREG(RADEON_AUX_SC_CNTL,       0);
 
 /*    RADEONWaitForIdleMMIO(dpy); */
-   sleep(2);
+/*    sleep(2); */
 }
 
 /* Compute log base 2 of val */

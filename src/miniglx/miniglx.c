@@ -22,7 +22,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: miniglx.c,v 1.1.4.26 2002/12/30 13:15:56 keithw Exp $ */
+/* $Id: miniglx.c,v 1.1.4.27 2002/12/30 15:20:37 keithw Exp $ */
 
 
 /**
@@ -579,7 +579,19 @@ InitializeScreenConfigs(int *numConfigs, __GLXvisualConfig **configs)
 int __read_config_file( Display *dpy )
 {
    const char *dev = getenv("MINIGLX_DRIVER");
-   if (dev && strcmp(dev, "radeon") == 0) {
+   if (dev && strcmp(dev, "es") == 0) {
+      dpy->fbdevDevice = "/dev/fb0";
+      dpy->clientDriverName = "radeon_es.so";
+      dpy->drmModuleName = "radeon";
+      dpy->pciBus = 1;
+      dpy->pciDevice = 0;
+      dpy->pciFunc = 0;
+      dpy->chipset = 0x5144;	/* radeon qd */
+      dpy->pciBusID = malloc(64);
+      sprintf((char *)dpy->pciBusID, "PCI:%d:%d:%d", 
+	      dpy->pciBus, dpy->pciDevice, dpy->pciFunc);
+   }
+   else if (dev && strcmp(dev, "radeon") == 0) {
       dpy->fbdevDevice = "/dev/fb0";
       dpy->clientDriverName = "radeon_dri.so";
       dpy->drmModuleName = "radeon";

@@ -1,4 +1,4 @@
-/* $Id: image.c,v 1.69 2002/10/24 23:57:21 brianp Exp $ */
+/* $Id: image.c,v 1.69.4.1 2002/12/30 15:20:35 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -938,11 +938,11 @@ _mesa_pack_float_rgba_span( GLcontext *ctx,
       }
       /* update histogram count */
       if (transferOps & IMAGE_HISTOGRAM_BIT) {
-         _mesa_update_histogram(ctx, n, (CONST GLfloat (*)[4]) rgba);
+/*          _mesa_update_histogram(ctx, n, (CONST GLfloat (*)[4]) rgba); */
       }
       /* min/max here */
       if (transferOps & IMAGE_MIN_MAX_BIT) {
-         _mesa_update_minmax(ctx, n, (CONST GLfloat (*)[4]) rgba);
+/*          _mesa_update_minmax(ctx, n, (CONST GLfloat (*)[4]) rgba); */
          if (ctx->MinMax.Sink) {
             UNDEFARRAY(rgbaCopy);  /* mac 32k limitation */
             return;
@@ -2814,11 +2814,11 @@ _mesa_unpack_chan_color_span( GLcontext *ctx,
          }
          /* update histogram count */
          if (transferOps & IMAGE_HISTOGRAM_BIT) {
-            _mesa_update_histogram(ctx, n, (CONST GLfloat (*)[4]) rgba);
+/*             _mesa_update_histogram(ctx, n, (CONST GLfloat (*)[4]) rgba); */
          }
          /* min/max here */
          if (transferOps & IMAGE_MIN_MAX_BIT) {
-            _mesa_update_minmax(ctx, n, (CONST GLfloat (*)[4]) rgba);
+/*             _mesa_update_minmax(ctx, n, (CONST GLfloat (*)[4]) rgba); */
          }
       }
 
@@ -3091,11 +3091,11 @@ _mesa_unpack_float_color_span( GLcontext *ctx,
          }
          /* update histogram count */
          if (transferOps & IMAGE_HISTOGRAM_BIT) {
-            _mesa_update_histogram(ctx, n, (CONST GLfloat (*)[4]) rgba);
+/*             _mesa_update_histogram(ctx, n, (CONST GLfloat (*)[4]) rgba); */
          }
          /* min/max here */
          if (transferOps & IMAGE_MIN_MAX_BIT) {
-            _mesa_update_minmax(ctx, n, (CONST GLfloat (*)[4]) rgba);
+/*             _mesa_update_minmax(ctx, n, (CONST GLfloat (*)[4]) rgba); */
          }
       }
 
