@@ -1300,6 +1300,8 @@ int GLAPIENTRY fxQueryHardware(void)
                   glbHWConfig.SSTs[glbCurrentBoard].sstBoard.VoodooConfig.fbRam);
           fprintf(stderr,"Number of TMUs: %d\n",
                   glbHWConfig.SSTs[glbCurrentBoard].sstBoard.VoodooConfig.nTexelfx);
+          fprintf(stderr,"fbiRev: %d\n",
+                  glbHWConfig.SSTs[glbCurrentBoard].sstBoard.VoodooConfig.fbiRev);
           fprintf(stderr,"SLI detected: %d\n",
                   glbHWConfig.SSTs[glbCurrentBoard].sstBoard.VoodooConfig.sliDetect);
         } else if(glbHWConfig.SSTs[glbCurrentBoard].type==GR_SSTTYPE_SST96) {
