@@ -1,4 +1,4 @@
-/* $Id: dlist.c,v 1.76 2001/09/18 16:16:21 kschultz Exp $ */
+/* $Id: dlist.c,v 1.76.2.1 2001/12/13 19:55:00 kschultz Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -3130,7 +3130,7 @@ static void save_TexParameterf( GLenum target, GLenum pname, GLfloat param )
 }
 
 
-static void save_TexParameteri( GLenum target, GLenum pname, const GLint param )
+static void save_TexParameteri( GLenum target, GLenum pname, GLint param )
 {
    GLfloat fparam[4];
    fparam[0] = (GLfloat) param;
