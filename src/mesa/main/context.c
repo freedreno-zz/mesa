@@ -1,10 +1,10 @@
-/* $Id: context.c,v 1.18.2.10 2000/06/23 20:29:15 brianp Exp $ */
+/* $Id: context.c,v 1.18.2.11 2000/06/27 15:04:20 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.1
+ * Version:  3.2
  *
- * Copyright (C) 1999  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2000  Brian Paul   All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -2434,14 +2434,9 @@ void gl_update_state( GLcontext *ctx )
       ctx->NeedEyeNormals = GL_FALSE;
 
       if (ctx->Light.Enabled) {
-	 if (ctx->Light.Flags & LIGHT_POSITIONAL) {
-	    /* Need length for attenuation */
-	    if (!TEST_MAT_FLAGS( &ctx->ModelView, MAT_FLAGS_LENGTH_PRESERVING))
-	       ctx->NeedEyeCoords = GL_TRUE;
-	 } else if (ctx->Light.NeedVertices) {
-	    /* Need angle for spot calculations */
-	    if (!TEST_MAT_FLAGS( &ctx->ModelView, MAT_FLAGS_ANGLE_PRESERVING))
-	       ctx->NeedEyeCoords = GL_TRUE;
+	 if ((ctx->Light.Flags & LIGHT_POSITIONAL) || ctx->Light.NeedVertices){
+	    /* Need length for attenuation or need angle for spotlights */
+            ctx->NeedEyeCoords = GL_TRUE;
 	 }
 	 ctx->NeedEyeNormals = ctx->NeedEyeCoords;
       }
