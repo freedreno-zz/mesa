@@ -1,10 +1,10 @@
-/* $Id: api_loopback.c,v 1.9.2.1 2001/12/20 15:29:15 keithw Exp $ */
+/* $Id: api_loopback.c,v 1.9.2.2 2002/01/15 20:17:59 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.5
+ * Version:  4.0.2
  *
- * Copyright (C) 1999-2001  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -29,10 +29,10 @@
 
 
 #include "glheader.h"
+#include "glapi.h"
 #include "glapitable.h"
 #include "macros.h"
 #include "colormac.h"
-#include "api_compat.h"
 #include "api_loopback.h"
 
 /* KW: A set of functions to convert unusual Color/Normal/Vertex/etc
@@ -66,9 +66,9 @@
 
 
 
-#define FOGCOORDF(x)                _compat_FogCoordfEXT(x)
-#define SECONDARYCOLORUB(a,b,c)     _compat_SecondaryColor3ubEXT(a,b,c)
-#define SECONDARYCOLORF(a,b,c)      _compat_SecondaryColor3fEXT(a,b,c)
+#define FOGCOORDF(x)                _glapi_Dispatch->FogCoordfEXT(x)
+#define SECONDARYCOLORUB(a,b,c)     _glapi_Dispatch->SecondaryColor3ubEXT(a,b,c)
+#define SECONDARYCOLORF(a,b,c)      _glapi_Dispatch->SecondaryColor3fEXT(a,b,c)
 
 
 static void

@@ -1,4 +1,4 @@
-# $Id: Makefile.X11,v 1.58.2.3 2001/12/20 15:29:15 keithw Exp $
+# $Id: Makefile.X11,v 1.58.2.4 2002/01/15 20:17:59 brianp Exp $
 
 # Mesa 3-D graphics library
 # Version:  4.0.1
@@ -26,7 +26,6 @@ CORE_SOURCES = \
 	swrast_setup/ss_vb.c \
 	api_arrayelt.c \
 	api_loopback.c \
-	api_compat.c \
 	api_noop.c \
 	api_validate.c \
 	accum.c \
