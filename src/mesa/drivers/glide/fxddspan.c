@@ -79,7 +79,7 @@ FxBool writeRegionClipped(fxMesaContext fxMesa, GrBuffer_t dst_buffer,
 			  FxU32 src_width, FxU32 src_height, FxI32 src_stride,
 			  void *src_data)
 {
-  int i, x, w;
+  int i, x, w, srcElt;
   void *data;
 
   if (src_width==1 && src_height==1) { /* Easy case writing a point */
@@ -89,16 +89,22 @@ FxBool writeRegionClipped(fxMesaContext fxMesa, GrBuffer_t dst_buffer,
 	  (dst_y>=fxMesa->pClipRects[i].y1) && 
 	  (dst_y<fxMesa->pClipRects[i].y2)) {
 	FX_grLfbWriteRegion(dst_buffer, dst_x, dst_y, src_format,
-			    src_width, src_height, src_stride, src_data);
+			    1, 1, src_stride, src_data);
 	return GL_TRUE;
       }
     }
   } else if (src_height==1) { /* Writing a span */
+    if (src_format==GR_LFB_SRC_FMT_8888) srcElt=4;
+    else if (src_format==GR_LFB_SRC_FMT_ZA16) srcElt=2;
+    else {
+      fprintf(stderr, "Unknown src_format passed to writeRegionClipped\n");
+      return GL_FALSE;
+    }
     for (i=0; i<fxMesa->numClipRects; i++) {
       if (dst_y>=fxMesa->pClipRects[i].y1 && dst_y<fxMesa->pClipRects[i].y2) {
 	if (dst_x<fxMesa->pClipRects[i].x1) {
 	  x=fxMesa->pClipRects[i].x1;
-	  data=((char*)src_data)+2*(dst_x-x);
+	  data=((char*)src_data)+srcElt*(dst_x-x);
 	  w=src_width-(x-dst_x);
 	} else {
 	  x=dst_x;
@@ -108,7 +114,7 @@ FxBool writeRegionClipped(fxMesaContext fxMesa, GrBuffer_t dst_buffer,
 	if (x+w>fxMesa->pClipRects[i].x2) {
 	  w=fxMesa->pClipRects[i].x2-x;
 	}
-	FX_grLfbWriteRegion(dst_buffer, x, dst_y, src_format, w, src_height,
+	FX_grLfbWriteRegion(dst_buffer, x, dst_y, src_format, w, 1,
 			    src_stride, data);
       }
     }

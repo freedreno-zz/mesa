@@ -120,6 +120,8 @@ static void fxTexValidate(GLcontext *ctx, struct gl_texture_object *tObj)
   case GL_REPEAT:
     ti->sClamp=0;
     break;
+  default:
+    ;  /* silence compiler warning */
   }
   switch (tObj->WrapT) {
   case GL_CLAMP_TO_EDGE:
@@ -130,6 +132,8 @@ static void fxTexValidate(GLcontext *ctx, struct gl_texture_object *tObj)
   case GL_REPEAT:
     ti->tClamp=0;
     break;
+  default:
+    ;  /* silence compiler warning */
   }
 
   ti->validated=GL_TRUE;
@@ -413,6 +417,10 @@ static void fxSelectSingleTMUSrc_NoLock(fxMesaContext fxMesa, GLint tmu,
       FX_grTexCombine_NoLock(GR_TMU0,
 			     GR_COMBINE_FUNCTION_LOCAL,GR_COMBINE_FACTOR_NONE,
 			     GR_COMBINE_FUNCTION_LOCAL,GR_COMBINE_FACTOR_NONE,
+			     FXFALSE,FXFALSE);
+      FX_grTexCombine_NoLock(GR_TMU1,
+			     GR_COMBINE_FUNCTION_ZERO, GR_COMBINE_FACTOR_NONE,
+			     GR_COMBINE_FUNCTION_ZERO, GR_COMBINE_FACTOR_NONE,
 			     FXFALSE,FXFALSE);
       fxMesa->tmuSrc=FX_TMU0;
     } else {

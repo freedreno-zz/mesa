@@ -54,6 +54,8 @@
 
 #include "fxdrv.h"
 
+int texSwaps=0;
+
 #define FX_2MB_SPLIT 0x200000
 
 static struct gl_texture_object *fxTMFindOldestObject(fxMesaContext fxMesa,
@@ -208,6 +210,7 @@ static int fxTMFindStartAddr(fxMesaContext fxMesa, GLint tmu, int size)
       return -1;
     }
     fxTMMoveOutTM(fxMesa, obj);
+    texSwaps++;
   }
 }
 
@@ -458,12 +461,17 @@ void fxTMReloadMipMapLevel(fxMesaContext fxMesa, struct gl_texture_object *tObj,
   fxTexGetInfo(ti->mipmapLevel[0].width,ti->mipmapLevel[0].height,
 	       &lodlevel, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
 
+#ifdef FX_GLIDE3
+  lodlevel-=level;
+#else
+  lodlevel+=level;
+#endif
   switch(tmu) {
   case FX_TMU0:
   case FX_TMU1:
     FX_grTexDownloadMipMapLevel(tmu,
 				ti->tm[tmu]->startAddr,
-				FX_valueToLod(FX_lodToValue(lodlevel)+level),
+				FX_valueToLod(FX_lodToValue(lodlevel)),
 				FX_largeLodLog2(ti->info),
 				FX_aspectRatioLog2(ti->info),
 				ti->info.format,
@@ -473,7 +481,7 @@ void fxTMReloadMipMapLevel(fxMesaContext fxMesa, struct gl_texture_object *tObj,
   case FX_TMU_SPLIT:
     FX_grTexDownloadMipMapLevel(GR_TMU0,
 				ti->tm[GR_TMU0]->startAddr,
-				FX_valueToLod(FX_lodToValue(lodlevel)+level),
+				FX_valueToLod(FX_lodToValue(lodlevel)),
 				FX_largeLodLog2(ti->info),
 				FX_aspectRatioLog2(ti->info),
 				ti->info.format,
@@ -482,7 +490,7 @@ void fxTMReloadMipMapLevel(fxMesaContext fxMesa, struct gl_texture_object *tObj,
     
     FX_grTexDownloadMipMapLevel(GR_TMU1,
 				ti->tm[GR_TMU1]->startAddr,
-				FX_valueToLod(FX_lodToValue(lodlevel)+level),
+				FX_valueToLod(FX_lodToValue(lodlevel)),
 				FX_largeLodLog2(ti->info),
 				FX_aspectRatioLog2(ti->info),
 				ti->info.format,
@@ -492,7 +500,7 @@ void fxTMReloadMipMapLevel(fxMesaContext fxMesa, struct gl_texture_object *tObj,
   case FX_TMU_BOTH:
     FX_grTexDownloadMipMapLevel(GR_TMU0,
 				ti->tm[GR_TMU0]->startAddr,
-				FX_valueToLod(FX_lodToValue(lodlevel)+level),
+				FX_valueToLod(FX_lodToValue(lodlevel)),
 				FX_largeLodLog2(ti->info),
 				FX_aspectRatioLog2(ti->info),
 				ti->info.format,
@@ -501,7 +509,7 @@ void fxTMReloadMipMapLevel(fxMesaContext fxMesa, struct gl_texture_object *tObj,
     
     FX_grTexDownloadMipMapLevel(GR_TMU1,
 				ti->tm[GR_TMU1]->startAddr,
-				FX_valueToLod(FX_lodToValue(lodlevel)+level),
+				FX_valueToLod(FX_lodToValue(lodlevel)),
 				FX_largeLodLog2(ti->info),
 				FX_aspectRatioLog2(ti->info),
 				ti->info.format,
