@@ -1,4 +1,4 @@
-# $Id: Makefile.X11,v 1.56.2.4 2002/02/12 03:13:41 brianp Exp $
+# $Id: Makefile.X11,v 1.56.2.5 2002/03/08 19:28:57 brianp Exp $
 
 # Mesa 3-D graphics library
 # Version:  4.0.2
@@ -329,10 +329,10 @@ realclean: clean
 
 
 
-DIRECTORY = Mesa-4.0.1
-LIB_NAME = MesaLib-4.0.1
-DEMO_NAME = MesaDemos-4.0.1
-GLU_NAME = MesaGLU-4.0.1
+DIRECTORY = Mesa-4.0.2
+LIB_NAME = MesaLib-4.0.2
+DEMO_NAME = MesaDemos-4.0.2
+GLU_NAME = MesaGLU-4.0.2
 GLUT_NAME = GLUT-3.7
 
 
@@ -430,8 +430,8 @@ LIB_FILES =	\
 	$(DIRECTORY)/src/windml/tornado/*.cdf				\
 	$(DIRECTORY)/src/windml/man3/*.3				\
 	$(DIRECTORY)/src/windml/man3/*.html				\
-	$(DIRECTORY)/src/BeOS/*.cpp					\
 	$(DIRECTORY)/src/DOS/*.[ch]					\
+	$(DIRECTORY)/src/BeOS/*.cpp					\
 	$(DIRECTORY)/src/FX/Makefile.am					\
 	$(DIRECTORY)/src/FX/Makefile.in					\
 	$(DIRECTORY)/src/FX/libMesaFX_la_SOURCES			\
