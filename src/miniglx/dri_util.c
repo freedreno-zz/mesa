@@ -270,7 +270,7 @@ static void *driCreateDrawable(Display *dpy, int scrn,
 
     pdp->draw = draw;
     pdp->refcount = 0;
-    pdp->pStamp = NULL;
+    pdp->pStamp = &pdp->lastStamp;
     pdp->lastStamp = 0;
     pdp->index = 0;
     pdp->x = 0;
@@ -372,7 +372,7 @@ static void *driCreateContext(Display *dpy, XVisualInfo *vis,
 	 free(pcp);
 	 return NULL;
       }
-      printf(">>> drmCreateContext worked: 0x%x\n", (int) pcp->hHWContext);
+      fprintf(stderr, ">>> drmCreateContext worked: 0x%x\n", (int) pcp->hHWContext);
    }
 
 
@@ -396,6 +396,7 @@ static void *driCreateContext(Display *dpy, XVisualInfo *vis,
    pctx->bindContext    = driBindContext;
    pctx->unbindContext  = driUnbindContext;
 
+   fprintf(stderr, "%s: succeeded\n", __FUNCTION__);
    return pcp;
 }
 
@@ -499,19 +500,7 @@ __driUtilCreateScreen(Display *dpy, int scrn, __DRIscreen *psc,
    psp->fbWidth = dpy->VarInfo.xres;
    psp->fbHeight = dpy->VarInfo.yres;
    psp->fbBPP = dpy->VarInfo.bits_per_pixel;
-
-
-   /*
-    * Map the SAREA region.  Further mmap regions may be setup in
-    * each DRI driver's "createScreen" function.
-    */
-   if (drmMap(psp->fd, hSAREA, SAREA_MAX, (drmAddressPtr)&psp->pSAREA)) {
-      fprintf(stderr, "libGL error: drmMap of sarea failed\n");
-      free(psp->pDevPriv);
-      (void)drmClose(psp->fd);
-      free(psp);
-      return NULL;
-   }
+   psp->pSAREA = dpy->pSAREA;
 
    /* Initialize the screen specific GLX driver */
    if (psp->DriverAPI.InitDriver) {

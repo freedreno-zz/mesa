@@ -1,4 +1,4 @@
-/* $Id: miniglx.c,v 1.1.4.18 2002/12/20 01:28:15 jrfonseca Exp $ */
+/* $Id: miniglx.c,v 1.1.4.19 2002/12/20 15:07:58 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -732,6 +732,7 @@ XCreateWindow( Display *dpy, Window parent, int x, int y,
 
    /* Perform the initialization normally done in the X server */
    if (!dpy->driverInitFBDev( dpy )) {
+      fprintf(stderr, "%s: __driInitFBDev failed\n", __FUNCTION__);
       RestoreFBDev(dpy);
       FREE(win);
       return NULL;
@@ -750,6 +751,7 @@ XCreateWindow( Display *dpy, Window parent, int x, int y,
                                                  dpy->numConfigs,
                                                  dpy->configs);
    if (!dpy->driScreen.private) {
+      fprintf(stderr, "%s: __driCreateScreen failed\n", __FUNCTION__);
       RestoreFBDev(dpy);
       FREE(win);
       return NULL;
@@ -760,6 +762,7 @@ XCreateWindow( Display *dpy, Window parent, int x, int y,
    win->driDrawable.private = dpy->driScreen.createDrawable(dpy, 0, win,
                              visual->visInfo->visualid, &(win->driDrawable));
    if (!win->driDrawable.private) {
+      fprintf(stderr, "%s: dri.createDrawable failed\n", __FUNCTION__);
       RestoreFBDev(dpy);
       FREE(win);
       return NULL;

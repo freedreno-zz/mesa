@@ -82,14 +82,7 @@ typedef struct {
    RADEONChipFamily  ChipFamily;
 
    unsigned long     LinearAddr;       /* Frame buffer physical address     */
-   unsigned long     MMIOAddr;         /* MMIO region physical address      */
-   unsigned long     BIOSAddr;         /* BIOS physical address             */
 
-   unsigned char     *MMIO;            /* Map of MMIO region                */
-   unsigned char     *FB;              /* Map of frame buffer               */
-
-
-   drmHandle         fbHandle;
 
    drmSize           registerSize;
    drmHandle         registerHandle;

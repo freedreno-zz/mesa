@@ -47,7 +47,7 @@ static int RADEONMinBits(int val)
  */
 static int RADEONDRIAgpInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info)
 {
-   unsigned char *RADEONMMIO = info->MMIO;
+   unsigned char *RADEONMMIO = dpy->MMIOAddress;
    unsigned long  mode;
    unsigned int   vendor, device;
    int            ret;
@@ -253,7 +253,8 @@ static int RADEONDRIKernelInit(struct MiniGLXDisplayRec *dpy,
    ret = drmCommandWrite(dpy->drmFD, DRM_RADEON_CP_INIT, &drmInfo, 
 			 sizeof(drmRadeonInit));
 
-   return ret < 0;
+   fprintf(stderr, "DRM_RADEON_CP_INIT: %d\n", ret);
+   return ret >= 0;
 }
 
 static void RADEONDRIAgpHeapInit(struct MiniGLXDisplayRec *dpy,
@@ -334,7 +335,7 @@ static void RADEONDRIIrqInit(struct MiniGLXDisplayRec *dpy,
 		 "[drm] falling back to irq-free operation\n");
 	 info->irq = 0;
       } else {
-	 unsigned char *RADEONMMIO = info->MMIO;
+	 unsigned char *RADEONMMIO = dpy->MMIOAddress;
 	 info->gen_int_cntl = INREG( RADEON_GEN_INT_CNTL );
       }
    }
@@ -463,6 +464,9 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
       return 0;
    }
 
+   
+   dpy->SAREASize = DRM_PAGE_SIZE;
+   
    if (drmAddMap( dpy->drmFD,
 		  0,
 		  dpy->SAREASize,
@@ -491,6 +495,37 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
 	   dpy->hSAREA, dpy->pSAREA);
 
 
+   /* Need to AddMap the framebuffer and mmio regions here:
+    */
+    if (drmAddMap( dpy->drmFD,
+		   (drmHandle)dpy->FixedInfo.smem_start,
+		   dpy->FixedInfo.smem_len,
+		   DRM_FRAME_BUFFER,
+		   0,
+		   &dpy->hFrameBuffer) < 0)
+    {
+	drmUnmap(dpy->pSAREA, dpy->SAREASize);
+	drmClose(dpy->drmFD);
+        fprintf(stderr, "[drm] drmAddMap framebuffer failed\n");
+	return 0;
+    }
+    fprintf(stderr, "[drm] framebuffer handle = 0x%08lx\n",
+	      dpy->hFrameBuffer);
+
+
+
+    info->registerSize = dpy->FixedInfo.mmio_len;
+    if (drmAddMap(dpy->drmFD, 
+		  dpy->FixedInfo.mmio_start,
+		  dpy->FixedInfo.mmio_len,
+		  DRM_REGISTERS, 
+		  DRM_READ_ONLY, 
+		  &info->registerHandle) < 0) {
+       fprintf(stderr, "[drm] drmAddMap mmio failed\n");	
+       return 0;
+    }
+    fprintf(stderr,
+	       "[drm] register handle = 0x%08lx\n", info->registerHandle);
 
    /* Check the radeon DRM version */
    version = drmGetVersion(dpy->drmFD);
@@ -635,11 +670,13 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
     */
    if (!DRIFinishScreenInit( dpy )) {
 /*       RADEONDRICloseScreen(info); */
+      fprintf(stderr, "DRIFinishScreenInit failed\n");
       return 0;
    }
 
    /* Initialize the kernel data structures */
    if (!RADEONDRIKernelInit(dpy, info)) {
+      fprintf(stderr, "RADEONDRIKernelInit failed\n");
       DRM_UNLOCK(dpy->drmFD, dpy->pSAREA, dpy->serverContext);
 /*       RADEONDRICloseScreen(info); */
       return 0;
@@ -647,6 +684,7 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
 
    /* Initialize the vertex buffers list */
    if (!RADEONDRIBufInit(dpy, info)) {
+      fprintf(stderr, "RADEONDRIBufInit failed\n");
       DRM_UNLOCK(dpy->drmFD, dpy->pSAREA, dpy->serverContext);
 /*       RADEONDRICloseScreen(info); */
       return 0;
@@ -654,12 +692,15 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
 
    /* Initialize IRQ */
    RADEONDRIIrqInit(dpy, info);
+   fprintf(stderr, "RADEONDRIIrqInit finished\n");
 
    /* Initialize kernel agp memory manager */
    RADEONDRIAgpHeapInit(dpy, info);
+   fprintf(stderr, "RADEONDRIAgpHeapInit finished\n");
 
    /* Initialize and start the CP if required */
    RADEONDRICPInit( dpy, info );
+   fprintf(stderr, "RADEONDRICPInit finished\n");
 
    /* Initialize the SAREA private data structure */
    {
@@ -670,6 +711,7 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
 
    /* Can release the lock now */
    DRM_UNLOCK(dpy->drmFD, dpy->pSAREA, dpy->serverContext);
+   fprintf(stderr, "DRM_UNLOCK finished\n");
 
     
    /* This is the struct passed to radeon_dri.so for its initialization */
@@ -692,8 +734,8 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
    pRADEONDRI->textureOffset     = info->textureOffset;
    pRADEONDRI->textureSize       = info->textureSize;
    pRADEONDRI->log2TexGran       = info->log2TexGran;
-   pRADEONDRI->registerHandle    = info->registerHandle;
-   pRADEONDRI->registerSize      = info->registerSize;
+   pRADEONDRI->registerHandle    = info->registerHandle; /* uninit */
+   pRADEONDRI->registerSize      = info->registerSize; /*  */
    pRADEONDRI->statusHandle      = info->ringReadPtrHandle;
    pRADEONDRI->statusSize        = info->ringReadMapSize;
    pRADEONDRI->agpTexHandle      = info->agpTexHandle;
@@ -702,6 +744,7 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
    pRADEONDRI->agpTexOffset      = info->agpTexStart;
    pRADEONDRI->sarea_priv_offset = sizeof(XF86DRISAREARec);
 
+   fprintf(stderr, "%s succeeded\n", __FUNCTION__);
    return 1;
 }
 
