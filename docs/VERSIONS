@@ -1,4 +1,4 @@
-$Id: VERSIONS,v 1.118.2.17 2003/02/21 00:19:59 brianp Exp $
+$Id: VERSIONS,v 1.118.2.18 2003/02/21 21:01:57 brianp Exp $
 
 
 Mesa Version History
@@ -1103,6 +1103,7 @@ Mesa Version History
 	- fixed NeXT build problem (FABSF macro)
 	- glDrawPixels Z values when glPixelZoom!=1 were invalid (bug 687811)
 	- zoomed glDraw/CopyPixels with clipping sometimes failed (bug 689964)
+	- AA line and triangle Z values are now rounded, not truncated
     Changes:
 	- use glPolygonOffset in gloss demo to avoid z-fighting artifacts
 	- updated winpos and pointblast demos to use ARB extensions
