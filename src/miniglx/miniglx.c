@@ -22,7 +22,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: miniglx.c,v 1.1.4.41 2003/01/19 18:47:54 jrfonseca Exp $ */
+/* $Id: miniglx.c,v 1.1.4.42 2003/01/19 20:11:26 keithw Exp $ */
 
 
 /**
@@ -327,12 +327,18 @@ OpenFBDev( Display *dpy )
  * \sa This is called during XCreateWindow().
  *
  * \internal
- * Bumps the size of the window the the next supported mode. Sets the variable
- * screen information according to the desired mode and asks the driver to
- * validate the mode. Certifies that a TrueColor visual is used from the
- * updated fixed screen information.
  *
- * Attempts to draws a bitmap with a gradient.
+ * Bumps the size of the window the the next supported mode. Sets the
+ * variable screen information according to the desired mode and asks
+ * the driver to validate the mode. Certifies that a DirectColor or
+ * TrueColor visual is used from the updated fixed screen information.
+ * In the case of TrueColor visuals, sets up an 'identity' colormap to
+ * mimic a DirectColor visual.
+ *
+ * Calls the driver hooks 'ValidateMode' and 'PostValidateMode' to
+ * allow the driver to make modifications to the chosen mode according
+ * to hardware constraints, or to save and restore videocard registers
+ * that may be clobbered by the fbdev driver.
  *
  * \todo Timings are hard-coded in the source for a set of supported modes.
  */
@@ -664,7 +670,7 @@ _glthread_GetID(void)
  * \brief Scan Linux /prog/bus/pci/devices file to determine hardware
  * chipset based on supplied bus ID.
  * 
- * \return non-zeros on success, zero otherwise.
+ * \return probed chipset (non-zero) on success, zero otherwise.
  * 
  * \internal 
  */
@@ -838,9 +844,7 @@ static int __read_config_file( Display *dpy )
  * Loads the DRI driver and pulls in Mini GLX specific hooks into a
  * MiniGLXDriverRec structure, and the standard DRI \e __driCreateScreen hook.
  * Asks the driver for a list of supported visuals.  Performs the per-screen
- * client-side initialization - has to be done this here as it depends on the
- * chosen display resolution, which in this window system depends on the size
- * of the \e window created. Also setups the callbacks in the screen private
+ * client-side initialization.  Also setups the callbacks in the screen private
  * information.
  */
 Display *
@@ -918,9 +922,7 @@ XOpenDisplay( const char *display_name )
       return NULL;
    }
 
-   /* Perform the client-side initialization.  Have to do this here as
-    * it depends on the display resolution chosen, which in this
-    * window system depends on the size of the "window" created.
+   /* Perform the client-side initialization.  
     *
     * Clearly there is a limit of one on the number of windows in
     * existence at any time.
@@ -973,7 +975,7 @@ XCloseDisplay( Display *display )
    if (display->NumWindows) 
       XDestroyWindow( display, display->TheWindow );
 
-   /* As this is done in CreateWindow, need to undo it here:
+   /* As this is done in XOpenDisplay, need to undo it here:
     */
    if (display->driScreen.private) 
       (*display->driScreen.destroyScreen)(display, 0, 
