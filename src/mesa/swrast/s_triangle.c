@@ -1,4 +1,4 @@
-/* $Id: s_triangle.c,v 1.39.2.2 2001/12/19 01:13:12 brianp Exp $ */
+/* $Id: s_triangle.c,v 1.39.2.3 2002/01/09 00:12:37 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -339,7 +339,7 @@ struct affine_info
    GLint smask, tmask;
    GLint twidth_log2;
    const GLchan *texture;
-   GLchan er, eg, eb, ea;
+   GLfixed er, eg, eb, ea;
    GLint tbytesline, tsize;
    GLint fixedToDepthShift;
 };
@@ -641,10 +641,10 @@ static void affine_textured_triangle( GLcontext *ctx,
 									\
    if (info.envmode == GL_BLEND) {					\
       /* potential off-by-one error here? (1.0f -> 2048 -> 0) */	\
-      info.er = FloatToFixed(unit->EnvColor[RCOMP]);			\
-      info.eg = FloatToFixed(unit->EnvColor[GCOMP]);			\
-      info.eb = FloatToFixed(unit->EnvColor[BCOMP]);			\
-      info.ea = FloatToFixed(unit->EnvColor[ACOMP]);			\
+      info.er = FloatToFixed(unit->EnvColor[RCOMP] * CHAN_MAXF);	\
+      info.eg = FloatToFixed(unit->EnvColor[GCOMP] * CHAN_MAXF);	\
+      info.eb = FloatToFixed(unit->EnvColor[BCOMP] * CHAN_MAXF);	\
+      info.ea = FloatToFixed(unit->EnvColor[ACOMP] * CHAN_MAXF);	\
    }									\
    if (!info.texture) {							\
       /* this shouldn't happen */					\
@@ -688,7 +688,7 @@ struct persp_info
    GLint smask, tmask;
    GLint twidth_log2;
    const GLchan *texture;
-   GLchan er, eg, eb, ea;   /* texture env color */
+   GLfixed er, eg, eb, ea;   /* texture env color */
    GLint tbytesline, tsize;
    GLint fixedToDepthShift;
 };
@@ -933,10 +933,10 @@ static void persp_textured_triangle( GLcontext *ctx,
 									\
    if (info.envmode == GL_BLEND) {					\
       /* potential off-by-one error here? (1.0f -> 2048 -> 0) */	\
-      info.er = FloatToFixed(unit->EnvColor[RCOMP]);			\
-      info.eg = FloatToFixed(unit->EnvColor[GCOMP]);			\
-      info.eb = FloatToFixed(unit->EnvColor[BCOMP]);			\
-      info.ea = FloatToFixed(unit->EnvColor[ACOMP]);			\
+      info.er = FloatToFixed(unit->EnvColor[RCOMP] * CHAN_MAXF);	\
+      info.eg = FloatToFixed(unit->EnvColor[GCOMP] * CHAN_MAXF);	\
+      info.eb = FloatToFixed(unit->EnvColor[BCOMP] * CHAN_MAXF);	\
+      info.ea = FloatToFixed(unit->EnvColor[ACOMP] * CHAN_MAXF);	\
    }									\
    if (!info.texture) {							\
       /* this shouldn't happen */					\
