@@ -172,6 +172,8 @@ static int RADEONEngineRestore( struct MiniGLXDisplayRec *dpy )
    unsigned char *RADEONMMIO = dpy->MMIOAddress;
    int pitch64, datatype, dp_gui_master_cntl, err;
 
+   fprintf(stderr, "%s\n", __FUNCTION__);
+
    OUTREG(RADEON_RB3D_CNTL, 0);
    RADEONEngineReset( dpy );
 
@@ -237,21 +239,43 @@ static int RADEONEngineRestore( struct MiniGLXDisplayRec *dpy )
  */
 static int RADEONEngineShutdown( struct MiniGLXDisplayRec *dpy )
 {
-   int err;
+   drmRadeonCPStop  stop;
+   int              ret, i;
 
-   /* Idle the CP engine */
-   if ((err = drmCommandNone(dpy->drmFD, DRM_RADEON_CP_IDLE)) != 0) {
-      fprintf(stderr, "%s: CP idle %d\n", __FUNCTION__, err);
+   stop.flush = 1;
+   stop.idle  = 1;
+
+   ret = drmCommandWrite(dpy->drmFD, DRM_RADEON_CP_STOP, &stop, 
+			 sizeof(drmRadeonCPStop));
+
+   if (ret == 0) {
       return 0;
+   } else if (errno != EBUSY) {
+      return -errno;
    }
 
-   /* Stop the CP */
-   if ((err = drmCommandNone(dpy->drmFD, DRM_RADEON_CP_STOP)) != 0) {
-      fprintf(stderr, "%s: CP stop %d\n", __FUNCTION__, err);
+   stop.flush = 0;
+ 
+   i = 0;
+   do {
+      ret = drmCommandWrite(dpy->drmFD, DRM_RADEON_CP_STOP, &stop, 
+			    sizeof(drmRadeonCPStop));
+   } while (ret && errno == EBUSY && i++ < 10);
+
+   if (ret == 0) {
       return 0;
+   } else if (errno != EBUSY) {
+      return -errno;
    }
 
-   return True;
+   stop.idle = 0;
+
+   if (drmCommandWrite(dpy->drmFD, DRM_RADEON_CP_STOP,
+		       &stop, sizeof(drmRadeonCPStop))) {
+      return -errno;
+   } else {
+      return 0;
+   }
 }
 
 /**
@@ -855,7 +879,7 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
    RADEONDRIAgpHeapInit(dpy, info);
 
    fprintf(stderr, "calling RADEONEngineRestore from %s\n", __FUNCTION__);
-   if (!RADEONEngineRestore( dpy )) {
+   if (0 && !RADEONEngineRestore( dpy )) {
       DRM_UNLOCK(dpy->drmFD, dpy->pSAREA, dpy->serverContext);
       return 0;
    }
@@ -884,7 +908,7 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
 
 
    /* Can release the lock now */
-   DRM_UNLOCK(dpy->drmFD, dpy->pSAREA, dpy->serverContext);
+/*    DRM_UNLOCK(dpy->drmFD, dpy->pSAREA, dpy->serverContext); */
 
    /* This is the struct passed to radeon_dri.so for its initialization */
    dpy->driverClientMsg = malloc(sizeof(RADEONDRIRec));

@@ -22,7 +22,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: miniglx_events.c,v 1.1.2.4 2003/04/25 11:22:36 keithw Exp $ */
+/* $Id: miniglx_events.c,v 1.1.2.5 2003/04/25 14:03:56 keithw Exp $ */
 
 
 /**
@@ -81,13 +81,13 @@ static XEvent *queue_event( Display *dpy )
 {
    int incr = (dpy->eventqueue.tail + 1) & MINIGLX_EVENT_QUEUE_MASK;
    if (incr == dpy->eventqueue.head) {
-      fprintf(stderr, "queue_event: queue full\n");
+/*       fprintf(stderr, "queue_event: queue full\n"); */
       return 0;
    }
    else {
       XEvent *ev = &dpy->eventqueue.queue[dpy->eventqueue.tail];
-      fprintf(stderr, "queue_event: return event slot %d\n", 
-	      dpy->eventqueue.tail);
+/*       fprintf(stderr, "queue_event: return event slot %d\n",  */
+/* 	      dpy->eventqueue.tail); */
       dpy->eventqueue.tail = incr;
       return ev;
    }
@@ -100,8 +100,8 @@ static int dequeue_event( Display *dpy, XEvent *event_return )
       return False;
    }
    else {
-      fprintf(stderr, "dequeue_event: return event slot %d (tail %d)\n",
-	      dpy->eventqueue.head, dpy->eventqueue.tail);
+/*       fprintf(stderr, "dequeue_event: return event slot %d (tail %d)\n", */
+/* 	      dpy->eventqueue.head, dpy->eventqueue.tail); */
       *event_return = dpy->eventqueue.queue[dpy->eventqueue.head];      
       dpy->eventqueue.head += 1;
       dpy->eventqueue.head &= MINIGLX_EVENT_QUEUE_MASK;
@@ -148,7 +148,7 @@ static int send_msg( Display *dpy, int i,
       return False;
    }
    
-   fprintf(stderr, "send %d bytes to %d\n", sz, i);
+/*    fprintf(stderr, "send %d bytes to %d\n", sz, i); */
    memcpy( dpy->fd[i].writebuf + cnt, msg, sz ); cnt += sz;
    dpy->fd[i].writebuf_count = cnt;
    return True;
@@ -201,8 +201,6 @@ static int welcome_message( Display *dpy, int i )
    
    if (!welcome_message_part( dpy, i, (void **)&clientid, sizeof(*clientid)))
       return False;
-
-   fprintf(stderr, "**** CLIENT ID: %d\n", *clientid);
 
    if (!welcome_message_part( dpy, i, &tmp, sizeof(dpy->shared)))
       return False;
@@ -277,7 +275,7 @@ handle_fifo_read( Display *dpy, int i )
 	 switch (id) {
 	    /* The server has called 'XMapWindow' on a client window */
 	 case _YouveGotFocus:
-	    fprintf(stderr, "_YouveGotFocus\n");
+/* 	    fprintf(stderr, "_YouveGotFocus\n"); */
 	    er = queue_event(dpy);
 	    if (!er) return False;
 	    er->xmap.type = MapNotify;
@@ -292,7 +290,7 @@ handle_fifo_read( Display *dpy, int i )
 	    /* The server has called 'XMapWindow' or 'X???'  on a client
 	     * window */
 	 case _RepaintPlease:
-	    fprintf(stderr, "_RepaintPlease\n");
+/* 	    fprintf(stderr, "_RepaintPlease\n"); */
 	    er = queue_event(dpy);
 	    if (!er) return False;
 	    er->xexpose.type = Expose;
@@ -321,7 +319,7 @@ handle_fifo_read( Display *dpy, int i )
 	     * server does).
 	     */
 	 case _YouveLostFocus:
-	    fprintf(stderr, "_YouveLostFocus\n");
+/* 	    fprintf(stderr, "_YouveLostFocus\n"); */
 	    er = queue_event(dpy);
 	    if (!er) return False;
 	    er->xunmap.type = UnmapNotify;
@@ -345,7 +343,7 @@ handle_fifo_read( Display *dpy, int i )
 	     * (having called 'XMapWindow' locally).
 	     */
 	 case _CanIHaveFocus:	 
-	    fprintf(stderr, "_CanIHaveFocus\n");
+/* 	    fprintf(stderr, "_CanIHaveFocus\n"); */
 	    er = queue_event(dpy);
 	    if (!er) return False;
 	    er->xmaprequest.type = MapRequest;
@@ -364,7 +362,7 @@ handle_fifo_read( Display *dpy, int i )
 	     * unmapped its own window.
 	     */
 	 case _IDontWantFocus:
-	    fprintf(stderr, "_IDontWantFocus\n");
+/* 	    fprintf(stderr, "_IDontWantFocus\n"); */
 	    er = queue_event(dpy);
 	    if (!er) return False;
 	    er->xunmap.type = UnmapNotify;
@@ -386,10 +384,10 @@ handle_fifo_read( Display *dpy, int i )
       dpy->fd[i].readbuf_count -= count;
 
       if (dpy->fd[i].readbuf_count) {
-	 fprintf(stderr, "count: %d memmove %p %p %d\n", count,
-		 dpy->fd[i].readbuf,
-		 dpy->fd[i].readbuf + count,
-		 dpy->fd[i].readbuf_count);
+/* 	 fprintf(stderr, "count: %d memmove %p %p %d\n", count, */
+/* 		 dpy->fd[i].readbuf, */
+/* 		 dpy->fd[i].readbuf + count, */
+/* 		 dpy->fd[i].readbuf_count); */
 
 	 memmove(dpy->fd[i].readbuf,
 		 dpy->fd[i].readbuf + count,
@@ -404,10 +402,13 @@ static void __driHandleVtSignals( Display *dpy )
 {
    dpy->vtSignalFlag = 0;
 
+   fprintf(stderr, "%s: haveVT %d hwActive %d\n", __FUNCTION__,
+	   dpy->haveVT, dpy->hwActive);
+
    if (!dpy->haveVT && dpy->hwActive) {
       /* Need to get lock and shutdown hardware */
       DRM_LIGHT_LOCK( dpy->drmFD, dpy->pSAREA, dpy->serverContext ); 
-/*       dpy->driver->shutdownHardware( dpy ); */
+      dpy->driver->shutdownHardware( dpy ); 
 
       /* Can now give up control of the VT */
       ioctl( dpy->ConsoleFD, VT_RELDISP, 1 ); 
@@ -418,13 +419,10 @@ static void __driHandleVtSignals( Display *dpy )
       ioctl( dpy->ConsoleFD, VT_RELDISP, VT_ACTIVATE );
 
       /* restore HW state, release lock */
-/*       dpy->driver->restoreHardware( dpy ); */
+      dpy->driver->restoreHardware( dpy ); 
       DRM_UNLOCK( dpy->drmFD, dpy->pSAREA, dpy->serverContext ); 
       dpy->hwActive = 1;
    }
-   else 
-      fprintf(stderr, "handle_vt_signals: haveVT %d hwActive %d\n",
-	      dpy->haveVT, dpy->hwActive);
 }
 
 
@@ -471,18 +469,20 @@ __miniglx_Select( Display *dpy, int n, fd_set *rfds, fd_set *wfds, fd_set *xfds,
       n = max(n, dpy->fd[i].fd + 1);
    }
 
-
-   if (dpy->vtSignalFlag)
-      __driHandleVtSignals( dpy );
+   if (dpy->vtSignalFlag) 
+      __driHandleVtSignals( dpy ); 
 
    retval = select( n, rfds, wfds, xfds, tv );
 
-   if (dpy->vtSignalFlag)
-      __driHandleVtSignals( dpy );
+   if (dpy->vtSignalFlag) {
+      int tmp = errno;
+      __driHandleVtSignals( dpy ); 
+      errno = tmp;
+   }
 
    if (retval < 0) 
       return retval;
-   
+
    /* Handle server fd[0] specially:
     */
    if (!dpy->IsClient) {
@@ -534,7 +534,6 @@ __miniglx_Select( Display *dpy, int n, fd_set *rfds, fd_set *wfds, fd_set *xfds,
 	 else {
 	    dpy->fd[i].readbuf_count += r;
 	 
-	    fprintf(stderr, "Read %d bytes from fd[%d]\n", r, i);
 	    handle_fifo_read( dpy, i );
 	 }
       }
@@ -648,11 +647,6 @@ static void set_drawable_flag( Display *dpy, int w, int flag )
 
       dpy->pSAREA->drawableTable[w].stamp++;
       dpy->pSAREA->drawableTable[w].flags = flag;
-
-      fprintf(stderr, "%s: stamp now %d\n",
-	      __FUNCTION__,
-	      dpy->pSAREA->drawableTable[w].stamp);
-	      
 
       DRM_UNLOCK( dpy->drmFD, dpy->pSAREA, dpy->serverContext ); 
    }
