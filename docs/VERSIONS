@@ -1,4 +1,4 @@
-$Id: VERSIONS,v 1.73.2.38 2002/09/16 20:29:23 brianp Exp $
+$Id: VERSIONS,v 1.73.2.39 2002/09/19 16:37:29 brianp Exp $
 
 
 Mesa Version History
@@ -988,6 +988,7 @@ Mesa Version History
 	- GL_NV_texture_rectangle extension
 	- updated glext.h header (version 17)
 	- updated DOS driver (Daniel Borca)
+	- updated BeOS R5 driver (Philippe Houdoin)
 	- added GL_IBM_texture_mirror_repeat
 	- glxinfo now takes -l option to print interesting OpenGL limits info
 	- GL_MESA_ycbcr_texture extension
