@@ -1184,9 +1184,7 @@ void _tnl_save_init( GLcontext *ctx )
 
    _save_vtxfmt_init( ctx );
 
-   _mesa_vector1ub_init( &tmp->EdgeFlag, 0, 0 );
-
-   for (i = 0; i < _TNL_ATTRIB_EVALFLAG; i++)
+   for (i = 0; i < _TNL_ATTRIB_MAX; i++)
       _mesa_vector4f_init( &tmp->Attribs[i], 0, 0);
 }
 

@@ -40,7 +40,11 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 extern void _tnl_vtx_init( GLcontext *ctx );
 extern void _tnl_vtx_destroy( GLcontext *ctx );
 
-extern void _tnl_vtx_invalidate( GLcontext *ctx );
-extern void _tnl_flush_vertices( GLcontext *ctx, GLuint flags );
+extern void _tnl_FlushVertices( GLcontext *ctx, GLuint flags );
+extern void _tnl_flush_vtx( GLcontext *ctx );
+
+extern void _tnl_do_EvalCoord2f( GLcontext* ctx, GLfloat u, GLfloat v );
+extern void _tnl_do_EvalCoord1f(GLcontext* ctx, GLfloat u);
+extern void _tnl_update_eval( GLcontext *ctx );
 
 #endif

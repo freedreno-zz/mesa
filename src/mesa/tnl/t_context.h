@@ -112,9 +112,8 @@ enum {
 	_TNL_ATTRIB_MAT_BACK_SHININESS = 25,
 	_TNL_ATTRIB_MAT_FRONT_INDEXES = 26,
 	_TNL_ATTRIB_MAT_BACK_INDEXES = 27, 
-	_TNL_ATTRIB_EVALFLAG = 28,     
+	_TNL_ATTRIB_INDEX = 28,        
 	_TNL_ATTRIB_EDGEFLAG = 29,     
-	_TNL_ATTRIB_INDEX = 30,        
 	_TNL_ATTRIB_MAX = 31
 } ;
 
@@ -150,9 +149,8 @@ enum {
 #define _TNL_BIT_MAT_BACK_SHININESS  (1<<25)
 #define _TNL_BIT_MAT_FRONT_INDEXES   (1<<26)
 #define _TNL_BIT_MAT_BACK_INDEXES    (1<<27)
-#define _TNL_BIT_EVALFLAG            (1<<28)
+#define _TNL_BIT_INDEX               (1<<28)
 #define _TNL_BIT_EDGEFLAG            (1<<29)
-#define _TNL_BIT_INDEX               (1<<30)
 
 #define _TNL_BIT_TEX(u)  (1 << (_TNL_ATTRIB_TEX0 + (u)))
 
@@ -193,7 +191,6 @@ enum {
 
 
 
-
 #define PRIM_BEGIN     0x10
 #define PRIM_END       0x20
 #define PRIM_WEAK      0x40
@@ -205,6 +202,24 @@ struct tnl_prim {
    GLuint mode;
    GLuint start;
    GLuint count;
+};
+
+
+
+struct tnl_eval1_map {
+   struct gl_1d_map *map;
+   GLuint sz;
+};
+
+struct tnl_eval2_map {
+   struct gl_2d_map *map;
+   GLuint sz;
+};
+
+struct tnl_eval {
+   GLuint new_state;
+   struct tnl_eval1_map map1[_TNL_ATTRIB_INDEX + 1];
+   struct tnl_eval2_map map2[_TNL_ATTRIB_INDEX + 1];
 };
 
 
@@ -228,7 +243,6 @@ typedef void (*attrfv_func)( const GLfloat * );
 struct tnl_vtx {
    GLfloat buffer[VERT_BUFFER_SIZE];
    GLubyte attrsz[_TNL_ATTRIB_MAX];
-   GLuint count;
    GLuint vertex_size;
    struct tnl_prim prim[TNL_MAX_PRIM];
    GLuint prim_count;
@@ -236,9 +250,10 @@ struct tnl_vtx {
    GLfloat vertex[_TNL_ATTRIB_MAX*4]; /* current vertex */
    GLfloat *attrptr[_TNL_ATTRIB_MAX]; /* points into vertex */
    GLfloat *current[_TNL_ATTRIB_MAX]; /* points into ctx->Current, etc */
-   GLuint counter;
+   GLuint counter, initial_counter;
    struct tnl_copied_vtx copied;
    attrfv_func tabfv[_TNL_ATTRIB_MAX][4];
+   struct tnl_eval eval;
 };
 
 
@@ -335,9 +350,10 @@ struct tnl_vertex_arrays
    GLvector4f  SecondaryColor;
    GLvector4f  FogCoord;
    GLvector4f  TexCoord[MAX_TEXTURE_COORD_UNITS];
-   GLvector1ub EdgeFlag;
-   GLvector1f  Index;
-   GLvector1ui Elt;
+   GLvector4f  Index;
+
+   GLubyte     *EdgeFlag;
+   GLuint      *Elt;
 
    /* These attributes don't alias with the conventional attributes.
     * The GL_NV_vertex_program extension defines 16 extra sets of vertex
@@ -373,7 +389,7 @@ struct vertex_buffer
    GLfloat     *NormalLengthPtr;	        /* _TNL_BIT_NORMAL */
    GLboolean   *EdgeFlag;	                /* _TNL_BIT_EDGEFLAG */
    GLvector4f  *TexCoordPtr[MAX_TEXTURE_COORD_UNITS]; /* VERT_TEX_0..n */
-   GLvector1f  *IndexPtr[2];	                /* _TNL_BIT_INDEX */
+   GLvector4f  *IndexPtr[2];	                /* _TNL_BIT_INDEX */
    GLvector4f  *ColorPtr[2];	                /* _TNL_BIT_COLOR0 */
    GLvector4f  *SecondaryColorPtr[2];           /* _TNL_BIT_COLOR1 */
    GLvector4f  *PointSizePtr;	                /* _TNL_BIT_POS */
@@ -460,13 +476,6 @@ struct tnl_pipeline {
 };
 
 
-struct tnl_eval_store {
-   GLuint EvalMap1Flags;
-   GLuint EvalMap2Flags;
-   GLuint EvalMap1AttribFlags;  /* GL_NV_vertex_program */
-   GLuint EvalMap2AttribFlags;  /* GL_NV_vertex_program */
-   GLuint EvalNewState;
-};
 
 
 typedef void (*points_func)( GLcontext *ctx, GLuint first, GLuint last );
@@ -614,11 +623,6 @@ typedef struct {
    struct tnl_vertex_arrays save_inputs;
    struct tnl_vertex_arrays current;
    struct tnl_vertex_arrays array_inputs;
-
-
-   /* Derived state and storage for _tnl_eval_vb:
-    */
-   struct tnl_eval_store eval;
 
 
    /* Probably need a better configuration mechanism:

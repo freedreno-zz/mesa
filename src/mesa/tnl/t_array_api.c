@@ -419,8 +419,7 @@ void _tnl_array_init( GLcontext *ctx )
    _mesa_vector4f_init( &tmp->Obj, 0, 0 );
    _mesa_vector4f_init( &tmp->Normal, 0, 0 );   
    _mesa_vector4f_init( &tmp->FogCoord, 0, 0 );
-   _mesa_vector1f_init( &tmp->Index, 0, 0 );
-   _mesa_vector1ub_init( &tmp->EdgeFlag, 0, 0 );
+   _mesa_vector4f_init( &tmp->Index, 0, 0 );
 
    for (i = 0; i < ctx->Const.MaxTextureUnits; i++)
       _mesa_vector4f_init( &tmp->TexCoord[i], 0, 0);

@@ -50,7 +50,7 @@ typedef void (*light_func)( GLcontext *ctx,
 struct light_stage_data {
    GLvector4f LitColor[2];
    GLvector4f LitSecondary[2];
-   GLvector1f LitIndex[2];
+   GLvector4f LitIndex[2];
    light_func *light_func_tab;
 };
 
@@ -210,8 +210,8 @@ static GLboolean run_init_lighting( GLcontext *ctx,
    _mesa_vector4f_alloc( &store->LitColor[1], 0, size, 32 );
    _mesa_vector4f_alloc( &store->LitSecondary[0], 0, size, 32 );
    _mesa_vector4f_alloc( &store->LitSecondary[1], 0, size, 32 );
-   _mesa_vector1f_alloc( &store->LitIndex[0], 0, size, 32 );
-   _mesa_vector1f_alloc( &store->LitIndex[1], 0, size, 32 );
+   _mesa_vector4f_alloc( &store->LitIndex[0], 0, size, 32 );
+   _mesa_vector4f_alloc( &store->LitIndex[1], 0, size, 32 );
 
    /* Now validate the stage derived data...
     */
@@ -253,8 +253,8 @@ static void dtr( struct tnl_pipeline_stage *stage )
       _mesa_vector4f_free( &store->LitColor[1] );
       _mesa_vector4f_free( &store->LitSecondary[0] );
       _mesa_vector4f_free( &store->LitSecondary[1] );
-      _mesa_vector1f_free( &store->LitIndex[0] );
-      _mesa_vector1f_free( &store->LitIndex[1] );
+      _mesa_vector4f_free( &store->LitIndex[0] );
+      _mesa_vector4f_free( &store->LitIndex[1] );
       FREE( store );
       stage->privatePtr = 0;
    }

@@ -189,7 +189,7 @@ static void _tnl_import_index( GLcontext *ctx,
 #else
    data = tmp->Ptr;
 #endif
-   inputs->Index.data = (GLfloat *) data;
+   inputs->Index.data = (GLfloat (*)[4]) data;
    inputs->Index.start = (GLfloat *) data;
    inputs->Index.stride = tmp->StrideB;
 }
@@ -233,7 +233,7 @@ static void _tnl_import_edgeflag( GLcontext *ctx,
    GLubyte *data;
 
    tmp = _ac_import_edgeflag(ctx, GL_UNSIGNED_BYTE,
-			     stride ? sizeof(GLubyte) : 0,
+			     sizeof(GLubyte),
 			     0,
 			     &is_writeable);
 
@@ -242,9 +242,7 @@ static void _tnl_import_edgeflag( GLcontext *ctx,
 #else
    data = tmp->Ptr;
 #endif
-   inputs->EdgeFlag.data = (GLubyte *) data;
-   inputs->EdgeFlag.start = (GLubyte *) data;
-   inputs->EdgeFlag.stride = tmp->StrideB;
+   inputs->EdgeFlag = (GLubyte *) data;
 }
 
 
@@ -360,7 +358,7 @@ void _tnl_vb_bind_arrays( GLcontext *ctx, GLint start, GLsizei count )
 
       if (inputs & _TNL_BIT_EDGEFLAG) {
 	 _tnl_import_edgeflag( ctx, GL_TRUE, sizeof(GLboolean) );
-	 VB->EdgeFlag = (GLboolean *) tmp->EdgeFlag.data;
+	 VB->EdgeFlag = (GLboolean *) tmp->EdgeFlag;
       }
 
       if (inputs & _TNL_BIT_COLOR1) {

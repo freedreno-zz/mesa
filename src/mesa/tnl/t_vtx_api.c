@@ -31,12 +31,21 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
  *   Keith Whitwell <keith@tungstengraphics.com>
  */
 
+#include "context.h"
+#include "macros.h"
+#include "dlist.h"
+#include "api_arrayelt.h"
+#include "api_noop.h"
+#include "t_vtx_api.h"
+
 
 /* Close off the last primitive, execute the buffer, restart the
  * primitive.  
  */
 static void _tnl_wrap_buffers( GLcontext *ctx )
 {
+   TNLcontext *tnl = TNL_CONTEXT(ctx);
+
    if (ctx->Driver.CurrentExecPrimitive != GL_POLYGON+1) {
       GLint i = tnl->vtx.prim_count - 1;
       assert(i >= 0);
@@ -46,7 +55,7 @@ static void _tnl_wrap_buffers( GLcontext *ctx )
 
    /* Execute the buffer and save copied vertices.
     */
-   _tnl_flush_immediate( ctx );
+   _tnl_flush_vtx( ctx );
 
    /* Emit a glBegin to start the new list.
     */
@@ -63,73 +72,78 @@ static void _tnl_wrap_buffers( GLcontext *ctx )
 
 static void _tnl_wrap_filled_vertex( GLcontext *ctx )
 {
+   TNLcontext *tnl = TNL_CONTEXT(ctx);
+   GLfloat *data = tnl->vtx.copied.buffer;
    int i;
 
    /* Run pipeline on current vertices, copy wrapped vertices
-    * to tnl->copied_verts.
+    * to tnl->copied.
     */
    _tnl_wrap_buffers( ctx );
    
    /* Copy stored stored vertices to start of new list. 
     */
-   assert(tnl->vtx.counter > tnl->copied_verts.nr);
+   assert(tnl->vtx.counter > tnl->vtx.copied.nr);
 
-   for (i = 0 ; i < tnl->copied_verts.nr ; i++) {
+   for (i = 0 ; i < tnl->vtx.copied.nr ; i++) {
       memcpy( tnl->vtx.vbptr, data, tnl->vtx.vertex_size * sizeof(GLfloat));
       tnl->vtx.vbptr += tnl->vtx.vertex_size;
       data += tnl->vtx.vertex_size;
       tnl->vtx.counter--;
    }
 
-   tnl->copied_verts.nr = 0;
+   tnl->vtx.copied.nr = 0;
 }
 
-static void tnl_copy_to_current( GLcontext *ctx )
+static void _tnl_copy_to_current( GLcontext *ctx )
 {
    TNLcontext *tnl = TNL_CONTEXT(ctx); 
+   GLuint i;
 
-   for (i = _TNL_ATTRIB_POS+1 ; i < _TNL_ATTRIB_EVALFLAG ; i++) 
-      switch (tnl->vtx.attrib[i].sz) {
-      case 4: tnl->vtx.attrib[i].current[3] = tnl->vtx.vbptr[i].fi[3].f;
-      case 3: tnl->vtx.attrib[i].current[2] = tnl->vtx.vbptr[i].fi[2].f;
-      case 2: tnl->vtx.attrib[i].current[1] = tnl->vtx.vbptr[i].fi[1].f;
-      case 1: tnl->vtx.attrib[i].current[0] = tnl->vtx.vbptr[i].fi[0].f;
+   for (i = _TNL_ATTRIB_POS+1 ; i < _TNL_ATTRIB_INDEX ; i++) 
+      switch (tnl->vtx.attrsz[i]) {
+      case 4: tnl->vtx.current[i][3] = tnl->vtx.attrptr[i][3];
+      case 3: tnl->vtx.current[i][2] = tnl->vtx.attrptr[i][2];
+      case 2: tnl->vtx.current[i][1] = tnl->vtx.attrptr[i][1];
+      case 1: tnl->vtx.current[i][0] = tnl->vtx.attrptr[i][0];
 	 break;
       }
 
    /* Edgeflag and Index require special treatment:
     */
-   if (tnl->vtx.attrib[_TNL_ATTRIB_INDEX].sz) 
-      ctx->Current.Index = tnl->vtx.vbptr[_TNL_ATTRIB_INDEX];
+   if (tnl->vtx.attrsz[_TNL_ATTRIB_INDEX]) 
+      ctx->Current.Index = tnl->vtx.attrptr[_TNL_ATTRIB_INDEX][0];
 
-   if (tnl->vtx.attrib[_TNL_ATTRIB_EDGEFLAG].sz) 
-      ctx->Current.Edgeflag = (tnl->vtx.vbptr[_TNL_ATTRIB_EDGEFLAG] == 1.0);
+   if (tnl->vtx.attrsz[_TNL_ATTRIB_EDGEFLAG]) 
+      ctx->Current.EdgeFlag = (tnl->vtx.attrptr[_TNL_ATTRIB_EDGEFLAG][0] == 1.0);
    
 
    ctx->Driver.NeedFlush &= ~FLUSH_UPDATE_CURRENT;
 }
 
 
-static void tnl_copy_from_current( GLcontext *ctx )
+static void _tnl_copy_from_current( GLcontext *ctx )
 {
    TNLcontext *tnl = TNL_CONTEXT(ctx); 
+   GLint i;
 
-   for (i = _TNL_ATTRIB_POS+1 ; i < _TNL_ATTRIB_EVALFLAG ; i++) 
-      switch (tnl->vtx.attrib[i].sz) {
-      case 4: tnl->vtx.vbptr[i].fi[3].f = tnl->vtx.attrib[i].current[3];
-      case 3: tnl->vtx.vbptr[i].fi[2].f = tnl->vtx.attrib[i].current[2];
-      case 2: tnl->vtx.vbptr[i].fi[1].f = tnl->vtx.attrib[i].current[1];
-      case 1: tnl->vtx.vbptr[i].fi[0].f = tnl->vtx.attrib[i].current[0];
+   for (i = _TNL_ATTRIB_POS+1 ; i < _TNL_ATTRIB_INDEX ; i++) 
+      switch (tnl->vtx.attrsz[i]) {
+      case 4: tnl->vtx.attrptr[i][3] = tnl->vtx.current[i][3];
+      case 3: tnl->vtx.attrptr[i][2] = tnl->vtx.current[i][2];
+      case 2: tnl->vtx.attrptr[i][1] = tnl->vtx.current[i][1];
+      case 1: tnl->vtx.attrptr[i][0] = tnl->vtx.current[i][0];
 	 break;
       }
 
    /* Edgeflag and Index require special treatment:
     */
-   if (tnl->vtx.attrib[_TNL_ATTRIB_INDEX].sz) 
-      tnl->vtx.vbptr[_TNL_ATTRIB_INDEX][0] = ctx->Current.Index;
+   if (tnl->vtx.attrsz[_TNL_ATTRIB_INDEX]) 
+      tnl->vtx.attrptr[_TNL_ATTRIB_INDEX][0] = ctx->Current.Index;
 
-   if (tnl->vtx.attrib[_TNL_ATTRIB_EDGEFLAG].sz) 
-      tnl->vtx.vbptr[_TNL_ATTRIB_EDGEFLAG][0] = (GLfloat)ctx->Current.Edgeflag;
+   if (tnl->vtx.attrsz[_TNL_ATTRIB_EDGEFLAG]) 
+      tnl->vtx.attrptr[_TNL_ATTRIB_EDGEFLAG][0] = 
+	 (GLfloat)ctx->Current.EdgeFlag;
 
 
    ctx->Driver.NeedFlush |= FLUSH_UPDATE_CURRENT;
@@ -147,10 +161,11 @@ static void _tnl_wrap_upgrade_vertex( GLcontext *ctx,
 {
    TNLcontext *tnl = TNL_CONTEXT(ctx); 
    GLuint oldsz;
-   GLint diff;
+   GLint i;
+   GLfloat *tmp;
 
    /* Run pipeline on current vertices, copy wrapped vertices
-    * to tnl->copied_verts.
+    * to tnl->vtx.copied.
     */
    _tnl_wrap_buffers( ctx );
 
@@ -162,21 +177,21 @@ static void _tnl_wrap_upgrade_vertex( GLcontext *ctx,
 
    /* Fix up sizes:
     */
-   oldsz = tnl->vtx.attrib[attr].sz;
-   tnl->vtx.attrib[attr].sz = newsz;
+   oldsz = tnl->vtx.attrsz[attr];
+   tnl->vtx.attrsz[attr] = newsz;
 
    tnl->vtx.vertex_size += newsz - oldsz;
-   tnl->vtx.counter = tnl->vtx.vbsize / tnl->vtx.vertex_size;
+   tnl->vtx.counter = VERT_BUFFER_SIZE / tnl->vtx.vertex_size;
    tnl->vtx.initial_counter = tnl->vtx.counter;
    tnl->vtx.vbptr = tnl->vtx.buffer;
 
 
    /* Recalculate all the attrptr[] values
     */
-   for (i = 0, tmp = tnl->vtx.vertex ; i < TNL_MAX_ATTRIB ; i++) {
-      if (tnl->vtx.attrib[i].sz) {
+   for (i = 0, tmp = tnl->vtx.vertex ; i < _TNL_ATTRIB_MAX ; i++) {
+      if (tnl->vtx.attrsz[i]) {
 	 tnl->vtx.attrptr[i] = tmp;
-	 tmp += tnl->vtx.attrib[i].sz;
+	 tmp += tnl->vtx.attrsz[i];
       }
       else 
 	 tnl->vtx.attrptr[i] = 0; /* will not be dereferenced */
@@ -192,20 +207,21 @@ static void _tnl_wrap_upgrade_vertex( GLcontext *ctx,
     * -- No need to replay - just copy piecewise
     */
    {
-      GLfloat *data = tnl->copied_verts.buffer;
+      GLfloat *data = tnl->vtx.copied.buffer;
       GLfloat *tmp = tnl->vtx.buffer;
+      GLuint j;
 
-      for (i = 0 ; i < tnl->copied_verts.nr ; i++) {
-	 for (j = 1 ; j < TNL_MAX_ATTRIB ; j++) {
-	    if (tnl->vtx.attrib[j].sz) {
+      for (i = 0 ; i < tnl->vtx.copied.nr ; i++) {
+	 for (j = 1 ; j < _TNL_ATTRIB_MAX ; j++) {
+	    if (tnl->vtx.attrsz[j]) {
 	       if (j == attr) {
-		  COPY_SZ_4V( tmp, newsz, tnl->vtx.attrib[attr].current );
+		  COPY_SZ_4V( tmp, newsz, tnl->vtx.current[attr] );
 		  COPY_SZ_4V( tmp, oldsz, data );
 		  data += oldsz;
 		  tmp += newsz;
 	       }
 	       else {
-		  GLuint sz = tnl->vtx.attrib[j].sz;
+		  GLuint sz = tnl->vtx.attrsz[j];
 		  COPY_SZ_4V( tmp, sz, data );
 		  tmp += sz;
 		  data += sz;
@@ -216,44 +232,51 @@ static void _tnl_wrap_upgrade_vertex( GLcontext *ctx,
    }
 
    tnl->vtx.vbptr = tmp;
-   tnl->vtx.counter -= tnl->copied_verts.nr;
-   tnl->copied_verts.nr = 0;
+   tnl->vtx.counter -= tnl->vtx.copied.nr;
+   tnl->vtx.copied.nr = 0;
 }
 
 
-static void _tnl_fixup_vertex( )
+static void _tnl_fixup_vertex( GLcontext *ctx, GLuint attr, GLuint sz )
 {
+   TNLcontext *tnl = TNL_CONTEXT(ctx);
    static float id[4] = { 0, 0, 0, 1 };
    int i;
 
-   if (tnl->vtx.attrib_sz[attr] < sz) {
+   if (tnl->vtx.attrsz[attr] < sz) {
       /* New size is larger.  Need to flush existing vertices and get
        * an enlarged vertex format.
        */
-      _tnl_wrap_upgrade_vertex( tnl, attr, sz );
+      _tnl_wrap_upgrade_vertex( ctx, attr, sz );
    }
-   else if (tnl->vtx.attrib_sz[attr] > sz) {
+   else if (tnl->vtx.attrsz[attr] > sz) {
       /* New size is smaller - just need to fill in some
        * zeros.  Don't need to flush or wrap.
        */
-      for (i = sz ; i <= tnl->vtx.attrib_sz[attr] ; i++)
-	 tnl->vtx.attrptr[attr].fi[i-1].f = id[i-1];
+      for (i = sz ; i <= tnl->vtx.attrsz[attr] ; i++)
+	 tnl->vtx.attrptr[attr][i-1] = id[i-1];
    }
 }
+
+
 
 
 /* Helper function for 'CHOOSE' macro.  Do what's necessary when an
  * entrypoint is called for the first time.
  */
-static void *do_choose( GLuint attr, GLuint sz, 
+static void do_choose( GLuint attr, GLuint sz, 
 			void (*fallback_attr_func)( const GLfloat *),
+			void (*choose1)( const GLfloat *),
+			void (*choose2)( const GLfloat *),
+			void (*choose3)( const GLfloat *),
+			void (*choose4)( const GLfloat *),
 			const GLfloat *v )
 { 
    GET_CURRENT_CONTEXT( ctx ); 
    TNLcontext *tnl = TNL_CONTEXT(ctx); 
 
-   if (tnl->vtx.attrib_sz[attr] != sz)
-      _tnl_fixup_vertex( tnl, attr, sz );
+   if (tnl->vtx.attrsz[attr] != sz)
+      _tnl_fixup_vertex( ctx, attr, sz );
  
    /* Does this belong here?  Necessitates resetting vtxfmt on each
     * flush (otherwise flags won't get reset afterwards).
@@ -265,21 +288,16 @@ static void *do_choose( GLuint attr, GLuint sz,
 
    /* Reset any active pointers for this attribute 
     */
-   for (i = 1; i <= 4; i++)
-      tnl->vtx.tabfv[attr][i-1] = tnl->vtx.initial_tabfv[attr][i-1];
+   tnl->vtx.tabfv[attr][0] = choose1;
+   tnl->vtx.tabfv[attr][1] = choose2;
+   tnl->vtx.tabfv[attr][2] = choose3;
+   tnl->vtx.tabfv[attr][3] = choose4;
 
    /* Update the secondary dispatch table with the new function
     */
    tnl->vtx.tabfv[attr][sz-1] = fallback_attr_func;
 
-
    (*fallback_attr_func)(v);
-}
-
-static void do_flush( void ) 
-{
-   GET_CURRENT_CONTEXT( ctx ); 
-   _tnl_FlushVertices( ctx, FLUSH_STORED_VERTICES );
 }
 
 
@@ -293,7 +311,9 @@ static void do_flush( void )
  * is the job of the chooser function when switching between Color4f
  * and Color3f.
  */
-#define ATTRFV( ATTR, N )			\
+#define ATTRFV( ATTR, N )				\
+static void choose_##ATTR##_##N( const GLfloat *v );	\
+							\
 static void attrib_##ATTR##_##N( const GLfloat *v )	\
 {							\
    GET_CURRENT_CONTEXT( ctx );				\
@@ -302,10 +322,10 @@ static void attrib_##ATTR##_##N( const GLfloat *v )	\
    if ((ATTR) == 0) {					\
       int i;						\
 							\
-      if (N>0) tnl->vtx.vbptr[0] = (V)[0];		\
-      if (N>1) tnl->vtx.vbptr[1] = (V)[1];		\
-      if (N>2) tnl->vtx.vbptr[2] = (V)[2];		\
-      if (N>3) tnl->vtx.vbptr[3] = (V)[3];		\
+      if (N>0) tnl->vtx.vbptr[0] = v[0];		\
+      if (N>1) tnl->vtx.vbptr[1] = v[1];		\
+      if (N>2) tnl->vtx.vbptr[2] = v[2];		\
+      if (N>3) tnl->vtx.vbptr[3] = v[3];		\
 							\
       for (i = N; i < tnl->vtx.vertex_size; i++)	\
 	 tnl->vtx.vbptr[i] = tnl->vtx.vertex[i];	\
@@ -313,21 +333,27 @@ static void attrib_##ATTR##_##N( const GLfloat *v )	\
       tnl->vtx.vbptr += tnl->vtx.vertex_size;		\
 							\
       if (--tnl->vtx.counter == 0)			\
-	 do_flush();					\
+	 _tnl_wrap_filled_vertex( ctx );		\
    }							\
    else {						\
-      TNLfi *dest = tnl->vtx.attrptr[ATTR];		\
-      if (N>0) dest[0] = (V)[0];			\
-      if (N>1) dest[1] = (V)[1];			\
-      if (N>2) dest[2] = (V)[2];			\
-      if (N>3) dest[3] = (V)[3];			\
+      GLfloat *dest = tnl->vtx.attrptr[ATTR];		\
+      if (N>0) dest[0] = v[0];				\
+      if (N>1) dest[1] = v[1];				\
+      if (N>2) dest[2] = v[2];				\
+      if (N>3) dest[3] = v[3];				\
    }							\
 }
 
 #define CHOOSE( ATTR, N )				\
 static void choose_##ATTR##_##N( const GLfloat *v )	\
 {							\
-   do_choose(ATTR, N, attrib_##ATTR##_##N, v);		\
+   do_choose(ATTR, N,					\
+	     attrib_##ATTR##_##N,			\
+	     choose_##ATTR##_1,				\
+	     choose_##ATTR##_2,				\
+	     choose_##ATTR##_3,				\
+	     choose_##ATTR##_4,				\
+	     v );					\
 }
 
 #define ATTRS( ATTRIB )				\
@@ -406,13 +432,6 @@ static void enum_error( void )
    GET_CURRENT_CONTEXT( ctx );
    _mesa_error( ctx, GL_INVALID_ENUM, __FUNCTION__ );
 }
-
-static void op_error( void )
-{
-   GET_CURRENT_CONTEXT( ctx );
-   _mesa_error( ctx, GL_INVALID_OPERATION, __FUNCTION__ );
-}
-
 
 static void _tnl_Vertex2f( GLfloat x, GLfloat y )
 {
@@ -666,16 +685,16 @@ static void _tnl_VertexAttrib4fvNV( GLuint index, const GLfloat *v )
  */
 #define MAT_ATTR( A, N, params )			\
 do {							\
-   if (tnl->vtx.attrib_sz[A] != N) {			\
-      tnl_fixup_vertex( ctx, A, N );			\
+   if (tnl->vtx.attrsz[A] != N) {			\
+      _tnl_fixup_vertex( ctx, A, N );			\
    }							\
 							\
    {							\
-      TNLfi *dest = tnl->vtx.attrptr[A];	      	\
-      if (N>0) dest[0].f = params[0];			\
-      if (N>1) dest[1].f = params[1];			\
-      if (N>2) dest[2].f = params[2];			\
-      if (N>3) dest[3].f = params[3];			\
+      GLfloat *dest = tnl->vtx.attrptr[A];	      	\
+      if (N>0) dest[0] = params[0];			\
+      if (N>1) dest[1] = params[1];			\
+      if (N>2) dest[2] = params[2];			\
+      if (N>3) dest[3] = params[3];			\
       ctx->Driver.NeedFlush |= FLUSH_UPDATE_CURRENT;	\
    }							\
 } while (0)
@@ -745,13 +764,13 @@ do {							\
    GET_CURRENT_CONTEXT( ctx );				\
    TNLcontext *tnl = TNL_CONTEXT(ctx);			\
 							\
-   if (tnl->vtx.attrib_sz[A] != 1) {			\
-      tnl_fixup_vertex( ctx, A, 1 );			\
+   if (tnl->vtx.attrsz[A] != 1) {			\
+      _tnl_fixup_vertex( ctx, A, 1 );			\
    }							\
 							\
    {							\
-      TNLfi *dest = tnl->vtx.attrptr[A];		\
-      dest[0].ui = IDX;				\
+      GLfloat *dest = tnl->vtx.attrptr[A];		\
+      dest[0] = IDX;				\
       ctx->Driver.NeedFlush |= FLUSH_UPDATE_CURRENT;	\
    }							\
 } while (0)
@@ -777,71 +796,99 @@ static void _tnl_Indexfv( const GLfloat *v )
    IDX_ATTR( _TNL_ATTRIB_INDEX, v[0] );
 }
 
-
-/* EvalCoord 
- *
- * Set a flag to indicate that this vertex is an eval point/coordinate.
- * Emit the vertex with the eval point/coord in attrib 0 (POS).
- * Set the flag back to zero.
+/* Eval
  */
-static void evalcoord( GLfloat a, GLfloat b, GLuint type ) 
-{
-   /* Do this with a 'CHOOSE()' function */
-   {
-      GET_CURRENT_CONTEXT( ctx );
-      TNLcontext *tnl = TNL_CONTEXT(ctx); 
-
-      if (tnl->eval.EvalNewState & _NEW_EVAL)
-	 _tnl_update_eval( ctx );
-
-      if (type == TNL_EVAL_COORD1 && !tnl->Eval._ActiveMap1Attrib[0].map)
-	 return;
-      if (type == TNL_EVAL_COORD2 && !tnl->Eval._ActiveMap2Attrib[0].map)
-	 return;
-   }
-    
-   IDX_ATTR( _TNL_ATTRIB_EVALFLAG, type );
-   ATTR2F( _TNL_ATTRIB_POS, a, b );
-   IDX_ATTR( _TNL_ATTRIB_EVALFLAG, TNL_EVAL_NONE );
-}
-
-
 static void _tnl_EvalCoord1f( GLfloat u )
 {
-   evalcoord( u, 0, TNL_EVAL_COORD1 );
-}
+   GET_CURRENT_CONTEXT( ctx );
+   TNLcontext *tnl = TNL_CONTEXT(ctx);
 
-static void _tnl_EvalCoord1fv( const GLfloat *v )
-{
-   evalcoord( v[0], 0, TNL_EVAL_COORD1 );
+   /* TODO: use a CHOOSE() function for this: */
+   {
+      GLint i;
+      if (tnl->vtx.eval.new_state) 
+	 _tnl_update_eval( ctx );
+
+      for (i = 0 ; i <= _TNL_ATTRIB_INDEX ; i++) {
+	 if (tnl->vtx.eval.map1[i].map) 
+	    if (tnl->vtx.attrsz[i] < tnl->vtx.eval.map1[i].sz)
+	       _tnl_fixup_vertex( ctx, i, tnl->vtx.eval.map1[i].sz );
+      }
+   }
+
+
+   memcpy( tnl->vtx.copied.buffer, tnl->vtx.vertex, 
+	   tnl->vtx.vertex_size * sizeof(GLfloat));
+
+   _tnl_do_EvalCoord1f( ctx, u );
+
+   memcpy( tnl->vtx.vertex, tnl->vtx.copied.buffer,
+	   tnl->vtx.vertex_size * sizeof(GLfloat));
 }
 
 static void _tnl_EvalCoord2f( GLfloat u, GLfloat v )
 {
-   evalcoord( u, v, TNL_EVAL_COORD2 );
+   GET_CURRENT_CONTEXT( ctx );
+   TNLcontext *tnl = TNL_CONTEXT(ctx);
+
+   /* TODO: use a CHOOSE() function for this: */
+   {
+      GLint i;
+      if (tnl->vtx.eval.new_state) 
+	 _tnl_update_eval( ctx );
+
+      for (i = 0 ; i <= _TNL_ATTRIB_INDEX ; i++) {
+	 if (tnl->vtx.eval.map2[i].map) 
+	    if (tnl->vtx.attrsz[i] < tnl->vtx.eval.map2[i].sz)
+	       _tnl_fixup_vertex( ctx, i, tnl->vtx.eval.map2[i].sz );
+      }
+
+      if (ctx->Eval.AutoNormal) 
+	 if (tnl->vtx.attrsz[_TNL_ATTRIB_NORMAL] < 3)
+	    _tnl_fixup_vertex( ctx, _TNL_ATTRIB_NORMAL, 3 );
+   }
+
+   memcpy( tnl->vtx.copied.buffer, tnl->vtx.vertex, 
+	   tnl->vtx.vertex_size * sizeof(GLfloat));
+
+   _tnl_do_EvalCoord2f( ctx, u, v );
+
+   memcpy( tnl->vtx.vertex, tnl->vtx.copied.buffer, 
+	   tnl->vtx.vertex_size * sizeof(GLfloat));
 }
 
-static void _tnl_EvalCoord2fv( const GLfloat *v )
+static void _tnl_EvalCoord1fv( const GLfloat *u )
 {
-   evalcoord( v[0], v[1], TNL_EVAL_COORD2 );
+   _tnl_EvalCoord1f( u[0] );
+}
+
+static void _tnl_EvalCoord2fv( const GLfloat *u )
+{
+   _tnl_EvalCoord2f( u[0], u[1] );
 }
 
 static void _tnl_EvalPoint1( GLint i )
 {
-   GET_CURRENT_CONTEXT(ctx);
-   GLfloat du = ctx->Eval.MapGrid1du;
-   GLfloat u1 = ctx->Eval.MapGrid1u1;
-   glEvalCoord1f( i * du + u1 );
+   GET_CURRENT_CONTEXT( ctx );
+   GLfloat du = ((ctx->Eval.MapGrid1u2 - ctx->Eval.MapGrid1u1) /
+		 (GLfloat) ctx->Eval.MapGrid1un);
+   GLfloat u = i * du + ctx->Eval.MapGrid1u1;
+
+   _tnl_EvalCoord1f( u );
 }
+
 
 static void _tnl_EvalPoint2( GLint i, GLint j )
 {
-   GET_CURRENT_CONTEXT(ctx);
-   GLfloat du = ctx->Eval.MapGrid1du;
-   GLfloat u1 = ctx->Eval.MapGrid1u1;
-   GLfloat dv = ctx->Eval.MapGrid1dv;
-   GLfloat v1 = ctx->Eval.MapGrid1v1;
-   glEvalCoord2f( i * du + u1, j * dv + v1 );
+   GET_CURRENT_CONTEXT( ctx );
+   GLfloat du = ((ctx->Eval.MapGrid2u2 - ctx->Eval.MapGrid2u1) / 
+		 (GLfloat) ctx->Eval.MapGrid2un);
+   GLfloat dv = ((ctx->Eval.MapGrid2v2 - ctx->Eval.MapGrid2v1) / 
+		 (GLfloat) ctx->Eval.MapGrid2vn);
+   GLfloat u = i * du + ctx->Eval.MapGrid2u1;
+   GLfloat v = j * dv + ctx->Eval.MapGrid2v1;
+
+   _tnl_EvalCoord2f( u, v );
 }
 
 
@@ -858,7 +905,7 @@ static void _tnl_Begin( GLenum mode )
 
       tnl->vtx.prim[i].mode = mode | PRIM_BEGIN;
       tnl->vtx.prim[i].start = tnl->vtx.initial_counter - tnl->vtx.counter;
-      tnl->vtx.prim[i].nr = 0;
+      tnl->vtx.prim[i].count = 0;
 
       ctx->Driver.CurrentExecPrimitive = mode;
    }
@@ -877,21 +924,21 @@ static void _tnl_End( void )
       int i = tnl->vtx.prim_count - 1;
 
       tnl->vtx.prim[i].mode |= PRIM_END; 
-      tnl->vtx.prim[i].nr = idx - tnl->vtx.prim[i].start;
+      tnl->vtx.prim[i].count = idx - tnl->vtx.prim[i].start;
 
       ctx->Driver.CurrentExecPrimitive = GL_POLYGON+1;
 
-      if (tnl->vtx.prim_count == _TNL_MAX_PRIM)
-	 _tnl_flush_immediate( ctx );	
+      if (tnl->vtx.prim_count == TNL_MAX_PRIM)
+	 _tnl_flush_vtx( ctx );	
    }
    else 
       _mesa_error( ctx, GL_INVALID_OPERATION, __FUNCTION__ );
 }
 
 
-void _tnl_imm_vtxfmt_init( GLcontext *ctx )
+static void _tnl_imm_vtxfmt_init( GLcontext *ctx )
 {
-   GLvertexformat *vfmt = &(TNL_CONTEXT(ctx)->vtxfmt);
+   GLvertexformat *vfmt = &(TNL_CONTEXT(ctx)->exec_vtxfmt);
    vfmt->ArrayElement = _ae_loopback_array_elt;	        /* generic helper */
    vfmt->Begin = _tnl_Begin;
    vfmt->CallList = _mesa_CallList;
@@ -914,16 +961,15 @@ void _tnl_imm_vtxfmt_init( GLcontext *ctx )
    vfmt->Indexfv = _tnl_Indexfv;
    vfmt->Materialfv = _tnl_Materialfv;
    vfmt->MultiTexCoord1fARB = _tnl_MultiTexCoord1f;
-   vfmt->MultiTexCoord1fvARB = _tnl_MultiTexCoord1fvARB;
+   vfmt->MultiTexCoord1fvARB = _tnl_MultiTexCoord1fv;
    vfmt->MultiTexCoord2fARB = _tnl_MultiTexCoord2f;
-   vfmt->MultiTexCoord2fvARB = _tnl_MultiTexCoord2fvARB;
+   vfmt->MultiTexCoord2fvARB = _tnl_MultiTexCoord2fv;
    vfmt->MultiTexCoord3fARB = _tnl_MultiTexCoord3f;
-   vfmt->MultiTexCoord3fvARB = _tnl_MultiTexCoord3fvARB;
+   vfmt->MultiTexCoord3fvARB = _tnl_MultiTexCoord3fv;
    vfmt->MultiTexCoord4fARB = _tnl_MultiTexCoord4f;
-   vfmt->MultiTexCoord4fvARB = _tnl_MultiTexCoord4fvARB;
+   vfmt->MultiTexCoord4fvARB = _tnl_MultiTexCoord4fv;
    vfmt->Normal3f = _tnl_Normal3f;
    vfmt->Normal3fv = _tnl_Normal3fv;
-   vfmt->Rectf = _tnl_Rectf;
    vfmt->SecondaryColor3fEXT = _tnl_SecondaryColor3fEXT;
    vfmt->SecondaryColor3fvEXT = _tnl_SecondaryColor3fvEXT;
    vfmt->TexCoord1f = _tnl_TexCoord1f;
@@ -948,6 +994,10 @@ void _tnl_imm_vtxfmt_init( GLcontext *ctx )
    vfmt->VertexAttrib3fvNV = _tnl_VertexAttrib3fvNV;
    vfmt->VertexAttrib4fNV = _tnl_VertexAttrib4fNV;
    vfmt->VertexAttrib4fvNV = _tnl_VertexAttrib4fvNV;
+
+   vfmt->Rectf = _mesa_noop_Rectf;
+   vfmt->EvalMesh1 = _mesa_noop_EvalMesh1;
+   vfmt->EvalMesh2 = _mesa_noop_EvalMesh2;
 }
 
 
@@ -957,17 +1007,11 @@ void _tnl_imm_vtxfmt_init( GLcontext *ctx )
 void _tnl_vtx_init( GLcontext *ctx )
 {
    TNLcontext *tnl = TNL_CONTEXT(ctx); 
-   _tnl_InitDispatch( tnl->Exec );
-
-   TNLcontext *tnl = TNL_CONTEXT(ctx);
-   struct tnl_vertex_arrays *tmp = &tnl->imm_inputs;
+   struct tnl_vertex_arrays *tmp = &tnl->vtx_inputs;
    GLuint i;
 
-   _mesa_vector1f_init( &tmp->Index, 0, 0 );
-   _mesa_vector1ub_init( &tmp->EdgeFlag, 0, 0 );
-
-   for (i = 0; i < _TNL_ATTRIB_EVALFLAG; i++)
-      _mesa_vector4f_init( &tmp->Attrib[i], 0, 0);
+   for (i = 0; i < _TNL_ATTRIB_INDEX; i++)
+      _mesa_vector4f_init( &tmp->Attribs[i], 0, 0);
 
    _tnl_imm_vtxfmt_init( ctx );
 }

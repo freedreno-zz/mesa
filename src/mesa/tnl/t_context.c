@@ -37,7 +37,6 @@
 
 #include "t_context.h"
 #include "t_array_api.h"
-#include "t_eval_api.h"
 #include "t_vtx_api.h"
 #include "t_save_api.h"
 #include "t_pipeline.h"
@@ -58,7 +57,7 @@ install_driver_callbacks( GLcontext *ctx )
 {
    ctx->Driver.NewList = _tnl_NewList;
    ctx->Driver.EndList = _tnl_EndList;
-   ctx->Driver.FlushVertices = _tnl_flush_vertices;
+   ctx->Driver.FlushVertices = _tnl_FlushVertices;
    ctx->Driver.MakeCurrent = _tnl_MakeCurrent;
    ctx->Driver.BeginCallList = _tnl_BeginCallList;
    ctx->Driver.EndCallList = _tnl_EndCallList;
@@ -90,7 +89,6 @@ _tnl_CreateContext( GLcontext *ctx )
    _tnl_save_init( ctx );
    _tnl_array_init( ctx );
    _tnl_vtx_init( ctx );
-   _tnl_eval_init( ctx );
    _tnl_install_pipeline( ctx, _tnl_default_pipeline );
 
 
@@ -148,7 +146,7 @@ _tnl_InvalidateState( GLcontext *ctx, GLuint new_state )
    tnl->pipeline.build_state_changes |= (new_state &
 					 tnl->pipeline.build_state_trigger);
 
-   tnl->eval.EvalNewState |= new_state;
+   tnl->vtx.eval.new_state |= new_state;
 }
 
 

@@ -1,82 +1,99 @@
+/*
+ * Mesa 3-D graphics library
+ * Version:  5.1
+ *
+ * Copyright (C) 1999-2003  Brian Paul   All Rights Reserved.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included
+ * in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+ * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+ * BRIAN PAUL BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+ * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ *
+ * Authors:
+ *    Keith Whitwell <keith@tungstengraphics.com>
+ */
+
+#include "glheader.h"
+#include "api_eval.h"
+#include "context.h"
+#include "macros.h"
+#include "math/m_eval.h"
+#include "t_vtx_api.h"
+#include "t_pipeline.h"
 
 /* Some nasty stuff still hanging on here.  
  *
  * TODO - remove VB->ColorPtr, etc and just use the AttrPtr's.
  */
-static void _tnl_vb_bind_immediate( GLcontext *ctx )
+static void _tnl_vb_bind_vtx( GLcontext *ctx )
 {
    TNLcontext *tnl = TNL_CONTEXT(ctx);
    struct vertex_buffer *VB = &tnl->vb;
-   struct tnl_vertex_arrays *tmp = &tnl->imm_inputs;
-   const GLuint count = IM->Count - start;
+   struct tnl_vertex_arrays *tmp = &tnl->vtx_inputs;
+   GLfloat *data = tnl->vtx.buffer;
+   GLuint count = tnl->vtx.initial_counter - tnl->vtx.counter;
+   GLuint attr, i;
 
    /* Setup constant data in the VB.
     */
    VB->Count = count;
    VB->Primitive = tnl->vtx.prim;
-   VB->PrimitiveNr = tnl->vtx.prim_nr;
+   VB->PrimitiveCount = tnl->vtx.prim_count;
    VB->Elts = NULL;
    VB->NormalLengthPtr = NULL;
 
-   GLuint attr;
-   for (attr = 0; attr < VERT_ATTRIB_EVALFLAG; attr++) {
-      tmp->Attribs[attr].count = count;
-      tmp->Attribs[attr].data = IM->Attrib[attr] + start;
-      tmp->Attribs[attr].start = (GLfloat *) (IM->Attrib[attr] + start);
-      tmp->Attribs[attr].size = 4;
-      tmp->Attribs[attr].stride = sz * sizeof(GLfloat);
-      VB->AttribPtr[attr] = &(tmp->Attribs[attr]);
+   for (attr = 0; attr <= _TNL_ATTRIB_INDEX ; attr++) {
+      if (tnl->vtx.attrsz[attr]) {
+	 tmp->Attribs[attr].count = count;
+	 tmp->Attribs[attr].data = (GLfloat (*)[4]) data;
+	 tmp->Attribs[attr].start = data;
+	 tmp->Attribs[attr].size = tnl->vtx.attrsz[attr];
+	 tmp->Attribs[attr].stride = tnl->vtx.vertex_size * sizeof(GLfloat);
+	 VB->AttribPtr[attr] = &tmp->Attribs[attr];
+	 data += tnl->vtx.attrsz[attr];
+      }
+      else {
+	 VB->AttribPtr[attr] = &tnl->current.Attribs[attr];
+      }
    }
 
-   /* Index and edgeflag require special treatment, as usual:
-    */
-   {
-      tmp->Index.count = count;
-      tmp->Index.data = IM->Index;
-      tmp->Index.start = IM->Index;
-      tmp->Index.stride = sz * sizeof(GLfloat);
-      VB->IndexPtr[0] = &tmp->Index;
-      VB->IndexPtr[1] = NULL;
-   }
    
    /* Copy and translate EdgeFlag to a contiguous array of GLbooleans
     */
-   {
-      VB->EdgeFlag = IM->EdgeFlag + start;
+   if (tnl->vtx.attrsz[_TNL_ATTRIB_EDGEFLAG]) {
+      VB->EdgeFlag = _tnl_translate_edgeflag( ctx, data, count,
+					      tnl->vtx.vertex_size );
+      data++;
    }
 
    /* Legacy pointers -- remove one day.
     */
-   VB->ObjPtr = &tmp->Attribs[VERT_ATTRIB_POS];
-   VB->NormalPtr = &tmp->Attribs[VERT_ATTRIB_NORMAL];
-   VB->ColorPtr[0] = &tmp->Attribs[VERT_ATTRIB_COLOR0];
-   VB->ColorPtr[1] = NULL;
-   VB->SecondaryColorPtr[0] = &tmp->Attribs[VERT_ATTRIB_COLOR1];
-   VB->SecondaryColorPtr[1] = NULL;
+   VB->ObjPtr = VB->AttribPtr[_TNL_ATTRIB_POS];
+   VB->NormalPtr = VB->AttribPtr[_TNL_ATTRIB_NORMAL];
+   VB->ColorPtr[0] = VB->AttribPtr[_TNL_ATTRIB_COLOR0];
+   VB->IndexPtr[0] = VB->AttribPtr[_TNL_ATTRIB_INDEX];
+   VB->SecondaryColorPtr[0] = VB->AttribPtr[_TNL_ATTRIB_COLOR1];
 
    for (i = 0; i < ctx->Const.MaxTextureCoordUnits; i++) {
-      VB->TexCoordPtr[i] = &tmp->Attribs[VERT_ATTRIB_TEX0 + i];
+      VB->TexCoordPtr[i] = VB->AttribPtr[_TNL_ATTRIB_TEX0 + i];
    }
 }
 
 
 
 
-static void copy_vertex( r200ContextPtr rmesa, GLuint n, GLfloat *dst )
-{
-   GLuint i;
-   GLfloat *src = (GLfloat *)(rmesa->dma.current.address + 
-			      rmesa->dma.current.ptr + 
-			      (rmesa->vb.primlist[rmesa->vb.nrprims].start + n) * 
-			      rmesa->vb.vertex_size * 4);
-
-   if (R200_DEBUG & DEBUG_VFMT) 
-      fprintf(stderr, "copy_vertex %d\n", rmesa->vb.primlist[rmesa->vb.nrprims].start + n);
-
-   for (i = 0 ; i < rmesa->vb.vertex_size; i++) {
-      dst[i] = src[i];
-   }
-}
 
 /*
  * NOTE: Need to have calculated primitives by this point -- do it on the fly.
@@ -85,10 +102,12 @@ static void copy_vertex( r200ContextPtr rmesa, GLuint n, GLfloat *dst )
 static GLuint _tnl_copy_vertices( GLcontext *ctx )
 {
    TNLcontext *tnl = TNL_CONTEXT( ctx );
-   GLuint nr = tnl->vtx.primlist[tnl->vtx.nrprims-1].nr;
+   GLuint nr = tnl->vtx.prim[tnl->vtx.prim_count-1].count;
    GLuint ovf, i;
+   GLuint sz = tnl->vtx.vertex_size;
+   GLfloat *dst = tnl->vtx.copied.buffer;
    GLfloat *src = (tnl->vtx.buffer + 
-		   tnl->vtx.primlist[tnl->vtx.nrprims].start * 
+		   tnl->vtx.prim[tnl->vtx.prim_count-1].start * 
 		   tnl->vtx.vertex_size);
 
 
@@ -99,23 +118,23 @@ static GLuint _tnl_copy_vertices( GLcontext *ctx )
    case GL_LINES:
       ovf = nr&1;
       for (i = 0 ; i < ovf ; i++)
-	 memcpy( dst+i*sz, src+(nr-ovf+i)*sz, sz*4 );
+	 memcpy( dst+i*sz, src+(nr-ovf+i)*sz, sz * sizeof(GLfloat) );
       return i;
    case GL_TRIANGLES:
       ovf = nr%3;
       for (i = 0 ; i < ovf ; i++)
-	 memcpy( dst+i*sz, src+(nr-ovf+i)*sz, sz*4 );
+	 memcpy( dst+i*sz, src+(nr-ovf+i)*sz, sz * sizeof(GLfloat) );
       return i;
    case GL_QUADS:
       ovf = nr&3;
       for (i = 0 ; i < ovf ; i++)
-	 memcpy( dst+i*sz, src+(nr-ovf+i)*sz, sz*4 );
+	 memcpy( dst+i*sz, src+(nr-ovf+i)*sz, sz * sizeof(GLfloat) );
       return i;
    case GL_LINE_STRIP:
       if (nr == 0) 
 	 return 0;
       else {
-	 memcpy( dst, src+(nr-1)*sz, sz*4 );
+	 memcpy( dst, src+(nr-1)*sz, sz * sizeof(GLfloat) );
 	 return 1;
       }
    case GL_LINE_LOOP:
@@ -124,11 +143,11 @@ static GLuint _tnl_copy_vertices( GLcontext *ctx )
       if (nr == 0) 
 	 return 0;
       else if (nr == 1) {
-	 memcpy( dst, src+0, sz*4 );
+	 memcpy( dst, src+0, sz * sizeof(GLfloat) );
 	 return 1;
       } else {
-	 memcpy( dst, src+0, sz*4 );
-	 memcpy( dst+sz, src+(nr-1)*sz, sz*4 );
+	 memcpy( dst, src+0, sz * sizeof(GLfloat) );
+	 memcpy( dst+sz, src+(nr-1)*sz, sz * sizeof(GLfloat) );
 	 return 2;
       }
    case GL_TRIANGLE_STRIP:
@@ -139,7 +158,7 @@ static GLuint _tnl_copy_vertices( GLcontext *ctx )
       default: ovf = 2 + (nr&1); break;
       }
       for (i = 0 ; i < ovf ; i++)
-	 memcpy( dst+i*sz, src+(nr-ovf+i)*sz, sz*4 );
+	 memcpy( dst+i*sz, src+(nr-ovf+i)*sz, sz * sizeof(GLfloat) );
       return i;
    case GL_POLYGON+1:
       return 0;
@@ -157,22 +176,19 @@ static GLuint _tnl_copy_vertices( GLcontext *ctx )
 /**
  * Execute the buffer and save copied verts.
  */
-void _tnl_flush_immediate( GLcontext *ctx )
+void _tnl_flush_vtx( GLcontext *ctx )
 {
    TNLcontext *tnl = TNL_CONTEXT(ctx);
 
-   if (!tnl->vtx.prim_nr) 
+   if (!tnl->vtx.prim_count) 
       return;
 
-   tnl->copied_verts.nr = _tnl_copy_vertices( ctx ); 
+   tnl->vtx.copied.nr = _tnl_copy_vertices( ctx ); 
    
    if (tnl->pipeline.build_state_changes)
       _tnl_validate_pipeline( ctx );
 
-   _tnl_vb_bind_immediate( ctx );
-
-   if (tnl->vtx.attrsz[VERT_ATTRIB_EVALFLAG])
-      _tnl_eval_immediate( ctx );
+   _tnl_vb_bind_vtx( ctx );
 
    /* Invalidate all stored data before and after run:
     */
@@ -185,13 +201,16 @@ void _tnl_flush_immediate( GLcontext *ctx )
 
 
 
-void _tnl_flush_vertices( GLcontext *ctx, GLuint flags )
+void _tnl_FlushVertices( GLcontext *ctx, GLuint flags )
 {
+   TNLcontext *tnl = TNL_CONTEXT(ctx);
+   GLuint i;
+
    if (ctx->Driver.CurrentExecPrimitive != PRIM_OUTSIDE_BEGIN_END)
       return;
 
    if (tnl->vtx.counter != tnl->vtx.initial_counter)
-      _tnl_flush_immediate( ctx );
+      _tnl_flush_vtx( ctx );
 
    if (flags & FLUSH_UPDATE_CURRENT) {
       _tnl_copy_to_current( ctx );
@@ -200,7 +219,7 @@ void _tnl_flush_vertices( GLcontext *ctx, GLuint flags )
       /* DO THIS IN _tnl_reset_vtxfmt:
        */
       tnl->vtx.vertex_size = 0;
-      for (i = 0 ; i < TNL_MAX_ATTRIB ; i++) 
-	 tnl->vtx.attrib[i].sz = 0;
+      for (i = 0 ; i < _TNL_ATTRIB_MAX ; i++) 
+	 tnl->vtx.attrsz[i] = 0;
    }
 }

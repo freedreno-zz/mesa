@@ -646,9 +646,9 @@ static void TAG(light_ci)( GLcontext *ctx,
    if (stage->changed_inputs == 0)
       return;
 
-   indexResult[0] = VB->IndexPtr[0]->data;
+   indexResult[0] = (GLfloat *)VB->IndexPtr[0]->data;
    if (IDX & LIGHT_TWOSIDE)
-      indexResult[1] = VB->IndexPtr[1]->data;
+      indexResult[1] = (GLfloat *)VB->IndexPtr[1]->data;
 
    /* loop over vertices */
    for (j=0; j<nr; j++,STRIDE_F(vertex,vstride),STRIDE_F(normal, nstride)) {

@@ -56,7 +56,7 @@ static void _tnl_bind_vertex_list( GLcontext *ctx,
    VB->IndexPtr[1] = NULL;
 
 
-   for (attr = 0; attr < _TNL_ATTRIB_EVALFLAG; attr++) {
+   for (attr = 0; attr <= _TNL_ATTRIB_INDEX; attr++) {
       if (node->attrsz[attr]) {
 	 tmp->Attribs[attr].count = node->count;
 	 tmp->Attribs[attr].data = (GLfloat (*)[4]) data;
@@ -71,21 +71,12 @@ static void _tnl_bind_vertex_list( GLcontext *ctx,
       }
    }
 
-   /* Index and edgeflag require special treatment, as usual:
-    */
-   if (node->attrsz[_TNL_ATTRIB_INDEX]) {
-      tmp->Index.count = node->count;
-      tmp->Index.data = data;
-      tmp->Index.start = data;
-      tmp->Index.stride = node->vertex_size * sizeof(GLfloat);
-      VB->IndexPtr[0] = &tmp->Index;
-      data++;
-   }
    
-   /* Copy edgeflag to a contiguous array?
+   /* Copy edgeflag to a contiguous array
     */
    if (node->attrsz[_TNL_ATTRIB_EDGEFLAG]) {
-      VB->EdgeFlag = _tnl_translate_edgeflag( ctx, data, node->vertex_size );
+      VB->EdgeFlag = _tnl_translate_edgeflag( ctx, data, node->count,
+					      node->vertex_size );
       data++;
    }
 
@@ -94,6 +85,7 @@ static void _tnl_bind_vertex_list( GLcontext *ctx,
    VB->ObjPtr = VB->AttribPtr[_TNL_ATTRIB_POS];
    VB->NormalPtr = VB->AttribPtr[_TNL_ATTRIB_NORMAL];
    VB->ColorPtr[0] = VB->AttribPtr[_TNL_ATTRIB_COLOR0];
+   VB->IndexPtr[0] = VB->AttribPtr[_TNL_ATTRIB_INDEX];
    VB->SecondaryColorPtr[0] = VB->AttribPtr[_TNL_ATTRIB_COLOR1];
 
    for (i = 0; i < ctx->Const.MaxTextureCoordUnits; i++) {
