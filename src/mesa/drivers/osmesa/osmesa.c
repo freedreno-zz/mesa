@@ -1,10 +1,10 @@
-/* $Id: osmesa.c,v 1.71 2001/09/25 17:38:11 keithw Exp $ */
+/* $Id: osmesa.c,v 1.71.2.1 2002/03/01 04:23:16 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.5
+ * Version:  4.0.2
  *
- * Copyright (C) 1999-2001  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -427,21 +427,19 @@ static void compute_row_addresses( OSMesaContext ctx )
  * with the lower-left image pixel stored in the first array position
  * (ie. bottom-to-top).
  *
- * Since the only type initially supported is GL_UNSIGNED_BYTE, if the
- * context is in RGBA mode, each pixel will be stored as a 4-byte RGBA
- * value.  If the context is in color indexed mode, each pixel will be
- * stored as a 1-byte value.
- *
  * If the context's viewport hasn't been initialized yet, it will now be
  * initialized to (0,0,width,height).
  *
  * Input:  ctx - the rendering context
  *         buffer - the image buffer memory
- *         type - data type for pixel components, only GL_UNSIGNED_BYTE
- *                and GL_UNSIGNED_SHORT_5_6_5 supported now.
+ *         type - data type for pixel components
+ *            Normally, only GL_UNSIGNED_BYTE and GL_UNSIGNED_SHORT_5_6_5
+ *            are supported.  But if Mesa's been compiled with CHAN_BITS==16
+ *            then type must be GL_UNSIGNED_SHORT.  And if Mesa's been build
+ *            with CHAN_BITS==32 then type must be GL_FLOAT.
  *         width, height - size of image buffer in pixels, at least 1
  * Return:  GL_TRUE if success, GL_FALSE if error because of invalid ctx,
- *          invalid buffer address, type!=GL_UNSIGNED_BYTE, width<1, height<1,
+ *          invalid buffer address, invalid type, width<1, height<1,
  *          width>internal limit or height>internal limit.
  */
 GLAPI GLboolean GLAPIENTRY
