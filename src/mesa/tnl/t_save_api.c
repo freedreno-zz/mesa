@@ -684,7 +684,7 @@ do { 						\
 static void enum_error( void )
 {
    GET_CURRENT_CONTEXT( ctx );
-   _mesa_error( ctx, GL_INVALID_ENUM, __FUNCTION__ );
+   _mesa_compile_error( ctx, GL_INVALID_ENUM, __FUNCTION__ );
 }
 
 static void _save_Vertex2f( GLfloat x, GLfloat y )
@@ -995,7 +995,7 @@ static void _save_Materialfv( GLenum face, GLenum pname,
       MAT( _TNL_ATTRIB_MAT_FRONT_DIFFUSE, 4, face, params );
       break;
    default:
-      _mesa_error( ctx, GL_INVALID_ENUM, __FUNCTION__ );
+      _mesa_compile_error( ctx, GL_INVALID_ENUM, __FUNCTION__ );
       return;
    }
 }
@@ -1160,7 +1160,7 @@ static void _save_DrawElements(GLenum mode, GLsizei count, GLenum type,
 			       const GLvoid *indices)
 {
    GET_CURRENT_CONTEXT(ctx);
-   _mesa_error( ctx, GL_INVALID_OPERATION, __FUNCTION__);
+   _mesa_compile_error( ctx, GL_INVALID_OPERATION, __FUNCTION__);
 }
 
 
@@ -1170,38 +1170,38 @@ static void _save_DrawRangeElements(GLenum mode,
 				    const GLvoid *indices)
 {
    GET_CURRENT_CONTEXT(ctx);
-   _mesa_error( ctx, GL_INVALID_OPERATION, __FUNCTION__);
+   _mesa_compile_error( ctx, GL_INVALID_OPERATION, __FUNCTION__);
 }
 
 static void _save_DrawArrays(GLenum mode, GLint start, GLsizei count)
 {
    GET_CURRENT_CONTEXT(ctx);
-   _mesa_error( ctx, GL_INVALID_OPERATION, __FUNCTION__);
+   _mesa_compile_error( ctx, GL_INVALID_OPERATION, __FUNCTION__);
 }
 
 static void _save_Rectf( GLfloat x1, GLfloat y1, GLfloat x2, GLfloat y2 )
 {
    GET_CURRENT_CONTEXT(ctx);
-   _mesa_error( ctx, GL_INVALID_OPERATION, __FUNCTION__);
+   _mesa_compile_error( ctx, GL_INVALID_OPERATION, __FUNCTION__);
 }
 
 static void _save_EvalMesh1( GLenum mode, GLint i1, GLint i2 )
 {
    GET_CURRENT_CONTEXT(ctx);
-   _mesa_error( ctx, GL_INVALID_OPERATION, __FUNCTION__);
+   _mesa_compile_error( ctx, GL_INVALID_OPERATION, __FUNCTION__);
 }
 
 static void _save_EvalMesh2( GLenum mode, GLint i1, GLint i2,
 				  GLint j1, GLint j2 )
 {
    GET_CURRENT_CONTEXT(ctx);
-   _mesa_error( ctx, GL_INVALID_OPERATION, __FUNCTION__);
+   _mesa_compile_error( ctx, GL_INVALID_OPERATION, __FUNCTION__);
 }
 
 static void _save_Begin( GLenum mode )
 {
    GET_CURRENT_CONTEXT( ctx );
-   _mesa_error( ctx, GL_INVALID_OPERATION, "Recursive begin" );
+   _mesa_compile_error( ctx, GL_INVALID_OPERATION, "Recursive begin" );
 }
 
 
