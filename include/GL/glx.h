@@ -1,4 +1,4 @@
-/* $Id: glx.h,v 1.38 2002/10/14 13:52:27 brianp Exp $ */
+/* $Id: glx.h,v 1.38.4.1 2003/02/23 19:37:15 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -295,7 +295,7 @@ extern void glXGetSelectedEvent( Display *dpy, GLXDrawable drawable,
 
 
 /* GLX 1.4 and later */
-extern void (*glXGetProcAddress(const GLubyte *procname))();
+extern void (*glXGetProcAddress(const GLubyte *procname))( void );
 
 
 #ifndef GLX_GLXEXT_LEGACY
