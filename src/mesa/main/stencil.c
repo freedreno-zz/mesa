@@ -1,10 +1,10 @@
-/* $Id: stencil.c,v 1.16.4.1 2000/11/28 21:30:44 brianp Exp $ */
+/* $Id: stencil.c,v 1.16.4.2 2001/02/23 20:08:09 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.4
+ * Version:  3.4.2
  * 
- * Copyright (C) 1999-2000  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2001  Brian Paul   All Rights Reserved.
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -1039,47 +1039,48 @@ _mesa_stencil_and_ztest_pixels( GLcontext *ctx,
    if (ctx->Driver.WriteStencilPixels) {
       /*** Hardware stencil buffer ***/
       GLstencil stencil[PB_SIZE];
-      GLubyte mask[PB_SIZE];
+      GLubyte origMask[PB_SIZE];
 
       ASSERT(ctx->Driver.ReadStencilPixels);
       (*ctx->Driver.ReadStencilPixels)(ctx, n, x, y, stencil);
-
 
       if (do_stencil_test( ctx, n, stencil, mask ) == GL_FALSE) {
          /* all fragments failed the stencil test, we're done. */
          return GL_FALSE;
       }
 
+      MEMCPY(origMask, mask, n * sizeof(GLubyte));
+
       if (ctx->Depth.Test == GL_FALSE) {
          apply_stencil_op( ctx, ctx->Stencil.ZPassFunc, n, stencil, mask );
       }
       else {
-         GLubyte passmask[PB_SIZE], failmask[PB_SIZE], oldmask[PB_SIZE];
-         GLuint i;
-
-         MEMCPY(oldmask, mask, n * sizeof(GLubyte));
-
          _mesa_depth_test_pixels(ctx, n, x, y, z, mask);
 
-         for (i=0;i<n;i++) {
-            ASSERT(mask[i] == 0 || mask[i] == 1);
-            passmask[i] = oldmask[i] & mask[i];
-            failmask[i] = oldmask[i] & (mask[i] ^ 1);
-         }
-
          if (ctx->Stencil.ZFailFunc != GL_KEEP) {
-            apply_stencil_op( ctx, ctx->Stencil.ZFailFunc, n, stencil, failmask );
+            GLubyte failmask[PB_SIZE];
+            GLuint i;
+            for (i = 0; i < n; i++) {
+               ASSERT(mask[i] == 0 || mask[i] == 1);
+               failmask[i] = origMask[i] & (mask[i] ^ 1);
+            }
+            apply_stencil_op(ctx, ctx->Stencil.ZFailFunc, n, stencil, failmask);
          }
          if (ctx->Stencil.ZPassFunc != GL_KEEP) {
-            apply_stencil_op( ctx, ctx->Stencil.ZPassFunc, n, stencil, passmask );
+            GLubyte passmask[PB_SIZE];
+            GLuint i;
+            for (i = 0; i < n; i++) {
+               ASSERT(mask[i] == 0 || mask[i] == 1);
+               passmask[i] = origMask[i] & mask[i];
+            }
+            apply_stencil_op(ctx, ctx->Stencil.ZPassFunc, n, stencil, passmask);
          }
       }
 
       /* Write updated stencil values into hardware stencil buffer */
-      (ctx->Driver.WriteStencilPixels)(ctx, n, x, y, stencil, mask );
+      (ctx->Driver.WriteStencilPixels)(ctx, n, x, y, stencil, origMask );
 
       return GL_TRUE;
-
    }
    else {
       /*** Software stencil buffer ***/
@@ -1088,7 +1089,6 @@ _mesa_stencil_and_ztest_pixels( GLcontext *ctx,
          /* all fragments failed the stencil test, we're done. */
          return GL_FALSE;
       }
-
 
       if (ctx->Depth.Test==GL_FALSE) {
          apply_stencil_op_to_pixels( ctx, n, x, y, ctx->Stencil.ZPassFunc, mask );
