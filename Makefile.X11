@@ -1,4 +1,4 @@
-# $Id: Makefile.X11,v 1.32.2.4 2000/10/23 19:38:26 brianp Exp $
+# $Id: Makefile.X11,v 1.32.2.5 2000/10/26 19:35:53 brianp Exp $
 
 # Mesa 3-D graphics library
 # Version:  3.4
@@ -458,7 +458,6 @@ LIB_FILES =	\
 	$(DIRECTORY)/src/X86/*.[ch]				\
 	$(DIRECTORY)/src/X86/Makefile.am			\
 	$(DIRECTORY)/src/X86/Makefile.in			\
-	$(DIRECTORY)/src/X86/*.m4				\
 	$(DIRECTORY)/src/X86/*.S				\
 	$(DIRECTORY)/src-glu/README[12]				\
 	$(DIRECTORY)/src-glu/Makefile*				\
