@@ -1,4 +1,4 @@
-/* $Id: accum.c,v 1.11 1999/11/11 01:22:25 brianp Exp $ */
+/* $Id: accum.c,v 1.10.2.1 1999/11/27 01:35:42 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -25,13 +25,22 @@
  */
 
 
+/* $XFree86: xc/lib/GL/mesa/src/accum.c,v 1.3 1999/04/04 00:20:17 dawes Exp $ */
+
 #ifdef PC_HEADER
 #include "all.h"
 #else
-#include "glheader.h"
+#ifndef XFree86Server
+#include <assert.h>
+#include <limits.h>
+#include <stdlib.h>
+#include <string.h>
+#else
+#include "GL/xf86glx.h"
+#endif
 #include "accum.h"
 #include "context.h"
-#include "mem.h"
+#include "macros.h"
 #include "masking.h"
 #include "span.h"
 #include "types.h"
@@ -92,10 +101,9 @@ void gl_alloc_accum_buffer( GLcontext *ctx )
 
 
 
-void
-_mesa_ClearAccum( GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha )
+void gl_ClearAccum( GLcontext *ctx,
+                    GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha )
 {
-   GET_CURRENT_CONTEXT(ctx);
    ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx, "glAccum");
 
    ctx->Accum.ClearColor[0] = CLAMP( red, -1.0, 1.0 );
@@ -131,10 +139,8 @@ static void rescale_accum( GLcontext *ctx )
 
 
 
-void
-_mesa_Accum( GLenum op, GLfloat value )
+void gl_Accum( GLcontext *ctx, GLenum op, GLfloat value )
 {
-   GET_CURRENT_CONTEXT(ctx);
    GLuint xpos, ypos, width, height, width4;
    GLfloat acc_scale;
    GLubyte rgba[MAX_WIDTH][4];
@@ -338,7 +344,7 @@ _mesa_Accum( GLenum op, GLfloat value )
             static GLchan multTable[32768];
             static GLfloat prevMult = 0.0;
             GLuint j;
-            const GLint max = 256 / mult;
+            const GLint max = (GLint) (256 / mult);
             if (mult != prevMult) {
                assert(max <= 32768);
                for (j = 0; j < max; j++)
