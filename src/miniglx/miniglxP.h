@@ -251,10 +251,8 @@ struct MiniGLXDisplayRec {
    int NumWindows;
    Window TheWindow;     /* only allow one window for now */
 
-   int width;
-   int height;
-   int bpp;
-   int cpp;
+/*    int bpp;  */
+   int cpp; 
 
    int numConfigs;
    __GLXvisualConfig *configs;

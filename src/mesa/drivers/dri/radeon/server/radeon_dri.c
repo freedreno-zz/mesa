@@ -215,7 +215,7 @@ static int RADEONDRIAgpInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info)
 static int RADEONDRIKernelInit(struct MiniGLXDisplayRec *dpy,
 			       RADEONInfoPtr info)
 {
-   int cpp = dpy->bpp / 8;
+   int cpp = dpy->VarInfo.bits_per_pixel / 8;
    drmRadeonInit  drmInfo;
    int ret;
 
@@ -235,8 +235,8 @@ static int RADEONDRIKernelInit(struct MiniGLXDisplayRec *dpy,
    drmInfo.agp_size            = info->agpSize*1024*1024;
    drmInfo.ring_size           = info->ringSize*1024*1024;
    drmInfo.usec_timeout        = 1000;
-   drmInfo.fb_bpp              = dpy->bpp;
-   drmInfo.depth_bpp           = dpy->bpp;
+   drmInfo.fb_bpp              = dpy->VarInfo.bits_per_pixel;
+   drmInfo.depth_bpp           = dpy->VarInfo.bits_per_pixel;
    drmInfo.front_offset        = info->frontOffset;
    drmInfo.front_pitch         = info->frontPitch * cpp;
    drmInfo.back_offset         = info->backOffset;
@@ -373,7 +373,7 @@ static int RADEONSetPitch (struct MiniGLXDisplayRec *dpy)
     int  dummy = dpy->VarInfo.xres_virtual;
 
     /* FIXME: May need to validate line pitch here */
-    switch (dpy->bpp / 8) {
+    switch (dpy->VarInfo.bits_per_pixel / 8) {
     case 1: dummy = (dpy->VarInfo.xres_virtual + 127) & ~127; break;
     case 2: dummy = (dpy->VarInfo.xres_virtual +  31) &  ~31; break;
     case 3:
@@ -431,9 +431,10 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
       if (maxy <= dpy->VarInfo.yres_virtual * 3) {
 	 fprintf(stderr, 
 		 "Static buffer allocation failed -- "
-		 "need at least %d kB video memory\n",
+		 "need at least %d kB video memory (have %d kB)\n",
 		 (dpy->VarInfo.xres_virtual * dpy->VarInfo.yres_virtual *
-		  dpy->cpp * 3 + 1023) / 1024);
+		  dpy->cpp * 3 + 1023) / 1024,
+		 dpy->FrameBufferSize / 1024);
 	 return 0;
       } 
    }
@@ -678,8 +679,8 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
    pRADEONDRI->deviceID          = info->Chipset;
    pRADEONDRI->width             = dpy->VarInfo.xres_virtual;
    pRADEONDRI->height            = dpy->VarInfo.yres_virtual;
-   pRADEONDRI->depth             = dpy->bpp; /* XXX: was depth */
-   pRADEONDRI->bpp               = dpy->bpp;
+   pRADEONDRI->depth             = dpy->VarInfo.bits_per_pixel; /* XXX: was depth */
+   pRADEONDRI->bpp               = dpy->VarInfo.bits_per_pixel;
    pRADEONDRI->IsPCI             = 0;
    pRADEONDRI->AGPMode           = info->agpMode;
    pRADEONDRI->frontOffset       = info->frontOffset;

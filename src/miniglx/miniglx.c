@@ -1,4 +1,4 @@
-/* $Id: miniglx.c,v 1.1.4.16 2002/12/19 10:16:19 keithw Exp $ */
+/* $Id: miniglx.c,v 1.1.4.17 2002/12/19 13:48:27 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -341,6 +341,8 @@ SetupFBDev( Display *dpy, Window win )
       return GL_FALSE;
    }
 
+   dpy->cpp = dpy->VarInfo.bits_per_pixel / 8;
+
    if (0)
    {
       int x, y;
@@ -505,7 +507,7 @@ int __read_config_file( Display *dpy )
 {
    dpy->fbdevDevice = "/dev/fb0";
    dpy->clientDriverName = "radeon_dri.so";
-   dpy->drmModuleName = "radeon.o";
+   dpy->drmModuleName = "radeon";
    dpy->pciBus = 1;
    dpy->pciDevice = 0;
    dpy->pciFunc = 0;
@@ -567,22 +569,12 @@ XOpenDisplay( const char *display_name )
       return NULL;
    }
 
-
    dpy->createScreen = (CreateScreenFunc) dlsym(dpy->dlHandle,
                                                 "__driCreateScreen");
    if (!dpy->createScreen) {
       fprintf(stderr, "Couldn't find __driCreateScreen in %s\n",
               dpy->clientDriverName);
       dlclose(dpy->dlHandle);
-      FREE(dpy);
-      return NULL;
-   }
-
-   /* this effectively initializes the DRI driver - just an idea */
-   dpy->driScreen.private = (*dpy->createScreen)(dpy, 0, &(dpy->driScreen),
-                                                 dpy->numConfigs,
-                                                 dpy->configs);
-   if (!dpy->driScreen.private) {
       FREE(dpy);
       return NULL;
    }
@@ -637,7 +629,9 @@ XCreateWindow( Display *dpy, Window parent, int x, int y,
    win->h = height;
    win->visual = visual;  /* ptr assignment */
 
-   /* do fbdev setup */
+   /* do fbdev setup
+    * TODO:  Let the driver influence the choice of window pitch.
+    */
    if (!SetupFBDev(dpy, win)) {
       FREE(win);
       return NULL;
@@ -663,6 +657,34 @@ XCreateWindow( Display *dpy, Window parent, int x, int y,
       win->backBottom = NULL;
       win->curBottom = win->frontBottom;
    }
+
+
+   /* Perform the initialization normally done in the X server */
+   if (!dpy->driverInitFBDev( dpy )) {
+      RestoreFBDev(dpy);
+      FREE(win);
+      return NULL;
+   }
+
+   /* Perform the client-side initialization.  Have to do this here as
+    * it depends on the display resolution chosen, which in this
+    * window system depends on the size of the "window" created.
+    *
+    * Clearly there is a limit of one on the number of windows in
+    * existence at any time.
+    *
+    * Need to shut down drm and free dri data in XDestroyWindow, too.
+    */
+   dpy->driScreen.private = (*dpy->createScreen)(dpy, 0, &(dpy->driScreen),
+                                                 dpy->numConfigs,
+                                                 dpy->configs);
+   if (!dpy->driScreen.private) {
+      RestoreFBDev(dpy);
+      FREE(win);
+      return NULL;
+   }
+
+
 
    win->driDrawable.private = dpy->driScreen.createDrawable(dpy, 0, win,
                              visual->visInfo->visualid, &(win->driDrawable));
