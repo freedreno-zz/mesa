@@ -1,4 +1,4 @@
-/* $Id: wmesa.c,v 1.22.2.8 2002/06/24 20:18:04 kschultz Exp $ */
+/* $Id: wmesa.c,v 1.22.2.9 2002/08/28 17:08:37 kschultz Exp $ */
 
 /*
  * Windows (Win32) device driver for Mesa 3.4
@@ -1346,16 +1346,6 @@ WMesaContext WMesaCreateContext( HWND hWnd, HPALETTE* Pal,
     return NULL;
   }
   
-  if (!_mesa_initialize_context(c->gl_ctx,
-				c->gl_visual,
-				(GLcontext *) NULL,
-				(void *) c, GL_TRUE )) {
-    _mesa_destroy_visual( c->gl_visual );
-    free(c);
-    return NULL;
-  }
-  
-  
   _mesa_enable_sw_extensions(c->gl_ctx);
   _mesa_enable_1_3_extensions(c->gl_ctx);
 
@@ -1407,7 +1397,8 @@ void WMesaDestroyContext( void )
   _mesa_destroy_visual( c->gl_visual );
   _mesa_destroy_framebuffer( c->gl_buffer );
   _mesa_free_context_data( c->gl_ctx );
-    
+  free( (void *) c->gl_ctx);
+  
   if (c->db_flag)
 #ifdef DDRAW
     DDFree(c);
