@@ -1,4 +1,4 @@
-# $Id: Makefile.X11,v 1.12.2.7 2000/03/22 23:48:00 brianp Exp $
+# $Id: Makefile.X11,v 1.12.2.8 2000/03/23 00:14:28 brianp Exp $
 
 # Mesa 3-D graphics library
 # Version:  3.2
@@ -538,13 +538,13 @@ DEMO_FILES =	\
 
 lib_tar:
 	cd .. ; \
-	tar -cvf $(LIB_NAME).tar $(LIB_FILES) ; \
+	tar --exclude CVS -c -v -f $(LIB_NAME).tar $(LIB_FILES) ; \
 	gzip $(LIB_NAME).tar ; \
 	mv $(LIB_NAME).tar.gz $(DIRECTORY)
 
 demo_tar:
 	cd .. ; \
-	tar -cvf $(DEMO_NAME).tar $(DEMO_FILES) ; \
+	tar --exclude CVS -c -v -f $(DEMO_NAME).tar $(DEMO_FILES) ; \
 	gzip $(DEMO_NAME).tar ; \
 	mv $(DEMO_NAME).tar.gz $(DIRECTORY)
 
