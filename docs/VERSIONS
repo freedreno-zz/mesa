@@ -1,4 +1,4 @@
-$Id: VERSIONS,v 1.13.2.5 1999/12/14 07:17:42 brianp Exp $
+$Id: VERSIONS,v 1.13.2.6 2000/01/05 06:57:54 brianp Exp $
 
 
 Mesa Version History
@@ -670,3 +670,9 @@ Mesa Version History
 	- several vertex array bug fixes
 	- overlapping glCopyPixels with pixel zooming now works
 	- glXUseXFont() bitmaps were vertically shifted by one pixel
+
+
+3.2  January ??, 2000
+    Bug fixes:
+	- mixed drawing of lines and bitmaps sometimes had wrong colors
+
