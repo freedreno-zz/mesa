@@ -22,7 +22,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: miniglx.c,v 1.1.4.35 2003/01/17 16:19:19 keithw Exp $ */
+/* $Id: miniglx.c,v 1.1.4.36 2003/01/17 19:01:22 keithw Exp $ */
 
 
 /**
@@ -441,18 +441,27 @@ SetupFBDev( Display *dpy, Window win )
    if (dpy->FixedInfo.visual == FB_VISUAL_DIRECTCOLOR) {
       struct fb_cmap cmap;
       unsigned short red[256], green[256], blue[256];
+      int rcols = 1 << dpy->VarInfo.red.length;
+      int gcols = 1 << dpy->VarInfo.green.length;
+      int bcols = 1 << dpy->VarInfo.blue.length;
       int i;
 
-      /* we're assuming 256 entries here */
-      cmap.start = 0;
-      cmap.len = 256;
+      cmap.start = 0;      
+      cmap.len = gcols;
       cmap.red   = red;
       cmap.green = green;
       cmap.blue  = blue;
       cmap.transp = NULL;
-      for (i = 0; i < cmap.len; i++) {
-         red[i] = green[i] = blue[i] = (i << 8) | i;
-      }
+
+      for (i = 0; i < rcols ; i++) 
+         red[i] = (65536/(rcols-1)) * i;
+
+      for (i = 0; i < gcols ; i++) 
+         green[i] = (65536/(gcols-1)) * i;
+
+      for (i = 0; i < bcols ; i++) 
+         blue[i] = (65536/(bcols-1)) * i;
+      
       if (ioctl(dpy->FrameBufferFD, FBIOPUTCMAP, (void *) &cmap) < 0) {
          fprintf(stderr, "ioctl(FBIOPUTCMAP) failed [%d]\n", i);
 	 exit(1);
@@ -635,12 +644,6 @@ int __read_config_file( Display *dpy )
       else if (strcmp(opt, "bpp") == 0) {
 	 if (sscanf(val, "%d", &dpy->bpp) != 1)
 	    fprintf(stderr, "malformed bpp: %s\n", opt);
-#if 1
- 	 if (dpy->bpp != 32) { 
- 	    fprintf(stderr, "Only 32bpp modes currently supported\n"); 
- 	    dpy->bpp = 32; 
- 	 } 
-#endif
 	 dpy->cpp = dpy->bpp / 8;
       }
    }
