@@ -599,22 +599,22 @@ static char *GET_MON_NAME(int type)
 
 	switch (type) {
 		case MT_NONE:
-			pret = "no";
+			pret = (char *)"no";
 			break;
 		case MT_CRT:
-			pret = "CRT";
+			pret = (char *)"CRT";
 			break;
 		case MT_DFP:
-			pret = "DFP";
+			pret = (char *)"DFP";
 			break;
 		case MT_LCD:
-			pret = "LCD";
+			pret = (char *)"LCD";
 			break;
 		case MT_CTV:
-			pret = "CTV";
+			pret = (char *)"CTV";
 			break;
 		case MT_STV:
-			pret = "STV";
+			pret = (char *)"STV";
 			break;
 	}
 
@@ -894,6 +894,7 @@ static struct backlight_controller radeon_backlight_controller = {
 #endif /* CONFIG_PMAC_BACKLIGHT */
 
 
+#if 0
 static void OUTMC( struct radeonfb_info *rinfo, u8 indx, u32 value);
 static u32 INMC(struct radeonfb_info *rinfo, u8 indx);
 static void radeon_pm_disable_dynamic_mode(struct radeonfb_info *rinfo);
@@ -902,6 +903,7 @@ static void radeon_pm_yclk_mclk_sync(struct radeonfb_info *rinfo);
 static void radeon_pm_program_mode_reg(struct radeonfb_info *rinfo, u16 value, u8 delay_required);
 static void radeon_pm_enable_dll(struct radeonfb_info *rinfo);
 static void radeon_pm_full_reset_sdram(struct radeonfb_info *rinfo);
+#endif
 
 
 
@@ -917,7 +919,7 @@ static struct fb_ops radeon_fb_ops = {
 
 
 static struct pci_driver radeonfb_driver = {
-	name:		"radeonfb",
+	name:		(char *)"radeonfb",
 	id_table:	radeonfb_pci_table,
 	probe:		radeonfb_pci_register,
 	remove:		__devexit_p(radeonfb_pci_unregister),
@@ -4454,6 +4456,7 @@ static void fbcon_radeon_bmove(struct display *p, int srcy, int srcx,
 };
 
 
+#if defined(FBCON_HAS_CFB8) || defined(FBCON_HAS_CFB16)
 static void radeon_rectfill  (struct radeonfb_info *rinfo,
 			    int dsty, int dstx,
 			    int height, int width,
@@ -4472,6 +4475,7 @@ static void radeon_rectfill  (struct radeonfb_info *rinfo,
 
 	radeon_engine_idle();
 }
+#endif
 
 
 
