@@ -1,4 +1,4 @@
-/* $Id: multiarb.c,v 1.10 2001/06/20 19:12:30 brianp Exp $ */
+/* $Id: multiarb.c,v 1.10.2.1 2002/09/12 17:04:22 kschultz Exp $ */
 
 /*
  * GL_ARB_multitexture demo
@@ -12,6 +12,10 @@
 
 /*
  * $Log: multiarb.c,v $
+ * Revision 1.10.2.1  2002/09/12 17:04:22  kschultz
+ * Add #define GL_GLEXT_PROTOTYPES since this demo uses ARB extensions.
+ * Windows needs them for correct linkage.
+ *
  * Revision 1.10  2001/06/20 19:12:30  brianp
  * also print GL_MAX_TEXTURE_SIZE
  *
@@ -81,6 +85,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#define GL_GLEXT_PROTOTYPES
 #include <GL/glut.h>
 
 #include "readtex.c"   /* I know, this is a hack. */
