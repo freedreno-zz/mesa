@@ -1,4 +1,4 @@
-$Id: VERSIONS,v 1.38.2.12 2000/10/19 20:10:49 brianp Exp $
+$Id: VERSIONS,v 1.38.2.13 2000/10/19 20:17:13 brianp Exp $
 
 
 Mesa Version History
@@ -767,6 +767,7 @@ Mesa Version History
 	- per-fragment fog calculation didn't work without a Z buffer
 	- improved blending accuracy, fixes Glean blendFunc test failures
 	- glPixelStore(GL_PACK/UNPACK_SKIP_IMAGES) wasn't handled correctly
+	- glXGetProcAddressARB() didn't always return the right address
     Changes:
 	- finished internal support for compressed textures for DRI
 
