@@ -1,10 +1,10 @@
-/* $Id: gl.h,v 1.59.2.1 2001/11/09 21:54:05 brianp Exp $ */
+/* $Id: gl.h,v 1.59.2.2 2002/03/20 22:06:57 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  4.0
+ * Version:  4.0.2
  *
- * Copyright (C) 1999-2001  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -1911,8 +1911,6 @@ GLAPI void GLAPIENTRY glMultTransposeMatrixd( const GLdouble m[16] );
 GLAPI void GLAPIENTRY glMultTransposeMatrixf( const GLfloat m[16] );
 
 GLAPI void GLAPIENTRY glSampleCoverage( GLclampf value, GLboolean invert );
-
-GLAPI void GLAPIENTRY glSamplePass( GLenum pass );
 
 
 /*
