@@ -22,7 +22,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: miniglx_events.c,v 1.1.2.3 2003/04/22 14:29:53 keithw Exp $ */
+/* $Id: miniglx_events.c,v 1.1.2.4 2003/04/25 11:22:36 keithw Exp $ */
 
 
 /**
@@ -62,7 +62,8 @@
 
 #include "miniglxP.h"
 
-#include "glapi.h"
+#include "xf86drm.h"
+#include "sarea.h"
 
 #define MINIGLX_FIFO_NAME "/tmp/miniglx.fifo"
 
@@ -95,7 +96,7 @@ static XEvent *queue_event( Display *dpy )
 static int dequeue_event( Display *dpy, XEvent *event_return )
 {
    if (dpy->eventqueue.tail == dpy->eventqueue.head) {
-      fprintf(stderr, "dequeue_event: queue empty\n");
+/*       fprintf(stderr, "dequeue_event: queue empty\n"); */
       return False;
    }
    else {
@@ -196,6 +197,12 @@ static int welcome_message_part( Display *dpy, int i, void **msg, int sz )
 static int welcome_message( Display *dpy, int i )
 {
    void *tmp = &dpy->shared;
+   int *clientid = dpy->IsClient ? &dpy->clientID : &i;
+   
+   if (!welcome_message_part( dpy, i, (void **)&clientid, sizeof(*clientid)))
+      return False;
+
+   fprintf(stderr, "**** CLIENT ID: %d\n", *clientid);
 
    if (!welcome_message_part( dpy, i, &tmp, sizeof(dpy->shared)))
       return False;
@@ -261,132 +268,165 @@ static int handle_new_client( Display *dpy )
 static int
 handle_fifo_read( Display *dpy, int i )
 {
-   char id = dpy->fd[i].readbuf[0];
-   XEvent *er;
-   int count = 1;
+   while (dpy->fd[i].readbuf_count) {
+      char id = dpy->fd[i].readbuf[0];
+      XEvent *er;
+      int count = 1;
 
-   if (dpy->IsClient) {
-      switch (id) {
-	 /* The server has called 'XMapWindow' on a client window */
-      case _YouveGotFocus:
-	 fprintf(stderr, "_YouveGotFocus\n");
-	 er = queue_event(dpy);
-	 if (!er) return False;
-	 er->xmap.type = MapNotify;
-	 er->xmap.serial = 0;
-	 er->xmap.send_event = False;
-	 er->xmap.display = dpy;
-	 er->xmap.event = dpy->TheWindow;
-	 er->xmap.window = dpy->TheWindow;
-	 er->xmap.override_redirect = False;
-	 break;
+      if (dpy->IsClient) {
+	 switch (id) {
+	    /* The server has called 'XMapWindow' on a client window */
+	 case _YouveGotFocus:
+	    fprintf(stderr, "_YouveGotFocus\n");
+	    er = queue_event(dpy);
+	    if (!er) return False;
+	    er->xmap.type = MapNotify;
+	    er->xmap.serial = 0;
+	    er->xmap.send_event = False;
+	    er->xmap.display = dpy;
+	    er->xmap.event = dpy->TheWindow;
+	    er->xmap.window = dpy->TheWindow;
+	    er->xmap.override_redirect = False;
+	    break;
 
-	 /* The server has called 'XMapWindow' or 'X???'  on a client
-	  * window */
-      case _RepaintPlease:
-	 fprintf(stderr, "_RepaintPlease\n");
-	 er = queue_event(dpy);
-	 if (!er) return False;
-	 er->xexpose.type = Expose;
-	 er->xexpose.serial = 0;
-	 er->xexpose.send_event = False;
-	 er->xexpose.display = dpy;
-	 er->xexpose.window = dpy->TheWindow;
-	 if (dpy->rotateMode) {
-	    er->xexpose.x = dpy->TheWindow->y;
-	    er->xexpose.y = dpy->TheWindow->x;
-	    er->xexpose.width = dpy->TheWindow->h;
-	    er->xexpose.height = dpy->TheWindow->w;
-	 }
-	 else {
-	    er->xexpose.x = dpy->TheWindow->x;
-	    er->xexpose.y = dpy->TheWindow->y;
-	    er->xexpose.width = dpy->TheWindow->w;
-	    er->xexpose.height = dpy->TheWindow->h;
-	 }
-	 er->xexpose.count = 0;
-	 break;
+	    /* The server has called 'XMapWindow' or 'X???'  on a client
+	     * window */
+	 case _RepaintPlease:
+	    fprintf(stderr, "_RepaintPlease\n");
+	    er = queue_event(dpy);
+	    if (!er) return False;
+	    er->xexpose.type = Expose;
+	    er->xexpose.serial = 0;
+	    er->xexpose.send_event = False;
+	    er->xexpose.display = dpy;
+	    er->xexpose.window = dpy->TheWindow;
+	    if (dpy->rotateMode) {
+	       er->xexpose.x = dpy->TheWindow->y;
+	       er->xexpose.y = dpy->TheWindow->x;
+	       er->xexpose.width = dpy->TheWindow->h;
+	       er->xexpose.height = dpy->TheWindow->w;
+	    }
+	    else {
+	       er->xexpose.x = dpy->TheWindow->x;
+	       er->xexpose.y = dpy->TheWindow->y;
+	       er->xexpose.width = dpy->TheWindow->w;
+	       er->xexpose.height = dpy->TheWindow->h;
+	    }
+	    er->xexpose.count = 0;
+	    break;
 
-	 /* The server has called 'XUnmapWindow' on a client window */
-      case _YouveLostFocus:
-	 fprintf(stderr, "_YouveLostFocus\n");
-	 er = queue_event(dpy);
-	 if (!er) return False;
-	 er->xunmap.type = UnmapNotify;
-	 er->xunmap.serial = 0;
-	 er->xunmap.send_event = False;
-	 er->xunmap.display = dpy;
-	 er->xunmap.event = dpy->TheWindow;
-	 er->xunmap.window = dpy->TheWindow;
-	 er->xunmap.from_configure = False;
-	 break;
+	    /* The server has called 'XUnmapWindow' on a client window.
+	     *
+	     * Need to set lock contended and adjust cliprects (or the
+	     * server does).
+	     */
+	 case _YouveLostFocus:
+	    fprintf(stderr, "_YouveLostFocus\n");
+	    er = queue_event(dpy);
+	    if (!er) return False;
+	    er->xunmap.type = UnmapNotify;
+	    er->xunmap.serial = 0;
+	    er->xunmap.send_event = False;
+	    er->xunmap.display = dpy;
+	    er->xunmap.event = dpy->TheWindow;
+	    er->xunmap.window = dpy->TheWindow;
+	    er->xunmap.from_configure = False;
+	    break;
 	 
-      default:
-	 fprintf(stderr, "Client received unhandled message type %d\n", id);
-	 shut_fd(dpy, i);		/* Actually shuts down the client */
-	 return False;
+	 default:
+	    fprintf(stderr, "Client received unhandled message type %d\n", id);
+	    shut_fd(dpy, i);		/* Actually shuts down the client */
+	    return False;
+	 }
       }
-   }
-   else {
-      switch (id) {
-	 /* Lets the server know that the client is ready to render
-	  * (having called 'XMapWindow' locally).
-	  */
-      case _CanIHaveFocus:	 
-	 fprintf(stderr, "_CanIHaveFocus\n");
-	 er = queue_event(dpy);
-	 if (!er) return False;
-	 er->xmaprequest.type = MapRequest;
-	 er->xmaprequest.serial = 0;
-	 er->xmaprequest.send_event = False;
-	 er->xmaprequest.display = dpy;
-	 er->xmaprequest.parent = 0;
-	 er->xmaprequest.window = (Window)i;
-	 fprintf(stderr, "queued MapRequest\n");
-	 break;
+      else {
+	 switch (id) {
+	    /* Lets the server know that the client is ready to render
+	     * (having called 'XMapWindow' locally).
+	     */
+	 case _CanIHaveFocus:	 
+	    fprintf(stderr, "_CanIHaveFocus\n");
+	    er = queue_event(dpy);
+	    if (!er) return False;
+	    er->xmaprequest.type = MapRequest;
+	    er->xmaprequest.serial = 0;
+	    er->xmaprequest.send_event = False;
+	    er->xmaprequest.display = dpy;
+	    er->xmaprequest.parent = 0;
+	    er->xmaprequest.window = (Window)i;
+	    fprintf(stderr, "queued MapRequest\n");
+	    break;
 
-	 /* Both _YouveLostFocus and _IDontWantFocus generate unmap
-	  * events.  The idea is that _YouveLostFocus lets the client
-	  * know that it has had focus revoked by the server, whereas
-	  * _IDontWantFocus lets the server know that the client has
-	  * unmapped its own window.
-	  */
-      case _IDontWantFocus:
-	 fprintf(stderr, "_IDontWantFocus\n");
-	 er = queue_event(dpy);
-	 if (!er) return False;
-	 er->xunmap.type = UnmapNotify;
-	 er->xunmap.serial = 0;
-	 er->xunmap.send_event = False;
-	 er->xunmap.display = dpy;
-	 er->xunmap.event = (Window)i;
-	 er->xunmap.window = (Window)i;
-	 er->xunmap.from_configure = False;
-	 break;
+	    /* Both _YouveLostFocus and _IDontWantFocus generate unmap
+	     * events.  The idea is that _YouveLostFocus lets the client
+	     * know that it has had focus revoked by the server, whereas
+	     * _IDontWantFocus lets the server know that the client has
+	     * unmapped its own window.
+	     */
+	 case _IDontWantFocus:
+	    fprintf(stderr, "_IDontWantFocus\n");
+	    er = queue_event(dpy);
+	    if (!er) return False;
+	    er->xunmap.type = UnmapNotify;
+	    er->xunmap.serial = 0;
+	    er->xunmap.send_event = False;
+	    er->xunmap.display = dpy;
+	    er->xunmap.event = (Window)i;
+	    er->xunmap.window = (Window)i;
+	    er->xunmap.from_configure = False;
+	    break;
 
-      default:
-	 fprintf(stderr, "Server received unhandled message type %d\n", id);
-	 shut_fd(dpy, i);		/* Generates DestroyNotify event */
-	 return False;
+	 default:
+	    fprintf(stderr, "Server received unhandled message type %d\n", id);
+	    shut_fd(dpy, i);		/* Generates DestroyNotify event */
+	    return False;
+	 }
       }
-   }
 
-   dpy->fd[i].readbuf_count -= count;
+      dpy->fd[i].readbuf_count -= count;
 
-   /* This probably never happens, but just in case: */
-   if (dpy->fd[i].readbuf_count) {
-      fprintf(stderr, "count: %d memmove %p %p %d\n", count,
-	      dpy->fd[i].readbuf + count,
-	      dpy->fd[i].readbuf,
-	      dpy->fd[i].readbuf_count);
+      if (dpy->fd[i].readbuf_count) {
+	 fprintf(stderr, "count: %d memmove %p %p %d\n", count,
+		 dpy->fd[i].readbuf,
+		 dpy->fd[i].readbuf + count,
+		 dpy->fd[i].readbuf_count);
 
-      memmove(dpy->fd[i].readbuf + count,
-	      dpy->fd[i].readbuf,
-	      dpy->fd[i].readbuf_count);
+	 memmove(dpy->fd[i].readbuf,
+		 dpy->fd[i].readbuf + count,
+		 dpy->fd[i].readbuf_count);
+      }
    }
 
    return True;
 }
+
+static void __driHandleVtSignals( Display *dpy )
+{
+   dpy->vtSignalFlag = 0;
+
+   if (!dpy->haveVT && dpy->hwActive) {
+      /* Need to get lock and shutdown hardware */
+      DRM_LIGHT_LOCK( dpy->drmFD, dpy->pSAREA, dpy->serverContext ); 
+/*       dpy->driver->shutdownHardware( dpy ); */
+
+      /* Can now give up control of the VT */
+      ioctl( dpy->ConsoleFD, VT_RELDISP, 1 ); 
+      dpy->hwActive = 0;
+   }
+   else if (dpy->haveVT && !dpy->hwActive) {
+      /* Get VT (wait??) */
+      ioctl( dpy->ConsoleFD, VT_RELDISP, VT_ACTIVATE );
+
+      /* restore HW state, release lock */
+/*       dpy->driver->restoreHardware( dpy ); */
+      DRM_UNLOCK( dpy->drmFD, dpy->pSAREA, dpy->serverContext ); 
+      dpy->hwActive = 1;
+   }
+   else 
+      fprintf(stderr, "handle_vt_signals: haveVT %d hwActive %d\n",
+	      dpy->haveVT, dpy->hwActive);
+}
+
 
 #undef max
 #define max(x,y) ((x) > (y) ? (x) : (y))
@@ -432,7 +472,14 @@ __miniglx_Select( Display *dpy, int n, fd_set *rfds, fd_set *wfds, fd_set *xfds,
    }
 
 
+   if (dpy->vtSignalFlag)
+      __driHandleVtSignals( dpy );
+
    retval = select( n, rfds, wfds, xfds, tv );
+
+   if (dpy->vtSignalFlag)
+      __driHandleVtSignals( dpy );
+
    if (retval < 0) 
       return retval;
    
@@ -470,8 +517,8 @@ __miniglx_Select( Display *dpy, int n, fd_set *rfds, fd_set *wfds, fd_set *xfds,
 	 else {
 	    dpy->fd[i].writebuf_count -= r;
 	    if (dpy->fd[i].writebuf_count) {
-	       memmove(dpy->fd[i].writebuf + r,
-		       dpy->fd[i].writebuf,
+	       memmove(dpy->fd[i].writebuf,
+		       dpy->fd[i].writebuf + r,
 		       dpy->fd[i].writebuf_count);
 	    }
 	 }
@@ -530,6 +577,8 @@ int __miniglx_open_connections( Display *dpy )
 	 perror("unlink " MINIGLX_FIFO_NAME);
  	 return False; 
       } 
+      
+      umask( 0000 );		/* open to everybody ? */
    } 
 
    /* Create a unix socket -- Note this is *not* a network connection!
@@ -553,8 +602,7 @@ int __miniglx_open_connections( Display *dpy )
 	 return False;
       }
 
-      /* Wait for confirmation from the server, in the form of a _DriverInfo 
-       * message.
+      /* Wait for configuration messages from the server.
        */
       welcome_message( dpy, 0 );
    }
@@ -590,6 +638,29 @@ void __miniglx_close_connections( Display *dpy )
    FREE(dpy->fd);
 }
 
+
+static void set_drawable_flag( Display *dpy, int w, int flag )
+{
+   fprintf(stderr, "%s %d %d\n", __FUNCTION__, w, flag);
+
+   if (dpy->pSAREA) {
+      DRM_LIGHT_LOCK( dpy->drmFD, dpy->pSAREA, dpy->serverContext ); 
+
+      dpy->pSAREA->drawableTable[w].stamp++;
+      dpy->pSAREA->drawableTable[w].flags = flag;
+
+      fprintf(stderr, "%s: stamp now %d\n",
+	      __FUNCTION__,
+	      dpy->pSAREA->drawableTable[w].stamp);
+	      
+
+      DRM_UNLOCK( dpy->drmFD, dpy->pSAREA, dpy->serverContext ); 
+   }
+}
+
+
+
+
 /**
  * \brief Map Window.
  *
@@ -607,6 +678,7 @@ XMapWindow( Display *dpy, Window w )
    if (dpy->IsClient) 
       send_char_msg( dpy, 0, _CanIHaveFocus );
    else {
+      set_drawable_flag( dpy, (int)w, 1 );
       send_char_msg( dpy, (int)w, _YouveGotFocus );
       send_char_msg( dpy, (int)w, _RepaintPlease );
    }
@@ -622,11 +694,18 @@ XMapWindow( Display *dpy, Window w )
  * it is impossible to force them to keep updating their contents & at
  * least this way there is notification that they've stopped.
  * 
+ * The entrypoint is required for the server in any case.
  */
 void
-XUnmapWindow( Display *dpy, Window window )
+XUnmapWindow( Display *dpy, Window w )
 {
-   send_char_msg( dpy, 0,  dpy->IsClient ? _IDontWantFocus : _YouveLostFocus );
+   if (dpy->IsClient) {
+      send_char_msg( dpy, 0, _IDontWantFocus );
+   } 
+   else {
+      set_drawable_flag( dpy, (int)w, 0 );
+      send_char_msg( dpy, (int)w, _YouveLostFocus );
+   }
 }
 
 

@@ -206,10 +206,16 @@ struct MiniGLXDriverRec {
     */
    void (*haltFBDev)( struct MiniGLXDisplayRec *dpy );
 
+
    /**
-    * \brief Handle VT switch events.
+    * \brief Idle and shutdown hardware in preparation for a vt switch.
     */
-   int (*handleVTSwitch)( struct MiniGLXDisplayRec *dpy, int have_vt );
+   int (*shutdownHardware)(  struct MiniGLXDisplayRec *dpy );
+
+   /**
+    * \brief Restore hardware state after regaining the vt.
+    */
+   int (*restoreHardware)(  struct MiniGLXDisplayRec *dpy );
 };
 
 
@@ -316,22 +322,18 @@ struct MiniGLXDisplayRec {
    int ConsoleFD;        /**< \brief console TTY device file descriptor */
    int FrameBufferFD;    /**< \brief framebuffer device file descriptor */
    caddr_t FrameBuffer;  /**< \brief start of the mmap'd framebuffer */
-/*   int FrameBufferSize; */  /**< \brief size of the mmap'd framebuffer in bytes */
    caddr_t MMIOAddress;  /**< \brief start of the mmap'd MMIO region */
    int MMIOSize;         /**< \brief size of the mmap'd MMIO region in bytes */
    int NumWindows;       /**< \brief number of open windows */
    Window TheWindow;     /**< \brief open window - only allow one window for now */
    int rotateMode;
 
-   int haveVT;
-   int aquireVTCount;
-   int releaseVTCount;
-   int exposeNotifyCount;
-   int mapNotifyCount;
-   int unmapNotifyCount;
+
+   volatile int vtSignalFlag, haveVT;
+   int hwActive;
 
 
-   int IsClient;
+   int IsClient, clientID;
    int nrFds;
    struct MiniGLXConnection *fd;
 
@@ -384,6 +386,13 @@ struct MiniGLXDisplayRec {
    /*@}*/
 
 
+   /**
+    * \name Client configuration details
+    *
+    * These are computed on the server and sent to clients as part of
+    * the initial handshaking.
+    */
+   /*@{*/
    struct {
       unsigned long hSAREA;
       int SAREASize;
@@ -394,6 +403,7 @@ struct MiniGLXDisplayRec {
       int virtualWidth;
       int virtualHeight;
    } shared;
+   /*@}*/
       
 
    /**
@@ -401,7 +411,8 @@ struct MiniGLXDisplayRec {
     */
    /*@{*/
    int drmFD;  /**< \brief DRM device file descriptor */
-   void *pSAREA;
+   struct _XF86DRISAREA *pSAREA;
+   unsigned int serverContext;	/**< \brief DRM context only active on server */
    /*@}*/
 
    /**

@@ -22,7 +22,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: miniglx.c,v 1.1.4.51 2003/04/17 15:46:42 keithw Exp $ */
+/* $Id: miniglx.c,v 1.1.4.52 2003/04/25 11:22:36 keithw Exp $ */
 
 
 /**
@@ -127,72 +127,25 @@ static GLXContext CurrentContext = NULL;
 
 
 
-/* Called from signal handler context, runs atomically wrt
- * XCheckWindowEvent.
- */
-static void queue_event( Display *dpy, int aquire )
-{
-   dpy->haveVT = aquire;
-   dpy->aquireVTCount += aquire;
-   dpy->releaseVTCount += !aquire;
-}
-
 static Display *SignalDisplay = 0;
 
 static void SwitchVT(int sig)
 {
    fprintf(stderr, "SwitchVT %d dpy %p\n", sig, SignalDisplay);
 
-   if (!SignalDisplay) {
-      fprintf(stderr, "No display!\n");
-      return;
-   }
-
-   switch( sig )
-   {
-   case SIGUSR1:                                /* vt has been released */
-      if (SignalDisplay->driver &&
-	  !SignalDisplay->driver->handleVTSwitch( SignalDisplay, 0 ))
-	 return;
-      if (!SignalDisplay->haveVT) {
-	 fprintf(stderr, "%s: Don't have VT\n", __FUNCTION__);
-	 return;
+   if (SignalDisplay) {
+      SignalDisplay->vtSignalFlag = 1;
+      switch( sig )
+      {
+      case SIGUSR1:                                /* vt has been released */
+	 SignalDisplay->haveVT = 0;
+	 break;
+      case SIGUSR2:                                /* vt has been acquired */
+	 SignalDisplay->haveVT = 1;
+	 break;
       }
-      __miniglx_release_vt();
-      break;
-   case SIGUSR2:                                /* vt has been acquired */
-      ioctl( SignalDisplay->ConsoleFD, VT_RELDISP, VT_ACTIVATE );
-      sleep(1);
-
-      if (SignalDisplay->driver &&
-	  !SignalDisplay->driver->handleVTSwitch( SignalDisplay, 1 ))
-	 return;
-
-      if (SignalDisplay->haveVT) {
-	 fprintf(stderr, "%s: Already have VT\n", __FUNCTION__);
-	 return;
-      }
-
-      queue_event( SignalDisplay, 1 );
-      break;
    }
 }
-
-void __miniglx_release_vt( void )
-{
-   if (!SignalDisplay)
-      return;
-
-   if (!SignalDisplay->haveVT) {
-      fprintf(stderr, "%s: Don't have VT\n", __FUNCTION__);
-      return;
-   }
-
-   sleep(1);
-   ioctl( SignalDisplay->ConsoleFD, VT_RELDISP, 1 ); 
-   queue_event( SignalDisplay, 0 );
-}
-
 
 /**********************************************************************/
 /** \name Framebuffer device functions                                */

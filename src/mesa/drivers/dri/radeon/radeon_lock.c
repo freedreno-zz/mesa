@@ -134,6 +134,12 @@ static void validate_drawable( radeonContextPtr rmesa )
 
    fprintf(stderr, "%s\n", __FUNCTION__);
 
+   fprintf(stderr, 
+	   "rmesa->lastStamp %d dpriv->lastStamp %d *(dpriv->pStamp) %d\n",
+	   rmesa->lastStamp, 
+	   dPriv->lastStamp,
+	   *(dPriv->pStamp));
+
    /* The window might have moved, so we might need to get new clip
     * rects.
     *
@@ -144,7 +150,8 @@ static void validate_drawable( radeonContextPtr rmesa )
     */
    DRI_VALIDATE_DRAWABLE_INFO( sPriv, dPriv );
 
-   if ( rmesa->lastStamp != dPriv->lastStamp ) {
+   if ( rmesa->lastStamp == 0 ||
+	rmesa->lastStamp != dPriv->lastStamp ) {
       radeonUpdatePageFlipping( rmesa );
 
       if (rmesa->glCtx->Color._DrawDestMask == BACK_LEFT_BIT)
@@ -171,21 +178,9 @@ void radeonGetLock( radeonContextPtr rmesa, GLuint flags )
    int i;
 
 
-   while (1) {
-      drmGetLock( rmesa->dri.fd, rmesa->dri.hwContext, flags );
-
-      validate_drawable( rmesa );
-
-      fprintf(stderr, "%s %d\n", __FUNCTION__, rmesa->numClipRects);
-
-      if (rmesa->numClipRects)
-	 break;
-
-      drmUnlock( rmesa->dri.fd, rmesa->dri.hwContext );
-      
-      sleep(10);
-   }
-
+   drmGetLock( rmesa->dri.fd, rmesa->dri.hwContext, flags );
+   
+   validate_drawable( rmesa );
 
    if ( sarea->ctxOwner != rmesa->dri.hwContext ) {
       sarea->ctxOwner = rmesa->dri.hwContext;
@@ -200,23 +195,3 @@ void radeonGetLock( radeonContextPtr rmesa, GLuint flags )
 }
 
 
-extern void __miniglx_release_vt( void );
-
-/* In the current miniglx, cliprects can change while the lock is
- * held...  Probably need to fix this.
- */
-void radeonUnlock( radeonContextPtr rmesa )
-{
-   fprintf(stderr, "%s\n", __FUNCTION__);
-
-   drmUnlock( rmesa->dri.fd, rmesa->dri.hwContext );
-
-   validate_drawable( rmesa );
-
-   /* This only happens if the VT switch was requested inside the
-    * locked region.
-    */
-   if (!rmesa->numClipRects)
-      __miniglx_release_vt();
-      
-}

@@ -161,17 +161,16 @@ static void RADEONEngineReset( struct MiniGLXDisplayRec *dpy )
  * \brief Restore the drawing engine.
  *
  * \param dpy display handle
- * \param info driver private data.
  *
  * Resets the graphics card and sets initial values for several registers of
  * the card's drawing engine.
+ *
+ * Turns on the radeon command processor engine (ie: the ringbuffer).
  */
-static void RADEONEngineRestore( struct MiniGLXDisplayRec *dpy,
-				 RADEONInfoPtr info )
-
+static int RADEONEngineRestore( struct MiniGLXDisplayRec *dpy )
 {
    unsigned char *RADEONMMIO = dpy->MMIOAddress;
-   int pitch64, datatype, dp_gui_master_cntl;
+   int pitch64, datatype, dp_gui_master_cntl, err;
 
    OUTREG(RADEON_RB3D_CNTL, 0);
    RADEONEngineReset( dpy );
@@ -179,7 +178,7 @@ static void RADEONEngineRestore( struct MiniGLXDisplayRec *dpy,
    switch (dpy->bpp) {
    case 16: datatype = 4; break;
    case 32: datatype = 6; break;
-   default: return;
+   default: return 0;
    }
 
    dp_gui_master_cntl =
@@ -216,6 +215,43 @@ static void RADEONEngineRestore( struct MiniGLXDisplayRec *dpy,
 
 /*    RADEONWaitForIdleMMIO(dpy); */
    usleep(100); 
+
+
+   /* Initialize and start the CP if required */
+   if ((err = drmCommandNone(dpy->drmFD, DRM_RADEON_CP_START)) != 0) {
+      fprintf(stderr, "%s: CP start %d\n", __FUNCTION__, err);
+      return 0;
+   }
+
+   return True;
+}
+
+
+/**
+ * \brief Shutdown the drawing engine.
+ *
+ * \param dpy display handle
+ *
+ * Turns off the command processor engine & restores the graphics card
+ * to a state that fbdev understands.
+ */
+static int RADEONEngineShutdown( struct MiniGLXDisplayRec *dpy )
+{
+   int err;
+
+   /* Idle the CP engine */
+   if ((err = drmCommandNone(dpy->drmFD, DRM_RADEON_CP_IDLE)) != 0) {
+      fprintf(stderr, "%s: CP idle %d\n", __FUNCTION__, err);
+      return 0;
+   }
+
+   /* Stop the CP */
+   if ((err = drmCommandNone(dpy->drmFD, DRM_RADEON_CP_STOP)) != 0) {
+      fprintf(stderr, "%s: CP stop %d\n", __FUNCTION__, err);
+      return 0;
+   }
+
+   return True;
 }
 
 /**
@@ -650,36 +686,6 @@ static int RADEONMemoryInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
    return 1;
 } 
 
-static void print_client_msg(   RADEONDRIPtr   pRADEONDRI )
-{
-   fprintf(stderr, "deviceID 0x%x\n", pRADEONDRI->deviceID);
-   fprintf(stderr, "width 0x%x\n", pRADEONDRI->width);
-   fprintf(stderr, "height 0x%x\n", pRADEONDRI->height);
-   fprintf(stderr, "depth 0x%x\n", pRADEONDRI->depth);
-   fprintf(stderr, "bpp 0x%x\n", pRADEONDRI->bpp);
-   fprintf(stderr, "IsPCI 0x%x\n", pRADEONDRI->IsPCI);
-   fprintf(stderr, "AGPMode 0x%x\n", pRADEONDRI->AGPMode);
-   fprintf(stderr, "frontOffset 0x%x\n", pRADEONDRI->frontOffset);
-   fprintf(stderr, "frontPitch 0x%x\n", pRADEONDRI->frontPitch);
-   fprintf(stderr, "backOffset 0x%x\n", pRADEONDRI->backOffset);
-   fprintf(stderr, "backPitch 0x%x\n", pRADEONDRI->backPitch);
-   fprintf(stderr, "depthOffset 0x%x\n", pRADEONDRI->depthOffset);
-   fprintf(stderr, "depthPitch 0x%x\n", pRADEONDRI->depthPitch);
-   fprintf(stderr, "textureOffset 0x%x\n", pRADEONDRI->textureOffset);
-   fprintf(stderr, "textureSize 0x%x\n", pRADEONDRI->textureSize);
-   fprintf(stderr, "log2TexGran 0x%x\n", pRADEONDRI->log2TexGran);
-   fprintf(stderr, "registerHandle 0x%x\n", (unsigned)pRADEONDRI->registerHandle);
-   fprintf(stderr, "registerSize 0x%x\n", pRADEONDRI->registerSize);
-   fprintf(stderr, "statusHandle 0x%x\n", (unsigned)pRADEONDRI->statusHandle);
-   fprintf(stderr, "statusSize 0x%x\n", pRADEONDRI->statusSize);
-   fprintf(stderr, "agpTexHandle 0x%x\n", (unsigned)pRADEONDRI->agpTexHandle);
-   fprintf(stderr, "agpTexMapSize 0x%x\n", pRADEONDRI->agpTexMapSize);
-   fprintf(stderr, "log2AGPTexGran 0x%x\n", pRADEONDRI->log2AGPTexGran);
-   fprintf(stderr, "agpTexOffset 0x%x\n", pRADEONDRI->agpTexOffset);
-   fprintf(stderr, "sarea_priv_offset 0x%x\n", pRADEONDRI->sarea_priv_offset);
-}
-
-
 
 
 /**
@@ -703,7 +709,6 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
 {
    RADEONDRIPtr   pRADEONDRI;
    int err;
-   unsigned int serverContext;	
 
    usleep(100);
    assert(!dpy->IsClient);
@@ -822,24 +827,24 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
    /* Create a 'server' context so we can grab the lock for
     * initialization ioctls.
     */
-   if ((err = drmCreateContext(dpy->drmFD, &serverContext)) != 0) {
+   if ((err = drmCreateContext(dpy->drmFD, &dpy->serverContext)) != 0) {
       fprintf(stderr, "%s: drmCreateContext failed %d\n", __FUNCTION__, err);
       return 0;
    }
 
-   DRM_LOCK(dpy->drmFD, dpy->pSAREA, serverContext, 0); 
+   DRM_LOCK(dpy->drmFD, dpy->pSAREA, dpy->serverContext, 0); 
 
    /* Initialize the kernel data structures */
    if (!RADEONDRIKernelInit(dpy, info)) {
       fprintf(stderr, "RADEONDRIKernelInit failed\n");
-      DRM_UNLOCK(dpy->drmFD, dpy->pSAREA, serverContext);
+      DRM_UNLOCK(dpy->drmFD, dpy->pSAREA, dpy->serverContext);
       return 0;
    }
 
    /* Initialize the vertex buffers list */
    if (!RADEONDRIBufInit(dpy, info)) {
       fprintf(stderr, "RADEONDRIBufInit failed\n");
-      DRM_UNLOCK(dpy->drmFD, dpy->pSAREA, serverContext);
+      DRM_UNLOCK(dpy->drmFD, dpy->pSAREA, dpy->serverContext);
       return 0;
    }
 
@@ -849,12 +854,9 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
    /* Initialize kernel agp memory manager */
    RADEONDRIAgpHeapInit(dpy, info);
 
-   RADEONEngineRestore( dpy, info );
-
-   /* Initialize and start the CP if required */
-   if ((err = drmCommandNone(dpy->drmFD, DRM_RADEON_CP_START)) != 0) {
-      fprintf(stderr, "%s: CP start %d\n", __FUNCTION__, err);
-      DRM_UNLOCK(dpy->drmFD, dpy->pSAREA, serverContext);
+   fprintf(stderr, "calling RADEONEngineRestore from %s\n", __FUNCTION__);
+   if (!RADEONEngineRestore( dpy )) {
+      DRM_UNLOCK(dpy->drmFD, dpy->pSAREA, dpy->serverContext);
       return 0;
    }
 
@@ -882,7 +884,7 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
 
 
    /* Can release the lock now */
-   DRM_UNLOCK(dpy->drmFD, dpy->pSAREA, serverContext);
+   DRM_UNLOCK(dpy->drmFD, dpy->pSAREA, dpy->serverContext);
 
    /* This is the struct passed to radeon_dri.so for its initialization */
    dpy->driverClientMsg = malloc(sizeof(RADEONDRIRec));
@@ -913,8 +915,6 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
    pRADEONDRI->log2AGPTexGran    = info->log2AGPTexGran;
    pRADEONDRI->agpTexOffset      = info->agpTexStart;
    pRADEONDRI->sarea_priv_offset = sizeof(XF86DRISAREARec);
-
-   print_client_msg( pRADEONDRI );
 
    return 1;
 }
@@ -1202,46 +1202,6 @@ static void radeonHaltFBDev( struct MiniGLXDisplayRec *dpy )
 }
 
 
-/**
- * \brief A VT release or aquire signal has been received, and
- * requires some action.  We deal with loosing the VT by setting the
- * cliprects to zero and emitting an event to the application.  
- */
-static int radeonVTSwitchHandler( struct MiniGLXDisplayRec *dpy, int have_vt )
-{
-   int *lock = (int *)dpy->pSAREA;
-   int old, new;
-   DRM_CAS_RESULT(ret);
-   GLXDrawable draw;
-   __DRIdrawable *pdraw;
-   __DRIdrawablePrivate *pdp;
-
-   /* Indicate cliprects have changed
-    */
-   draw = dpy->TheWindow;
-   if (!draw) return 1;
-   pdraw = &draw->driDrawable;
-   if (!pdraw) return 1;
-   pdp = (__DRIdrawablePrivate *) pdraw->private;
-   if (!pdp) return 1;
-   pdp->lastStamp++;
-   pdp->numClipRects = have_vt ? 1 : 0;
-
-   /* Mark the lock contended.
-    */
-   if (!dpy->pSAREA) return 0;
-   do {
-      old = *(int *)dpy->pSAREA;
-      new = old | _DRM_LOCK_CONT;
-      DRM_CAS( lock, old, new, ret );
-      fprintf(stderr, "old %x new %x\n", old, new );
-   } while (ret);
-
-   if (have_vt)
-      return !(old & _DRM_LOCK_HELD);
-   else
-      return 1;
-}
 
 /**
  * \brief Exported driver interface for Mini GLX.
@@ -1254,5 +1214,6 @@ struct MiniGLXDriverRec __driMiniGLXDriver = {
    radeonPostValidateMode,
    radeonInitFBDev,
    radeonHaltFBDev,
-   radeonVTSwitchHandler
+   RADEONEngineShutdown,
+   RADEONEngineRestore
 };

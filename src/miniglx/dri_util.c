@@ -22,6 +22,8 @@
 #include <linux/fb.h>
 #include "GL/miniglx.h"
 #include "miniglxP.h"
+#include <linux/vt.h>
+#include <sys/ioctl.h>
 
 
 #include "sarea.h"
@@ -282,8 +284,12 @@ static Bool driBindContext(Display *dpy, int scrn,
  */
 void __driUtilUpdateDrawableInfo(__DRIdrawablePrivate *pdp)
 {
-   fprintf(stderr, "%s\n", __FUNCTION__);
-   /* nothing to do */
+   __DRIscreenPrivate *psp = pdp->driScreenPriv;
+
+   pdp->numClipRects = psp->pSAREA->drawableTable[pdp->index].flags ? 1 : 0;
+   pdp->lastStamp = *(pdp->pStamp);
+
+   fprintf(stderr, "%s: %d cliprects\n", __FUNCTION__, pdp->numClipRects);
 }
 
 
@@ -362,11 +368,10 @@ static void *driCreateDrawable(Display *dpy, int scrn,
 	return NULL;
     }
 
+    pdp->index = dpy->clientID;
     pdp->draw = draw;
     pdp->refcount = 0;
-    pdp->pStamp = &pdp->lastStamp;
-    pdp->lastStamp = 1;
-    pdp->index = 0;
+    pdp->lastStamp = -1;
     pdp->numBackClipRects = 0;
     pdp->pBackClipRects = NULL;
     pdp->display = dpy;
@@ -411,6 +416,12 @@ static void *driCreateDrawable(Display *dpy, int scrn,
     pdraw->swapBuffers = driSwapBuffers;  /* called by glXSwapBuffers() */
     pdp->swapBuffers = psp->DriverAPI.SwapBuffers;
 
+    fprintf(stderr, "%s index: %d stamp: %d\n",
+	    __FUNCTION__, pdp->index, 
+	    psp->pSAREA->drawableTable[pdp->index].stamp);
+
+    pdp->pStamp = &(psp->pSAREA->drawableTable[pdp->index].stamp);
+    __driUtilUpdateDrawableInfo( pdp );
     return (void *) pdp;
 }
 
@@ -789,5 +800,8 @@ __driUtilInitScreen( Display *dpy, int scrn, __DRIscreen *psc )
     psc->createDrawable = driCreateDrawable;
     psc->getDrawable    = driGetDrawable;
 }
+
+
+
 
 /*@}*/

@@ -38,7 +38,6 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #define __RADEON_LOCK_H__
 
 extern void radeonGetLock( radeonContextPtr rmesa, GLuint flags );
-extern void radeonUnlock( radeonContextPtr rmesa );
 
 /* Turn DEBUG_LOCKING on to find locking conflicts.
  */
@@ -100,13 +99,13 @@ extern int prevLockLine;
 
 /* Unlock the hardware.
  */
-#define UNLOCK_HARDWARE( rmesa )			\
-   do {							\
-      DRM_CAS_RESULT(__ret);				\
-      DRM_CAS( rmesa->dri.hwLock,DRM_LOCK_HELD|rmesa->dri.hwContext,	\
-	      rmesa->dri.hwContext,__ret);		\
-      if (__ret) radeonUnlock( rmesa );		\
-      DEBUG_RESET();					\
+#define UNLOCK_HARDWARE( rmesa )					\
+   do {									\
+      DRM_UNLOCK( rmesa->dri.fd,					\
+		  rmesa->dri.hwLock,					\
+		  rmesa->dri.hwContext );				\
+      DEBUG_RESET();							\
    } while (0)
+
 
 #endif /* __RADEON_LOCK_H__ */
