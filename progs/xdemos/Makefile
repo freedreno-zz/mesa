@@ -8,7 +8,7 @@ CC = gcc
 CFLAGS = -g -I../include
 LIBS = -L../lib -lGL -lm
 
-PROGS = miniglxtest miniglxsample
+PROGS = glxgears
 
 
 ##### RULES #####
@@ -20,6 +20,8 @@ PROGS = miniglxtest miniglxsample
 	$(CC) $(CFLAGS) $< $(LIBS) -o $@
 
 
+
+
 ##### TARGETS #####
 
 default: $(PROGS)
@@ -27,4 +29,7 @@ default: $(PROGS)
 clean:
 	rm -f $(PROGS)
 	rm -f *.o
+
+
+
 
