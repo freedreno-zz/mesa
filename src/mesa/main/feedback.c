@@ -1,4 +1,4 @@
-/* $Id: feedback.c,v 1.27 2002/10/24 23:57:20 brianp Exp $ */
+/* $Id: feedback.c,v 1.27.4.1 2003/02/21 21:14:15 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -167,7 +167,7 @@ _mesa_SelectBuffer( GLsizei size, GLuint *buffer )
       return;			/* KW: added return */
    }
 
-   FLUSH_VERTICES(ctx, _NEW_RENDERMODE); /* why bother? */
+   FLUSH_VERTICES(ctx, _NEW_RENDERMODE); 
    ctx->Select.Buffer = buffer;
    ctx->Select.BufferSize = size;
    ctx->Select.BufferCount = 0;

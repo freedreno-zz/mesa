@@ -1,4 +1,4 @@
-/* $Id: state.c,v 1.97 2002/11/06 15:16:23 brianp Exp $ */
+/* $Id: state.c,v 1.97.4.1 2003/02/21 21:14:18 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -77,9 +77,7 @@
 static int
 generic_noop(void)
 {
-#ifdef DEBUG
-   _mesa_problem(NULL, "User called no-op dispatch function");
-#endif
+   _mesa_problem(NULL, "User called no-op dispatch function (not part of Mesa subset?)");
    return 0;
 }
 
@@ -116,422 +114,422 @@ _mesa_init_exec_table(struct _glapi_table *exec, GLuint tableSize)
    _mesa_loopback_init_api_table( exec, GL_TRUE );
 
    /* load the dispatch slots we understand */
-   exec->Accum = _mesa_Accum;
+/*    exec->Accum = _mesa_Accum; */
    exec->AlphaFunc = _mesa_AlphaFunc;
    exec->Bitmap = _mesa_Bitmap;
    exec->BlendFunc = _mesa_BlendFunc;
-   exec->CallList = _mesa_CallList;
-   exec->CallLists = _mesa_CallLists;
+/*    exec->CallList = _mesa_CallList; */
+/*    exec->CallLists = _mesa_CallLists; */
    exec->Clear = _mesa_Clear;
-   exec->ClearAccum = _mesa_ClearAccum;
+/*    exec->ClearAccum = _mesa_ClearAccum; */
    exec->ClearColor = _mesa_ClearColor;
-   exec->ClearDepth = _mesa_ClearDepth;
-   exec->ClearIndex = _mesa_ClearIndex;
+/*    exec->ClearDepth = _mesa_ClearDepth; */
+/*    exec->ClearIndex = _mesa_ClearIndex; */
    exec->ClearStencil = _mesa_ClearStencil;
-   exec->ClipPlane = _mesa_ClipPlane;
+/*    exec->ClipPlane = _mesa_ClipPlane; */
    exec->ColorMask = _mesa_ColorMask;
-   exec->ColorMaterial = _mesa_ColorMaterial;
-   exec->CopyPixels = _mesa_CopyPixels;
+/*    exec->ColorMaterial = _mesa_ColorMaterial; */
+/*    exec->CopyPixels = _mesa_CopyPixels; */
    exec->CullFace = _mesa_CullFace;
-   exec->DeleteLists = _mesa_DeleteLists;
-   exec->DepthFunc = _mesa_DepthFunc;
-   exec->DepthMask = _mesa_DepthMask;
-   exec->DepthRange = _mesa_DepthRange;
+/*    exec->DeleteLists = _mesa_DeleteLists; */
+/*    exec->DepthFunc = _mesa_DepthFunc; */
+/*    exec->DepthMask = _mesa_DepthMask; */
+/*    exec->DepthRange = _mesa_DepthRange; */
    exec->Disable = _mesa_Disable;
    exec->DrawBuffer = _mesa_DrawBuffer;
-   exec->DrawPixels = _mesa_DrawPixels;
+/*    exec->DrawPixels = _mesa_DrawPixels; */
    exec->Enable = _mesa_Enable;
-   exec->EndList = _mesa_EndList;
-   exec->FeedbackBuffer = _mesa_FeedbackBuffer;
+/*    exec->EndList = _mesa_EndList; */
+/*    exec->FeedbackBuffer = _mesa_FeedbackBuffer; */
    exec->Finish = _mesa_Finish;
    exec->Flush = _mesa_Flush;
-   exec->FogCoordPointerEXT = _mesa_FogCoordPointerEXT;
-   exec->Fogf = _mesa_Fogf;
-   exec->Fogfv = _mesa_Fogfv;
-   exec->Fogi = _mesa_Fogi;
-   exec->Fogiv = _mesa_Fogiv;
+/*    exec->FogCoordPointerEXT = _mesa_FogCoordPointerEXT; */
+/*    exec->Fogf = _mesa_Fogf; */
+/*    exec->Fogfv = _mesa_Fogfv; */
+/*    exec->Fogi = _mesa_Fogi; */
+/*    exec->Fogiv = _mesa_Fogiv; */
    exec->FrontFace = _mesa_FrontFace;
    exec->Frustum = _mesa_Frustum;
-   exec->GenLists = _mesa_GenLists;
+/*    exec->GenLists = _mesa_GenLists; */
    exec->GetBooleanv = _mesa_GetBooleanv;
-   exec->GetClipPlane = _mesa_GetClipPlane;
-   exec->GetDoublev = _mesa_GetDoublev;
+/*    exec->GetClipPlane = _mesa_GetClipPlane; */
+/*    exec->GetDoublev = _mesa_GetDoublev; */
    exec->GetError = _mesa_GetError;
    exec->GetFloatv = _mesa_GetFloatv;
    exec->GetIntegerv = _mesa_GetIntegerv;
-   exec->GetLightfv = _mesa_GetLightfv;
-   exec->GetLightiv = _mesa_GetLightiv;
-   exec->GetMapdv = _mesa_GetMapdv;
-   exec->GetMapfv = _mesa_GetMapfv;
-   exec->GetMapiv = _mesa_GetMapiv;
-   exec->GetMaterialfv = _mesa_GetMaterialfv;
-   exec->GetMaterialiv = _mesa_GetMaterialiv;
-   exec->GetPixelMapfv = _mesa_GetPixelMapfv;
-   exec->GetPixelMapuiv = _mesa_GetPixelMapuiv;
-   exec->GetPixelMapusv = _mesa_GetPixelMapusv;
-   exec->GetPolygonStipple = _mesa_GetPolygonStipple;
+/*    exec->GetLightfv = _mesa_GetLightfv; */
+/*    exec->GetLightiv = _mesa_GetLightiv; */
+/*    exec->GetMapdv = _mesa_GetMapdv; */
+/*    exec->GetMapfv = _mesa_GetMapfv; */
+/*    exec->GetMapiv = _mesa_GetMapiv; */
+/*    exec->GetMaterialfv = _mesa_GetMaterialfv; */
+/*    exec->GetMaterialiv = _mesa_GetMaterialiv; */
+/*    exec->GetPixelMapfv = _mesa_GetPixelMapfv; */
+/*    exec->GetPixelMapuiv = _mesa_GetPixelMapuiv; */
+/*    exec->GetPixelMapusv = _mesa_GetPixelMapusv; */
+/*    exec->GetPolygonStipple = _mesa_GetPolygonStipple; */
    exec->GetString = _mesa_GetString;
    exec->GetTexEnvfv = _mesa_GetTexEnvfv;
    exec->GetTexEnviv = _mesa_GetTexEnviv;
-   exec->GetTexGendv = _mesa_GetTexGendv;
-   exec->GetTexGenfv = _mesa_GetTexGenfv;
-   exec->GetTexGeniv = _mesa_GetTexGeniv;
-   exec->GetTexImage = _mesa_GetTexImage;
+/*    exec->GetTexGendv = _mesa_GetTexGendv; */
+/*    exec->GetTexGenfv = _mesa_GetTexGenfv; */
+/*    exec->GetTexGeniv = _mesa_GetTexGeniv; */
+/*    exec->GetTexImage = _mesa_GetTexImage; */
    exec->GetTexLevelParameterfv = _mesa_GetTexLevelParameterfv;
    exec->GetTexLevelParameteriv = _mesa_GetTexLevelParameteriv;
    exec->GetTexParameterfv = _mesa_GetTexParameterfv;
    exec->GetTexParameteriv = _mesa_GetTexParameteriv;
-   exec->Hint = _mesa_Hint;
-   exec->IndexMask = _mesa_IndexMask;
+/*    exec->Hint = _mesa_Hint; */
+/*    exec->IndexMask = _mesa_IndexMask; */
    exec->InitNames = _mesa_InitNames;
-   exec->IsEnabled = _mesa_IsEnabled;
-   exec->IsList = _mesa_IsList;
-   exec->LightModelf = _mesa_LightModelf;
-   exec->LightModelfv = _mesa_LightModelfv;
-   exec->LightModeli = _mesa_LightModeli;
-   exec->LightModeliv = _mesa_LightModeliv;
-   exec->Lightf = _mesa_Lightf;
-   exec->Lightfv = _mesa_Lightfv;
-   exec->Lighti = _mesa_Lighti;
-   exec->Lightiv = _mesa_Lightiv;
+/*    exec->IsEnabled = _mesa_IsEnabled; */
+/*    exec->IsList = _mesa_IsList; */
+/*    exec->LightModelf = _mesa_LightModelf; */
+/*    exec->LightModelfv = _mesa_LightModelfv; */
+/*    exec->LightModeli = _mesa_LightModeli; */
+/*    exec->LightModeliv = _mesa_LightModeliv; */
+/*    exec->Lightf = _mesa_Lightf; */
+/*    exec->Lightfv = _mesa_Lightfv; */
+/*    exec->Lighti = _mesa_Lighti; */
+/*    exec->Lightiv = _mesa_Lightiv; */
    exec->LineStipple = _mesa_LineStipple;
    exec->LineWidth = _mesa_LineWidth;
-   exec->ListBase = _mesa_ListBase;
+/*    exec->ListBase = _mesa_ListBase; */
    exec->LoadIdentity = _mesa_LoadIdentity;
-   exec->LoadMatrixd = _mesa_LoadMatrixd;
+/*    exec->LoadMatrixd = _mesa_LoadMatrixd; */
    exec->LoadMatrixf = _mesa_LoadMatrixf;
    exec->LoadName = _mesa_LoadName;
    exec->LogicOp = _mesa_LogicOp;
-   exec->Map1d = _mesa_Map1d;
-   exec->Map1f = _mesa_Map1f;
-   exec->Map2d = _mesa_Map2d;
-   exec->Map2f = _mesa_Map2f;
-   exec->MapGrid1d = _mesa_MapGrid1d;
-   exec->MapGrid1f = _mesa_MapGrid1f;
-   exec->MapGrid2d = _mesa_MapGrid2d;
-   exec->MapGrid2f = _mesa_MapGrid2f;
+/*    exec->Map1d = _mesa_Map1d; */
+/*    exec->Map1f = _mesa_Map1f; */
+/*    exec->Map2d = _mesa_Map2d; */
+/*    exec->Map2f = _mesa_Map2f; */
+/*    exec->MapGrid1d = _mesa_MapGrid1d; */
+/*    exec->MapGrid1f = _mesa_MapGrid1f; */
+/*    exec->MapGrid2d = _mesa_MapGrid2d; */
+/*    exec->MapGrid2f = _mesa_MapGrid2f; */
    exec->MatrixMode = _mesa_MatrixMode;
-   exec->MultMatrixd = _mesa_MultMatrixd;
+/*    exec->MultMatrixd = _mesa_MultMatrixd; */
    exec->MultMatrixf = _mesa_MultMatrixf;
-   exec->NewList = _mesa_NewList;
+/*    exec->NewList = _mesa_NewList; */
    exec->Ortho = _mesa_Ortho;
-   exec->PassThrough = _mesa_PassThrough;
-   exec->PixelMapfv = _mesa_PixelMapfv;
-   exec->PixelMapuiv = _mesa_PixelMapuiv;
-   exec->PixelMapusv = _mesa_PixelMapusv;
-   exec->PixelStoref = _mesa_PixelStoref;
+/*    exec->PassThrough = _mesa_PassThrough; */
+/*    exec->PixelMapfv = _mesa_PixelMapfv; */
+/*    exec->PixelMapuiv = _mesa_PixelMapuiv; */
+/*    exec->PixelMapusv = _mesa_PixelMapusv; */
+/*    exec->PixelStoref = _mesa_PixelStoref; */
    exec->PixelStorei = _mesa_PixelStorei;
-   exec->PixelTransferf = _mesa_PixelTransferf;
-   exec->PixelTransferi = _mesa_PixelTransferi;
-   exec->PixelZoom = _mesa_PixelZoom;
-   exec->PointSize = _mesa_PointSize;
-   exec->PolygonMode = _mesa_PolygonMode;
-   exec->PolygonOffset = _mesa_PolygonOffset;
-   exec->PolygonStipple = _mesa_PolygonStipple;
-   exec->PopAttrib = _mesa_PopAttrib;
+/*    exec->PixelTransferf = _mesa_PixelTransferf; */
+/*    exec->PixelTransferi = _mesa_PixelTransferi; */
+/*    exec->PixelZoom = _mesa_PixelZoom; */
+/*    exec->PointSize = _mesa_PointSize; */
+/*    exec->PolygonMode = _mesa_PolygonMode; */
+/*    exec->PolygonOffset = _mesa_PolygonOffset; */
+/*    exec->PolygonStipple = _mesa_PolygonStipple; */
+/*    exec->PopAttrib = _mesa_PopAttrib; */
    exec->PopMatrix = _mesa_PopMatrix;
    exec->PopName = _mesa_PopName;
-   exec->PushAttrib = _mesa_PushAttrib;
+/*    exec->PushAttrib = _mesa_PushAttrib; */
    exec->PushMatrix = _mesa_PushMatrix;
    exec->PushName = _mesa_PushName;
-   exec->RasterPos2d = _mesa_RasterPos2d;
-   exec->RasterPos2dv = _mesa_RasterPos2dv;
+/*    exec->RasterPos2d = _mesa_RasterPos2d; */
+/*    exec->RasterPos2dv = _mesa_RasterPos2dv; */
    exec->RasterPos2f = _mesa_RasterPos2f;
    exec->RasterPos2fv = _mesa_RasterPos2fv;
    exec->RasterPos2i = _mesa_RasterPos2i;
    exec->RasterPos2iv = _mesa_RasterPos2iv;
-   exec->RasterPos2s = _mesa_RasterPos2s;
-   exec->RasterPos2sv = _mesa_RasterPos2sv;
-   exec->RasterPos3d = _mesa_RasterPos3d;
-   exec->RasterPos3dv = _mesa_RasterPos3dv;
-   exec->RasterPos3f = _mesa_RasterPos3f;
-   exec->RasterPos3fv = _mesa_RasterPos3fv;
-   exec->RasterPos3i = _mesa_RasterPos3i;
-   exec->RasterPos3iv = _mesa_RasterPos3iv;
-   exec->RasterPos3s = _mesa_RasterPos3s;
-   exec->RasterPos3sv = _mesa_RasterPos3sv;
-   exec->RasterPos4d = _mesa_RasterPos4d;
-   exec->RasterPos4dv = _mesa_RasterPos4dv;
-   exec->RasterPos4f = _mesa_RasterPos4f;
-   exec->RasterPos4fv = _mesa_RasterPos4fv;
-   exec->RasterPos4i = _mesa_RasterPos4i;
-   exec->RasterPos4iv = _mesa_RasterPos4iv;
-   exec->RasterPos4s = _mesa_RasterPos4s;
-   exec->RasterPos4sv = _mesa_RasterPos4sv;
+/*    exec->RasterPos2s = _mesa_RasterPos2s; */
+/*    exec->RasterPos2sv = _mesa_RasterPos2sv; */
+/*    exec->RasterPos3d = _mesa_RasterPos3d; */
+/*    exec->RasterPos3dv = _mesa_RasterPos3dv; */
+/*    exec->RasterPos3f = _mesa_RasterPos3f; */
+/*    exec->RasterPos3fv = _mesa_RasterPos3fv; */
+/*    exec->RasterPos3i = _mesa_RasterPos3i; */
+/*    exec->RasterPos3iv = _mesa_RasterPos3iv; */
+/*    exec->RasterPos3s = _mesa_RasterPos3s; */
+/*    exec->RasterPos3sv = _mesa_RasterPos3sv; */
+/*    exec->RasterPos4d = _mesa_RasterPos4d; */
+/*    exec->RasterPos4dv = _mesa_RasterPos4dv; */
+/*    exec->RasterPos4f = _mesa_RasterPos4f; */
+/*    exec->RasterPos4fv = _mesa_RasterPos4fv; */
+/*    exec->RasterPos4i = _mesa_RasterPos4i; */
+/*    exec->RasterPos4iv = _mesa_RasterPos4iv; */
+/*    exec->RasterPos4s = _mesa_RasterPos4s; */
+/*    exec->RasterPos4sv = _mesa_RasterPos4sv; */
    exec->ReadBuffer = _mesa_ReadBuffer;
    exec->ReadPixels = _mesa_ReadPixels;
    exec->RenderMode = _mesa_RenderMode;
-   exec->Rotated = _mesa_Rotated;
+/*    exec->Rotated = _mesa_Rotated; */
    exec->Rotatef = _mesa_Rotatef;
-   exec->Scaled = _mesa_Scaled;
+/*    exec->Scaled = _mesa_Scaled; */
    exec->Scalef = _mesa_Scalef;
    exec->Scissor = _mesa_Scissor;
-   exec->SecondaryColorPointerEXT = _mesa_SecondaryColorPointerEXT;
+/*    exec->SecondaryColorPointerEXT = _mesa_SecondaryColorPointerEXT; */
    exec->SelectBuffer = _mesa_SelectBuffer;
    exec->ShadeModel = _mesa_ShadeModel;
    exec->StencilFunc = _mesa_StencilFunc;
    exec->StencilMask = _mesa_StencilMask;
    exec->StencilOp = _mesa_StencilOp;
-   exec->TexEnvf = _mesa_TexEnvf;
+/*    exec->TexEnvf = _mesa_TexEnvf; */
    exec->TexEnvfv = _mesa_TexEnvfv;
    exec->TexEnvi = _mesa_TexEnvi;
-   exec->TexEnviv = _mesa_TexEnviv;
-   exec->TexGend = _mesa_TexGend;
-   exec->TexGendv = _mesa_TexGendv;
-   exec->TexGenf = _mesa_TexGenf;
-   exec->TexGenfv = _mesa_TexGenfv;
-   exec->TexGeni = _mesa_TexGeni;
-   exec->TexGeniv = _mesa_TexGeniv;
-   exec->TexImage1D = _mesa_TexImage1D;
+/*    exec->TexEnviv = _mesa_TexEnviv; */
+/*    exec->TexGend = _mesa_TexGend; */
+/*    exec->TexGendv = _mesa_TexGendv; */
+/*    exec->TexGenf = _mesa_TexGenf; */
+/*    exec->TexGenfv = _mesa_TexGenfv; */
+/*    exec->TexGeni = _mesa_TexGeni; */
+/*    exec->TexGeniv = _mesa_TexGeniv; */
+/*    exec->TexImage1D = _mesa_TexImage1D; */
    exec->TexImage2D = _mesa_TexImage2D;
-   exec->TexParameterf = _mesa_TexParameterf;
-   exec->TexParameterfv = _mesa_TexParameterfv;
-   exec->TexParameteri = _mesa_TexParameteri;
-   exec->TexParameteriv = _mesa_TexParameteriv;
-   exec->Translated = _mesa_Translated;
+/*    exec->TexParameterf = _mesa_TexParameterf; */
+/*    exec->TexParameterfv = _mesa_TexParameterfv; */
+   exec->TexParameteri = _mesa_TexParameteri; 
+/*    exec->TexParameteriv = _mesa_TexParameteriv; */
+/*    exec->Translated = _mesa_Translated; */
    exec->Translatef = _mesa_Translatef;
    exec->Viewport = _mesa_Viewport;
 
    /* 1.1 */
-   exec->AreTexturesResident = _mesa_AreTexturesResident;
-   exec->AreTexturesResidentEXT = _mesa_AreTexturesResident;
+/*    exec->AreTexturesResident = _mesa_AreTexturesResident; */
+/*    exec->AreTexturesResidentEXT = _mesa_AreTexturesResident; */
    exec->BindTexture = _mesa_BindTexture;
-   exec->ColorPointer = _mesa_ColorPointer;
-   exec->CopyTexImage1D = _mesa_CopyTexImage1D;
-   exec->CopyTexImage2D = _mesa_CopyTexImage2D;
-   exec->CopyTexSubImage1D = _mesa_CopyTexSubImage1D;
-   exec->CopyTexSubImage2D = _mesa_CopyTexSubImage2D;
+/*    exec->ColorPointer = _mesa_ColorPointer; */
+/*    exec->CopyTexImage1D = _mesa_CopyTexImage1D; */
+/*    exec->CopyTexImage2D = _mesa_CopyTexImage2D; */
+/*    exec->CopyTexSubImage1D = _mesa_CopyTexSubImage1D; */
+/*    exec->CopyTexSubImage2D = _mesa_CopyTexSubImage2D; */
    exec->DeleteTextures = _mesa_DeleteTextures;
-   exec->DisableClientState = _mesa_DisableClientState;
-   exec->EdgeFlagPointer = _mesa_EdgeFlagPointer;
-   exec->EnableClientState = _mesa_EnableClientState;
+/*    exec->DisableClientState = _mesa_DisableClientState; */
+/*    exec->EdgeFlagPointer = _mesa_EdgeFlagPointer; */
+/*    exec->EnableClientState = _mesa_EnableClientState; */
    exec->GenTextures = _mesa_GenTextures;
-   exec->GenTexturesEXT = _mesa_GenTextures;
-   exec->GetPointerv = _mesa_GetPointerv;
-   exec->IndexPointer = _mesa_IndexPointer;
-   exec->InterleavedArrays = _mesa_InterleavedArrays;
-   exec->IsTexture = _mesa_IsTexture;
-   exec->IsTextureEXT = _mesa_IsTexture;
-   exec->NormalPointer = _mesa_NormalPointer;
-   exec->PopClientAttrib = _mesa_PopClientAttrib;
-   exec->PrioritizeTextures = _mesa_PrioritizeTextures;
-   exec->PushClientAttrib = _mesa_PushClientAttrib;
-   exec->TexCoordPointer = _mesa_TexCoordPointer;
-   exec->TexSubImage1D = _mesa_TexSubImage1D;
-   exec->TexSubImage2D = _mesa_TexSubImage2D;
-   exec->VertexPointer = _mesa_VertexPointer;
+/*    exec->GenTexturesEXT = _mesa_GenTextures; */
+/*    exec->GetPointerv = _mesa_GetPointerv; */
+/*    exec->IndexPointer = _mesa_IndexPointer; */
+/*    exec->InterleavedArrays = _mesa_InterleavedArrays; */
+/*    exec->IsTexture = _mesa_IsTexture; */
+/*    exec->IsTextureEXT = _mesa_IsTexture; */
+/*    exec->NormalPointer = _mesa_NormalPointer; */
+/*    exec->PopClientAttrib = _mesa_PopClientAttrib; */
+/*    exec->PrioritizeTextures = _mesa_PrioritizeTextures; */
+/*    exec->PushClientAttrib = _mesa_PushClientAttrib; */
+/*    exec->TexCoordPointer = _mesa_TexCoordPointer; */
+/*    exec->TexSubImage1D = _mesa_TexSubImage1D; */
+/*    exec->TexSubImage2D = _mesa_TexSubImage2D; */
+/*    exec->VertexPointer = _mesa_VertexPointer; */
 
    /* 1.2 */
-   exec->CopyTexSubImage3D = _mesa_CopyTexSubImage3D;
-   exec->TexImage3D = _mesa_TexImage3D;
-   exec->TexSubImage3D = _mesa_TexSubImage3D;
+/*    exec->CopyTexSubImage3D = _mesa_CopyTexSubImage3D; */
+/*    exec->TexImage3D = _mesa_TexImage3D; */
+/*    exec->TexSubImage3D = _mesa_TexSubImage3D; */
 
    /* OpenGL 1.2  GL_ARB_imaging */
-   exec->BlendColor = _mesa_BlendColor;
-   exec->BlendEquation = _mesa_BlendEquation;
-   exec->ColorSubTable = _mesa_ColorSubTable;
-   exec->ColorTable = _mesa_ColorTable;
-   exec->ColorTableParameterfv = _mesa_ColorTableParameterfv;
-   exec->ColorTableParameteriv = _mesa_ColorTableParameteriv;
-   exec->ConvolutionFilter1D = _mesa_ConvolutionFilter1D;
-   exec->ConvolutionFilter2D = _mesa_ConvolutionFilter2D;
-   exec->ConvolutionParameterf = _mesa_ConvolutionParameterf;
-   exec->ConvolutionParameterfv = _mesa_ConvolutionParameterfv;
-   exec->ConvolutionParameteri = _mesa_ConvolutionParameteri;
-   exec->ConvolutionParameteriv = _mesa_ConvolutionParameteriv;
-   exec->CopyColorSubTable = _mesa_CopyColorSubTable;
-   exec->CopyColorTable = _mesa_CopyColorTable;
-   exec->CopyConvolutionFilter1D = _mesa_CopyConvolutionFilter1D;
-   exec->CopyConvolutionFilter2D = _mesa_CopyConvolutionFilter2D;
-   exec->GetColorTable = _mesa_GetColorTable;
-   exec->GetColorTableEXT = _mesa_GetColorTable;
-   exec->GetColorTableParameterfv = _mesa_GetColorTableParameterfv;
-   exec->GetColorTableParameterfvEXT = _mesa_GetColorTableParameterfv;
-   exec->GetColorTableParameteriv = _mesa_GetColorTableParameteriv;
-   exec->GetColorTableParameterivEXT = _mesa_GetColorTableParameteriv;
-   exec->GetConvolutionFilter = _mesa_GetConvolutionFilter;
-   exec->GetConvolutionFilterEXT = _mesa_GetConvolutionFilter;
-   exec->GetConvolutionParameterfv = _mesa_GetConvolutionParameterfv;
-   exec->GetConvolutionParameterfvEXT = _mesa_GetConvolutionParameterfv;
-   exec->GetConvolutionParameteriv = _mesa_GetConvolutionParameteriv;
-   exec->GetConvolutionParameterivEXT = _mesa_GetConvolutionParameteriv;
-   exec->GetHistogram = _mesa_GetHistogram;
-   exec->GetHistogramEXT = _mesa_GetHistogram;
-   exec->GetHistogramParameterfv = _mesa_GetHistogramParameterfv;
-   exec->GetHistogramParameterfvEXT = _mesa_GetHistogramParameterfv;
-   exec->GetHistogramParameteriv = _mesa_GetHistogramParameteriv;
-   exec->GetHistogramParameterivEXT = _mesa_GetHistogramParameteriv;
-   exec->GetMinmax = _mesa_GetMinmax;
-   exec->GetMinmaxEXT = _mesa_GetMinmax;
-   exec->GetMinmaxParameterfv = _mesa_GetMinmaxParameterfv;
-   exec->GetMinmaxParameterfvEXT = _mesa_GetMinmaxParameterfv;
-   exec->GetMinmaxParameteriv = _mesa_GetMinmaxParameteriv;
-   exec->GetMinmaxParameterivEXT = _mesa_GetMinmaxParameteriv;
-   exec->GetSeparableFilter = _mesa_GetSeparableFilter;
-   exec->GetSeparableFilterEXT = _mesa_GetSeparableFilter;
-   exec->Histogram = _mesa_Histogram;
-   exec->Minmax = _mesa_Minmax;
-   exec->ResetHistogram = _mesa_ResetHistogram;
-   exec->ResetMinmax = _mesa_ResetMinmax;
-   exec->SeparableFilter2D = _mesa_SeparableFilter2D;
+/*    exec->BlendColor = _mesa_BlendColor; */
+/*    exec->BlendEquation = _mesa_BlendEquation; */
+/*    exec->ColorSubTable = _mesa_ColorSubTable; */
+/*    exec->ColorTable = _mesa_ColorTable; */
+/*    exec->ColorTableParameterfv = _mesa_ColorTableParameterfv; */
+/*    exec->ColorTableParameteriv = _mesa_ColorTableParameteriv; */
+/*    exec->ConvolutionFilter1D = _mesa_ConvolutionFilter1D; */
+/*    exec->ConvolutionFilter2D = _mesa_ConvolutionFilter2D; */
+/*    exec->ConvolutionParameterf = _mesa_ConvolutionParameterf; */
+/*    exec->ConvolutionParameterfv = _mesa_ConvolutionParameterfv; */
+/*    exec->ConvolutionParameteri = _mesa_ConvolutionParameteri; */
+/*    exec->ConvolutionParameteriv = _mesa_ConvolutionParameteriv; */
+/*    exec->CopyColorSubTable = _mesa_CopyColorSubTable; */
+/*    exec->CopyColorTable = _mesa_CopyColorTable; */
+/*    exec->CopyConvolutionFilter1D = _mesa_CopyConvolutionFilter1D; */
+/*    exec->CopyConvolutionFilter2D = _mesa_CopyConvolutionFilter2D; */
+/*    exec->GetColorTable = _mesa_GetColorTable; */
+/*    exec->GetColorTableEXT = _mesa_GetColorTable; */
+/*    exec->GetColorTableParameterfv = _mesa_GetColorTableParameterfv; */
+/*    exec->GetColorTableParameterfvEXT = _mesa_GetColorTableParameterfv; */
+/*    exec->GetColorTableParameteriv = _mesa_GetColorTableParameteriv; */
+/*    exec->GetColorTableParameterivEXT = _mesa_GetColorTableParameteriv; */
+/*    exec->GetConvolutionFilter = _mesa_GetConvolutionFilter; */
+/*    exec->GetConvolutionFilterEXT = _mesa_GetConvolutionFilter; */
+/*    exec->GetConvolutionParameterfv = _mesa_GetConvolutionParameterfv; */
+/*    exec->GetConvolutionParameterfvEXT = _mesa_GetConvolutionParameterfv; */
+/*    exec->GetConvolutionParameteriv = _mesa_GetConvolutionParameteriv; */
+/*    exec->GetConvolutionParameterivEXT = _mesa_GetConvolutionParameteriv; */
+/*    exec->GetHistogram = _mesa_GetHistogram; */
+/*    exec->GetHistogramEXT = _mesa_GetHistogram; */
+/*    exec->GetHistogramParameterfv = _mesa_GetHistogramParameterfv; */
+/*    exec->GetHistogramParameterfvEXT = _mesa_GetHistogramParameterfv; */
+/*    exec->GetHistogramParameteriv = _mesa_GetHistogramParameteriv; */
+/*    exec->GetHistogramParameterivEXT = _mesa_GetHistogramParameteriv; */
+/*    exec->GetMinmax = _mesa_GetMinmax; */
+/*    exec->GetMinmaxEXT = _mesa_GetMinmax; */
+/*    exec->GetMinmaxParameterfv = _mesa_GetMinmaxParameterfv; */
+/*    exec->GetMinmaxParameterfvEXT = _mesa_GetMinmaxParameterfv; */
+/*    exec->GetMinmaxParameteriv = _mesa_GetMinmaxParameteriv; */
+/*    exec->GetMinmaxParameterivEXT = _mesa_GetMinmaxParameteriv; */
+/*    exec->GetSeparableFilter = _mesa_GetSeparableFilter; */
+/*    exec->GetSeparableFilterEXT = _mesa_GetSeparableFilter; */
+/*    exec->Histogram = _mesa_Histogram; */
+/*    exec->Minmax = _mesa_Minmax; */
+/*    exec->ResetHistogram = _mesa_ResetHistogram; */
+/*    exec->ResetMinmax = _mesa_ResetMinmax; */
+/*    exec->SeparableFilter2D = _mesa_SeparableFilter2D; */
 
    /* 2. GL_EXT_blend_color */
 #if 0
-   exec->BlendColorEXT = _mesa_BlendColorEXT;
+/*    exec->BlendColorEXT = _mesa_BlendColorEXT; */
 #endif
 
    /* 3. GL_EXT_polygon_offset */
-   exec->PolygonOffsetEXT = _mesa_PolygonOffsetEXT;
+/*    exec->PolygonOffsetEXT = _mesa_PolygonOffsetEXT; */
 
    /* 6. GL_EXT_texture3d */
 #if 0
-   exec->CopyTexSubImage3DEXT = _mesa_CopyTexSubImage3D;
-   exec->TexImage3DEXT = _mesa_TexImage3DEXT;
-   exec->TexSubImage3DEXT = _mesa_TexSubImage3D;
+/*    exec->CopyTexSubImage3DEXT = _mesa_CopyTexSubImage3D; */
+/*    exec->TexImage3DEXT = _mesa_TexImage3DEXT; */
+/*    exec->TexSubImage3DEXT = _mesa_TexSubImage3D; */
 #endif
 
    /* 11. GL_EXT_histogram */
-   exec->GetHistogramEXT = _mesa_GetHistogram;
-   exec->GetHistogramParameterfvEXT = _mesa_GetHistogramParameterfv;
-   exec->GetHistogramParameterivEXT = _mesa_GetHistogramParameteriv;
-   exec->GetMinmaxEXT = _mesa_GetMinmax;
-   exec->GetMinmaxParameterfvEXT = _mesa_GetMinmaxParameterfv;
-   exec->GetMinmaxParameterivEXT = _mesa_GetMinmaxParameteriv;
+/*    exec->GetHistogramEXT = _mesa_GetHistogram; */
+/*    exec->GetHistogramParameterfvEXT = _mesa_GetHistogramParameterfv; */
+/*    exec->GetHistogramParameterivEXT = _mesa_GetHistogramParameteriv; */
+/*    exec->GetMinmaxEXT = _mesa_GetMinmax; */
+/*    exec->GetMinmaxParameterfvEXT = _mesa_GetMinmaxParameterfv; */
+/*    exec->GetMinmaxParameterivEXT = _mesa_GetMinmaxParameteriv; */
 
    /* ?. GL_SGIX_pixel_texture */
-   exec->PixelTexGenSGIX = _mesa_PixelTexGenSGIX;
+/*    exec->PixelTexGenSGIX = _mesa_PixelTexGenSGIX; */
 
    /* 15. GL_SGIS_pixel_texture */
-   exec->PixelTexGenParameteriSGIS = _mesa_PixelTexGenParameteriSGIS;
-   exec->PixelTexGenParameterivSGIS = _mesa_PixelTexGenParameterivSGIS;
-   exec->PixelTexGenParameterfSGIS = _mesa_PixelTexGenParameterfSGIS;
-   exec->PixelTexGenParameterfvSGIS = _mesa_PixelTexGenParameterfvSGIS;
-   exec->GetPixelTexGenParameterivSGIS = _mesa_GetPixelTexGenParameterivSGIS;
-   exec->GetPixelTexGenParameterfvSGIS = _mesa_GetPixelTexGenParameterfvSGIS;
+/*    exec->PixelTexGenParameteriSGIS = _mesa_PixelTexGenParameteriSGIS; */
+/*    exec->PixelTexGenParameterivSGIS = _mesa_PixelTexGenParameterivSGIS; */
+/*    exec->PixelTexGenParameterfSGIS = _mesa_PixelTexGenParameterfSGIS; */
+/*    exec->PixelTexGenParameterfvSGIS = _mesa_PixelTexGenParameterfvSGIS; */
+/*    exec->GetPixelTexGenParameterivSGIS = _mesa_GetPixelTexGenParameterivSGIS; */
+/*    exec->GetPixelTexGenParameterfvSGIS = _mesa_GetPixelTexGenParameterfvSGIS; */
 
    /* 30. GL_EXT_vertex_array */
-   exec->ColorPointerEXT = _mesa_ColorPointerEXT;
-   exec->EdgeFlagPointerEXT = _mesa_EdgeFlagPointerEXT;
-   exec->IndexPointerEXT = _mesa_IndexPointerEXT;
-   exec->NormalPointerEXT = _mesa_NormalPointerEXT;
-   exec->TexCoordPointerEXT = _mesa_TexCoordPointerEXT;
-   exec->VertexPointerEXT = _mesa_VertexPointerEXT;
+/*    exec->ColorPointerEXT = _mesa_ColorPointerEXT; */
+/*    exec->EdgeFlagPointerEXT = _mesa_EdgeFlagPointerEXT; */
+/*    exec->IndexPointerEXT = _mesa_IndexPointerEXT; */
+/*    exec->NormalPointerEXT = _mesa_NormalPointerEXT; */
+/*    exec->TexCoordPointerEXT = _mesa_TexCoordPointerEXT; */
+/*    exec->VertexPointerEXT = _mesa_VertexPointerEXT; */
 
    /* 37. GL_EXT_blend_minmax */
 #if 0
-   exec->BlendEquationEXT = _mesa_BlendEquationEXT;
+/*    exec->BlendEquationEXT = _mesa_BlendEquationEXT; */
 #endif
 
    /* 54. GL_EXT_point_parameters */
-   exec->PointParameterfEXT = _mesa_PointParameterfEXT;
-   exec->PointParameterfvEXT = _mesa_PointParameterfvEXT;
+/*    exec->PointParameterfEXT = _mesa_PointParameterfEXT; */
+/*    exec->PointParameterfvEXT = _mesa_PointParameterfvEXT; */
 
    /* 78. GL_EXT_paletted_texture */
 #if 0
-   exec->ColorTableEXT = _mesa_ColorTableEXT;
-   exec->ColorSubTableEXT = _mesa_ColorSubTableEXT;
+/*    exec->ColorTableEXT = _mesa_ColorTableEXT; */
+/*    exec->ColorSubTableEXT = _mesa_ColorSubTableEXT; */
 #endif
-   exec->GetColorTableEXT = _mesa_GetColorTable;
-   exec->GetColorTableParameterfvEXT = _mesa_GetColorTableParameterfv;
-   exec->GetColorTableParameterivEXT = _mesa_GetColorTableParameteriv;
+/*    exec->GetColorTableEXT = _mesa_GetColorTable; */
+/*    exec->GetColorTableParameterfvEXT = _mesa_GetColorTableParameterfv; */
+/*    exec->GetColorTableParameterivEXT = _mesa_GetColorTableParameteriv; */
 
    /* 97. GL_EXT_compiled_vertex_array */
-   exec->LockArraysEXT = _mesa_LockArraysEXT;
-   exec->UnlockArraysEXT = _mesa_UnlockArraysEXT;
+/*    exec->LockArraysEXT = _mesa_LockArraysEXT; */
+/*    exec->UnlockArraysEXT = _mesa_UnlockArraysEXT; */
 
    /* 148. GL_EXT_multi_draw_arrays */
-   exec->MultiDrawArraysEXT = _mesa_MultiDrawArraysEXT;
-   exec->MultiDrawElementsEXT = _mesa_MultiDrawElementsEXT;
+/*    exec->MultiDrawArraysEXT = _mesa_MultiDrawArraysEXT; */
+/*    exec->MultiDrawElementsEXT = _mesa_MultiDrawElementsEXT; */
 
    /* 173. GL_INGR_blend_func_separate */
-   exec->BlendFuncSeparateEXT = _mesa_BlendFuncSeparateEXT;
+/*    exec->BlendFuncSeparateEXT = _mesa_BlendFuncSeparateEXT; */
 
    /* 196. GL_MESA_resize_buffers */
-   exec->ResizeBuffersMESA = _mesa_ResizeBuffersMESA;
+/*    exec->ResizeBuffersMESA = _mesa_ResizeBuffersMESA; */
 
    /* 197. GL_MESA_window_pos */
-   exec->WindowPos2dMESA = _mesa_WindowPos2dMESA;
-   exec->WindowPos2dvMESA = _mesa_WindowPos2dvMESA;
-   exec->WindowPos2fMESA = _mesa_WindowPos2fMESA;
-   exec->WindowPos2fvMESA = _mesa_WindowPos2fvMESA;
-   exec->WindowPos2iMESA = _mesa_WindowPos2iMESA;
-   exec->WindowPos2ivMESA = _mesa_WindowPos2ivMESA;
-   exec->WindowPos2sMESA = _mesa_WindowPos2sMESA;
-   exec->WindowPos2svMESA = _mesa_WindowPos2svMESA;
-   exec->WindowPos3dMESA = _mesa_WindowPos3dMESA;
-   exec->WindowPos3dvMESA = _mesa_WindowPos3dvMESA;
-   exec->WindowPos3fMESA = _mesa_WindowPos3fMESA;
-   exec->WindowPos3fvMESA = _mesa_WindowPos3fvMESA;
-   exec->WindowPos3iMESA = _mesa_WindowPos3iMESA;
-   exec->WindowPos3ivMESA = _mesa_WindowPos3ivMESA;
-   exec->WindowPos3sMESA = _mesa_WindowPos3sMESA;
-   exec->WindowPos3svMESA = _mesa_WindowPos3svMESA;
-   exec->WindowPos4dMESA = _mesa_WindowPos4dMESA;
-   exec->WindowPos4dvMESA = _mesa_WindowPos4dvMESA;
-   exec->WindowPos4fMESA = _mesa_WindowPos4fMESA;
-   exec->WindowPos4fvMESA = _mesa_WindowPos4fvMESA;
-   exec->WindowPos4iMESA = _mesa_WindowPos4iMESA;
-   exec->WindowPos4ivMESA = _mesa_WindowPos4ivMESA;
-   exec->WindowPos4sMESA = _mesa_WindowPos4sMESA;
-   exec->WindowPos4svMESA = _mesa_WindowPos4svMESA;
+/*    exec->WindowPos2dMESA = _mesa_WindowPos2dMESA; */
+/*    exec->WindowPos2dvMESA = _mesa_WindowPos2dvMESA; */
+/*    exec->WindowPos2fMESA = _mesa_WindowPos2fMESA; */
+/*    exec->WindowPos2fvMESA = _mesa_WindowPos2fvMESA; */
+/*    exec->WindowPos2iMESA = _mesa_WindowPos2iMESA; */
+/*    exec->WindowPos2ivMESA = _mesa_WindowPos2ivMESA; */
+/*    exec->WindowPos2sMESA = _mesa_WindowPos2sMESA; */
+/*    exec->WindowPos2svMESA = _mesa_WindowPos2svMESA; */
+/*    exec->WindowPos3dMESA = _mesa_WindowPos3dMESA; */
+/*    exec->WindowPos3dvMESA = _mesa_WindowPos3dvMESA; */
+/*    exec->WindowPos3fMESA = _mesa_WindowPos3fMESA; */
+/*    exec->WindowPos3fvMESA = _mesa_WindowPos3fvMESA; */
+/*    exec->WindowPos3iMESA = _mesa_WindowPos3iMESA; */
+/*    exec->WindowPos3ivMESA = _mesa_WindowPos3ivMESA; */
+/*    exec->WindowPos3sMESA = _mesa_WindowPos3sMESA; */
+/*    exec->WindowPos3svMESA = _mesa_WindowPos3svMESA; */
+/*    exec->WindowPos4dMESA = _mesa_WindowPos4dMESA; */
+/*    exec->WindowPos4dvMESA = _mesa_WindowPos4dvMESA; */
+/*    exec->WindowPos4fMESA = _mesa_WindowPos4fMESA; */
+/*    exec->WindowPos4fvMESA = _mesa_WindowPos4fvMESA; */
+/*    exec->WindowPos4iMESA = _mesa_WindowPos4iMESA; */
+/*    exec->WindowPos4ivMESA = _mesa_WindowPos4ivMESA; */
+/*    exec->WindowPos4sMESA = _mesa_WindowPos4sMESA; */
+/*    exec->WindowPos4svMESA = _mesa_WindowPos4svMESA; */
 
    /* 233. GL_NV_vertex_program */
 #if FEATURE_NV_vertex_program
-   exec->BindProgramNV = _mesa_BindProgramNV;
-   exec->DeleteProgramsNV = _mesa_DeleteProgramsNV;
-   exec->ExecuteProgramNV = _mesa_ExecuteProgramNV;
-   exec->GenProgramsNV = _mesa_GenProgramsNV;
-   exec->AreProgramsResidentNV = _mesa_AreProgramsResidentNV;
-   exec->RequestResidentProgramsNV = _mesa_RequestResidentProgramsNV;
-   exec->GetProgramParameterfvNV = _mesa_GetProgramParameterfvNV;
-   exec->GetProgramParameterdvNV = _mesa_GetProgramParameterdvNV;
-   exec->GetProgramivNV = _mesa_GetProgramivNV;
-   exec->GetProgramStringNV = _mesa_GetProgramStringNV;
-   exec->GetTrackMatrixivNV = _mesa_GetTrackMatrixivNV;
-   exec->GetVertexAttribdvNV = _mesa_GetVertexAttribdvNV;
-   exec->GetVertexAttribfvNV = _mesa_GetVertexAttribfvNV;
-   exec->GetVertexAttribivNV = _mesa_GetVertexAttribivNV;
-   exec->GetVertexAttribPointervNV = _mesa_GetVertexAttribPointervNV;
-   exec->IsProgramNV = _mesa_IsProgramNV;
-   exec->LoadProgramNV = _mesa_LoadProgramNV;
-   exec->ProgramParameter4dNV = _mesa_ProgramParameter4dNV;
-   exec->ProgramParameter4dvNV = _mesa_ProgramParameter4dvNV;
-   exec->ProgramParameter4fNV = _mesa_ProgramParameter4fNV;
-   exec->ProgramParameter4fvNV = _mesa_ProgramParameter4fvNV;
-   exec->ProgramParameters4dvNV = _mesa_ProgramParameters4dvNV;
-   exec->ProgramParameters4fvNV = _mesa_ProgramParameters4fvNV;
-   exec->TrackMatrixNV = _mesa_TrackMatrixNV;
-   exec->VertexAttribPointerNV = _mesa_VertexAttribPointerNV;
+/*    exec->BindProgramNV = _mesa_BindProgramNV; */
+/*    exec->DeleteProgramsNV = _mesa_DeleteProgramsNV; */
+/*    exec->ExecuteProgramNV = _mesa_ExecuteProgramNV; */
+/*    exec->GenProgramsNV = _mesa_GenProgramsNV; */
+/*    exec->AreProgramsResidentNV = _mesa_AreProgramsResidentNV; */
+/*    exec->RequestResidentProgramsNV = _mesa_RequestResidentProgramsNV; */
+/*    exec->GetProgramParameterfvNV = _mesa_GetProgramParameterfvNV; */
+/*    exec->GetProgramParameterdvNV = _mesa_GetProgramParameterdvNV; */
+/*    exec->GetProgramivNV = _mesa_GetProgramivNV; */
+/*    exec->GetProgramStringNV = _mesa_GetProgramStringNV; */
+/*    exec->GetTrackMatrixivNV = _mesa_GetTrackMatrixivNV; */
+/*    exec->GetVertexAttribdvNV = _mesa_GetVertexAttribdvNV; */
+/*    exec->GetVertexAttribfvNV = _mesa_GetVertexAttribfvNV; */
+/*    exec->GetVertexAttribivNV = _mesa_GetVertexAttribivNV; */
+/*    exec->GetVertexAttribPointervNV = _mesa_GetVertexAttribPointervNV; */
+/*    exec->IsProgramNV = _mesa_IsProgramNV; */
+/*    exec->LoadProgramNV = _mesa_LoadProgramNV; */
+/*    exec->ProgramParameter4dNV = _mesa_ProgramParameter4dNV; */
+/*    exec->ProgramParameter4dvNV = _mesa_ProgramParameter4dvNV; */
+/*    exec->ProgramParameter4fNV = _mesa_ProgramParameter4fNV; */
+/*    exec->ProgramParameter4fvNV = _mesa_ProgramParameter4fvNV; */
+/*    exec->ProgramParameters4dvNV = _mesa_ProgramParameters4dvNV; */
+/*    exec->ProgramParameters4fvNV = _mesa_ProgramParameters4fvNV; */
+/*    exec->TrackMatrixNV = _mesa_TrackMatrixNV; */
+/*    exec->VertexAttribPointerNV = _mesa_VertexAttribPointerNV; */
 #endif
 
    /* 262. GL_NV_point_sprite */
-   exec->PointParameteriNV = _mesa_PointParameteriNV;
-   exec->PointParameterivNV = _mesa_PointParameterivNV;
+/*    exec->PointParameteriNV = _mesa_PointParameteriNV; */
+/*    exec->PointParameterivNV = _mesa_PointParameterivNV; */
 
    /* 268. GL_EXT_stencil_two_side */
-   exec->ActiveStencilFaceEXT = _mesa_ActiveStencilFaceEXT;
+/*    exec->ActiveStencilFaceEXT = _mesa_ActiveStencilFaceEXT; */
 
    /* ARB 1. GL_ARB_multitexture */
-   exec->ActiveTextureARB = _mesa_ActiveTextureARB;
-   exec->ClientActiveTextureARB = _mesa_ClientActiveTextureARB;
+/*    exec->ActiveTextureARB = _mesa_ActiveTextureARB; */
+/*    exec->ClientActiveTextureARB = _mesa_ClientActiveTextureARB; */
 
    /* ARB 3. GL_ARB_transpose_matrix */
-   exec->LoadTransposeMatrixdARB = _mesa_LoadTransposeMatrixdARB;
-   exec->LoadTransposeMatrixfARB = _mesa_LoadTransposeMatrixfARB;
-   exec->MultTransposeMatrixdARB = _mesa_MultTransposeMatrixdARB;
-   exec->MultTransposeMatrixfARB = _mesa_MultTransposeMatrixfARB;
+/*    exec->LoadTransposeMatrixdARB = _mesa_LoadTransposeMatrixdARB; */
+/*    exec->LoadTransposeMatrixfARB = _mesa_LoadTransposeMatrixfARB; */
+/*    exec->MultTransposeMatrixdARB = _mesa_MultTransposeMatrixdARB; */
+/*    exec->MultTransposeMatrixfARB = _mesa_MultTransposeMatrixfARB; */
 
    /* ARB 5. GL_ARB_multisample */
-   exec->SampleCoverageARB = _mesa_SampleCoverageARB;
+/*    exec->SampleCoverageARB = _mesa_SampleCoverageARB; */
 
    /* ARB 12. GL_ARB_texture_compression */
-   exec->CompressedTexImage3DARB = _mesa_CompressedTexImage3DARB;
-   exec->CompressedTexImage2DARB = _mesa_CompressedTexImage2DARB;
-   exec->CompressedTexImage1DARB = _mesa_CompressedTexImage1DARB;
-   exec->CompressedTexSubImage3DARB = _mesa_CompressedTexSubImage3DARB;
-   exec->CompressedTexSubImage2DARB = _mesa_CompressedTexSubImage2DARB;
-   exec->CompressedTexSubImage1DARB = _mesa_CompressedTexSubImage1DARB;
-   exec->GetCompressedTexImageARB = _mesa_GetCompressedTexImageARB;
+/*    exec->CompressedTexImage3DARB = _mesa_CompressedTexImage3DARB; */
+/*    exec->CompressedTexImage2DARB = _mesa_CompressedTexImage2DARB; */
+/*    exec->CompressedTexImage1DARB = _mesa_CompressedTexImage1DARB; */
+/*    exec->CompressedTexSubImage3DARB = _mesa_CompressedTexSubImage3DARB; */
+/*    exec->CompressedTexSubImage2DARB = _mesa_CompressedTexSubImage2DARB; */
+/*    exec->CompressedTexSubImage1DARB = _mesa_CompressedTexSubImage1DARB; */
+/*    exec->GetCompressedTexImageARB = _mesa_GetCompressedTexImageARB; */
 
    /* ARB 14. GL_ARB_point_parameters */
    /* reuse EXT_point_parameters functions */

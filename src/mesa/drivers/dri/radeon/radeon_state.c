@@ -1262,6 +1262,7 @@ static void radeonEnable( GLcontext *ctx, GLenum cap, GLboolean state )
    case GL_TEXTURE_1D:
    case GL_TEXTURE_2D:
    case GL_TEXTURE_3D:
+      RADEON_FIREVERTICES( rmesa );
       break;
 
    case GL_ALPHA_TEST:

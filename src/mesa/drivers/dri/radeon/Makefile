@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.1.2.22 2003/02/07 20:22:16 keithw Exp $
+# $Id: Makefile,v 1.1.2.23 2003/02/21 21:14:24 keithw Exp $
 
 # Mesa 3-D graphics library
 # Version:  5.0
@@ -20,7 +20,8 @@ DEFINES = \
 	-D_HAVE_CODEGEN=0 \
 	-D_HAVE_LIGHTING=0 \
 	-D_HAVE_TEXGEN=0 \
-	-D_HAVE_USERCLIP=0
+	-D_HAVE_USERCLIP=0 \
+	-D_HAVE_FULL_GL=0
 
 CFLAGS = $(INCLUDES) $(DEFINES) -g -MD -Wall -Wpointer-arith \
 	 -Wstrict-prototypes -Wmissing-prototypes \

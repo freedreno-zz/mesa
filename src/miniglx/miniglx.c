@@ -22,7 +22,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: miniglx.c,v 1.1.4.45 2003/01/20 15:01:39 brianp Exp $ */
+/* $Id: miniglx.c,v 1.1.4.46 2003/02/21 21:14:31 keithw Exp $ */
 
 
 /**
@@ -44,9 +44,10 @@
  * interface is a subset of the GLX interface, plus a minimal set of Xlib-like
  * functions.
  *
- * Programs written to the Mini GLX specification should run unchanged on
- * systems with the X Window System and the GLX extension. The intention is to
- * allow flexibility for prototyping and testing.
+ * Programs written to the Mini GLX specification should run unchanged
+ * on systems with the X Window System and the GLX extension (after
+ * recompilation). The intention is to allow flexibility for
+ * prototyping and testing.
  *
  * The files in the src/miniglx/ directory are compiled to build the
  * libGL.so library.  This is the library which applications link with.

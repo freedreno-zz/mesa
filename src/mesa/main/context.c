@@ -1,4 +1,4 @@
-/* $Id: context.c,v 1.188.2.1.2.2 2003/01/10 21:57:41 brianp Exp $ */
+/* $Id: context.c,v 1.188.2.1.2.3 2003/02/21 21:14:08 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -1883,7 +1883,7 @@ _mesa_initialize_context( GLcontext *ctx,
    ctx->SavePrefersFloat = GL_FALSE;
 
    /* Neutral tnl module stuff */
-   _mesa_init_exec_vtxfmt( ctx );
+/*    _mesa_init_exec_vtxfmt( ctx ); */
    ctx->TnlModule.Current = NULL;
    ctx->TnlModule.SwapCount = 0;
 
@@ -2252,8 +2252,6 @@ _mesa_make_current2( GLcontext *newCtx, GLframebuffer *drawBuffer,
 {
    if (MESA_VERBOSE)
       _mesa_debug(newCtx, "_mesa_make_current2()\n");
-
-   fprintf(stderr, "%s\n", __FUNCTION__);
 
    /* Check that the context's and framebuffer's visuals are compatible.
     * We could do a lot more checking here but this'll catch obvious
