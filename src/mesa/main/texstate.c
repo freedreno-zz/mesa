@@ -1,4 +1,4 @@
-/* $Id: texstate.c,v 1.87.2.4 2003/02/28 16:28:22 brianp Exp $ */
+/* $Id: texstate.c,v 1.87.2.5 2003/03/03 15:39:38 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -1019,10 +1019,11 @@ _mesa_TexParameterfv( GLenum target, GLenum pname, const GLfloat *params )
    ASSERT_OUTSIDE_BEGIN_END(ctx);
 
    if (MESA_VERBOSE&(VERBOSE_API|VERBOSE_TEXTURE))
-      _mesa_debug(ctx, "texPARAM %s %s %d...\n",
+      _mesa_debug(ctx, "glTexParameter %s %s %.1f(%s)...\n",
                   _mesa_lookup_enum_by_nr(target),
                   _mesa_lookup_enum_by_nr(pname),
-                  eparam);
+                  *params,
+		  _mesa_lookup_enum_by_nr(eparam));
 
 
    switch (target) {
@@ -1868,10 +1869,11 @@ _mesa_TexGenfv( GLenum coord, GLenum pname, const GLfloat *params )
    ASSERT_OUTSIDE_BEGIN_END(ctx);
 
    if (MESA_VERBOSE&(VERBOSE_API|VERBOSE_TEXTURE))
-      _mesa_debug(ctx, "texGEN %s %s %x...\n",
+      _mesa_debug(ctx, "glTexGen %s %s %.1f(%s)...\n",
                   _mesa_lookup_enum_by_nr(coord),
                   _mesa_lookup_enum_by_nr(pname),
-                  *(int *)params);
+                  *params,
+		  _mesa_lookup_enum_by_nr((GLenum) (GLint) *params));
 
    switch (coord) {
       case GL_S:
