@@ -1,4 +1,4 @@
-/* $Id: rastpos.c,v 1.39.4.1 2003/03/09 10:52:21 jrfonseca Exp $ */
+/* $Id: rastpos.c,v 1.39.4.2 2003/03/17 16:07:22 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -103,6 +103,7 @@ userclip_point( GLcontext* ctx, const GLfloat v[] )
 }
 
 
+#if FEATURE_lighting
 /* This has been split off to allow the normal shade routines to
  * get a little closer to the vertex buffer, and to use the
  * GLvector objects directly.
@@ -267,6 +268,7 @@ shade_rastpos(GLcontext *ctx,
    }
 
 }
+#endif
 
 /*
  * Caller:  context->API.RasterPos4f
@@ -285,6 +287,7 @@ raster_pos4f(GLcontext *ctx, GLfloat x, GLfloat y, GLfloat z, GLfloat w)
    TRANSFORM_POINT( eye, ctx->ModelviewMatrixStack.Top->m, v );
 
    /* raster color */
+#if FEATURE_lighting
    if (ctx->Light.Enabled) {
       GLfloat *norm, eyenorm[3];
       GLfloat *objnorm = ctx->Current.Attrib[VERT_ATTRIB_NORMAL];
@@ -304,7 +307,9 @@ raster_pos4f(GLcontext *ctx, GLfloat x, GLfloat y, GLfloat z, GLfloat w)
                      &ctx->Current.RasterIndex );
 
    }
-   else {
+   else 
+#endif
+   {
       /* use current color or index */
       if (ctx->Visual.rgbMode) {
          COPY_4FV(ctx->Current.RasterColor,
@@ -528,6 +533,8 @@ _mesa_RasterPos4sv(const GLshort *v)
 /***           GL_ARB_window_pos / GL_MESA_window_pos               ***/
 /**********************************************************************/
 
+#if FEATURE_window_pos
+
 static void
 window_pos3f(GLfloat x, GLfloat y, GLfloat z)
 {
@@ -747,7 +754,7 @@ _mesa_WindowPos4svMESA(const GLshort *v)
    window_pos4f(v[0], v[1], v[2], v[3]);
 }
 
-
+#endif
 
 #if 0
 

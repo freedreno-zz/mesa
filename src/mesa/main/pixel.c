@@ -1,4 +1,4 @@
-/* $Id: pixel.c,v 1.37.4.1 2003/03/17 15:18:16 keithw Exp $ */
+/* $Id: pixel.c,v 1.37.4.2 2003/03/17 16:07:21 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -777,8 +777,6 @@ _mesa_PixelTransferi( GLenum pname, GLint param )
    _mesa_PixelTransferf( pname, (GLfloat) param );
 }
 
-#if _HAVE_FULL_GL
-
 /**********************************************************************/
 /*****                  Pixel processing functions               ******/
 /**********************************************************************/
@@ -1330,4 +1328,3 @@ _mesa_chan_to_float_span(const GLcontext *ctx, GLuint n,
 #endif
 }
 
-#endif
