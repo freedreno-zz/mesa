@@ -1,14 +1,20 @@
-/* $Id: miniglxtest.c,v 1.1.4.3 2002/11/27 21:04:18 brianp Exp $ */
+/* $Id: miniglxtest.c,v 1.1.4.4 2002/12/09 22:34:40 brianp Exp $ */
 
 /*
  * Test the mini GLX interface.
  */
 
+#define USE_MINI_GLX 1
 
-#include <GL/gl.h>
-#include <GL/miniglx.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <GL/gl.h>
+#if USE_MINI_GLX
+#include <GL/miniglx.h>
+#else
+#include <GL/glx.h>
+#define WRAP(x) x    /* temporary! */
+#endif
 
 
 static void redraw( Display *dpy, Window w, int rot )
@@ -45,7 +51,7 @@ static Window make_rgb_db_window( Display *dpy,
    GLXContext ctx;
    XVisualInfo *visinfo;
 
-   scrnum = WRAP(DefaultScreen)( dpy );
+   scrnum = 0;
    root = WRAP(RootWindow)( dpy, scrnum );
 
    visinfo = WRAP(glXChooseVisual)( dpy, scrnum, attrib );
@@ -94,6 +100,10 @@ int main( int argc, char *argv[] )
    Window win;
 
    dpy = WRAP(XOpenDisplay)(NULL);
+   if (!dpy) {
+      printf("Error: XOpenDisplay failed\n");
+      return 1;
+   }
 
    win = make_rgb_db_window( dpy, 800, 600);
 
