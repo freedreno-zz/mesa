@@ -974,14 +974,19 @@ fxMesaContext GLAPIENTRY fxMesaCreateContext(GLuint win,
       errorstr = "grSstWinOpen"; 
       goto errorhandler;
    }
-
+   
    /* Pixel tables are use during pixel read-back */
+#if FXMESA_USE_ARGB 
+   fxInitPixelTables(GL_FALSE); /* Force RGB pixel order */	
+#else
    if (glbHWConfig.SSTs[glbCurrentBoard].type == GR_SSTTYPE_VOODOO) {
+  
       fxInitPixelTables(GL_TRUE); /* use BGR pixel order on Voodoo1/2 */
    }
    else {
       fxInitPixelTables(GL_FALSE); /* use RGB pixel order otherwise */
    }
+#endif
 
    fxMesa->width=FX_grSstScreenWidth();
    fxMesa->height=FX_grSstScreenHeight();
