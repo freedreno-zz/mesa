@@ -36,4 +36,7 @@ drmtest: xf86drm.o drmtest.o
 glapi.c: ../glapi.c
 	ln -s ../glapi.c .
 
+clean::
+	rm -f drmtest glapi.c ../lib/libGL.so*
+
 -include $(SOURCES:.c=.d)
