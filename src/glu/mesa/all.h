@@ -1,9 +1,9 @@
-/* $Id: all.h,v 1.1 1999/08/19 00:55:42 jtg Exp $ */
+/* $Id: all.h,v 1.1.1.1.2.1 2000/07/11 01:39:41 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  2.3
- * Copyright (C) 1995-1997  Brian Paul
+ * Version:  3.2.1
+ * Copyright (C) 1995-2000  Brian Paul
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -22,20 +22,6 @@
 
 
 /*
- * $Log: all.h,v $
- * Revision 1.1  1999/08/19 00:55:42  jtg
- * Initial revision
- *
- * Revision 1.2  1997/11/20 00:28:20  brianp
- * changed PCH to PC_HEADER
- *
- * Revision 1.1  1997/05/28 02:29:14  brianp
- * Initial revision
- *
- */
-
-
-/*
  * This file includes all .h files needed for the GLU source code for
  * the purpose of precompiled headers.
  *
@@ -50,10 +36,8 @@
 
 
 #ifndef PC_HEADER
-  This is an error.  all.h should be included only if PCH is defined.
+This is an error.all.h should be included only if PCH is defined.
 #endif
-
-
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
@@ -64,6 +48,4 @@
 #include "gluP.h"
 #include "nurbs.h"
 #include "tess.h"
-
-
-#endif /*GLU_ALL_H*/
+#endif				/*GLU_ALL_H */

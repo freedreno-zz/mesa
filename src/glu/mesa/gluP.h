@@ -1,9 +1,9 @@
-/* $Id: gluP.h,v 1.1.1.1.2.1 1999/12/06 05:24:36 joukj Exp $ */
+/* $Id: gluP.h,v 1.1.1.1.2.2 2000/07/11 01:39:41 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.1
- * Copyright (C) 1995-1999  Brian Paul
+ * Version:  3.2.1
+ * Copyright (C) 1995-2000  Brian Paul
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -19,38 +19,6 @@
  * License along with this library; if not, write to the Free
  * Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
-
-
-/*
- * $Log: gluP.h,v $
- * Revision 1.1.1.1.2.1  1999/12/06 05:24:36  joukj
- *
- *  Committing in .
- *
- *  Updating compilation on VMS
- *
- *  Modified Files:
- *   Tag: mesa_3_2_dev
- *  	Mesa/src-glu/descrip.mms Mesa/src-glu/gluP.h
- *  ----------------------------------------------------------------------
- *
- * Revision 1.1.1.1  1999/08/19 00:55:42  jtg
- * Imported sources
- *
- * Revision 1.4  1999/01/03 03:23:15  brianp
- * now using GLAPIENTRY and GLCALLBACK keywords (Ted Jump)
- *
- * Revision 1.3  1997/08/01 22:25:27  brianp
- * check for Cygnus Win32 (Stephen Rehel)
- *
- * Revision 1.2  1997/05/27 02:59:46  brianp
- * added defines for APIENTRY and CALLBACK if not compiling on Win32
- *
- * Revision 1.1  1996/09/27 01:19:39  brianp
- * Initial revision
- *
- */
-
 
 
 /*
