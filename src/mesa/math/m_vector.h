@@ -80,24 +80,6 @@ extern void _mesa_vector4f_print( GLvector4f *v, GLubyte *, GLboolean );
 extern void _mesa_vector4f_clean_elem( GLvector4f *vec, GLuint nr, GLuint elt );
 
 
-typedef struct {
-   GLfloat *data;
-   GLfloat *start;
-   GLuint count;
-   GLuint stride;
-   GLuint flags;
-   void *storage;
-} GLvector1f;
-
-extern void _mesa_vector1f_free( GLvector1f *v );
-extern void _mesa_vector1f_init( GLvector1f *v, GLuint flags, GLfloat * );
-extern void _mesa_vector1f_alloc( GLvector1f *v, GLuint flags, GLuint count,
-			       GLuint alignment );
-
-
-
-
-
 
 
 

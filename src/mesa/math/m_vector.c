@@ -88,15 +88,6 @@ void _mesa_vector4f_init( GLvector4f *v, GLuint flags, GLfloat (*storage)[4] )
    v->flags = size_bits[4] | flags ;
 }
 
-void _mesa_vector1f_init( GLvector1f *v, GLuint flags, GLfloat *storage )
-{
-   v->stride = 1*sizeof(GLfloat);
-   v->data = storage;
-   v->start = (GLfloat *)storage;
-   v->count = 0;
-   v->flags = flags ;
-}
-
 
 
 
@@ -122,18 +113,6 @@ void _mesa_vector4f_alloc( GLvector4f *v, GLuint flags, GLuint count,
    v->flags = size_bits[4] | flags | VEC_MALLOC ;
 }
 
-void _mesa_vector1f_alloc( GLvector1f *v, GLuint flags, GLuint count,
-			GLuint alignment )
-{
-   v->stride = sizeof(GLfloat);
-   v->storage = v->start = (GLfloat *)
-      ALIGN_MALLOC( count * sizeof(GLfloat), alignment );
-   v->data = v->start;
-   v->count = 0;
-   v->flags = flags | VEC_MALLOC ;
-}
-
-
 
 
 
@@ -145,17 +124,6 @@ void _mesa_vector1f_alloc( GLvector1f *v, GLuint flags, GLuint count,
 
 
 void _mesa_vector4f_free( GLvector4f *v )
-{
-   if (v->flags & VEC_MALLOC) {
-      ALIGN_FREE( v->storage );
-      v->data = NULL;
-      v->start = NULL;
-      v->storage = NULL;
-      v->flags &= ~VEC_MALLOC;
-   }
-}
-
-void _mesa_vector1f_free( GLvector1f *v )
 {
    if (v->flags & VEC_MALLOC) {
       ALIGN_FREE( v->storage );
