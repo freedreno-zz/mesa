@@ -169,6 +169,9 @@ void radeonGetLock( radeonContextPtr rmesa, GLuint flags )
    RADEONSAREAPrivPtr sarea = rmesa->sarea;
    int i;
 
+   if (!rmesa->radeonScreen->buffers)
+      fprintf(stderr, "%s - no buffers\n", __FUNCTION__);
+
    drmGetLock( rmesa->dri.fd, rmesa->dri.hwContext, flags );
    
    validate_drawable( rmesa );

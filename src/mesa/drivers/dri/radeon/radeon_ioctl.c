@@ -798,6 +798,9 @@ void radeonCopyBuffer( const __DRIdrawablePrivate *dPriv )
    assert(dPriv->driContextPriv->driverPrivate);
 
    rmesa = (radeonContextPtr) dPriv->driContextPriv->driverPrivate;
+   if (!rmesa->radeonScreen->buffers)
+      return;
+
 
    if ( RADEON_DEBUG & DEBUG_IOCTL ) {
       fprintf( stderr, "\n%s( %p )\n\n", __FUNCTION__, rmesa->glCtx );
@@ -860,6 +863,10 @@ void radeonPageFlip( const __DRIdrawablePrivate *dPriv )
    assert(dPriv->driContextPriv->driverPrivate);
 
    rmesa = (radeonContextPtr) dPriv->driContextPriv->driverPrivate;
+
+   if (!rmesa->radeonScreen->buffers)
+      return;
+
 
    if ( RADEON_DEBUG & DEBUG_IOCTL ) {
       fprintf(stderr, "%s %d\n", __FUNCTION__, 
@@ -957,6 +964,9 @@ static void radeonClear( GLcontext *ctx, GLbitfield mask, GLboolean all,
    GLuint color_mask = 0;
    GLint ret, i;
 
+   if (!rmesa->radeonScreen->buffers)
+      return;
+   
    if ( RADEON_DEBUG & DEBUG_IOCTL ) {
       fprintf( stderr, "%s:  all=%d cx=%d cy=%d cw=%d ch=%d\n",
 	       __FUNCTION__, all, cx, cy, cw, ch );
