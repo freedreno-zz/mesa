@@ -1,10 +1,10 @@
-/* $Id: s_zoom.c,v 1.18 2002/10/24 23:57:24 brianp Exp $ */
+/* $Id: s_zoom.c,v 1.18.2.1 2003/02/17 15:41:33 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  4.1
+ * Version:  5.0.1
  *
- * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2003  Brian Paul   All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -63,7 +63,7 @@ zoom_span( GLcontext *ctx, const struct sw_span *span,
 
    if (format == GL_RGBA || format == GL_RGB) {
       zoomed.z = span->z;
-      zoomed.zStep = span->z;
+      zoomed.zStep = span->zStep;  /* span->zStep == 0 */
       zoomed.fog = span->fog;
       zoomed.fogStep = span->fogStep;
       zoomed.interpMask = span->interpMask & ~SPAN_RGBA;
@@ -71,7 +71,7 @@ zoom_span( GLcontext *ctx, const struct sw_span *span,
    }
    else if (format == GL_COLOR_INDEX) {
       zoomed.z = span->z;
-      zoomed.zStep = span->z;
+      zoomed.zStep = span->zStep;
       zoomed.fog = span->fog;
       zoomed.fogStep = span->fogStep;
       zoomed.interpMask = span->interpMask & ~SPAN_INDEX;
