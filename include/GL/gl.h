@@ -1,4 +1,4 @@
-/* $Id: gl.h,v 1.17.2.3 2000/02/05 01:52:37 brianp Exp $ */
+/* $Id: gl.h,v 1.17.2.4 2000/02/09 18:53:55 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -128,7 +128,7 @@ extern "C" {
 #define MESA
 
 #define MESA_MAJOR_VERSION 3
-#define MESA_MINOR_VERSION 1
+#define MESA_MINOR_VERSION 2
 
 
 #define GL_VERSION_1_1   1

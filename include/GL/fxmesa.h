@@ -1,10 +1,10 @@
-/* $Id: fxmesa.h,v 1.1.1.1.2.1 1999/11/24 18:38:52 brianp Exp $ */
+/* $Id: fxmesa.h,v 1.1.1.1.2.2 2000/02/09 18:53:55 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.1
+ * Version:  3.2
  *
- * Copyright (C) 1999  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2000  Brian Paul   All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -45,7 +45,7 @@ extern "C" {
 
 
 #define FXMESA_MAJOR_VERSION 3
-#define FXMESA_MINOR_VERSION 1
+#define FXMESA_MINOR_VERSION 2
 
 
 /*

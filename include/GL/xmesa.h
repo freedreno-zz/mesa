@@ -1,10 +1,10 @@
-/* $Id: xmesa.h,v 1.1.1.1.2.2 1999/12/13 21:54:19 brianp Exp $ */
+/* $Id: xmesa.h,v 1.1.1.1.2.3 2000/02/09 18:53:55 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.1
+ * Version:  3.2
  * 
- * Copyright (C) 1999  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2000  Brian Paul   All Rights Reserved.
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -22,29 +22,6 @@
  * BRIAN PAUL BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
  * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- */
-
-
-/*
- * $Log: xmesa.h,v $
- * Revision 1.1.1.1.2.2  1999/12/13 21:54:19  brianp
- * applied Daryll's patches
- *
- * Revision 1.1.1.1.2.1  1999/11/24 18:41:37  brianp
- * bumped version to 3.1
- *
- * Revision 1.1.1.1  1999/08/19 00:55:40  jtg
- * Imported sources
- *
- * Revision 1.3  1999/02/24 22:43:27  jens
- * Name changes to get XMesa to compile standalone inside XFree86
- *
- * Revision 1.2  1999/02/14 03:39:09  brianp
- * new copyright
- *
- * Revision 1.1  1998/02/13 03:17:32  brianp
- * Initial revision
- *
  */
 
 
@@ -115,7 +92,7 @@ extern struct Library *XLibBase;
 
 
 #define XMESA_MAJOR_VERSION 3
-#define XMESA_MINOR_VERSION 1
+#define XMESA_MINOR_VERSION 2
 
 
 

@@ -1,10 +1,10 @@
-/* $Id: fakeglx.c,v 1.12.2.4 1999/12/11 09:20:03 brianp Exp $ */
+/* $Id: fakeglx.c,v 1.12.2.5 2000/02/09 18:54:54 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.1
+ * Version:  3.2
  * 
- * Copyright (C) 1999  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2000  Brian Paul   All Rights Reserved.
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -1452,7 +1452,7 @@ const char *Fake_glXQueryExtensionsString( Display *dpy, int screen )
 const char *Fake_glXQueryServerString( Display *dpy, int screen, int name )
 {
    static char *vendor = "Brian Paul";
-   static char *version = "1.1 Mesa 3.1";
+   static char *version = "1.1 Mesa 3.2";
 
    (void) dpy;
    (void) screen;
@@ -1475,7 +1475,7 @@ const char *Fake_glXQueryServerString( Display *dpy, int screen, int name )
 const char *Fake_glXGetClientString( Display *dpy, int name )
 {
    static char *vendor = "Brian Paul";
-   static char *version = "1.1 Mesa 3.1";
+   static char *version = "1.1 Mesa 3.2";
 
    (void) dpy;
 
