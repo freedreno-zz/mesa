@@ -1,9 +1,9 @@
 
 PROGS = gears \
 	glinfo \
-	morph3d \
 	texobj \
-	bounce
+	bounce \
+	terrain
 
 
 ##### RULES #####
@@ -14,7 +14,7 @@ PROGS = gears \
 
 # make executable from .c file:
 .c: $(LIB_DEP)
-	gcc -I../include -g $< -L../lib -lglut -lGL -lm -o $@
+	gcc -I../include -I../util -g $< -L../lib -lglut -lGL -lm -o $@
 
 
 default: $(PROGS)
