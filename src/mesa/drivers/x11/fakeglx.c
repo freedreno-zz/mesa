@@ -2476,6 +2476,28 @@ Fake_glXSet3DfxModeMESA( int mode )
 
 
 
+/*** AGP memory allocation ***/
+static void *
+Fake_glXAllocateMemoryNV( GLsizei size,
+                          GLfloat readFrequency,
+                          GLfloat writeFrequency,
+                          GLfloat priority )
+{
+   (void) size;
+   (void) readFrequency;
+   (void) writeFrequency;
+   (void) priority;
+   return NULL;
+}
+
+
+static void 
+Fake_glXFreeMemoryNV( GLvoid *pointer )
+{
+   (void) pointer;
+}
+
+
 
 extern struct _glxapi_table *_mesa_GetGLXDispatchTable(void);
 struct _glxapi_table *_mesa_GetGLXDispatchTable(void)
@@ -2613,6 +2635,10 @@ struct _glxapi_table *_mesa_GetGLXDispatchTable(void)
 
    /*** GLX_MESA_set_3dfx_mode ***/
    glx.Set3DfxModeMESA = Fake_glXSet3DfxModeMESA;
+
+   /*** GLX AGP memory allocation ***/
+   glx.AllocateMemoryNV = Fake_glXAllocateMemoryNV;
+   glx.FreeMemoryNV = Fake_glXFreeMemoryNV;
 
    return &glx;
 }

@@ -1,4 +1,4 @@
-/* $Id: glx.h,v 1.33.2.2 2002/04/26 13:53:09 brianp Exp $ */
+/* $Id: glx.h,v 1.33.2.3 2002/09/20 16:30:10 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -295,6 +295,17 @@ extern void glXGetSelectedEvent( Display *dpy, GLXDrawable drawable,
 
 /* GLX 1.4 and later */
 extern void (*glXGetProcAddress(const GLubyte *procname))();
+
+
+/*
+ * AGP memory allocator.
+ */
+extern void *glXAllocateMemoryNV(GLsizei size, GLfloat readfreq, GLfloat writefreq, GLfloat priority);
+extern void glXFreeMemoryNV(GLvoid *pointer);
+extern GLuint glXGetAGPOffsetMESA(const GLvoid *pointer);
+typedef void * ( * PFNGLXALLOCATEMEMORYNVPROC) (GLsizei size, GLfloat readfreq, GLfloat writefreq, GLfloat priority);
+typedef void ( * PFNGLXFREEMEMORYNVPROC) (GLvoid *pointer);
+typedef GLuint (* PFNGLXGETAGPOFFSETMESAPROC) (const GLvoid *pointer);
 
 
 

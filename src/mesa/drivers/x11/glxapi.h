@@ -1,10 +1,10 @@
-/* $Id: glxapi.h,v 1.11.2.1 2002/03/15 18:32:54 brianp Exp $ */
+/* $Id: glxapi.h,v 1.11.2.2 2002/09/20 16:28:04 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  4.0.2 
+ * Version:  4.0.4
  * 
- * Copyright (C) 1999-2001  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -196,6 +196,12 @@ struct _glxapi_table {
    /*** GLX_MESA_set_3dfx_mode ***/
    Bool (*Set3DfxModeMESA)(int mode);
 
+   /*** GLX AGP functions ***/
+   void * (*AllocateMemoryNV)( GLsizei size,
+                               GLfloat readFrequency,
+                               GLfloat writeFrequency,
+                               GLfloat priority );
+   void (*FreeMemoryNV)( GLvoid *pointer );
 };
 
 

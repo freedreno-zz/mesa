@@ -1,10 +1,10 @@
-/* $Id: realglx.c,v 1.4 2001/05/30 14:39:47 brianp Exp $ */
+/* $Id: realglx.c,v 1.4.2.1 2002/09/20 16:28:04 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.5
+ * Version:  4.0.4
  * 
- * Copyright (C) 1999-2001  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -169,6 +169,10 @@ _real_GetGLXDispatchTable(void)
 
    /*** GLX_MESA_set_3dfx_mode ***/
    glx.Set3DfxModeMESA = _real_glXSet3DfxModeMESA;
+
+   /*** GLX AGP memory allocation ***/
+   glx.AllocateMemoryNV = _real_glXAllocateMemoryNV;
+   glx.FreeMemoryNV = _real_glXFreeMemoryNV;
 
    return &glx;
 }
