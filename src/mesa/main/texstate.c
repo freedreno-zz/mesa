@@ -1,10 +1,10 @@
-/* $Id: texstate.c,v 1.58.2.4 2002/02/15 18:50:48 kschultz Exp $ */
+/* $Id: texstate.c,v 1.58.2.5 2002/04/12 21:17:53 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  4.0.1
+ * Version:  4.0.3
  *
- * Copyright (C) 1999-2001  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -140,10 +140,16 @@ _mesa_TexEnvfv( GLenum target, GLenum pname, const GLfloat *param )
                   return;
                }
                break;
+	    case GL_DOT3_RGB_EXT:
+	    case GL_DOT3_RGBA_EXT:
+	       if (!ctx->Extensions.EXT_texture_env_dot3) {
+                  TE_ERROR(GL_INVALID_ENUM, "glTexEnv(param=%s)", mode);
+		  return;
+	       }
+	       break;
 	    case GL_DOT3_RGB_ARB:
 	    case GL_DOT3_RGBA_ARB:
-	       if (!ctx->Extensions.EXT_texture_env_dot3 &&
-                   !ctx->Extensions.ARB_texture_env_dot3) {
+               if (!ctx->Extensions.ARB_texture_env_dot3) {
                   TE_ERROR(GL_INVALID_ENUM, "glTexEnv(param=%s)", mode);
 		  return;
 	       }
