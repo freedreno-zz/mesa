@@ -1,10 +1,10 @@
-/* $Id: get.c,v 1.5.2.1 1999/12/13 21:58:42 brianp Exp $ */
+/* $Id: get.c,v 1.5.2.2 2000/01/17 18:04:49 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.1
+ * Version:  3.2
  * 
- * Copyright (C) 1999  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2000  Brian Paul   All Rights Reserved.
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -393,6 +393,7 @@ void gl_GetBooleanv( GLcontext *ctx, GLenum pname, GLboolean *params )
 	 *params = FLOAT_TO_BOOL(LINE_WIDTH_GRANULARITY);
 	 break;
       case GL_LINE_WIDTH_RANGE:
+      case GL_ALIASED_LINE_WIDTH_RANGE:
 	 params[0] = FLOAT_TO_BOOL(MIN_LINE_WIDTH);
 	 params[1] = FLOAT_TO_BOOL(MAX_LINE_WIDTH);
 	 break;
@@ -614,14 +615,15 @@ void gl_GetBooleanv( GLcontext *ctx, GLenum pname, GLboolean *params )
 	 *params = INT_TO_BOOL(ctx->Pixel.MapStoSsize);
 	 break;
       case GL_POINT_SIZE:
-	 *params = FLOAT_TO_BOOL(ctx->Point.Size );
+	 *params = FLOAT_TO_BOOL(ctx->Point.Size);
 	 break;
       case GL_POINT_SIZE_GRANULARITY:
-	 *params = FLOAT_TO_BOOL(POINT_SIZE_GRANULARITY );
+	 *params = FLOAT_TO_BOOL(POINT_SIZE_GRANULARITY);
 	 break;
       case GL_POINT_SIZE_RANGE:
-	 params[0] = FLOAT_TO_BOOL(MIN_POINT_SIZE );
-	 params[1] = FLOAT_TO_BOOL(MAX_POINT_SIZE );
+      case GL_ALIASED_POINT_SIZE_RANGE:
+	 params[0] = FLOAT_TO_BOOL(MIN_POINT_SIZE);
+	 params[1] = FLOAT_TO_BOOL(MAX_POINT_SIZE);
 	 break;
       case GL_POINT_SMOOTH:
 	 *params = ctx->Point.SmoothFlag;
@@ -1305,6 +1307,7 @@ void gl_GetDoublev( GLcontext *ctx, GLenum pname, GLdouble *params )
 	 *params = (GLdouble) LINE_WIDTH_GRANULARITY;
 	 break;
       case GL_LINE_WIDTH_RANGE:
+      case GL_ALIASED_LINE_WIDTH_RANGE:
 	 params[0] = (GLdouble) MIN_LINE_WIDTH;
 	 params[1] = (GLdouble) MAX_LINE_WIDTH;
 	 break;
@@ -1532,6 +1535,7 @@ void gl_GetDoublev( GLcontext *ctx, GLenum pname, GLdouble *params )
 	 *params = (GLdouble) POINT_SIZE_GRANULARITY;
 	 break;
       case GL_POINT_SIZE_RANGE:
+      case GL_ALIASED_POINT_SIZE_RANGE:
 	 params[0] = (GLdouble) MIN_POINT_SIZE;
 	 params[1] = (GLdouble) MAX_POINT_SIZE;
 	 break;
@@ -2217,6 +2221,7 @@ void gl_GetFloatv( GLcontext *ctx, GLenum pname, GLfloat *params )
 	 *params = (GLfloat) LINE_WIDTH_GRANULARITY;
 	 break;
       case GL_LINE_WIDTH_RANGE:
+      case GL_ALIASED_LINE_WIDTH_RANGE:
 	 params[0] = (GLfloat) MIN_LINE_WIDTH;
 	 params[1] = (GLfloat) MAX_LINE_WIDTH;
 	 break;
@@ -2444,6 +2449,7 @@ void gl_GetFloatv( GLcontext *ctx, GLenum pname, GLfloat *params )
 	 *params = (GLfloat) POINT_SIZE_GRANULARITY;
 	 break;
       case GL_POINT_SIZE_RANGE:
+      case GL_ALIASED_POINT_SIZE_RANGE:
 	 params[0] = (GLfloat) MIN_POINT_SIZE;
 	 params[1] = (GLfloat) MAX_POINT_SIZE;
 	 break;
@@ -3130,6 +3136,7 @@ void gl_GetIntegerv( GLcontext *ctx, GLenum pname, GLint *params )
 	 *params = (GLint) LINE_WIDTH_GRANULARITY;
 	 break;
       case GL_LINE_WIDTH_RANGE:
+      case GL_ALIASED_LINE_WIDTH_RANGE:
 	 params[0] = (GLint) MIN_LINE_WIDTH;
 	 params[1] = (GLint) MAX_LINE_WIDTH;
 	 break;
@@ -3357,6 +3364,7 @@ void gl_GetIntegerv( GLcontext *ctx, GLenum pname, GLint *params )
 	 *params = (GLint) POINT_SIZE_GRANULARITY;
 	 break;
       case GL_POINT_SIZE_RANGE:
+      case GL_ALIASED_POINT_SIZE_RANGE:
 	 params[0] = (GLint) MIN_POINT_SIZE;
 	 params[1] = (GLint) MAX_POINT_SIZE;
 	 break;
