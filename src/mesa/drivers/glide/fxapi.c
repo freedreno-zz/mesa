@@ -964,8 +964,6 @@ fxMesaContext GLAPIENTRY fxMesaCreateContext(GLuint win,
 					2,aux);
 #else
    fxMesa->glideContext = FX_grSstWinOpen((FxU32)win,res,ref,
-					GR_COLORFORMAT_ARGB,
-					GR_ORIGIN_LOWER_LEFT,
 					GR_COLORFORMAT_ABGR,
 					GR_ORIGIN_LOWER_LEFT,
 					2,aux);
