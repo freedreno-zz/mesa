@@ -77,7 +77,7 @@ static GLint get_size( const GLfloat *f )
 
 /* Some nasty stuff still hanging on here.  
  *
- * TODO - remove VB->ColorPtr, etc and just use the AttrPtr's.
+ * TODO - remove VB->NormalPtr, etc and just use the AttrPtr's.
  */
 static void _tnl_vb_bind_vtx( GLcontext *ctx )
 {
@@ -87,6 +87,10 @@ static void _tnl_vb_bind_vtx( GLcontext *ctx )
    GLfloat *data = tnl->vtx.buffer;
    GLuint count = tnl->vtx.initial_counter - tnl->vtx.counter;
    GLuint attr, i;
+
+   fprintf(stderr, "%s: %d verts %d vertsize\n",
+	   __FUNCTION__, count, tnl->vtx.vertex_size);
+
 
    /* Setup constant data in the VB.
     */
@@ -137,8 +141,11 @@ static void _tnl_vb_bind_vtx( GLcontext *ctx )
    VB->ObjPtr = VB->AttribPtr[_TNL_ATTRIB_POS];
    VB->NormalPtr = VB->AttribPtr[_TNL_ATTRIB_NORMAL];
    VB->ColorPtr[0] = VB->AttribPtr[_TNL_ATTRIB_COLOR0];
+   VB->ColorPtr[1] = 0;
    VB->IndexPtr[0] = VB->AttribPtr[_TNL_ATTRIB_INDEX];
+   VB->IndexPtr[1] = 0;
    VB->SecondaryColorPtr[0] = VB->AttribPtr[_TNL_ATTRIB_COLOR1];
+   VB->SecondaryColorPtr[1] = 0;
 
    for (i = 0; i < ctx->Const.MaxTextureCoordUnits; i++) {
       VB->TexCoordPtr[i] = VB->AttribPtr[_TNL_ATTRIB_TEX0 + i];

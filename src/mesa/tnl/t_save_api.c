@@ -151,9 +151,33 @@ static GLuint _save_copy_vertices( GLcontext *ctx,
 }
 
 
+static void
+build_normal_lengths( struct tnl_vertex_list *node )
+{
+   GLuint i;
+   GLfloat *len;
+   GLfloat *n = node->buffer;
+   GLuint stride = node->vertex_size;
+   GLuint count = node->count;
+
+   len = node->normal_lengths = MALLOC( count * sizeof(GLfloat) );
+   if (!len)
+      return;
+
+   /* Find the normal of the first vertex:
+    */
+   for (i = 0 ; i < _TNL_ATTRIB_NORMAL ; i++) 
+      n += node->attrsz[i];
+
+   for (i = 0 ; i < count ; i++, n += stride) {
+      len[i] = LEN_3FV( n );
+      if (len[i] > 0.0F) len[i] = 1.0F / len[i];
+   } 
+}
+
 static struct tnl_vertex_store *alloc_vertex_store( GLcontext *ctx )
 {
-   struct tnl_vertex_store *store = ALIGN_MALLOC( sizeof(*store), 32 );
+   struct tnl_vertex_store *store = MALLOC( sizeof(*store) );
    store->used = 0;
    store->refcount = 1;
    return store;
@@ -161,7 +185,7 @@ static struct tnl_vertex_store *alloc_vertex_store( GLcontext *ctx )
 
 static struct tnl_primitive_store *alloc_prim_store( GLcontext *ctx )
 {
-   struct tnl_primitive_store *store = ALIGN_MALLOC( sizeof(*store), 32 );
+   struct tnl_primitive_store *store = MALLOC( sizeof(*store) );
    store->used = 0;
    store->refcount = 1;
    return store;
@@ -222,12 +246,19 @@ static void _save_compile_vertex_list( GLcontext *ctx )
    node->vertex_store = tnl->save.vertex_store;
    node->prim_store = tnl->save.prim_store;
    node->dangling_attr_ref = tnl->save.dangling_attr_ref;
+   node->normal_lengths = 0;
 
    node->vertex_store->refcount++;
    node->prim_store->refcount++;
 
-
    assert(node->attrsz[_TNL_ATTRIB_POS] != 0);
+
+   /* Maybe calculate normal lengths:
+    */
+   if (tnl->CalcDListNormalLengths && 
+       node->attrsz[_TNL_ATTRIB_NORMAL] == 3 &&
+       !node->dangling_attr_ref)
+      build_normal_lengths( node );
 
    tnl->save.vertex_store->used += tnl->save.vertex_size * node->count;
    tnl->save.prim_store->used += node->prim_count;
@@ -279,6 +310,8 @@ static void _save_wrap_buffers( GLcontext *ctx )
    assert(i < tnl->save.prim_max);
    assert(i >= 0);
 
+   /* Close off in-progress primitive.
+    */
    tnl->save.prim[i].count = ((tnl->save.initial_counter - tnl->save.counter) - 
 			     tnl->save.prim[i].start);
    mode = tnl->save.prim[i].mode & ~(PRIM_BEGIN|PRIM_END);
@@ -1118,9 +1151,19 @@ static void _save_EvalPoint2( GLint i, GLint j )
 static void _save_CallList( GLuint l )
 {
    GET_CURRENT_CONTEXT(ctx);
+   fprintf(stderr, "%s\n", __FUNCTION__);
    FALLBACK(ctx);
    ctx->Save->CallList( l );
 }
+
+static void _save_CallLists( GLsizei n, GLenum type, const GLvoid *v )
+{
+   GET_CURRENT_CONTEXT(ctx);
+   fprintf(stderr, "%s\n", __FUNCTION__);
+   FALLBACK(ctx);
+   ctx->Save->CallLists( n, type, v );
+}
+
 
 
 
@@ -1311,7 +1354,6 @@ static void _save_vtxfmt_init( GLcontext *ctx )
 
    vfmt->ArrayElement = _ae_loopback_array_elt;	        /* generic helper */
    vfmt->Begin = _save_Begin;
-   vfmt->CallList = _mesa_CallList;
    vfmt->Color3f = _save_Color3f;
    vfmt->Color3fv = _save_Color3fv;
    vfmt->Color4f = _save_Color4f;
@@ -1362,6 +1404,7 @@ static void _save_vtxfmt_init( GLcontext *ctx )
    /* This will all require us to fallback to saving the list as opcodes:
     */ 
    vfmt->CallList = _save_CallList; /* inside begin/end */
+   vfmt->CallLists = _save_CallLists; /* inside begin/end */
    vfmt->EvalCoord1f = _save_EvalCoord1f;
    vfmt->EvalCoord1fv = _save_EvalCoord1fv;
    vfmt->EvalCoord2f = _save_EvalCoord2f;
@@ -1438,10 +1481,13 @@ static void _tnl_destroy_vertex_list( GLcontext *ctx, void *data )
    struct tnl_vertex_list *node = (struct tnl_vertex_list *)data;
 
    if ( --node->vertex_store->refcount == 0 )
-      ALIGN_FREE( node->vertex_store );
+      FREE( node->vertex_store );
 
    if ( --node->prim_store->refcount == 0 )
-      ALIGN_FREE( node->prim_store );
+      FREE( node->prim_store );
+
+   if ( node->normal_lengths )
+      FREE( node->normal_lengths );
 }
 
 

@@ -37,7 +37,7 @@
 
 
 /* define TRACE to trace lighting code */
-/* #define TRACE 1  */
+/* #define TRACE 1 */
 
 /*
  * ctx is the current context
@@ -532,7 +532,7 @@ static void TAG(light_fast_rgba)( GLcontext *ctx,
    const struct gl_light *light;
 
 #ifdef TRACE
-   fprintf(stderr, "%s\n", __FUNCTION__ );
+   fprintf(stderr, "%s %d\n", __FUNCTION__, nr );
 #endif
 
    (void) input;

@@ -231,7 +231,7 @@ struct tnl_copied_vtx {
    GLuint nr;
 };
 
-#define VERT_BUFFER_SIZE 2048
+#define VERT_BUFFER_SIZE 2048	/* 8kbytes */
 
 typedef void (*attrfv_func)( const GLfloat * );
 
@@ -285,6 +285,7 @@ struct tnl_vertex_list {
    GLuint dangling_attr_ref;	/* current attr implicitly referenced 
 				   outside the list */
 
+   GLfloat *normal_lengths;
    struct tnl_prim *prim;
    GLuint prim_count;
 
@@ -292,7 +293,9 @@ struct tnl_vertex_list {
    struct tnl_primitive_store *prim_store;
 };
 
-/* These buffers should be a reasonable size:
+/* These buffers should be a reasonable size to support upload to
+ * hardware?  Maybe drivers should stitch them back together, or
+ * specify a desired size?
  */
 #define SAVE_BUFFER_SIZE (16*1024)
 #define SAVE_PRIM_SIZE   128
@@ -377,11 +380,11 @@ struct vertex_buffer
 {
    /* Constant over life of the vertex_buffer.
     */
-   GLuint Size;
+   GLuint      Size;
 
    /* Constant over the pipeline.
     */
-   GLuint     Count;		              /* for everything except Elts */
+   GLuint      Count;		              /* for everything except Elts */
 
    /* Pointers to current data.
     */

@@ -42,6 +42,9 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "t_vtx_api.h"
 
 
+static void init_attrfv( TNLcontext *tnl );
+
+
 /* Close off the last primitive, execute the buffer, restart the
  * primitive.  
  */
@@ -166,6 +169,7 @@ static void _tnl_wrap_upgrade_vertex( GLcontext *ctx,
    GLuint oldsz;
    GLint i;
    GLfloat *tmp;
+   GLint lastcount = tnl->vtx.initial_counter - tnl->vtx.counter;
 
 
    /* Run pipeline on current vertices, copy wrapped vertices
@@ -178,6 +182,20 @@ static void _tnl_wrap_upgrade_vertex( GLcontext *ctx,
     * its size increased.  
     */
    _tnl_copy_to_current( ctx );
+
+
+   /* Heuristic: Attempt to isolate attributes received outside
+    * begin/end so that they don't bloat the vertices.
+    */
+#if 1
+   if (ctx->Driver.CurrentExecPrimitive == PRIM_OUTSIDE_BEGIN_END &&
+       tnl->vtx.attrsz[attr] == 0 
+       && lastcount > 8
+      ) {
+      init_attrfv( tnl );
+   }
+#endif
+      
 
    /* Fix up sizes:
     */
@@ -407,29 +425,33 @@ ATTRS( 15 )
 
 static void init_attrfv( TNLcontext *tnl )
 {
-   GLuint i;
+   if (0) fprintf(stderr, "%s %d\n", __FUNCTION__, tnl->vtx.vertex_size);
+   
+   if (tnl->vtx.vertex_size) {
+      GLuint i;
+      
+      init_0( tnl );
+      init_1( tnl );
+      init_2( tnl );
+      init_3( tnl );
+      init_4( tnl );
+      init_5( tnl );
+      init_6( tnl );
+      init_7( tnl );
+      init_8( tnl );
+      init_9( tnl );
+      init_10( tnl );
+      init_11( tnl );
+      init_12( tnl );
+      init_13( tnl );
+      init_14( tnl );
+      init_15( tnl );
 
-   init_0( tnl );
-   init_1( tnl );
-   init_2( tnl );
-   init_3( tnl );
-   init_4( tnl );
-   init_5( tnl );
-   init_6( tnl );
-   init_7( tnl );
-   init_8( tnl );
-   init_9( tnl );
-   init_10( tnl );
-   init_11( tnl );
-   init_12( tnl );
-   init_13( tnl );
-   init_14( tnl );
-   init_15( tnl );
+      for (i = 0 ; i < _TNL_ATTRIB_MAX ; i++) 
+	 tnl->vtx.attrsz[i] = 0;
 
-   for (i = 0 ; i < _TNL_ATTRIB_MAX ; i++) 
-      tnl->vtx.attrsz[i] = 0;
-
-   tnl->vtx.vertex_size = 0;
+      tnl->vtx.vertex_size = 0;
+   }
 }
 
 /* These can be made efficient with codegen.  Further, by adding more
@@ -952,6 +974,14 @@ static void _tnl_Begin( GLenum mode )
 	 return;
       }
 
+#if 1
+      /* Heuristic: attempt to isolate attributes occuring outside
+       * begin/end pairs.
+       */
+      if (tnl->vtx.vertex_size && !tnl->vtx.attrsz[0]) 
+	 _tnl_FlushVertices( ctx, ~0 );
+#endif
+
       i = tnl->vtx.prim_count++;
       tnl->vtx.prim[i].mode = mode | PRIM_BEGIN;
       tnl->vtx.prim[i].start = tnl->vtx.initial_counter - tnl->vtx.counter;
@@ -978,8 +1008,19 @@ static void _tnl_End( void )
 
       ctx->Driver.CurrentExecPrimitive = GL_POLYGON+1;
 
-      if (tnl->vtx.prim_count == TNL_MAX_PRIM)
+#if 0
+      if (tnl->vtx.counter * 2 > tnl->vtx.initial_counter)
+	 _tnl_FlushVertices( ctx, ~0 );
+#endif
+
+      if (tnl->vtx.prim_count == TNL_MAX_PRIM) {
+#if 0
+	 _tnl_FlushVertices( ctx, ~0 );
+#else
 	 _tnl_flush_vtx( ctx );	
+#endif
+      }
+
    }
    else 
       _mesa_error( ctx, GL_INVALID_OPERATION, __FUNCTION__ );
@@ -992,6 +1033,7 @@ static void _tnl_exec_vtxfmt_init( GLcontext *ctx )
    vfmt->ArrayElement = _ae_loopback_array_elt;	        /* generic helper */
    vfmt->Begin = _tnl_Begin;
    vfmt->CallList = _mesa_CallList;
+   vfmt->CallLists = _mesa_CallLists;
    vfmt->Color3f = _tnl_Color3f;
    vfmt->Color3fv = _tnl_Color3fv;
    vfmt->Color4f = _tnl_Color4f;
@@ -1061,18 +1103,24 @@ void _tnl_FlushVertices( GLcontext *ctx, GLuint flags )
 
    if (tnl->vtx.counter != tnl->vtx.initial_counter) {
       _tnl_flush_vtx( ctx );
-      init_0( tnl );
+#if 0
+      init_0(tnl);
+#endif
    }
 
-   if (flags & FLUSH_UPDATE_CURRENT) {
+#if 0
+   if (flags & FLUSH_UPDATE_CURRENT)
+#endif
+   {
       _tnl_copy_to_current( ctx );
 
       /* reset attrfv table
        */
       init_attrfv( tnl );
+      flags |= FLUSH_UPDATE_CURRENT;
    }
 
-   ctx->Driver.NeedFlush &= ~flags;
+   ctx->Driver.NeedFlush = 0;
 }
 
 static void _tnl_current_init( GLcontext *ctx ) 
@@ -1106,7 +1154,7 @@ void _tnl_vtx_init( GLcontext *ctx )
    _tnl_exec_vtxfmt_init( ctx );
 
    _mesa_install_exec_vtxfmt( ctx, &tnl->exec_vtxfmt );
-   init_attrfv( tnl );
+   tnl->vtx.vertex_size = 1; init_attrfv( tnl );
 }
 
 
