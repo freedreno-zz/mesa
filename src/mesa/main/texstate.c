@@ -1,4 +1,4 @@
-/* $Id: texstate.c,v 1.15.4.3 2001/01/06 22:43:00 gareth Exp $ */
+/* $Id: texstate.c,v 1.15.4.4 2001/03/02 16:40:47 gareth Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -891,25 +891,25 @@ _mesa_GetTexLevelParameteriv( GLenum target, GLint level,
          *params = img->Border;
          return;
       case GL_TEXTURE_RED_SIZE:
-         *params = img->RedBits;
+         *params = img->TexFormat->RedBits;
          return;
       case GL_TEXTURE_GREEN_SIZE:
-         *params = img->GreenBits;
+         *params = img->TexFormat->GreenBits;
          return;
       case GL_TEXTURE_BLUE_SIZE:
-         *params = img->BlueBits;
+         *params = img->TexFormat->BlueBits;
          return;
       case GL_TEXTURE_ALPHA_SIZE:
-         *params = img->AlphaBits;
+         *params = img->TexFormat->AlphaBits;
          return;
       case GL_TEXTURE_INTENSITY_SIZE:
-         *params = img->IntensityBits;
+         *params = img->TexFormat->IntensityBits;
          return;
       case GL_TEXTURE_LUMINANCE_SIZE:
-         *params = img->LuminanceBits;
+         *params = img->TexFormat->LuminanceBits;
          return;
       case GL_TEXTURE_INDEX_SIZE_EXT:
-         *params = img->IndexBits;
+         *params = img->TexFormat->IndexBits;
          return;
 
       /* GL_ARB_texture_compression */

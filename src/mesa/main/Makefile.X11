@@ -1,4 +1,4 @@
-# $Id: Makefile.X11,v 1.20 2000/07/14 14:55:04 brianp Exp $
+# $Id: Makefile.X11,v 1.20.2.1 2001/03/02 16:40:47 gareth Exp $
 
 # Mesa 3-D graphics library
 # Version:  3.3
@@ -77,6 +77,7 @@ CORE_SOURCES = \
 	stages.c \
 	state.c \
 	stencil.c \
+	texformat.c \
 	teximage.c \
 	texobj.c \
 	texstate.c \
@@ -132,9 +133,9 @@ DRIVER_SOURCES = \
 	FX/fxvsetup.c \
 	FX/fxglidew.c
 
-ASM_SOURCES = 
+ASM_SOURCES =
 
-ADDITIONAL_OBJ = 
+ADDITIONAL_OBJ =
 
 OBJECTS = $(ASM_SOURCES:.S=.o) \
 	$(CORE_SOURCES:.c=.o) \
@@ -217,10 +218,16 @@ X86/x86.o: X86/x86.c
 	$(CC) -c -I. -I$(INCDIR) $(CFLAGS) $< -o $@
 X86/common_x86.o: X86/common_x86.c
 	$(CC) -c -I. -I$(INCDIR) $(CFLAGS) $< -o $@
-X86/3dnow.o: X86/3dnow.c
+X86/3dnow.o: X86/3dnow.c X86/asm_types.h
 	$(CC) -c -I. -I$(INCDIR) $(CFLAGS) $< -o $@
 X86/katmai.o: X86/katmai.c
 	$(CC) -c -I. -I$(INCDIR) $(CFLAGS) $< -o $@
+
+X86/asm_types.h: types.h vb.h X86/gen_types.c
+	$(CC) -I. -I$(INCDIR) $(CFLAGS) X86/gen_types.c -o X86/gen_types
+	./X86/gen_types > X86/asm_types.h
+	rm -f X86/gen_types
+
 
 ##### TARGETS #####
 
@@ -234,7 +241,7 @@ clean:
 targets: $(LIBDIR)/$(GL_LIB)
 
 # Make the library
-$(LIBDIR)/$(GL_LIB): $(OBJECTS)
+$(LIBDIR)/$(GL_LIB): $(GENERATED_SOURCES) $(OBJECTS)
 	$(MAKELIB) $(GL_LIB) $(GL_MAJOR) $(GL_MINOR) $(GL_TINY) $(OBJECTS)
 	rm -f $(LIBDIR)/$(GL_LIB)*
 	mv $(GL_LIB)* $(LIBDIR)
@@ -249,9 +256,9 @@ include depend
 #
 # Run 'make dep' to update the dependencies if you change what's included
 # by any source file.
-# 
-dep: $(CORE_SOURCES) $(DRIVER_SOURCES)
-	makedepend -fdepend -Y -I../include -DGGI -DSVGA -DFX $(CORE_SOURCES) $(DRIVER_SOURCES)
+#
+dep: $(CORE_SOURCES) $(DRIVER_SOURCES) $(ASM_SOURCES)
+	makedepend -fdepend -Y -I../include $(CFLAGS) -DGGI -DSVGA -DFX $(CORE_SOURCES) $(DRIVER_SOURCES) $(ASM_SOURCES)
 
 tags:
 	etags `find . -name \*.[ch]` `find ../include`
