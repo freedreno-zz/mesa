@@ -1,4 +1,4 @@
-$Id: VERSIONS,v 1.73.2.19 2002/03/12 21:57:27 brianp Exp $
+$Id: VERSIONS,v 1.73.2.20 2002/03/19 16:49:07 brianp Exp $
 
 
 Mesa Version History
@@ -944,3 +944,7 @@ Mesa Version History
 	- glColorMask as sometimes effecting glXSwapBuffers()
 	- fixed a potential bug in XMesaGarbageCollect()
 	- N threads rendering into one window didn't work reliably
+	- glCopyPixels didn't work for deep color channels
+	- improved 8 -> 16bit/channel texture image conversion (Gerk Huisma)
+    Known bugs:
+	- mipmap LOD computation
