@@ -22,7 +22,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: miniglx_events.c,v 1.1.2.5 2003/04/25 14:03:56 keithw Exp $ */
+/* $Id: miniglx_events.c,v 1.1.2.6 2003/04/25 23:09:01 keithw Exp $ */
 
 
 /**
@@ -56,6 +56,7 @@
 #include <sys/time.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <sys/stat.h>
 
 #include <linux/kd.h>
 #include <linux/vt.h>
@@ -81,13 +82,10 @@ static XEvent *queue_event( Display *dpy )
 {
    int incr = (dpy->eventqueue.tail + 1) & MINIGLX_EVENT_QUEUE_MASK;
    if (incr == dpy->eventqueue.head) {
-/*       fprintf(stderr, "queue_event: queue full\n"); */
       return 0;
    }
    else {
       XEvent *ev = &dpy->eventqueue.queue[dpy->eventqueue.tail];
-/*       fprintf(stderr, "queue_event: return event slot %d\n",  */
-/* 	      dpy->eventqueue.tail); */
       dpy->eventqueue.tail = incr;
       return ev;
    }
@@ -96,12 +94,9 @@ static XEvent *queue_event( Display *dpy )
 static int dequeue_event( Display *dpy, XEvent *event_return )
 {
    if (dpy->eventqueue.tail == dpy->eventqueue.head) {
-/*       fprintf(stderr, "dequeue_event: queue empty\n"); */
       return False;
    }
    else {
-/*       fprintf(stderr, "dequeue_event: return event slot %d (tail %d)\n", */
-/* 	      dpy->eventqueue.head, dpy->eventqueue.tail); */
       *event_return = dpy->eventqueue.queue[dpy->eventqueue.head];      
       dpy->eventqueue.head += 1;
       dpy->eventqueue.head &= MINIGLX_EVENT_QUEUE_MASK;
@@ -577,7 +572,6 @@ int __miniglx_open_connections( Display *dpy )
  	 return False; 
       } 
       
-      umask( 0000 );		/* open to everybody ? */
    } 
 
    /* Create a unix socket -- Note this is *not* a network connection!
@@ -606,6 +600,8 @@ int __miniglx_open_connections( Display *dpy )
       welcome_message( dpy, 0 );
    }
    else {
+      mode_t tmp = umask( 0000 );		/* open to everybody ? */
+
       /* Bind socket to our filename
        */
       if (bind(dpy->fd[0].fd, (struct sockaddr *)&sa, sizeof(sa)) != 0) {
@@ -614,6 +610,8 @@ int __miniglx_open_connections( Display *dpy )
 	 return False;
       }
       
+      umask( tmp );
+
       /* Listen for connections
        */
       if (listen(dpy->fd[0].fd, 5) != 0) {
@@ -676,6 +674,7 @@ XMapWindow( Display *dpy, Window w )
       send_char_msg( dpy, (int)w, _YouveGotFocus );
       send_char_msg( dpy, (int)w, _RepaintPlease );
    }
+   handle_fd_events( dpy, 0 );	/* flush write queue */
 }
 
 /**
@@ -700,6 +699,7 @@ XUnmapWindow( Display *dpy, Window w )
       set_drawable_flag( dpy, (int)w, 0 );
       send_char_msg( dpy, (int)w, _YouveLostFocus );
    }
+   handle_fd_events( dpy, 0 );	/* flush write queue */
 }
 
 
