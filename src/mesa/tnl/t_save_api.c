@@ -92,8 +92,6 @@ static GLuint _save_copy_vertices( GLcontext *ctx,
    GLenum mode = prim->mode & PRIM_MODE_MASK;
    GLuint ovf, i;
 
-   _mesa_debug( 0, "%s\n", __FUNCTION__); 
-
    switch( mode )
    {
    case GL_POINTS:
@@ -154,7 +152,7 @@ static struct tnl_vertex_store *alloc_vertex_store( GLcontext *ctx )
 {
    struct tnl_vertex_store *store = ALIGN_MALLOC( sizeof(*store), 32 );
    store->used = 0;
-   store->refcount = 0;
+   store->refcount = 1;
    return store;
 }
 
@@ -162,15 +160,13 @@ static struct tnl_primitive_store *alloc_prim_store( GLcontext *ctx )
 {
    struct tnl_primitive_store *store = ALIGN_MALLOC( sizeof(*store), 32 );
    store->used = 0;
-   store->refcount = 0;
+   store->refcount = 1;
    return store;
 }
 
 static void _save_reset_counters( GLcontext *ctx )
 {
    TNLcontext *tnl = TNL_CONTEXT(ctx);
-
-   _mesa_debug( 0, "%s\n", __FUNCTION__); 
 
    tnl->save.prim = tnl->save.prim_store->buffer + tnl->save.prim_store->used;
    tnl->save.buffer = (tnl->save.vertex_store->buffer + 
@@ -200,8 +196,6 @@ static void _save_compile_vertex_list( GLcontext *ctx )
 {
    TNLcontext *tnl = TNL_CONTEXT(ctx);
    struct tnl_vertex_list *node;
-
-   _mesa_debug( 0, "%s\n", __FUNCTION__); 
 
    if (tnl->save.initial_counter == tnl->save.counter) {
       _save_reset_counters( ctx );
@@ -241,13 +235,15 @@ static void _save_compile_vertex_list( GLcontext *ctx )
    if (tnl->save.vertex_store->used > 
        SAVE_BUFFER_SIZE - 16 * (tnl->save.vertex_size + 4)) {
 
-      tnl->save.vertex_store->refcount--; /* cannot be zero */
+      tnl->save.vertex_store->refcount--; 
+      assert(tnl->save.vertex_store->refcount != 0);
       tnl->save.vertex_store = alloc_vertex_store( ctx );
       tnl->save.vbptr = tnl->save.vertex_store->buffer;
    } 
 
    if (tnl->save.prim_store->used > SAVE_PRIM_SIZE - 6) {
-      tnl->save.prim_store->refcount--; /* cannot be zero */
+      tnl->save.prim_store->refcount--; 
+      assert(tnl->save.prim_store->refcount != 0);
       tnl->save.prim_store = alloc_prim_store( ctx );
    } 
 
@@ -279,17 +275,13 @@ static void _save_wrap_buffers( GLcontext *ctx )
    GLint i = tnl->save.prim_count - 1;
    GLenum mode;
 
-   _mesa_debug( 0, "%s\n", __FUNCTION__); 
-
-   assert(i < TNL_MAX_PRIM);
+   assert(i < tnl->save.prim_max);
    assert(i >= 0);
 
    tnl->save.prim[i].count = ((tnl->save.initial_counter - tnl->save.counter) - 
 			     tnl->save.prim[i].start);
    mode = tnl->save.prim[i].mode & ~(PRIM_BEGIN|PRIM_END);
    
-   _mesa_debug( 0, "%s: mode %x\n", __FUNCTION__, mode); 
-
    /* store the copied vertices, and allocate a new list.
     */
    _save_compile_vertex_list( ctx );
@@ -320,8 +312,6 @@ static void _save_wrap_filled_vertex( GLcontext *ctx )
    GLfloat *data = tnl->save.copied.buffer;
    int i;
 
-   _mesa_debug( 0, "%s\n", __FUNCTION__); 
-
    /* Emit a glEnd to close off the last vertex list.
     */
    _save_wrap_buffers( ctx );
@@ -343,8 +333,6 @@ static void _save_copy_to_current( GLcontext *ctx )
 {
    TNLcontext *tnl = TNL_CONTEXT(ctx); 
    GLuint i;
-
-   _mesa_debug( 0, "%s\n", __FUNCTION__); 
 
    for (i = _TNL_ATTRIB_POS+1 ; i <= _TNL_ATTRIB_INDEX ; i++) {
       if (tnl->save.attrsz[i]) {
@@ -370,8 +358,6 @@ static void _save_copy_from_current( GLcontext *ctx )
 {
    TNLcontext *tnl = TNL_CONTEXT(ctx); 
    GLint i;
-
-   _mesa_debug( 0, "%s\n", __FUNCTION__); 
 
    for (i = _TNL_ATTRIB_POS+1 ; i <= _TNL_ATTRIB_INDEX ; i++) 
       switch (tnl->save.attrsz[i]) {
@@ -402,9 +388,6 @@ static void _save_upgrade_vertex( GLcontext *ctx,
    GLuint oldsz;
    GLuint i;
    GLfloat *tmp;
-
-   _mesa_debug( 0, "%s\n", __FUNCTION__); 
-
 
    /* Store the current run of vertices, and emit a GL_END.  Emit a
     * BEGIN in the new buffer.
@@ -509,8 +492,6 @@ static void do_choose( GLuint attr, GLuint sz,
    static GLfloat id[4] = { 0, 0, 0, 1 };
    int i;
 
-   _mesa_debug( 0, "%s\n", __FUNCTION__); 
-
    if (tnl->save.attrsz[attr] < sz) {
       /* New size is larger.  Need to flush existing vertices and get
        * an enlarged vertex format.
@@ -555,8 +536,6 @@ static void save_attrib_##ATTR##_##N( const GLfloat *v )	\
    GET_CURRENT_CONTEXT( ctx );				\
    TNLcontext *tnl = TNL_CONTEXT(ctx);			\
 							\
-   _mesa_debug( 0, "%s\n", __FUNCTION__);               \
-							\
    if ((ATTR) == 0) {					\
       int i;						\
 							\
@@ -585,8 +564,6 @@ static void save_attrib_##ATTR##_##N( const GLfloat *v )	\
 #define CHOOSE( ATTR, N )					\
 static void save_choose_##ATTR##_##N( const GLfloat *v )	\
 {								\
-   _mesa_debug( 0, "%s\n", __FUNCTION__);			\
-								\
    do_choose(ATTR, N,						\
 	     save_attrib_##ATTR##_##N,				\
 	     save_choose_##ATTR##_1,				\
@@ -643,8 +620,6 @@ ATTRS( 15 )
 
 static void save_init_attrfv( TNLcontext *tnl )
 {
-   _mesa_debug( 0, "%s\n", __FUNCTION__); 
-
    save_init_0( tnl );
    save_init_1( tnl );
    save_init_2( tnl );
@@ -1130,6 +1105,7 @@ static GLboolean _save_NotifyBegin( GLcontext *ctx, GLenum mode )
    TNLcontext *tnl = TNL_CONTEXT(ctx); 
    int i = tnl->save.prim_count++;
 
+   assert(i < tnl->save.prim_max);
    tnl->save.prim[i].mode = mode | PRIM_BEGIN;
    tnl->save.prim[i].start = tnl->save.initial_counter - tnl->save.counter;
    tnl->save.prim[i].count = 0;   
@@ -1152,14 +1128,7 @@ static void _save_End( void )
    tnl->save.prim[i].count = ((tnl->save.initial_counter - tnl->save.counter) - 
 			      tnl->save.prim[i].start);
 
-   _mesa_debug(0, "%s: prim nr %d  prim %x start %d len %d\n",
-	       __FUNCTION__, i, 
-	       tnl->save.prim[i].mode,
-	       tnl->save.prim[i].start,
-	       tnl->save.prim[i].count);
-
-
-   if (i == tnl->save.prim_max)
+   if (i == tnl->save.prim_max - 1)
       _save_compile_vertex_list( ctx );
 
 
@@ -1371,8 +1340,6 @@ static void _tnl_destroy_vertex_list( GLcontext *ctx, void *data )
 
    if ( --node->prim_store->refcount == 0 )
       ALIGN_FREE( node->prim_store );
-
-   FREE( node );
 }
 
 
