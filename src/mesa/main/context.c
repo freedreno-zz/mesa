@@ -28,7 +28,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: context.c,v 1.188.2.1.2.16 2003/03/23 23:22:47 jrfonseca Exp $ */
+/* $Id: context.c,v 1.188.2.1.2.17 2003/04/29 08:20:39 keithw Exp $ */
 
 /**
  * \mainpage Mesa Core Module
@@ -1406,6 +1406,7 @@ _mesa_make_current2( GLcontext *newCtx, GLframebuffer *drawBuffer,
 	 newCtx->ReadBuffer = readBuffer;
 	 newCtx->NewState |= _NEW_BUFFERS;
 
+#if _HAVE_FULL_GL
          if (drawBuffer->Width == 0 && drawBuffer->Height == 0) {
             /* get initial window size */
             GLuint bufWidth, bufHeight;
@@ -1440,6 +1441,7 @@ _mesa_make_current2( GLcontext *newCtx, GLframebuffer *drawBuffer,
 	       newCtx->Driver.ResizeBuffers( readBuffer );
 	    }
          }
+#endif
       }
 
       /* Alert the driver - usually passed on to the sw t&l module,
