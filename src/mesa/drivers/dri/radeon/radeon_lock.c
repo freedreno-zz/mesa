@@ -189,6 +189,8 @@ void radeonGetLock( radeonContextPtr rmesa, GLuint flags )
 	 if ( rmesa->texture.heap[i] && 
 	      sarea->texAge[i] != rmesa->texture.age[i] ) {
 	    radeonAgeTextures( rmesa, i );
+	    rmesa->texture.age[i] = sarea->texAge[i]++;
+	    rmesa->NewGLState |= _NEW_TEXTURE;
 	 }
       }
    }
