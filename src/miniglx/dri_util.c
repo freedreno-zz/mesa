@@ -59,8 +59,6 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #ifdef GLX_DIRECT_RENDERING
 
-#define USE_XF86DRI 1
-
 #include <assert.h>
 #include <stdarg.h>
 #include <unistd.h>
@@ -69,9 +67,9 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <extutil.h>
 #include <stdio.h>
 #include "glxclient.h"
-#if USE_XF86DRI || 1
+
 #include "xf86dri.h"
-#endif
+
 #include "sarea.h"
 #include "dri_util.h"
 
@@ -323,7 +321,7 @@ static Bool driUnbindContext(Display *dpy, int scrn,
                                    request. */
     if (!will_rebind && psp->fullscreen) {
 	psp->DriverAPI.CloseFullScreen(pcp);
-#if USE_XF86DRI
+#if 0
 	XF86DRICloseFullScreen(dpy, scrn, draw);
 #endif
 	psp->fullscreen = NULL;
@@ -560,7 +558,7 @@ static Bool driBindContext2(Display *dpy, int scrn,
 		__driUtilMessage("server closed fullscreen mode\n");
 		psp->fullscreen = NULL;
 	    }
-#if USE_XF86DRI
+#if 0
 	    if (XF86DRIOpenFullScreen(dpy, scrn, draw)) {
 		psp->fullscreen = pdp;
 		psp->DriverAPI.OpenFullScreen(pcp);
@@ -619,7 +617,8 @@ void __driUtilUpdateDrawableInfo(__DRIdrawablePrivate *pdp)
 
     DRM_SPINUNLOCK(&psp->pSAREA->drawable_lock, psp->drawLockID);
 
-#if USE_XF86DRI
+#if 1
+    /* faked in new xf86dri.c */
     if (!XF86DRIGetDrawableInfo(pdp->display, pdp->screen, pdp->draw,
 				&pdp->index, &pdp->lastStamp,
 				&pdp->x, &pdp->y, &pdp->w, &pdp->h,
@@ -635,36 +634,6 @@ void __driUtilUpdateDrawableInfo(__DRIdrawablePrivate *pdp)
 	pdp->pBackClipRects = 0;
 	/* ERROR!!! */
     }
-    printf("index=%d lastStamp=%d\n", pdp->index, pdp->lastStamp);
-    printf("x=%d y=%d w=%d h=%d\n", pdp->x, pdp->y, pdp->w, pdp->h);
-    printf("numRects = %d %d\n", pdp->numClipRects, pdp->numBackClipRects);
-    if (pdp->pClipRects)
-       printf("front rect1: %d, %d .. %d, %d\n",
-           pdp->pClipRects[0].x1, pdp->pClipRects[0].y1, 
-           pdp->pClipRects[0].x2, pdp->pClipRects[0].y2); 
-    if (pdp->pBackClipRects)
-       printf("back rect1: %d, %d .. %d, %d\n",
-           pdp->pBackClipRects[0].x1, pdp->pBackClipRects[0].y1, 
-           pdp->pBackClipRects[0].x2, pdp->pBackClipRects[0].y2); 
-#else
-    pdp->index = 0;
-    pdp->lastStamp++;
-    pdp->x = 8;
-    pdp->y = 8;
-    pdp->w = 300;
-    pdp->h = 300;
-    pdp->numClipRects = 1;
-    pdp->pClipRects = malloc(sizeof(XF86DRIClipRectRec));
-    pdp->pClipRects[0].x1 = 8;
-    pdp->pClipRects[0].y1 = 28;
-    pdp->pClipRects[0].x2 = 308;  /* xxx use screen size */
-    pdp->pClipRects[0].y2 = 328;
-    pdp->numBackClipRects = 1;
-    pdp->pBackClipRects = malloc(sizeof(XF86DRIClipRectRec));
-    pdp->pBackClipRects[0].x1 = 8;
-    pdp->pBackClipRects[0].y1 = 28;
-    pdp->pBackClipRects[0].x2 = 308;  /* xxx use screen size */
-    pdp->pBackClipRects[0].y2 = 328;
 #endif
 
     DRM_SPINLOCK(&psp->pSAREA->drawable_lock, psp->drawLockID);
@@ -713,11 +682,6 @@ static void *driCreateDrawable(Display *dpy, int scrn, GLXDrawable draw,
 	return NULL;
     }
 
-    if (!XF86DRICreateDrawable(dpy, scrn, draw, &pdp->hHWDrawable)) {
-	Xfree(pdp);
-	return NULL;
-    }
-
     pdp->draw = draw;
     pdp->refcount = 0;
     pdp->pStamp = NULL;
@@ -735,11 +699,9 @@ static void *driCreateDrawable(Display *dpy, int scrn, GLXDrawable draw,
     pdp->screen = scrn;
 
     if (!(pDRIScreen = __glXFindDRIScreen(dpy, scrn))) {
-	(void)XF86DRIDestroyDrawable(dpy, scrn, pdp->draw);
 	Xfree(pdp);
 	return NULL;
     } else if (!(psp = (__DRIscreenPrivate *)pDRIScreen->private)) {
-	(void)XF86DRIDestroyDrawable(dpy, scrn, pdp->draw);
 	Xfree(pdp);
 	return NULL;
     }
@@ -750,11 +712,26 @@ static void *driCreateDrawable(Display *dpy, int scrn, GLXDrawable draw,
     if (!config)
         return NULL;
 
+    if (drmCreateDrawable(psp->fd, &pdp->hHWDrawable)) {
+       printf(">>> drmCreateDrawable failed\n");
+       xfree(pDRIDrawablePriv);
+       return NULL;
+    }
+    else {
+       printf(">>> drmCreateDrawable worked: 0x%x\n", (int) pdp->hHWDrawable);
+    }
+
     /* convert GLXvisualConfig struct to GLcontextModes struct */
     __glXFormatGLModes(&modes, config);
 
     if (!(*psp->DriverAPI.CreateBuffer)(psp, pdp, &modes, isPixmap)) {
-       (void)XF86DRIDestroyDrawable(dpy, scrn, pdp->draw);
+#if 0
+        (void)XF86DRIDestroyDrawable(dpy, scrn, pdp->draw);
+#else
+	if (drmDestroyDrawable(psp->fd, pdp->hHWDrawable)) {
+           fprintf(stderr, " drmDestroyDrawable(0x%x) failed\n", (int) pdp->hHWDrawable);
+        }
+#endif
        Xfree(pdp);
        return NULL;
     }
@@ -786,8 +763,17 @@ static void driDestroyDrawable(Display *dpy, void *drawablePrivate)
 
     if (pdp) {
         (*psp->DriverAPI.DestroyBuffer)(pdp);
-	if (__driWindowExists(dpy, pdp->draw))
+	if (__driWindowExists(dpy, pdp->draw)) {
+#if 0
 	    (void)XF86DRIDestroyDrawable(dpy, scrn, pdp->draw);
+#else
+            (void) scrn;
+            if (drmDestroyDrawable(psp->fd, pdp->hHWDrawable)) {
+               fprintf(stderr, "drmDestroyDrawable(0x%x) failed\n",
+                       (int) pdp->hHWDrawable);
+            }
+#endif
+        }
 	if (pdp->pClipRects)
 	    Xfree(pdp->pClipRects);
 	Xfree(pdp);
@@ -799,7 +785,7 @@ static void driDestroyDrawable(Display *dpy, void *drawablePrivate)
 static void driDestroyContext(Display *dpy, int scrn, void *contextPrivate)
 {
     __DRIcontextPrivate  *pcp   = (__DRIcontextPrivate *) contextPrivate;
-    __DRIscreenPrivate   *psp;
+    __DRIscreenPrivate   *psp = NULL;
     __DRIdrawablePrivate *pdp;
 
     if (pcp) {
@@ -807,13 +793,21 @@ static void driDestroyContext(Display *dpy, int scrn, void *contextPrivate)
  	    /* Shut down fullscreen mode */
  	    if ((psp = pdp->driScreenPriv) && psp->fullscreen) {
  		psp->DriverAPI.CloseFullScreen(pcp);
+#if 0
  		XF86DRICloseFullScreen(dpy, scrn, pdp->draw);
+#endif
  		psp->fullscreen = NULL;
  	    }
 	}
 	__driGarbageCollectDrawables(pcp->driScreenPriv->drawHash);
 	(*pcp->driScreenPriv->DriverAPI.DestroyContext)(pcp);
+#if 0
 	(void)XF86DRIDestroyContext(dpy, scrn, pcp->contextID);
+#else
+        psp = pcp->driDrawablePriv->driScreenPriv;
+        printf(">>> drmDestroyContext(0x%x)\n", (int) pcp->hHWContext);
+        drmDestroyContext(psp->fd, pcp->hHWContext);
+#endif
 	Xfree(pcp);
     }
 }
@@ -839,11 +833,15 @@ static void *driCreateContext(Display *dpy, XVisualInfo *vis,
     }
 
     if (!psp->dummyContextPriv.driScreenPriv) {
+#if 1
 	if (!XF86DRICreateContext(dpy, vis->screen, vis->visual,
 				  &psp->dummyContextPriv.contextID,
 				  &psp->dummyContextPriv.hHWContext)) {
 	    return NULL;
 	}
+#else
+        /* XXX replacement? */
+#endif
 	psp->dummyContextPriv.driScreenPriv = psp;
 	psp->dummyContextPriv.driDrawablePriv = NULL;
         psp->dummyContextPriv.driverPrivate = NULL;
@@ -862,11 +860,22 @@ static void *driCreateContext(Display *dpy, XVisualInfo *vis,
     pcp->driScreenPriv = psp;
     pcp->driDrawablePriv = NULL;
 
+#if 0
     if (!XF86DRICreateContext(dpy, vis->screen, vis->visual,
 			      &pcp->contextID, &pcp->hHWContext)) {
 	Xfree(pcp);
 	return NULL;
     }
+#else
+    if (drmCreateContext(psp->fd, &pcp->hHWContext)) {
+        fprintf(stderr, ">>> drmCreateContext failed\n");
+	Xfree(pcp);
+	return NULL;
+    }
+    else {
+        printf(">>> drmCreateContext worked: 0x%x\n", (int) pcp->hHWContext);
+    }
+#endif
 
     /* This is moved because the Xserver creates a global dummy context
      * the first time XF86DRICreateContext is called.
@@ -900,7 +909,11 @@ static void *driCreateContext(Display *dpy, XVisualInfo *vis,
     __glXFormatGLModes(&modes, config);
     shareCtx = pshare ? pshare->driverPrivate : NULL;
     if (!(*psp->DriverAPI.CreateContext)(&modes, pcp, shareCtx)) {
+#if 0
         (void)XF86DRIDestroyContext(dpy, vis->screen, pcp->contextID);
+#else
+        (void) drmDestroyContext(psp->fd, pcp->hHWContext);
+#endif
         Xfree(pcp);
         return NULL;
     }
@@ -960,13 +973,15 @@ __driUtilCreateScreen(Display *dpy, int scrn, __DRIscreen *psc,
                       int numConfigs, __GLXvisualConfig *config,
                       const struct __DriverAPIRec *driverAPI)
 {
+#if 0
     int directCapable;
+#endif
     __DRIscreenPrivate *psp;
     drmHandle hFB, hSAREA;
     char *BusID, *driverName;
     drmMagic magic;
 
-#if USE_XF86DRI
+#if 0
     if (!XF86DRIQueryDirectRenderingCapable(dpy, scrn, &directCapable)) {
 	return NULL;
     }
@@ -984,7 +999,7 @@ __driUtilCreateScreen(Display *dpy, int scrn, __DRIscreen *psc,
     psp->display = dpy;
     psp->myNum = scrn;
 
-#if USE_XF86DRI || 1
+#if 1
     if (!XF86DRIOpenConnection(dpy, scrn, &hSAREA, &BusID)) {
 	Xfree(psp);
 	return NULL;
@@ -1008,7 +1023,7 @@ __driUtilCreateScreen(Display *dpy, int scrn, __DRIscreen *psc,
         fprintf(stderr, "libGL error: reverting to (slow) indirect rendering\n");
 	Xfree(BusID);
 	Xfree(psp);
-#if USE_XF86DRI
+#if 0
 	(void)XF86DRICloseConnection(dpy, scrn);
 #endif
 	return NULL;
@@ -1019,7 +1034,7 @@ __driUtilCreateScreen(Display *dpy, int scrn, __DRIscreen *psc,
         fprintf(stderr, "libGL error: drmGetMagic failed\n");
 	(void)drmClose(psp->fd);
 	Xfree(psp);
-#if USE_XF86DRI
+#if 0
 	(void)XF86DRICloseConnection(dpy, scrn);
 #endif
 	return NULL;
@@ -1040,7 +1055,7 @@ __driUtilCreateScreen(Display *dpy, int scrn, __DRIscreen *psc,
         }
     }
 
-#if USE_XF86DRI || 0
+#if 0
     if (!XF86DRIAuthConnection(dpy, scrn, magic)) {
         fprintf(stderr, "libGL error: XF86DRIAuthConnection failed\n");
 	(void)drmClose(psp->fd);
@@ -1048,7 +1063,8 @@ __driUtilCreateScreen(Display *dpy, int scrn, __DRIscreen *psc,
 	(void)XF86DRICloseConnection(dpy, scrn);
 	return NULL;
     }
-#else
+#elif 0
+    /* doesn't work */
     if (drmAuthMagic(psp->fd, magic) == 0) {
        printf("GOOD AUTH!\n");
     }
@@ -1062,7 +1078,7 @@ __driUtilCreateScreen(Display *dpy, int scrn, __DRIscreen *psc,
      * We'll check the version in each DRI driver's "createScreen"
      * function.
      */
-#if USE_XF86DRI
+#if 0
     if (!XF86DRIGetClientDriverName(dpy, scrn,
 				    &psp->ddxMajor,
 				    &psp->ddxMinor,
@@ -1075,16 +1091,16 @@ __driUtilCreateScreen(Display *dpy, int scrn, __DRIscreen *psc,
 	return NULL;
     }
 #else
-    psp->ddxMajor = 4;
-    psp->ddxMinor = 0;
-    psp->ddxPatch = 1;
+    pdp->ddxMajor = 4;
+    pdp->ddxMinor = 0;
+    pdp->ddxPatch = 1;
     driverName = "r200";
 #endif
 
     /*
      * Get the DRI X extension version.
      */
-#if USE_XF86DRI
+#if 0
     if (!XF86DRIQueryVersion(dpy,
 			     &psp->driMajor,
 			     &psp->driMinor,
@@ -1112,7 +1128,7 @@ __driUtilCreateScreen(Display *dpy, int scrn, __DRIscreen *psc,
      * that has information about the screen size, depth, pitch,
      * ancilliary buffers, DRM mmap handles, etc.
      */
-#if USE_XF86DRI || 1
+#if 1
     if (!XF86DRIGetDeviceInfo(dpy, scrn,
 			      &hFB,
 			      &psp->fbOrigin,
@@ -1136,6 +1152,7 @@ __driUtilCreateScreen(Display *dpy, int scrn, __DRIscreen *psc,
            psp->pDevPriv);
     printf("w=%d h=%d\n", psp->fbWidth, psp->fbHeight);
 #else
+    /* typical observed values: */
     hFB = 0xd0000000;
     psp->fbOrigin = 0;  /* unused? */
     psp->fbSize = 128 * 1024 * 1024; /* needed for drmMap/Unmap */
@@ -1155,7 +1172,7 @@ __driUtilCreateScreen(Display *dpy, int scrn, __DRIscreen *psc,
 	Xfree(psp->pDevPriv);
 	(void)drmClose(psp->fd);
 	Xfree(psp);
-#if USE_XF86DRI
+#if 0
 	(void)XF86DRICloseConnection(dpy, scrn);
 #endif
 	return NULL;
@@ -1171,7 +1188,7 @@ __driUtilCreateScreen(Display *dpy, int scrn, __DRIscreen *psc,
 	Xfree(psp->pDevPriv);
 	(void)drmClose(psp->fd);
 	Xfree(psp);
-#if USE_XF86DRI
+#if 0
 	(void)XF86DRICloseConnection(dpy, scrn);
 #endif
 	return NULL;
@@ -1186,7 +1203,7 @@ __driUtilCreateScreen(Display *dpy, int scrn, __DRIscreen *psc,
 	    Xfree(psp->pDevPriv);
 	    (void)drmClose(psp->fd);
 	    Xfree(psp);
-#if USE_XF86DRI
+#if 0
 	    (void)XF86DRICloseConnection(dpy, scrn);
 #endif
 	    return NULL;

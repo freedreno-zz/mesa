@@ -54,6 +54,7 @@
 #include <unistd.h>
 
 #include "glxclient.h"
+/*#include "xf86dri.h"*/
 
 #include "glapi.h"
 
@@ -74,6 +75,9 @@ static __GLXcontext *__glXcurrentContext = NULL;
 #define __glXSetCurrentContext(gc)	__glXcurrentContext = gc
 
 
+static __GLXdisplayPrivate *displayPrivates = NULL;
+
+
 /* forward decl */
 static Bool driInitDisplay(Display *dpy, __GLXdisplayPrivate *pdisp);
 
@@ -81,7 +85,61 @@ static __DRIdriver *driGetDriver(Display *dpy, int scrNum);
 
 
 
-/************************************************************************/
+/**********************************************************************/
+/* NEW: this replaces a bunch of GLX calls to the server.
+/**********************************************************************/
+
+static __GLXvisualConfig
+*XF86DRI_GetScreenConfigs( int *count )
+{
+   __GLXvisualConfig *configs;
+   int i;
+
+   *count = 2;
+   configs = malloc(*count * sizeof(__GLXvisualConfig));
+   if (!configs) {
+      *count = 0;
+      return NULL;
+   }
+
+   memset(configs, 0, *count * sizeof(__GLXvisualConfig));
+   for (i = 0; i < *count; i++) {
+      configs[i].vid = 0x23 + i;         /* XXX a hack! */
+      configs[i].class = TrueColor;
+      configs[i].rgba = 1;
+      configs[i].redSize = 8;
+      configs[i].greenSize = 8;
+      configs[i].blueSize = 8;
+      configs[i].alphaSize = 8;
+      configs[i].doubleBuffer = 1;
+      configs[i].bufferSize = 24;
+      configs[i].depthSize = 24;
+      configs[i].stencilSize = i * 8;
+   }
+   return configs;
+}
+
+
+/*
+ * Dummy version
+ */
+static Bool
+XF86DRI_GetClientDriverName(Display* dpy, int screen,
+                           int* ddxDriverMajorVersion,
+                           int* ddxDriverMinorVersion,
+                           int* ddxDriverPatchVersion,
+                           char** clientDriverName)
+{
+   (void) dpy;
+   (void) screen;
+   *ddxDriverMajorVersion = 4;
+   *ddxDriverMinorVersion = 0;
+   *ddxDriverPatchVersion = 1;
+   *clientDriverName = "r200";
+   return True;
+}
+
+
 
 /*
 ** Allocate the memory for the per screen configs for each screen.
@@ -103,27 +161,8 @@ static Bool AllocAndFetchScreenConfigs(Display *dpy, __GLXdisplayPrivate *priv)
     memset(psc, 0, screens * sizeof(__GLXscreenConfigs));
     priv->screenConfigs = psc;
     
-#if 11
-    /* XXX temporary: make two hard-coded visual configs */
-
-    psc->numConfigs = 2;
-    psc->configs = (__GLXvisualConfig*)
-	    malloc(psc->numConfigs * sizeof(__GLXvisualConfig));
-    memset(psc->configs, 0, psc->numConfigs * sizeof(__GLXvisualConfig));
-    for (i = 0; i < psc->numConfigs; i++) {
-       psc->configs[i].vid = 0x23 + i;
-       psc->configs[i].class = TrueColor;
-       psc->configs[i].rgba = 1;
-       psc->configs[i].redSize = 8;
-       psc->configs[i].greenSize = 8;
-       psc->configs[i].blueSize = 8;
-       psc->configs[i].alphaSize = 8;
-       /*int accumRedSize, accumGreenSize, accumBlueSize, accumAlphaSize;*/
-       psc->configs[i].doubleBuffer = 1;
-       psc->configs[i].bufferSize = 24;
-       psc->configs[i].depthSize = 24;
-       psc->configs[i].stencilSize = i * 8;
-    }
+    /* XXX prototype solution: */
+    psc->configs = XF86DRI_GetScreenConfigs( &psc->numConfigs );
 
     /* Initialize the direct rendering per screen data and functions */
     if (priv->createScreen && priv->createScreen[0]) {
@@ -138,148 +177,8 @@ static Bool AllocAndFetchScreenConfigs(Display *dpy, __GLXdisplayPrivate *priv)
                                      psc->configs);
     }
 
-#else
-
-    /*
-    ** Now fetch each screens configs structures.  If a screen supports
-    ** GL (by returning a numVisuals > 0) then allocate memory for our
-    ** config structure and then fill it in.
-    */
-    for (i = 0; i < screens; i++, psc++) {
-	/* Send the glXGetVisualConfigs request */
-	LockDisplay(dpy);
-	GetReq(GLXGetVisualConfigs,req);
-	req->reqType = priv->majorOpcode;
-	req->glxCode = X_GLXGetVisualConfigs;
-	req->screen = i;
-	if (!_XReply(dpy, (xReply*) &reply, 0, False)) {
-	    /* Something is busted. Punt. */
-	    UnlockDisplay(dpy);
-	    FreeScreenConfigs(priv);
-	    return GL_FALSE;
-	}
-	UnlockDisplay(dpy);
-	if (!reply.numVisuals) {
-	    /* This screen does not support GL rendering */
-	    continue;
-	}
-
-	/* Check number of properties */
-	nprops = reply.numProps;
-	if ((nprops < __GLX_MIN_CONFIG_PROPS) ||
-	    (nprops > __GLX_MAX_CONFIG_PROPS)) {
-	    /* Huh?  Not in protocol defined limits.  Punt */
-	    FreeScreenConfigs(priv);
-	    return GL_FALSE;
-	}
-
-	/* Allocate memory for our config structure */
-	psc->configs = (__GLXvisualConfig*)
-	    malloc(reply.numVisuals * sizeof(__GLXvisualConfig));
-	psc->numConfigs = reply.numVisuals;
-	if (!psc->configs) {
-	    FreeScreenConfigs(priv);
-	    return GL_FALSE;
-	}
-	/* Allocate memory for the properties, if needed */
-	if (nprops <= __GLX_MIN_CONFIG_PROPS) {
-	    props = buf;
-	} else {
-	    props = (INT32 *) malloc(nprops * __GLX_SIZE_INT32);
-	} 
-
-	/* Read each config structure and convert it into our format */
-	config = psc->configs;
-	for (j = 0; j < reply.numVisuals; j++, config++) {
-	    INT32 *bp = props;
-
-	    _XRead(dpy, (char *)bp, nprops * __GLX_SIZE_INT32);
-
-	    /* Copy in the first set of properties */
-	    config->vid = *bp++;
-	    config->class = *bp++;
-	    config->rgba = *bp++;
-
-	    config->redSize = *bp++;
-	    config->greenSize = *bp++;
-	    config->blueSize = *bp++;
-	    config->alphaSize = *bp++;
-	    config->accumRedSize = *bp++;
-	    config->accumGreenSize = *bp++;
-	    config->accumBlueSize = *bp++;
-	    config->accumAlphaSize = *bp++;
-
-	    config->doubleBuffer = *bp++;
-	    config->stereo = *bp++;
-
-	    config->bufferSize = *bp++;
-	    config->depthSize = *bp++;
-	    config->stencilSize = *bp++;
-	    config->auxBuffers = *bp++;
-	    config->level = *bp++;
-
-	    /*
-	    ** Additional properties may be in a list at the end
-	    ** of the reply.  They are in pairs of property type
-	    ** and property value.
-	    */
-	    config->visualRating = GLX_NONE_EXT;
-	    config->transparentPixel = GL_FALSE;
-
-	    for (k = __GLX_MIN_CONFIG_PROPS; k < nprops; k+=2) {
-		switch(*bp++) {
-		  case GLX_VISUAL_CAVEAT_EXT:
-		    config->visualRating = *bp++;    
-		    break;
-		  case GLX_TRANSPARENT_TYPE_EXT:
-		    config->transparentPixel = *bp++;    
-		    break;
-		  case GLX_TRANSPARENT_INDEX_VALUE_EXT:
-		    config->transparentIndex = *bp++;    
-		    break;
-		  case GLX_TRANSPARENT_RED_VALUE_EXT:
-		    config->transparentRed = *bp++;    
-		    break;
-		  case GLX_TRANSPARENT_GREEN_VALUE_EXT:
-		    config->transparentGreen = *bp++;    
-		    break;
-		  case GLX_TRANSPARENT_BLUE_VALUE_EXT:
-		    config->transparentBlue = *bp++;    
-		    break;
-		  case GLX_TRANSPARENT_ALPHA_VALUE_EXT:
-		    config->transparentAlpha = *bp++;    
-		    break;
-		}
-	    }
-	}
-	if (props != buf) {
-	    free((char *)props);
-	}
-
-#ifdef GLX_DIRECT_RENDERING
-	/* Initialize the direct rendering per screen data and functions */
-	if (priv->createScreen &&
-            priv->createScreen[i]) {
-	    /* register glx extensions */
-            __DRIdriver *driver = driGetDriver(dpy, i);
-	    if (driver && driver->registerExtensionsFunc)
-		(*driver->registerExtensionsFunc)();
-	    /* screen initialization (bootstrap the driver) */
-	    psc->driScreen.private =
-		(*(priv->createScreen[i]))(dpy, i, &psc->driScreen,
-						 psc->numConfigs,
-						 psc->configs);
-	}
-#endif
-    }
-    SyncHandle();
-#endif
     return GL_TRUE;
 }
-
-
-static __GLXdisplayPrivate *displayPrivates = NULL;
-
 
 
 /*
@@ -1033,38 +932,11 @@ static __DRIdriver *OpenDriver(const char *driverName)
  */
 static Bool GetDriverName(Display *dpy, int scrNum, char **driverName)
 {
-#if 0
-   int directCapable;
-   Bool b;
-#endif
    int driverMajor, driverMinor, driverPatch;
+   Bool b;
 
-   *driverName = NULL;
-
-#if 0
-   if (!XF86DRIQueryDirectRenderingCapable(dpy, scrNum, &directCapable)) {
-      ErrorMessageF("XF86DRIQueryDirectRenderingCapable failed");
-      return False;
-   }
-   if (!directCapable) {
-      ErrorMessageF("XF86DRIQueryDirectRenderingCapable returned false");
-      return False;
-   }
-#endif
-
-#if 0
-   b = XF86DRIGetClientDriverName(dpy, scrNum, &driverMajor, &driverMinor,
+   b = XF86DRI_GetClientDriverName(dpy, scrNum, &driverMajor, &driverMinor,
                                   &driverPatch, driverName);
-   if (!b) {
-      ErrorMessageF("Cannot determine driver name for screen %d\n", scrNum);
-      return False;
-   }
-#else
-   driverMajor = 4;
-   driverMinor = 0;
-   driverPatch = 1;
-   *driverName = "r200";
-#endif
 
    InfoMessageF("XF86DRIGetClientDriverName: %d.%d.%d %s (screen %d)\n",
 	     driverMajor, driverMinor, driverPatch, *driverName, scrNum);
