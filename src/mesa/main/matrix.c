@@ -1,8 +1,8 @@
-/* $Id: matrix.c,v 1.9 1999/11/11 01:22:27 brianp Exp $ */
+/* $Id: matrix.c,v 1.8.2.1 2000/02/21 22:49:24 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.3
+ * Version:  3.1
  * 
  * Copyright (C) 1999  Brian Paul   All Rights Reserved.
  * 
@@ -25,6 +25,9 @@
  */
 
 
+
+
+
 /*
  * Matrix operations
  *
@@ -40,11 +43,18 @@
 #ifdef PC_HEADER
 #include "all.h"
 #else
-#include "glheader.h"
+#ifndef XFree86Server
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#else
+#include "GL/xf86glx.h"
+#endif
 #include "context.h"
 #include "enums.h"
+#include "macros.h"
 #include "matrix.h"
-#include "mem.h"
 #include "mmath.h"
 #include "types.h"
 #endif
@@ -892,12 +902,11 @@ do {									\
 } while (0)
 
 
-void
-_mesa_Frustum( GLdouble left, GLdouble right,
-               GLdouble bottom, GLdouble top,
-               GLdouble nearval, GLdouble farval )
+void gl_Frustum( GLcontext *ctx,
+                 GLdouble left, GLdouble right,
+	 	 GLdouble bottom, GLdouble top,
+		 GLdouble nearval, GLdouble farval )
 {
-   GET_CURRENT_CONTEXT(ctx);
    GLfloat x, y, a, b, c, d;
    GLfloat m[16];
    GLmatrix *mat = 0;
@@ -943,12 +952,11 @@ _mesa_Frustum( GLdouble left, GLdouble right,
 }
 
 
-void
-_mesa_Ortho( GLdouble left, GLdouble right,
-             GLdouble bottom, GLdouble top,
-             GLdouble nearval, GLdouble farval )
+void gl_Ortho( GLcontext *ctx,
+               GLdouble left, GLdouble right,
+               GLdouble bottom, GLdouble top,
+               GLdouble nearval, GLdouble farval )
 {
-   GET_CURRENT_CONTEXT(ctx);
    GLfloat x, y, z;
    GLfloat tx, ty, tz;
    GLfloat m[16];
@@ -983,10 +991,8 @@ _mesa_Ortho( GLdouble left, GLdouble right,
 }
 
 
-void
-_mesa_MatrixMode( GLenum mode )
+void gl_MatrixMode( GLcontext *ctx, GLenum mode )
 {
-   GET_CURRENT_CONTEXT(ctx);
    ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx, "glMatrixMode");
    switch (mode) {
       case GL_MODELVIEW:
@@ -1001,10 +1007,8 @@ _mesa_MatrixMode( GLenum mode )
 
 
 
-void
-_mesa_PushMatrix( void )
+void gl_PushMatrix( GLcontext *ctx )
 {
-   GET_CURRENT_CONTEXT(ctx);
    ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx, "glPushMatrix");
 
    if (MESA_VERBOSE&VERBOSE_API)
@@ -1013,7 +1017,7 @@ _mesa_PushMatrix( void )
 
    switch (ctx->Transform.MatrixMode) {
       case GL_MODELVIEW:
-         if (ctx->ModelViewStackDepth>=MAX_MODELVIEW_STACK_DEPTH-1) {
+         if (ctx->ModelViewStackDepth >= MAX_MODELVIEW_STACK_DEPTH - 1) {
             gl_error( ctx,  GL_STACK_OVERFLOW, "glPushMatrix");
             return;
          }
@@ -1021,7 +1025,7 @@ _mesa_PushMatrix( void )
 			 &ctx->ModelView );
          break;
       case GL_PROJECTION:
-         if (ctx->ProjectionStackDepth>=MAX_PROJECTION_STACK_DEPTH) {
+         if (ctx->ProjectionStackDepth >= MAX_PROJECTION_STACK_DEPTH - 1) {
             gl_error( ctx,  GL_STACK_OVERFLOW, "glPushMatrix");
             return;
          }
@@ -1037,7 +1041,7 @@ _mesa_PushMatrix( void )
       case GL_TEXTURE:
          {
             GLuint t = ctx->Texture.CurrentTransformUnit;
-            if (ctx->TextureStackDepth[t] >= MAX_TEXTURE_STACK_DEPTH) {
+            if (ctx->TextureStackDepth[t] >= MAX_TEXTURE_STACK_DEPTH - 1) {
                gl_error( ctx,  GL_STACK_OVERFLOW, "glPushMatrix");
                return;
             }
@@ -1052,10 +1056,8 @@ _mesa_PushMatrix( void )
 
 
 
-void
-_mesa_PopMatrix( void )
+void gl_PopMatrix( GLcontext *ctx )
 {
-   GET_CURRENT_CONTEXT(ctx);
    ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx, "glPopMatrix");
 
    if (MESA_VERBOSE&VERBOSE_API)
@@ -1109,10 +1111,8 @@ _mesa_PopMatrix( void )
 
 
 
-void
-_mesa_LoadIdentity( void )
+void gl_LoadIdentity( GLcontext *ctx )
 {
-   GET_CURRENT_CONTEXT(ctx);
    GLmatrix *mat = 0;
    GET_ACTIVE_MATRIX(ctx, mat, ctx->NewState, "glLoadIdentity");
 
@@ -1131,10 +1131,8 @@ _mesa_LoadIdentity( void )
 }
 
 
-void
-_mesa_LoadMatrixf( const GLfloat *m )
+void gl_LoadMatrixf( GLcontext *ctx, const GLfloat *m )
 {
-   GET_CURRENT_CONTEXT(ctx);
    GLmatrix *mat = 0;
    GET_ACTIVE_MATRIX(ctx, mat, ctx->NewState, "glLoadMatrix");
 
@@ -1164,25 +1162,12 @@ _mesa_LoadMatrixf( const GLfloat *m )
 }
 
 
-void
-_mesa_LoadMatrixd( const GLdouble *m )
-{
-   GLfloat f[16];
-   GLint i;
-   for (i = 0; i < 16; i++)
-      f[i] = m[i];
-   _mesa_LoadMatrixf(f);
-}
-
-
 
 /*
  * Multiply the active matrix by an arbitary matrix.
  */
-void
-_mesa_MultMatrixf( const GLfloat *m )
+void gl_MultMatrixf( GLcontext *ctx, const GLfloat *m )
 {
-   GET_CURRENT_CONTEXT(ctx);
    GLmatrix *mat = 0;
    GET_ACTIVE_MATRIX( ctx,  mat, ctx->NewState, "glMultMatrix" );
    matmul4( mat->m, mat->m, m );
@@ -1193,10 +1178,8 @@ _mesa_MultMatrixf( const GLfloat *m )
 /*
  * Multiply the active matrix by an arbitary matrix.  
  */
-void
-_mesa_MultMatrixd( const GLdouble *m )
+void gl_MultMatrixd( GLcontext *ctx, const GLdouble *m )
 {
-   GET_CURRENT_CONTEXT(ctx);
    GLmatrix *mat = 0;
    GET_ACTIVE_MATRIX( ctx,  mat, ctx->NewState, "glMultMatrix" );
    matmul4fd( mat->m, mat->m, m );
@@ -1244,10 +1227,9 @@ void gl_mat_mul_mat( GLmatrix *mat, const GLmatrix *m )
 /*
  * Execute a glRotate call
  */
-void
-_mesa_Rotatef( GLfloat angle, GLfloat x, GLfloat y, GLfloat z )
+void gl_Rotatef( GLcontext *ctx,
+                 GLfloat angle, GLfloat x, GLfloat y, GLfloat z )
 {
-   GET_CURRENT_CONTEXT(ctx);
    GLfloat m[16];
    if (angle != 0.0F) {
       GLmatrix *mat = 0;
@@ -1258,20 +1240,11 @@ _mesa_Rotatef( GLfloat angle, GLfloat x, GLfloat y, GLfloat z )
    }
 }
 
-void
-_mesa_Rotated( GLdouble angle, GLdouble x, GLdouble y, GLdouble z )
-{
-   _mesa_Rotatef(angle, x, y, z);
-}
-
-
 /*
  * Execute a glScale call
  */
-void
-_mesa_Scalef( GLfloat x, GLfloat y, GLfloat z )
+void gl_Scalef( GLcontext *ctx, GLfloat x, GLfloat y, GLfloat z )
 {
-   GET_CURRENT_CONTEXT(ctx);
    GLmatrix *mat = 0;
    GLfloat *m;
    GET_ACTIVE_MATRIX(ctx, mat, ctx->NewState, "glScale");
@@ -1292,21 +1265,11 @@ _mesa_Scalef( GLfloat x, GLfloat y, GLfloat z )
 		  MAT_DIRTY_DEPENDENTS);
 }
 
-
-void
-_mesa_Scaled( GLdouble x, GLdouble y, GLdouble z )
-{
-   _mesa_Scalef(x, y, z);
-}
-
-
 /*
  * Execute a glTranslate call
  */
-void
-_mesa_Translatef( GLfloat x, GLfloat y, GLfloat z )
+void gl_Translatef( GLcontext *ctx, GLfloat x, GLfloat y, GLfloat z )
 {
-   GET_CURRENT_CONTEXT(ctx);
    GLmatrix *mat = 0;
    GLfloat *m;
    GET_ACTIVE_MATRIX(ctx, mat, ctx->NewState, "glTranslate");
@@ -1323,22 +1286,13 @@ _mesa_Translatef( GLfloat x, GLfloat y, GLfloat z )
 }
 
 
-void
-_mesa_Translated( GLdouble x, GLdouble y, GLdouble z )
-{
-   _mesa_Translatef(x, y, z);
-}
-
-
-
 /*
  * Define a new viewport and reallocate auxillary buffers if the size of
  * the window (color buffer) has changed.
  */
-void
-_mesa_Viewport( GLint x, GLint y, GLsizei width, GLsizei height )
+void gl_Viewport( GLcontext *ctx,
+                  GLint x, GLint y, GLsizei width, GLsizei height )
 {
-   GET_CURRENT_CONTEXT(ctx);
    ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx, "glViewport");
 
    if (width<0 || height<0) {
@@ -1376,7 +1330,7 @@ _mesa_Viewport( GLint x, GLint y, GLsizei width, GLsizei height )
    /* Check if window/buffer has been resized and if so, reallocate the
     * ancillary buffers.
     */
-   _mesa_ResizeBuffersMESA();
+   gl_ResizeBuffersMESA(ctx);
 
 
    ctx->RasterMask &= ~WINCLIP_BIT;
@@ -1396,8 +1350,7 @@ _mesa_Viewport( GLint x, GLint y, GLsizei width, GLsizei height )
 
 
 
-void
-_mesa_DepthRange( GLclampd nearval, GLclampd farval )
+void gl_DepthRange( GLcontext *ctx, GLclampd nearval, GLclampd farval )
 {
    /*
     * nearval - specifies mapping of the near clipping plane to window
@@ -1411,7 +1364,7 @@ _mesa_DepthRange( GLclampd nearval, GLclampd farval )
     * this range to window z coords.
     */
    GLfloat n, f;
-   GET_CURRENT_CONTEXT(ctx);
+
    ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx, "glDepthRange");
 
    if (MESA_VERBOSE&VERBOSE_API)
