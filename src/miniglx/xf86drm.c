@@ -328,6 +328,9 @@ static int drmOpenByName(const char *name)
 	    if ((version = drmGetVersion(fd))) {
 		if (!strcmp(version->name, name)) {
 		    drmFreeVersion(version);
+
+/* 			return fd; */
+
 		    id = drmGetBusid(fd);
 		    drmMsg("drmGetBusid returned '%s'\n", id ? id : "NULL");
 		    if (!id || !*id) {
@@ -935,6 +938,7 @@ int drmGetLock(int fd, drmContext context, drmLockFlags flags)
     return 0;
 }
 
+static void (*drm_unlock_callback)( void ) = 0;
 
 /**
  * \brief Release the hardware lock.
@@ -951,10 +955,20 @@ int drmGetLock(int fd, drmContext context, drmLockFlags flags)
 int drmUnlock(int fd, drmContext context)
 {
     drm_lock_t lock;
+    int ret;
 
     lock.context = context;
     lock.flags   = 0;
-    return ioctl(fd, DRM_IOCTL_UNLOCK, &lock);
+    ret = ioctl(fd, DRM_IOCTL_UNLOCK, &lock);
+
+    /* Need this to synchronize vt releasing.  Could also teach fbdev
+     * about the drm lock...
+     */
+    if (drm_unlock_callback) {
+       drm_unlock_callback();
+    }
+
+    return ret;
 }
 
 

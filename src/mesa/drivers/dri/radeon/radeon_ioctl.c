@@ -879,7 +879,10 @@ void radeonPageFlip( const __DRIdrawablePrivate *dPriv )
       b[0] = box[0];
       rmesa->sarea->nbox = 1;
    }
-
+   else {
+      UNLOCK_HARDWARE( rmesa );
+      return;
+   }
 
    /* Throttle the frame rate -- only allow one pending swap buffers
     * request at a time.

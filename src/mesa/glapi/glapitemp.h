@@ -25,6 +25,8 @@
  *
  */
 
+#include <GL/gl.h>
+#include <GL/glext.h>
 
 #ifndef KEYWORD1
 #define KEYWORD1

@@ -285,100 +285,6 @@ typedef struct _drmVBlank {
 			  "r" (new));                                  \
 	} while (0)
 
-#elif defined(__alpha__)
-
-#define	DRM_CAS(lock, old, new, ret) 		\
- 	do {					\
- 		int old32;                      \
- 		int cur32;			\
- 		__asm__ __volatile__(		\
- 		"       mb\n"			\
- 		"       zap   %4, 0xF0, %0\n"   \
- 		"       ldl_l %1, %2\n"		\
- 		"       zap   %1, 0xF0, %1\n"   \
-                "       cmpeq %0, %1, %1\n"	\
-                "       beq   %1, 1f\n"		\
- 		"       bis   %5, %5, %1\n"	\
-                "       stl_c %1, %2\n"		\
-                "1:     xor   %1, 1, %1\n"	\
-                "       stl   %1, %3"		\
-                : "+r" (old32),                 \
-		  "+&r" (cur32),		\
-                   "=m" (__drm_dummy_lock(lock)),\
-                   "=m" (ret)			\
- 		: "r" (old),			\
- 		  "r" (new));			\
- 	} while(0)
-
-#elif defined(__sparc__)
-
-#define DRM_CAS(lock,old,new,__ret)				\
-do {	register unsigned int __old __asm("o0");		\
-	register unsigned int __new __asm("o1");		\
-	register volatile unsigned int *__lock __asm("o2");	\
-	__old = old;						\
-	__new = new;						\
-	__lock = (volatile unsigned int *)lock;			\
-	__asm__ __volatile__(					\
-		/*"cas [%2], %3, %0"*/				\
-		".word 0xd3e29008\n\t"				\
-		/*"membar #StoreStore | #StoreLoad"*/		\
-		".word 0x8143e00a"				\
-		: "=&r" (__new)					\
-		: "0" (__new),					\
-		  "r" (__lock),					\
-		  "r" (__old)					\
-		: "memory");					\
-	__ret = (__new != __old);				\
-} while(0)
-
-#elif defined(__ia64__)
-
-#if 0
-/* this currently generates bad code (missing stop bits)... */
-#include <ia64intrin.h>
-
-#define DRM_CAS(lock,old,new,__ret)					      \
-	do {								      \
-		__ret = (__sync_val_compare_and_swap(&__drm_dummy_lock(lock), \
-						     (old), (new))	      \
-			 != (old));					      \
-	} while (0)
-
-#else
-#define DRM_CAS(lock,old,new,__ret)					  \
-	do {								  \
-		unsigned int __result, __old = (old);			  \
-		__asm__ __volatile__(					  \
-			"mf\n"						  \
-			"mov ar.ccv=%2\n"				  \
-			";;\n"						  \
-			"cmpxchg4.acq %0=%1,%3,ar.ccv"			  \
-			: "=r" (__result), "=m" (__drm_dummy_lock(lock))  \
-			: "r" (__old), "r" (new)			  \
-			: "memory");					  \
-		__ret = (__result) != (__old);				  \
-	} while (0)
-
-#endif
-
-#elif defined(__powerpc__)
-
-#define DRM_CAS(lock,old,new,__ret)			\
-	do {						\
-		__asm__ __volatile__(			\
-			"sync;"				\
-			"0:    lwarx %0,0,%1;"		\
-			"      xor. %0,%3,%0;"		\
-			"      bne 1f;"			\
-			"      stwcx. %2,0,%1;"		\
-			"      bne- 0b;"		\
-			"1:    "			\
-			"sync;"				\
-		: "=&r"(__ret)				\
-		: "r"(lock), "r"(new), "r"(old)		\
-		: "cr0", "memory");			\
-	} while (0)
 
 #endif /* architecture */
 #endif /* __GNUC__ >= 2 */
@@ -400,19 +306,6 @@ do {	register unsigned int __old __asm("o0");		\
                 if (__ret) drmGetLock(fd,context,0);                   \
         } while(0)
 
-/**
- * \brief Counts fast locks.
- * 
- * \note For benchmarking only.
- */
-#define DRM_LIGHT_LOCK_COUNT(fd,lock,context,count)                    \
-	do {                                                           \
-                DRM_CAS_RESULT(__ret);                                 \
-		DRM_CAS(lock,context,DRM_LOCK_HELD|context,__ret);     \
-                if (__ret) drmGetLock(fd,context,0);                   \
-                else       ++count;                                    \
-        } while(0)
-
 #define DRM_LOCK(fd,lock,context,flags)                                \
 	do {                                                           \
 		if (flags) drmGetLock(fd,context,flags);               \
@@ -426,47 +319,6 @@ do {	register unsigned int __old __asm("o0");		\
                 if (__ret) drmUnlock(fd,context);                      \
         } while(0)
 
-/**
- * \brief Simple spin locks.
- */
-#define DRM_SPINLOCK(spin,val)                                         \
-	do {                                                           \
-            DRM_CAS_RESULT(__ret);                                     \
-	    do {                                                       \
-		DRM_CAS(spin,0,val,__ret);                             \
-		if (__ret) while ((spin)->lock);                       \
-	    } while (__ret);                                           \
-	} while(0)
-
-#define DRM_SPINLOCK_TAKE(spin,val)                                    \
-	do {                                                           \
-            DRM_CAS_RESULT(__ret);                                     \
-            int  cur;                                                  \
-	    do {                                                       \
-                cur = (*spin).lock;                                    \
-		DRM_CAS(spin,cur,val,__ret);                           \
-	    } while (__ret);                                           \
-	} while(0)
-
-#define DRM_SPINLOCK_COUNT(spin,val,count,__ret)                       \
-	do {                                                           \
-            int  __i;                                                  \
-            __ret = 1;                                                 \
-            for (__i = 0; __ret && __i < count; __i++) {               \
-		DRM_CAS(spin,0,val,__ret);                             \
-		if (__ret) for (;__i < count && (spin)->lock; __i++);  \
-	    }                                                          \
-	} while(0)
-
-#define DRM_SPINUNLOCK(spin,val)                                       \
-	do {                                                           \
-            DRM_CAS_RESULT(__ret);                                     \
-            if ((*spin).lock == val) { /* else server stole lock */    \
-	        do {                                                   \
-		    DRM_CAS(spin,val,0,__ret);                         \
-	        } while (__ret);                                       \
-            }                                                          \
-	} while(0)
 
 /* General user-level programmer's API: unprivileged */
 extern int           drmAvailable(void);
@@ -577,45 +429,9 @@ extern unsigned long drmAgpMemoryAvail(int fd);
 extern unsigned int  drmAgpVendorId(int fd);
 extern unsigned int  drmAgpDeviceId(int fd);
 
-/* PCI scatter/gather support: X server (root) only */
-extern int           drmScatterGatherAlloc(int fd, unsigned long size,
-					   unsigned long *handle);
-extern int           drmScatterGatherFree(int fd, unsigned long handle);
-
-extern int           drmWaitVBlank(int fd, drmVBlankPtr vbl);
-
 /* Support routines */
 extern int           drmError(int err, const char *label);
 extern void          *drmMalloc(int size);
 extern void          drmFree(void *pt);
-
-/* Hash table routines */
-extern void *drmHashCreate(void);
-extern int  drmHashDestroy(void *t);
-extern int  drmHashLookup(void *t, unsigned long key, void **value);
-extern int  drmHashInsert(void *t, unsigned long key, void *value);
-extern int  drmHashDelete(void *t, unsigned long key);
-extern int  drmHashFirst(void *t, unsigned long *key, void **value);
-extern int  drmHashNext(void *t, unsigned long *key, void **value);
-
-/* PRNG routines */
-extern void          *drmRandomCreate(unsigned long seed);
-extern int           drmRandomDestroy(void *state);
-extern unsigned long drmRandom(void *state);
-extern double        drmRandomDouble(void *state);
-
-/* Skip list routines */
-
-extern void *drmSLCreate(void);
-extern int  drmSLDestroy(void *l);
-extern int  drmSLLookup(void *l, unsigned long key, void **value);
-extern int  drmSLInsert(void *l, unsigned long key, void *value);
-extern int  drmSLDelete(void *l, unsigned long key);
-extern int  drmSLNext(void *l, unsigned long *key, void **value);
-extern int  drmSLFirst(void *l, unsigned long *key, void **value);
-extern void drmSLDump(void *l);
-extern int  drmSLLookupNeighbors(void *l, unsigned long key,
-				 unsigned long *prev_key, void **prev_value,
-				 unsigned long *next_key, void **next_value);
 
 #endif

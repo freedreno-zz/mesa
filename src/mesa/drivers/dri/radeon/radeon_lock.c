@@ -109,6 +109,7 @@ radeonUpdatePageFlipping( radeonContextPtr rmesa )
       return;
 
    rmesa->doPageFlip = rmesa->sarea->pfAllowPageFlip;
+   rmesa->doPageFlip = 0;
 
    use_back = (rmesa->glCtx->Color._DrawDestMask == BACK_LEFT_BIT);
    use_back ^= (rmesa->sarea->pfCurrentPage == 1);
@@ -127,23 +128,11 @@ radeonUpdatePageFlipping( radeonContextPtr rmesa )
 }
 
 
-
-/* Update the hardware state.  This is called if another context has
- * grabbed the hardware lock, which includes the X server.  This
- * function also updates the driver's window state after the X server
- * moves, resizes or restacks a window -- the change will be reflected
- * in the drawable position and clip rects.  Since the X server grabs
- * the hardware lock when it changes the window state, this routine will
- * automatically be called after such a change.
- */
-void radeonGetLock( radeonContextPtr rmesa, GLuint flags )
+static void validate_drawable( radeonContextPtr rmesa )
 {
    __DRIdrawablePrivate *dPriv = rmesa->dri.drawable;
-   __DRIscreenPrivate *sPriv = rmesa->dri.screen;
-   RADEONSAREAPrivPtr sarea = rmesa->sarea;
-   int i;
 
-   drmGetLock( rmesa->dri.fd, rmesa->dri.hwContext, flags );
+   fprintf(stderr, "%s\n", __FUNCTION__);
 
    /* The window might have moved, so we might need to get new clip
     * rects.
@@ -165,14 +154,45 @@ void radeonGetLock( radeonContextPtr rmesa, GLuint flags )
       radeonUpdateViewportOffset( rmesa->glCtx );
       rmesa->lastStamp = dPriv->lastStamp;
    }
+}
+
+
+/* Update the hardware state.  This is called if another context has
+ * grabbed the hardware lock, which includes the X server.  This
+ * function also updates the driver's window state after the X server
+ * moves, resizes or restacks a window -- the change will be reflected
+ * in the drawable position and clip rects.  Since the X server grabs
+ * the hardware lock when it changes the window state, this routine will
+ * automatically be called after such a change.
+ */
+void radeonGetLock( radeonContextPtr rmesa, GLuint flags )
+{
+   RADEONSAREAPrivPtr sarea = rmesa->sarea;
+   int i;
+
+   fprintf(stderr, "%s\n", __FUNCTION__);
+   drmGetLock( rmesa->dri.fd, rmesa->dri.hwContext, flags );
+
+   validate_drawable( rmesa );
 
    if ( sarea->ctxOwner != rmesa->dri.hwContext ) {
       sarea->ctxOwner = rmesa->dri.hwContext;
 
       for ( i = 0 ; i < rmesa->texture.numHeaps ; i++ ) {
-	 if ( rmesa->texture.heap[i] && sarea->texAge[i] != rmesa->texture.age[i] ) {
+	 if ( rmesa->texture.heap[i] && 
+	      sarea->texAge[i] != rmesa->texture.age[i] ) {
 	    radeonAgeTextures( rmesa, i );
 	 }
       }
    }
+}
+
+/* In the current miniglx, cliprects can change while the lock is
+ * held...  Probably need to fix this.
+ */
+void radeonUnlock( radeonContextPtr rmesa )
+{
+   fprintf(stderr, "%s\n", __FUNCTION__);
+   validate_drawable( rmesa );
+   drmUnlock( rmesa->dri.fd, rmesa->dri.hwContext );
 }

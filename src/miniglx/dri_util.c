@@ -282,6 +282,7 @@ static Bool driBindContext(Display *dpy, int scrn,
  */
 void __driUtilUpdateDrawableInfo(__DRIdrawablePrivate *pdp)
 {
+   fprintf(stderr, "%s\n", __FUNCTION__);
    /* nothing to do */
 }
 
@@ -319,7 +320,6 @@ static void driDestroyDrawable(Display *dpy, void *drawablePrivate)
 {
     __DRIdrawablePrivate *pdp = (__DRIdrawablePrivate *) drawablePrivate;
     __DRIscreenPrivate *psp = pdp->driScreenPriv;
-    int scrn = psp->myNum;
 
     if (pdp) {
         (*psp->DriverAPI.DestroyBuffer)(pdp);
@@ -455,7 +455,6 @@ static void driDestroyContext(Display *dpy, int scrn, void *contextPrivate)
 {
     __DRIcontextPrivate  *pcp   = (__DRIcontextPrivate *) contextPrivate;
     __DRIscreenPrivate   *psp = NULL;
-    __DRIdrawablePrivate *pdp;
 
     if (pcp) {
 	(*pcp->driScreenPriv->DriverAPI.DestroyContext)(pcp);
@@ -602,8 +601,6 @@ __driUtilCreateScreen(Display *dpy, int scrn, __DRIscreen *psc,
                       const struct __DriverAPIRec *driverAPI)
 {
    __DRIscreenPrivate *psp;
-   char *driverName;
-   drmHandle hFB;
 
    psp = (__DRIscreenPrivate *)malloc(sizeof(__DRIscreenPrivate));
    if (!psp) {
@@ -700,7 +697,6 @@ __driUtilCreateScreenNoDRM(Display *dpy, int scrn, __DRIscreen *psc,
 			   const struct __DriverAPIRec *driverAPI)
 {
     __DRIscreenPrivate *psp;
-    char *driverName;
 
     psp = (__DRIscreenPrivate *)calloc(1, sizeof(__DRIscreenPrivate));
     if (!psp) 

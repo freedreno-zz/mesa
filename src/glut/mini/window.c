@@ -218,3 +218,52 @@ void APIENTRY glutShowWindow (void)
 void APIENTRY glutHideWindow (void)
 {
 }
+
+void APIENTRY glutMainLoop (void)
+{
+   GLboolean idle;
+   GLboolean have_event;
+   XEvent evt;
+
+   glutPostRedisplay();
+   if (reshape_func) reshape_func(g_width, g_height);
+
+   while (GL_TRUE) {
+      idle = GL_TRUE;
+
+
+      if (idle_func) 
+	 have_event = XCheckWindowEvent( dpy, win, ~0, &evt );
+      else 
+	 have_event = XNextEvent( dpy, &evt );
+
+      if (have_event) {
+	 fprintf(stderr, "got event type %d\n", evt.type);
+	 idle = GL_FALSE;
+	 switch(evt.type) {
+	 case MapNotify:
+	    if (visibility_func) visibility_func(GLUT_VISIBLE);
+	    break;
+	 case UnmapNotify:
+	    if (visibility_func) visibility_func(GLUT_NOT_VISIBLE);
+	    break;
+	 case Expose:
+	    g_redisplay = 1;
+	    break;
+	 }
+      }
+
+      if (g_redisplay && display_func) {
+	 idle        = GL_FALSE;
+	 g_redisplay = GL_FALSE;
+
+	 fprintf(stderr, "calling display_func()\n");
+	 display_func();
+      }
+
+      if (idle && idle_func) {
+	 fprintf(stderr, "calling idle_func()\n");
+	 idle_func();
+      }
+   }
+}

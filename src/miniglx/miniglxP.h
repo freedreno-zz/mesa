@@ -205,6 +205,11 @@ struct MiniGLXDriverRec {
     * \brief Halt the framebuffer device.
     */
    void (*haltFBDev)( struct MiniGLXDisplayRec *dpy );
+
+   /**
+    * \brief Handle VT switch events.
+    */
+   void (*handleVTSwitch)( struct MiniGLXDisplayRec *dpy, int have_vt );
 };
 
 
@@ -242,6 +247,8 @@ struct MiniGLXVisualRec {
 };
 
 
+#define MINIGLX_EVENT_QUEUE_SIZE 5
+
 /**
  * \brief X Window type.
  *
@@ -262,6 +269,9 @@ struct MiniGLXWindowRec {
    GLubyte *backBottom;            /**< \brief pointer to last row */
    GLubyte *curBottom;             /**<  = frontBottom or backBottom */
    __DRIdrawable driDrawable;
+   GLuint ismapped;
+   GLuint event_queue[MINIGLX_EVENT_QUEUE_SIZE];
+   GLuint event_queue_len;
 };
 
 
@@ -289,6 +299,7 @@ struct MiniGLXDisplayRec {
    /** \brief original and current variable frambuffer screen info */
    struct fb_var_screeninfo OrigVarInfo, VarInfo;
    struct sigaction OrigSigUsr1;
+   struct sigaction OrigSigUsr2;
    int OriginalVT;
    int ConsoleFD;        /**< \brief console TTY device file descriptor */
    int FrameBufferFD;    /**< \brief framebuffer device file descriptor */
@@ -298,6 +309,16 @@ struct MiniGLXDisplayRec {
    int MMIOSize;         /**< \brief size of the mmap'd MMIO region in bytes */
    int NumWindows;       /**< \brief number of open windows */
    Window TheWindow;     /**< \brief open window - only allow one window for now */
+
+
+   int haveVT;
+   int aquireVTCount;
+   int releaseVTCount;
+   int exposeNotifyCount;
+   int mapNotifyCount;
+   int unmapNotifyCount;
+
+
 
    /**
     * \name Visual configurations
@@ -350,7 +371,6 @@ struct MiniGLXDisplayRec {
    int drmFD;  /**< \brief DRM device file descriptor */
    unsigned long hSAREA;
    unsigned long hFrameBuffer;
-   unsigned int serverContext;	/* temporary DRM context -- make an auto var? */
    int SAREASize;
    void *pSAREA;
    /*@}*/

@@ -80,17 +80,7 @@ typedef struct __DRIdrawablePrivateRec __DRIdrawablePrivate; /**< \brief Alias f
  */
 #define DRI_VALIDATE_DRAWABLE_INFO(psp, pdp)                            \
 do {                                                                    \
-    while (*(pdp->pStamp) != pdp->lastStamp) {                          \
-	DRM_UNLOCK(psp->fd, &psp->pSAREA->lock,                         \
-		   pdp->driContextPriv->hHWContext);                    \
-                                                                        \
-	DRM_SPINLOCK(&psp->pSAREA->drawable_lock, psp->drawLockID);     \
-	DRI_VALIDATE_DRAWABLE_INFO_ONCE(pdp);                           \
-	DRM_SPINUNLOCK(&psp->pSAREA->drawable_lock, psp->drawLockID);   \
-                                                                        \
-	DRM_LIGHT_LOCK(psp->fd, &psp->pSAREA->lock,                     \
-		       pdp->driContextPriv->hHWContext);                \
-    }                                                                   \
+    DRI_VALIDATE_DRAWABLE_INFO_ONCE(pdp);                           \
 } while (0)
 
 

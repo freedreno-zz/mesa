@@ -22,7 +22,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: miniglx.c,v 1.1.4.46 2003/02/21 21:14:31 keithw Exp $ */
+/* $Id: miniglx.c,v 1.1.4.47 2003/03/13 17:13:56 keithw Exp $ */
 
 
 /**
@@ -123,7 +123,6 @@
 extern void
 __driUtilInitScreen( Display *dpy, int scrn, __DRIscreen *psc );
 
-
 /**
  * \brief Current GLX context.
  *
@@ -132,8 +131,112 @@ __driUtilInitScreen( Display *dpy, int scrn, __DRIscreen *psc );
 static GLXContext CurrentContext = NULL;
 
 
-static void SwitchDisplay(int i_signal)
+
+/* Called from signal handler context, runs atomically wrt
+ * XCheckWindowEvent.
+ */
+static void queue_event( Display *dpy, int aquire )
 {
+   dpy->haveVT = aquire;
+   dpy->aquireVTCount += aquire;
+   dpy->releaseVTCount += !aquire;
+}
+
+static Display *SignalDisplay = 0;
+
+static void SwitchVT(int sig)
+{
+   fprintf(stderr, "SwitchVT %d dpy %p\n", sig, SignalDisplay);
+
+   if (!SignalDisplay)
+      return;
+
+   switch( sig )
+   {
+   case SIGUSR1:                                /* vt has been released */
+      queue_event( SignalDisplay, 0 );
+      if (SignalDisplay->driver)
+	 SignalDisplay->driver->handleVTSwitch( SignalDisplay, 0 );      
+      ioctl( SignalDisplay->ConsoleFD, VT_RELDISP, 1 );
+      break;
+   case SIGUSR2:                                /* vt has been acquired */
+      queue_event( SignalDisplay, 1 );
+      if (SignalDisplay->driver)
+	 SignalDisplay->driver->handleVTSwitch( SignalDisplay, 1 ); 
+      ioctl( SignalDisplay->ConsoleFD, VT_RELDISP, VT_ACTIVATE );
+      break;
+   }
+}
+
+
+int XNextEvent(Display *display, XEvent *event_return)
+{
+   /* This works because our events are really signals, which will
+    * terminate the sleep early.  If keypress, mousemove, etc. events
+    * are ever added to miniglx, this would have to change.
+    */
+   while (!XCheckWindowEvent( display, display->TheWindow, ~0, event_return ))
+      sleep(1);
+
+   return True;
+}
+
+
+Bool XCheckWindowEvent(Display *display, Window w, long event_mask, 
+		       XEvent *er)
+{
+   if (!w || w != display->TheWindow) 
+      return False;
+
+   /* Note: there is no actual queue for these events, so multiple
+    * cycles of aquire & release vt that occur between calls to
+    * XCheckWindowEvent will be lost, with only the current state
+    * being reported.  However this should be safe with respect to the
+    * asynchronous arrival of signals, and avoids the issue of what to
+    * do if an event queue were to fill up.
+    */
+   if (display->haveVT) {
+      if (display->mapNotifyCount != display->aquireVTCount) {
+	 er->xmap.type = MapNotify;
+	 er->xmap.serial = 0;
+	 er->xmap.send_event = False;
+	 er->xmap.display = display;
+	 er->xmap.event = w;
+	 er->xmap.window = w;
+	 er->xmap.override_redirect = False;
+	 display->mapNotifyCount = display->aquireVTCount;
+	 return True;
+      }
+      if (display->exposeNotifyCount != display->aquireVTCount) {
+	 er->xexpose.type = Expose;
+	 er->xexpose.serial = 0;
+	 er->xexpose.send_event = False;
+	 er->xexpose.display = display;
+	 er->xexpose.window = w;
+	 er->xexpose.x = 0;
+	 er->xexpose.y = 0;
+	 er->xexpose.width = w->w;
+	 er->xexpose.height = w->h;
+	 er->xexpose.count = 0;
+	 display->exposeNotifyCount = display->aquireVTCount;
+	 return True;
+      }
+   }
+   else {
+      if (display->unmapNotifyCount != display->releaseVTCount) {
+	 er->xunmap.type = UnmapNotify;
+	 er->xunmap.serial = 0;
+	 er->xunmap.send_event = False;
+	 er->xunmap.display = display;
+	 er->xunmap.event = w;
+	 er->xunmap.window = w;
+	 er->xunmap.from_configure = False;
+	 display->unmapNotifyCount = display->releaseVTCount;
+	 return True;
+      }
+   }
+   
+   return False;
 }
 
 /**********************************************************************/
@@ -180,6 +283,8 @@ OpenFBDev( Display *dpy )
       fprintf(stderr, "error: couldn't get a free vt\n");
       return GL_FALSE;
    }
+
+   fprintf(stderr, "*** got vt nr: %d\n", vtnumber);
    close(fd);
 
    /* open the console tty */
@@ -209,6 +314,32 @@ OpenFBDev( Display *dpy )
       struct vt_mode vt;
       struct sigaction sig_tty;
 
+      /* Set-up tty signal handler to catch the signal we request below */
+      SignalDisplay = dpy;
+      memset( &sig_tty, 0, sizeof( sig_tty ) );
+      sig_tty.sa_handler = SwitchVT;
+      sigemptyset( &sig_tty.sa_mask );
+      if( sigaction( SIGUSR1, &sig_tty, &dpy->OrigSigUsr1 ) ||
+	  sigaction( SIGUSR2, &sig_tty, &dpy->OrigSigUsr2 ) )
+      {
+	 fprintf(stderr, "error: can't set up signal handler (%s)",
+		 strerror(errno) );
+	 return GL_FALSE;
+      }
+      
+
+
+      vt.mode = VT_PROCESS;
+      vt.waitv = 0;
+      vt.relsig = SIGUSR1;
+      vt.acqsig = SIGUSR2;
+      if (ioctl(dpy->ConsoleFD, VT_SETMODE, &vt) < 0) {
+         fprintf(stderr, "error: ioctl(VT_SETMODE) failed: %s\n",
+                 strerror(errno));
+         return GL_FALSE;
+      }
+
+
       if (ioctl(dpy->ConsoleFD, VT_ACTIVATE, vtnumber) != 0)
          printf("ioctl VT_ACTIVATE: %s\n", strerror(errno));
       if (ioctl(dpy->ConsoleFD, VT_WAITACTIVE, vtnumber) != 0)
@@ -221,27 +352,6 @@ OpenFBDev( Display *dpy )
 
 
 
-      /* Set-up tty signal handler to catch the signal we request below */
-      memset( &sig_tty, 0, sizeof( sig_tty ) );
-      sig_tty.sa_handler = SwitchDisplay;
-      sigemptyset( &sig_tty.sa_mask );
-      if( sigaction( SIGUSR1, &sig_tty, &dpy->OrigSigUsr1 ) )
-      {
-	 fprintf(stderr, "error: can't set up signal handler (%s)",
-		 strerror(errno) );
-	 return GL_FALSE;
-      }
-
-
-      vt.mode = VT_PROCESS;
-      vt.waitv = 0;
-      vt.relsig = SIGUSR1;
-      vt.acqsig = SIGUSR1;
-      if (ioctl(dpy->ConsoleFD, VT_SETMODE, &vt) < 0) {
-         fprintf(stderr, "error: ioctl(VT_SETMODE) failed: %s\n",
-                 strerror(errno));
-         return GL_FALSE;
-      }
    }
 
    /* go into graphics mode */
@@ -355,6 +465,9 @@ SetupFBDev( Display *dpy, Window win )
 
    assert(dpy);
 
+   width = dpy->virtualWidth;
+   height = dpy->virtualHeight;
+   
    /* Bump size up to next supported mode.
     */
    if (width <= 800 && height <= 600) {
@@ -968,8 +1081,6 @@ XOpenDisplay( const char *display_name )
 void
 XCloseDisplay( Display *display )
 {
-   GLXContext *ctx;
-
    glXMakeCurrent( display, NULL, NULL);
 
    if (display->NumWindows) 
@@ -1374,8 +1485,6 @@ glXChooseVisual( Display *dpy, int screen, int *attribList )
    GLboolean rgbFlag = GL_FALSE, dbFlag = GL_FALSE, stereoFlag = GL_FALSE;
    GLint redBits = 0, greenBits = 0, blueBits = 0, alphaBits = 0;
    GLint indexBits = 0, depthBits = 0, stencilBits = 0;
-   GLint accumRedBits = 0, accumGreenBits = 0;
-   GLint accumBlueBits = 0, accumAlphaBits = 0;
    GLint numSamples = 0;
    int i;
 
@@ -1843,6 +1952,7 @@ glXQueryVersion( Display *dpy, int *major, int *minor )
    (void) dpy;
    *major = 1;
    *minor = 0;
+   return True;
 }
 
 /*@}*/
