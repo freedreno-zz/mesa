@@ -1,4 +1,4 @@
-$Id: VERSIONS,v 1.38.2.23 2001/01/08 15:57:07 brianp Exp $
+$Id: VERSIONS,v 1.38.2.24 2001/01/23 23:34:15 brianp Exp $
 
 
 Mesa Version History
@@ -791,3 +791,5 @@ Mesa Version History
 	- fixed a glColorMaterial lighting bug
 	- fixed bad args to Read/WriteStencilSpan in h/w stencil clear function
 	- glXCopySubBufferMESA() Y position was off by one
+	- Error checking of glTexSubImage3D() was broken (bug 128775)
+	- glPopAttrib() didn't restore all derived Mesa state correctly
