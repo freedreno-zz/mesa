@@ -209,7 +209,7 @@ struct MiniGLXDriverRec {
    /**
     * \brief Handle VT switch events.
     */
-   void (*handleVTSwitch)( struct MiniGLXDisplayRec *dpy, int have_vt );
+   int (*handleVTSwitch)( struct MiniGLXDisplayRec *dpy, int have_vt );
 };
 
 
@@ -405,5 +405,6 @@ extern __DRIscreen *__glXFindDRIScreen(Display *dpy, int scrn);
 
 extern Bool __glXWindowExists(Display *dpy, GLXDrawable draw);
 
+extern void __miniglx_release_vt( void );
 
 #endif /* !_mini_GLX_client_h_ */

@@ -22,7 +22,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: miniglx.c,v 1.1.4.48 2003/03/22 08:45:57 keithw Exp $ */
+/* $Id: miniglx.c,v 1.1.4.49 2003/03/24 15:49:15 keithw Exp $ */
 
 
 /**
@@ -148,24 +148,54 @@ static void SwitchVT(int sig)
 {
    fprintf(stderr, "SwitchVT %d dpy %p\n", sig, SignalDisplay);
 
-   if (!SignalDisplay)
+   if (!SignalDisplay) {
+      fprintf(stderr, "No display!\n");
       return;
+   }
 
    switch( sig )
    {
    case SIGUSR1:                                /* vt has been released */
-      queue_event( SignalDisplay, 0 );
-      if (SignalDisplay->driver)
-	 SignalDisplay->driver->handleVTSwitch( SignalDisplay, 0 );      
-      ioctl( SignalDisplay->ConsoleFD, VT_RELDISP, 1 );
+      if (SignalDisplay->driver &&
+	  !SignalDisplay->driver->handleVTSwitch( SignalDisplay, 0 ))
+	 return;
+      if (!SignalDisplay->haveVT) {
+	 fprintf(stderr, "%s: Don't have VT\n", __FUNCTION__);
+	 return;
+      }
+      __miniglx_release_vt();
       break;
    case SIGUSR2:                                /* vt has been acquired */
-      queue_event( SignalDisplay, 1 );
-      if (SignalDisplay->driver)
-	 SignalDisplay->driver->handleVTSwitch( SignalDisplay, 1 ); 
       ioctl( SignalDisplay->ConsoleFD, VT_RELDISP, VT_ACTIVATE );
+      sleep(1);
+
+      if (SignalDisplay->driver &&
+	  !SignalDisplay->driver->handleVTSwitch( SignalDisplay, 1 ))
+	 return;
+
+      if (SignalDisplay->haveVT) {
+	 fprintf(stderr, "%s: Already have VT\n", __FUNCTION__);
+	 return;
+      }
+
+      queue_event( SignalDisplay, 1 );
       break;
    }
+}
+
+void __miniglx_release_vt( void )
+{
+   if (!SignalDisplay)
+      return;
+
+   if (!SignalDisplay->haveVT) {
+      fprintf(stderr, "%s: Don't have VT\n", __FUNCTION__);
+      return;
+   }
+
+   sleep(1);
+   ioctl( SignalDisplay->ConsoleFD, VT_RELDISP, 1 ); 
+   queue_event( SignalDisplay, 0 );
 }
 
 

@@ -1331,7 +1331,7 @@ static void __driHaltFBDev( struct MiniGLXDisplayRec *dpy )
  * requires some action.  We deal with loosing the VT by setting the
  * cliprects to zero and emitting an event to the application.  
  */
-static void __driVTSwitchHandler( struct MiniGLXDisplayRec *dpy, int have_vt )
+static int __driVTSwitchHandler( struct MiniGLXDisplayRec *dpy, int have_vt )
 {
    int *lock = (int *)dpy->pSAREA;
    int old, new;
@@ -1343,11 +1343,11 @@ static void __driVTSwitchHandler( struct MiniGLXDisplayRec *dpy, int have_vt )
    /* Indicate cliprects have changed
     */
    draw = dpy->TheWindow;
-   if (!draw) return;
+   if (!draw) return 1;
    pdraw = &draw->driDrawable;
-   if (!pdraw) return;
+   if (!pdraw) return 1;
    pdp = (__DRIdrawablePrivate *) pdraw->private;
-   if (!pdp) return;
+   if (!pdp) return 1;
    pdp->lastStamp++;
    pdp->numClipRects = have_vt ? 1 : 0;
 
@@ -1360,6 +1360,11 @@ static void __driVTSwitchHandler( struct MiniGLXDisplayRec *dpy, int have_vt )
       DRM_CAS( lock, old, new, ret );
       fprintf(stderr, "old %x new %x\n", old, new );
    } while (ret);
+
+   if (have_vt)
+      return !(old & _DRM_LOCK_HELD);
+   else
+      return 1;
 }
 
 /**
