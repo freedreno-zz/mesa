@@ -1,10 +1,10 @@
-/* $Id: xm_dd.c,v 1.41.2.1 2003/01/16 14:50:34 alanh Exp $ */
+/* $Id: xm_dd.c,v 1.41.2.2 2003/03/27 17:50:26 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  4.0.3
+ * Version:  5.0.1
  *
- * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2003  Brian Paul   All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -23,7 +23,7 @@
  * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-/* $XFree86: xc/extras/Mesa/src/X/xm_dd.c,v 1.2 2002/02/26 23:37:31 tsi Exp $ */
+
 
 #include "glxheader.h"
 #include "context.h"
@@ -244,6 +244,7 @@ color_mask(GLcontext *ctx,
          if (bmask)   m |= GET_BLUEMASK(xmesa->xm_visual);
       }
       XMesaSetPlaneMask( xmesa->display, xmesa->xm_draw_buffer->cleargc, m );
+      XMesaSetPlaneMask( xmesa->display, xmesa->xm_draw_buffer->gc, m );
    }
 }
 
