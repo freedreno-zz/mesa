@@ -4803,6 +4803,7 @@ static void save_Materialfv( GLenum face, GLenum pname, const GLfloat *param )
    switch (face) {
    case GL_BACK:
    case GL_FRONT:
+   case GL_FRONT_AND_BACK:
       break;
    default:
       _mesa_compile_error( ctx, GL_INVALID_ENUM, "material(face)" );
@@ -4898,7 +4899,7 @@ static void save_End( void )
 {
    GET_CURRENT_CONTEXT(ctx);
    SAVE_FLUSH_VERTICES( ctx );
-   ALLOC_INSTRUCTION( ctx, OPCODE_END, 0 );
+   (void) ALLOC_INSTRUCTION( ctx, OPCODE_END, 0 );
    ctx->Driver.CurrentSavePrimitive = PRIM_OUTSIDE_BEGIN_END;
    if (ctx->ExecuteFlag) {
       (*ctx->Exec->End)( );
