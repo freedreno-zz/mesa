@@ -1,4 +1,4 @@
-/* $Id: gears.c,v 1.6 2000/04/06 02:22:59 brianp Exp $ */
+/* $Id: gears.c,v 1.6.12.1 2003/02/23 19:25:07 keithw Exp $ */
 
 /*
  * 3-D gear wheels.  This program is in the public domain.
@@ -59,7 +59,7 @@ gear(GLfloat inner_radius, GLfloat outer_radius, GLfloat width,
 
   glShadeModel(GL_FLAT);
 
-  glNormal3f(0.0, 0.0, 1.0);
+/*   glNormal3f(0.0, 0.0, 1.0); */
 
   /* draw front face */
   glBegin(GL_QUAD_STRIP);
@@ -87,7 +87,7 @@ gear(GLfloat inner_radius, GLfloat outer_radius, GLfloat width,
   }
   glEnd();
 
-  glNormal3f(0.0, 0.0, -1.0);
+/*   glNormal3f(0.0, 0.0, -1.0); */
 
   /* draw back face */
   glBegin(GL_QUAD_STRIP);
@@ -127,18 +127,18 @@ gear(GLfloat inner_radius, GLfloat outer_radius, GLfloat width,
     len = sqrt(u * u + v * v);
     u /= len;
     v /= len;
-    glNormal3f(v, -u, 0.0);
+/*     glNormal3f(v, -u, 0.0); */
     glVertex3f(r2 * cos(angle + da), r2 * sin(angle + da), width * 0.5);
     glVertex3f(r2 * cos(angle + da), r2 * sin(angle + da), -width * 0.5);
-    glNormal3f(cos(angle), sin(angle), 0.0);
+/*     glNormal3f(cos(angle), sin(angle), 0.0); */
     glVertex3f(r2 * cos(angle + 2 * da), r2 * sin(angle + 2 * da), width * 0.5);
     glVertex3f(r2 * cos(angle + 2 * da), r2 * sin(angle + 2 * da), -width * 0.5);
     u = r1 * cos(angle + 3 * da) - r2 * cos(angle + 2 * da);
     v = r1 * sin(angle + 3 * da) - r2 * sin(angle + 2 * da);
-    glNormal3f(v, -u, 0.0);
+/*     glNormal3f(v, -u, 0.0); */
     glVertex3f(r1 * cos(angle + 3 * da), r1 * sin(angle + 3 * da), width * 0.5);
     glVertex3f(r1 * cos(angle + 3 * da), r1 * sin(angle + 3 * da), -width * 0.5);
-    glNormal3f(cos(angle), sin(angle), 0.0);
+/*     glNormal3f(cos(angle), sin(angle), 0.0); */
   }
 
   glVertex3f(r1 * cos(0), r1 * sin(0), width * 0.5);
@@ -149,10 +149,11 @@ gear(GLfloat inner_radius, GLfloat outer_radius, GLfloat width,
   glShadeModel(GL_SMOOTH);
 
   /* draw inside radius cylinder */
+  glColor3f( .5, .5, .5 );
   glBegin(GL_QUAD_STRIP);
   for (i = 0; i <= teeth; i++) {
     angle = i * 2.0 * M_PI / teeth;
-    glNormal3f(-cos(angle), -sin(angle), 0.0);
+/*     glNormal3f(-cos(angle), -sin(angle), 0.0); */
     glVertex3f(r0 * cos(angle), r0 * sin(angle), -width * 0.5);
     glVertex3f(r0 * cos(angle), r0 * sin(angle), width * 0.5);
   }
@@ -167,6 +168,11 @@ static GLfloat angle = 0.0;
 static void
 draw(void)
 {
+  static GLfloat red[4] = {0.8, 0.1, 0.0, 1.0};
+  static GLfloat green[4] = {0.0, 0.8, 0.2, 1.0};
+  static GLfloat blue[4] = {0.2, 0.2, 1.0, 1.0};
+
+  glClearColor( 1,0,1,1 );
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   glPushMatrix();
@@ -177,19 +183,23 @@ draw(void)
     glPushMatrix();
       glTranslatef(-3.0, -2.0, 0.0);
       glRotatef(angle, 0.0, 0.0, 1.0);
-      glCallList(gear1);
+      glColor3fv( red);
+      gear(1.0, 4.0, 1.0, 20, 0.7);
     glPopMatrix();
+
 
     glPushMatrix();
       glTranslatef(3.1, -2.0, 0.0);
       glRotatef(-2.0 * angle - 9.0, 0.0, 0.0, 1.0);
-      glCallList(gear2);
+      glColor3fv( green);
+      gear(0.5, 2.0, 2.0, 10, 0.7);
     glPopMatrix();
 
     glPushMatrix();
       glTranslatef(-3.1, 4.2, 0.0);
       glRotatef(-2.0 * angle - 25.0, 0.0, 0.0, 1.0);
-      glCallList(gear3);
+      glColor3fv( blue);
+      gear(1.3, 2.0, 0.5, 10, 0.7);
     glPopMatrix();
 
   glPopMatrix();
@@ -284,37 +294,15 @@ static void
 init(int argc, char *argv[])
 {
   static GLfloat pos[4] = {5.0, 5.0, 10.0, 0.0};
-  static GLfloat red[4] = {0.8, 0.1, 0.0, 1.0};
-  static GLfloat green[4] = {0.0, 0.8, 0.2, 1.0};
-  static GLfloat blue[4] = {0.2, 0.2, 1.0, 1.0};
   GLint i;
 
-  glLightfv(GL_LIGHT0, GL_POSITION, pos);
-  glEnable(GL_CULL_FACE);
-  glEnable(GL_LIGHTING);
-  glEnable(GL_LIGHT0);
-  glEnable(GL_DEPTH_TEST);
+/*   glLightfv(GL_LIGHT0, GL_POSITION, pos); */
+   glEnable(GL_CULL_FACE); 
+/*   glEnable(GL_LIGHTING); */
+/*   glEnable(GL_LIGHT0); */
+/*   glEnable(GL_DEPTH_TEST); */
 
-  /* make the gears */
-  gear1 = glGenLists(1);
-  glNewList(gear1, GL_COMPILE);
-  glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, red);
-  gear(1.0, 4.0, 1.0, 20, 0.7);
-  glEndList();
-
-  gear2 = glGenLists(1);
-  glNewList(gear2, GL_COMPILE);
-  glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, green);
-  gear(0.5, 2.0, 2.0, 10, 0.7);
-  glEndList();
-
-  gear3 = glGenLists(1);
-  glNewList(gear3, GL_COMPILE);
-  glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, blue);
-  gear(1.3, 2.0, 0.5, 10, 0.7);
-  glEndList();
-
-  glEnable(GL_NORMALIZE);
+/*   glEnable(GL_NORMALIZE); */
 
   for ( i=1; i<argc; i++ ) {
     if (strcmp(argv[i], "-info")==0) {
@@ -345,7 +333,7 @@ int main(int argc, char *argv[])
   glutInitDisplayMode(GLUT_RGB | GLUT_DEPTH | GLUT_DOUBLE);
 
   glutInitWindowPosition(0, 0);
-  glutInitWindowSize(300, 300);
+  glutInitWindowSize(900, 900);
   glutCreateWindow("Gears");
   init(argc, argv);
 

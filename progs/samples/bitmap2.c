@@ -620,19 +620,19 @@ static void Init(void)
     GLint i;
 
     glClearColor(0.0, 0.0, 0.0, 0.0);
-    glClearIndex(0.0);
+/*     glClearIndex(0.0); */
 
     glPixelStorei(GL_UNPACK_LSB_FIRST, GL_TRUE);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     for (i = 0; i < 7; i++) {
-	exp_lists[i] = glGenLists(1);
-	glNewList(exp_lists[i], GL_COMPILE);
-	    glBitmap(80, 80, 40.0, 40.0, 0.0, 0.0, exp_bits[i]);
-	glEndList();
+/* 	exp_lists[i] = glGenLists(1); */
+/* 	glNewList(exp_lists[i], GL_COMPILE); */
+/* 	    glBitmap(80, 80, 40.0, 40.0, 0.0, 0.0, exp_bits[i]); */
+/* 	glEndList(); */
     }
 
     abuse = GL_FALSE;
-    useLists = GL_TRUE;
+    useLists = GL_FALSE;
 }
 
 static void Reshape(int width, int height)
@@ -696,10 +696,10 @@ static void Draw(void)
 		SetColor(COLOR_RED);
 		break;
 	    }
-	    glRasterPos3i((j*3)%5, (j*3)%8, 0);
+	    glRasterPos2i((j*3)%5, (j*3)%8);
 
 	    if (useLists) {
-	    	glCallList(exp_lists[i]); 
+/* 	    	glCallList(exp_lists[i]);  */
 	    } else {
 		glBitmap(80, 80, 40.0, 40.0, 0.0, 0.0, exp_bits[i]);
 	    }
@@ -714,9 +714,9 @@ static void Draw(void)
 
 	for (j = 0; j < 40; j++) {
 	    SetColor(COLOR_BLACK);
-	    glRasterPos3i((j*3)%5, (j*3)%8, 0);
+	    glRasterPos2i((j*3)%5, (j*3)%8);
 	    if (useLists) {
-		glCallList(exp_lists[i]); 
+/* 		glCallList(exp_lists[i]);  */
 	    } else {
 		glBitmap(80, 80, 40.0, 40.0, 0.0, 0.0, exp_bits[i]);
 	    }

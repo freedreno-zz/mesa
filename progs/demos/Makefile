@@ -2,7 +2,8 @@
 PROGS = gears \
 	glinfo \
 	morph3d \
-	texobj
+	texobj \
+	bounce
 
 
 ##### RULES #####

@@ -1,4 +1,4 @@
-/* $Id: bounce.c,v 1.3 2000/08/16 20:36:34 brianp Exp $ */
+/* $Id: bounce.c,v 1.3.8.1 2003/02/23 19:25:07 keithw Exp $ */
 
 /*
  * Bouncing ball demo.
@@ -33,8 +33,8 @@ GLfloat Xmin = -4.0, Xmax = 4.0;
 GLfloat Ymin = -3.8, Ymax = 4.0;
 GLfloat G = -0.1;
 
-static GLuint 
-make_ball(void)
+static void
+draw_ball(void)
 {
   GLuint list;
   GLfloat a, b;
@@ -43,9 +43,9 @@ make_ball(void)
   GLuint color;
   GLfloat x, y, z;
 
-  list = glGenLists(1);
+/*   list = glGenLists(1); */
 
-  glNewList(list, GL_COMPILE);
+/*   glNewList(list, GL_COMPILE); */
 
   color = 0;
   for (a = -90.0; a + da <= 90.0; a += da) {
@@ -54,10 +54,10 @@ make_ball(void)
     for (b = 0.0; b <= 360.0; b += db) {
 
       if (color) {
-	glIndexi(RED);
+/* 	glIndexi(RED); */
         glColor3f(1, 0, 0);
       } else {
-	glIndexi(WHITE);
+/* 	glIndexi(WHITE); */
         glColor3f(1, 1, 1);
       }
 
@@ -77,10 +77,11 @@ make_ball(void)
 
   }
 
-  glEndList();
+/*   glEndList(); */
 
-  return list;
+/*   return list; */
 }
+
 
 static void 
 reshape(int width, int height)
@@ -110,7 +111,7 @@ draw(void)
 
   glClear(GL_COLOR_BUFFER_BIT);
 
-  glIndexi(CYAN);
+/*   glIndexi(CYAN); */
   glColor3f(0, 1, 1);
   glBegin(GL_LINES);
   for (i = -5; i <= 5; i++) {
@@ -138,7 +139,8 @@ draw(void)
   glRotatef(90.0, 1.0, 0.0, 0.0);
   glRotatef(Zrot, 0.0, 0.0, 1.0);
 
-  glCallList(Ball);
+/*   glCallList(Ball); */
+  draw_ball();
 
   glPopMatrix();
 
@@ -198,7 +200,7 @@ int main(int argc, char *argv[])
      glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE);
 
   glutCreateWindow("Bounce");
-  Ball = make_ball();
+/*   Ball = make_ball(); */
   glCullFace(GL_BACK);
   glEnable(GL_CULL_FACE);
   glDisable(GL_DITHER);

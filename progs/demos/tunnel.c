@@ -498,7 +498,7 @@ main(int ac, char **av)
    glEnable(GL_CULL_FACE);
    glEnable(GL_TEXTURE_2D);
 
-   glEnable(GL_FOG);
+/*    glEnable(GL_FOG); */
    glFogi(GL_FOG_MODE, GL_EXP2);
    glFogfv(GL_FOG_COLOR, fogcolor);
 

@@ -1,4 +1,4 @@
-/* $Id: texobj.c,v 1.6 2002/01/04 21:05:57 brianp Exp $ */
+/* $Id: texobj.c,v 1.6.6.1 2003/02/23 19:25:07 keithw Exp $ */
 
 /*
  * Example of using the 1.1 texture object functions.
@@ -17,7 +17,7 @@ static GLuint Window = 0;
 
 static GLuint TexObj[2];
 static GLfloat Angle = 0.0f;
-static GLboolean UseObj = GL_FALSE;
+static GLboolean UseObj = GL_TRUE;
 
 
 #if defined(GL_VERSION_1_1) || defined(GL_VERSION_1_2)
@@ -34,7 +34,7 @@ static GLboolean UseObj = GL_FALSE;
 
 static void draw( void )
 {
-   glDepthFunc(GL_EQUAL);
+/*    glDepthFunc(GL_EQUAL); */
    /*   glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );*/
    glClear( GL_COLOR_BUFFER_BIT );
 
@@ -147,7 +147,7 @@ static void init( void )
      0, 0, 2, 2, 2, 2, 0, 0,
      0, 0, 0, 0, 0, 0, 0, 0 };
 
-   GLubyte tex[64][3];
+   GLubyte tex[64][4];
    GLint i, j;
 
 
@@ -156,7 +156,7 @@ static void init( void )
    /* Setup texturing */
    glEnable( GL_TEXTURE_2D );
    glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL );
-   glHint( GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST );
+/*    glHint( GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST ); */
 
 
    /* generate texture object IDs */
@@ -174,7 +174,7 @@ static void init( void )
    if (UseObj) {
 #ifdef TEXTURE_OBJECT
       glBindTexture( GL_TEXTURE_2D, TexObj[0] );
-      assert(glIsTexture(TexObj[0]));
+/*       assert(glIsTexture(TexObj[0])); */
 #endif
    }
    else {
@@ -190,11 +190,12 @@ static void init( void )
          else {
             tex[p][0] = 255;   tex[p][1] = 255;   tex[p][2] = 255;
          }
+	 tex[p][3] = 255;
       }
    }
 
-   glTexImage2D( GL_TEXTURE_2D, 0, 3, width, height, 0,
-                 GL_RGB, GL_UNSIGNED_BYTE, tex );
+   glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0,
+                 GL_RGBA, GL_UNSIGNED_BYTE, tex );
    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
@@ -208,9 +209,9 @@ static void init( void )
    if (UseObj) {
 #ifdef TEXTURE_OBJECT
       glBindTexture( GL_TEXTURE_2D, TexObj[1] );
-      assert(glIsTexture(TexObj[1]));
+/*       assert(glIsTexture(TexObj[1])); */
 #endif
-      assert(!glIsTexture(TexObj[1] + 999));
+/*       assert(!glIsTexture(TexObj[1] + 999)); */
    }
    else {
       glNewList( TexObj[1], GL_COMPILE );
@@ -227,8 +228,8 @@ static void init( void )
          }
       }
    }
-   glTexImage2D( GL_TEXTURE_2D, 0, 3, width, height, 0,
-                 GL_RGB, GL_UNSIGNED_BYTE, tex );
+   glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0,
+                 GL_RGBA, GL_UNSIGNED_BYTE, tex );
    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );

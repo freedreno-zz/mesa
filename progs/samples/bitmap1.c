@@ -104,7 +104,7 @@ static void Init(void)
 {
 
     glClearColor(0.0, 0.0, 0.0, 0.0);
-    glClearIndex(0.0);
+/*     glClearIndex(0.0); */
 }
 
 static void Reshape(int width, int height)
@@ -140,14 +140,14 @@ static void Draw(void)
     mapIA[0] = 1.0;
     mapIA[1] = 1.0;
     
-    glPixelMapfv(GL_PIXEL_MAP_I_TO_R, 2, mapIR);
-    glPixelMapfv(GL_PIXEL_MAP_I_TO_G, 2, mapI);
-    glPixelMapfv(GL_PIXEL_MAP_I_TO_B, 2, mapI);
-    glPixelMapfv(GL_PIXEL_MAP_I_TO_A, 2, mapIA);
-    glPixelTransferi(GL_MAP_COLOR, GL_TRUE);
+/*     glPixelMapfv(GL_PIXEL_MAP_I_TO_R, 2, mapIR); */
+/*     glPixelMapfv(GL_PIXEL_MAP_I_TO_G, 2, mapI); */
+/*     glPixelMapfv(GL_PIXEL_MAP_I_TO_B, 2, mapI); */
+/*     glPixelMapfv(GL_PIXEL_MAP_I_TO_A, 2, mapIA); */
+/*     glPixelTransferi(GL_MAP_COLOR, GL_TRUE); */
     
     SetColor(COLOR_WHITE);
-    glRasterPos3fv(boxA);
+    glRasterPos2fv(boxA);
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 24);
     glPixelStorei(GL_UNPACK_SKIP_PIXELS, 8);
     glPixelStorei(GL_UNPACK_SKIP_ROWS, 2);
@@ -162,28 +162,28 @@ static void Draw(void)
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
     SetColor(COLOR_WHITE);
-    glRasterPos3fv(boxB);
+    glRasterPos2fv(boxB);
     glBitmap(OPENGL_WIDTH, OPENGL_HEIGHT, OPENGL_WIDTH, 0.0, OPENGL_WIDTH, 0.0,
 	     OpenGL_bits1);
     glBitmap(OPENGL_WIDTH, OPENGL_HEIGHT, OPENGL_WIDTH, 0.0, OPENGL_WIDTH, 0.0,
 	     OpenGL_bits2);
 
     SetColor(COLOR_YELLOW);
-    glRasterPos3fv(boxC);
+    glRasterPos2fv(boxC);
     glBitmap(OPENGL_WIDTH, OPENGL_HEIGHT, OPENGL_WIDTH, 0.0, OPENGL_WIDTH, 0.0,
 	     OpenGL_bits1);
     glBitmap(OPENGL_WIDTH, OPENGL_HEIGHT, OPENGL_WIDTH, 0.0, OPENGL_WIDTH, 0.0,
 	     OpenGL_bits2);
 
     SetColor(COLOR_CYAN);
-    glRasterPos3fv(boxD);
+    glRasterPos2fv(boxD);
     glBitmap(OPENGL_WIDTH, OPENGL_HEIGHT, OPENGL_WIDTH, 0.0, OPENGL_WIDTH, 0.0,
 	     OpenGL_bits1);
     glBitmap(OPENGL_WIDTH, OPENGL_HEIGHT, OPENGL_WIDTH, 0.0, OPENGL_WIDTH, 0.0,
 	     OpenGL_bits2);
 
     SetColor(COLOR_RED);
-    glRasterPos3fv(boxE);
+    glRasterPos2fv(boxE);
     glBitmap(OPENGL_WIDTH, OPENGL_HEIGHT, OPENGL_WIDTH, 0.0, OPENGL_WIDTH, 0.0,
 	     OpenGL_bits1);
     glBitmap(OPENGL_WIDTH, OPENGL_HEIGHT, OPENGL_WIDTH, 0.0, OPENGL_WIDTH, 0.0,
