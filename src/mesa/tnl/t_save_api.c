@@ -846,7 +846,7 @@ static void _save_MultiTexCoord4fv( GLenum target, const GLfloat *v )
 
 static void _save_VertexAttrib1fNV( GLuint index, GLfloat x )
 {
-   if (index >= _TNL_ATTRIB_POS && index < _TNL_ATTRIB_MAX)
+   if (index >= VERT_ATTRIB_POS && index < VERT_ATTRIB_MAX)
       DISPATCH_ATTR1F( index, x );
    else
       enum_error(); 
@@ -854,7 +854,7 @@ static void _save_VertexAttrib1fNV( GLuint index, GLfloat x )
 
 static void _save_VertexAttrib1fvNV( GLuint index, const GLfloat *v )
 {
-   if (index >= _TNL_ATTRIB_POS && index < _TNL_ATTRIB_MAX)
+   if (index >= VERT_ATTRIB_POS && index < VERT_ATTRIB_MAX)
       DISPATCH_ATTR1FV( index, v );
    else
       enum_error();
@@ -862,7 +862,7 @@ static void _save_VertexAttrib1fvNV( GLuint index, const GLfloat *v )
 
 static void _save_VertexAttrib2fNV( GLuint index, GLfloat x, GLfloat y )
 {
-   if (index >= _TNL_ATTRIB_POS && index < _TNL_ATTRIB_MAX)
+   if (index >= VERT_ATTRIB_POS && index < VERT_ATTRIB_MAX)
       DISPATCH_ATTR2F( index, x, y );
    else
       enum_error();
@@ -870,7 +870,7 @@ static void _save_VertexAttrib2fNV( GLuint index, GLfloat x, GLfloat y )
 
 static void _save_VertexAttrib2fvNV( GLuint index, const GLfloat *v )
 {
-   if (index >= _TNL_ATTRIB_POS && index < _TNL_ATTRIB_MAX)
+   if (index >= VERT_ATTRIB_POS && index < VERT_ATTRIB_MAX)
       DISPATCH_ATTR2FV( index, v );
    else
       enum_error();
@@ -879,7 +879,7 @@ static void _save_VertexAttrib2fvNV( GLuint index, const GLfloat *v )
 static void _save_VertexAttrib3fNV( GLuint index, GLfloat x, GLfloat y, 
 				  GLfloat z )
 {
-   if (index >= _TNL_ATTRIB_POS && index < _TNL_ATTRIB_MAX)
+   if (index >= VERT_ATTRIB_POS && index < VERT_ATTRIB_MAX)
       DISPATCH_ATTR3F( index, x, y, z );
    else
       enum_error();
@@ -887,7 +887,7 @@ static void _save_VertexAttrib3fNV( GLuint index, GLfloat x, GLfloat y,
 
 static void _save_VertexAttrib3fvNV( GLuint index, const GLfloat *v )
 {
-   if (index >= _TNL_ATTRIB_POS && index < _TNL_ATTRIB_MAX)
+   if (index >= VERT_ATTRIB_POS && index < VERT_ATTRIB_MAX)
       DISPATCH_ATTR3FV( index, v );
    else
       enum_error();
@@ -896,7 +896,7 @@ static void _save_VertexAttrib3fvNV( GLuint index, const GLfloat *v )
 static void _save_VertexAttrib4fNV( GLuint index, GLfloat x, GLfloat y,
 				  GLfloat z, GLfloat w )
 {
-   if (index >= _TNL_ATTRIB_POS && index < _TNL_ATTRIB_MAX)
+   if (index >= VERT_ATTRIB_POS && index < VERT_ATTRIB_MAX)
       DISPATCH_ATTR4F( index, x, y, z, w );
    else
       enum_error();
@@ -904,7 +904,7 @@ static void _save_VertexAttrib4fNV( GLuint index, GLfloat x, GLfloat y,
 
 static void _save_VertexAttrib4fvNV( GLuint index, const GLfloat *v )
 {
-   if (index >= _TNL_ATTRIB_POS && index < _TNL_ATTRIB_MAX)
+   if (index >= VERT_ATTRIB_POS && index < VERT_ATTRIB_MAX)
       DISPATCH_ATTR4FV( index, v );
    else
       enum_error();
