@@ -1,4 +1,4 @@
-/* $Id: feedback.c,v 1.5.2.1 2000/01/17 15:36:06 brianp Exp $ */
+/* $Id: feedback.c,v 1.5.2.2 2000/01/25 16:49:15 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -159,13 +159,14 @@ void gl_feedback_vertex( GLcontext *ctx,
 
 
 
-static void gl_do_feedback_vertex( GLcontext *ctx, GLuint v, GLuint pv )
+static void feedback_vertex( GLcontext *ctx, GLuint v, GLuint pv )
 {
    GLfloat win[4];
    GLfloat color[4];
    GLfloat tc[4];
    GLuint texUnit = ctx->Texture.CurrentTransformUnit;
-   struct vertex_buffer *VB = ctx->VB;
+   const struct vertex_buffer *VB = ctx->VB;
+   GLuint index;
 
    win[0] = VB->Win.data[v][0];
    win[1] = VB->Win.data[v][1];
@@ -184,14 +185,20 @@ static void gl_do_feedback_vertex( GLcontext *ctx, GLuint v, GLuint pv )
       tc[1] = VB->TexCoordPtr[texUnit]->data[v][1] * invq;
       tc[2] = VB->TexCoordPtr[texUnit]->data[v][2] * invq;
       tc[3] = VB->TexCoordPtr[texUnit]->data[v][3];
-   } else {
+   }
+   else {
       ASSIGN_4V(tc, 0,0,0,1);
       COPY_SZ_4V(tc, 
 		 VB->TexCoordPtr[texUnit]->size,
 		 VB->TexCoordPtr[texUnit]->data[v]);
    }
 
-   gl_feedback_vertex( ctx, win, color, VB->IndexPtr->data[v], tc );
+   if (VB->IndexPtr)
+      index = VB->IndexPtr->data[v];
+   else
+      index = 0;
+
+   gl_feedback_vertex( ctx, win, color, index, tc );
 }
 
 
@@ -206,9 +213,9 @@ void gl_feedback_triangle( GLcontext *ctx,
       FEEDBACK_TOKEN( ctx, (GLfloat) (GLint) GL_POLYGON_TOKEN );
       FEEDBACK_TOKEN( ctx, (GLfloat) 3 );        /* three vertices */
       
-      gl_do_feedback_vertex( ctx, v0, pv );
-      gl_do_feedback_vertex( ctx, v1, pv );
-      gl_do_feedback_vertex( ctx, v2, pv );
+      feedback_vertex( ctx, v0, pv );
+      feedback_vertex( ctx, v1, pv );
+      feedback_vertex( ctx, v2, pv );
    }
 }
 
@@ -222,8 +229,8 @@ void gl_feedback_line( GLcontext *ctx, GLuint v1, GLuint v2, GLuint pv )
 
    FEEDBACK_TOKEN( ctx, (GLfloat) (GLint) token );
 
-   gl_do_feedback_vertex( ctx, v1, pv );
-   gl_do_feedback_vertex( ctx, v2, pv );
+   feedback_vertex( ctx, v1, pv );
+   feedback_vertex( ctx, v2, pv );
 
    ctx->StippleCounter++;
 }
@@ -231,14 +238,15 @@ void gl_feedback_line( GLcontext *ctx, GLuint v1, GLuint v2, GLuint pv )
 
 void gl_feedback_points( GLcontext *ctx, GLuint first, GLuint last )
 {
-   struct vertex_buffer *VB = ctx->VB;
+   const struct vertex_buffer *VB = ctx->VB;
    GLuint i;
 
-   for (i=first;i<=last;i++) 
+   for (i=first;i<=last;i++) {
       if (VB->ClipMask[i]==0) {
          FEEDBACK_TOKEN( ctx, (GLfloat) (GLint) GL_POINT_TOKEN );
-	 gl_do_feedback_vertex( ctx, i, i );
+	 feedback_vertex( ctx, i, i );
       }
+   }
 }
 
 
