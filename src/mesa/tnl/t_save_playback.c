@@ -145,8 +145,7 @@ static void _playback_copy_to_current( GLcontext *ctx,
    /* Colormaterial -- this kindof sucks.
     */
    if (ctx->Light.ColorMaterialEnabled) {
-      _mesa_update_color_material( ctx, 
-				   ctx->Current.Attrib[VERT_ATTRIB_COLOR0]);
+      _mesa_update_color_material(ctx, ctx->Current.Attrib[VERT_ATTRIB_COLOR0]);
    }
 
    /* CurrentExecPrimitive
@@ -173,15 +172,20 @@ void _tnl_playback_vertex_list( GLcontext *ctx, void *data )
 
    if (node->prim_count) {
 
-      /* Degenerate case: list is called inside begin/end pair.
-       */
       if (ctx->Driver.CurrentExecPrimitive != PRIM_OUTSIDE_BEGIN_END &&
 	  (node->prim[0].mode & PRIM_BEGIN)) {
+
+	 /* Degenerate case: list is called inside begin/end pair.
+	  */
 	 _mesa_error( ctx, GL_INVALID_OPERATION, "displaylist recursive begin");
 	 _tnl_loopback_vertex_list( ctx, data );
 	 return;
       }
-      else if (1) {
+      else if (node->dangling_attr_ref) {
+	 /* Degenerate case: list references current data and would
+	  * require fixup.  Take the easier option & loop it back.
+	  */
+	 _mesa_debug( 0, "%s: loopback dangling attr ref\n", __FUNCTION__);
 	 _tnl_loopback_vertex_list( ctx, data );
 	 return;
       }

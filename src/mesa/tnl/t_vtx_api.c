@@ -36,6 +36,7 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "vtxfmt.h"
 #include "dlist.h"
 #include "state.h"
+#include "light.h"
 #include "api_arrayelt.h"
 #include "api_noop.h"
 #include "t_vtx_api.h"
@@ -115,6 +116,13 @@ static void _tnl_copy_to_current( GLcontext *ctx )
    if (tnl->vtx.attrsz[_TNL_ATTRIB_EDGEFLAG]) 
       ctx->Current.EdgeFlag = 
 	 (tnl->vtx.attrptr[_TNL_ATTRIB_EDGEFLAG][0] == 1.0);
+
+
+   /* Colormaterial -- this kindof sucks.
+    */
+   if (ctx->Light.ColorMaterialEnabled) {
+      _mesa_update_color_material(ctx, ctx->Current.Attrib[VERT_ATTRIB_COLOR0]);
+   }
    
    ctx->Driver.NeedFlush &= ~FLUSH_UPDATE_CURRENT;
 }
@@ -725,7 +733,7 @@ do {							\
    }							\
 							\
    {							\
-      GLfloat *dest = tnl->vtx.attrptr[A];	      	\
+      GLfloat *dest = tnl->vtx.attrptr[A];		\
       if (N>0) dest[0] = params[0];			\
       if (N>1) dest[1] = params[1];			\
       if (N>2) dest[2] = params[2];			\
@@ -1080,13 +1088,6 @@ static void _tnl_current_init( GLcontext *ctx )
 	 ctx->Light.Material.Attrib[i];
 
    tnl->vtx.current[_TNL_ATTRIB_INDEX] = &ctx->Current.Index;
-
-   /* Current edgeflag?
-    */
-
-   /* Initialize the vertex4f pointers pointing to Current also?
-    */
-
 }
 
 

@@ -282,6 +282,8 @@ struct tnl_vertex_list {
    GLfloat *buffer;
    GLuint count;
    GLuint wrap_count;		/* number of copied vertices at start */
+   GLuint dangling_attr_ref;	/* current attr implicitly referenced 
+				   outside the list */
 
    struct tnl_prim *prim;
    GLuint prim_count;
@@ -328,7 +330,8 @@ struct tnl_save {
    GLfloat vertex[_TNL_ATTRIB_MAX*4];	   /* current values */
    GLfloat *attrptr[_TNL_ATTRIB_MAX];
    GLuint counter, initial_counter;
-   
+   GLuint dangling_attr_ref;
+
    GLuint opcode_vertex_list;
 
    struct tnl_copied_vtx copied;

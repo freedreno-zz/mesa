@@ -189,6 +189,7 @@ static void _save_reset_counters( GLcontext *ctx )
    tnl->save.prim_count = 0;
    tnl->save.prim_max = SAVE_PRIM_SIZE - tnl->save.prim_store->used;
    tnl->save.copied.nr = 0;
+   tnl->save.dangling_attr_ref = 0;
 }
 
 
@@ -220,6 +221,7 @@ static void _save_compile_vertex_list( GLcontext *ctx )
    node->prim_count = tnl->save.prim_count;
    node->vertex_store = tnl->save.vertex_store;
    node->prim_store = tnl->save.prim_store;
+   node->dangling_attr_ref = tnl->save.dangling_attr_ref;
 
    node->vertex_store->refcount++;
    node->prim_store->refcount++;
@@ -436,8 +438,21 @@ static void _save_upgrade_vertex( GLcontext *ctx,
        */
       if (tnl->save.currentsz[attr] == 0) {
 	 assert(oldsz == 0);
+	 tnl->save.dangling_attr_ref = attr;
 	 _mesa_debug(0, "%s: dangling reference attr %d\n", 
 		     __FUNCTION__, attr); 
+
+#if 0
+	 /* The current strategy is to punt these degenerate cases
+	  * through _tnl_loopback_vertex_list(), a lower-performance
+	  * option.  To minimize the impact of this, artificially
+	  * reduce the size of this vertex_list.
+	  */
+	 if (t->save.counter > 10) {
+	    t->save.initial_counter = 10;
+	    t->save.counter = 10;
+	 }
+#endif
       }
 
       for (i = 0 ; i < tnl->save.copied.nr ; i++) {
@@ -519,37 +534,37 @@ static void do_choose( GLuint attr, GLuint sz,
  * 3f version won't otherwise set color[3] to 1.0 -- this is the job
  * of the chooser function when switching between Color4f and Color3f.
  */
-#define ATTRFV( ATTR, N )			\
+#define ATTRFV( ATTR, N )					\
 static void save_choose_##ATTR##_##N( const GLfloat *v );	\
-							\
+								\
 static void save_attrib_##ATTR##_##N( const GLfloat *v )	\
-{							\
-   GET_CURRENT_CONTEXT( ctx );				\
-   TNLcontext *tnl = TNL_CONTEXT(ctx);			\
-							\
-   if ((ATTR) == 0) {					\
-      int i;						\
-							\
-      if (N>0) tnl->save.vbptr[0] = v[0];		\
-      if (N>1) tnl->save.vbptr[1] = v[1];		\
-      if (N>2) tnl->save.vbptr[2] = v[2];		\
-      if (N>3) tnl->save.vbptr[3] = v[3];		\
-							\
-      for (i = N; i < tnl->save.vertex_size; i++)	\
-	 tnl->save.vbptr[i] = tnl->save.vertex[i];	\
-							\
-      tnl->save.vbptr += tnl->save.vertex_size;		\
-							\
-      if (--tnl->save.counter == 0)			\
+{								\
+   GET_CURRENT_CONTEXT( ctx );					\
+   TNLcontext *tnl = TNL_CONTEXT(ctx);				\
+								\
+   if ((ATTR) == 0) {						\
+      int i;							\
+								\
+      if (N>0) tnl->save.vbptr[0] = v[0];			\
+      if (N>1) tnl->save.vbptr[1] = v[1];			\
+      if (N>2) tnl->save.vbptr[2] = v[2];			\
+      if (N>3) tnl->save.vbptr[3] = v[3];			\
+								\
+      for (i = N; i < tnl->save.vertex_size; i++)		\
+	 tnl->save.vbptr[i] = tnl->save.vertex[i];		\
+								\
+      tnl->save.vbptr += tnl->save.vertex_size;			\
+								\
+      if (--tnl->save.counter == 0)				\
 	 _save_wrap_filled_vertex( ctx );			\
-   }							\
-   else {						\
-      GLfloat *dest = tnl->save.attrptr[ATTR];		\
-      if (N>0) dest[0] = v[0];			\
-      if (N>1) dest[1] = v[1];			\
-      if (N>2) dest[2] = v[2];			\
-      if (N>3) dest[3] = v[3];			\
-   }							\
+   }								\
+   else {							\
+      GLfloat *dest = tnl->save.attrptr[ATTR];			\
+      if (N>0) dest[0] = v[0];					\
+      if (N>1) dest[1] = v[1];					\
+      if (N>2) dest[2] = v[2];					\
+      if (N>3) dest[3] = v[3];					\
+   }								\
 }
 
 #define CHOOSE( ATTR, N )					\
@@ -573,8 +588,6 @@ static void save_init_##ATTR( TNLcontext *tnl )		\
    tnl->save.tabfv[ATTR][3] = save_choose_##ATTR##_4;	\
 }
    
-
-
 #define ATTRS( ATTRIB )				\
    ATTRFV( ATTRIB, 1 )				\
    ATTRFV( ATTRIB, 2 )				\
