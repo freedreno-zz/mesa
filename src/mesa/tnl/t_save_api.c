@@ -622,8 +622,11 @@ ATTRS( 14 )
 ATTRS( 15 )
 
 
-static void save_init_attrfv( TNLcontext *tnl )
+static void _save_reset_vertex( GLcontext *ctx )
 {
+   TNLcontext *tnl = TNL_CONTEXT(ctx);
+   GLuint i;
+
    save_init_0( tnl );
    save_init_1( tnl );
    save_init_2( tnl );
@@ -640,7 +643,15 @@ static void save_init_attrfv( TNLcontext *tnl )
    save_init_13( tnl );
    save_init_14( tnl );
    save_init_15( tnl );
+
+   for (i = 0 ; i < _TNL_ATTRIB_MAX ; i++)
+      tnl->save.attrsz[i] = 0;
+
+   tnl->save.vertex_size = 0;
+
+   _save_reset_counters( ctx ); 
 }
+
 
 
 /* Cope with aliasing of classic Vertex, Normal, etc. and the fan-out
@@ -1040,14 +1051,24 @@ static void _save_Indexfv( const GLfloat *f )
 
 
 
-/* EvalCoord 
- *
- *  -- Flush current buffer
- *  -- Set a flag
- *  -- Fallback to opcodes for the rest of the list.
+/* Cope with EvalCoord/CallList called within a begin/end object:
+ *     -- Flush current buffer
+ *     -- Fallback to opcodes for the rest of the begin/end object.
  */
-#define FALLBACK(ctx) 				\
-do {						\
+#define FALLBACK(ctx) 							\
+do {									\
+   TNLcontext *tnl = TNL_CONTEXT(ctx);					\
+									\
+   fprintf(stderr, "fallback %s inside begin/end\n", __FUNCTION__);	\
+									\
+   if (tnl->save.initial_counter != tnl->save.counter ||		\
+       tnl->save.prim_count) 						\
+      _save_compile_vertex_list( ctx );					\
+									\
+   _save_copy_to_current( ctx );					\
+   _save_reset_vertex( ctx );						\
+   _mesa_install_save_vtxfmt( ctx, &ctx->ListState.ListVtxfmt );	\
+   ctx->Driver.SaveNeedFlush = 0;					\
 } while (0)
 
 static void _save_EvalCoord1f( GLfloat u )
@@ -1132,6 +1153,7 @@ static void _save_End( void )
    TNLcontext *tnl = TNL_CONTEXT(ctx); 
    int i = tnl->save.prim_count - 1;
 
+   ctx->Driver.CurrentSavePrimitive = PRIM_OUTSIDE_BEGIN_END;
    tnl->save.prim[i].mode |= PRIM_END;
    tnl->save.prim[i].count = ((tnl->save.initial_counter - tnl->save.counter) - 
 			      tnl->save.prim[i].start);
@@ -1139,16 +1161,12 @@ static void _save_End( void )
    if (i == tnl->save.prim_max - 1)
       _save_compile_vertex_list( ctx );
 
+   assert(tnl->save.copied.nr == 0);
 
    /* Swap out this vertex format while outside begin/end.  Any color,
     * etc. received between here and the next begin will be compiled
     * as opcodes.
-    *
-    *   -- Need to ensure that these vertices are flushed in that case.
-    *   -- Just use the regular flush mechanism.
     */   
-   ctx->Driver.CurrentSavePrimitive = PRIM_OUTSIDE_BEGIN_END;
-
    _mesa_install_save_vtxfmt( ctx, &ctx->ListState.ListVtxfmt );
 }
 
@@ -1366,7 +1384,6 @@ static void _save_vtxfmt_init( GLcontext *ctx )
 void _tnl_SaveFlushVertices( GLcontext *ctx )
 {
    TNLcontext *tnl = TNL_CONTEXT(ctx);
-   GLint i;
 
    /* Noop when we are actually active:
     */
@@ -1378,19 +1395,14 @@ void _tnl_SaveFlushVertices( GLcontext *ctx )
        tnl->save.prim_count) 
       _save_compile_vertex_list( ctx );
    
-   save_init_attrfv( tnl );
-
-   for (i = 0 ; i < _TNL_ATTRIB_MAX ; i++)
-      tnl->save.attrsz[i] = 0;
-
-   tnl->save.vertex_size = 0;
+   _save_copy_to_current( ctx );
+   _save_reset_vertex( ctx );
    ctx->Driver.SaveNeedFlush = 0;
 }
 
 void _tnl_NewList( GLcontext *ctx, GLuint list, GLenum mode )
 {
    TNLcontext *tnl = TNL_CONTEXT(ctx);
-   GLuint i;
 
    if (!tnl->save.prim_store)
       tnl->save.prim_store = alloc_prim_store( ctx );
@@ -1400,15 +1412,8 @@ void _tnl_NewList( GLcontext *ctx, GLuint list, GLenum mode )
       tnl->save.vbptr = tnl->save.vertex_store->buffer;
    }
    
-   save_init_attrfv( tnl );
-
-   for (i = 0 ; i < _TNL_ATTRIB_MAX ; i++)
-      tnl->save.attrsz[i] = 0;
-
-   tnl->save.vertex_size = 0;
+   _save_reset_vertex( ctx );
    ctx->Driver.SaveNeedFlush = 0;
-
-   _save_reset_counters( ctx ); 
 }
 
 void _tnl_EndList( GLcontext *ctx )
