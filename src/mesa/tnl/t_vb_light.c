@@ -47,11 +47,21 @@ typedef void (*light_func)( GLcontext *ctx,
 			    struct tnl_pipeline_stage *stage,
 			    GLvector4f *input );
 
+struct material_cursor {
+   const GLfloat *ptr;
+   GLuint stride;
+   GLfloat *current;
+};
+
 struct light_stage_data {
    GLvector4f LitColor[2];
    GLvector4f LitSecondary[2];
    GLvector4f LitIndex[2];
    light_func *light_func_tab;
+
+   struct material_cursor mat[MAT_ATTRIB_MAX];
+   GLuint mat_count;
+   GLuint mat_bitmask;
 };
 
 
@@ -59,13 +69,61 @@ struct light_stage_data {
 
 
 
-
-static void update_materials( GLcontext *ctx, GLuint j )
+/* In the case of colormaterial, the effected material attributes
+ * should already have been bound to point to the incoming color data,
+ * prior to running the pipeline.
+ */
+static void update_materials( GLcontext *ctx,
+			      struct light_stage_data *store )
 {
-/*
-   _mesa_copy_materials( &ctx->Light.Material, src, bitmask );
-   _mesa_update_material( ctx, bitmask );
-*/
+   GLuint i;
+
+   for (i = 0 ; i < store->mat_count ; i++) {
+      COPY_4V(store->mat[i].current, store->mat[i].ptr);
+      STRIDE_F(store->mat[i].ptr, store->mat[i].stride);
+   }
+      
+   _mesa_update_material( ctx, store->mat_bitmask );
+   _mesa_validate_all_lighting_tables( ctx );
+}
+
+static GLuint prepare_materials( GLcontext *ctx,
+				 struct vertex_buffer *VB,
+				 struct light_stage_data *store )
+{
+   GLuint i;
+   
+   store->mat_count = 0;
+   store->mat_bitmask = 0;
+
+   /* If ColorMaterial enabled, set overwrite effected AttrPtr's with
+    * the color pointer.  This could be done earlier.
+    */
+   if (ctx->Light.ColorMaterialEnabled) {
+      GLuint bitmask = ctx->Light.ColorMaterialBitmask;
+      for (i = 0 ; i < MAT_ATTRIB_MAX ; i++)
+	 if (bitmask & (1<<i))
+	    VB->AttribPtr[_TNL_ATTRIB_MAT_FRONT_AMBIENT + i] = VB->ColorPtr[0];
+   }
+
+   for (i = _TNL_ATTRIB_MAT_FRONT_AMBIENT ; i < _TNL_ATTRIB_INDEX ; i++) {
+      if (VB->AttribPtr[i]->stride) {
+	 GLuint j = store->mat_count++;
+	 GLuint attr = i - _TNL_ATTRIB_MAT_FRONT_AMBIENT;
+	 store->mat[j].ptr = VB->AttribPtr[i]->start;
+	 store->mat[j].stride = VB->AttribPtr[i]->stride;
+	 store->mat[j].current = ctx->Light.Material.Attrib[attr];
+	 store->mat_bitmask |= (1<<attr);
+      }
+   }
+   
+
+   /* FIXME: Is this already done?
+    */
+   _mesa_update_material( ctx, ~0 );
+   _mesa_validate_all_lighting_tables( ctx );
+
+   return store->mat_count;
 }
 
 /* Tables for all the shading functions.
@@ -113,6 +171,7 @@ static GLboolean run_lighting( GLcontext *ctx, struct tnl_pipeline_stage *stage 
    TNLcontext *tnl = TNL_CONTEXT(ctx);
    struct vertex_buffer *VB = &tnl->vb;
    GLvector4f *input = ctx->_NeedEyeCoords ? VB->EyePtr : VB->ObjPtr;
+   GLuint idx;
 
 /*     _tnl_print_vert_flags( __FUNCTION__, stage->changed_inputs ); */
 
@@ -130,10 +189,18 @@ static GLboolean run_lighting( GLcontext *ctx, struct tnl_pipeline_stage *stage 
 #endif
 
    
+   idx = 0;
+
+   if (prepare_materials( ctx, VB, store ))
+      idx |= LIGHT_MATERIAL;
+
+   if (ctx->Light.Model.TwoSide)
+      idx |= LIGHT_TWOSIDE;
+
    /* The individual functions know about replaying side-effects
     * vs. full re-execution. 
     */
-   store->light_func_tab[0]( ctx, VB, stage, input );
+   store->light_func_tab[idx]( ctx, VB, stage, input );
 
    return GL_TRUE;
 }
@@ -144,7 +211,6 @@ static GLboolean run_lighting( GLcontext *ctx, struct tnl_pipeline_stage *stage 
 static GLboolean run_validate_lighting( GLcontext *ctx,
 					struct tnl_pipeline_stage *stage )
 {
-   GLuint ind = 0;
    light_func *tab;
 
    if (ctx->Visual.rgbMode) {
@@ -164,16 +230,8 @@ static GLboolean run_validate_lighting( GLcontext *ctx,
    else
       tab = _tnl_light_ci_tab;
 
-   /* Need to check color stride != 0.
-    * Also need to check for materials in the VB:
-    */
-   if (ctx->Light.ColorMaterialEnabled)
-      ind |= LIGHT_MATERIAL;
 
-   if (ctx->Light.Model.TwoSide)
-      ind |= LIGHT_TWOSIDE;
-
-   LIGHT_STAGE_DATA(stage)->light_func_tab = &tab[ind];
+   LIGHT_STAGE_DATA(stage)->light_func_tab = tab;
 
    /* This and the above should only be done on _NEW_LIGHT:
     */

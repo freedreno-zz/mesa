@@ -37,7 +37,7 @@
 
 
 /* define TRACE to trace lighting code */
-/* #define TRACE 1 */
+/* #define TRACE 1  */
 
 /*
  * ctx is the current context
@@ -94,7 +94,7 @@ static void TAG(light_rgba_spec)( GLcontext *ctx,
       struct gl_light *light;
 
       if ( IDX & LIGHT_MATERIAL ) {
-	 update_materials( ctx, j );
+	 update_materials( ctx, store );
 	 sumA[0] = ctx->Light.Material.Attrib[MAT_ATTRIB_FRONT_DIFFUSE][3];
 	 if (IDX & LIGHT_TWOSIDE) 
 	    sumA[1] = ctx->Light.Material.Attrib[MAT_ATTRIB_BACK_DIFFUSE][3];
@@ -281,7 +281,7 @@ static void TAG(light_rgba)( GLcontext *ctx,
       struct gl_light *light;
 
       if ( IDX & LIGHT_MATERIAL ) {
-	 update_materials( ctx, j );
+	 update_materials( ctx, store );
 	 sumA[0] = ctx->Light.Material.Attrib[MAT_ATTRIB_FRONT_DIFFUSE][3];
 	 if (IDX & LIGHT_TWOSIDE)
 	    sumA[1] = ctx->Light.Material.Attrib[MAT_ATTRIB_BACK_DIFFUSE][3];
@@ -461,7 +461,7 @@ static void TAG(light_fast_rgba_single)( GLcontext *ctx,
       GLfloat n_dot_VP;
 
       if ( IDX & LIGHT_MATERIAL )
-	 update_materials( ctx, j );
+	 update_materials( ctx, store );
 
       /* No attenuation, so incoporate _MatAmbient into base color.
        */
@@ -554,7 +554,7 @@ static void TAG(light_fast_rgba)( GLcontext *ctx,
       GLfloat sum[2][3];
 
       if ( IDX & LIGHT_MATERIAL ) {
-	 update_materials( ctx, j );
+	 update_materials( ctx, store );
 
 	 sumA[0] = ctx->Light.Material.Attrib[MAT_ATTRIB_FRONT_DIFFUSE][3];
 	 if (IDX & LIGHT_TWOSIDE)
@@ -657,7 +657,7 @@ static void TAG(light_ci)( GLcontext *ctx,
       struct gl_light *light;
 
       if ( IDX & LIGHT_MATERIAL )
-	 update_materials( ctx, j );
+	 update_materials( ctx, store );
 
       diffuse[0] = specular[0] = 0.0F;
 
