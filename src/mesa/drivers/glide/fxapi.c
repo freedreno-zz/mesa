@@ -957,15 +957,19 @@ fxMesaContext GLAPIENTRY fxMesaCreateContext(GLuint win,
    fxMesa->verbose=verbose;
    fxMesa->board=glbCurrentBoard;
 
-
-   fxMesa->glideContext = FX_grSstWinOpen((FxU32)win,res,ref,
 #if  FXMESA_USE_ARGB
-					  GR_COLORFORMAT_ARGB,
+   fxMesa->glideContext = FX_grSstWinOpen((FxU32)win,res,ref,
+					GR_COLORFORMAT_ARGB,
+					GR_ORIGIN_LOWER_LEFT,
+					2,aux);
 #else
-					  GR_COLORFORMAT_ABGR,
+   fxMesa->glideContext = FX_grSstWinOpen((FxU32)win,res,ref,
+					GR_COLORFORMAT_ARGB,
+					GR_ORIGIN_LOWER_LEFT,
+					GR_COLORFORMAT_ABGR,
+					GR_ORIGIN_LOWER_LEFT,
+					2,aux);
 #endif
-					  GR_ORIGIN_LOWER_LEFT,
-					  2,aux);
    if (!fxMesa->glideContext){
       errorstr = "grSstWinOpen"; 
       goto errorhandler;
