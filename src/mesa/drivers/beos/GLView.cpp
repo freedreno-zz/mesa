@@ -1,4 +1,4 @@
-/* $Id: GLView.cpp,v 1.7.2.1 2002/11/13 22:21:47 brianp Exp $ */
+/* $Id: GLView.cpp,v 1.7.2.2 2003/03/30 15:48:48 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -288,7 +288,7 @@ BGLView::BGLView(BRect rect, char *name,
 
    _mesa_enable_sw_extensions(ctx);
    _mesa_enable_1_3_extensions(ctx);
-   //_mesa_enable_1_4_extensions(ctx);
+   _mesa_enable_1_4_extensions(ctx);
 
    /* Initialize the software rasterizer and helper modules.
     */
