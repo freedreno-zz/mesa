@@ -65,9 +65,6 @@ static struct {
       void (*notify)( void );
    } stack[2];
 
-   /* Vertex size
-    */
-   GLint vertex_size;
 
    /* Storage for current vertex:
     */
@@ -90,41 +87,13 @@ static struct {
    /* Active prim (may differ from ctx->Driver.CurrentExecPrimitive)
     */
    GLenum prim;
-
    GLuint vertex_format;
+   GLint vertex_size;
    GLboolean recheck;
 } vb;
 
+
 static void radeonFlushVertices( GLcontext *, GLuint );
-
-
-
-
-void radeonTclPrimitive( GLcontext *ctx, 
-			 GLenum prim,
-			 int hw_prim )
-{
-   radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
-   GLuint se_cntl;
-   GLuint newprim = hw_prim | rmesa->tcl.tcl_flag;
-
-   RADEON_NEWPRIM( rmesa );
-   rmesa->tcl.hw_primitive = newprim;
-
-   se_cntl = rmesa->hw.set.cmd[SET_SE_CNTL];
-   se_cntl &= ~RADEON_FLAT_SHADE_VTX_LAST;
-
-   if (prim == GL_POLYGON && (ctx->_TriangleCaps & DD_FLATSHADE)) 
-      se_cntl |= RADEON_FLAT_SHADE_VTX_0;
-   else
-      se_cntl |= RADEON_FLAT_SHADE_VTX_LAST;
-
-   if (se_cntl != rmesa->hw.set.cmd[SET_SE_CNTL]) {
-      RADEON_STATECHANGE( rmesa, set );
-      rmesa->hw.set.cmd[SET_SE_CNTL] = se_cntl;
-   }
-}
-
 
 
 static struct { int start, incr, hwprim; } prims[GL_POLYGON+1] = {
@@ -142,47 +111,26 @@ static struct { int start, incr, hwprim; } prims[GL_POLYGON+1] = {
 
 static void finish_prim( radeonContextPtr rmesa )
 {
-   GLcontext *ctx = vb.context;
-   struct radeon_dma_region tmp = rmesa->dma.current; /* structure copy */
-   GLuint prim = vb.prim;
-   GLuint prim_end = (vb.stack[0].initial_vertspace - vb.stack[0].vertspace);
+   GLuint prim_end = vb.stack[0].initial_vertspace - vb.stack[0].vertspace;
    
    /* Too few vertices (eg: 2 vertices for a triangles prim?)
     */
-   if (prim_end < prims[prim].start) 
+   if (prim_end < prims[vb.prim].start) 
       return;
 
    /* Drop redundant vertices off end of primitive.  (eg: 5 vertices
     * for triangles prim?)
     */
-   prim_end -= (prim_end - prims[prim].start) % prims[prim].incr;
+   prim_end -= (prim_end - prims[vb.prim].start) % prims[vb.prim].incr;
 
-   tmp.buf->refcount++;
-   tmp.aos_size = vb.vertex_size;
-   tmp.aos_stride = vb.vertex_size;
-   tmp.aos_start = GET_START(&tmp);
+   radeonEmitVertexAOS( rmesa, vb.vertex_size, GET_START(&rmesa->dma.current) );
 
-   rmesa->dma.current.ptr = rmesa->dma.current.start += 
-      (vb.stack[0].initial_vertspace - vb.stack[0].vertspace)*vb.vertex_size*4; 
-
-   rmesa->tcl.vertex_format = vb.vertex_format;
-   rmesa->tcl.aos_components[0] = &tmp;
-   rmesa->tcl.nr_aos_components = 1;
-   rmesa->dma.flush = 0;
-
-   radeonTclPrimitive( ctx, prim, prims[prim].hwprim );
-   
-   radeonEmitAOS( rmesa,
-		  rmesa->tcl.aos_components,
-		  rmesa->tcl.nr_aos_components,
-		  0 );
-   
-   radeonEmitVbufPrim( rmesa,
-		       rmesa->tcl.vertex_format,
-		       rmesa->tcl.hw_primitive,
+   radeonEmitVbufPrim( rmesa, vb.vertex_format,
+		       prims[vb.prim].hwprim | rmesa->tcl.tcl_flag, 
 		       prim_end );
 
-   radeonReleaseDmaRegion( rmesa, &tmp, __FUNCTION__ );
+   rmesa->dma.current.ptr = 
+      rmesa->dma.current.start += prim_end * vb.vertex_size * 4; 
 }
 
 
@@ -451,6 +399,7 @@ static void radeon_Begin( GLenum mode )
 {
    GLcontext *ctx = vb.context;
    radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
+   GLuint se_cntl;
    
    if (mode > GL_POLYGON) {
       _mesa_error( ctx, GL_INVALID_ENUM, "glBegin" );
@@ -471,7 +420,6 @@ static void radeon_Begin( GLenum mode )
    if (vb.recheck) 
       radeonVtxfmtValidate( ctx );
 
-
    /* Do we need to grab a new dma region for the vertices?
     */
    if (rmesa->dma.current.ptr + 12*vb.vertex_size*4 > rmesa->dma.current.end) {
@@ -480,8 +428,8 @@ static void radeon_Begin( GLenum mode )
    }
 
    reset_notify();
-
    vb.prim = ctx->Driver.CurrentExecPrimitive = mode;
+   se_cntl = rmesa->hw.set.cmd[SET_SE_CNTL] | RADEON_FLAT_SHADE_VTX_LAST;
 
    switch( mode ) {
    case GL_QUADS:
@@ -513,8 +461,16 @@ static void radeon_Begin( GLenum mode )
       if (ctx->Line.StippleFlag)
 	 RESET_STIPPLE();
       break;
+   case GL_POLYGON:
+      if (ctx->_TriangleCaps & DD_FLATSHADE)
+	 se_cntl &= ~RADEON_FLAT_SHADE_VTX_LAST;
    default:
       break;
+   }
+
+   if (se_cntl != rmesa->hw.set.cmd[SET_SE_CNTL]) {
+      RADEON_STATECHANGE( rmesa, set );
+      rmesa->hw.set.cmd[SET_SE_CNTL] = se_cntl;
    }
 }
 
