@@ -1,4 +1,4 @@
-/* $Id: light.c,v 1.8.2.5 2000/07/07 14:33:49 keithw Exp $ */
+/* $Id: light.c,v 1.8.2.6 2000/07/10 18:06:19 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -1003,7 +1003,9 @@ static void compute_shine_table( struct gl_shine_tab *tab, GLfloat shininess )
    int i;
    GLfloat *m = tab->tab;
 
-   for (i = 0 ; i < SHINE_TABLE_SIZE ; i++) {
+   m[0] = pow(0, shininess);	/* special case for [0,1) -- sample at zero */
+
+   for (i = 1 ; i < SHINE_TABLE_SIZE ; i++) {
       double t = pow( (i+.5)/(GLfloat)(SHINE_TABLE_SIZE-1), shininess );
       if (t < 1e-20) t = 0;
       m[i] = (GLfloat) t;
