@@ -1,4 +1,4 @@
-/* $Id: osmesa.c,v 1.71.2.3 2002/03/16 00:50:12 brianp Exp $ */
+/* $Id: osmesa.c,v 1.71.2.4 2002/03/25 23:52:34 kschultz Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -878,7 +878,13 @@ static void clear( GLcontext *ctx, GLbitfield mask, GLboolean all,
 
 static void buffer_size( GLframebuffer *buffer, GLuint *width, GLuint *height )
 {
+#ifdef WIN32
+   /* Hack to get around problems with exporting glapi_Context from MesaGL
+      and importing into OSMesa. */
+   GLcontext *ctx = (GLcontext *) _glapi_get_context();
+#else
    GET_CURRENT_CONTEXT(ctx);
+#endif
    (void) buffer;
    if (ctx) {
       OSMesaContext osmesa = OSMESA_CONTEXT(ctx);
