@@ -1,4 +1,4 @@
-$Id: VERSIONS,v 1.13.2.21 2000/02/29 23:01:44 brianp Exp $
+$Id: VERSIONS,v 1.13.2.22 2000/03/21 16:39:55 brianp Exp $
 
 
 Mesa Version History
@@ -694,9 +694,15 @@ Mesa Version History
 	- Actual depth of transformation matrix stacks was off by one
 	- 24bpp visuals didn't address pixels correctly
 	- mipmap level of detail (lambda) calculation simplified, more accurate
+	- 101691 - Polygon clipping and GL_LINE
+	- 101928 - Polygon clipping and GL_LINE (same fix as above)
+	- 101808 - Non-glVertexArrays tristrip bug
+	- 101971 - find_last_3f on Dec OSF (worked around)
+	- 102369 - segv on dec osf (possibly a duplicate of the above)
+	- 102893 - orientations of modelview cause segfault
     New:
 	- updated SVGA Linux driver
 	- added the MESA_FX_NO_SIGNALS env var, see docs/README.3DFX
     Changes:
-        - glXCopyContext's mask parameter is now unsigned long, per the GLX spec
+        - glXCopyContext's mask parameter is now unsigned long, per GLX spec
 
