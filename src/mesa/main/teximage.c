@@ -1,4 +1,4 @@
-/* $Id: teximage.c,v 1.104.2.5 2002/08/28 01:13:35 brianp Exp $ */
+/* $Id: teximage.c,v 1.104.2.6 2002/09/06 14:42:11 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -2331,7 +2331,7 @@ _mesa_CompressedTexImage2DARB(GLenum target, GLint level,
       struct gl_texture_image *texImage;
 
       if (texture_error_check(ctx, target, level, internalFormat,
-                              GL_NONE, GL_NONE, 1, width, height, 1, border)) {
+                              GL_NONE, GL_NONE, 2, width, height, 1, border)) {
          return;   /* error in texture image was detected */
       }
 
@@ -2429,7 +2429,7 @@ _mesa_CompressedTexImage3DARB(GLenum target, GLint level,
       struct gl_texture_image *texImage;
 
       if (texture_error_check(ctx, target, level, internalFormat,
-                          GL_NONE, GL_NONE, 1, width, height, depth, border)) {
+                          GL_NONE, GL_NONE, 3, width, height, depth, border)) {
          return;   /* error in texture image was detected */
       }
 
@@ -2470,7 +2470,7 @@ _mesa_CompressedTexImage3DARB(GLenum target, GLint level,
    else if (target == GL_PROXY_TEXTURE_3D) {
       /* Proxy texture: check for errors and update proxy state */
       GLenum error = texture_error_check(ctx, target, level, internalFormat,
-                            GL_NONE, GL_NONE, 1, width, height, depth, border);
+                            GL_NONE, GL_NONE, 3, width, height, depth, border);
       if (!error) {
          struct gl_texture_unit *texUnit;
          struct gl_texture_image *texImage;
