@@ -234,12 +234,11 @@ void APIENTRY glutMainLoop (void)
 
 
       if (visible && idle_func) 
-	 have_event = XCheckWindowEvent( dpy, win, ~0, &evt );
+	 have_event = XCheckMaskEvent( dpy, ~0, &evt );
       else 
 	 have_event = XNextEvent( dpy, &evt );
 
       if (have_event) {
-	 fprintf(stderr, "got event type %d\n", evt.type);
 	 idle = GL_FALSE;
 	 switch(evt.type) {
 	 case MapNotify:
