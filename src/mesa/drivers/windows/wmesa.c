@@ -1,4 +1,4 @@
-/* $Id: wmesa.c,v 1.3.4.3 2000/09/28 22:39:43 brianp Exp $ */
+/* $Id: wmesa.c,v 1.3.4.4 2001/04/26 19:13:56 brianp Exp $ */
 
 /*
  * Windows (Win32) device driver for Mesa 3.4
@@ -1406,6 +1406,14 @@ void /*APIENTRY*/ WMesaMakeCurrent( WMesaContext c )
 void /*APIENTRY*/ WMesaSwapBuffers( void )
 {
     HDC DC = Current->hDC;
+    GET_CURRENT_CONTEXT(ctx);
+
+    /* If we're swapping the buffer associated with the current context
+     * we have to flush any pending rendering commands first.
+    */
+    if (Current && Current->gl_ctx == ctx)
+       _mesa_swapbuffers(ctx);
+
     if (Current->db_flag)
         wmFlush(Current);
 }
