@@ -1,4 +1,4 @@
-$Id: VERSIONS,v 1.118.2.5 2003/01/08 16:24:42 brianp Exp $
+$Id: VERSIONS,v 1.118.2.6 2003/01/08 16:44:13 brianp Exp $
 
 
 Mesa Version History
@@ -1091,6 +1091,7 @@ Mesa Version History
 	- minor compilation fixes for OS/2 (Evgeny Kotsuba)
 	- fixed some bad assertions found with shadowtex demo
 	- fixed error checking bug in glCopyTexSubImage2D (bug 659020)
+	- glRotate(angle, -x, 0, 0) was incorrect (bug 659677)
     Changes:
 	- use glPolygonOffset in gloss demo to avoid z-fighting artifacts
 	- updated winpos and pointblast demos to use ARB extensions
