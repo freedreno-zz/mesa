@@ -1,4 +1,4 @@
-$Id: VERSIONS,v 1.38.2.2 2000/08/13 03:59:04 brianp Exp $
+$Id: VERSIONS,v 1.38.2.3 2000/08/29 21:16:50 brianp Exp $
 
 
 Mesa Version History
@@ -749,6 +749,8 @@ Mesa Version History
 
 
 3.4  Month ??, 2000
+    New:
+	- optimized glDrawPixels for glPixelZoom(1,-1)
     Bug Fixes:
 	- widgets-mesa/src/*.c files were missing from 3.3 distro
 	- include/GL/mesa_wgl.h file was missing from 3.3 distro
@@ -757,4 +759,5 @@ Mesa Version History
 	- glAreTexturesResident return value was wrong when using hardware
 	- glXUseXFont segfaulted when using 3dfx driver (via MESA_GLX_FX)
     Changes:
+	-
 
