@@ -1,4 +1,4 @@
-$Id: VERSIONS,v 1.38.2.34 2001/04/26 19:30:39 brianp Exp $
+$Id: VERSIONS,v 1.38.2.35 2001/05/07 16:07:38 brianp Exp $
 
 
 Mesa Version History
@@ -810,3 +810,4 @@ post-3.4.1
 	- fixed byteswapping problem in clear_32bit_ximage() function
 	- fixed bugs in wglUseFontBitmapsA(), by Frank Warmerdam
 	- fixed memory leak in glXUseXFont()
+	- fragment sampling in AA triangle function was off by 1/2 pixel
