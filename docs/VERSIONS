@@ -1,4 +1,4 @@
-$Id: VERSIONS,v 1.73.2.16 2002/02/12 03:13:42 brianp Exp $
+$Id: VERSIONS,v 1.73.2.17 2002/02/15 19:15:59 brianp Exp $
 
 
 Mesa Version History
@@ -938,3 +938,5 @@ Mesa Version History
 	- glDraw/ReadPixels didn't catch all the errors that they should have
 	- Fixed 24bpp rendering problem in Windows driver (Karl Schultz)
 	- 16-bit GLchan mode fixes (m_trans_tmp.h, s_triangle.c)
+	- Fixed 1-bit float->int conversion bug in glDrawPixels(GL_DEPTH_COMP)
+	- glColorMask as sometimes effecting glXSwapBuffers()
