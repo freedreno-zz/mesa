@@ -1,4 +1,4 @@
-$Id: VERSIONS,v 1.73.2.35 2002/09/13 14:10:32 brianp Exp $
+$Id: VERSIONS,v 1.73.2.36 2002/09/14 16:54:04 brianp Exp $
 
 
 Mesa Version History
@@ -990,6 +990,7 @@ Mesa Version History
 	- updated DOS driver (Daniel Borca)
 	- added GL_IBM_texture_mirror_repeat
 	- glxinfo now takes -l option to print interesting OpenGL limits info
+	- GL_MESA_yuv_texture extension
     Bug fixes:
 	- fixed GL_LINEAR fog bug by adding clamping
 	- fixed FP exceptions found using Alpha CPU
@@ -1001,5 +1002,7 @@ Mesa Version History
 	- removed GL_MAX_CONVOLUTION_WIDTH/HEIGHT from glGetInteger/Float/etc()
 	- error checking in compressed tex image functions had some glitches
 	- fixed AIX compile problem in src/config.c
+	- glGetTexImage was using pixel unpacking instead of packing params
     Changes:
 	- max texture units reduced to six to accomodate texture rectangles
+	- removed unfinished GL_MESA_sprite_point extension code
