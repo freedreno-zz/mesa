@@ -1,4 +1,4 @@
-/* $Id: glxapi.h,v 1.11.2.2 2002/09/20 16:28:04 brianp Exp $ */
+/* $Id: glxapi.h,v 1.11.2.3 2002/09/20 17:37:13 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -202,6 +202,7 @@ struct _glxapi_table {
                                GLfloat writeFrequency,
                                GLfloat priority );
    void (*FreeMemoryNV)( GLvoid *pointer );
+   GLuint (*GetAGPOffsetMESA)( const GLvoid *pointer );
 };
 
 

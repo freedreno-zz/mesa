@@ -2498,6 +2498,12 @@ Fake_glXFreeMemoryNV( GLvoid *pointer )
 }
 
 
+static GLuint
+Fake_glXGetAGPOffsetMESA( const GLvoid *pointer )
+{
+   return ~0;
+}
+
 
 extern struct _glxapi_table *_mesa_GetGLXDispatchTable(void);
 struct _glxapi_table *_mesa_GetGLXDispatchTable(void)
@@ -2639,6 +2645,7 @@ struct _glxapi_table *_mesa_GetGLXDispatchTable(void)
    /*** GLX AGP memory allocation ***/
    glx.AllocateMemoryNV = Fake_glXAllocateMemoryNV;
    glx.FreeMemoryNV = Fake_glXFreeMemoryNV;
+   glx.GetAGPOffsetMESA = Fake_glXGetAGPOffsetMESA;
 
    return &glx;
 }

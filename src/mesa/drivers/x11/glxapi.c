@@ -1,4 +1,4 @@
-/* $Id: glxapi.c,v 1.28.2.2 2002/09/20 16:28:04 brianp Exp $ */
+/* $Id: glxapi.c,v 1.28.2.3 2002/09/20 17:37:13 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -989,7 +989,7 @@ Bool glXSet3DfxModeMESA(int mode)
 
 
 
-/*** AGP memory allocation ***/
+/*** GLX_NV_vertex_array_range ***/
 
 void *
 glXAllocateMemoryNV( GLsizei size,
@@ -1015,6 +1015,20 @@ glXFreeMemoryNV( GLvoid *pointer )
    if (!t)
       return;
    (t->FreeMemoryNV)(pointer);
+}
+
+
+/*** GLX_MESA_agp_offset */
+
+GLuint
+glXGetAGPOffsetMESA( const GLvoid *pointer )
+{
+   struct _glxapi_table *t;
+   Display *dpy = glXGetCurrentDisplay();
+   GET_DISPATCH(dpy, t);
+   if (!t)
+      return ~0;
+   return (t->GetAGPOffsetMESA)(pointer);
 }
 
 
