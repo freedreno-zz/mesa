@@ -6,18 +6,17 @@
 
 
 CC = gcc
-CFLAGS = -g -I../include
+CFLAGS = -g -I../include -I../util
 LIBS = -L../lib -lglut -lGLU -lGL -L/usr/X11R6/lib -lX11 -lXext -lm
 
 PROGS = cva \
 	dinoshade \
-	fogcoord \
 	manytex \
 	multipal \
 	projtex \
-	seccolor \
 	sharedtex \
-	texline
+	seccolor \
+	texline texwrap fogcoord multiwindow
 
 
 ##### RULES #####
