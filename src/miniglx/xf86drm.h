@@ -30,8 +30,6 @@
  * \author Rickard E. (Rik) Faith <faith@valinux.com>
  */
 
-/* $XFree86: xc/programs/Xserver/hw/xfree86/os-support/xf86drm.h,v 1.17 2002/10/16 01:26:48 dawes Exp $ */
-
 #ifndef _XF86DRM_H_
 #define _XF86DRM_H_
 

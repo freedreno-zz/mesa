@@ -278,6 +278,12 @@ struct DRIDriverRec {
     * \brief Restore hardware state after regaining the vt.
     */
    int (*restoreHardware)(  struct DRIDriverContextRec *dpy );
+
+   /**
+    * \brief Notify hardware driver of gain/loose focus.  May be zero
+    * as this is of limited utility for most drivers.  
+    */
+   void (*notifyFocus)( int have_focus );
 };
 
 
@@ -453,7 +459,6 @@ extern __DRIscreen *__glXFindDRIScreen(Display *dpy, int scrn);
 
 extern Bool __glXWindowExists(Display *dpy, GLXDrawable draw);
 
-extern void __miniglx_release_vt( void );
 extern int __miniglx_open_connections( Display *dpy );
 extern void __miniglx_close_connections( Display *dpy );
 

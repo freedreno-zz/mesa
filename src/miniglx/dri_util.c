@@ -675,7 +675,7 @@ __driUtilCreateScreen(Display *dpy, int scrn, __DRIscreen *psc,
 
    if (dpy->IsClient) {
       /*
-       * Map the framebuffer region.
+       * Map the framebuffer region.  
        */
       if (drmMap(psp->fd, dpy->driverContext.shared.hFrameBuffer, psp->fbSize, 
 		 (drmAddressPtr)&psp->pFB)) {

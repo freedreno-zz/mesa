@@ -34,8 +34,6 @@
  *
  */
 
-/* $XFree86: xc/lib/GL/glx/dispatch.c,v 1.4 2002/02/22 21:32:53 dawes Exp $ */
-
 #include <GL/gl.h>
 #include "glapi.h"
 #include "glapitable.h"

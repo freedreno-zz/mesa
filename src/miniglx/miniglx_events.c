@@ -22,7 +22,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: miniglx_events.c,v 1.1.2.7 2003/04/26 21:17:47 keithw Exp $ */
+/* $Id: miniglx_events.c,v 1.1.2.8 2003/04/27 14:20:00 keithw Exp $ */
 
 
 /**
@@ -144,7 +144,6 @@ static int send_msg( Display *dpy, int i,
       return False;
    }
    
-/*    fprintf(stderr, "send %d bytes to %d\n", sz, i); */
    memcpy( dpy->fd[i].writebuf + cnt, msg, sz ); cnt += sz;
    dpy->fd[i].writebuf_count = cnt;
    return True;
@@ -272,7 +271,6 @@ handle_fifo_read( Display *dpy, int i )
 	 switch (id) {
 	    /* The server has called 'XMapWindow' on a client window */
 	 case _YouveGotFocus:
-/* 	    fprintf(stderr, "_YouveGotFocus\n"); */
 	    er = queue_event(dpy);
 	    if (!er) return False;
 	    er->xmap.type = MapNotify;
@@ -282,12 +280,13 @@ handle_fifo_read( Display *dpy, int i )
 	    er->xmap.event = dpy->TheWindow;
 	    er->xmap.window = dpy->TheWindow;
 	    er->xmap.override_redirect = False;
+	    if (dpy->driver->notifyFocus)
+	       dpy->driver->notifyFocus( 1 ); 
 	    break;
 
 	    /* The server has called 'XMapWindow' or 'X???'  on a client
 	     * window */
 	 case _RepaintPlease:
-/* 	    fprintf(stderr, "_RepaintPlease\n"); */
 	    er = queue_event(dpy);
 	    if (!er) return False;
 	    er->xexpose.type = Expose;
@@ -316,7 +315,6 @@ handle_fifo_read( Display *dpy, int i )
 	     * server does).
 	     */
 	 case _YouveLostFocus:
-/* 	    fprintf(stderr, "_YouveLostFocus\n"); */
 	    er = queue_event(dpy);
 	    if (!er) return False;
 	    er->xunmap.type = UnmapNotify;
@@ -326,6 +324,8 @@ handle_fifo_read( Display *dpy, int i )
 	    er->xunmap.event = dpy->TheWindow;
 	    er->xunmap.window = dpy->TheWindow;
 	    er->xunmap.from_configure = False;
+	    if (dpy->driver->notifyFocus)
+	       dpy->driver->notifyFocus( 0 ); 
 	    break;
 	 
 	 default:
@@ -340,7 +340,6 @@ handle_fifo_read( Display *dpy, int i )
 	     * (having called 'XMapWindow' locally).
 	     */
 	 case _CanIHaveFocus:	 
-/* 	    fprintf(stderr, "_CanIHaveFocus\n"); */
 	    er = queue_event(dpy);
 	    if (!er) return False;
 	    er->xmaprequest.type = MapRequest;
@@ -349,7 +348,6 @@ handle_fifo_read( Display *dpy, int i )
 	    er->xmaprequest.display = dpy;
 	    er->xmaprequest.parent = 0;
 	    er->xmaprequest.window = (Window)i;
-	    fprintf(stderr, "queued MapRequest\n");
 	    break;
 
 	    /* Both _YouveLostFocus and _IDontWantFocus generate unmap
@@ -359,7 +357,6 @@ handle_fifo_read( Display *dpy, int i )
 	     * unmapped its own window.
 	     */
 	 case _IDontWantFocus:
-/* 	    fprintf(stderr, "_IDontWantFocus\n"); */
 	    er = queue_event(dpy);
 	    if (!er) return False;
 	    er->xunmap.type = UnmapNotify;
@@ -381,11 +378,6 @@ handle_fifo_read( Display *dpy, int i )
       dpy->fd[i].readbuf_count -= count;
 
       if (dpy->fd[i].readbuf_count) {
-/* 	 fprintf(stderr, "count: %d memmove %p %p %d\n", count, */
-/* 		 dpy->fd[i].readbuf, */
-/* 		 dpy->fd[i].readbuf + count, */
-/* 		 dpy->fd[i].readbuf_count); */
-
 	 memmove(dpy->fd[i].readbuf,
 		 dpy->fd[i].readbuf + count,
 		 dpy->fd[i].readbuf_count);
@@ -481,8 +473,11 @@ __miniglx_Select( Display *dpy, int n, fd_set *rfds, fd_set *wfds, fd_set *xfds,
       errno = tmp;
    }
 
-   if (retval < 0) 
+   if (retval < 0) {
+      FD_ZERO(rfds);
+      FD_ZERO(wfds);
       return retval;
+   }
 
    /* Handle server fd[0] specially:
     */
@@ -644,8 +639,6 @@ void __miniglx_close_connections( Display *dpy )
 
 static void set_drawable_flag( Display *dpy, int w, int flag )
 {
-   fprintf(stderr, "%s %d %d\n", __FUNCTION__, w, flag);
-
    if (dpy->driverContext.pSAREA) {
       DRM_LIGHT_LOCK( dpy->driverContext.drmFD,
                       dpy->driverContext.pSAREA,

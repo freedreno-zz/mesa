@@ -31,8 +31,6 @@
  * \author Rickard E. (Rik) Faith <faith@valinux.com>
  */
 
-/* $XFree86: xc/programs/Xserver/GL/dri/sarea.h,v 1.10 2001/10/04 18:28:20 alanh Exp $ */
-
 #ifndef _SAREA_H_
 #define _SAREA_H_
 

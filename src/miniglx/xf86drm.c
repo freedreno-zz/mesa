@@ -31,8 +31,6 @@
  * \author Kevin E. Martin <martin@valinux.com>
  */
 
-/* $XFree86: xc/programs/Xserver/hw/xfree86/os-support/linux/drm/xf86drm.c,v 1.28 2002/10/16 01:26:49 dawes Exp $ */
-
 # include <stdio.h>
 # include <stdlib.h>
 # include <unistd.h>

@@ -42,8 +42,6 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $XFree86$ */
-
 
 #ifndef _DRI_UTIL_H_
 #define _DRI_UTIL_H_
