@@ -83,7 +83,6 @@ static void _tnl_import_normal( GLcontext *ctx,
 
 
 static void _tnl_import_color( GLcontext *ctx,
-			       GLenum type,
 			       GLboolean writeable,
 			       GLboolean stride )
 {
@@ -93,7 +92,7 @@ static void _tnl_import_color( GLcontext *ctx,
    GLubyte *data;
 
    tmp = _ac_import_color(ctx,
-			  type,
+			  GL_FLOAT,
 			  stride ? 4*sizeof(GLfloat) : 0,
 			  4,
 			  writeable,
@@ -108,7 +107,6 @@ static void _tnl_import_color( GLcontext *ctx,
 
 
 static void _tnl_import_secondarycolor( GLcontext *ctx,
-					GLenum type,
 					GLboolean writeable,
 					GLboolean stride )
 {
@@ -118,7 +116,7 @@ static void _tnl_import_secondarycolor( GLcontext *ctx,
    GLubyte *data;
 
    tmp = _ac_import_secondarycolor(ctx, 
-				   type,
+				   GL_FLOAT,
 				   stride ? 4*sizeof(GLfloat) : 0,
 				   4,
 				   writeable,
@@ -290,7 +288,7 @@ void _tnl_vb_bind_arrays( GLcontext *ctx, GLint start, GLsizei count )
       }
 
       if (inputs & _TNL_BIT_COLOR0) {
-	 _tnl_import_color( ctx, 0, 0, 0 );
+	 _tnl_import_color( ctx, 0, 0 );
 	 tmp->Color.count = VB->Count;
 	 VB->AttribPtr[_TNL_ATTRIB_COLOR0] = &tmp->Color;
       }
@@ -313,7 +311,7 @@ void _tnl_vb_bind_arrays( GLcontext *ctx, GLint start, GLsizei count )
       }
 
       if (inputs & _TNL_BIT_COLOR1) {
-	 _tnl_import_secondarycolor( ctx, 0, 0, 0 );
+	 _tnl_import_secondarycolor( ctx, 0, 0 );
 	 tmp->SecondaryColor.count = VB->Count;
 	 VB->AttribPtr[_TNL_ATTRIB_COLOR1] = &tmp->SecondaryColor;
       }
