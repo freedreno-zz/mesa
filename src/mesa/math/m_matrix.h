@@ -27,7 +27,8 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: m_matrix.h,v 1.4.8.2 2003/03/22 14:36:50 keithw Exp $ */
+/* $Id: m_matrix.h,v 1.4.8.3 2003/03/22 16:49:59 jrfonseca Exp $ */
+
 
 #ifndef _M_MATRIX_H
 #define _M_MATRIX_H
@@ -35,15 +36,18 @@
 
 
 /**
- * Give symbolic names to some of the entries in the matrix to help
- * out with the rework of the viewport_map as a matrix transform.
+ * \name Symbolic names to some of the entries in the matrix
+ *
+ * To help out with the rework of the viewport_map as a matrix transform.
  */
+/*@{*/
 #define MAT_SX 0
 #define MAT_SY 5
 #define MAT_SZ 10
 #define MAT_TX 12
 #define MAT_TY 13
 #define MAT_TZ 14
+/*@}*/
 
 /**
  * \brief Different kinds of 4x4 transformation matrices.
@@ -57,6 +61,12 @@ enum GLmatrixtype {
 	MATRIX_2D_NO_ROT = 5,	/**< \brief 2-D scale & translate only */
 	MATRIX_3D = 6,		/**< \brief 3-D transformation */
 } ;
+
+
+/**
+ * \name Matrix flags
+ */
+/*@{*/
 
 #define MAT_FLAG_IDENTITY       0	/**< \brief is an identity matrix flag.
 					 *   (Not actualy used - the identity
@@ -104,6 +114,9 @@ enum GLmatrixtype {
 #define MAT_DIRTY          (MAT_DIRTY_TYPE | \
 			    MAT_DIRTY_FLAGS | \
 			    MAT_DIRTY_INVERSE)
+
+/*@}*/
+
 
 /** 
  * \brief Test geometry related matrix flags.

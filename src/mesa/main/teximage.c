@@ -2,11 +2,11 @@
  * \file teximage.c
  * \brief Texture images manipulation functions.
  *
- * \note
- * Mesa's native texture datatype is GLchan.  Native formats are GL_ALPHA,
- * GL_LUMINANCE, GL_LUMANCE_ALPHA, GL_INTENSITY, GL_RGB, GL_RGBA, and
+ * \note Mesa's native texture datatype is GLchan.  Native formats are
+ * GL_ALPHA, GL_LUMINANCE, GL_LUMANCE_ALPHA, GL_INTENSITY, GL_RGB, GL_RGBA, and
  * GL_COLOR_INDEX.
- * Device drivers are free to implement any internal format they want.
+ *
+ * \note Device drivers are free to implement any internal format they want.
  */
 
 /*
@@ -33,7 +33,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: teximage.c,v 1.124.4.2 2003/03/16 00:27:13 jrfonseca Exp $ */
+/* $Id: teximage.c,v 1.124.4.3 2003/03/22 16:49:58 jrfonseca Exp $ */
 
 #include "glheader.h"
 #include "context.h"
@@ -103,7 +103,6 @@ static void PrintTexture(GLcontext *ctx, const struct gl_texture_image *img)
 #endif
 }
 #endif
-
 
 
 /**

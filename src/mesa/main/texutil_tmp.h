@@ -1,4 +1,25 @@
-/* $Id: texutil_tmp.h,v 1.12 2002/10/29 20:28:55 brianp Exp $ */
+/**
+ * \file texutil_tmp.h
+ *
+ * \author Gareth Hughes
+ *
+ * For 2D and 3D texture images, we generate functions for
+ *  - conversion without pixel unpacking and standard stride
+ *  - conversion without pixel unpacking and non-standard stride
+ *  - conversion with pixel unpacking and standard stride
+ *  - conversion with pixel unpacking and non-standard stride
+ *
+ * Macros which need to be defined before including this file:
+ *  - \c TAG(x) - the function name wrapper
+ *  - \c DST_TYPE - the destination texel datatype (GLuint, GLushort, etc)
+ *  - \c DST_TEXELS_PER_DWORD - number of dest texels that'll fit in 4 bytes
+ *  - \c CONVERT_TEXEL - code to convert from source to dest texel
+ *  - \c CONVER_TEXEL_DWORD - if multiple texels fit in 4 bytes, this macros
+ *  will convert/store multiple texels at once
+ *  - \c CONVERT_DIRECT - if defined, just memcpy texels from src to dest
+ *  - \c SRC_TEXEL_BYTES - bytes per source texel
+ *  - \c PRESERVE_DST_TYPE - if defined, don't undefined these macros at end
+ */
 
 /*
  * Mesa 3-D graphics library
@@ -22,31 +43,9 @@
  * BRIAN PAUL BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
  * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
- * Author:
- *    Gareth Hughes
  */
 
-
-/*
- * For 2D and 3D texture images, we generate functions for
- *  - conversion without pixel unpacking and standard stride
- *  - conversion without pixel unpacking and non-standard stride
- *  - conversion with pixel unpacking and standard stride
- *  - conversion with pixel unpacking and non-standard stride
- *
- *
- * Macros which need to be defined before including this file:
- *  TAG(x)  - the function name wrapper
- *  DST_TYPE - the destination texel datatype (GLuint, GLushort, etc)
- *  DST_TEXELS_PER_DWORD - number of dest texels that'll fit in 4 bytes
- *  CONVERT_TEXEL - code to convert from source to dest texel
- *  CONVER_TEXEL_DWORD - if multiple texels fit in 4 bytes, this macros
- *                       will convert/store multiple texels at once
- *  CONVERT_DIRECT - if defined, just memcpy texels from src to dest
- *  SRC_TEXEL_BYTES - bytes per source texel
- *  PRESERVE_DST_TYPE - if defined, don't undefined these macros at end
- */
+/* $Id: texutil_tmp.h,v 1.12.4.1 2003/03/22 16:49:59 jrfonseca Exp $ */
 
 
 #define DST_TEXEL_BYTES		(4 / DST_TEXELS_PER_DWORD)

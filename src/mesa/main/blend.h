@@ -1,6 +1,6 @@
 /**
  * \file blend.h
- * \brief Blending functions declarations.
+ * \brief Blending functions operations.
  */
 
 /*
@@ -27,7 +27,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: blend.h,v 1.9.8.2 2003/03/20 09:19:59 keithw Exp $ */
+/* $Id: blend.h,v 1.9.8.3 2003/03/22 16:49:58 jrfonseca Exp $ */
 
 
 #ifndef BLEND_H

@@ -1,4 +1,7 @@
-/* $Id: enums.h,v 1.3.8.1 2003/03/05 14:04:19 keithw Exp $ */
+/**
+ * \file enums.h
+ * \brief Enumeration name/number lookup functions.
+ */
 
 /*
  * Mesa 3-D graphics library
@@ -24,16 +27,26 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+/* $Id: enums.h,v 1.3.8.2 2003/03/22 16:49:58 jrfonseca Exp $ */
+
 
 #ifndef _ENUMS_H_
 #define _ENUMS_H_
 
+
 #if _HAVE_FULL_GL
+
 extern const char *_mesa_lookup_enum_by_nr( int nr );
 extern int _mesa_lookup_enum_by_name( const char *symbol );
+
 #else
+
+/** \brief No-op */
 #define _mesa_lookup_enum_by_name( s ) 0
+
+/** \brief No-op */
 #define _mesa_lookup_enum_by_nr( n ) "unknown"
+
 #endif
 
 #endif

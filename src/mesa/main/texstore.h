@@ -1,4 +1,9 @@
-/* $Id: texstore.h,v 1.11 2002/09/27 02:45:38 brianp Exp $ */
+/**
+ * \file texstore.h
+ * \brief Texture image storage.
+ *
+ * \author Brian Paul
+ */
 
 /*
  * Mesa 3-D graphics library
@@ -24,10 +29,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/*
- * Authors:
- *   Brian Paul
- */
+/* $Id: texstore.h,v 1.11.6.1 2003/03/22 16:49:59 jrfonseca Exp $ */
 
 
 #ifndef TEXSTORE_H

@@ -1,4 +1,7 @@
-/* $Id: pixel.h,v 1.10.8.1 2003/03/20 09:21:02 keithw Exp $ */
+/**
+ * \file pixel.h
+ * \brief Pixel operations.
+ */
 
 /*
  * Mesa 3-D graphics library
@@ -24,6 +27,8 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+/* $Id: pixel.h,v 1.10.8.2 2003/03/22 16:49:58 jrfonseca Exp $ */
+
 
 #ifndef PIXEL_H
 #define PIXEL_H
@@ -32,10 +37,8 @@
 #include "mtypes.h"
 
 
-/*
- * API functions
- */
-
+/** \name API functions */
+/*@*/
 
 extern void
 _mesa_GetPixelMapfv( GLenum map, GLfloat *values );
@@ -70,11 +73,11 @@ _mesa_PixelTransferi( GLenum pname, GLint param );
 extern void
 _mesa_PixelZoom( GLfloat xfactor, GLfloat yfactor );
 
+/*@}*/
 
 
-/*
- * Pixel processing functions
- */
+/** \name Pixel processing functions */
+/*@{*/
 
 extern void
 _mesa_scale_and_bias_rgba(const GLcontext *ctx, GLuint n, GLfloat rgba[][4],
@@ -141,5 +144,7 @@ _mesa_update_pixel( GLcontext *ctx, GLuint newstate );
 
 extern void 
 _mesa_init_pixel( GLcontext * ctx );
+
+/*@}*/
 
 #endif

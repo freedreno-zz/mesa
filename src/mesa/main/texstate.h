@@ -1,4 +1,7 @@
-/* $Id: texstate.h,v 1.9.6.1 2003/03/20 09:21:17 keithw Exp $ */
+/**
+ * \file texstate.h
+ * \brief Texture state management.
+ */
 
 /*
  * Mesa 3-D graphics library
@@ -24,6 +27,8 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+/* $Id: texstate.h,v 1.9.6.2 2003/03/22 16:49:59 jrfonseca Exp $ */
+
 
 #ifndef TEXSTATE_H
 #define TEXSTATE_H
@@ -36,7 +41,10 @@ extern void
 _mesa_copy_texture_state( const GLcontext *src, GLcontext *dst );
 
 
-/*** Called from API ***/
+/**
+ * \name Called from API
+ */
+/*@{*/
 
 extern void
 _mesa_GetTexEnvfv( GLenum target, GLenum pname, GLfloat *params );
@@ -114,8 +122,6 @@ extern void
 _mesa_TexGeniv( GLenum coord, GLenum pname, const GLint *params );
 
 
-
-
 /*
  * GL_ARB_multitexture
  */
@@ -163,8 +169,14 @@ _mesa_GetPixelTexGenParameterfvSGIS(GLenum target, GLfloat *value);
 extern void
 _mesa_GetPixelTexGenParameterivSGIS(GLenum target, GLint *value);
 
-/* Initialization, State maintainance
+/*@}*/
+
+
+/**
+ * \name Initialization, state maintainance
  */
+/*@{*/
+
 extern void 
 _mesa_update_texture( GLcontext *ctx, GLuint new_state );
 
@@ -173,5 +185,7 @@ _mesa_init_texture( GLcontext *ctx );
 
 extern void 
 _mesa_free_texture_data( GLcontext *ctx );
+
+/*@}*/
 
 #endif

@@ -1,4 +1,9 @@
-/* $Id: state.c,v 1.97.4.9 2003/03/22 14:36:50 keithw Exp $ */
+/**
+ * \file state.c
+ * \brief State management.
+ * 
+ * This file manages recalculation of derived values in the __GLcontextRec.
+ */
 
 /*
  * Mesa 3-D graphics library
@@ -24,11 +29,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-
-/*
- * This file manages recalculation of derived values in the
- * __GLcontext.
- */
+/* $Id: state.c,v 1.97.4.10 2003/03/22 16:49:58 jrfonseca Exp $ */
 
 
 #include "glheader.h"
@@ -75,6 +76,17 @@
 /* #include "math/m_xform.h" */
 
 
+/**********************************************************************/
+/** \name Dispatch table setup */
+/*@{*/
+
+/**
+ * \brief Generic no-op dispatch function.
+ *
+ * Used in replacementof the functions which are not part of Mesa subset.
+ *
+ * Displays a message.
+ */
 static int
 generic_noop(void)
 {
@@ -83,9 +95,12 @@ generic_noop(void)
 }
 
 
-/*
- * Set all pointers in the given dispatch table to point to a
- * generic no-op function.
+/**
+ * \brief Set all pointers in the given dispatch table to point to a
+ * generic no-op function - generic_noop().
+ *
+ * \param table dispatch table.
+ * \param tableSize dispatch table size.
  */
 void
 _mesa_init_no_op_table(struct _glapi_table *table, GLuint tableSize)
@@ -98,13 +113,15 @@ _mesa_init_no_op_table(struct _glapi_table *table, GLuint tableSize)
 }
 
 
-
-/*
- * Initialize the given dispatch table with pointers to Mesa's
- * immediate-mode commands.
+/**
+ * \brief Initialize a dispatch table with pointers to Mesa's immediate-mode
+ * commands.
  *
- * Pointers to begin/end object commands and a few others
- * are provided via the vtxfmt interface elsewhere.
+ * Pointers to glBegin()/glEnd() object commands and a few others
+ * are provided via the GLvertexformat interface.
+ *
+ * \param exec dispatch table.
+ * \param tableSize disptach table size.
  */
 void
 _mesa_init_exec_table(struct _glapi_table *exec, GLuint tableSize)
@@ -582,18 +599,29 @@ _mesa_init_exec_table(struct _glapi_table *exec, GLuint tableSize)
    /* reuse EXT_point_parameters functions */
 }
 
+/*@}*/
 
 
 /**********************************************************************/
-/*****                   State update logic                       *****/
-/**********************************************************************/
+/** \name State update logic */
+/*@{*/
 
-
-/*
- * If ctx->NewState is non-zero then this function MUST be called before
- * rendering any primitive.  Basically, function pointers and miscellaneous
- * flags are updated to reflect the current state of the state machine.
+/**
+ * \brief Update state.
  *
+ * \param ctx GL context.
+ *
+ * If __GLcontextRec::NewState is non-zero then this function \b must be called
+ * before rendering any primitive.  Basically, function pointers and
+ * miscellaneous flags are updated to reflect the current state of the state
+ * machine.
+ *
+ * Calls dd_function_table::UpdateState to perform any internal stte management
+ * necessary.
+ * 
+ * \sa _mesa_update_modelview_project(), _mesa_update_texture(),
+ * _mesa_update_buffers(), _mesa_update_polygon(), _mesa_update_lighting() and
+ * _mesa_update_tnl_spaces().
  */
 void _mesa_update_state( GLcontext *ctx )
 {
@@ -649,3 +677,4 @@ void _mesa_update_state( GLcontext *ctx )
    _mesa_check_driver_hooks( ctx );
 }
 
+/*@}*/

@@ -1,4 +1,7 @@
-/* $Id: get.h,v 1.5 2001/03/12 00:48:38 gareth Exp $ */
+/**
+ * \file get.h
+ * \brief State query functions.
+ */
 
 /*
  * Mesa 3-D graphics library
@@ -23,6 +26,8 @@
  * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
+/* $Id: get.h,v 1.5.8.1 2003/03/22 16:49:58 jrfonseca Exp $ */
 
 
 #ifndef GET_H
@@ -52,7 +57,5 @@ _mesa_GetString( GLenum name );
 
 extern GLenum
 _mesa_GetError( void );
-
-
 
 #endif

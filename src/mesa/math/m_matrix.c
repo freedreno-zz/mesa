@@ -32,7 +32,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: m_matrix.c,v 1.14.4.1 2003/03/02 00:27:36 jrfonseca Exp $ */
+/* $Id: m_matrix.c,v 1.14.4.2 2003/03/22 16:49:59 jrfonseca Exp $ */
 
 
 #include "glheader.h"
@@ -181,7 +181,7 @@ _math_matrix_mul_floats( GLmatrix *dest, const GLfloat *m )
    matmul4( dest->m, dest->m, m );
 }
 
-/*@{*/
+/*@}*/
 
 
 /**********************************************************************/

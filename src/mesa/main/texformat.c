@@ -29,7 +29,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: texformat.c,v 1.18.4.1 2003/03/16 00:27:13 jrfonseca Exp $ */
+/* $Id: texformat.c,v 1.18.4.2 2003/03/22 16:49:58 jrfonseca Exp $ */
 
 #include "glheader.h"
 #include "colormac.h"
@@ -56,6 +56,7 @@
 
 /**
  * \brief Null texel fetch function.
+ *
  * Have to have this so the FetchTexel function pointer is never NULL.
  */
 static void fetch_null_texel( const struct gl_texture_image *texImage,

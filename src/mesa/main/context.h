@@ -1,6 +1,6 @@
 /**
  * \file context.h
- * \brief Context.
+ * \brief Mesa context/visual/framebuffer management functions.
  *
  * There are three Mesa datatypes which are meant to be used by device
  * drivers:
@@ -43,7 +43,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: context.h,v 1.35.4.1 2003/03/02 00:27:32 jrfonseca Exp $ */
+/* $Id: context.h,v 1.35.4.2 2003/03/22 16:49:58 jrfonseca Exp $ */
 
 #ifndef CONTEXT_H
 #define CONTEXT_H

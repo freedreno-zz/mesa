@@ -1,4 +1,7 @@
-/* $Id: histogram.h,v 1.4.4.1 2003/03/20 09:20:53 keithw Exp $ */
+/**
+ * \file histogram.h
+ * \brief Histogram.
+ */
 
 /*
  * Mesa 3-D graphics library
@@ -24,6 +27,8 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+/* $Id: histogram.h,v 1.4.4.2 2003/03/22 16:49:58 jrfonseca Exp $ */
+
 
 #ifndef HISTOGRAM_H
 #define HISTOGRAM_H
@@ -32,6 +37,7 @@
 #include "mtypes.h"
 
 #if _HAVE_FULL_GL
+
 extern void _mesa_GetMinmax(GLenum target, GLboolean reset, GLenum format, GLenum types, GLvoid *values);
 
 extern void _mesa_GetHistogram(GLenum target, GLboolean reset, GLenum format, GLenum type, GLvoid *values);
@@ -59,8 +65,12 @@ extern void
 _mesa_update_histogram(GLcontext *ctx, GLuint n, const GLfloat rgba[][4]);
 
 extern void _mesa_init_histogram( GLcontext * ctx );
+
 #else
+
+/** \brief No-op */
 #define _mesa_init_histogram( c ) ((void) 0)
+
 #endif
 
 #endif

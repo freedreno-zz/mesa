@@ -27,7 +27,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: get.c,v 1.99.2.1.2.2 2003/03/19 15:43:15 jrfonseca Exp $ */
+/* $Id: get.c,v 1.99.2.1.2.3 2003/03/22 16:49:58 jrfonseca Exp $ */
 
 #include "glheader.h"
 #include "colormac.h"
@@ -122,7 +122,7 @@ pixel_texgen_mode(const GLcontext *ctx)
  *
  * \sa glGetBooleanv().
  *
- * Tries to get the specified parameter via dd_function_table.GetBooleanv,
+ * Tries to get the specified parameter via dd_function_table::GetBooleanv,
  * otherwise gets the specified parameter from the current context, converting
  * it value into GLboolean.
  */
@@ -1503,7 +1503,7 @@ _mesa_GetBooleanv( GLenum pname, GLboolean *params )
  *
  * \sa glGetDoublev().
  *
- * Tries to get the specified parameter via dd_function_table.GetDoublev,
+ * Tries to get the specified parameter via dd_function_table::GetDoublev,
  * otherwise gets the specified parameter from the current context, converting
  * it value into GLdouble.
  */
@@ -2880,7 +2880,7 @@ _mesa_GetDoublev( GLenum pname, GLdouble *params )
  *
  * \sa glGetFloatv().
  *
- * Tries to get the specified parameter via dd_function_table.GetFloatv,
+ * Tries to get the specified parameter via dd_function_table::GetFloatv,
  * otherwise gets the specified parameter from the current context, converting
  * it value into GLfloat.
  */
@@ -4233,7 +4233,7 @@ _mesa_GetFloatv( GLenum pname, GLfloat *params )
  *
  * \sa glGetIntegerv().
  *
- * Tries to get the specified parameter via dd_function_table.GetIntegerv,
+ * Tries to get the specified parameter via dd_function_table::GetIntegerv,
  * otherwise gets the specified parameter from the current context, converting
  * it value into GLinteger.
  */
@@ -5625,7 +5625,7 @@ _mesa_GetIntegerv( GLenum pname, GLint *params )
  *
  * \sa glGetPointerv().
  *
- * Tries to get the specified pointer via dd_function_table.GetPointerv,
+ * Tries to get the specified pointer via dd_function_table::GetPointerv,
  * otherwise gets the specified pointer from the current context.
  */
 void
@@ -5765,6 +5765,8 @@ _mesa_GetString( GLenum name )
  * \brief Execute a glGetError() command.
  *
  * \return error number.
+ *
+ * Returns __GLcontextRec::ErrorValue.
  */
 GLenum
 _mesa_GetError( void )

@@ -1,6 +1,6 @@
 /**
  * \file blend.c
- * \brief Blending functions.
+ * \brief Blending operations.
  */
 
 /*
@@ -27,7 +27,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: blend.c,v 1.38.4.3 2003/03/20 09:19:54 keithw Exp $ */
+/* $Id: blend.c,v 1.38.4.4 2003/03/22 16:49:58 jrfonseca Exp $ */
 
 
 #include "glheader.h"

@@ -1,4 +1,17 @@
-/* $Id: glthread.h,v 1.11.6.1 2002/11/21 15:45:55 brianp Exp $ */
+/**
+ * \file glthread.h
+ * Thread support for gl dispatch.
+ *
+ * \author Initial version by John Stone (j.stone@acm.org) (johns@cs.umr.edu)
+ * and Christoph Poliwoda (poliwoda@volumegraphics.com)
+ * \author Revised by Keith Whitwell
+ * \author Adapted for new gl dispatcher by Brian Paul
+ *
+ * \note
+ * If this file is accidentally included by a non-threaded build,
+ * it should not cause the build to fail, or otherwise cause problems.
+ * In general, it should only be included when needed however.
+ */
 
 /*
  * Mesa 3-D graphics library
@@ -24,43 +37,8 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+/* $Id: glthread.h,v 1.11.6.2 2003/03/22 16:49:58 jrfonseca Exp $ */
 
-/*
- * Thread support for gl dispatch.
- *
- * Initial version by John Stone (j.stone@acm.org) (johns@cs.umr.edu)
- *                and Christoph Poliwoda (poliwoda@volumegraphics.com)
- * Revised by Keith Whitwell
- * Adapted for new gl dispatcher by Brian Paul
- *
- *
- *
- * DOCUMENTATION
- *
- * This thread module exports the following types:
- *   _glthread_TSD     Thread-specific data area
- *   _glthread_Thread  Thread datatype
- *   _glthread_Mutex   Mutual exclusion lock
- *
- * Macros:
- *   _glthread_DECLARE_STATIC_MUTEX(name)   Declare a non-local mutex
- *   _glthread_INIT_MUTEX(name)             Initialize a mutex
- *   _glthread_LOCK_MUTEX(name)             Lock a mutex
- *   _glthread_UNLOCK_MUTEX(name)           Unlock a mutex
- *
- * Functions:
- *   _glthread_GetID(v)      Get integer thread ID
- *   _glthread_InitTSD()     Initialize thread-specific data
- *   _glthread_GetTSD()      Get thread-specific data
- *   _glthread_SetTSD()      Set thread-specific data
- *
- */
-
-/*
- * If this file is accidentally included by a non-threaded build,
- * it should not cause the build to fail, or otherwise cause problems.
- * In general, it should only be included when needed however.
- */
 
 #ifndef GLTHREAD_H
 #define GLTHREAD_H
@@ -242,47 +220,87 @@ create_sem(0, #name"_benaphore") }
 
 #ifndef THREADS
 
-/*
- * THREADS not defined
+/**
+ * \name No thread support
  */
+/*@{*/
 
+/** 
+ * \brief Thread-specific data area.
+ *
+ * Dummy type.
+ */
 typedef GLuint _glthread_TSD;
 
+/** 
+ * \brief Thread datatype
+ *
+ * Dummy type 
+ */
 typedef GLuint _glthread_Thread;
 
+/** 
+ * \brief 
+ *
+ * Dummy type Mutual exclusion lock
+ */
 typedef GLuint _glthread_Mutex;
 
+/** 
+ * \brief Declare a non-local mutex.
+ *
+ * No-op.
+ */
 #define _glthread_DECLARE_STATIC_MUTEX(name)  static _glthread_Mutex name = 0
 
+/** 
+ * \brief Initialize a mutex.
+ *
+ * No-op.
+ */
 #define _glthread_INIT_MUTEX(name)  (void) name
 
+/** 
+ * \brief Lock a mutex.
+ *
+ * No-op.
+ */
 #define _glthread_LOCK_MUTEX(name)  (void) name
 
+/** 
+ * \brief Unlock a mutex.
+ *
+ * No-op.
+ */
 #define _glthread_UNLOCK_MUTEX(name)  (void) name
+
+/*@}*/
 
 #endif /* THREADS */
 
 
-
-/*
- * Platform independent thread specific data API.
+/**
+ * \name Platform independent thread specific data API.
  */
+/*@{*/
 
+/** \brief Get integer thread ID */
 extern unsigned long
 _glthread_GetID(void);
 
-
+/** \brief Initialize thread-specific data */
 extern void
 _glthread_InitTSD(_glthread_TSD *);
 
-
+/** \brief Get thread-specific data */
 extern void *
 _glthread_GetTSD(_glthread_TSD *);
 
-
+/** \brief Set thread-specific data */
 extern void
 _glthread_SetTSD(_glthread_TSD *, void *);
 
+/*@}*/
 
 
 #endif /* THREADS_H */

@@ -1,4 +1,7 @@
-/* $Id: depth.h,v 1.11.8.2 2003/03/21 11:35:15 keithw Exp $ */
+/**
+ * \file depth.h
+ * \brief Depth buffer operations.
+ */
 
 /*
  * Mesa 3-D graphics library
@@ -24,6 +27,8 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+/* $Id: depth.h,v 1.11.8.3 2003/03/22 16:49:58 jrfonseca Exp $ */
+
 
 #ifndef DEPTH_H
 #define DEPTH_H
@@ -33,22 +38,24 @@
 
 
 #if _HAVE_FULL_GL
+
 extern void
 _mesa_ClearDepth( GLclampd depth );
-
 
 extern void
 _mesa_DepthFunc( GLenum func );
 
-
 extern void
 _mesa_DepthMask( GLboolean flag );
 
-
 extern void 
 _mesa_init_depth( GLcontext * ctx );
+
 #else
+
+/** \brief No-op. */
 #define _mesa_init_depth( c ) ((void)0)
+
 #endif
 
 #endif

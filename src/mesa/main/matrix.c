@@ -1,6 +1,6 @@
 /**
  * \file matrix.c
- * \brief Matrix operations.
+ * brief Matrix operations.
  *
  * \note
  * -# 4x4 transformation matrices are stored in memory in column major order.
@@ -32,7 +32,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: matrix.c,v 1.45.4.3 2003/03/20 19:38:41 jrfonseca Exp $ */
+/* $Id: matrix.c,v 1.45.4.4 2003/03/22 16:49:58 jrfonseca Exp $ */
 
 
 #include "glheader.h"
