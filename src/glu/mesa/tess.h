@@ -1,4 +1,4 @@
-/* $Id: tess.h,v 1.15.2.4 1999/12/02 06:18:25 gareth Exp $ */
+/* $Id: tess.h,v 1.15.2.5 1999/12/05 02:04:30 gareth Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -56,11 +56,12 @@ extern "C" {
 struct GLUtesselator
 {
     tess_callbacks_t	callbacks;
-    GLboolean		boundary_only;
     GLenum		winding_rule;
-    GLenum		orientation;
+    GLboolean		boundary_only;
     GLdouble		tolerance;
-    tess_plane_t	plane;
+    GLenum		orientation;
+    tess_proj_t		projection;
+    void		*data;
     GLint		num_contours;
     tess_contour_t	*contours, *last_contour;
     tess_contour_t	*current_contour;
@@ -71,20 +72,22 @@ struct GLUtesselator
     tess_grid_t		*grid;			/* Not currently used... */
 #endif
     heap_t		*ears;
-    hashtable_t		*cvc_lists;
-    void		*data;
     GLboolean		edge_flag;
     GLuint		label;
+    tess_plane_t	plane;
     GLenum		error;
 };
 
 
 /*****************************************************************************
- * Tessellation error handler:
+ * Common tessellation functions:
  *****************************************************************************/
 extern void tess_error_callback( GLUtesselator *, GLenum );
 
+extern GLdouble twice_contour_area( tess_contour_t *contour );
+extern void reverse_contour( tess_contour_t *contour );
 extern void delete_contour( tess_contour_t **contour );
+
 extern void contour_dump( tess_contour_t *contour );
 
 
