@@ -57,22 +57,31 @@ FILE_PATTERNS          = \
 			buffers.[ch] \
 			dd.h \
 			context.[ch] \
+			enable.h \
 			feedback.[ch] \
+			get.h \
 			hash.[ch] \
 			image.[ch] \
 			imports.[ch] \
 			lines.[ch] \
+			light.h \
 			matrix.[ch] \
 			macros.h \
 			mtypes.h \
+			pixel.h \
 			points.[ch] \
 			polygon.[ch] \
 			rastpos.[ch] \
 			simple_list.h \
 			state.[ch] \
 			stencil.[ch] \
+			subset_*.c \
+			texformat.h \
+			teximage.h \
+			textstate.h \
+			texstore.h \
 			texobj.[ch] \
-			subset_*.c
+			texutil_tmp.h
 RECURSIVE              = NO
 EXCLUDE                = 
 EXCLUDE_PATTERNS       = 
