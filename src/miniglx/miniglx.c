@@ -22,7 +22,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: miniglx.c,v 1.1.4.24 2002/12/25 12:51:21 keithw Exp $ */
+/* $Id: miniglx.c,v 1.1.4.25 2002/12/27 11:25:08 keithw Exp $ */
 
 
 /**
@@ -549,7 +549,7 @@ InitializeScreenConfigs(int *numConfigs, __GLXvisualConfig **configs)
       (*configs)[i].blueMask = 0xff;
       (*configs)[i].alphaMask = 0xff000000;
       (*configs)[i].doubleBuffer = True;
-      (*configs)[i].stereo = True;
+      (*configs)[i].stereo = False;
       (*configs)[i].bufferSize = 32;
       (*configs)[i].depthSize = 24;
       (*configs)[i].stencilSize = 8;
