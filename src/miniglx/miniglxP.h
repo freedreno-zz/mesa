@@ -173,49 +173,111 @@ struct __DRIdrawableRec {
 };
 
 /**
+ * \brief DRIDriverContext type.
+ */
+struct DRIDriverContextRec {
+   const char *pciBusID;
+   int pciBus;
+   int pciDevice;
+   int pciFunc;
+   int chipset;
+   int bpp; 
+   int cpp;  
+   
+   unsigned long FBStart;   /**< \brief physical address of the framebuffer */
+   unsigned long MMIOStart; /**< \brief physical address of the MMIO region */
+   
+   int FBSize;              /**< \brief size of the mmap'd framebuffer in bytes */
+   int MMIOSize;            /**< \brief size of the mmap'd MMIO region in bytes */
+
+   void *FBAddress;         /**< \brief start of the mmap'd framebuffer */
+   void *MMIOAddress;       /**< \brief start of the mmap'd MMIO region */
+   
+   /**
+    * \name Client configuration details
+    *
+    * These are computed on the server and sent to clients as part of
+    * the initial handshaking.
+    */
+   /*@{*/
+   struct {
+      unsigned long hSAREA;
+      int SAREASize;
+      unsigned long hFrameBuffer;
+      int fbOrigin;
+      int fbSize;
+      int fbStride;
+      int virtualWidth;
+      int virtualHeight;
+   } shared;
+   
+   /*@}*/
+   /**
+    * \name From DRIInfoRec
+    */
+   /*@{*/
+   int drmFD;  /**< \brief DRM device file descriptor */
+   struct _XF86DRISAREA *pSAREA;
+   unsigned int serverContext;	/**< \brief DRM context only active on server */
+   /*@}*/
+   
+   
+   /**
+    * \name Driver private
+    *
+    * Populated by __driInitFBDev()
+    */
+   /*@{*/
+   void *driverPrivate;
+   void *driverClientMsg;
+   int driverClientMsgSize;
+   /*@}*/
+};
+
+/**
  * \brief Interface to the DRI driver.
  *
  * This structure is retrieved from the loadable driver by the \e
- * __driMiniGLXDriver symbol to access the Mini GLX specific hardware
+ * __driDriver symbol to access the Mini GLX specific hardware
  * initialization and take down routines.
  */
-struct MiniGLXDriverRec { 
+struct DRIDriverRec { 
    /**
     * \brief Get the list of supported visuals.
     */
-   int (*initScreenConfigs)( struct MiniGLXDisplayRec *dpy,
+   int (*initScreenConfigs)( struct DRIDriverContextRec *dpy,
 			     int *numConfigs, __GLXvisualConfig **configs );
    /**
     * \brief Validate the framebuffer device mode
     */
-   int (*validateMode)( struct MiniGLXDisplayRec *dpy );
+   int (*validateMode)( struct DRIDriverContextRec *dpy );
 
    /**
     * \brief Examine mode returned by fbdev (may differ from the one
     * requested), restore any hw regs clobbered by fbdev.
     */
-   int (*postValidateMode)( struct MiniGLXDisplayRec *dpy );
+   int (*postValidateMode)( struct DRIDriverContextRec *dpy );
 
    /**
     * \brief Initialize the framebuffer device.
     */
-   int (*initFBDev)( struct MiniGLXDisplayRec *dpy );
+   int (*initFBDev)( struct DRIDriverContextRec *dpy );
 
    /**
     * \brief Halt the framebuffer device.
     */
-   void (*haltFBDev)( struct MiniGLXDisplayRec *dpy );
+   void (*haltFBDev)( struct DRIDriverContextRec *dpy );
 
 
    /**
     * \brief Idle and shutdown hardware in preparation for a vt switch.
     */
-   int (*shutdownHardware)(  struct MiniGLXDisplayRec *dpy );
+   int (*shutdownHardware)(  struct DRIDriverContextRec *dpy );
 
    /**
     * \brief Restore hardware state after regaining the vt.
     */
-   int (*restoreHardware)(  struct MiniGLXDisplayRec *dpy );
+   int (*restoreHardware)(  struct DRIDriverContextRec *dpy );
 };
 
 
@@ -305,7 +367,6 @@ struct MiniGLXConnection {
 };
 
 
-
 /**
  * \brief X Display type
  *
@@ -321,9 +382,6 @@ struct MiniGLXDisplayRec {
    int OriginalVT;
    int ConsoleFD;        /**< \brief console TTY device file descriptor */
    int FrameBufferFD;    /**< \brief framebuffer device file descriptor */
-   caddr_t FrameBuffer;  /**< \brief start of the mmap'd framebuffer */
-   caddr_t MMIOAddress;  /**< \brief start of the mmap'd MMIO region */
-   int MMIOSize;         /**< \brief size of the mmap'd MMIO region in bytes */
    int NumWindows;       /**< \brief number of open windows */
    Window TheWindow;     /**< \brief open window - only allow one window for now */
    int rotateMode;
@@ -366,7 +424,8 @@ struct MiniGLXDisplayRec {
    /**
     * \brief Mini GLX specific driver hooks
     */
-   struct MiniGLXDriverRec *driver;
+   struct DRIDriverRec *driver;
+   struct DRIDriverContextRec driverContext;
 
    /**
     * \name Configuration details
@@ -376,54 +435,6 @@ struct MiniGLXDisplayRec {
    /*@{*/
    const char *fbdevDevice;
    const char *clientDriverName;
-   const char *pciBusID;
-   int pciBus;
-   int pciDevice;
-   int pciFunc;
-   int chipset;
-   int bpp; 
-   int cpp;  
-   /*@}*/
-
-
-   /**
-    * \name Client configuration details
-    *
-    * These are computed on the server and sent to clients as part of
-    * the initial handshaking.
-    */
-   /*@{*/
-   struct {
-      unsigned long hSAREA;
-      int SAREASize;
-      unsigned long hFrameBuffer;
-      int fbOrigin;
-      int fbSize;
-      int fbStride;
-      int virtualWidth;
-      int virtualHeight;
-   } shared;
-   /*@}*/
-      
-
-   /**
-    * \name From DRIInfoRec
-    */
-   /*@{*/
-   int drmFD;  /**< \brief DRM device file descriptor */
-   struct _XF86DRISAREA *pSAREA;
-   unsigned int serverContext;	/**< \brief DRM context only active on server */
-   /*@}*/
-
-   /**
-    * \name Driver private
-    *
-    * Populated by __driInitFBDev()
-    */
-   /*@{*/
-   void *driverInfo;
-   void *driverClientMsg;
-   int driverClientMsgSize;
    /*@}*/
 };
 

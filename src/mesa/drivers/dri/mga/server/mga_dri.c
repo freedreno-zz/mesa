@@ -50,7 +50,7 @@
  */
 #define MGA_TIMEOUT		2048
 
-static void MGAWaitForIdleDMA( struct MiniGLXDisplayRec *dpy, MGAPtr pMga )
+static void MGAWaitForIdleDMA( struct DRIDriverContextRec *ctx, MGAPtr pMga )
 {
    drmMGALock lock;
    int ret;
@@ -63,7 +63,7 @@ static void MGAWaitForIdleDMA( struct MiniGLXDisplayRec *dpy, MGAPtr pMga )
          /* first ask for quiescent and flush */
          lock.flags = DRM_MGA_LOCK_QUIESCENT | DRM_MGA_LOCK_FLUSH;
          do {
-	    ret = drmCommandWrite( dpy->drmFD, DRM_MGA_FLUSH,
+	    ret = drmCommandWrite( ctx->drmFD, DRM_MGA_FLUSH,
                                    &lock, sizeof( drmMGALock ) );
          } while ( ret == -EBUSY && i++ < DRM_MGA_IDLE_RETRY );
 
@@ -71,7 +71,7 @@ static void MGAWaitForIdleDMA( struct MiniGLXDisplayRec *dpy, MGAPtr pMga )
          if ( ret == -EBUSY ) { 
             lock.flags = DRM_MGA_LOCK_QUIESCENT;
             do {
-	       ret = drmCommandWrite( dpy->drmFD, DRM_MGA_FLUSH,
+	       ret = drmCommandWrite( ctx->drmFD, DRM_MGA_FLUSH,
                                       &lock, sizeof( drmMGALock ) );
             } while ( ret == -EBUSY && i++ < DRM_MGA_IDLE_RETRY );
          }
@@ -83,7 +83,7 @@ static void MGAWaitForIdleDMA( struct MiniGLXDisplayRec *dpy, MGAPtr pMga )
       fprintf( stderr,
                "[dri] Idle timed out, resetting engine...\n" );
 
-      drmCommandNone( dpy->drmFD, DRM_MGA_RESET );
+      drmCommandNone( ctx->drmFD, DRM_MGA_RESET );
    }
 }
 
@@ -94,7 +94,7 @@ static unsigned int mylog2( unsigned int n )
    return log2;
 }
 
-static int MGADRIAgpInit(struct MiniGLXDisplayRec *dpy, MGAPtr pMga)
+static int MGADRIAgpInit(struct DRIDriverContextRec *ctx, MGAPtr pMga)
 {
    unsigned long mode;
    unsigned int vendor, device;
@@ -125,14 +125,14 @@ static int MGADRIAgpInit(struct MiniGLXDisplayRec *dpy, MGAPtr pMga)
    pMga->agpTextures.size = pMga->agp.size -
                                      pMga->agpTextures.offset;
 
-   if ( drmAgpAcquire( dpy->drmFD ) < 0 ) {
+   if ( drmAgpAcquire( ctx->drmFD ) < 0 ) {
      fprintf( stderr, "[agp] AGP not available\n" );
       return 0;
    }
 
-   mode   = drmAgpGetMode( dpy->drmFD );        /* Default mode */
-   vendor = drmAgpVendorId( dpy->drmFD );
-   device = drmAgpDeviceId( dpy->drmFD );
+   mode   = drmAgpGetMode( ctx->drmFD );        /* Default mode */
+   vendor = drmAgpVendorId( ctx->drmFD );
+   device = drmAgpDeviceId( ctx->drmFD );
 
    mode &= ~MGA_AGP_MODE_MASK;
    switch ( pMga->agpMode ) {
@@ -149,13 +149,13 @@ static int MGADRIAgpInit(struct MiniGLXDisplayRec *dpy, MGAPtr pMga)
    fprintf( stderr,
             "[agp] Mode 0x%08lx [AGP 0x%04x/0x%04x; Card 0x%04x/0x%04x]\n",
             mode, vendor, device,
-            dpy->pciVendor,
-            dpy->pciChipType );
+            ctx->pciVendor,
+            ctx->pciChipType );
 #endif
 
-   if ( drmAgpEnable( dpy->drmFD, mode ) < 0 ) {
+   if ( drmAgpEnable( ctx->drmFD, mode ) < 0 ) {
      fprintf( stderr, "[agp] AGP not enabled\n" );
-      drmAgpRelease( dpy->drmFD );
+      drmAgpRelease( ctx->drmFD );
       return 0;
    }
 
@@ -177,27 +177,27 @@ static int MGADRIAgpInit(struct MiniGLXDisplayRec *dpy, MGAPtr pMga)
       }
    }
 
-   ret = drmAgpAlloc( dpy->drmFD, pMga->agp.size,
+   ret = drmAgpAlloc( ctx->drmFD, pMga->agp.size,
 		      0, NULL, &pMga->agp.handle );
    if ( ret < 0 ) {
       fprintf( stderr, "[agp] Out of memory (%d)\n", ret );
-      drmAgpRelease( dpy->drmFD );
+      drmAgpRelease( ctx->drmFD );
       return 0;
    }
    fprintf( stderr,
 	       "[agp] %d kB allocated with handle 0x%08x\n",
 	       pMga->agp.size/1024, (unsigned int)pMga->agp.handle );
 
-   if ( drmAgpBind( dpy->drmFD, pMga->agp.handle, 0 ) < 0 ) {
+   if ( drmAgpBind( ctx->drmFD, pMga->agp.handle, 0 ) < 0 ) {
       fprintf( stderr, "[agp] Could not bind memory\n" );
-      drmAgpFree( dpy->drmFD, pMga->agp.handle );
-      drmAgpRelease( dpy->drmFD );
+      drmAgpFree( ctx->drmFD, pMga->agp.handle );
+      drmAgpRelease( ctx->drmFD );
       return 0;
    }
 
    /* WARP microcode space
     */
-   if ( drmAddMap( dpy->drmFD,
+   if ( drmAddMap( ctx->drmFD,
 		   pMga->warp.offset,
 		   pMga->warp.size,
 		   DRM_AGP, DRM_READ_ONLY,
@@ -210,7 +210,7 @@ static int MGADRIAgpInit(struct MiniGLXDisplayRec *dpy, MGAPtr pMga)
 	       "[agp] WARP microcode handle = 0x%08lx\n",
 	       pMga->warp.handle );
 
-   if ( drmMap( dpy->drmFD,
+   if ( drmMap( ctx->drmFD,
 		pMga->warp.handle,
 		pMga->warp.size,
 		&pMga->warp.map ) < 0 ) {
@@ -224,7 +224,7 @@ static int MGADRIAgpInit(struct MiniGLXDisplayRec *dpy, MGAPtr pMga)
 
    /* Primary DMA space
     */
-   if ( drmAddMap( dpy->drmFD,
+   if ( drmAddMap( ctx->drmFD,
 		   pMga->primary.offset,
 		   pMga->primary.size,
 		   DRM_AGP, DRM_READ_ONLY,
@@ -237,7 +237,7 @@ static int MGADRIAgpInit(struct MiniGLXDisplayRec *dpy, MGAPtr pMga)
 	       "[agp] Primary DMA handle = 0x%08lx\n",
 	       pMga->primary.handle );
 
-   if ( drmMap( dpy->drmFD,
+   if ( drmMap( ctx->drmFD,
 		pMga->primary.handle,
 		pMga->primary.size,
 		&pMga->primary.map ) < 0 ) {
@@ -251,7 +251,7 @@ static int MGADRIAgpInit(struct MiniGLXDisplayRec *dpy, MGAPtr pMga)
 
    /* DMA buffers
     */
-   if ( drmAddMap( dpy->drmFD,
+   if ( drmAddMap( ctx->drmFD,
 		   pMga->buffers.offset,
 		   pMga->buffers.size,
 		   DRM_AGP, 0,
@@ -264,7 +264,7 @@ static int MGADRIAgpInit(struct MiniGLXDisplayRec *dpy, MGAPtr pMga)
 	       "[agp] DMA buffers handle = 0x%08lx\n",
 	       pMga->buffers.handle );
 
-   if ( drmMap( dpy->drmFD,
+   if ( drmMap( ctx->drmFD,
 		pMga->buffers.handle,
 		pMga->buffers.size,
 		&pMga->buffers.map ) < 0 ) {
@@ -276,7 +276,7 @@ static int MGADRIAgpInit(struct MiniGLXDisplayRec *dpy, MGAPtr pMga)
 	       "[agp] DMA buffers mapped at 0x%08lx\n",
 	       (unsigned long)pMga->buffers.map );
 
-   count = drmAddBufs( dpy->drmFD,
+   count = drmAddBufs( ctx->drmFD,
 		       MGA_NUM_BUFFERS, MGA_BUFFER_SIZE,
 		       DRM_AGP_BUFFER, pMga->buffers.offset );
    if ( count <= 0 ) {
@@ -294,7 +294,7 @@ static int MGADRIAgpInit(struct MiniGLXDisplayRec *dpy, MGAPtr pMga)
       i = MGA_LOG_MIN_TEX_REGION_SIZE;
    pMga->agpTextures.size = (pMga->agpTextures.size >> i) << i;
 
-   if ( drmAddMap( dpy->drmFD,
+   if ( drmAddMap( ctx->drmFD,
                    pMga->agpTextures.offset,
                    pMga->agpTextures.size,
                    DRM_AGP, 0,
@@ -313,11 +313,11 @@ static int MGADRIAgpInit(struct MiniGLXDisplayRec *dpy, MGAPtr pMga)
    return 1;
 }
 
-static int MGADRIMapInit( struct MiniGLXDisplayRec *dpy, MGAPtr pMga )
+static int MGADRIMapInit( struct DRIDriverContextRec *ctx, MGAPtr pMga )
 {
    pMga->registers.size = MGAIOMAPSIZE;
 
-   if ( drmAddMap( dpy->drmFD,
+   if ( drmAddMap( ctx->drmFD,
 		   (drmHandle)pMga->IOAddress,
 		   pMga->registers.size,
 		   DRM_REGISTERS, DRM_READ_ONLY,
@@ -332,7 +332,7 @@ static int MGADRIMapInit( struct MiniGLXDisplayRec *dpy, MGAPtr pMga )
 
    pMga->status.size = SAREA_MAX;
 
-   if ( drmAddMap( dpy->drmFD, 0, pMga->status.size,
+   if ( drmAddMap( ctx->drmFD, 0, pMga->status.size,
 		   DRM_SHM, DRM_READ_ONLY | DRM_LOCKED | DRM_KERNEL,
 		   &pMga->status.handle ) < 0 ) {
       fprintf( stderr,
@@ -343,7 +343,7 @@ static int MGADRIMapInit( struct MiniGLXDisplayRec *dpy, MGAPtr pMga )
 	       "[drm] Status handle = 0x%08lx\n",
 	       pMga->status.handle );
 
-   if ( drmMap( dpy->drmFD,
+   if ( drmMap( ctx->drmFD,
 		pMga->status.handle,
 		pMga->status.size,
 		&pMga->status.map ) < 0 ) {
@@ -358,7 +358,7 @@ static int MGADRIMapInit( struct MiniGLXDisplayRec *dpy, MGAPtr pMga )
    return 1;
 }
 
-static int MGADRIKernelInit( struct MiniGLXDisplayRec *dpy, MGAPtr pMga )
+static int MGADRIKernelInit( struct DRIDriverContextRec *ctx, MGAPtr pMga )
 {
    drmMGAInit init;
    int ret;
@@ -384,7 +384,7 @@ static int MGADRIKernelInit( struct MiniGLXDisplayRec *dpy, MGAPtr pMga )
    init.sgram = 0; /* FIXME !pMga->HasSDRAM; */
 
 
-   switch (dpy->bpp)
+   switch (ctx->bpp)
      {
      case 16:
        init.maccess = MGA_MACCESS_PW16;
@@ -393,25 +393,25 @@ static int MGADRIKernelInit( struct MiniGLXDisplayRec *dpy, MGAPtr pMga )
        init.maccess = MGA_MACCESS_PW32;
        break;
      default:
-       fprintf( stderr, "[mga] invalid bpp (%d)\n", dpy->bpp );
+       fprintf( stderr, "[mga] invalid bpp (%d)\n", ctx->bpp );
        return 0;
      }
 
 
-   init.fb_cpp		= dpy->bpp / 8;
+   init.fb_cpp		= ctx->bpp / 8;
    init.front_offset	= pMga->frontOffset;
    init.front_pitch	= pMga->frontPitch / init.fb_cpp;
    init.back_offset	= pMga->backOffset;
    init.back_pitch	= pMga->backPitch / init.fb_cpp;
 
-   init.depth_cpp	= dpy->bpp / 8;
+   init.depth_cpp	= ctx->bpp / 8;
    init.depth_offset	= pMga->depthOffset;
    init.depth_pitch	= pMga->depthPitch / init.depth_cpp;
 
    init.texture_offset[0] = pMga->textureOffset;
    init.texture_size[0] = pMga->textureSize;
 
-   init.fb_offset = dpy->shared.hFrameBuffer;
+   init.fb_offset = ctx->shared.hFrameBuffer;
    init.mmio_offset = pMga->registers.handle;
    init.status_offset = pMga->status.handle;
 
@@ -422,7 +422,7 @@ static int MGADRIKernelInit( struct MiniGLXDisplayRec *dpy, MGAPtr pMga )
    init.texture_offset[1] = pMga->agpTextures.handle;
    init.texture_size[1] = pMga->agpTextures.size;
 
-   ret = drmCommandWrite( dpy->drmFD, DRM_MGA_INIT, &init, sizeof(drmMGAInit));
+   ret = drmCommandWrite( ctx->drmFD, DRM_MGA_INIT, &init, sizeof(drmMGAInit));
    if ( ret < 0 ) {
       fprintf( stderr,
 		  "[drm] Failed to initialize DMA! (%d)\n", ret );
@@ -432,18 +432,18 @@ static int MGADRIKernelInit( struct MiniGLXDisplayRec *dpy, MGAPtr pMga )
    return 1;
 }
 
-static void MGADRIIrqInit(struct MiniGLXDisplayRec *dpy, MGAPtr pMga)
+static void MGADRIIrqInit(struct DRIDriverContextRec *ctx, MGAPtr pMga)
 {
   if (!pMga->irq)
     {
-      pMga->irq = drmGetInterruptFromBusID(dpy->drmFD,
-                                           dpy->pciBus,
-                                           dpy->pciDevice,
-                                           dpy->pciFunc);
+      pMga->irq = drmGetInterruptFromBusID(ctx->drmFD,
+                                           ctx->pciBus,
+                                           ctx->pciDevice,
+                                           ctx->pciFunc);
 
       fprintf(stderr, "[drm] got IRQ %d\n", pMga->irq);
 
-    if((drmCtlInstHandler(dpy->drmFD, pMga->irq)) != 0)
+    if((drmCtlInstHandler(ctx->drmFD, pMga->irq)) != 0)
       {
         fprintf(stderr,
                 "[drm] failure adding irq handler, "
@@ -463,9 +463,9 @@ static void MGADRIIrqInit(struct MiniGLXDisplayRec *dpy, MGAPtr pMga)
             pMga->irq);
 }
 
-static int MGADRIBuffersInit( struct MiniGLXDisplayRec *dpy, MGAPtr pMga )
+static int MGADRIBuffersInit( struct DRIDriverContextRec *ctx, MGAPtr pMga )
 {
-   pMga->drmBuffers = drmMapBufs( dpy->drmFD );
+   pMga->drmBuffers = drmMapBufs( ctx->drmFD );
    if ( !pMga->drmBuffers )
      {
        fprintf( stderr,
@@ -480,19 +480,19 @@ static int MGADRIBuffersInit( struct MiniGLXDisplayRec *dpy, MGAPtr pMga )
    return 1;
 }
 
-static int MGAMemoryInit( struct MiniGLXDisplayRec *dpy, MGAPtr pMga )
+static int MGAMemoryInit( struct DRIDriverContextRec *ctx, MGAPtr pMga )
 {
-   int        width_bytes = dpy->shared.virtualWidth * dpy->cpp;
-   int        bufferSize  = ((dpy->shared.virtualHeight * width_bytes
+   int        width_bytes = ctx->shared.virtualWidth * ctx->cpp;
+   int        bufferSize  = ((ctx->shared.virtualHeight * width_bytes
 			      + MGA_BUFFER_ALIGN)
 			     & ~MGA_BUFFER_ALIGN);
-   int        depthSize   = ((((dpy->shared.virtualHeight+15) & ~15) * width_bytes
+   int        depthSize   = ((((ctx->shared.virtualHeight+15) & ~15) * width_bytes
 			      + MGA_BUFFER_ALIGN)
 			     & ~MGA_BUFFER_ALIGN);
    int        l;
 
    pMga->frontOffset = 0;
-   pMga->frontPitch = dpy->shared.virtualWidth * dpy->cpp;
+   pMga->frontPitch = ctx->shared.virtualWidth * ctx->cpp;
 
    fprintf(stderr, 
 	   "Using %d MB AGP aperture\n", pMga->agpSize);
@@ -503,7 +503,7 @@ static int MGAMemoryInit( struct MiniGLXDisplayRec *dpy, MGAPtr pMga )
 
    /* Front, back and depth buffers - everything else texture??
     */
-   pMga->textureSize = dpy->shared.fbSize - 2 * bufferSize - depthSize;
+   pMga->textureSize = ctx->shared.fbSize - 2 * bufferSize - depthSize;
 
    if (pMga->textureSize < 0) 
       return 0;
@@ -528,7 +528,7 @@ static int MGAMemoryInit( struct MiniGLXDisplayRec *dpy, MGAPtr pMga )
    }
 
    /* Reserve space for textures */
-   pMga->textureOffset = ((dpy->shared.fbSize - pMga->textureSize +
+   pMga->textureOffset = ((ctx->shared.fbSize - pMga->textureSize +
 			   MGA_BUFFER_ALIGN) &
 			  ~MGA_BUFFER_ALIGN);
 
@@ -538,12 +538,12 @@ static int MGAMemoryInit( struct MiniGLXDisplayRec *dpy, MGAPtr pMga )
    pMga->depthOffset = ((pMga->textureOffset - depthSize +
 			 MGA_BUFFER_ALIGN) &
 			~MGA_BUFFER_ALIGN);
-   pMga->depthPitch = dpy->shared.virtualWidth * dpy->cpp;
+   pMga->depthPitch = ctx->shared.virtualWidth * ctx->cpp;
 
    pMga->backOffset = ((pMga->depthOffset - bufferSize +
 			MGA_BUFFER_ALIGN) &
                         ~MGA_BUFFER_ALIGN);
-   pMga->backPitch = dpy->shared.virtualWidth * dpy->cpp;
+   pMga->backPitch = ctx->shared.virtualWidth * ctx->cpp;
 
 
    fprintf(stderr, 
@@ -559,12 +559,12 @@ static int MGAMemoryInit( struct MiniGLXDisplayRec *dpy, MGAPtr pMga )
    return 1;
 } 
 
-static int MGACheckDRMVersion( struct MiniGLXDisplayRec *dpy, MGAPtr pMga )
+static int MGACheckDRMVersion( struct DRIDriverContextRec *ctx, MGAPtr pMga )
 {
   drmVersionPtr version;
 
   /* Check the MGA DRM version */
-  version = drmGetVersion(dpy->drmFD);
+  version = drmGetVersion(ctx->drmFD);
   if ( version ) {
     if ( version->version_major != 3 ||
          version->version_minor < 0 ) {
@@ -627,28 +627,27 @@ static void print_client_msg( MGADRIPtr pMGADRI )
 #endif
 }
 
-static int MGAScreenInit( struct MiniGLXDisplayRec *dpy, MGAPtr pMga )
+static int MGAScreenInit( struct DRIDriverContextRec *ctx, MGAPtr pMga )
 {
   int       i;
   int       err;
   MGADRIPtr pMGADRI;
-  unsigned int serverContext;	
 
   usleep(100);
-  assert(!dpy->IsClient);
+  //assert(!ctx->IsClient);
 
    {
-      int  width_bytes = (dpy->shared.virtualWidth * dpy->cpp);
-      int  maxy        = dpy->shared.fbSize / width_bytes;
+      int  width_bytes = (ctx->shared.virtualWidth * ctx->cpp);
+      int  maxy        = ctx->shared.fbSize / width_bytes;
 
 
-      if (maxy <= dpy->shared.virtualHeight * 3) {
+      if (maxy <= ctx->shared.virtualHeight * 3) {
 	 fprintf(stderr, 
 		 "Static buffer allocation failed -- "
 		 "need at least %d kB video memory (have %d kB)\n",
-		 (dpy->shared.virtualWidth * dpy->shared.virtualHeight *
-		  dpy->cpp * 3 + 1023) / 1024,
-		 dpy->shared.fbSize / 1024);
+		 (ctx->shared.virtualWidth * ctx->shared.virtualHeight *
+		  ctx->cpp * 3 + 1023) / 1024,
+		 ctx->shared.fbSize / 1024);
 	 return 0;
       } 
    }
@@ -668,77 +667,77 @@ static int MGAScreenInit( struct MiniGLXDisplayRec *dpy, MGAPtr pMga )
 
    fprintf( stderr,
 	       "[drm] bpp: %d depth: %d\n",
-            dpy->bpp, dpy->bpp /* FIXME: depth */ );
+            ctx->bpp, ctx->bpp /* FIXME: depth */ );
 
-   if ( (dpy->bpp / 8) != 2 &&
-	(dpy->bpp / 8) != 4 ) {
+   if ( (ctx->bpp / 8) != 2 &&
+	(ctx->bpp / 8) != 4 ) {
       fprintf( stderr,
 		  "[dri] Direct rendering only supported in 16 and 32 bpp modes\n" );
       return 0;
    }
 
-   dpy->shared.SAREASize = SAREA_MAX;
+   ctx->shared.SAREASize = SAREA_MAX;
 
 
    /* Note that drmOpen will try to load the kernel module, if needed. */
-   dpy->drmFD = drmOpen("mga", NULL );
-   if (dpy->drmFD < 0) {
+   ctx->drmFD = drmOpen("mga", NULL );
+   if (ctx->drmFD < 0) {
       fprintf(stderr, "[drm] drmOpen failed\n");
       return 0;
    }
 
-   if ((err = drmSetBusid(dpy->drmFD, dpy->pciBusID)) < 0) {
+   if ((err = drmSetBusid(ctx->drmFD, ctx->pciBusID)) < 0) {
       fprintf(stderr, "[drm] drmSetBusid failed (%d, %s), %s\n",
-	      dpy->drmFD, dpy->pciBusID, strerror(-err));
+	      ctx->drmFD, ctx->pciBusID, strerror(-err));
       return 0;
    }
 
      
-   if (drmAddMap( dpy->drmFD,
+   if (drmAddMap( ctx->drmFD,
 		  0,
-		  dpy->shared.SAREASize,
+		  ctx->shared.SAREASize,
 		  DRM_SHM,
 		  DRM_CONTAINS_LOCK,
-		  &dpy->shared.hSAREA) < 0)
+		  &ctx->shared.hSAREA) < 0)
    {
       fprintf(stderr, "[drm] drmAddMap failed\n");
       return 0;
    }
    fprintf(stderr, "[drm] added %d byte SAREA at 0x%08lx\n",
-	   dpy->shared.SAREASize, dpy->shared.hSAREA);
+	   ctx->shared.SAREASize, ctx->shared.hSAREA);
 
-   if (drmMap( dpy->drmFD,
-	       dpy->shared.hSAREA,
-	       dpy->shared.SAREASize,
-	       (drmAddressPtr)(&dpy->pSAREA)) < 0)
+   if (drmMap( ctx->drmFD,
+	       ctx->shared.hSAREA,
+	       ctx->shared.SAREASize,
+	       (drmAddressPtr)(&ctx->pSAREA)) < 0)
    {
       fprintf(stderr, "[drm] drmMap failed\n");
       return 0;
    }
-   memset(dpy->pSAREA, 0, dpy->shared.SAREASize);
+   memset(ctx->pSAREA, 0, ctx->shared.SAREASize);
    fprintf(stderr, "[drm] mapped SAREA 0x%08lx to %p, size %d\n",
-	   dpy->shared.hSAREA, dpy->pSAREA, dpy->shared.SAREASize);
+	   ctx->shared.hSAREA, ctx->pSAREA, ctx->shared.SAREASize);
    
    /* Need to AddMap the framebuffer and mmio regions here:
     */
-   if (drmAddMap( dpy->drmFD,
-		  (drmHandle)dpy->FixedInfo.smem_start,
-		  dpy->FixedInfo.smem_len,
+   if (drmAddMap( ctx->drmFD,
+		  (drmHandle)ctx->FBStart,
+		  ctx->FBSize,
 		  DRM_FRAME_BUFFER,
 		  0,
-		  &dpy->shared.hFrameBuffer) < 0)
+		  &ctx->shared.hFrameBuffer) < 0)
    {
       fprintf(stderr, "[drm] drmAddMap framebuffer failed\n");
       return 0;
    }
    fprintf(stderr, "[drm] framebuffer handle = 0x%08lx\n",
-	   dpy->shared.hFrameBuffer);
+	   ctx->shared.hFrameBuffer);
 
 
 #if 0 /* will be done in MGADRIMapInit */
-   if (drmAddMap(dpy->drmFD, 
-		 dpy->FixedInfo.mmio_start,
-		 dpy->FixedInfo.mmio_len,
+   if (drmAddMap(ctx->drmFD, 
+		 ctx->FixedInfo.mmio_start,
+		 ctx->FixedInfo.mmio_len,
 		 DRM_REGISTERS, 
 		 DRM_READ_ONLY, 
 		 &pMga->registers.handle) < 0) {
@@ -751,20 +750,20 @@ static int MGAScreenInit( struct MiniGLXDisplayRec *dpy, MGAPtr pMga )
 
 
    /* Check the mga DRM version */
-   if (!MGACheckDRMVersion(dpy, pMga)) {
+   if (!MGACheckDRMVersion(ctx, pMga)) {
       return 0;
    }
 
-   if ( !MGADRIAgpInit( dpy, pMga ) ) {
+   if ( !MGADRIAgpInit( ctx, pMga ) ) {
       return 0;
    }
 
-   if ( !MGADRIMapInit( dpy, pMga ) ) {
+   if ( !MGADRIMapInit( ctx, pMga ) ) {
       return 0;
    }
 
    /* Memory manager setup */
-   if (!MGAMemoryInit(dpy, pMga)) {
+   if (!MGAMemoryInit(ctx, pMga)) {
       return 0;
    }
 
@@ -772,61 +771,59 @@ static int MGAScreenInit( struct MiniGLXDisplayRec *dpy, MGAPtr pMga )
    /* Create a 'server' context so we can grab the lock for
     * initialization ioctls.
     */
-   if ((err = drmCreateContext(dpy->drmFD, &serverContext)) != 0) {
+   if ((err = drmCreateContext(ctx->drmFD, &ctx->serverContext)) != 0) {
       fprintf(stderr, "%s: drmCreateContext failed %d\n", __FUNCTION__, err);
       return 0;
    }
 
-   DRM_LOCK(dpy->drmFD, dpy->pSAREA, serverContext, 0); 
+   DRM_LOCK(ctx->drmFD, ctx->pSAREA, ctx->serverContext, 0); 
 
    /* Initialize the kernel data structures */
-   if (!MGADRIKernelInit(dpy, pMga)) {
+   if (!MGADRIKernelInit(ctx, pMga)) {
       fprintf(stderr, "MGADRIKernelInit failed\n");
-      DRM_UNLOCK(dpy->drmFD, dpy->pSAREA, serverContext);
+      DRM_UNLOCK(ctx->drmFD, ctx->pSAREA, ctx->serverContext);
       return 0;
    }
 
    /* Initialize the vertex buffers list */
-   if (!MGADRIBuffersInit(dpy, pMga)) {
+   if (!MGADRIBuffersInit(ctx, pMga)) {
       fprintf(stderr, "MGADRIBuffersInit failed\n");
-      DRM_UNLOCK(dpy->drmFD, dpy->pSAREA, serverContext);
+      DRM_UNLOCK(ctx->drmFD, ctx->pSAREA, ctx->serverContext);
       return 0;
    }
 
    /* Initialize IRQ */
-   MGADRIIrqInit(dpy, pMga);
+   MGADRIIrqInit(ctx, pMga);
 
 
    /* Initialize the SAREA private data structure */
    {
       MGASAREAPrivPtr pSAREAPriv;
-      pSAREAPriv = (MGASAREAPrivPtr)(((char*)dpy->pSAREA) + 
+      pSAREAPriv = (MGASAREAPrivPtr)(((char*)ctx->pSAREA) + 
 					sizeof(XF86DRISAREARec));
       memset(pSAREAPriv, 0, sizeof(*pSAREAPriv));
    }
-
 
    /* Quick hack to clear the front & back buffers.  Could also use
     * the clear ioctl to do this, but would need to setup hw state
     * first.
     */
-   memset(dpy->FrameBuffer + pMga->frontOffset,
+   memset(ctx->FBAddress + pMga->frontOffset,
 	  0,
-	  pMga->frontPitch * dpy->shared.virtualHeight );
+	  pMga->frontPitch * ctx->shared.virtualHeight );
 
-   memset(dpy->FrameBuffer + pMga->backOffset,
+   memset(ctx->FBAddress + pMga->backOffset,
 	  0,
-	  pMga->backPitch * dpy->shared.virtualHeight );
-
+	  pMga->backPitch * ctx->shared.virtualHeight );
 
    /* Can release the lock now */
-   DRM_UNLOCK(dpy->drmFD, dpy->pSAREA, serverContext);
+/*   DRM_UNLOCK(ctx->drmFD, ctx->pSAREA, ctx->serverContext);*/
 
    /* This is the struct passed to radeon_dri.so for its initialization */
-   dpy->driverClientMsg = malloc(sizeof(MGADRIRec));
-   dpy->driverClientMsgSize = sizeof(MGADRIRec);
+   ctx->driverClientMsg = malloc(sizeof(MGADRIRec));
+   ctx->driverClientMsgSize = sizeof(MGADRIRec);
 
-   pMGADRI                    = (MGADRIPtr)dpy->driverClientMsg;
+   pMGADRI                    = (MGADRIPtr)ctx->driverClientMsg;
 
 
    switch(pMga->Chipset) {
@@ -841,10 +838,10 @@ static int MGAScreenInit( struct MiniGLXDisplayRec *dpy, MGAPtr pMga )
    default:
       return 0;
    }
-   pMGADRI->width		= dpy->shared.virtualWidth;
-   pMGADRI->height		= dpy->shared.virtualHeight;
-   pMGADRI->mem			= dpy->shared.fbSize;
-   pMGADRI->cpp			= dpy->bpp / 8;
+   pMGADRI->width		= ctx->shared.virtualWidth;
+   pMGADRI->height		= ctx->shared.virtualHeight;
+   pMGADRI->mem			= ctx->shared.fbSize;
+   pMGADRI->cpp			= ctx->bpp / 8;
 
    pMGADRI->agpMode		= pMga->agpMode;
 
@@ -885,7 +882,7 @@ static int MGAScreenInit( struct MiniGLXDisplayRec *dpy, MGAPtr pMga )
 /**
  * \brief Establish the set of visuals available for the display.
  *
- * \param dpy display handle.
+ * \param ctx display handle.
  * \param numConfigs will receive the number of supported visuals.
  * \param configs will point to the list of supported visuals.
  *
@@ -897,7 +894,7 @@ static int MGAScreenInit( struct MiniGLXDisplayRec *dpy, MGAPtr pMga )
  * display bit depth. Supports only 16 and 32 bpp bit depths, aborting
  * otherwise.
  */
-static int mgaInitScreenConfigs( struct MiniGLXDisplayRec *dpy,
+static int mgaInitScreenConfigs( struct DRIDriverContextRec *ctx,
                                  int *numConfigs, __GLXvisualConfig **configs)
 {
    int i;
@@ -906,7 +903,7 @@ static int mgaInitScreenConfigs( struct MiniGLXDisplayRec *dpy,
    *configs = (__GLXvisualConfig *) calloc(*numConfigs, 
 					   sizeof(__GLXvisualConfig));
 
-   switch (dpy->bpp) {
+   switch (ctx->bpp) {
    case 32:
       for (i = 0; i < *numConfigs; i++) {
 	 (*configs)[i].vid = 100 + i;
@@ -957,7 +954,7 @@ static int mgaInitScreenConfigs( struct MiniGLXDisplayRec *dpy,
 
    default:
       fprintf(stderr, "Unknown bpp in %s: %d\n", __FUNCTION__, 
-	      dpy->bpp);
+	      ctx->bpp);
       exit(1);
       break;
 
@@ -969,7 +966,7 @@ static int mgaInitScreenConfigs( struct MiniGLXDisplayRec *dpy,
 /**
  * \brief Validate the fbdev mode.
  * 
- * \param dpy display handle.
+ * \param ctx display handle.
  *
  * \return one on success, or zero on failure.
  *
@@ -977,7 +974,7 @@ static int mgaInitScreenConfigs( struct MiniGLXDisplayRec *dpy,
  *
  * \sa mgaValidateMode().
  */
-static int mgaValidateMode( struct MiniGLXDisplayRec *dpy )
+static int mgaValidateMode( struct DRIDriverContextRec *ctx )
 {
    return 1;
 }
@@ -986,7 +983,7 @@ static int mgaValidateMode( struct MiniGLXDisplayRec *dpy )
 /**
  * \brief Examine mode returned by fbdev.
  * 
- * \param dpy display handle.
+ * \param ctx display handle.
  *
  * \return one on success, or zero on failure.
  *
@@ -994,7 +991,7 @@ static int mgaValidateMode( struct MiniGLXDisplayRec *dpy )
  *
  * \sa mgaValidateMode().
  */
-static int mgaPostValidateMode( struct MiniGLXDisplayRec *dpy )
+static int mgaPostValidateMode( struct DRIDriverContextRec *ctx )
 {
    return 1;
 }
@@ -1003,45 +1000,45 @@ static int mgaPostValidateMode( struct MiniGLXDisplayRec *dpy )
 /**
  * \brief Initialize the framebuffer device mode
  *
- * \param dpy display handle.
+ * \param ctx display handle.
  *
  * \return one on success, or zero on failure.
  *
- * Fills in \p info with some default values and some information from \p dpy
+ * Fills in \p info with some default values and some information from \p ctx
  * and then calls MGAScreenInit() for the screen initialization.
  * 
  * Before exiting clears the framebuffer memomry accessing it directly.
  */
-static int mgaInitFBDev( struct MiniGLXDisplayRec *dpy )
+static int mgaInitFBDev( struct DRIDriverContextRec *ctx )
 {
    MGAPtr pMga = calloc(1, sizeof(*pMga));
 
    {
-      int  dummy = dpy->shared.virtualWidth;
+      int  dummy = ctx->shared.virtualWidth;
 
-      switch (dpy->bpp / 8) {
-      case 1: dummy = (dpy->shared.virtualWidth + 127) & ~127; break;
-      case 2: dummy = (dpy->shared.virtualWidth +  31) &  ~31; break;
+      switch (ctx->bpp / 8) {
+      case 1: dummy = (ctx->shared.virtualWidth + 127) & ~127; break;
+      case 2: dummy = (ctx->shared.virtualWidth +  31) &  ~31; break;
       case 3:
-      case 4: dummy = (dpy->shared.virtualWidth +  15) &  ~15; break;
+      case 4: dummy = (ctx->shared.virtualWidth +  15) &  ~15; break;
       }
 
-      dpy->shared.virtualWidth = dummy;
+      ctx->shared.virtualWidth = dummy;
    }
 
-   dpy->driverInfo = (void *)pMga;
+   ctx->driverPrivate = (void *)pMga;
    
    pMga->agpMode       = MGA_DEFAULT_AGP_MODE;
    pMga->agpSize       = MGA_DEFAULT_AGP_SIZE;
   
-   pMga->Chipset = dpy->chipset;
+   pMga->Chipset = ctx->chipset;
 
-   pMga->IOAddress = dpy->FixedInfo.mmio_start;
-   pMga->IOBase    = dpy->MMIOAddress;
+   pMga->IOAddress = ctx->MMIOStart;
+   pMga->IOBase    = ctx->MMIOAddress;
 
-   pMga->frontPitch = dpy->shared.virtualWidth * dpy->cpp;
+   pMga->frontPitch = ctx->shared.virtualWidth * ctx->cpp;
 
-   if (!MGAScreenInit( dpy, pMga ))
+   if (!MGAScreenInit( ctx, pMga ))
       return 0;
 
    return 1;
@@ -1052,76 +1049,50 @@ static int mgaInitFBDev( struct MiniGLXDisplayRec *dpy )
  * \brief The screen is being closed, so clean up any state and free any
  * resources used by the DRI.
  *
- * \param dpy display handle.
+ * \param ctx display handle.
  *
  * Unmaps the SAREA, closes the DRM device file descriptor and frees the driver
  * private data.
  */
-static void mgaHaltFBDev( struct MiniGLXDisplayRec *dpy )
+static void mgaHaltFBDev( struct DRIDriverContextRec *ctx )
 {
-    drmUnmap( dpy->pSAREA, dpy->shared.SAREASize );
-    drmClose(dpy->drmFD);
+    drmUnmap( ctx->pSAREA, ctx->shared.SAREASize );
+    drmClose(ctx->drmFD);
 
-    if (dpy->driverInfo) {
-       free(dpy->driverInfo);
-       dpy->driverInfo = 0;
+    if (ctx->driverPrivate) {
+       free(ctx->driverPrivate);
+       ctx->driverPrivate = NULL;
     }
 }
 
 
-/**
- * \brief A VT release or aquire signal has been received, and
- * requires some action.  We deal with loosing the VT by setting the
- * cliprects to zero and emitting an event to the application.  
- */
-static int mgaVTSwitchHandler( struct MiniGLXDisplayRec *dpy, int have_vt )
+static int mgaEngineShutdown( struct DRIDriverContextRec *ctx )
 {
-   int *lock = (int *)dpy->pSAREA;
-   int old, new;
-   DRM_CAS_RESULT(ret);
-   GLXDrawable draw;
-   __DRIdrawable *pdraw;
-   __DRIdrawablePrivate *pdp;
+   fprintf(stderr, "%s() is not yet implemented!\n", __FUNCTION__);
 
-   /* Indicate cliprects have changed
-    */
-   draw = dpy->TheWindow;
-   if (!draw) return 1;
-   pdraw = &draw->driDrawable;
-   if (!pdraw) return 1;
-   pdp = (__DRIdrawablePrivate *) pdraw->private;
-   if (!pdp) return 1;
-   pdp->lastStamp++;
-   pdp->numClipRects = have_vt ? 1 : 0;
+   return 1;
+}
 
-   /* Mark the lock contended.
-    */
-   if (!dpy->pSAREA) return 0;
-   do {
-      old = *(int *)dpy->pSAREA;
-      new = old | _DRM_LOCK_CONT;
-      DRM_CAS( lock, old, new, ret );
-      fprintf(stderr, "old %x new %x\n", old, new );
-   } while (ret);
+static int mgaEngineRestore( struct DRIDriverContextRec *ctx )
+{
+   fprintf(stderr, "%s() is not yet implemented!\n", __FUNCTION__);
 
-   if (have_vt)
-      return !(old & _DRM_LOCK_HELD);
-   else
-      return 1;
+   return 1;
 }
 
 /**
  * \brief Exported driver interface for Mini GLX.
  *
- * \sa MiniGLXDriverRec.
+ * \sa DRIDriverRec.
  */
-struct MiniGLXDriverRec __driMiniGLXDriver = {
+struct DRIDriverRec __driDriver = {
    mgaInitScreenConfigs,
    mgaValidateMode,
    mgaPostValidateMode,
    mgaInitFBDev,
    mgaHaltFBDev,
-   mgaVTSwitchHandler
+   mgaEngineShutdown,
+   mgaEngineRestore
 };
 
 
@@ -1141,14 +1112,14 @@ void MGADRICloseScreen( ScreenPtr pScreen )
    }
 
    if (pMga->irq) {
-      drmCtlUninstHandler(dpy->drmFD);
+      drmCtlUninstHandler(ctx->drmFD);
       pMga->irq = 0;
    }
 
    /* Cleanup DMA */
    memset( &init, 0, sizeof(drmMGAInit) );
    init.func = MGA_CLEANUP_DMA;
-   drmCommandWrite( dpy->drmFD, DRM_MGA_INIT, &init, sizeof(drmMGAInit) );
+   drmCommandWrite( ctx->drmFD, DRM_MGA_INIT, &init, sizeof(drmMGAInit) );
 
    if ( pMga->status.map ) {
       drmUnmap( pMga->status.map, pMga->status.size );
@@ -1173,10 +1144,10 @@ void MGADRICloseScreen( ScreenPtr pScreen )
    }
 
    if ( pMga->agp.handle ) {
-      drmAgpUnbind( dpy->drmFD, pMga->agp.handle );
-      drmAgpFree( dpy->drmFD, pMga->agp.handle );
+      drmAgpUnbind( ctx->drmFD, pMga->agp.handle );
+      drmAgpFree( ctx->drmFD, pMga->agp.handle );
       pMga->agp.handle = 0;
-      drmAgpRelease( dpy->drmFD );
+      drmAgpRelease( ctx->drmFD );
    }
 
    DRICloseScreen( pScreen );

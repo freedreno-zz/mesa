@@ -505,6 +505,8 @@ mgaMakeCurrent(__DRIcontextPrivate *driContextPriv,
                __DRIdrawablePrivate *driDrawPriv,
                __DRIdrawablePrivate *driReadPriv)
 {
+   fprintf(stderr, "%s\n", __FUNCTION__);
+
    if (driContextPriv) {
       mgaContextPtr mmesa = (mgaContextPtr) driContextPriv->driverPrivate;
 
@@ -530,7 +532,6 @@ mgaMakeCurrent(__DRIcontextPrivate *driContextPriv,
    return GL_TRUE;
 }
 
-
 void mgaGetLock( mgaContextPtr mmesa, GLuint flags )
 {
    __DRIdrawablePrivate *dPriv = mmesa->driDrawable;
@@ -538,10 +539,29 @@ void mgaGetLock( mgaContextPtr mmesa, GLuint flags )
    int me = mmesa->hHWContext;
    int i;
 
-   drmGetLock(mmesa->driFd, mmesa->hHWContext, flags);
+   fprintf(stderr, "%s\n", __FUNCTION__);
 
-   if (*(dPriv->pStamp) != mmesa->lastStamp) {
-      mmesa->lastStamp = *(dPriv->pStamp);
+   drmGetLock(mmesa->driFd, mmesa->hHWContext, flags);
+   
+   fprintf(stderr, 
+	   "mmesa->lastStamp %d dpriv->lastStamp %d *(dpriv->pStamp) %d\n",
+	   mmesa->lastStamp, 
+	   dPriv->lastStamp,
+	   *(dPriv->pStamp));
+   
+   /* The window might have moved, so we might need to get new clip
+    * rects.
+    *
+    * NOTE: This releases and regrabs the hw lock to allow the X server
+    * to respond to the DRI protocol request for new drawable info.
+    * Since the hardware state depends on having the latest drawable
+    * clip rects, all state checking must be done _after_ this call.
+    */
+   DRI_VALIDATE_DRAWABLE_INFO( sPriv, dPriv );
+
+   if ( mmesa->lastStamp == 0 ||
+	mmesa->lastStamp != dPriv->lastStamp ) {
+      mmesa->lastStamp = dPriv->lastStamp;
       mmesa->SetupNewInputs |= VERT_BIT_CLIP;
       mmesa->dirty_cliprects = (MGA_FRONT|MGA_BACK);
       mgaUpdateRects( mmesa, (MGA_FRONT|MGA_BACK) );
@@ -549,7 +569,7 @@ void mgaGetLock( mgaContextPtr mmesa, GLuint flags )
 
    mmesa->dirty |= MGA_UPLOAD_CONTEXT | MGA_UPLOAD_CLIPRECTS;
 
-    mmesa->sarea->dirty |= MGA_UPLOAD_CONTEXT;
+   mmesa->sarea->dirty |= MGA_UPLOAD_CONTEXT;
 
    if (sarea->ctxOwner != me) {
       mmesa->dirty |= (MGA_UPLOAD_CONTEXT | MGA_UPLOAD_TEX0 |

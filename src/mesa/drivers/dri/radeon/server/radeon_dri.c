@@ -40,16 +40,16 @@
 /**
  * \brief Wait for free FIFO entries.
  *
- * \param dpy display handle.
+ * \param ctx display handle.
  * \param entries number of free entries to wait.
  *
  * It polls the free entries from the chip until it reaches the requested value
  * or a timeout (3000 tries) occurs. Aborts the program if the FIFO times out.
  */
-static void RADEONWaitForFifo( struct MiniGLXDisplayRec *dpy,
+static void RADEONWaitForFifo( struct DRIDriverContextRec *ctx,
 			       int entries )
 {
-   unsigned char *RADEONMMIO = dpy->MMIOAddress;
+   unsigned char *RADEONMMIO = ctx->MMIOAddress;
    int i;
 
    for (i = 0; i < 3000; i++) {
@@ -70,14 +70,14 @@ static void RADEONWaitForFifo( struct MiniGLXDisplayRec *dpy,
 /**
  * \brief Read a PLL register.
  *
- * \param dpy display handle.
+ * \param ctx display handle.
  * \param addr PLL register index.
  *
  * \return value of the PLL register.
  */
-static unsigned int RADEONINPLL( struct MiniGLXDisplayRec *dpy, int addr)
+static unsigned int RADEONINPLL( struct DRIDriverContextRec *ctx, int addr)
 {
-    unsigned char *RADEONMMIO = dpy->MMIOAddress;
+    unsigned char *RADEONMMIO = ctx->MMIOAddress;
     unsigned int data;
 
     OUTREG8(RADEON_CLOCK_CNTL_INDEX, addr & 0x3f);
@@ -89,13 +89,13 @@ static unsigned int RADEONINPLL( struct MiniGLXDisplayRec *dpy, int addr)
 /**
  * \brief Reset graphics card to known state.
  *
- * \param dpy display handle.
+ * \param ctx display handle.
  *
  * Resets the values of several Radeon registers.
  */
-static void RADEONEngineReset( struct MiniGLXDisplayRec *dpy )
+static void RADEONEngineReset( struct DRIDriverContextRec *ctx )
 {
-   unsigned char *RADEONMMIO = dpy->MMIOAddress;
+   unsigned char *RADEONMMIO = ctx->MMIOAddress;
    unsigned int clock_cntl_index;
    unsigned int mclk_cntl;
    unsigned int rbbm_soft_reset;
@@ -112,7 +112,7 @@ static void RADEONEngineReset( struct MiniGLXDisplayRec *dpy )
 
    clock_cntl_index = INREG(RADEON_CLOCK_CNTL_INDEX);
 
-   mclk_cntl = INPLL(dpy, RADEON_MCLK_CNTL);
+   mclk_cntl = INPLL(ctx, RADEON_MCLK_CNTL);
    OUTPLL(RADEON_MCLK_CNTL, (mclk_cntl |
 			     RADEON_FORCEON_MCLKA |
 			     RADEON_FORCEON_MCLKB |
@@ -160,25 +160,25 @@ static void RADEONEngineReset( struct MiniGLXDisplayRec *dpy )
 /**
  * \brief Restore the drawing engine.
  *
- * \param dpy display handle
+ * \param ctx display handle
  *
  * Resets the graphics card and sets initial values for several registers of
  * the card's drawing engine.
  *
  * Turns on the radeon command processor engine (ie: the ringbuffer).
  */
-static int RADEONEngineRestore( struct MiniGLXDisplayRec *dpy )
+static int RADEONEngineRestore( struct DRIDriverContextRec *ctx )
 {
-   RADEONInfoPtr info = dpy->driverInfo;
-   unsigned char *RADEONMMIO = dpy->MMIOAddress;
+   RADEONInfoPtr info = ctx->driverPrivate;
+   unsigned char *RADEONMMIO = ctx->MMIOAddress;
    int pitch64, datatype, dp_gui_master_cntl, err;
 
    fprintf(stderr, "%s\n", __FUNCTION__);
 
    OUTREG(RADEON_RB3D_CNTL, 0);
-   RADEONEngineReset( dpy );
+   RADEONEngineReset( ctx );
 
-   switch (dpy->bpp) {
+   switch (ctx->bpp) {
    case 16: datatype = 4; break;
    case 32: datatype = 6; break;
    default: return 0;
@@ -188,25 +188,25 @@ static int RADEONEngineRestore( struct MiniGLXDisplayRec *dpy )
       ((datatype << RADEON_GMC_DST_DATATYPE_SHIFT)
        | RADEON_GMC_CLR_CMP_CNTL_DIS);
 
-   pitch64 = ((dpy->shared.virtualWidth * (dpy->bpp / 8) + 0x3f)) >> 6;
+   pitch64 = ((ctx->shared.virtualWidth * (ctx->bpp / 8) + 0x3f)) >> 6;
 
-   RADEONWaitForFifo(dpy, 1);
+   RADEONWaitForFifo(ctx, 1);
    OUTREG(RADEON_DEFAULT_OFFSET, ((INREG(RADEON_DEFAULT_OFFSET) & 0xC0000000)
 				  | (pitch64 << 22)));
 
-   RADEONWaitForFifo(dpy, 1);
+   RADEONWaitForFifo(ctx, 1);
    OUTREG(RADEON_SURFACE_CNTL, RADEON_SURF_TRANSLATION_DIS); 
 
-   RADEONWaitForFifo(dpy, 1);
+   RADEONWaitForFifo(ctx, 1);
    OUTREG(RADEON_DEFAULT_SC_BOTTOM_RIGHT, (RADEON_DEFAULT_SC_RIGHT_MAX
 					   | RADEON_DEFAULT_SC_BOTTOM_MAX));
 
-   RADEONWaitForFifo(dpy, 1);
+   RADEONWaitForFifo(ctx, 1);
    OUTREG(RADEON_DP_GUI_MASTER_CNTL, (dp_gui_master_cntl
 				      | RADEON_GMC_BRUSH_SOLID_COLOR
 				      | RADEON_GMC_SRC_DATATYPE_COLOR));
 
-   RADEONWaitForFifo(dpy, 7);
+   RADEONWaitForFifo(ctx, 7);
    OUTREG(RADEON_DST_LINE_START,    0);
    OUTREG(RADEON_DST_LINE_END,      0);
    OUTREG(RADEON_DP_BRUSH_FRGD_CLR, 0xffffffff);
@@ -216,7 +216,7 @@ static int RADEONEngineRestore( struct MiniGLXDisplayRec *dpy )
    OUTREG(RADEON_DP_WRITE_MASK,     0xffffffff);
    OUTREG(RADEON_AUX_SC_CNTL,       0);
 
-/*    RADEONWaitForIdleMMIO(dpy); */
+/*    RADEONWaitForIdleMMIO(ctx); */
    usleep(100); 
 
 
@@ -225,7 +225,7 @@ static int RADEONEngineRestore( struct MiniGLXDisplayRec *dpy )
 
 
    /* Initialize and start the CP if required */
-   if ((err = drmCommandNone(dpy->drmFD, DRM_RADEON_CP_START)) != 0) {
+   if ((err = drmCommandNone(ctx->drmFD, DRM_RADEON_CP_START)) != 0) {
       fprintf(stderr, "%s: CP start %d\n", __FUNCTION__, err);
       return 0;
    }
@@ -237,12 +237,12 @@ static int RADEONEngineRestore( struct MiniGLXDisplayRec *dpy )
 /**
  * \brief Shutdown the drawing engine.
  *
- * \param dpy display handle
+ * \param ctx display handle
  *
  * Turns off the command processor engine & restores the graphics card
  * to a state that fbdev understands.
  */
-static int RADEONEngineShutdown( struct MiniGLXDisplayRec *dpy )
+static int RADEONEngineShutdown( struct DRIDriverContextRec *ctx )
 {
    drmRadeonCPStop  stop;
    int              ret, i;
@@ -250,7 +250,7 @@ static int RADEONEngineShutdown( struct MiniGLXDisplayRec *dpy )
    stop.flush = 1;
    stop.idle  = 1;
 
-   ret = drmCommandWrite(dpy->drmFD, DRM_RADEON_CP_STOP, &stop, 
+   ret = drmCommandWrite(ctx->drmFD, DRM_RADEON_CP_STOP, &stop, 
 			 sizeof(drmRadeonCPStop));
 
    if (ret == 0) {
@@ -263,7 +263,7 @@ static int RADEONEngineShutdown( struct MiniGLXDisplayRec *dpy )
  
    i = 0;
    do {
-      ret = drmCommandWrite(dpy->drmFD, DRM_RADEON_CP_STOP, &stop, 
+      ret = drmCommandWrite(ctx->drmFD, DRM_RADEON_CP_STOP, &stop, 
 			    sizeof(drmRadeonCPStop));
    } while (ret && errno == EBUSY && i++ < 10);
 
@@ -275,7 +275,7 @@ static int RADEONEngineShutdown( struct MiniGLXDisplayRec *dpy )
 
    stop.idle = 0;
 
-   if (drmCommandWrite(dpy->drmFD, DRM_RADEON_CP_STOP,
+   if (drmCommandWrite(ctx->drmFD, DRM_RADEON_CP_STOP,
 		       &stop, sizeof(drmRadeonCPStop))) {
       return -errno;
    } else {
@@ -302,7 +302,7 @@ static int RADEONMinBits(int val)
 /**
  * \brief Initialize the AGP state
  *
- * \param dpy display handle.
+ * \param ctx display handle.
  * \param info driver private data.
  *
  * \return one on sucess, or zero on failure.
@@ -311,14 +311,14 @@ static int RADEONMinBits(int val)
  * the ring buffer, vertex buffers and textures. Initialize the Radeon
  * registers to point to that memory and add client mappings.
  */
-static int RADEONDRIAgpInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info)
+static int RADEONDRIAgpInit( struct DRIDriverContextRec *ctx, RADEONInfoPtr info)
 {
-   unsigned char *RADEONMMIO = dpy->MMIOAddress;
+   unsigned char *RADEONMMIO = ctx->MMIOAddress;
    unsigned long  mode;
    int            ret;
    int            s, l;
 
-   if (drmAgpAcquire(dpy->drmFD) < 0) {
+   if (drmAgpAcquire(ctx->drmFD) < 0) {
       fprintf(stderr, "[agp] AGP not available\n");
       return 0;
    }
@@ -330,7 +330,7 @@ static int RADEONDRIAgpInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info)
    /* Modify the mode if the default mode is not appropriate for this
     * particular combination of graphics card and AGP chipset.
     */
-   mode   = drmAgpGetMode(dpy->drmFD);	/* Default mode */
+   mode   = drmAgpGetMode(ctx->drmFD);	/* Default mode */
 
    /* Disable fast write entirely - too many lockups.
     */
@@ -341,29 +341,29 @@ static int RADEONDRIAgpInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info)
    case 1: default: mode |= RADEON_AGP_1X_MODE;
    }
 
-   if (drmAgpEnable(dpy->drmFD, mode) < 0) {
+   if (drmAgpEnable(ctx->drmFD, mode) < 0) {
       fprintf(stderr, "[agp] AGP not enabled\n");
-      drmAgpRelease(dpy->drmFD);
+      drmAgpRelease(ctx->drmFD);
       return 0;
    }
     
    info->agpOffset = 0;
 
-   if ((ret = drmAgpAlloc(dpy->drmFD, info->agpSize*1024*1024, 0, NULL,
+   if ((ret = drmAgpAlloc(ctx->drmFD, info->agpSize*1024*1024, 0, NULL,
 			  &info->agpMemHandle)) < 0) {
       fprintf(stderr, "[agp] Out of memory (%d)\n", ret);
-      drmAgpRelease(dpy->drmFD);
+      drmAgpRelease(ctx->drmFD);
       return 0;
    }
    fprintf(stderr,
 	   "[agp] %d kB allocated with handle 0x%08x\n",
 	   info->agpSize*1024, (unsigned)info->agpMemHandle);
     
-   if (drmAgpBind(dpy->drmFD,
+   if (drmAgpBind(ctx->drmFD,
 		  info->agpMemHandle, info->agpOffset) < 0) {
       fprintf(stderr, "[agp] Could not bind\n");
-      drmAgpFree(dpy->drmFD, info->agpMemHandle);
-      drmAgpRelease(dpy->drmFD);
+      drmAgpFree(ctx->drmFD, info->agpMemHandle);
+      drmAgpRelease(ctx->drmFD);
       return 0;
    }
 
@@ -386,7 +386,7 @@ static int RADEONDRIAgpInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info)
    info->agpTexMapSize   = (s >> l) << l;
    info->log2AGPTexGran  = l;
 
-   if (drmAddMap(dpy->drmFD, info->ringStart, info->ringMapSize,
+   if (drmAddMap(ctx->drmFD, info->ringStart, info->ringMapSize,
 		 DRM_AGP, DRM_READ_ONLY, &info->ringHandle) < 0) {
       fprintf(stderr, "[agp] Could not add ring mapping\n");
       return 0;
@@ -394,7 +394,7 @@ static int RADEONDRIAgpInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info)
    fprintf(stderr, "[agp] ring handle = 0x%08lx\n", info->ringHandle);
     
 
-   if (drmAddMap(dpy->drmFD, info->ringReadOffset, info->ringReadMapSize,
+   if (drmAddMap(ctx->drmFD, info->ringReadOffset, info->ringReadMapSize,
 		 DRM_AGP, DRM_READ_ONLY, &info->ringReadPtrHandle) < 0) {
       fprintf(stderr,
 	      "[agp] Could not add ring read ptr mapping\n");
@@ -405,7 +405,7 @@ static int RADEONDRIAgpInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info)
 	   "[agp] ring read ptr handle = 0x%08lx\n",
 	   info->ringReadPtrHandle);
     
-   if (drmAddMap(dpy->drmFD, info->bufStart, info->bufMapSize,
+   if (drmAddMap(ctx->drmFD, info->bufStart, info->bufMapSize,
 		 DRM_AGP, 0, &info->bufHandle) < 0) {
       fprintf(stderr,
 	      "[agp] Could not add vertex/indirect buffers mapping\n");
@@ -415,7 +415,7 @@ static int RADEONDRIAgpInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info)
 	   "[agp] vertex/indirect buffers handle = 0x%08lx\n",
 	   info->bufHandle);
 
-   if (drmAddMap(dpy->drmFD, info->agpTexStart, info->agpTexMapSize,
+   if (drmAddMap(ctx->drmFD, info->agpTexStart, info->agpTexMapSize,
 		 DRM_AGP, 0, &info->agpTexHandle) < 0) {
       fprintf(stderr,
 	      "[agp] Could not add AGP texture map mapping\n");
@@ -436,7 +436,7 @@ static int RADEONDRIAgpInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info)
 /**
  * \brief Initialize the kernel data structures and enable the CP engine.
  *
- * \param dpy display handle.
+ * \param ctx display handle.
  * \param info driver private data.
  *
  * \return non-zero on sucess, or zero on failure.
@@ -444,10 +444,10 @@ static int RADEONDRIAgpInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info)
  * This function is a wrapper around the DRM_RADEON_CP_INIT command, passing
  * all the parameters in a drmRadeonInit structure.
  */
-static int RADEONDRIKernelInit(struct MiniGLXDisplayRec *dpy,
+static int RADEONDRIKernelInit(struct DRIDriverContextRec *ctx,
 			       RADEONInfoPtr info)
 {
-   int cpp = dpy->bpp / 8;
+   int cpp = ctx->bpp / 8;
    drmRadeonInit  drmInfo;
    int ret;
 
@@ -467,8 +467,8 @@ static int RADEONDRIKernelInit(struct MiniGLXDisplayRec *dpy,
    drmInfo.agp_size            = info->agpSize*1024*1024;
    drmInfo.ring_size           = info->ringSize*1024*1024;
    drmInfo.usec_timeout        = 1000;
-   drmInfo.fb_bpp              = dpy->bpp;
-   drmInfo.depth_bpp           = dpy->bpp;
+   drmInfo.fb_bpp              = ctx->bpp;
+   drmInfo.depth_bpp           = ctx->bpp;
    drmInfo.front_offset        = info->frontOffset;
    drmInfo.front_pitch         = info->frontPitch * cpp;
    drmInfo.back_offset         = info->backOffset;
@@ -482,7 +482,7 @@ static int RADEONDRIKernelInit(struct MiniGLXDisplayRec *dpy,
    drmInfo.buffers_offset      = info->bufHandle;
    drmInfo.agp_textures_offset = info->agpTexHandle;
 
-   ret = drmCommandWrite(dpy->drmFD, DRM_RADEON_CP_INIT, &drmInfo, 
+   ret = drmCommandWrite(ctx->drmFD, DRM_RADEON_CP_INIT, &drmInfo, 
 			 sizeof(drmRadeonInit));
 
    return ret >= 0;
@@ -492,13 +492,13 @@ static int RADEONDRIKernelInit(struct MiniGLXDisplayRec *dpy,
 /**
  * \brief Initialize the AGP heap.
  *
- * \param dpy display handle.
+ * \param ctx display handle.
  * \param info driver private data.
  *
  * This function is a wrapper around the DRM_RADEON_INIT_HEAP command, passing
  * all the parameters in a drm_radeon_mem_init_heap structure.
  */
-static void RADEONDRIAgpHeapInit(struct MiniGLXDisplayRec *dpy,
+static void RADEONDRIAgpHeapInit(struct DRIDriverContextRec *ctx,
 				 RADEONInfoPtr info)
 {
    drmRadeonMemInitHeap drmHeap;
@@ -508,7 +508,7 @@ static void RADEONDRIAgpHeapInit(struct MiniGLXDisplayRec *dpy,
    drmHeap.start  = 0;
    drmHeap.size   = info->agpTexMapSize;
     
-   if (drmCommandWrite(dpy->drmFD, DRM_RADEON_INIT_HEAP,
+   if (drmCommandWrite(ctx->drmFD, DRM_RADEON_INIT_HEAP,
 		       &drmHeap, sizeof(drmHeap))) {
       fprintf(stderr,
 	      "[drm] Failed to initialized agp heap manager\n");
@@ -523,17 +523,17 @@ static void RADEONDRIAgpHeapInit(struct MiniGLXDisplayRec *dpy,
  * \brief Add a map for the vertex buffers that will be accessed by any
  * DRI-based clients.
  * 
- * \param dpy display handle.
+ * \param ctx display handle.
  * \param info driver private data.
  *
  * \return one on sucess, or zero on failure.
  *
  * Calls drmAddBufs() with the previously allocated vertex buffers.
  */
-static int RADEONDRIBufInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
+static int RADEONDRIBufInit( struct DRIDriverContextRec *ctx, RADEONInfoPtr info )
 {
    /* Initialize vertex buffers */
-   info->bufNumBufs = drmAddBufs(dpy->drmFD,
+   info->bufNumBufs = drmAddBufs(ctx->drmFD,
 				 info->bufMapSize / RADEON_BUFFER_SIZE,
 				 RADEON_BUFFER_SIZE,
 				 DRM_AGP_BUFFER,
@@ -554,22 +554,22 @@ static int RADEONDRIBufInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
 /**
  * \brief Install an IRQ handler.
  * 
- * \param dpy display handle.
+ * \param ctx display handle.
  * \param info driver private data.
  *
  * Attemps to install an IRQ handler via drmCtlInstHandler(), falling back to
  * IRQ-free operation on failure.
  */
-static void RADEONDRIIrqInit(struct MiniGLXDisplayRec *dpy,
+static void RADEONDRIIrqInit(struct DRIDriverContextRec *ctx,
 			     RADEONInfoPtr info)
 {
    if (!info->irq) {
-      info->irq = drmGetInterruptFromBusID(dpy->drmFD,
-					   dpy->pciBus,
-					   dpy->pciDevice,
-					   dpy->pciFunc);
+      info->irq = drmGetInterruptFromBusID(ctx->drmFD,
+					   ctx->pciBus,
+					   ctx->pciDevice,
+					   ctx->pciFunc);
 
-      if ((drmCtlInstHandler(dpy->drmFD, info->irq)) != 0) {
+      if ((drmCtlInstHandler(ctx->drmFD, info->irq)) != 0) {
 	 fprintf(stderr,
 		 "[drm] failure adding irq handler, "
 		 "there is a device already using that irq\n"
@@ -584,12 +584,12 @@ static void RADEONDRIIrqInit(struct MiniGLXDisplayRec *dpy,
 	      info->irq);
 }
 
-static int RADEONCheckDRMVersion( struct MiniGLXDisplayRec *dpy,
+static int RADEONCheckDRMVersion( struct DRIDriverContextRec *ctx,
 				  RADEONInfoPtr info )
 {
    drmVersionPtr  version;
 
-   version = drmGetVersion(dpy->drmFD);
+   version = drmGetVersion(ctx->drmFD);
    if (version) {
       int req_minor, req_patch;
 
@@ -625,20 +625,20 @@ static int RADEONCheckDRMVersion( struct MiniGLXDisplayRec *dpy,
    return 1;
 }
 
-static int RADEONMemoryInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
+static int RADEONMemoryInit( struct DRIDriverContextRec *ctx, RADEONInfoPtr info )
 {
-   int        width_bytes = dpy->shared.virtualWidth * dpy->cpp;
-   int        cpp         = dpy->cpp;
-   int        bufferSize  = ((dpy->shared.virtualHeight * width_bytes
+   int        width_bytes = ctx->shared.virtualWidth * ctx->cpp;
+   int        cpp         = ctx->cpp;
+   int        bufferSize  = ((ctx->shared.virtualHeight * width_bytes
 			      + RADEON_BUFFER_ALIGN)
 			     & ~RADEON_BUFFER_ALIGN);
-   int        depthSize   = ((((dpy->shared.virtualHeight+15) & ~15) * width_bytes
+   int        depthSize   = ((((ctx->shared.virtualHeight+15) & ~15) * width_bytes
 			      + RADEON_BUFFER_ALIGN)
 			     & ~RADEON_BUFFER_ALIGN);
    int        l;
 
    info->frontOffset = 0;
-   info->frontPitch = dpy->shared.virtualWidth;
+   info->frontPitch = ctx->shared.virtualWidth;
 
    fprintf(stderr, 
 	   "Using %d MB AGP aperture\n", info->agpSize);
@@ -651,7 +651,7 @@ static int RADEONMemoryInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
 
    /* Front, back and depth buffers - everything else texture??
     */
-   info->textureSize = dpy->shared.fbSize - 2 * bufferSize - depthSize;
+   info->textureSize = ctx->shared.fbSize - 2 * bufferSize - depthSize;
 
    if (info->textureSize < 0) 
       return 0;
@@ -675,7 +675,7 @@ static int RADEONMemoryInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
    }
 
    /* Reserve space for textures */
-   info->textureOffset = ((dpy->shared.fbSize - info->textureSize +
+   info->textureOffset = ((ctx->shared.fbSize - info->textureSize +
 			   RADEON_BUFFER_ALIGN) &
 			  ~RADEON_BUFFER_ALIGN);
 
@@ -685,12 +685,12 @@ static int RADEONMemoryInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
    info->depthOffset = ((info->textureOffset - depthSize +
 			 RADEON_BUFFER_ALIGN) &
 			~RADEON_BUFFER_ALIGN);
-   info->depthPitch = dpy->shared.virtualWidth;
+   info->depthPitch = ctx->shared.virtualWidth;
 
    info->backOffset = ((info->depthOffset - bufferSize +
 			RADEON_BUFFER_ALIGN) &
 		       ~RADEON_BUFFER_ALIGN);
-   info->backPitch = dpy->shared.virtualWidth;
+   info->backPitch = ctx->shared.virtualWidth;
 
 
    fprintf(stderr, 
@@ -720,7 +720,7 @@ static int RADEONMemoryInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
 /**
  * Called at the start of each server generation.
  *
- * \param dpy display handle.
+ * \param ctx display handle.
  * \param info driver private data.
  *
  * \return non-zero on sucess, or zero on failure.
@@ -734,26 +734,26 @@ static int RADEONMemoryInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
  * Setups a RADEONDRIRec structure to be passed to radeon_dri.so for its
  * initialization.
  */
-static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
+static int RADEONScreenInit( struct DRIDriverContextRec *ctx, RADEONInfoPtr info )
 {
    RADEONDRIPtr   pRADEONDRI;
    int err;
 
    usleep(100);
-   assert(!dpy->IsClient);
+   //assert(!ctx->IsClient);
 
    {
-      int  width_bytes = (dpy->shared.virtualWidth * dpy->cpp);
-      int  maxy        = dpy->shared.fbSize / width_bytes;
+      int  width_bytes = (ctx->shared.virtualWidth * ctx->cpp);
+      int  maxy        = ctx->shared.fbSize / width_bytes;
 
 
-      if (maxy <= dpy->shared.virtualHeight * 3) {
+      if (maxy <= ctx->shared.virtualHeight * 3) {
 	 fprintf(stderr, 
 		 "Static buffer allocation failed -- "
 		 "need at least %d kB video memory (have %d kB)\n",
-		 (dpy->shared.virtualWidth * dpy->shared.virtualHeight *
-		  dpy->cpp * 3 + 1023) / 1024,
-		 dpy->shared.fbSize / 1024);
+		 (ctx->shared.virtualWidth * ctx->shared.virtualHeight *
+		  ctx->cpp * 3 + 1023) / 1024,
+		 ctx->shared.fbSize / 1024);
 	 return 0;
       } 
    }
@@ -766,68 +766,68 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
       return 0;
    }
 
-   info->registerSize = dpy->FixedInfo.mmio_len;
-   dpy->shared.SAREASize = DRM_PAGE_SIZE;
+   info->registerSize = ctx->MMIOSize;
+   ctx->shared.SAREASize = DRM_PAGE_SIZE;
 
    /* Note that drmOpen will try to load the kernel module, if needed. */
-   dpy->drmFD = drmOpen("radeon", NULL );
-   if (dpy->drmFD < 0) {
+   ctx->drmFD = drmOpen("radeon", NULL );
+   if (ctx->drmFD < 0) {
       fprintf(stderr, "[drm] drmOpen failed\n");
       return 0;
    }
 
-   if ((err = drmSetBusid(dpy->drmFD, dpy->pciBusID)) < 0) {
+   if ((err = drmSetBusid(ctx->drmFD, ctx->pciBusID)) < 0) {
       fprintf(stderr, "[drm] drmSetBusid failed (%d, %s), %s\n",
-	      dpy->drmFD, dpy->pciBusID, strerror(-err));
+	      ctx->drmFD, ctx->pciBusID, strerror(-err));
       return 0;
    }
 
      
-   if (drmAddMap( dpy->drmFD,
+   if (drmAddMap( ctx->drmFD,
 		  0,
-		  dpy->shared.SAREASize,
+		  ctx->shared.SAREASize,
 		  DRM_SHM,
 		  DRM_CONTAINS_LOCK,
-		  &dpy->shared.hSAREA) < 0)
+		  &ctx->shared.hSAREA) < 0)
    {
       fprintf(stderr, "[drm] drmAddMap failed\n");
       return 0;
    }
    fprintf(stderr, "[drm] added %d byte SAREA at 0x%08lx\n",
-	   dpy->shared.SAREASize, dpy->shared.hSAREA);
+	   ctx->shared.SAREASize, ctx->shared.hSAREA);
 
-   if (drmMap( dpy->drmFD,
-	       dpy->shared.hSAREA,
-	       dpy->shared.SAREASize,
-	       (drmAddressPtr)(&dpy->pSAREA)) < 0)
+   if (drmMap( ctx->drmFD,
+	       ctx->shared.hSAREA,
+	       ctx->shared.SAREASize,
+	       (drmAddressPtr)(&ctx->pSAREA)) < 0)
    {
       fprintf(stderr, "[drm] drmMap failed\n");
       return 0;
    }
-   memset(dpy->pSAREA, 0, dpy->shared.SAREASize);
+   memset(ctx->pSAREA, 0, ctx->shared.SAREASize);
    fprintf(stderr, "[drm] mapped SAREA 0x%08lx to %p, size %d\n",
-	   dpy->shared.hSAREA, dpy->pSAREA, dpy->shared.SAREASize);
+	   ctx->shared.hSAREA, ctx->pSAREA, ctx->shared.SAREASize);
    
    /* Need to AddMap the framebuffer and mmio regions here:
     */
-   if (drmAddMap( dpy->drmFD,
-		  (drmHandle)dpy->FixedInfo.smem_start,
-		  dpy->FixedInfo.smem_len,
+   if (drmAddMap( ctx->drmFD,
+		  (drmHandle)ctx->FBStart,
+		  ctx->FBSize,
 		  DRM_FRAME_BUFFER,
 		  0,
-		  &dpy->shared.hFrameBuffer) < 0)
+		  &ctx->shared.hFrameBuffer) < 0)
    {
       fprintf(stderr, "[drm] drmAddMap framebuffer failed\n");
       return 0;
    }
    fprintf(stderr, "[drm] framebuffer handle = 0x%08lx\n",
-	   dpy->shared.hFrameBuffer);
+	   ctx->shared.hFrameBuffer);
 
 
 
-   if (drmAddMap(dpy->drmFD, 
-		 dpy->FixedInfo.mmio_start,
-		 dpy->FixedInfo.mmio_len,
+   if (drmAddMap(ctx->drmFD, 
+		 ctx->MMIOStart,
+		 ctx->MMIOSize,
 		 DRM_REGISTERS, 
 		 DRM_READ_ONLY, 
 		 &info->registerHandle) < 0) {
@@ -838,61 +838,61 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
 	   "[drm] register handle = 0x%08lx\n", info->registerHandle);
 
    /* Check the radeon DRM version */
-   if (!RADEONCheckDRMVersion(dpy, info)) {
+   if (!RADEONCheckDRMVersion(ctx, info)) {
       return 0;
    }
 
    /* Initialize AGP */
-   if (!RADEONDRIAgpInit(dpy, info)) {
+   if (!RADEONDRIAgpInit(ctx, info)) {
       return 0;
    }
 
 
    /* Memory manager setup */
-   if (!RADEONMemoryInit(dpy, info)) {
+   if (!RADEONMemoryInit(ctx, info)) {
       return 0;
    }
 
    /* Create a 'server' context so we can grab the lock for
     * initialization ioctls.
     */
-   if ((err = drmCreateContext(dpy->drmFD, &dpy->serverContext)) != 0) {
+   if ((err = drmCreateContext(ctx->drmFD, &ctx->serverContext)) != 0) {
       fprintf(stderr, "%s: drmCreateContext failed %d\n", __FUNCTION__, err);
       return 0;
    }
 
-   DRM_LOCK(dpy->drmFD, dpy->pSAREA, dpy->serverContext, 0); 
+   DRM_LOCK(ctx->drmFD, ctx->pSAREA, ctx->serverContext, 0); 
 
    /* Initialize the kernel data structures */
-   if (!RADEONDRIKernelInit(dpy, info)) {
+   if (!RADEONDRIKernelInit(ctx, info)) {
       fprintf(stderr, "RADEONDRIKernelInit failed\n");
-      DRM_UNLOCK(dpy->drmFD, dpy->pSAREA, dpy->serverContext);
+      DRM_UNLOCK(ctx->drmFD, ctx->pSAREA, ctx->serverContext);
       return 0;
    }
 
    /* Initialize the vertex buffers list */
-   if (!RADEONDRIBufInit(dpy, info)) {
+   if (!RADEONDRIBufInit(ctx, info)) {
       fprintf(stderr, "RADEONDRIBufInit failed\n");
-      DRM_UNLOCK(dpy->drmFD, dpy->pSAREA, dpy->serverContext);
+      DRM_UNLOCK(ctx->drmFD, ctx->pSAREA, ctx->serverContext);
       return 0;
    }
 
    /* Initialize IRQ */
-   RADEONDRIIrqInit(dpy, info);
+   RADEONDRIIrqInit(ctx, info);
 
    /* Initialize kernel agp memory manager */
-   RADEONDRIAgpHeapInit(dpy, info);
+   RADEONDRIAgpHeapInit(ctx, info);
 
    fprintf(stderr, "calling RADEONEngineRestore from %s\n", __FUNCTION__);
-   if (0 && !RADEONEngineRestore( dpy )) {
-      DRM_UNLOCK(dpy->drmFD, dpy->pSAREA, dpy->serverContext);
+   if (0 && !RADEONEngineRestore( ctx )) {
+      DRM_UNLOCK(ctx->drmFD, ctx->pSAREA, ctx->serverContext);
       return 0;
    }
 
    /* Initialize the SAREA private data structure */
    {
       RADEONSAREAPrivPtr pSAREAPriv;
-      pSAREAPriv = (RADEONSAREAPrivPtr)(((char*)dpy->pSAREA) + 
+      pSAREAPriv = (RADEONSAREAPrivPtr)(((char*)ctx->pSAREA) + 
 					sizeof(XF86DRISAREARec));
       memset(pSAREAPriv, 0, sizeof(*pSAREAPriv));
       pSAREAPriv->pfAllowPageFlip = 1;
@@ -903,27 +903,27 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
     * the clear ioctl to do this, but would need to setup hw state
     * first.
     */
-   memset(dpy->FrameBuffer + info->frontOffset,
+   memset(ctx->FBAddress + info->frontOffset,
 	  0,
-	  info->frontPitch * dpy->cpp * dpy->shared.virtualHeight );
+	  info->frontPitch * ctx->cpp * ctx->shared.virtualHeight );
 
-   memset(dpy->FrameBuffer + info->backOffset,
+   memset(ctx->FBAddress + info->backOffset,
 	  0,
-	  info->backPitch * dpy->cpp * dpy->shared.virtualHeight );
+	  info->backPitch * ctx->cpp * ctx->shared.virtualHeight );
 
 
    /* Can release the lock now */
-/*    DRM_UNLOCK(dpy->drmFD, dpy->pSAREA, dpy->serverContext); */
+/*    DRM_UNLOCK(ctx->drmFD, ctx->pSAREA, ctx->serverContext); */
 
    /* This is the struct passed to radeon_dri.so for its initialization */
-   dpy->driverClientMsg = malloc(sizeof(RADEONDRIRec));
-   dpy->driverClientMsgSize = sizeof(RADEONDRIRec);
-   pRADEONDRI                    = (RADEONDRIPtr)dpy->driverClientMsg;
+   ctx->driverClientMsg = malloc(sizeof(RADEONDRIRec));
+   ctx->driverClientMsgSize = sizeof(RADEONDRIRec);
+   pRADEONDRI                    = (RADEONDRIPtr)ctx->driverClientMsg;
    pRADEONDRI->deviceID          = info->Chipset;
-   pRADEONDRI->width             = dpy->shared.virtualWidth;
-   pRADEONDRI->height            = dpy->shared.virtualHeight;
-   pRADEONDRI->depth             = dpy->bpp; /* XXX: depth */
-   pRADEONDRI->bpp               = dpy->bpp;
+   pRADEONDRI->width             = ctx->shared.virtualWidth;
+   pRADEONDRI->height            = ctx->shared.virtualHeight;
+   pRADEONDRI->depth             = ctx->bpp; /* XXX: depth */
+   pRADEONDRI->bpp               = ctx->bpp;
    pRADEONDRI->IsPCI             = 0;
    pRADEONDRI->AGPMode           = info->agpMode;
    pRADEONDRI->frontOffset       = info->frontOffset;
@@ -1025,7 +1025,7 @@ static int get_chipfamily_from_chipset( RADEONInfoPtr info )
 /**
  * \brief Establish the set of visuals available for the display.
  *
- * \param dpy display handle.
+ * \param ctx display handle.
  * \param numConfigs will receive the number of supported visuals.
  * \param configs will point to the list of supported visuals.
  *
@@ -1037,7 +1037,7 @@ static int get_chipfamily_from_chipset( RADEONInfoPtr info )
  * display bit depth. Supports only 16 and 32 bpp bit depths, aborting
  * otherwise.
  */
-static int radeonInitScreenConfigs( struct MiniGLXDisplayRec *dpy,
+static int radeonInitScreenConfigs( struct DRIDriverContextRec *ctx,
 				   int *numConfigs, __GLXvisualConfig **configs)
 {
    int i;
@@ -1046,7 +1046,7 @@ static int radeonInitScreenConfigs( struct MiniGLXDisplayRec *dpy,
    *configs = (__GLXvisualConfig *) calloc(*numConfigs, 
 					   sizeof(__GLXvisualConfig));
 
-   switch (dpy->bpp) {
+   switch (ctx->bpp) {
    case 32:
       for (i = 0; i < *numConfigs; i++) {
 	 (*configs)[i].vid = 100 + i;
@@ -1097,7 +1097,7 @@ static int radeonInitScreenConfigs( struct MiniGLXDisplayRec *dpy,
 
    default:
       fprintf(stderr, "Unknown bpp in %s: %d\n", __FUNCTION__, 
-	      dpy->bpp);
+	      ctx->bpp);
       exit(1);
       break;
 
@@ -1109,7 +1109,7 @@ static int radeonInitScreenConfigs( struct MiniGLXDisplayRec *dpy,
 /**
  * \brief Validate the fbdev mode.
  * 
- * \param dpy display handle.
+ * \param ctx display handle.
  *
  * \return one on success, or zero on failure.
  *
@@ -1117,10 +1117,10 @@ static int radeonInitScreenConfigs( struct MiniGLXDisplayRec *dpy,
  *
  * \sa radeonValidateMode().
  */
-static int radeonValidateMode( struct MiniGLXDisplayRec *dpy )
+static int radeonValidateMode( struct DRIDriverContextRec *ctx )
 {
-   unsigned char *RADEONMMIO = dpy->MMIOAddress;
-   RADEONInfoPtr info = dpy->driverInfo;
+   unsigned char *RADEONMMIO = ctx->MMIOAddress;
+   RADEONInfoPtr info = ctx->driverPrivate;
 
    info->gen_int_cntl = INREG(RADEON_GEN_INT_CNTL);
    info->crtc_offset_cntl = INREG(RADEON_CRTC_OFFSET_CNTL);
@@ -1132,7 +1132,7 @@ static int radeonValidateMode( struct MiniGLXDisplayRec *dpy )
 /**
  * \brief Examine mode returned by fbdev.
  * 
- * \param dpy display handle.
+ * \param ctx display handle.
  *
  * \return one on success, or zero on failure.
  *
@@ -1140,10 +1140,10 @@ static int radeonValidateMode( struct MiniGLXDisplayRec *dpy )
  *
  * \sa radeonValidateMode().
  */
-static int radeonPostValidateMode( struct MiniGLXDisplayRec *dpy )
+static int radeonPostValidateMode( struct DRIDriverContextRec *ctx )
 {
-   unsigned char *RADEONMMIO = dpy->MMIOAddress;
-   RADEONInfoPtr info = dpy->driverInfo;
+   unsigned char *RADEONMMIO = ctx->MMIOAddress;
+   RADEONInfoPtr info = ctx->driverPrivate;
 
    OUTREG(RADEON_GEN_INT_CNTL, info->gen_int_cntl);
    OUTREG(RADEON_CRTC_OFFSET_CNTL, info->crtc_offset_cntl);
@@ -1155,33 +1155,33 @@ static int radeonPostValidateMode( struct MiniGLXDisplayRec *dpy )
 /**
  * \brief Initialize the framebuffer device mode
  *
- * \param dpy display handle.
+ * \param ctx display handle.
  *
  * \return one on success, or zero on failure.
  *
- * Fills in \p info with some default values and some information from \p dpy
+ * Fills in \p info with some default values and some information from \p ctx
  * and then calls RADEONScreenInit() for the screen initialization.
  * 
  * Before exiting clears the framebuffer memomry accessing it directly.
  */
-static int radeonInitFBDev( struct MiniGLXDisplayRec *dpy )
+static int radeonInitFBDev( struct DRIDriverContextRec *ctx )
 {
    RADEONInfoPtr info = calloc(1, sizeof(*info));
 
    {
-      int  dummy = dpy->shared.virtualWidth;
+      int  dummy = ctx->shared.virtualWidth;
 
-      switch (dpy->bpp / 8) {
-      case 1: dummy = (dpy->shared.virtualWidth + 127) & ~127; break;
-      case 2: dummy = (dpy->shared.virtualWidth +  31) &  ~31; break;
+      switch (ctx->bpp / 8) {
+      case 1: dummy = (ctx->shared.virtualWidth + 127) & ~127; break;
+      case 2: dummy = (ctx->shared.virtualWidth +  31) &  ~31; break;
       case 3:
-      case 4: dummy = (dpy->shared.virtualWidth +  15) &  ~15; break;
+      case 4: dummy = (ctx->shared.virtualWidth +  15) &  ~15; break;
       }
 
-      dpy->shared.virtualWidth = dummy;
+      ctx->shared.virtualWidth = dummy;
    }
 
-   dpy->driverInfo = (void *)info;
+   ctx->driverPrivate = (void *)info;
    
    info->agpFastWrite  = RADEON_DEFAULT_AGP_FAST_WRITE;
    info->agpMode       = RADEON_DEFAULT_AGP_MODE;
@@ -1190,7 +1190,7 @@ static int radeonInitFBDev( struct MiniGLXDisplayRec *dpy )
    info->bufSize       = RADEON_DEFAULT_BUFFER_SIZE;
    info->ringSize      = RADEON_DEFAULT_RING_SIZE;
   
-   info->Chipset = dpy->chipset;
+   info->Chipset = ctx->chipset;
 
    if (!get_chipfamily_from_chipset( info )) {
       fprintf(stderr, "Unknown or non-radeon chipset -- cannot continue\n");
@@ -1198,11 +1198,11 @@ static int radeonInitFBDev( struct MiniGLXDisplayRec *dpy )
       return 0;
    }
 
-   info->frontPitch = dpy->shared.virtualWidth;
-   info->LinearAddr = dpy->FixedInfo.smem_start & 0xfc000000;
+   info->frontPitch = ctx->shared.virtualWidth;
+   info->LinearAddr = ctx->FBStart & 0xfc000000;
     
 
-   if (!RADEONScreenInit( dpy, info ))
+   if (!RADEONScreenInit( ctx, info ))
       return 0;
 
 
@@ -1214,19 +1214,19 @@ static int radeonInitFBDev( struct MiniGLXDisplayRec *dpy )
  * \brief The screen is being closed, so clean up any state and free any
  * resources used by the DRI.
  *
- * \param dpy display handle.
+ * \param ctx display handle.
  *
  * Unmaps the SAREA, closes the DRM device file descriptor and frees the driver
  * private data.
  */
-static void radeonHaltFBDev( struct MiniGLXDisplayRec *dpy )
+static void radeonHaltFBDev( struct DRIDriverContextRec *ctx )
 {
-    drmUnmap( dpy->pSAREA, dpy->shared.SAREASize );
-    drmClose(dpy->drmFD);
+    drmUnmap( ctx->pSAREA, ctx->shared.SAREASize );
+    drmClose(ctx->drmFD);
 
-    if (dpy->driverInfo) {
-       free(dpy->driverInfo);
-       dpy->driverInfo = 0;
+    if (ctx->driverPrivate) {
+       free(ctx->driverPrivate);
+       ctx->driverPrivate = 0;
     }
 }
 
@@ -1235,9 +1235,9 @@ static void radeonHaltFBDev( struct MiniGLXDisplayRec *dpy )
 /**
  * \brief Exported driver interface for Mini GLX.
  *
- * \sa MiniGLXDriverRec.
+ * \sa DRIDriverRec.
  */
-struct MiniGLXDriverRec __driMiniGLXDriver = {
+struct DRIDriverRec __driDRIDriver = {
    radeonInitScreenConfigs,
    radeonValidateMode,
    radeonPostValidateMode,

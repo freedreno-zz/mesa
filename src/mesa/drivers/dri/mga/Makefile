@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.1.2.1 2003/04/24 22:33:53 keithw Exp $
+# $Id: Makefile,v 1.1.2.2 2003/04/26 21:17:43 keithw Exp $
 
 # Mesa 3-D graphics library
 # Version:  5.0
@@ -84,14 +84,14 @@ INCLUDES = $(MINIGLX_INCLUDES) \
 
 
 ifeq ($(FULL_DRIVER),true)
-C_SOURCES = $(DRIVER_SOURCES) \
+C_SOURCES = $(MINIGLX_SOURCES) \
 	    $(FULL_DRIVER_SOURCES) \
-	    $(MINIGLX_SOURCES) 
+	    $(DRIVER_SOURCES) 
 MESA_MODULES = $(FULL_MESA)
 else
-C_SOURCES = $(DRIVER_SOURCES) \
+C_SOURCES = $(MINIGLX_SOURCES) \
 	    $(SUBSET_DRIVER_SOURCES) \
-	    $(MINIGLX_SOURCES) 
+	    $(DRIVER_SOURCES) 
 MESA_MODULES = $(SUBSET_MESA)
 endif
 

@@ -621,7 +621,7 @@ __driUtilCreateScreen(Display *dpy, int scrn, __DRIscreen *psc,
    psp->display = dpy;
    psp->myNum = scrn;
 
-   psp->fd = drmOpen(NULL,dpy->pciBusID);
+   psp->fd = drmOpen(NULL,dpy->driverContext.pciBusID);
    if (psp->fd < 0) {
       fprintf(stderr, "libGL error: failed to open DRM: %s\n", 
 	      strerror(-psp->fd));
@@ -665,19 +665,19 @@ __driUtilCreateScreen(Display *dpy, int scrn, __DRIscreen *psc,
     * ancilliary buffers, DRM mmap handles, etc.
     */
    psp->fbOrigin = 0;  
-   psp->fbSize = dpy->shared.fbSize; 
-   psp->fbStride = dpy->shared.fbStride;
-   psp->devPrivSize = dpy->driverClientMsgSize;
-   psp->pDevPriv = dpy->driverClientMsg;
-   psp->fbWidth = dpy->shared.virtualWidth;
-   psp->fbHeight = dpy->shared.virtualHeight;
-   psp->fbBPP = dpy->bpp;
+   psp->fbSize = dpy->driverContext.shared.fbSize; 
+   psp->fbStride = dpy->driverContext.shared.fbStride;
+   psp->devPrivSize = dpy->driverContext.driverClientMsgSize;
+   psp->pDevPriv = dpy->driverContext.driverClientMsg;
+   psp->fbWidth = dpy->driverContext.shared.virtualWidth;
+   psp->fbHeight = dpy->driverContext.shared.virtualHeight;
+   psp->fbBPP = dpy->driverContext.bpp;
 
    if (dpy->IsClient) {
       /*
        * Map the framebuffer region.
        */
-      if (drmMap(psp->fd, dpy->shared.hFrameBuffer, psp->fbSize, 
+      if (drmMap(psp->fd, dpy->driverContext.shared.hFrameBuffer, psp->fbSize, 
 		 (drmAddressPtr)&psp->pFB)) {
 	 fprintf(stderr, "libGL error: drmMap of framebuffer failed\n");
 	 (void)drmClose(psp->fd);
@@ -689,7 +689,8 @@ __driUtilCreateScreen(Display *dpy, int scrn, __DRIscreen *psc,
        * Map the SAREA region.  Further mmap regions may be setup in
        * each DRI driver's "createScreen" function.
        */
-      if (drmMap(psp->fd, dpy->shared.hSAREA, dpy->shared.SAREASize, 
+      if (drmMap(psp->fd, dpy->driverContext.shared.hSAREA,
+                 dpy->driverContext.shared.SAREASize, 
 		 (drmAddressPtr)&psp->pSAREA)) {
 	 fprintf(stderr, "libGL error: drmMap of sarea failed\n");
 	 (void)drmUnmap((drmAddress)psp->pFB, psp->fbSize);
@@ -698,8 +699,8 @@ __driUtilCreateScreen(Display *dpy, int scrn, __DRIscreen *psc,
 	 return NULL;
       }
    } else {
-      psp->pFB = dpy->FrameBuffer;
-      psp->pSAREA = dpy->pSAREA;
+      psp->pFB = dpy->driverContext.FBAddress;
+      psp->pSAREA = dpy->driverContext.pSAREA;
    }
 
 
@@ -752,15 +753,15 @@ __driUtilCreateScreenNoDRM(Display *dpy, int scrn, __DRIscreen *psc,
     psp->fd = 0;
     psp->fbOrigin = 0; 
 
-    psp->fbSize = dpy->shared.fbSize; 
-    psp->fbStride = dpy->shared.fbStride;
-    psp->devPrivSize = dpy->driverClientMsgSize;
-    psp->pDevPriv = dpy->driverClientMsg;
-    psp->fbWidth = dpy->shared.virtualWidth;
-    psp->fbHeight = dpy->shared.virtualHeight;
-    psp->fbBPP = dpy->bpp;
+    psp->fbSize = dpy->driverContext.shared.fbSize; 
+    psp->fbStride = dpy->driverContext.shared.fbStride;
+    psp->devPrivSize = dpy->driverContext.driverClientMsgSize;
+    psp->pDevPriv = dpy->driverContext.driverClientMsg;
+    psp->fbWidth = dpy->driverContext.shared.virtualWidth;
+    psp->fbHeight = dpy->driverContext.shared.virtualHeight;
+    psp->fbBPP = dpy->driverContext.bpp;
 
-    psp->pFB = dpy->FrameBuffer;
+    psp->pFB = dpy->driverContext.FBAddress;
 
     /* install driver's callback functions */
     memcpy(&psp->DriverAPI, driverAPI, sizeof(struct __DriverAPIRec));

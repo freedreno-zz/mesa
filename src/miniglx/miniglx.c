@@ -22,7 +22,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: miniglx.c,v 1.1.4.52 2003/04/25 11:22:36 keithw Exp $ */
+/* $Id: miniglx.c,v 1.1.4.53 2003/04/26 21:17:47 keithw Exp $ */
 
 
 /**
@@ -308,34 +308,38 @@ OpenFBDev( Display *dpy )
 
 
    /* mmap the framebuffer into our address space */
-   dpy->shared.fbSize = dpy->FixedInfo.smem_len;
-   dpy->FrameBuffer = (caddr_t) mmap(0, /* start */
-                                     dpy->shared.fbSize, /* bytes */
+   dpy->driverContext.FBStart = dpy->FixedInfo.smem_start;
+   dpy->driverContext.FBSize = dpy->FixedInfo.smem_len;
+   dpy->driverContext.shared.fbSize = dpy->FixedInfo.smem_len;
+   dpy->driverContext.FBAddress = (caddr_t) mmap(0, /* start */
+                                     dpy->driverContext.shared.fbSize, /* bytes */
                                      PROT_READ | PROT_WRITE, /* prot */
                                      MAP_SHARED, /* flags */
                                      dpy->FrameBufferFD, /* fd */
                                      0 /* offset */);
-   if (dpy->FrameBuffer == (caddr_t) - 1) {
+   if (dpy->driverContext.FBAddress == (caddr_t) - 1) {
       fprintf(stderr, "error: unable to mmap framebuffer: %s\n",
               strerror(errno));
       return GL_FALSE;
    }
 	    
    /* mmap the MMIO region into our address space */
-   dpy->MMIOSize = dpy->FixedInfo.mmio_len;
-   dpy->MMIOAddress = (caddr_t) mmap(0, /* start */
-                                     dpy->MMIOSize, /* bytes */
+   dpy->driverContext.MMIOStart = dpy->FixedInfo.mmio_start;
+   dpy->driverContext.MMIOSize = dpy->FixedInfo.mmio_len;
+   dpy->driverContext.MMIOAddress = (caddr_t) mmap(0, /* start */
+                                     dpy->driverContext.MMIOSize, /* bytes */
                                      PROT_READ | PROT_WRITE, /* prot */
                                      MAP_SHARED, /* flags */
                                      dpy->FrameBufferFD, /* fd */
                                      dpy->FixedInfo.smem_len /* offset */);
-   if (dpy->MMIOAddress == (caddr_t) - 1) {
+   if (dpy->driverContext.MMIOAddress == (caddr_t) - 1) {
       fprintf(stderr, "error: unable to mmap mmio region: %s\n",
               strerror(errno));
       return GL_FALSE;
    }
 
-   fprintf(stderr, "got MMIOAddress %p offset %d\n", dpy->MMIOAddress,
+   fprintf(stderr, "got MMIOAddress %p offset %d\n",
+           dpy->driverContext.MMIOAddress,
 	   dpy->FixedInfo.smem_len);
 
    return GL_TRUE;
@@ -377,8 +381,8 @@ SetupFBDev( Display *dpy )
 
    assert(dpy);
 
-   width = dpy->shared.virtualWidth;
-   height = dpy->shared.virtualHeight;
+   width = dpy->driverContext.shared.virtualWidth;
+   height = dpy->driverContext.shared.virtualHeight;
    
    /* Bump size up to next supported mode.
     */
@@ -396,14 +400,14 @@ SetupFBDev( Display *dpy )
    } 
 
 
-   dpy->shared.virtualHeight = height;
-   dpy->shared.virtualWidth = width;
+   dpy->driverContext.shared.virtualHeight = height;
+   dpy->driverContext.shared.virtualWidth = width;
    
    /* set the depth, resolution, etc */
    dpy->VarInfo = dpy->OrigVarInfo;
-   dpy->VarInfo.bits_per_pixel = dpy->bpp;
-   dpy->VarInfo.xres_virtual = dpy->shared.virtualWidth;
-   dpy->VarInfo.yres_virtual = dpy->shared.virtualHeight;
+   dpy->VarInfo.bits_per_pixel = dpy->driverContext.bpp;
+   dpy->VarInfo.xres_virtual = dpy->driverContext.shared.virtualWidth;
+   dpy->VarInfo.yres_virtual = dpy->driverContext.shared.virtualHeight;
    dpy->VarInfo.xres = width;
    dpy->VarInfo.yres = height;
    dpy->VarInfo.xoffset = 0;
@@ -436,7 +440,7 @@ SetupFBDev( Display *dpy )
       return 0;
    }
 
-   if (!dpy->driver->validateMode( dpy )) {
+   if (!dpy->driver->validateMode( &dpy->driverContext )) {
       fprintf(stderr, "Driver validateMode() failed\n");
       return 0;
    }
@@ -562,7 +566,7 @@ SetupFBDev( Display *dpy )
 
    /* May need to restore regs fbdev has clobbered:
     */
-   if (!dpy->driver->postValidateMode( dpy )) {
+   if (!dpy->driver->postValidateMode( &dpy->driverContext )) {
       fprintf(stderr, "Driver postValidateMode() failed\n");
       return 0;
    }
@@ -616,8 +620,8 @@ CloseFBDev( Display *dpy )
 {
    struct vt_mode VT;
 
-   munmap(dpy->FrameBuffer, dpy->shared.fbSize);
-   munmap(dpy->MMIOAddress, dpy->MMIOSize);
+   munmap(dpy->driverContext.FBAddress, dpy->driverContext.FBSize);
+   munmap(dpy->driverContext.MMIOAddress, dpy->driverContext.MMIOSize);
 
    /* restore text mode */
    ioctl(dpy->ConsoleFD, KDSETMODE, KD_TEXT);
@@ -728,7 +732,9 @@ static int get_chipset_from_busid( Display *dpy )
       if (nr != 5)
 	 break;
 
-      if (bus == dpy->pciBus && dev == dpy->pciDevice && fn == dpy->pciFunc) {
+      if (bus == dpy->driverContext.pciBus &&
+          dev == dpy->driverContext.pciDevice &&
+          fn  == dpy->driverContext.pciFunc) {
 	 retval = device;
 	 break;
       }
@@ -771,15 +777,15 @@ static int __read_config_file( Display *dpy )
     */
    dpy->fbdevDevice = "/dev/fb0";
    dpy->clientDriverName = "fb_dri.so";
-   dpy->pciBus = 0;
-   dpy->pciDevice = 0;
-   dpy->pciFunc = 0;
-   dpy->chipset = 0;   
-   dpy->pciBusID = 0;
-   dpy->shared.virtualWidth = 1280;
-   dpy->shared.virtualHeight = 1024;
-   dpy->bpp = 32;
-   dpy->cpp = 4;
+   dpy->driverContext.pciBus = 0;
+   dpy->driverContext.pciDevice = 0;
+   dpy->driverContext.pciFunc = 0;
+   dpy->driverContext.chipset = 0;   
+   dpy->driverContext.pciBusID = 0;
+   dpy->driverContext.shared.virtualWidth = 1280;
+   dpy->driverContext.shared.virtualHeight = 1024;
+   dpy->driverContext.bpp = 32;
+   dpy->driverContext.cpp = 4;
    dpy->rotateMode = 0;
 
    fname = getenv("MINIGLX_CONF");
@@ -821,35 +827,37 @@ static int __read_config_file( Display *dpy )
 	 dpy->rotateMode = atoi(val) ? 1 : 0;
       else if (strcmp(opt, "pciBusID") == 0) {
 	 if (sscanf(val, "PCI:%d:%d:%d",
-		    &dpy->pciBus, &dpy->pciDevice, &dpy->pciFunc) != 3) {
+		    &dpy->driverContext.pciBus,
+                    &dpy->driverContext.pciDevice,
+                    &dpy->driverContext.pciFunc) != 3) {
 	    fprintf(stderr, "malformed bus id: %s\n", val);
 	    continue;
 	 }
-   	 dpy->pciBusID = strdup(val);
+   	 dpy->driverContext.pciBusID = strdup(val);
       }
       else if (strcmp(opt, "chipset") == 0) {
-	 if (sscanf(val, "0x%x", &dpy->chipset) != 1)
+	 if (sscanf(val, "0x%x", &dpy->driverContext.chipset) != 1)
 	    fprintf(stderr, "malformed chipset: %s\n", opt);
       }
       else if (strcmp(opt, "virtualWidth") == 0) {
-	 if (sscanf(val, "%d", &dpy->shared.virtualWidth) != 1)
+	 if (sscanf(val, "%d", &dpy->driverContext.shared.virtualWidth) != 1)
 	    fprintf(stderr, "malformed virtualWidth: %s\n", opt);
       }
       else if (strcmp(opt, "virtualHeight") == 0) {
-	 if (sscanf(val, "%d", &dpy->shared.virtualHeight) != 1)
+	 if (sscanf(val, "%d", &dpy->driverContext.shared.virtualHeight) != 1)
 	    fprintf(stderr, "malformed virutalHeight: %s\n", opt);
       }
       else if (strcmp(opt, "bpp") == 0) {
-	 if (sscanf(val, "%d", &dpy->bpp) != 1)
+	 if (sscanf(val, "%d", &dpy->driverContext.bpp) != 1)
 	    fprintf(stderr, "malformed bpp: %s\n", opt);
-	 dpy->cpp = dpy->bpp / 8;
+	 dpy->driverContext.cpp = dpy->driverContext.bpp / 8;
       }
    }
 
    fclose(file);
 
-   if (dpy->chipset == 0 && dpy->pciBusID != 0) 
-      dpy->chipset = get_chipset_from_busid( dpy );
+   if (dpy->driverContext.chipset == 0 && dpy->driverContext.pciBusID != 0) 
+      dpy->driverContext.chipset = get_chipset_from_busid( dpy );
 
    return 1;
 }
@@ -870,10 +878,10 @@ static int InitDriver( Display *dpy )
 
    /* Pull in Mini GLX specific hooks:
     */
-   dpy->driver = (struct MiniGLXDriverRec *) dlsym(dpy->dlHandle,
-						   "__driMiniGLXDriver");
+   dpy->driver = (struct DRIDriverRec *) dlsym(dpy->dlHandle,
+                                               "__driDriver");
    if (!dpy->driver) {
-      fprintf(stderr, "Couldn't find __driMiniGLXDriver in %s\n",
+      fprintf(stderr, "Couldn't find __driDriver in %s\n",
               dpy->clientDriverName);
       dlclose(dpy->dlHandle);
       return GL_FALSE;
@@ -911,10 +919,10 @@ static int InitDriver( Display *dpy )
  * configuration file. 
  *
  * Calls OpenFBDev() to open the framebuffer device and calls
- * MiniGLXDriverRec::initFBDev to do the client-side initialization on it.
+ * DRIDriverRec::initFBDev to do the client-side initialization on it.
  *
  * Loads the DRI driver and pulls in Mini GLX specific hooks into a
- * MiniGLXDriverRec structure, and the standard DRI \e __driCreateScreen hook.
+ * DRIDriverRec structure, and the standard DRI \e __driCreateScreen hook.
  * Asks the driver for a list of supported visuals.  Performs the per-screen
  * client-side initialization.  Also setups the callbacks in the screen private
  * information.
@@ -953,11 +961,12 @@ __miniglx_StartServer( const char *display_name )
 
    /* Ask the driver for a list of supported configs:
     */
-   dpy->driver->initScreenConfigs( dpy, &dpy->numConfigs, &dpy->configs );
+   dpy->driver->initScreenConfigs( &dpy->driverContext,
+                                   &dpy->numConfigs, &dpy->configs );
 
    /* Perform the initialization normally done in the X server 
     */
-   if (!dpy->driver->initFBDev( dpy )) {
+   if (!dpy->driver->initFBDev( &dpy->driverContext )) {
       fprintf(stderr, "%s: __driInitFBDev failed\n", __FUNCTION__);
       dlclose(dpy->dlHandle);
       return GL_FALSE;
@@ -1031,7 +1040,8 @@ XOpenDisplay( const char *display_name )
 
    /* Ask the driver for a list of supported configs:
     */
-   dpy->driver->initScreenConfigs( dpy, &dpy->numConfigs, &dpy->configs );
+   dpy->driver->initScreenConfigs( &dpy->driverContext,
+                                   &dpy->numConfigs, &dpy->configs );
    
 
    /* Perform the client-side initialization.  
@@ -1097,7 +1107,7 @@ XCloseDisplay( Display *dpy )
    if (!dpy->IsClient) {
       /* put framebuffer back to initial state 
        */
-      (*dpy->driver->haltFBDev)( dpy );
+      (*dpy->driver->haltFBDev)( &dpy->driverContext );
       RestoreFBDev(dpy);
       CloseFBDev(dpy);
    }
@@ -1194,10 +1204,10 @@ XCreateWindow( Display *display, Window parent, int x, int y,
    win->h = height;
    win->visual = visual;  /* ptr assignment */
 
-   win->bytesPerPixel = display->bpp / 8;
+   win->bytesPerPixel = display->driverContext.cpp;
    win->rowStride = display->VarInfo.xres_virtual * win->bytesPerPixel;
    win->size = win->rowStride * height; 
-   win->frontStart = display->FrameBuffer;
+   win->frontStart = display->driverContext.FBAddress;
    win->frontBottom = (GLubyte *) win->frontStart + (height-1) * win->rowStride;
 
    /* This is incorrect: the hardware driver could put the backbuffer
@@ -1390,7 +1400,7 @@ XGetVisualInfo( Display *dpy, long vinfo_mask, XVisualInfo *vinfo_template, int 
       visResults[i].visInfo = results + i;
       visResults[i].dpy = dpy;
 
-      if (dpy->bpp == 32)
+      if (dpy->driverContext.bpp == 32)
 	 visResults[i].pixelFormat = PF_B8G8R8A8; /* XXX: FIX ME */
       else
 	 visResults[i].pixelFormat = PF_B5G6R5; /* XXX: FIX ME */
@@ -1402,7 +1412,7 @@ XGetVisualInfo( Display *dpy, long vinfo_mask, XVisualInfo *vinfo_template, int 
                          dpy->configs[i].greenSize +
                          dpy->configs[i].blueSize +
                          dpy->configs[i].alphaSize;
-      results[i].bits_per_rgb = dpy->bpp;
+      results[i].bits_per_rgb = dpy->driverContext.bpp;
    }
    *nitens_return = n;
    return results;
@@ -1583,9 +1593,9 @@ glXChooseVisual( Display *dpy, int screen, int *attribList )
    if (rgbFlag) {
       /* XXX maybe support depth 16 someday */
       visInfo->class = TrueColor;
-      visInfo->depth = dpy->bpp;
-      visInfo->bits_per_rgb = dpy->bpp;
-      if (dpy->bpp == 32)
+      visInfo->depth = dpy->driverContext.bpp;
+      visInfo->bits_per_rgb = dpy->driverContext.bpp;
+      if (dpy->driverContext.bpp == 32)
 	 vis->pixelFormat = PF_B8G8R8A8;
       else
 	 vis->pixelFormat = PF_B5G6R5;

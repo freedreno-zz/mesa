@@ -8,21 +8,6 @@ This driver has been ported from the head branch of XFree86 to
 the embedded-1-branch of Mesa.
 
 
-INSTRUCTIONS
-
-1. Checkout Mesa embedded-1-branch via:
-
- cvs -d :pserver:anonymous@cvs.mesa3d.sourceforge.net:/cvsroot/mesa3d co -r embedded-1-branch Mesa
-
-2. Patch some Makefiles (within the Mesa/ directory) via:
-
- patch -p0 < Mesa-embedded-1-branch-mga.diff
-
-3. Unpack the driver source (within the Mesa/ directory) via:
-
- tar xvjf Mesa-embedded-1-branch-src-drv-mga.tar.bz2
-
-
 STATUS
 
 Already working very well as far as I've tested it (16/32 bit).
@@ -32,6 +17,8 @@ Other demos (terrain, fire, etc.) have been successfully tested as well.
 
 TODO
 
+- mgaEngineShutdown
+- mgaEngineRestore
 - SGRAM detection
 - remove some unused bits from server/*
 - subset driver support

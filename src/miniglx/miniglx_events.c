@@ -22,7 +22,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: miniglx_events.c,v 1.1.2.6 2003/04/25 23:09:01 keithw Exp $ */
+/* $Id: miniglx_events.c,v 1.1.2.7 2003/04/26 21:17:47 keithw Exp $ */
 
 
 /**
@@ -52,6 +52,7 @@
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/socket.h>
@@ -191,17 +192,18 @@ static int welcome_message_part( Display *dpy, int i, void **msg, int sz )
 
 static int welcome_message( Display *dpy, int i )
 {
-   void *tmp = &dpy->shared;
+   void *tmp = &dpy->driverContext.shared;
    int *clientid = dpy->IsClient ? &dpy->clientID : &i;
    
    if (!welcome_message_part( dpy, i, (void **)&clientid, sizeof(*clientid)))
       return False;
 
-   if (!welcome_message_part( dpy, i, &tmp, sizeof(dpy->shared)))
+   if (!welcome_message_part( dpy, i, &tmp, sizeof(dpy->driverContext.shared)))
       return False;
       
-   if (!welcome_message_part( dpy, i, (void **)&dpy->driverClientMsg, 
-			      dpy->driverClientMsgSize ))
+   if (!welcome_message_part( dpy, i,
+                              (void **)&dpy->driverContext.driverClientMsg, 
+			      dpy->driverContext.driverClientMsgSize ))
       return False;
 
    return True;
@@ -402,8 +404,10 @@ static void __driHandleVtSignals( Display *dpy )
 
    if (!dpy->haveVT && dpy->hwActive) {
       /* Need to get lock and shutdown hardware */
-      DRM_LIGHT_LOCK( dpy->drmFD, dpy->pSAREA, dpy->serverContext ); 
-      dpy->driver->shutdownHardware( dpy ); 
+      DRM_LIGHT_LOCK( dpy->driverContext.drmFD,
+                      dpy->driverContext.pSAREA,
+                      dpy->driverContext.serverContext ); 
+      dpy->driver->shutdownHardware( &dpy->driverContext ); 
 
       /* Can now give up control of the VT */
       ioctl( dpy->ConsoleFD, VT_RELDISP, 1 ); 
@@ -414,8 +418,10 @@ static void __driHandleVtSignals( Display *dpy )
       ioctl( dpy->ConsoleFD, VT_RELDISP, VT_ACTIVATE );
 
       /* restore HW state, release lock */
-      dpy->driver->restoreHardware( dpy ); 
-      DRM_UNLOCK( dpy->drmFD, dpy->pSAREA, dpy->serverContext ); 
+      dpy->driver->restoreHardware( &dpy->driverContext ); 
+      DRM_UNLOCK( dpy->driverContext.drmFD,
+                  dpy->driverContext.pSAREA,
+                  dpy->driverContext.serverContext ); 
       dpy->hwActive = 1;
    }
 }
@@ -640,13 +646,17 @@ static void set_drawable_flag( Display *dpy, int w, int flag )
 {
    fprintf(stderr, "%s %d %d\n", __FUNCTION__, w, flag);
 
-   if (dpy->pSAREA) {
-      DRM_LIGHT_LOCK( dpy->drmFD, dpy->pSAREA, dpy->serverContext ); 
+   if (dpy->driverContext.pSAREA) {
+      DRM_LIGHT_LOCK( dpy->driverContext.drmFD,
+                      dpy->driverContext.pSAREA,
+                      dpy->driverContext.serverContext ); 
 
-      dpy->pSAREA->drawableTable[w].stamp++;
-      dpy->pSAREA->drawableTable[w].flags = flag;
+      dpy->driverContext.pSAREA->drawableTable[w].stamp++;
+      dpy->driverContext.pSAREA->drawableTable[w].flags = flag;
 
-      DRM_UNLOCK( dpy->drmFD, dpy->pSAREA, dpy->serverContext ); 
+      DRM_UNLOCK( dpy->driverContext.drmFD,
+                  dpy->driverContext.pSAREA,
+                  dpy->driverContext.serverContext ); 
    }
 }
 
