@@ -259,23 +259,21 @@ static int RADEONDRIKernelInit(RADEONInfoPtr info)
     else
        drmInfo.func             = DRM_RADEON_INIT_CP;
 
+    /* This is the struct passed to the kernel module for its initialization */
     drmInfo.sarea_priv_offset   = sizeof(XF86DRISAREARec);
     drmInfo.is_pci              = info->IsPCI;
     drmInfo.cp_mode             = info->CPMode;
     drmInfo.agp_size            = info->agpSize*1024*1024;
     drmInfo.ring_size           = info->ringSize*1024*1024;
     drmInfo.usec_timeout        = info->CPusecTimeout;
-
     drmInfo.fb_bpp              = info->CurrentLayout.pixel_code;
     drmInfo.depth_bpp           = info->CurrentLayout.pixel_code;
-
     drmInfo.front_offset        = info->frontOffset;
     drmInfo.front_pitch         = info->frontPitch * cpp;
     drmInfo.back_offset         = info->backOffset;
     drmInfo.back_pitch          = info->backPitch * cpp;
     drmInfo.depth_offset        = info->depthOffset;
     drmInfo.depth_pitch         = info->depthPitch * cpp;
-
     drmInfo.fb_offset           = info->LinearAddr;
     drmInfo.mmio_offset         = info->registerHandle;
     drmInfo.ring_offset         = info->ringHandle;
@@ -400,7 +398,7 @@ static void RADEONDRICPInit(RADEONInfoPtr info)
  * initialization code.  It calls device-independent DRI functions to
  * create the DRI data structures and initialize the DRI state.
  */
-static Bool RADEONDRIScreenInit(RADEONInfoPtr info)
+static Bool RADEONDRIScreenInit(ScrnInfoPtr pScrn, RADEONInfoPtr info)
 {
     DRIInfoPtr     pDRIInfo;
     RADEONDRIPtr   pRADEONDRI;
@@ -602,7 +600,7 @@ static Bool RADEONDRIScreenInit(RADEONInfoPtr info)
  * DRIFinishScreenInit() to complete the device-independent DRI
  * initialization.
  */
-static Bool RADEONDRIFinishScreenInit(RADEONInfoPtr info)
+static Bool RADEONDRIFinishScreenInit(ScrnInfoPtr pScrn, RADEONInfoPtr info)
 {
     RADEONSAREAPrivPtr  pSAREAPriv;
     RADEONDRIPtr        pRADEONDRI;
@@ -645,17 +643,16 @@ static Bool RADEONDRIFinishScreenInit(RADEONInfoPtr info)
     pSAREAPriv = (RADEONSAREAPrivPtr)DRIGetSAREAPrivate();
     memset(pSAREAPriv, 0, sizeof(*pSAREAPriv));
 
+    
+    /* This is the struct passed to radeon_dri.so for its initialization */
     pRADEONDRI                    = (RADEONDRIPtr)info->pDRIInfo->devPrivate;
-
     pRADEONDRI->deviceID          = info->Chipset;
     pRADEONDRI->width             = pScrn->virtualX;
     pRADEONDRI->height            = pScrn->virtualY;
     pRADEONDRI->depth             = pScrn->depth;
     pRADEONDRI->bpp               = pScrn->bitsPerPixel;
-
     pRADEONDRI->IsPCI             = info->IsPCI;
     pRADEONDRI->AGPMode           = info->agpMode;
-
     pRADEONDRI->frontOffset       = info->frontOffset;
     pRADEONDRI->frontPitch        = info->frontPitch;
     pRADEONDRI->backOffset        = info->backOffset;
@@ -665,18 +662,14 @@ static Bool RADEONDRIFinishScreenInit(RADEONInfoPtr info)
     pRADEONDRI->textureOffset     = info->textureOffset;
     pRADEONDRI->textureSize       = info->textureSize;
     pRADEONDRI->log2TexGran       = info->log2TexGran;
-
     pRADEONDRI->registerHandle    = info->registerHandle;
     pRADEONDRI->registerSize      = info->registerSize;
-
     pRADEONDRI->statusHandle      = info->ringReadPtrHandle;
     pRADEONDRI->statusSize        = info->ringReadMapSize;
-
     pRADEONDRI->agpTexHandle      = info->agpTexHandle;
     pRADEONDRI->agpTexMapSize     = info->agpTexMapSize;
     pRADEONDRI->log2AGPTexGran    = info->log2AGPTexGran;
     pRADEONDRI->agpTexOffset      = info->agpTexStart;
-
     pRADEONDRI->sarea_priv_offset = sizeof(XF86DRISAREARec);
 
 
@@ -686,7 +679,7 @@ static Bool RADEONDRIFinishScreenInit(RADEONInfoPtr info)
 /* The screen is being closed, so clean up any state and free any
  * resources used by the DRI.
  */
-STATIC void RADEONDRICloseScreen( RADEONInfoPtr info )
+STATIC void RADEONDRICloseScreen( ScrnInfoPtr pScrn, RADEONInfoPtr info )
 {
     drmRadeonInit  drmInfo;
 
@@ -773,12 +766,8 @@ static void RADEONSetPitch (ScrnInfoPtr pScrn)
 }
 
 /* Called at the start of each server generation. */
-static Bool RADEONScreenInit( ScrnInfoPtr info, RADEONInfoPtr info )
+static Bool RADEONScreenInit( ScrnInfoPtr pScrn, RADEONInfoPtr info )
 {
-
-    RADEONTRACE(("RADEONScreenInit %x %d\n",
-		 pScrn->memPhysBase, pScrn->fbOffset));
-
     info->FBDev        = TRUE;
     info->CPInUse      = FALSE;
     info->CPStarted    = FALSE;
@@ -821,7 +810,7 @@ static Bool RADEONScreenInit( ScrnInfoPtr info, RADEONInfoPtr info )
 		       "Radeon 9700 and newer cards\n");
 	    return FALSE;
 	} else {
-	   if (!RADEONDRIScreenInit(pScreen))
+	   if (!RADEONDRIScreenInit(pScrn, info))
 	      return FALSE;
 	}
     }
@@ -846,23 +835,23 @@ static Bool RADEONScreenInit( ScrnInfoPtr info, RADEONInfoPtr info )
 
 	switch (info->CPMode) {
 	case RADEON_DEFAULT_CP_PIO_MODE:
-	    xf86DrvMsg(pScrn->scrnIndex, X_INFO, "CP in PIO mode\n");
+	    xf86DrvMsg(0, X_INFO, "CP in PIO mode\n");
 	    break;
 	case RADEON_DEFAULT_CP_BM_MODE:
-	    xf86DrvMsg(pScrn->scrnIndex, X_INFO, "CP in BM mode\n");
+	    xf86DrvMsg(0, X_INFO, "CP in BM mode\n");
 	    break;
 	default:
-	    xf86DrvMsg(pScrn->scrnIndex, X_INFO, "CP in UNKNOWN mode\n");
+	    xf86DrvMsg(0, X_INFO, "CP in UNKNOWN mode\n");
 	    break;
 	}
 
-	xf86DrvMsg(pScrn->scrnIndex, X_INFO,
+	xf86DrvMsg(0, X_INFO,
 		   "Using %d MB AGP aperture\n", info->agpSize);
-	xf86DrvMsg(pScrn->scrnIndex, X_INFO,
+	xf86DrvMsg(0, X_INFO,
 		   "Using %d MB for the ring buffer\n", info->ringSize);
-	xf86DrvMsg(pScrn->scrnIndex, X_INFO,
+	xf86DrvMsg(0, X_INFO,
 		   "Using %d MB for vertex/indirect buffers\n", info->bufSize);
-	xf86DrvMsg(pScrn->scrnIndex, X_INFO,
+	xf86DrvMsg(0, X_INFO,
 		   "Using %d MB for AGP textures\n", info->agpTexSize);
 
 	/* Front, back and depth buffers - everything else texture??
@@ -930,12 +919,12 @@ static Bool RADEONScreenInit( ScrnInfoPtr info, RADEONInfoPtr info )
     } 
 
     if (info->directRenderingEnabled) 
-       info->directRenderingEnabled = RADEONDRIFinishScreenInit(pScreen);
+       info->directRenderingEnabled = RADEONDRIFinishScreenInit(pScrn, info);
 
     if (info->directRenderingEnabled) {
-	xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Direct rendering enabled\n");
+	xf86DrvMsg(0, X_INFO, "Direct rendering enabled\n");
     } else {
-	xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Direct rendering disabled\n");
+	xf86DrvMsg(0, X_INFO, "Direct rendering disabled\n");
     }
 
     return TRUE;
@@ -1006,6 +995,27 @@ void RADEON_ServerInit( void )
 {
    RADEONInfoPtr info = calloc(sizeof(*info));
 
+   /* Need to be set up here somehow: Need to know total card memory,
+    * among other things:
+    */
+   pScrn->videoRam = fbdevHWGetVidmem(pScrn) / 1024;
+   if (pScrn->videoRam == 0) pScrn->videoRam = 8192;
+   pScrn->fbOffset = 0;
+
+   pScrn->virtualX = ??;
+   pScrn->virtualY = ??;
+   pScrn->depth = ??;
+   pScrn->bitsPerPixel = ??;
+
+
+   /* Need these to build busid string for kernel init:
+    */
+   info->PciInfo->bus = ??;
+   info->PciInfo->device = ??;
+   info->PciInfo->func = ??;
+   info->PciInfo->memBase[0] = ??;
+   info->PciInfo->chipType = ??;
+
 
    info->IsPCI = 0;
    info->CPMode        = RADEON_DEFAULT_CP_BM_MODE;
@@ -1019,34 +1029,26 @@ void RADEON_ServerInit( void )
 
    /* Queries from fbdev environment:   Or instructions to it?
     */
-   info->CurrentLayout.pixel_code = ??;
-   info->CurrentLayout.pixel_bytes = ??;
-   info->frontPitch = ??;
-   info->LinearAddr = ??;
-   info->FbMapSize = ??;
-   info->BusCntl = ??;
-   info->Chipset = ??;
+   
+
+   
+   info->CurrentLayout.bitsPerPixel = pScrn->bitsPerPixel;
+   info->CurrentLayout.depth        = pScrn->depth;
+   info->CurrentLayout.pixel_bytes  = pScrn->bitsPerPixel / 8;
+   info->CurrentLayout.pixel_code   = (pScrn->bitsPerPixel != 16
+				       ? pScrn->bitsPerPixel
+				       : pScrn->depth);
+
+
+   info->BusCntl            = INREG(RADEON_BUS_CNTL);
+   info->Chipset = info->PciInfo->chipType;
    get_chipfamily_from_chipset( info );
 
-   /* Need these to build busid string for kernel init:
-    */
-   info->PciInfo->bus = ??;
-   info->PciInfo->device = ??;
-   info->PciInfo->func = ??;
 
-
-   /* Need to be set up here somehow: Need to know total card memory,
-    * among other things:
-    */
-   pScrn->videoRam = fbdevHWGetVidmem(pScrn) / 1024;
-   if (pScrn->videoRam == 0) pScrn->videoRam = 8192;
-
-
-
-   pScrn->virtualX = ??;
-   pScrn->virtualY = ??;
-   pScrn->depth = ??;
-   pScrn->bitsPerPixel = ??;
+   info->frontPitch = pScrn->displayWidth;
+   info->FbMapSize = pScrn->videoRam * 1024;
+   info->LinearAddr = info->PciInfo->memBase[0] & 0xfc000000;
+    
 
    /* Choose pScrn->displayWidth?? */
    RADEONSetPitch( pScrn );
