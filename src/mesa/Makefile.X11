@@ -1,4 +1,4 @@
-# $Id: Makefile.X11,v 1.6.2.1 1999/11/16 15:25:50 brianp Exp $
+# $Id: Makefile.X11,v 1.6.2.2 2000/01/23 17:47:00 brianp Exp $
 
 # Mesa 3-D graphics library
 # Version:  3.1
@@ -104,6 +104,11 @@ DRIVER_SOURCES = \
 	X/xmesa4.c \
 	OSmesa/osmesa.c \
 	SVGA/svgamesa.c \
+	SVGA/svgamesa8.c \
+	SVGA/svgamesa15.c \
+	SVGA/svgamesa16.c \
+	SVGA/svgamesa24.c \
+	SVGA/svgamesa32.c \
 	FX/fxapi.c \
 	FX/fxclip.c \
 	FX/fxcva.c \
