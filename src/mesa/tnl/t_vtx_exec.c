@@ -59,6 +59,9 @@ static void _tnl_vb_bind_vtx( GLcontext *ctx )
    GLuint count = tnl->vtx.initial_counter - tnl->vtx.counter;
    GLuint attr, i;
 
+   _mesa_debug( 0, "%s\n", __FUNCTION__); 
+
+
    /* Setup constant data in the VB.
     */
    VB->Count = count;
@@ -122,6 +125,8 @@ static GLuint _tnl_copy_vertices( GLcontext *ctx )
    GLfloat *src = (tnl->vtx.buffer + 
 		   tnl->vtx.prim[tnl->vtx.prim_count-1].start * 
 		   tnl->vtx.vertex_size);
+
+   _mesa_debug( 0, "%s\n", __FUNCTION__); 
 
 
    switch( ctx->Driver.CurrentExecPrimitive )
@@ -193,21 +198,28 @@ void _tnl_flush_vtx( GLcontext *ctx )
 {
    TNLcontext *tnl = TNL_CONTEXT(ctx);
 
-   if (!tnl->vtx.prim_count) 
-      return;
+   _mesa_debug( 0, "%s\n", __FUNCTION__); 
 
-   tnl->vtx.copied.nr = _tnl_copy_vertices( ctx ); 
+   if (tnl->vtx.prim_count && 
+       tnl->vtx.counter != tnl->vtx.initial_counter) {
+
+      tnl->vtx.copied.nr = _tnl_copy_vertices( ctx ); 
    
-   if (tnl->pipeline.build_state_changes)
-      _tnl_validate_pipeline( ctx );
+      if (tnl->pipeline.build_state_changes)
+	 _tnl_validate_pipeline( ctx );
 
-   _tnl_vb_bind_vtx( ctx );
+      _tnl_vb_bind_vtx( ctx );
 
-   /* Invalidate all stored data before and after run:
-    */
-   tnl->pipeline.run_input_changes |= tnl->pipeline.inputs;
-   tnl->Driver.RunPipeline( ctx );
-   tnl->pipeline.run_input_changes |= tnl->pipeline.inputs;
+      /* Invalidate all stored data before and after run:
+       */
+      tnl->pipeline.run_input_changes |= tnl->pipeline.inputs;
+      tnl->Driver.RunPipeline( ctx );
+      tnl->pipeline.run_input_changes |= tnl->pipeline.inputs;
+   }
+
+   tnl->vtx.prim_count = 0;
+   tnl->vtx.counter = tnl->vtx.initial_counter;
+   tnl->vtx.vbptr = tnl->vtx.buffer;
 }
 
 
