@@ -809,7 +809,7 @@ ENABLE_PREPROCESSING   = YES
 # compilation will be performed. Macro expansion can be done in a controlled 
 # way by setting EXPAND_ONLY_PREDEF to YES.
 
-MACRO_EXPANSION        = NO
+MACRO_EXPANSION        = YES
 
 # If the EXPAND_ONLY_PREDEF and MACRO_EXPANSION tags are both set to YES 
 # then the macro expansion is limited to the macros specified with the 
@@ -842,7 +842,15 @@ INCLUDE_FILE_PATTERNS  =
 # omitted =1 is assumed.
 
 PREDEFINED             = \
-			__KERNEL__
+			__KERNEL__ \
+			"__devinit=" \
+			"__init=" \
+			"__devinitdata=" \
+			"__initdata=" \
+			"MODULE_AUTHOR()=" \
+			"MODULE_LICENSE()=" \
+			"MODULE_DESCRIPTION()=" \
+			"MODULE_DEVICE_TABLE()="
 
 # If the MACRO_EXPANSION and EXPAND_ONLY_PREDEF tags are set to YES then 
 # this tag can be used to specify a list of macro names that should be expanded. 
