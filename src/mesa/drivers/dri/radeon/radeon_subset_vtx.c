@@ -993,8 +993,6 @@ void radeonVtxfmtNotifyFocus( int have_focus )
    GET_CURRENT_CONTEXT(ctx);
    radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
 
-   fprintf(stderr, "%s: %d\n", __FUNCTION__, have_focus);
-
    if (ctx->Driver.CurrentExecPrimitive != GL_POLYGON+1) 
       radeon_End();
    
@@ -1005,6 +1003,7 @@ void radeonVtxfmtNotifyFocus( int have_focus )
       RADEON_FIREVERTICES( rmesa );
       drmUnmapBufs( rmesa->radeonScreen->buffers );
       rmesa->radeonScreen->buffers = 0;
+/*       assert(!rmesa->dma.current.buf); */
    }
 
    radeonVtxfmtInit( ctx );
