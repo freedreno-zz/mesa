@@ -51,7 +51,7 @@ static GLfloat terraincolor[256 * 256][3];
 
 static int win = 0;
 
-static int fog = 1;
+static int fog = 0;
 static int bfcull = 1;
 static int usetex = 1;
 static int poutline = 0;
@@ -105,6 +105,21 @@ calcposobs(void)
       obs[1] = 0.0;
 }
 
+static void 
+perspective(GLdouble fovy, GLdouble aspect, GLdouble zNear, GLdouble zFar)
+{
+   GLdouble xmin, xmax, ymin, ymax;
+
+   ymax = zNear * tan(fovy * M_PI / 360.0);
+   ymin = -ymax;
+   xmin = ymin * aspect;
+   xmax = ymax * aspect;
+
+   /* don't call glFrustum() because of error semantics (covglu) */
+   glFrustum(xmin, xmax, ymin, ymax, zNear, zFar);
+}
+
+
 static void
 reshape(int width, int height)
 {
@@ -113,7 +128,7 @@ reshape(int width, int height)
    glViewport(0, 0, (GLint) width, (GLint) height);
    glMatrixMode(GL_PROJECTION);
    glLoadIdentity();
-   gluPerspective(50.0, ((GLfloat) width / (GLfloat) height),
+   perspective(50.0, ((GLfloat) width / (GLfloat) height),
 		  lenghtXmnt * stepYmnt * 0.01, lenghtXmnt * stepYmnt * 0.7);
    glMatrixMode(GL_MODELVIEW);
    glLoadIdentity();
@@ -209,13 +224,25 @@ printstring(void *font, char *string)
       glutBitmapCharacter(font, string[i]);
 }
 
+
+
+static void _subset_Rectf( GLfloat x1, GLfloat y1, GLfloat x2, GLfloat y2 )
+{
+   glBegin( GL_QUADS );
+   glVertex2f( x1, y1 );
+   glVertex2f( x2, y1 );
+   glVertex2f( x2, y2 );
+   glVertex2f( x1, y2 );
+   glEnd();
+}
+
 static void
 printhelp(void)
 {
    glEnable(GL_BLEND);
    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
    glColor4f(0.0, 0.0, 0.0, 0.5);
-   glRecti(40, 40, 600, 440);
+   _subset_Rectf(40, 40, 600, 440);
    glDisable(GL_BLEND);
 
    glColor3f(1.0, 0.0, 0.0);
@@ -351,6 +378,87 @@ dojoy(void)
 #endif
 }
 
+static void 
+lookAt(GLfloat eyex, GLfloat eyey, GLfloat eyez,
+	  GLfloat centerx, GLfloat centery, GLfloat centerz,
+	  GLfloat upx, GLfloat upy, GLfloat upz)
+{
+   GLfloat m[16];
+   GLfloat x[3], y[3], z[3];
+   GLfloat mag;
+
+   /* Make rotation matrix */
+
+   /* Z vector */
+   z[0] = eyex - centerx;
+   z[1] = eyey - centery;
+   z[2] = eyez - centerz;
+   mag = sqrt(z[0] * z[0] + z[1] * z[1] + z[2] * z[2]);
+   if (mag) {			/* mpichler, 19950515 */
+      z[0] /= mag;
+      z[1] /= mag;
+      z[2] /= mag;
+   }
+
+   /* Y vector */
+   y[0] = upx;
+   y[1] = upy;
+   y[2] = upz;
+
+   /* X vector = Y cross Z */
+   x[0] = y[1] * z[2] - y[2] * z[1];
+   x[1] = -y[0] * z[2] + y[2] * z[0];
+   x[2] = y[0] * z[1] - y[1] * z[0];
+
+   /* Recompute Y = Z cross X */
+   y[0] = z[1] * x[2] - z[2] * x[1];
+   y[1] = -z[0] * x[2] + z[2] * x[0];
+   y[2] = z[0] * x[1] - z[1] * x[0];
+
+   /* mpichler, 19950515 */
+   /* cross product gives area of parallelogram, which is < 1.0 for
+    * non-perpendicular unit-length vectors; so normalize x, y here
+    */
+
+   mag = sqrt(x[0] * x[0] + x[1] * x[1] + x[2] * x[2]);
+   if (mag) {
+      x[0] /= mag;
+      x[1] /= mag;
+      x[2] /= mag;
+   }
+
+   mag = sqrt(y[0] * y[0] + y[1] * y[1] + y[2] * y[2]);
+   if (mag) {
+      y[0] /= mag;
+      y[1] /= mag;
+      y[2] /= mag;
+   }
+
+#define M(row,col)  m[col*4+row]
+   M(0, 0) = x[0];
+   M(0, 1) = x[1];
+   M(0, 2) = x[2];
+   M(0, 3) = 0.0;
+   M(1, 0) = y[0];
+   M(1, 1) = y[1];
+   M(1, 2) = y[2];
+   M(1, 3) = 0.0;
+   M(2, 0) = z[0];
+   M(2, 1) = z[1];
+   M(2, 2) = z[2];
+   M(2, 3) = 0.0;
+   M(3, 0) = 0.0;
+   M(3, 1) = 0.0;
+   M(3, 2) = 0.0;
+   M(3, 3) = 1.0;
+#undef M
+   glMultMatrixf(m);
+
+   /* Translate Eye to Origin */
+   glTranslatef(-eyex, -eyey, -eyez);
+
+}
+
 static void
 drawscene(void)
 {
@@ -359,24 +467,24 @@ drawscene(void)
    dojoy();
 
    glShadeModel(GL_SMOOTH);
-   glEnable(GL_DEPTH_TEST);
+/*    glEnable(GL_DEPTH_TEST); */
 
    if (usetex)
       glEnable(GL_TEXTURE_2D);
    else
       glDisable(GL_TEXTURE_2D);
 
-   if (fog)
-      glEnable(GL_FOG);
-   else
-      glDisable(GL_FOG);
+/*    if (fog) */
+/*       glEnable(GL_FOG); */
+/*    else */
+/*       glDisable(GL_FOG); */
 
    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
    glPushMatrix();
 
    calcposobs();
-   gluLookAt(obs[0], obs[1], obs[2],
+   lookAt(obs[0], obs[1], obs[2],
 	     obs[0] + dir[0], obs[1] + dir[1], obs[2] + dir[2],
 	     0.0, 1.0, 0.0);
 
@@ -384,8 +492,8 @@ drawscene(void)
    glPopMatrix();
 
    glDisable(GL_TEXTURE_2D);
-   glDisable(GL_DEPTH_TEST);
-   glDisable(GL_FOG);
+/*    glDisable(GL_DEPTH_TEST); */
+/*    glDisable(GL_FOG); */
    glShadeModel(GL_FLAT);
 
    glMatrixMode(GL_PROJECTION);
@@ -549,7 +657,7 @@ calccolor(GLfloat height, GLfloat c[3])
 static void
 loadpic(void)
 {
-   GLubyte bufferter[256 * 256], terrainpic[256 * 256];
+   GLubyte bufferter[256 * 256], terrainpic[256 * 256][4];
    FILE *FilePic;
    int i, tmp;
    GLenum gluerr;
@@ -565,25 +673,28 @@ loadpic(void)
       terrain[i] = (bufferter[i] * (heightMnt / 255.0f));
       calccolor((GLfloat) bufferter[i], terraincolor[i]);
       tmp = (((int) bufferter[i]) + 96);
-      terrainpic[i] = (tmp > 255) ? 255 : tmp;
+      terrainpic[i][0] = (tmp > 255) ? 255 : tmp;
+      terrainpic[i][1] = (tmp > 255) ? 255 : tmp;
+      terrainpic[i][2] = (tmp > 255) ? 255 : tmp;
+      terrainpic[i][0] = 255;
    }
 
    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-   if ((gluerr = gluBuild2DMipmaps(GL_TEXTURE_2D, 1, 256, 256, GL_LUMINANCE,
+   if ((gluerr = gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGBA, 256, 256, GL_RGBA,
 				   GL_UNSIGNED_BYTE,
-				   (GLvoid *) (&terrainpic[0])))) {
+				   (GLvoid *) (&terrainpic[0][0])))) {
       fprintf(stderr, "GLULib%s\n", (char *) gluErrorString(gluerr));
       exit(-1);
    }
 
-   glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-   glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
-   glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
 		   GL_LINEAR_MIPMAP_LINEAR);
-   glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-   glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+   glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
    glEnable(GL_TEXTURE_2D);
 }
 
@@ -593,21 +704,21 @@ init(void)
    float fogcolor[4] = { 0.6, 0.7, 0.7, 1.0 };
 
    glClearColor(fogcolor[0], fogcolor[1], fogcolor[2], fogcolor[3]);
-   glClearDepth(1.0);
-   glDepthFunc(GL_LEQUAL);
+/*    glClearDepth(1.0); */
+/*    glDepthFunc(GL_LEQUAL); */
    glShadeModel(GL_SMOOTH);
-   glEnable(GL_DEPTH_TEST);
+/*    glEnable(GL_DEPTH_TEST); */
    glEnable(GL_CULL_FACE);
 
    glDisable(GL_BLEND);
    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-   glEnable(GL_FOG);
-   glFogi(GL_FOG_MODE, GL_EXP2);
-   glFogfv(GL_FOG_COLOR, fogcolor);
-   glFogf(GL_FOG_DENSITY, 0.0007);
+/*    glEnable(GL_FOG); */
+/*    glFogi(GL_FOG_MODE, GL_EXP2); */
+/*    glFogfv(GL_FOG_COLOR, fogcolor); */
+/*    glFogf(GL_FOG_DENSITY, 0.0007); */
 #ifdef FX
-   glHint(GL_FOG_HINT, GL_NICEST);
+/*    glHint(GL_FOG_HINT, GL_NICEST); */
 #endif
 
    reshape(scrwidth, scrheight);
