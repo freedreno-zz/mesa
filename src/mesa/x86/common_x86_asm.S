@@ -1,10 +1,10 @@
-/* $Id: common_x86_asm.S,v 1.7.2.1 2002/03/07 21:39:09 brianp Exp $ */
+/* $Id: common_x86_asm.S,v 1.7.2.2 2002/06/04 21:29:01 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.5
+ * Version:  4.0.3
  *
- * Copyright (C) 1999-2001  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -202,7 +202,7 @@ GLNAME( _mesa_test_os_sse_exception_support ):
 	LDMXCSR	( REGOFF( -8, EBP ) )
 
 	XORPS	( XMM0, XMM0 )
-	MOVUPS	( GLNAME( sse_test_dummy ), XMM1 )
+	MOVUPS	( CONTENT( GLNAME( sse_test_dummy ) ), XMM1 )
 
 	DIVPS	( XMM0, XMM1 )
 
