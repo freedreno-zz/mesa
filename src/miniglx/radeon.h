@@ -32,6 +32,32 @@
 
 #include "dri.h"
 
+#define PCI_CHIP_RADEON_LW		0x4C57
+#define PCI_CHIP_RADEON_LX		0x4C58
+#define PCI_CHIP_RADEON_LY		0x4C59
+#define PCI_CHIP_RADEON_LZ		0x4C5A
+#define PCI_CHIP_RV250_Ld		0x4C64
+#define PCI_CHIP_RV250_Le		0x4C65
+#define PCI_CHIP_RV250_Lf		0x4C66
+#define PCI_CHIP_RV250_Lg		0x4C67
+#define PCI_CHIP_R300_ND		0x4E44
+#define PCI_CHIP_R300_NE		0x4E45
+#define PCI_CHIP_R300_NF		0x4E46
+#define PCI_CHIP_R300_NG		0x4E47
+#define PCI_CHIP_RADEON_QD		0x5144
+#define PCI_CHIP_RADEON_QE		0x5145
+#define PCI_CHIP_RADEON_QF		0x5146
+#define PCI_CHIP_RADEON_QG		0x5147
+#define PCI_CHIP_R200_QL		0x514C
+#define PCI_CHIP_R200_QN		0x514E
+#define PCI_CHIP_R200_QO		0x514F
+#define PCI_CHIP_RV200_QW		0x5157
+#define PCI_CHIP_RV200_QX		0x5158
+#define PCI_CHIP_RADEON_QY		0x5159
+#define PCI_CHIP_RADEON_QZ		0x515A
+#define PCI_CHIP_R200_Ql		0x516C
+
+
 typedef enum {
     CHIP_FAMILY_UNKNOW,
     CHIP_FAMILY_LEGACY,
@@ -49,6 +75,9 @@ typedef enum {
 } RADEONChipFamily;
 
 typedef struct {
+    pciVideoPtr       PciInfo;
+
+    int               Chipset;
     RADEONChipFamily  ChipFamily;
 
     Bool              FBDev;
@@ -64,7 +93,7 @@ typedef struct {
 
 
     Bool              directRenderingEnabled;
-    DRIInfoPtr        pDRIInfo;
+    DRIInfoPtr        pDRIInfo;	        /* XXX: defined in dri.h */
     int               drmFD;
 
     drmHandle         fbHandle;

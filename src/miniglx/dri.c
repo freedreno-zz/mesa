@@ -37,9 +37,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "dri.h"
 #include "sarea.h"
 #include "dristruct.h"
-/* #include "xf86.h" */
 #include "xf86drm.h"
-/* #include "glxserver.h" */
 
 
 static int DRIScreenPrivIndex = -1;
@@ -71,14 +69,20 @@ DRIScreenPrivPtr  __pDRIPriv;
 				   messages later, based on verbosity
 				   level. */
 
-static void
-DRIDrvMsg(int scrnIndex, MessageType type, const char *format, ...)
-{
-    va_list     ap;
+#define X_DEBUG 2
+#define X_INFO 1
+#define X_ERROR 0
+#define VERBOSITY X_DEBUG
 
-    va_start(ap, format);
-    vfprintf(stderr, format, ap);
-    va_end(ap);
+static void
+DRIDrvMsg(MessageType type, const char *format, ...)
+{
+    if (type <= VERBOSITY) {
+       va_list     ap;
+       va_start(ap, format);
+       vfprintf(stderr, format, ap);
+       va_end(ap);
+    }
 }
 
 Bool
@@ -91,55 +95,46 @@ DRIScreenInit(DRIInfoPtr pDRIInfo, int *pDRMFD)
     Bool                xineramaInCore = FALSE;
     int                 err = 0;
 
-    if (DRIGeneration != serverGeneration) {
-	if ((DRIScreenPrivIndex = AllocateScreenPrivateIndex()) < 0)
-	    return FALSE;
-	DRIGeneration = serverGeneration;
-    }
-
     drmWasAvailable = drmAvailable();
 
     /* Note that drmOpen will try to load the kernel module, if needed. */
     fd = drmOpen(pDRIInfo->drmDriverName, NULL );
     if (fd < 0) {
         /* failed to open DRM */
-        DRIDrvMsg(0, X_INFO,
-                  "[drm] drmOpen failed\n");
+        DRIDrvMsg( X_INFO, "[drm] drmOpen failed\n");
         return FALSE;
     }
 
     if (!drmWasAvailable) {
        /* drmOpen loaded the kernel module, print a message to say so */
-       DRIDrvMsg(0, X_INFO,
-                 "[drm] loaded kernel module for \"%s\" driver\n",
-                 pDRIInfo->drmDriverName);
+       DRIDrvMsg( X_INFO, "[drm] loaded kernel module for \"%s\" driver\n",
+		  pDRIInfo->drmDriverName);
     }
 
-    pDRIPriv = (DRIScreenPrivPtr) xcalloc(1, sizeof(DRIScreenPrivRec));
-    if (!pDRIPriv) {
+    pDRIPriv = (DRIScreenPrivPtr) calloc(1, sizeof(DRIScreenPrivRec));
+    if (!pDRIPriv) 
         return FALSE;
-    }
 
     pDRIPriv->drmFD = fd;
     pDRIPriv->directRenderingSupport = TRUE;
     pDRIPriv->pDriverInfo = pDRIInfo;
     pDRIPriv->nrWindows = 0;
     pDRIPriv->fullscreen = NULL;
-
     pDRIPriv->grabbedDRILock = FALSE;
     pDRIPriv->drmSIGIOHandlerInstalled = FALSE;
 
-    if ((err = drmSetBusid(pDRIPriv->drmFD, pDRIPriv->pDriverInfo->busIdString)) < 0) {
+    if ((err = drmSetBusid(pDRIPriv->drmFD, 
+			   pDRIPriv->pDriverInfo->busIdString)) < 0) {
 	pDRIPriv->directRenderingSupport = FALSE;
 	drmClose(pDRIPriv->drmFD);
-        DRIDrvMsg(0, X_INFO,
-                  "[drm] drmSetBusid failed (%d, %s), %s\n",
-                  pDRIPriv->drmFD, pDRIPriv->pDriverInfo->busIdString, strerror(-err));
+        DRIDrvMsg( X_INFO, "[drm] drmSetBusid failed (%d, %s), %s\n",
+		   pDRIPriv->drmFD, pDRIPriv->pDriverInfo->busIdString, 
+		   strerror(-err));
 	return FALSE;
     }
 
     *pDRMFD = pDRIPriv->drmFD;
-    DRIDrvMsg(0, X_INFO,
+    DRIDrvMsg( X_INFO,
 	      "[drm] created \"%s\" driver at busid \"%s\"\n",
 	      pDRIPriv->pDriverInfo->drmDriverName,
 	      pDRIPriv->pDriverInfo->busIdString);
@@ -153,13 +148,11 @@ DRIScreenInit(DRIInfoPtr pDRIInfo, int *pDRMFD)
     {
 	pDRIPriv->directRenderingSupport = FALSE;
 	drmClose(pDRIPriv->drmFD);
-        DRIDrvMsg(0, X_INFO,
-                  "[drm] drmAddMap failed\n");
+        DRIDrvMsg( X_INFO, "[drm] drmAddMap failed\n");
 	return FALSE;
     }
-    DRIDrvMsg(0, X_INFO,
-	      "[drm] added %d byte SAREA at 0x%08lx\n",
-	      pDRIPriv->pDriverInfo->SAREASize, pDRIPriv->hSAREA);
+    DRIDrvMsg( X_INFO, "[drm] added %d byte SAREA at 0x%08lx\n",
+	       pDRIPriv->pDriverInfo->SAREASize, pDRIPriv->hSAREA);
 
     if (drmMap( pDRIPriv->drmFD,
 		pDRIPriv->hSAREA,
@@ -168,13 +161,12 @@ DRIScreenInit(DRIInfoPtr pDRIInfo, int *pDRMFD)
     {
 	pDRIPriv->directRenderingSupport = FALSE;
 	drmClose(pDRIPriv->drmFD);
-        DRIDrvMsg(0, X_INFO,
-                  "[drm] drmMap failed\n");
+        DRIDrvMsg( X_INFO, "[drm] drmMap failed\n");
 	return FALSE;
     }
     memset(pDRIPriv->pSAREA, 0, pDRIPriv->pDriverInfo->SAREASize);
-    DRIDrvMsg(0, X_INFO, "[drm] mapped SAREA 0x%08lx to %p\n",
-	      pDRIPriv->hSAREA, pDRIPriv->pSAREA);
+    DRIDrvMsg( X_INFO, "[drm] mapped SAREA 0x%08lx to %p\n",
+	       pDRIPriv->hSAREA, pDRIPriv->pSAREA);
 
     if (drmAddMap( pDRIPriv->drmFD,
 		   (drmHandle)pDRIPriv->pDriverInfo->frameBufferPhysicalAddress,
@@ -186,14 +178,17 @@ DRIScreenInit(DRIInfoPtr pDRIInfo, int *pDRMFD)
 	pDRIPriv->directRenderingSupport = FALSE;
 	drmUnmap(pDRIPriv->pSAREA, pDRIPriv->pDriverInfo->SAREASize);
 	drmClose(pDRIPriv->drmFD);
-        DRIDrvMsg(0, X_INFO,
-                  "[drm] drmAddMap failed\n");
+        DRIDrvMsg( X_INFO, "[drm] drmAddMap failed\n");
 	return FALSE;
     }
-    DRIDrvMsg(0, X_INFO, "[drm] framebuffer handle = 0x%08lx\n",
+    DRIDrvMsg( X_INFO, "[drm] framebuffer handle = 0x%08lx\n",
 	      pDRIPriv->hFrameBuffer);
 
-				/* Add tags for reserved contexts */
+    /* Add tags for reserved contexts 
+     *
+     * KW: Is this the kernel context?  What other reserved contexts
+     * are there?  Do we really need to worry about this?
+     */
     if ((reserved = drmGetReservedContextList(pDRIPriv->drmFD,
 					      &reserved_count))) {
 	int  i;
@@ -206,7 +201,7 @@ DRIScreenInit(DRIInfoPtr pDRIInfo, int *pDRMFD)
 	    drmAddContextTag(pDRIPriv->drmFD, reserved[i], tag);
 	}
 	drmFreeReservedContextList(reserved);
-	DRIDrvMsg(0, X_INFO,
+	DRIDrvMsg( X_INFO,
 		  "[drm] added %d reserved context%s for kernel\n",
 		  reserved_count, reserved_count > 1 ? "s" : "");
     }
@@ -214,7 +209,7 @@ DRIScreenInit(DRIInfoPtr pDRIInfo, int *pDRMFD)
     /* validate max drawable table entry set by driver */
     if ((pDRIPriv->pDriverInfo->maxDrawableTableEntry <= 0) ||
         (pDRIPriv->pDriverInfo->maxDrawableTableEntry > SAREA_MAX_DRAWABLES)) {
-	    DRIDrvMsg(0, X_ERROR,
+	    DRIDrvMsg( X_ERROR,
 		      "Invalid max drawable table size set by driver: %d\n",
 		      pDRIPriv->pDriverInfo->maxDrawableTableEntry);
     }
@@ -246,13 +241,12 @@ DRIFinishScreenInit( void )
     if (!(pDRIContextPriv = DRICreateContextPriv(pScreen,
 						 &pDRIPriv->myContext,
 						 flags))) {
-	DRIDrvMsg(0, X_ERROR,
-		  "failed to create server context\n");
+	DRIDrvMsg( X_ERROR, "failed to create server context\n");
 	return FALSE;
     }
     pDRIPriv->myContextPriv = pDRIContextPriv;
 
-    DRIDrvMsg(0, X_INFO,
+    DRIDrvMsg( X_INFO,
 	      "X context handle = 0x%08lx\n", pDRIPriv->myContext);
 
     /* Now that we have created the X server's context, we can grab the
@@ -267,7 +261,7 @@ DRIFinishScreenInit( void )
 
 
 
-    DRIDrvMsg(0, X_INFO, "[DRI] installation complete\n");
+    DRIDrvMsg( X_INFO, "[DRI] installation complete\n");
 
     return TRUE;
 }
@@ -287,13 +281,13 @@ DRICloseScreen( void )
 
 	if (pDRIPriv->drmSIGIOHandlerInstalled) {
 	    if (!drmRemoveSIGIOHandler(pDRIPriv->drmFD)) {
-		DRIDrvMsg(0, X_ERROR,
+		DRIDrvMsg( X_ERROR,
 			  "[drm] failed to remove DRM signal handler\n");
 	    }
 	}
 
 	if (!DRIDestroyContextPriv(pDRIPriv->myContextPriv)) {
-	    DRIDrvMsg(0, X_ERROR,
+	    DRIDrvMsg( X_ERROR,
 		      "failed to destroy server context\n");
 	}
 
@@ -307,7 +301,7 @@ DRICloseScreen( void )
 						       reserved[i]));
 	    }
 	    drmFreeReservedContextList(reserved);
-	    DRIDrvMsg(0, X_INFO,
+	    DRIDrvMsg( X_INFO,
 		      "[drm] removed %d reserved context%s for kernel\n",
 		      reserved_count, reserved_count > 1 ? "s" : "");
 	}
@@ -315,13 +309,13 @@ DRICloseScreen( void )
 	/* Make sure signals get unblocked etc. */
 	drmUnlock(pDRIPriv->drmFD, pDRIPriv->myContext);
 	lockRefCount=0;
-	DRIDrvMsg(0, X_INFO,
+	DRIDrvMsg( X_INFO,
 		  "[drm] unmapping %d bytes of SAREA 0x%08lx at %p\n",
 		  pDRIInfo->SAREASize,
 		  pDRIPriv->hSAREA,
 		  pDRIPriv->pSAREA);
 	if (drmUnmap(pDRIPriv->pSAREA, pDRIInfo->SAREASize)) {
-	    DRIDrvMsg(0, X_ERROR,
+	    DRIDrvMsg( X_ERROR,
 		      "[drm] unable to unmap %d bytes"
 		      " of SAREA 0x%08lx at %p\n",
 		      pDRIInfo->SAREASize,
@@ -433,7 +427,7 @@ DRICreateContextPrivFromHandle(ScreenPtr pScreen,
 	if (drmSetContextFlags(pDRIPriv->drmFD,
 			       hHWContext,
 			       DRM_CONTEXT_2DONLY)) {
-	    DRIDrvMsg(0, X_ERROR,
+	    DRIDrvMsg( X_ERROR,
 		      "[drm] failed to set 2D context flag\n");
 	    DRIDestroyContextPriv(pDRIContextPriv);
 	    return NULL;
@@ -443,7 +437,7 @@ DRICreateContextPrivFromHandle(ScreenPtr pScreen,
 	if (drmSetContextFlags(pDRIPriv->drmFD,
 			       hHWContext,
 			       DRM_CONTEXT_PRESERVED)) {
-	    DRIDrvMsg(0, X_ERROR,
+	    DRIDrvMsg( X_ERROR,
 		      "[drm] failed to set preserved flag\n");
 	    DRIDestroyContextPriv(pDRIContextPriv);
 	    return NULL;
@@ -1075,7 +1069,7 @@ DRICreateContextPrivFromHandle(ScreenPtr pScreen,
 	if (drmSetContextFlags(pDRIPriv->drmFD,
 			       hHWContext,
 			       DRM_CONTEXT_2DONLY)) {
-	    DRIDrvMsg(0, X_ERROR,
+	    DRIDrvMsg( X_ERROR,
 		      "[drm] failed to set 2D context flag\n");
 	    DRIDestroyContextPriv(pDRIContextPriv);
 	    return NULL;
@@ -1085,7 +1079,7 @@ DRICreateContextPrivFromHandle(ScreenPtr pScreen,
 	if (drmSetContextFlags(pDRIPriv->drmFD,
 			       hHWContext,
 			       DRM_CONTEXT_PRESERVED)) {
-	    DRIDrvMsg(0, X_ERROR,
+	    DRIDrvMsg( X_ERROR,
 		      "[drm] failed to set preserved flag\n");
 	    DRIDestroyContextPriv(pDRIContextPriv);
 	    return NULL;

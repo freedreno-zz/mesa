@@ -1007,15 +1007,11 @@ void RADEON_ServerInit( void )
    pScrn->depth = ??;
    pScrn->bitsPerPixel = ??;
 
-
-   /* Need these to build busid string for kernel init:
-    */
-   info->PciInfo->bus = ??;
-   info->PciInfo->device = ??;
-   info->PciInfo->func = ??;
-   info->PciInfo->memBase[0] = ??;
-   info->PciInfo->chipType = ??;
-
+   info->PciInfo.bus = ??;
+   info->PciInfo.device = ??;
+   info->PciInfo.func = ??;
+   info->PciInfo.memBase[0] = ??;
+   info->PciInfo.chipType = ??;
 
    info->IsPCI = 0;
    info->CPMode        = RADEON_DEFAULT_CP_BM_MODE;
