@@ -1,8 +1,8 @@
-/* $Id: get.c,v 1.69.2.4 2002/02/12 03:13:42 brianp Exp $ */
+/* $Id: get.c,v 1.69.2.5 2002/04/24 20:06:28 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  4.0.2
+ * Version:  4.0.3
  *
  * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
  *
@@ -968,6 +968,9 @@ _mesa_GetBooleanv( GLenum pname, GLboolean *params )
          break;
       case GL_EDGE_FLAG_ARRAY_STRIDE:
          *params = INT_TO_BOOL(ctx->Array.EdgeFlag.Stride);
+         break;
+      case GL_EDGE_FLAG_ARRAY_COUNT_EXT:
+         *params = INT_TO_BOOL(0);
          break;
 
       /* GL_ARB_multitexture */
