@@ -1,4 +1,4 @@
-$Id: VERSIONS,v 1.13.2.38 2000/06/23 16:05:40 brianp Exp $
+$Id: VERSIONS,v 1.13.2.39 2000/06/23 20:32:55 brianp Exp $
 
 
 Mesa Version History
@@ -731,3 +731,5 @@ Mesa Version History
 	- no longer cull very, very tiny triangles
 	- blending w/ drawbuffer==GL_FRONT_BACK caused segfault (sw rendering)
 	- fixed Motif detection code in widgets-mesa/configure.in
+    Changes:
+	- glColorMask(false, false, false, false) handled better/faster
