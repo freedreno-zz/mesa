@@ -1,10 +1,10 @@
-/* $Id: t_imm_fixup.c,v 1.26.2.4 2002/02/12 21:08:27 keithw Exp $ */
+/* $Id: t_imm_fixup.c,v 1.26.2.5 2002/04/06 16:35:18 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.5
+ * Version:  4.0.3
  *
- * Copyright (C) 1999-2001  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -525,7 +525,7 @@ void _tnl_copy_immediate_vertices( GLcontext *ctx, struct immediate *next )
    }
 
    if (--tnl->ExecCopySource->ref_count == 0) 
-      _tnl_free_immediate( tnl->ExecCopySource );
+      _tnl_free_immediate( ctx, tnl->ExecCopySource );
 
    tnl->ExecCopySource = next; next->ref_count++;
 }
@@ -727,7 +727,7 @@ _tnl_get_exec_copy_verts( GLcontext *ctx, struct immediate *IM )
 
    if (tnl->ExecCopySource)
       if (--tnl->ExecCopySource->ref_count == 0) 
-	 _tnl_free_immediate( tnl->ExecCopySource );
+	 _tnl_free_immediate( ctx, tnl->ExecCopySource );
 
    if (prim == GL_POLYGON+1) {
       tnl->ExecCopySource = 0;

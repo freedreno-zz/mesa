@@ -1,10 +1,10 @@
-/* $Id: t_imm_alloc.c,v 1.10.2.1 2001/12/15 00:48:41 brianp Exp $ */
+/* $Id: t_imm_alloc.c,v 1.10.2.2 2002/04/06 16:35:17 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  4.0.1
+ * Version:  4.0.3
  *
- * Copyright (C) 1999-2001  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -124,9 +124,9 @@ struct immediate *_tnl_alloc_immediate( GLcontext *ctx )
 
 /* May be called after tnl is destroyed.
  */
-void _tnl_free_immediate( struct immediate *IM )
+void _tnl_free_immediate( GLcontext *ctx, struct immediate *IM )
 {
-   TNLcontext *tnl = TNL_CONTEXT(IM->backref);
+   TNLcontext *tnl = TNL_CONTEXT(ctx);
 
    ASSERT(IM->ref_count == 0);
 

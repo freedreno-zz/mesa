@@ -1,10 +1,10 @@
-/* $Id: t_imm_exec.c,v 1.29.2.3 2002/02/13 23:52:48 keithw Exp $ */
+/* $Id: t_imm_exec.c,v 1.29.2.4 2002/04/06 16:35:17 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.5
+ * Version:  4.0.3
  *
- * Copyright (C) 1999-2001  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -554,7 +554,7 @@ void _tnl_imm_destroy( GLcontext *ctx )
    if (TNL_CURRENT_IM(ctx)) {
       TNL_CURRENT_IM(ctx)->ref_count--;
       if (TNL_CURRENT_IM(ctx)->ref_count == 0)
-	 _tnl_free_immediate( TNL_CURRENT_IM(ctx) );
+	 _tnl_free_immediate( ctx, TNL_CURRENT_IM(ctx) );
       /* 
        * Don't use SET_IMMEDIATE here, or else we'll whack the
        * _tnl_CurrentInput pointer - not good when another 

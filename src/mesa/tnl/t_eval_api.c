@@ -1,10 +1,10 @@
-/* $Id: t_eval_api.c,v 1.7.2.1 2001/12/03 17:39:09 keithw Exp $ */
+/* $Id: t_eval_api.c,v 1.7.2.2 2002/04/06 16:35:17 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.5
+ * Version:  4.0.3
  *
- * Copyright (C) 1999-2001  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -123,7 +123,7 @@ _tnl_exec_EvalMesh1( GLenum mode, GLint i1, GLint i2 )
       if (compiling) {
 	 TNL_CURRENT_IM(ctx)->ref_count--;
 	 ASSERT( TNL_CURRENT_IM(ctx)->ref_count == 0 );
-	 _tnl_free_immediate( TNL_CURRENT_IM(ctx) );
+	 _tnl_free_immediate( ctx, TNL_CURRENT_IM(ctx) );
 	 SET_IMMEDIATE( ctx, im );
 	 ctx->CompileFlag = GL_TRUE;
       }
@@ -216,7 +216,7 @@ _tnl_exec_EvalMesh2( GLenum mode, GLint i1, GLint i2, GLint j1, GLint j2 )
 	 
       if (compiling) {
 	 TNL_CURRENT_IM(ctx)->ref_count--;
-	 _tnl_free_immediate( TNL_CURRENT_IM( ctx ) );
+	 _tnl_free_immediate( ctx, TNL_CURRENT_IM( ctx ) );
 	 SET_IMMEDIATE( ctx, im );
 	 ctx->CompileFlag = GL_TRUE;
       }

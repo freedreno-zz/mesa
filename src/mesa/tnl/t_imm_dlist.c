@@ -1,10 +1,10 @@
-/* $Id: t_imm_dlist.c,v 1.29.2.8 2002/02/12 21:07:59 keithw Exp $ */
+/* $Id: t_imm_dlist.c,v 1.29.2.9 2002/04/06 16:35:17 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.5
+ * Version:  4.0.3
  *
- * Copyright (C) 1999-2001  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -389,7 +389,7 @@ destroy_compiled_cassette( GLcontext *ctx, void *data )
    TNLvertexcassette *node = (TNLvertexcassette *)data;
 
    if ( --node->IM->ref_count == 0 )
-      _tnl_free_immediate( node->IM );
+      _tnl_free_immediate( ctx, node->IM );
 }
 
 

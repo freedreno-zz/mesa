@@ -1,10 +1,10 @@
-/* $Id: t_context.c,v 1.22.2.1 2002/02/12 17:37:26 keithw Exp $ */
+/* $Id: t_context.c,v 1.22.2.2 2002/04/06 16:35:17 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.5
+ * Version:  4.0.3
  *
- * Copyright (C) 1999-2001  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -142,7 +142,7 @@ _tnl_DestroyContext( GLcontext *ctx )
    _tnl_array_destroy( ctx );
    _tnl_imm_destroy( ctx );
    _tnl_destroy_pipeline( ctx );
-   _tnl_free_immediate( tnl->freed_immediate );
+   _tnl_free_immediate( ctx, tnl->freed_immediate );
 
    FREE(tnl);
    ctx->swtnl_context = 0;
