@@ -1,4 +1,4 @@
-$Id: VERSIONS,v 1.73.2.30 2002/09/03 17:50:21 brianp Exp $
+$Id: VERSIONS,v 1.73.2.31 2002/09/05 21:21:35 brianp Exp $
 
 
 Mesa Version History
@@ -987,11 +987,15 @@ Mesa Version History
     New:
 	- GL_NV_texture_rectangle extension
 	- updated glext.h header (version 16)
+	- updated DOS driver (Daniel Borca)
+	- added GL_IBM_texture_mirror_repeat
     Bug fixes:
 	- fixed GL_LINEAR fog bug by adding clamping
 	- fixed FP exceptions found using Alpha CPU
 	- 3dfx MESA_GLX_FX=window (render to window) didn't work
 	- fixed memory leak in wglCreateContest (Karl Schultz)
 	- define GLAPIENTRY and GLAPI if undefined in glu.h
+	- wglGetProcAddress didn't handle all API functions
+	- when testing for OpenGL 1.2 vs 1.3, check for GL_ARB_texture_cube_map
     Changes:
 	- max texture units reduced to six to accomodate texture rectangles
