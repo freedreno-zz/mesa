@@ -1,4 +1,4 @@
-/* $Id: feedback.c,v 1.10 2000/05/09 23:54:09 brianp Exp $ */
+/* $Id: feedback.c,v 1.10.4.1 2000/11/08 16:41:17 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -239,7 +239,7 @@ void gl_feedback_points( GLcontext *ctx, GLuint first, GLuint last )
    const struct vertex_buffer *VB = ctx->VB;
    GLuint i;
 
-   for (i=first;i<=last;i++) {
+   for (i=first;i<last;i++) {
       if (VB->ClipMask[i]==0) {
          FEEDBACK_TOKEN( ctx, (GLfloat) (GLint) GL_POINT_TOKEN );
 	 feedback_vertex( ctx, i, i );
