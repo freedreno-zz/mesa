@@ -75,6 +75,13 @@ radeonPointsBitmap( GLcontext *ctx, GLint px, GLint py,
    COPY_4V( saved_color, ctx->Current.Attrib[VERT_ATTRIB_COLOR0] );
    COPY_2V( saved_tex0, ctx->Current.Attrib[VERT_ATTRIB_TEX0] );
 
+   /* Update window height
+    */
+   LOCK_HARDWARE( rmesa );
+   UNLOCK_HARDWARE( rmesa );
+   h = rmesa->dri.drawable->h + rmesa->dri.drawable->y - 1;
+   px += rmesa->dri.drawable->x;
+
 
    /* Just use the GL entrypoints to talk to radeon_subset_vtx.c:
     */
@@ -83,16 +90,21 @@ radeonPointsBitmap( GLcontext *ctx, GLint px, GLint py,
    glTexCoord2fv( ctx->Current.RasterTexCoords[0] );
 
    for (row=0; row<height; row++) {
+      GLuint y = h - (py + row);
       const GLubyte *src = (const GLubyte *) 
 	 _mesa_image_address( unpack, bitmap, width, height, 
 			      GL_COLOR_INDEX, GL_BITMAP, 0, row, 0 );
+
+      if (y < rmesa->dri.drawable->y ||
+	  y > rmesa->dri.drawable->y + rmesa->dri.drawable->h)
+	 continue;
 
       if (unpack->LsbFirst) {
          /* Lsb first */
          GLubyte mask = 1U << (unpack->SkipPixels & 0x7);
          for (col=0; col<width; col++) {
             if (*src & mask) 
-	       glVertex3f( px+col, py+row, pfz );
+	       glVertex3f( px+col, y, pfz );
 	    src += (mask >> 7);
 	    mask = ((mask << 1) & 0xff) | (mask >> 7);
          }
@@ -106,7 +118,7 @@ radeonPointsBitmap( GLcontext *ctx, GLint px, GLint py,
          GLubyte mask = 128U >> (unpack->SkipPixels & 0x7);
          for (col=0; col<width; col++) {
             if (*src & mask) {
-	       glVertex3f( px+col, py+row, pfz );
+	       glVertex3f( px+col, y, pfz );
             }
 	    src += mask & 1;
 	    mask = ((mask << 7) & 0xff) | (mask >> 1);
