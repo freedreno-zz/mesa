@@ -37,7 +37,7 @@ static void TAG(emit)(GLcontext *ctx, GLuint start, GLuint end,
    const GLfloat *tc[MAX_TEXTURE_COORD_UNITS];
    const GLchan *color;
    const GLchan *spec;
-   const GLuint *index;
+   const GLfloat *index;
    const GLfloat *fog;
    const GLfloat *pointSize;
    GLuint tsz[MAX_TEXTURE_COORD_UNITS];
@@ -144,7 +144,7 @@ static void TAG(emit)(GLcontext *ctx, GLuint start, GLuint end,
 
       if (IND & INDEX) {
 	 v->index = index[0];
-	 STRIDE_UI(index, index_stride);
+	 STRIDE_F(index, index_stride);
       }
 
       if (IND & POINT) {

@@ -73,7 +73,7 @@ static void TAG(triangle)(GLcontext *ctx, GLuint e0, GLuint e1, GLuint e2 )
 		     SS_SPEC(v[2]->specular, vbspec[e2]);
 		  }
 	       } else {
-		  GLuint *vbindex = VB->IndexPtr[1]->data;
+		  GLfloat *vbindex = VB->IndexPtr[1]->data;
 		  SS_IND(v[0]->index, vbindex[e0]);
 		  SS_IND(v[1]->index, vbindex[e1]);
 		  SS_IND(v[2]->index, vbindex[e2]);
@@ -148,7 +148,7 @@ static void TAG(triangle)(GLcontext *ctx, GLuint e0, GLuint e1, GLuint e2 )
 	       SS_SPEC(v[2]->specular, vbspec[e2]);
 	    }
 	 } else {
-	    GLuint *vbindex = VB->IndexPtr[0]->data;
+	    GLfloat *vbindex = VB->IndexPtr[0]->data;
 	    SS_IND(v[0]->index, vbindex[e0]);
 	    SS_IND(v[1]->index, vbindex[e1]);
 	    SS_IND(v[2]->index, vbindex[e2]);

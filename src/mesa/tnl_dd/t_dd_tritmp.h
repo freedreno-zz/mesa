@@ -205,7 +205,7 @@ static void TAG(triangle)( GLcontext *ctx, GLuint e0, GLuint e1, GLuint e2 )
 	       }
 	    }
 	    else {
-	       GLuint *vbindex = VB->IndexPtr[1]->data;
+	       GLfloat *vbindex = VB->IndexPtr[1]->data;
 	       if (!DO_FLAT) {
 		  VERT_SET_IND( v[0], vbindex[e0] );
 		  VERT_SET_IND( v[1], vbindex[e1] );
@@ -308,7 +308,7 @@ static void TAG(triangle)( GLcontext *ctx, GLuint e0, GLuint e1, GLuint e2 )
 	 }
       }
       else {
-	 GLuint *vbindex = VB->IndexPtr[0]->data;
+	 GLfloat *vbindex = VB->IndexPtr[0]->data;
 	 if (!DO_FLAT) {
 	    VERT_SET_IND( v[0], vbindex[e0] );
 	    VERT_SET_IND( v[1], vbindex[e1] );
@@ -441,7 +441,7 @@ static void TAG(quad)( GLcontext *ctx,
 	       }
 	    }
 	    else {
-	       GLuint *vbindex = VB->IndexPtr[1]->data;
+	       GLfloat *vbindex = VB->IndexPtr[1]->data;
 	       if (!DO_FLAT) {
 		  VERT_SET_IND( v[0], vbindex[e0] );
 		  VERT_SET_IND( v[1], vbindex[e1] );
@@ -557,7 +557,7 @@ static void TAG(quad)( GLcontext *ctx,
 	 }
       }
       else {
-	 GLuint *vbindex = VB->IndexPtr[0]->data;
+	 GLfloat *vbindex = VB->IndexPtr[0]->data;
 	 if (!DO_FLAT) {
 	    VERT_SET_IND( v[0], vbindex[e0] );
 	    VERT_SET_IND( v[1], vbindex[e1] );

@@ -249,10 +249,9 @@ static void interp_extras( GLcontext *ctx,
       }
    }
    else if (VB->IndexPtr[1]) {
-      VB->IndexPtr[1]->data[dst] = (GLuint) (GLint)
-	 LINTERP( t,
-		  (GLfloat) VB->IndexPtr[1]->data[out],
-		  (GLfloat) VB->IndexPtr[1]->data[in] );
+      VB->IndexPtr[1]->data[dst] = LINTERP( t,
+					    VB->IndexPtr[1]->data[out],
+					    VB->IndexPtr[1]->data[in] );
    }
 
    if (VB->EdgeFlag) {
