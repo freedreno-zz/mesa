@@ -173,8 +173,6 @@ static GLboolean run_lighting( GLcontext *ctx, struct tnl_pipeline_stage *stage 
    GLvector4f *input = ctx->_NeedEyeCoords ? VB->EyePtr : VB->ObjPtr;
    GLuint idx;
 
-/*     _tnl_print_vert_flags( __FUNCTION__, stage->changed_inputs ); */
-
    /* Make sure we can talk about position x,y and z:
     *
     * FIXME!

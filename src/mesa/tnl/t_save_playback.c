@@ -30,6 +30,8 @@
 #include "context.h"
 #include "imports.h"
 #include "mtypes.h"
+#include "macros.h"
+#include "light.h"
 #include "state.h"
 #include "t_pipeline.h"
 #include "t_save_api.h"
@@ -114,6 +116,49 @@ static void _tnl_bind_vertex_list( GLcontext *ctx,
    }
 }
 
+static void _playback_copy_to_current( GLcontext *ctx,
+				       struct tnl_vertex_list *node )
+{
+   TNLcontext *tnl = TNL_CONTEXT(ctx); 
+   GLfloat *data;
+   GLuint i;
+
+   if (node->count)
+      data = node->buffer + (node->count-1) * node->vertex_size;
+   else
+      data = node->buffer;
+
+   for (i = _TNL_ATTRIB_POS+1 ; i <= _TNL_ATTRIB_INDEX ; i++) {
+      if (node->attrsz[i]) {
+	 ASSIGN_4V(tnl->vtx.current[i], 0, 0, 0, 1);
+	 COPY_SZ_4V(tnl->vtx.current[i], node->attrsz[i], data);
+	 data += node->attrsz[i];
+      }
+   }
+
+   /* Edgeflag requires special treatment:
+    */
+   if (node->attrsz[_TNL_ATTRIB_EDGEFLAG]) {
+      ctx->Current.EdgeFlag = (data[0] == 1.0);
+   }
+
+   /* Colormaterial -- this kindof sucks.
+    */
+   if (ctx->Light.ColorMaterialEnabled) {
+      _mesa_update_color_material( ctx, 
+				   ctx->Current.Attrib[VERT_ATTRIB_COLOR0]);
+   }
+
+   /* CurrentExecPrimitive
+    */
+   if (node->prim_count) {
+      GLenum mode = node->prim[node->prim_count - 1].mode;
+      if (mode & PRIM_END)
+	 ctx->Driver.CurrentExecPrimitive = PRIM_OUTSIDE_BEGIN_END;
+      else
+	 ctx->Driver.CurrentExecPrimitive = (mode & PRIM_MODE_MASK);
+   }
+}
 
 
 /**
@@ -126,25 +171,39 @@ void _tnl_playback_vertex_list( GLcontext *ctx, void *data )
 
    FLUSH_CURRENT(ctx, 0);
 
-   if (!node->prim_count || !node->count) 
-      return;
+   if (node->prim_count) {
 
-   if (ctx->NewState)
-      _mesa_update_state( ctx );
+      /* Degenerate case: list is called inside begin/end pair.
+       */
+      if (ctx->Driver.CurrentExecPrimitive != PRIM_OUTSIDE_BEGIN_END &&
+	  (node->prim[0].mode & PRIM_BEGIN)) {
+	 _mesa_error( ctx, GL_INVALID_OPERATION, "displaylist recursive begin");
+	 _tnl_loopback_vertex_list( ctx, data );
+	 return;
+      }
+      else if (1) {
+	 _tnl_loopback_vertex_list( ctx, data );
+	 return;
+      }
+      
+      if (ctx->NewState)
+	 _mesa_update_state( ctx );
 
-   if (tnl->pipeline.build_state_changes)
-      _tnl_validate_pipeline( ctx );
+      if (tnl->pipeline.build_state_changes)
+	 _tnl_validate_pipeline( ctx );
 
-   _tnl_bind_vertex_list( ctx, node );
+      _tnl_bind_vertex_list( ctx, node );
 
-   /* Invalidate all stored data before and after run:
-    */
-   tnl->pipeline.run_input_changes |= tnl->pipeline.inputs;
-   tnl->Driver.RunPipeline( ctx );
-   tnl->pipeline.run_input_changes |= tnl->pipeline.inputs;
+      /* Invalidate all stored data before and after run:
+       */
+      tnl->pipeline.run_input_changes |= tnl->pipeline.inputs;
+      tnl->Driver.RunPipeline( ctx );
+      tnl->pipeline.run_input_changes |= tnl->pipeline.inputs;
+   }
 
    /* Copy to current?
     */
+   _playback_copy_to_current( ctx, node );
 }
 
 

@@ -28,6 +28,7 @@
  */
 
 #include "context.h"
+#include "enums.h"
 #include "glapi.h"
 #include "imports.h"
 #include "macros.h"
@@ -175,10 +176,10 @@ struct loopback_attr {
 
 void _tnl_loopback_vertex_list( GLcontext *ctx, struct tnl_vertex_list *list )
 {
-   struct loopback_attr la[32];
+   struct loopback_attr la[_TNL_ATTRIB_MAX];
    GLuint i, nr = 0;
 
-   for (i = 1 ; i <= _TNL_ATTRIB_TEX7 ; i++) {
+   for (i = 0 ; i <= _TNL_ATTRIB_TEX7 ; i++) {
       if (list->attrsz[i]) {
 	 la[nr].target = i;
 	 la[nr].sz = list->attrsz[i];
@@ -212,32 +213,20 @@ void _tnl_loopback_vertex_list( GLcontext *ctx, struct tnl_vertex_list *list )
       nr++;
    }
 
-   /* Must be last
-    */
-   if (list->attrsz[_TNL_ATTRIB_POS]) {
-      la[nr].target = _TNL_ATTRIB_POS;
-      la[nr].sz = list->attrsz[_TNL_ATTRIB_POS];
-      la[nr].func = vert_attrfunc[list->attrsz[0]-1];
-      nr++;
-   }
-   else {
-      fprintf(stderr, "No pos attrib???\n");
-      return;
-   }
-
    /* Don't emit ends and begins on wrapped primitives.  Don't replay
     * wrapped vertices.  If we get here, it's probably because the the
     * precalculated wrapping is wrong.
     */
    for (i = 0 ; i < list->prim_count ; i++) {
-      GLint begin = list->prim[i].start;
-      GLint end = begin + list->prim[i].count;
+      struct tnl_prim *prim = &list->prim[i];
+      GLint begin = prim->start;
+      GLint end = begin + prim->count;
       GLfloat *data;
       GLint j, k;
 
-      if (list->prim[i].mode & PRIM_BEGIN)
-	 glBegin( list->prim[i].mode & PRIM_MODE_MASK );
-      else {
+      if (prim->mode & PRIM_BEGIN) {
+	 glBegin( prim->mode & PRIM_MODE_MASK );
+      } else {
 	 assert(i == 0);
 	 assert(begin == 0);
 	 begin += list->wrap_count;
@@ -246,14 +235,22 @@ void _tnl_loopback_vertex_list( GLcontext *ctx, struct tnl_vertex_list *list )
       data = list->buffer + begin * list->vertex_size;
 
       for (j = begin ; j < end ; j++) {
-	 for (k = 0 ; k < nr ; k++) {
-	    la[k].func( la[k].target, data );
-	    data += la[k].sz;
+	 GLfloat *tmp = data + la[0].sz;
+
+	 for (k = 1 ; k < nr ; k++) {
+	    la[k].func( la[k].target, tmp );
+	    tmp += la[k].sz;
 	 }
+	 
+	 /* Fire the vertex
+	  */
+	 la[0].func( VERT_ATTRIB_POS, data );
+	 data = tmp;
       }
 
-      if (list->prim[i].mode & PRIM_END) 
+      if (prim->mode & PRIM_END) {
 	 glEnd();
+      }
       else {
 	 assert (i == list->prim_count-1);
       }
