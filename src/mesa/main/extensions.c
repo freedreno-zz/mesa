@@ -1,4 +1,4 @@
-/* $Id: extensions.c,v 1.65.2.6 2002/09/21 17:12:33 brianp Exp $ */
+/* $Id: extensions.c,v 1.65.2.7 2002/09/30 16:13:03 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -110,7 +110,7 @@ static struct {
    { ON,  "GL_MESA_window_pos",                F(MESA_window_pos) },
    { OFF, "GL_NV_blend_square",                F(NV_blend_square) },
    { ON,  "GL_NV_texgen_reflection",           F(NV_texgen_reflection) },
-   { ON,  "GL_NV_texture_rectangle",           F(NV_texture_rectangle) },
+   { OFF, "GL_NV_texture_rectangle",           F(NV_texture_rectangle) },
    { OFF, "GL_SGI_color_matrix",               F(SGI_color_matrix) },
    { OFF, "GL_SGI_color_table",                F(SGI_color_table) },
    { OFF, "GL_SGIS_generate_mipmap",           F(SGIS_generate_mipmap) },
