@@ -288,8 +288,6 @@ void __driUtilUpdateDrawableInfo(__DRIdrawablePrivate *pdp)
 
    pdp->numClipRects = psp->pSAREA->drawableTable[pdp->index].flags ? 1 : 0;
    pdp->lastStamp = *(pdp->pStamp);
-
-   fprintf(stderr, "%s: %d cliprects\n", __FUNCTION__, pdp->numClipRects);
 }
 
 
@@ -415,10 +413,6 @@ static void *driCreateDrawable(Display *dpy, int scrn,
     pdraw->destroyDrawable = driDestroyDrawable;
     pdraw->swapBuffers = driSwapBuffers;  /* called by glXSwapBuffers() */
     pdp->swapBuffers = psp->DriverAPI.SwapBuffers;
-
-    fprintf(stderr, "%s index: %d stamp: %d\n",
-	    __FUNCTION__, pdp->index, 
-	    psp->pSAREA->drawableTable[pdp->index].stamp);
 
     pdp->pStamp = &(psp->pSAREA->drawableTable[pdp->index].stamp);
     __driUtilUpdateDrawableInfo( pdp );

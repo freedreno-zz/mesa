@@ -1162,8 +1162,6 @@ void radeonSetCliprects( radeonContextPtr rmesa, GLenum mode )
 {
    __DRIdrawablePrivate *dPriv = rmesa->dri.drawable;
    
-   fprintf(stderr, "%s\n", __FUNCTION__);
-   
    switch ( mode ) {
    case GL_FRONT_LEFT:
       rmesa->numClipRects = dPriv->numClipRects;
@@ -1189,8 +1187,6 @@ void radeonSetCliprects( radeonContextPtr rmesa, GLenum mode )
       fprintf(stderr, "bad mode in radeonSetCliprects\n");
       return;
    }
-
-   fprintf(stderr, "%s: %d cliprects\n", __FUNCTION__, rmesa->numClipRects);
 
    if (rmesa->state.scissor.enabled)
       radeonRecalcScissorRects( rmesa );

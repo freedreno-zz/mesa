@@ -96,8 +96,6 @@ void radeonDestroyTexObj( radeonContextPtr rmesa, radeonTexObjPtr t )
  */
 static void radeonSwapOutTexObj( radeonContextPtr rmesa, radeonTexObjPtr t )
 {
-   fprintf(stderr, "%s memblock: %p\n", __FUNCTION__, t->memBlock);
-   
    if ( t->memBlock ) {
       mmFreeMem( t->memBlock );
       t->memBlock = NULL;
