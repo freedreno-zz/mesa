@@ -61,7 +61,7 @@ the subset:<br>
  style="font-weight: bold;">bold face</span>.<br>
 </p>
 <p>The Tungsten Graphics, Inc. OpenGL subset library is hereafter
-refered to as <span style="font-style: italic;">the subset.</span><br>
+referred to as <span style="font-style: italic;">the subset.</span><br>
 <br>
 </p>
 <h1>2. Primitive Specification</h1>
@@ -294,7 +294,7 @@ the projection matrix stack. &nbsp;The <span style="font-weight: bold;">glPopMat
 command replaces the current matrix with a copy of the top matrix off
 the modelview matrix stack or projection matrix stack, the pops the
 stack. &nbsp;Matrix stacks are useful for traversing and rendering
-heirarchal models.<br>
+hierarchical models.<br>
 <br>
 The <span style="font-weight: bold;">glMultMatrixf</span> command
 post-multiplies the current matrix by the specified matrix. &nbsp;The
@@ -317,7 +317,7 @@ post-multiplies the current matrix by a scaling matrix defined by the <span
  style="font-style: italic;">z</span> scale factors.<br>
 <span style="font-weight: bold;"></span><br>
 The <span style="font-weight: bold;">glFrustum</span> command
-post-multiplies the current matrix by a persperctive projection matrix.
+post-multiplies the current matrix by a perspective projection matrix.
 &nbsp;The <span style="font-style: italic;">near</span> and <span
  style="font-style: italic;">far</span> values specify the position of
 the hither and yon Z-axis clipping planes. &nbsp;The <span
@@ -338,7 +338,7 @@ Y-axis clipping planes. &nbsp;<span style="font-weight: bold;">glOrtho</span>
 is normally used to modify the projection matrix.<br>
 <br>
 The <span style="font-weight: bold;">glViewport</span> command
-specifies the mapping of coordiantes from normalized device coordinates
+specifies the mapping of coordinates from normalized device coordinates
 to window coordinates. &nbsp;The <span style="font-style: italic;">x</span>
 and <span style="font-style: italic;">y</span> parameters specify the
 viewport's lower-left corner in the window and the <span
@@ -479,7 +479,7 @@ Lines are rendered with the command sequence <span
  style="font-weight: bold;">glVertex</span>, ... <span
  style="font-weight: bold;">glEnd</span> where <span
  style="font-style: italic;">mode</span> is one of GL_LINES,
-GL_LINE_STRIP or GL_LINE_LOOP. &nbsp;Lines are rasterizerized as
+GL_LINE_STRIP or GL_LINE_LOOP. &nbsp;Lines are rasterized as
 described in the OpenGL specification. &nbsp;Note that OpenGL uses the <span
  style="font-style: italic;">half-open</span> convention for drawing
 lines: the last fragment in a line segment is omitted so that endpoint
@@ -500,7 +500,7 @@ GL_INVALID_VALUE.<br>
 <br>
 <h3>4.2.2 Line Stipple<br>
 </h3>
-Lines may be stippled (i.e dashed) with the command<br>
+Lines may be stippled (i.e. dashed) with the command<br>
 <br>
 <div style="margin-left: 40px;"><span style="font-weight: bold;">glLineStipple</span>(GLint<span
  style="font-style: italic;">factor</span>, GLushort <span
@@ -534,7 +534,7 @@ Line antialiasing can be enabled or disabled with the commands <span
 Polygons, quadrilaterals and triangles share the same polygon
 rasterization options. <br>
 <br>
-Triangles are rendererd by the command sequence <span
+Triangles are rendered by the command sequence <span
  style="font-weight: bold;">glBegin</span><span
  style="font-style: italic;"><span style="font-style: italic;">(mode</span></span>),<span
  style="font-weight: bold;">glVertex</span>, <span
@@ -547,7 +547,7 @@ of three - extra vertices will be ignored. &nbsp;For GL_TRIANGLE_STRIP
 and GL_TRIANGLE_FAN, at least three vertices should be specified.
 &nbsp;If less than three are specified, nothing is drawn. &nbsp;<br>
 <br>
-Quadrilaterals are <span style="font-weight: bold;"></span>rendererd
+Quadrilaterals are <span style="font-weight: bold;"></span>rendered
 by the command sequence <span style="font-weight: bold;">glBegin</span>(<span
  style="font-style: italic;"><span style="font-style: italic;">mode</span></span>),<span
  style="font-weight: bold;">glVertex</span>, <span
@@ -560,7 +560,7 @@ vertices will be ignored. &nbsp;For GL_QUAD_STRIP, the number of
 vertices should be even and at least four. &nbsp;Extra vertices (one)
 will be ignored.<br>
 <br>
-Convex polygons are <span style="font-weight: bold;"></span>rendererd
+Convex polygons are <span style="font-weight: bold;"></span>rendered
 by the command sequence <span style="font-weight: bold;">glBegin</span><span
  style="font-style: italic;"><span style="font-style: italic;"></span></span>(GL_POLYGON),<span
  style="font-weight: bold;">glVertex</span>, <span
@@ -625,7 +625,7 @@ The command<br>
  style="font-style: italic;">mode</span>)<br>
 </div>
 <br>
-controls whether polyons are filled, outlined or drawn with a point at
+controls whether polygons are filled, outlined or drawn with a point at
 each vertex.&nbsp; The <span style="font-style: italic;">face</span>
 parameter must be GL_FRONT_AND_BACK. &nbsp;The values GL_FRONT and
 GL_BACK are not permitted by the subset. &nbsp;If <span
@@ -637,8 +637,7 @@ is GL_LINE then the polygon will be rendered as if it were specified by <span
 will be rendered as if it were specified with <span
  style="font-weight: bold;">glBegin</span>(GL_POINTS). &nbsp;Any other
 values for <span style="font-style: italic;">face</span> or <span
- style="font-style: italic;">mode</span> will ra<span
- style="font-style: italic;"></span>ise the error GL_INVALID_ENUM.<br>
+ style="font-style: italic;">mode</span> will raise the error GL_INVALID_ENUM.<br>
 <br>
 <h3>4.3.4 Polygon Antialiasing</h3>
 Polygons may be antialiased in order to smooth their edges.
@@ -646,7 +645,7 @@ Polygons may be antialiased in order to smooth their edges.
  style="font-weight: bold;">glEnable</span>(GL_POLYGON_SMOOTH) and <span
  style="font-weight: bold;">glDisable</span>(GL_POLYGON_SMOOTH).<br>
 <br>
-When polygon antialasing is enabled each fragment produced by polygon,
+When polygon antialiasing is enabled each fragment produced by polygon,
 triangle and quadrilateral rasterization will be given a <span
  style="font-style: italic;">coverage</span> value which indicates how
 much of the fragment is covered by the polygon. &nbsp;Fragments
@@ -871,7 +870,7 @@ A texture image is specified with the command:<br>
 <span style="font-style: italic;">target</span> must be GL_TEXTURE_2D.
 &nbsp;<span style="font-style: italic;">level </span>indicates the
 mipmap level for mipmap textures. &nbsp;<span style="font-style: italic;">internalFormat</span>
-is a hint to indicate the prefered internal storage format for the
+is a hint to indicate the preferred internal storage format for the
 texture. &nbsp;<span style="font-style: italic;">width</span> and <span
  style="font-style: italic;">height </span>indicate the image size in
 pixels (or texels). &nbsp;<span style="font-style: italic;">border </span>must
@@ -990,7 +989,7 @@ If the <span style="font-style: italic;">width</span> or <span
  style="font-style: italic;">height</span> parameters are not powers of
 two, the error GL_INVALID_VALUE is raised. &nbsp;If the image levels in
 a mipmap do not satisfy the restrictions listed above the texture is
-considered to be <span style="font-style: italic;">inconsistant</span>
+considered to be <span style="font-style: italic;">inconsistent</span>
 and the system will behave as if the texturing is disabled.<br>
 <br>
 <h3>5.1.2 Texture Image Formats and Unpacking</h3>
@@ -1004,7 +1003,7 @@ GL_RGBA. &nbsp;The <span style="font-style: italic;">type</span>
 parameter must be GL_UNSIGNED_BYTE. &nbsp;Pixel component values are
 thus in the range 0 through 255.<br>
 <br>
-If <span style="font-style: italic;">format</span> is GL_INTESITY then
+If <span style="font-style: italic;">format</span> is GL_INTENSITY then
 the image has one byte per pixel which specifies the pixel's red, green,
 blue and alpha values.<span style="font-style: italic;"></span><br>
 <br>
@@ -1025,7 +1024,7 @@ GLint <span style="font-style: italic;">value</span>)<br>
 <br>
 controls the unpacking of texture image data from client memory. &nbsp;<span
  style="font-style: italic;">pname</span> may be GL_UNPACK_ROW_LENGTH to
-indicate the stride, in pixels, between subsquent rows of the image in
+indicate the stride, in pixels, between subsequent rows of the image in
 client memory. &nbsp;If GL_UNPACK_ROW_LENGTH is zero (the default) then
 the <span style="font-style: italic;">width</span> parameter to <span
  style="font-weight: bold;">glTexImage2D </span>determines the stride.<span
@@ -2000,11 +1999,11 @@ channels in the frame buffer are replaced with the final fragment color.
 <div style="margin-left: 40px;">void <span style="font-weight: bold;">glColorMask</span>(GLboolean<span
  style="font-style: italic;">redMask</span>, GLboolean <span
  style="font-style: italic;">greenMask</span>, GLboolean <span
- style="font-style: italic;">blueMask</span>, GLboolena <span
+ style="font-style: italic;">blueMask</span>, GLboolean <span
  style="font-style: italic;">alphaMask</span>)<br>
 </div>
 <br>
-allows selective writting to individual color channels. &nbsp;If <span
+allows selective writing to individual color channels. &nbsp;If <span
  style="font-style: italic;">redMask</span> is GL_TRUE then writing to
 the red color channel is enabled, otherwise it's disabled.
 &nbsp;Similarly, the green, blue and alpha channels can also be masked.<br>
@@ -2127,7 +2126,7 @@ converted to 8-bit unsigned integers in the range[0, 255] if <span
  style="font-style: italic;">type </span>is GL_UNSIGNED_BYTE or
 converted to floating point values in the range [0, 1] if <span
  style="font-style: italic;">type</span> is GL_FLOAT. &nbsp;The (red,
-greeen, blue, alpha) tuples are then stored as GL_RGB triplets (by
+green, blue, alpha) tuples are then stored as GL_RGB triplets (by
 dropping the alpha component) or GL_RGBA quadruples in client memory.<br>
 <br>
 Image data is <span style="font-style: italic;">packed</span> into
@@ -2141,7 +2140,7 @@ the command<br>
 <br>
 <span style="font-style: italic;">pname</span> must be
 GL_PACK_ROW_LENGTH. &nbsp;<span style="font-style: italic;">value</span>
-indiciates the stride (in pixels) between subsequent rows in the
+indicates the stride (in pixels) between subsequent rows in the
 destination image. &nbsp;If GL_PACK_ROW_LENGTH is zero (the default)
 then the <span style="font-style: italic;">width</span> parameter to <span
  style="font-weight: bold;">glReadPixels</span> indicates the row stride.<br>
@@ -2298,7 +2297,7 @@ transformed and clip-tested normally. &nbsp;Primitives which aren't
 discarded by clipping cause the <span style="font-style: italic;">hit</span> <span
  style="font-style: italic;">data</span> to be updated. &nbsp;The hit
 data consists of three pieces of information: a hit flag, a minimum Z
-value and a maxium Z value. &nbsp;First, the hit flag is set.
+value and a maximum Z value. &nbsp;First, the hit flag is set.
 &nbsp;Then, for each of the primitive's vertices, the vertex Z value is
 compared to the minimum and maximum Z values. &nbsp;The minimum Z value
 is updated if the vertex's Z value is less than the minimum Z value.
@@ -3027,9 +3026,9 @@ Radeon".<br>
       </td>
     </tr>
     <tr>
-      <td style="vertical-align: top;">GL_VENDER<br>
+      <td style="vertical-align: top;">GL_VENDOR<br>
       </td>
-      <td style="vertical-align: top;">The vender of this
+      <td style="vertical-align: top;">The vendor of this
 implementation, such as "Tungsten Graphics, Inc."<br>
       </td>
     </tr>
@@ -3490,10 +3489,10 @@ conformance tests.<br>
 RESOLUTION: open<br>
 <br>
 <h2>A.6 Texture Environment Modes</h2>
-Which texure environment modes should be supported? &nbsp;OpenGL 1.2
+Which texture environment modes should be supported? &nbsp;OpenGL 1.2
 has GL_REPLACE, GL_MODULATE, GL_DECAL and GL_BLEND. &nbsp;GL_DECAL isn't
 defined for all base internal texture formats. &nbsp;GL_ADD is another
-useful mode. &nbsp;Perhaps drop GL_DECAL mode and add GL_ADDmode.<br>
+useful mode. &nbsp;Perhaps drop GL_DECAL mode and add GL_ADD mode.<br>
 <br>
 RECOMMENDATION: implement the standard modes GL_REPLACE, GL_MODULATE,
 GL_DECAL and GL_BLEND.<br>
@@ -3504,17 +3503,17 @@ RESOLUTION: open<br>
 Should we support the GL_TEXTURE_BASE_LEVEL, GL_TEXTURE_MAX_LEVEL,
 GL_TEXTURE_MIN_LOD and GL_TEXTURE_MAX_LOD texture parameters?<br>
 <br>
-RECOMENDATION: &nbsp;We propose omitting these features at this time,
-in the interest of simplifiying the driver.<br>
+RECOMMENDATION: &nbsp;We propose omitting these features at this time,
+in the interest of simplifying the driver.<br>
 <br>
 RESOLUTION: open<br>
 <br>
 <h2>A.8 Texture Priorities and Residency</h2>
-Should the subset support texture prorities via <span
+Should the subset support texture priorities via <span
  style="font-weight: bold;">glPrioritizeTextures</span> and the <span
  style="font-weight: bold;">glAreTexturesResident</span> command?<br>
 <br>
-RECOMENDATION: &nbsp;Few applications use these features and functions.
+RECOMMENDATION: &nbsp;Few applications use these features and functions.
 &nbsp;We propose omitting them to simplify the driver.<br>
 <br>
 RESOLUTION: open<br>
@@ -3529,7 +3528,7 @@ aren't strictly needed since the user can provide a 1, 2 or 4-byte
 aligned address and appropriate GL_PACK_ROW_LENGTH or
 GL_UNPACK_ROW_LENGTH values instead.<br>
 <br>
-RECOMENDATION: &nbsp;We recommend omitting them to simplify the driver.<br>
+RECOMMENDATION: &nbsp;We recommend omitting them to simplify the driver.<br>
 <br>
 RESOLUTION: open<br>
 <br>
@@ -3539,10 +3538,10 @@ GL_PACK_SKIP_PIXELS and GL_PACK_SKIP_ROWS options for pixel
 unpacking/packing?<br>
 <br>
 These options aren't really needed since the user can adjust the start
-address and GL_PACK/UNPACK_ROW_LENGTH parameters to achive the same
+address and GL_PACK/UNPACK_ROW_LENGTH parameters to achieve the same
 effect.<br>
 <br>
-RECOMENDATION: &nbsp;omit these parameters.<br>
+RECOMMENDATION: &nbsp;omit these parameters.<br>
 <br>
 RESOLUTION: open<br>
 <br>
@@ -3550,7 +3549,7 @@ RESOLUTION: open<br>
 Should we support the command <span style="font-weight: bold;">glGetTexEnvi/fv,
 glGetTexParameteri/fv</span> and <span style="font-weight: bold;">glGetTexLevelParameteri/fv</span>?<br>
 <br>
-RECOMENDATION: &nbsp;No.&nbsp;They're seldom needed and their
+RECOMMENDATION: &nbsp;No.&nbsp;They're seldom needed and their
 implementation is several hundred lines of code in length.<br>
 <br>
 RESOLUTION: &nbsp;open<br>
@@ -3560,7 +3559,7 @@ Should we support the commands <span style="font-weight: bold;">glGetIntegerv,
 glGetBooleanv </span>and <span style="font-weight: bold;">glGetDoublev</span>
 in addition to <span style="font-weight: bold;">glGetFloatv</span>?<br>
 <br>
-RECOMENDATION: &nbsp;Omit the boolean, integer and double-valued
+RECOMMENDATION: &nbsp;Omit the boolean, integer and double-valued
 functions. All state values which can be queried by these commands can
 be expressed as floating point values and queried with <span
  style="font-weight: bold;">glGetFloatv</span>. &nbsp;The
