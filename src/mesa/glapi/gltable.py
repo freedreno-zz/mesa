@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# $Id: gltable.py,v 1.2 2000/05/11 17:44:42 brianp Exp $
+# $Id: gltable.py,v 1.2.6.1 2001/12/17 19:45:21 brianp Exp $
 
 # Mesa 3-D graphics library
 # Version:  3.3
@@ -89,6 +89,7 @@ TypeTable = {
 	'SizeI' : 'GLsizei',
 	'StencilValue' : 'GLint',
 	'String' : 'const GLubyte *',
+	'Texture' : 'GLuint',
 	'TexelInternalFormat' : 'GLint',
 	'TextureComponentCount' : 'GLint',
 	'WinCoord' : 'GLint',
