@@ -1,4 +1,4 @@
-/* $Id: t_imm_dlist.c,v 1.29.2.7 2002/02/12 17:37:26 keithw Exp $ */
+/* $Id: t_imm_dlist.c,v 1.29.2.8 2002/02/12 21:07:59 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -572,7 +572,7 @@ static void loopback_compiled_cassette( GLcontext *ctx, struct immediate *IM )
    GLuint maxtex = 0;
    GLuint p, length, prim = 0;
 
-   _tnl_print_vert_flags(__FUNCTION__, orflag);
+/*     _tnl_print_vert_flags(__FUNCTION__, orflag); */
 
    if (orflag & VERT_OBJ_234)
       vertex = (void (GLAPIENTRY *)(const GLfloat *)) glVertex4fv;

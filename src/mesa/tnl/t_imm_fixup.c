@@ -1,4 +1,4 @@
-/* $Id: t_imm_fixup.c,v 1.26.2.3 2002/02/12 17:37:26 keithw Exp $ */
+/* $Id: t_imm_fixup.c,v 1.26.2.4 2002/02/12 21:08:27 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -368,7 +368,7 @@ static void copy_material( struct immediate *next,
 			   struct immediate *prev,
 			   GLuint dst, GLuint src )
 {
-   fprintf(stderr, "%s\n", __FUNCTION__);
+/*     fprintf(stderr, "%s\n", __FUNCTION__); */
 
    if (next->Material == 0) {
       next->Material = (GLmaterial (*)[2]) MALLOC( sizeof(GLmaterial) *
