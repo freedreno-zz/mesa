@@ -1,4 +1,3 @@
-/* $Id: s_context.c,v 1.25.2.2 2002/06/14 03:49:10 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -527,6 +526,24 @@ _swrast_GetDeviceDriverReference( GLcontext *ctx )
    return &swrast->Driver;
 }
 
+
+void
+_swrast_render_start( GLcontext *ctx )
+{
+   SWcontext *swrast = SWRAST_CONTEXT(ctx);
+   if (swrast->Driver.SpanRenderStart)
+      swrast->Driver.SpanRenderStart( ctx );
+}
+
+void
+_swrast_render_finish( GLcontext *ctx )
+{
+   SWcontext *swrast = SWRAST_CONTEXT(ctx);
+   if (swrast->Driver.SpanRenderFinish)
+      swrast->Driver.SpanRenderFinish( ctx );
+}
+
+
 #define SWRAST_DEBUG_VERTICES 0
 
 void
@@ -561,3 +578,5 @@ _swrast_print_vertex( GLcontext *ctx, const SWvertex *v )
       fprintf(stderr, "\n");
    }
 }
+
+

@@ -1,4 +1,4 @@
-/* $Id: fxvb.c,v 1.11.2.1 2002/06/06 16:15:13 brianp Exp $ */
+/* $Id: fxvb.c,v 1.11.2.2 2002/09/17 01:01:21 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -119,13 +119,13 @@ static void interp_extras( GLcontext *ctx,
    /*fprintf(stderr, "%s\n", __FUNCTION__);*/
 
    if (VB->ColorPtr[1]) {
-      INTERP_4F( t,
+      INTERP_4CHAN( t,
 		 GET_COLOR(VB->ColorPtr[1], dst),
 		 GET_COLOR(VB->ColorPtr[1], out),
 		 GET_COLOR(VB->ColorPtr[1], in) );
 
       if (VB->SecondaryColorPtr[1]) {
-	 INTERP_3F( t,
+	 INTERP_3CHAN( t,
 		    GET_COLOR(VB->SecondaryColorPtr[1], dst),
 		    GET_COLOR(VB->SecondaryColorPtr[1], out),
 		    GET_COLOR(VB->SecondaryColorPtr[1], in) );
@@ -145,11 +145,10 @@ static void copy_pv_extras( GLcontext *ctx, GLuint dst, GLuint src )
    struct vertex_buffer *VB = &TNL_CONTEXT(ctx)->vb;
 
    if (VB->ColorPtr[1]) {
-	 COPY_4FV( GET_COLOR(VB->ColorPtr[1], dst), 
+	 COPY_CHAN4( GET_COLOR(VB->ColorPtr[1], dst), 
 		   GET_COLOR(VB->ColorPtr[1], src) );
-
 	 if (VB->SecondaryColorPtr[1]) {
-	    COPY_4FV( GET_COLOR(VB->SecondaryColorPtr[1], dst), 
+	    COPY_CHAN4( GET_COLOR(VB->SecondaryColorPtr[1], dst), 
 		      GET_COLOR(VB->SecondaryColorPtr[1], src) );
 	 }
    }

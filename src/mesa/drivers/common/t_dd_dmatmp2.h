@@ -1,4 +1,3 @@
-/* $Id: t_dd_dmatmp2.h,v 1.1.2.2 2002/06/14 03:49:10 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -113,9 +112,11 @@ static void TAG(render_points_verts)( GLcontext *ctx,
 				      GLuint count,
 				      GLuint flags )
 {
-   LOCAL_VARS;
-   if (0) fprintf(stderr, "%s\n", __FUNCTION__);
-   EMIT_PRIM( ctx, GL_POINTS, HW_POINTS, start, count );
+   if (start < count) {
+      LOCAL_VARS;
+      if (0) fprintf(stderr, "%s\n", __FUNCTION__);
+      EMIT_PRIM( ctx, GL_POINTS, HW_POINTS, start, count );
+   }
 }
 
 static void TAG(render_lines_verts)( GLcontext *ctx,
@@ -157,7 +158,7 @@ static void TAG(render_line_strip_verts)( GLcontext *ctx,
       RESET_STIPPLE();
 
 
-   if (PREFER_DISCREET_ELT_PRIM( count-start, HW_LINES ))
+   if (PREFER_DISCRETE_ELT_PRIM( count-start, HW_LINES ))
    {   
       int dmasz = GET_SUBSEQUENT_VB_MAX_ELTS();
       int currentsz;
@@ -221,7 +222,7 @@ static void TAG(render_line_loop_verts)( GLcontext *ctx,
       if (start+1 >= count)
 	 return;
 
-      if (PREFER_DISCREET_ELT_PRIM( count-start, HW_LINES )) {
+      if (PREFER_DISCRETE_ELT_PRIM( count-start, HW_LINES )) {
 	 int dmasz = GET_SUBSEQUENT_VB_MAX_ELTS();
 	 int currentsz;
 
@@ -335,7 +336,7 @@ static void TAG(render_triangles_verts)( GLcontext *ctx,
       return;
    }
 
-   /* need a PREFER_DISCREET_ELT_PRIM here too..
+   /* need a PREFER_DISCRETE_ELT_PRIM here too..
     */
    EMIT_PRIM( ctx, GL_TRIANGLES, HW_TRIANGLES, start, count );
 }
@@ -353,7 +354,7 @@ static void TAG(render_tri_strip_verts)( GLcontext *ctx,
    if (start + 2 >= count)
       return;
 
-   if (PREFER_DISCREET_ELT_PRIM( count-start, HW_TRIANGLES ))
+   if (PREFER_DISCRETE_ELT_PRIM( count-start, HW_TRIANGLES ))
    {   
       int dmasz = GET_SUBSEQUENT_VB_MAX_ELTS();
       int currentsz;
@@ -435,7 +436,7 @@ static void TAG(render_tri_fan_verts)( GLcontext *ctx,
    if (start+2 >= count) 
       return;
 
-   if (PREFER_DISCREET_ELT_PRIM( count-start, HW_TRIANGLES ))
+   if (PREFER_DISCRETE_ELT_PRIM( count-start, HW_TRIANGLES ))
    {   
       int dmasz = GET_SUBSEQUENT_VB_MAX_ELTS();
       int currentsz;
