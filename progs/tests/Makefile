@@ -11,9 +11,11 @@ LIBS = -L../lib -lglut -lGLU -lGL -L/usr/X11R6/lib -lX11 -lXext -lm
 PROGS = antialias \
 	cva \
 	dinoshade \
+	glfbdevtest \
 	fogcoord \
 	getprocaddress \
 	manytex \
+	miniglxtest \
 	multipal \
 	projtex \
 	seccolor \
