@@ -1,4 +1,4 @@
-/* $Id: xmesa.h,v 1.1 1999/08/19 00:55:40 jtg Exp $ */
+/* $Id: xmesa.h,v 1.1.1.1.2.1 1999/11/24 18:41:37 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -27,8 +27,11 @@
 
 /*
  * $Log: xmesa.h,v $
- * Revision 1.1  1999/08/19 00:55:40  jtg
- * Initial revision
+ * Revision 1.1.1.1.2.1  1999/11/24 18:41:37  brianp
+ * bumped version to 3.1
+ *
+ * Revision 1.1.1.1  1999/08/19 00:55:40  jtg
+ * Imported sources
  *
  * Revision 1.3  1999/02/24 22:43:27  jens
  * Name changes to get XMesa to compile standalone inside XFree86
@@ -106,7 +109,7 @@ extern struct Library *XLibBase;
 
 
 #define XMESA_MAJOR_VERSION 3
-#define XMESA_MINOR_VERSION 0
+#define XMESA_MINOR_VERSION 1
 
 
 

@@ -1,4 +1,4 @@
-/* $Id: osmesa.h,v 1.1 1999/08/19 00:55:40 jtg Exp $ */
+/* $Id: osmesa.h,v 1.1.1.1.2.1 1999/11/24 18:39:17 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -27,8 +27,11 @@
 
 /*
  * $Log: osmesa.h,v $
- * Revision 1.1  1999/08/19 00:55:40  jtg
- * Initial revision
+ * Revision 1.1.1.1.2.1  1999/11/24 18:39:17  brianp
+ * bumped version to 3.1
+ *
+ * Revision 1.1.1.1  1999/08/19 00:55:40  jtg
+ * Imported sources
  *
  * Revision 1.4  1999/02/14 03:39:09  brianp
  * new copyright
@@ -86,7 +89,7 @@ extern "C" {
 
 
 #define OSMESA_MAJOR_VERSION 3
-#define OSMESA_MINOR_VERSION 0
+#define OSMESA_MINOR_VERSION 1
 
 
 
