@@ -1,4 +1,4 @@
-/* $Id: get.c,v 1.5.2.5 2000/02/09 18:59:56 brianp Exp $ */
+/* $Id: get.c,v 1.5.2.6 2000/03/11 23:28:37 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -981,7 +981,6 @@ void gl_GetBooleanv( GLcontext *ctx, GLenum pname, GLboolean *params )
 	 break;
 
       default:
-	 printf("invalid enum: %x\n", pname);
          gl_error( ctx, GL_INVALID_ENUM, "glGetBooleanv" );
    }
 }
@@ -1904,7 +1903,6 @@ void gl_GetDoublev( GLcontext *ctx, GLenum pname, GLdouble *params )
 	 break;
 
       default:
-	 printf("invalid enum: %x\n", pname);
          gl_error( ctx, GL_INVALID_ENUM, "glGetDoublev" );
    }
 }
@@ -2823,7 +2821,6 @@ void gl_GetFloatv( GLcontext *ctx, GLenum pname, GLfloat *params )
 	 break;
 
       default:
-	 printf("invalid enum: %x\n", pname);
          gl_error( ctx, GL_INVALID_ENUM, "glGetFloatv" );
    }
 }
@@ -3747,7 +3744,6 @@ void gl_GetIntegerv( GLcontext *ctx, GLenum pname, GLint *params )
 	 break;
 	 
       default:
-	 printf("invalid enum: %x\n", pname);
          gl_error( ctx, GL_INVALID_ENUM, "glGetIntegerv" );
    }
 }
