@@ -17,33 +17,10 @@ static int RADEONMinBits(int val)
     return bits;
 }
 
-
-/* Memory map the MMIO region.  Used during pre-init and by RADEONMapMem,
- * below
- */
-static Bool RADEONMapMMIO(RADEONInfoPtr info)
-{
-    info->MMIO = fbdevHWMapMMIO();
-
-    if (!info->MMIO) return FALSE;
-    return TRUE;
-}
-
-/* Unmap the MMIO region.  Used during pre-init and by RADEONUnmapMem,
- * below
- */
-static Bool RADEONUnmapMMIO(RADEONInfoPtr info)
-{
-    fbdevHWUnmapMMIO();
-    info->MMIO = NULL;
-    return TRUE;
-}
-
-
 /* Initialize the AGP state.  Request memory for use in AGP space, and
  * initialize the Radeon registers to point to that memory.
  */
-static Bool RADEONDRIAgpInit(RADEONInfoPtr info)
+static GLboolean RADEONDRIAgpInit(RADEONInfoPtr info)
 {
     unsigned char *RADEONMMIO = info->MMIO;
     unsigned long  mode;
@@ -141,12 +118,10 @@ static Bool RADEONDRIAgpInit(RADEONInfoPtr info)
 
     if (drmAddMap(info->drmFD, info->ringStart, info->ringMapSize,
 		  DRM_AGP, DRM_READ_ONLY, &info->ringHandle) < 0) {
-       fprintf(stderr,
-	       "[agp] Could not add ring mapping\n");
+       fprintf(stderr, "[agp] Could not add ring mapping\n");
        return FALSE;
     }
-    fprintf(stderr,
-	    "[agp] ring handle = 0x%08lx\n", info->ringHandle);
+    fprintf(stderr, "[agp] ring handle = 0x%08lx\n", info->ringHandle);
     
     if (drmMap(info->drmFD, info->ringHandle, info->ringMapSize,
 	       (drmAddressPtr)&info->ring) < 0) {
@@ -230,7 +205,7 @@ static Bool RADEONDRIAgpInit(RADEONInfoPtr info)
 /* Add a map for the MMIO registers that will be accessed by any
  * DRI-based clients.
  */
-static Bool RADEONDRIMapInit(RADEONInfoPtr info)
+static GLboolean RADEONDRIMapInit(RADEONInfoPtr info)
 {
 				/* Map registers */
     info->registerSize = RADEON_MMIOSIZE;
@@ -317,7 +292,7 @@ static void RADEONDRIAgpHeapInit(RADEONInfoPtr info)
 /* Add a map for the vertex buffers that will be accessed by any
  * DRI-based clients.
  */
-static Bool RADEONDRIBufInit(RADEONInfoPtr info )
+static GLboolean RADEONDRIBufInit(RADEONInfoPtr info )
 {
    /* Initialize vertex buffers */
    info->bufNumBufs = drmAddBufs(info->drmFD,
@@ -353,9 +328,9 @@ static void RADEONDRIIrqInit(RADEONInfoPtr info)
     if (!info->irq) {
 	info->irq = drmGetInterruptFromBusID(
 	    info->drmFD,
-	    ((pciConfigPtr)info->PciInfo->thisCard)->busnum,
-	    ((pciConfigPtr)info->PciInfo->thisCard)->devnum,
-	    ((pciConfigPtr)info->PciInfo->thisCard)->funcnum);
+	    info->PciInfo->bus,
+	    info->PciInfo->device,
+	    info->PciInfo->func);
 
 	if ((drmCtlInstHandler(info->drmFD, info->irq)) != 0) {
 	   fprintf(stderr,
@@ -398,121 +373,13 @@ static void RADEONDRICPInit(RADEONInfoPtr info)
  * initialization code.  It calls device-independent DRI functions to
  * create the DRI data structures and initialize the DRI state.
  */
-static Bool RADEONDRIScreenInit(ScrnInfoPtr pScrn, RADEONInfoPtr info)
+static GLboolean RADEONDRIScreenInit(MiniGLXDisplayRec *dpy, RADEONInfoPtr info)
 {
     DRIInfoPtr     pDRIInfo;
     RADEONDRIPtr   pRADEONDRI;
     int            major, minor, patch;
     drmVersionPtr  version;
 
-    /* Create the DRI data structure, and fill it in before calling the
-     * DRIScreenInit().
-     */
-    if (!(pDRIInfo = DRICreateInfoRec())) return FALSE;
-
-    info->pDRIInfo                       = pDRIInfo;
-    pDRIInfo->drmDriverName              = RADEON_DRIVER_NAME;
-
-    if (info->ChipFamily == CHIP_FAMILY_R200 ||
-	info->ChipFamily == CHIP_FAMILY_RV250 ||
-	info->ChipFamily == CHIP_FAMILY_M9)
-       pDRIInfo->clientDriverName        = R200_DRIVER_NAME;
-    else 
-       pDRIInfo->clientDriverName        = RADEON_DRIVER_NAME;
-
-    pDRIInfo->busIdString                = xalloc(64);
-    sprintf(pDRIInfo->busIdString,
-	    "PCI:%d:%d:%d",
-	    info->PciInfo->bus,
-	    info->PciInfo->device,
-	    info->PciInfo->func);
-    pDRIInfo->ddxDriverMajorVersion      = RADEON_VERSION_MAJOR;
-    pDRIInfo->ddxDriverMinorVersion      = RADEON_VERSION_MINOR;
-    pDRIInfo->ddxDriverPatchVersion      = RADEON_VERSION_PATCH;
-    pDRIInfo->frameBufferPhysicalAddress = info->LinearAddr;
-    pDRIInfo->frameBufferSize            = info->FbMapSize;
-    pDRIInfo->frameBufferStride          = (pScrn->displayWidth *
-					    info->CurrentLayout.pixel_bytes);
-    pDRIInfo->ddxDrawableTableEntry      = RADEON_MAX_DRAWABLES;
-    pDRIInfo->maxDrawableTableEntry      = (SAREA_MAX_DRAWABLES
-					    < RADEON_MAX_DRAWABLES
-					    ? SAREA_MAX_DRAWABLES
-					    : RADEON_MAX_DRAWABLES);
-
-    /* For now the mapping works by using a fixed size defined
-     * in the SAREA header
-     */
-    if (sizeof(XF86DRISAREARec)+sizeof(RADEONSAREAPriv) > SAREA_MAX) {
-	ErrorF("Data does not fit in SAREA\n");
-	return FALSE;
-    }
-    pDRIInfo->SAREASize = SAREA_MAX;
-
-    if (!(pRADEONDRI = (RADEONDRIPtr)calloc(sizeof(RADEONDRIRec),1))) {
-	DRIDestroyInfoRec(info->pDRIInfo);
-	info->pDRIInfo = NULL;
-	return FALSE;
-    }
-    pDRIInfo->devPrivate     = pRADEONDRI;
-    pDRIInfo->devPrivateSize = sizeof(RADEONDRIRec);
-    pDRIInfo->contextSize    = 0;
-
-    pDRIInfo->CreateContext  = RADEONCreateContext;
-    pDRIInfo->DestroyContext = RADEONDestroyContext;
-    pDRIInfo->SwapContext    = RADEONDRISwapContext;
-    pDRIInfo->InitBuffers    = RADEONDRIInitBuffers;
-    pDRIInfo->MoveBuffers    = RADEONDRIMoveBuffers;
-    pDRIInfo->bufferRequests = DRI_ALL_WINDOWS;
-
-    pDRIInfo->createDummyCtx     = TRUE;
-    pDRIInfo->createDummyCtxPriv = FALSE;
-
-    if (!DRIScreenInit(pDRIInfo, &info->drmFD)) {
-       fprintf(stderr,
-	       "[dri] DRIScreenInit failed.  Disabling DRI.\n");
-       free(pDRIInfo->devPrivate);
-       pDRIInfo->devPrivate = NULL;
-       DRIDestroyInfoRec(pDRIInfo);
-	pDRIInfo = NULL;
-	return FALSE;
-    }
-
-    /* Check the DRM lib version.
-     * drmGetLibVersion was not supported in version 1.0, so check for
-     * symbol first to avoid possible crash or hang.
-     */
-    if (xf86LoaderCheckSymbol("drmGetLibVersion")) {
-	version = drmGetLibVersion(info->drmFD);
-    } else {
-	/* drmlib version 1.0.0 didn't have the drmGetLibVersion
-	 * entry point.  Fake it by allocating a version record
-	 * via drmGetVersion and changing it to version 1.0.0.
-	 */
-	version = drmGetVersion(info->drmFD);
-	version->version_major      = 1;
-	version->version_minor      = 0;
-	version->version_patchlevel = 0;
-    }
-
-    if (version) {
-	if (version->version_major != 1 ||
-	    version->version_minor < 1) {
-	    /* incompatible drm library version */
-	   fprintf(stderr,
-		   "[dri] RADEONDRIScreenInit failed because of a "
-		   "version mismatch.\n"
-		   "[dri] libdrm.a module version is %d.%d.%d but "
-		   "version 1.1.x is needed.\n"
-		       "[dri] Disabling DRI.\n",
-		       version->version_major,
-		       version->version_minor,
-		       version->version_patchlevel);
-	    drmFreeVersion(version);
-	    RADEONDRICloseScreen(info);
-	    return FALSE;
-	}
-	drmFreeVersion(version);
-    }
 
     /* Check the radeon DRM version */
     version = drmGetVersion(info->drmFD);
@@ -520,18 +387,13 @@ static Bool RADEONDRIScreenInit(ScrnInfoPtr pScrn, RADEONInfoPtr info)
 	int req_minor, req_patch;
 
    	if ((info->ChipFamily == CHIP_FAMILY_R200) ||
-		(info->ChipFamily == CHIP_FAMILY_RV250) ||
-		(info->ChipFamily == CHIP_FAMILY_M9)) {
+	    (info->ChipFamily == CHIP_FAMILY_RV250) ||
+	    (info->ChipFamily == CHIP_FAMILY_M9)) {
 	    req_minor = 5;
 	    req_patch = 0;	
 	} else {
-#if X_BYTE_ORDER == X_LITTLE_ENDIAN
-	    req_minor = 1;
-	    req_patch = 0;
-#else
-	    req_minor = 2;
-	    req_patch = 1;	     
-#endif
+	    req_minor = 3;
+	    req_patch = 0;	     
 	}
 
 	if (version->version_major != 1 ||
@@ -555,38 +417,20 @@ static Bool RADEONDRIScreenInit(ScrnInfoPtr pScrn, RADEONInfoPtr info)
 	    return FALSE;
 	}
 
-	if (version->version_minor < 3) {
-	   fprintf(stderr,
-		   "[dri] Some DRI features disabled because of version "
-		   "mismatch.\n"
-		   "[dri] radeon.o kernel module version is %d.%d.%d but "
-		   "1.3.1 or later is preferred.\n",
-		       version->version_major,
-		       version->version_minor,
-		       version->version_patchlevel);
-	}
 	info->drmMinor = version->version_minor;
 	drmFreeVersion(version);
     }
 
-				/* Initialize AGP */
-    if (!info->IsPCI && !RADEONDRIAgpInit(info)) {
+    /* Initialize AGP */
+    if (!RADEONDRIAgpInit(info)) {
 	RADEONDRICloseScreen(info);
 	return FALSE;
     }
 
-				/* Initialize PCI */
-    if (info->IsPCI) {
-	fprintf(stderr, "[dri] PCI cards not yet "
-		"supported.  Disabling DRI.\n");
-	RADEONDRICloseScreen(info);
-	return FALSE;
-    }
 
-				/* DRIScreenInit doesn't add all the
-				 * common mappings.  Add additional
-				 * mappings here.
-				 */
+    /* DRIScreenInit doesn't add all the common mappings.  Add
+     * additional mappings here.
+     */
     if (!RADEONDRIMapInit(info)) {
 	RADEONDRICloseScreen(info);
 	return FALSE;
@@ -600,7 +444,7 @@ static Bool RADEONDRIScreenInit(ScrnInfoPtr pScrn, RADEONInfoPtr info)
  * DRIFinishScreenInit() to complete the device-independent DRI
  * initialization.
  */
-static Bool RADEONDRIFinishScreenInit(ScrnInfoPtr pScrn, RADEONInfoPtr info)
+static GLboolean RADEONDRIFinishScreenInit(MiniGLXDisplayRec *dpy, RADEONInfoPtr info)
 {
     RADEONSAREAPrivPtr  pSAREAPriv;
     RADEONDRIPtr        pRADEONDRI;
@@ -647,10 +491,10 @@ static Bool RADEONDRIFinishScreenInit(ScrnInfoPtr pScrn, RADEONInfoPtr info)
     /* This is the struct passed to radeon_dri.so for its initialization */
     pRADEONDRI                    = (RADEONDRIPtr)info->pDRIInfo->devPrivate;
     pRADEONDRI->deviceID          = info->Chipset;
-    pRADEONDRI->width             = pScrn->virtualX;
-    pRADEONDRI->height            = pScrn->virtualY;
-    pRADEONDRI->depth             = pScrn->depth;
-    pRADEONDRI->bpp               = pScrn->bitsPerPixel;
+    pRADEONDRI->width             = dpy->VarInfo.xres_virtual;
+    pRADEONDRI->height            = dpy->VarInfo.yres_virtual;
+    pRADEONDRI->depth             = dpy->bpp; /* XXX: was depth */
+    pRADEONDRI->bpp               = dpy->bpp;
     pRADEONDRI->IsPCI             = info->IsPCI;
     pRADEONDRI->AGPMode           = info->agpMode;
     pRADEONDRI->frontOffset       = info->frontOffset;
@@ -679,14 +523,12 @@ static Bool RADEONDRIFinishScreenInit(ScrnInfoPtr pScrn, RADEONInfoPtr info)
 /* The screen is being closed, so clean up any state and free any
  * resources used by the DRI.
  */
-STATIC void RADEONDRICloseScreen( ScrnInfoPtr pScrn, RADEONInfoPtr info )
+static void RADEONDRICloseScreen( MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
 {
     drmRadeonInit  drmInfo;
 
 				/* Stop the CP */
-    if (info->directRenderingEnabled) {
-	RADEONCP_STOP(pScrn, info);
-    }
+    RADEONCP_STOP(dpy, info);
 
     if (info->irq) {
 	drmCtlUninstHandler(info->drmFD);
@@ -751,107 +593,98 @@ STATIC void RADEONDRICloseScreen( ScrnInfoPtr pScrn, RADEONInfoPtr info )
 
 /* Will fbdev set a pitch appropriate for 3d?
  */
-static void RADEONSetPitch (ScrnInfoPtr pScrn)
+static GLboolean RADEONSetPitch (MiniGLXDisplayRec *dpy)
 {
-    int  dummy = pScrn->virtualX;
+    int  dummy = dpy->VarInfo.xres_virtual;
 
     /* FIXME: May need to validate line pitch here */
-    switch (pScrn->depth / 8) {
-    case 1: dummy = (pScrn->virtualX + 127) & ~127; break;
-    case 2: dummy = (pScrn->virtualX +  31) &  ~31; break;
+    switch (dpy->bpp / 8) {
+    case 1: dummy = (dpy->VarInfo->xres_virtual + 127) & ~127; break;
+    case 2: dummy = (dpy->VarInfo->xres_virtual +  31) &  ~31; break;
     case 3:
-    case 4: dummy = (pScrn->virtualX +  15) &  ~15; break;
+    case 4: dummy = (dpy->VarInfo->xres_virtual +  15) &  ~15; break;
     }
-    pScrn->displayWidth = dummy;
+
+    if (dpy->VarInfo.xres_virtual != dummy) {
+       fprintf(stderr, "Didn't set a good pitch for 3d (Need to move this earlier in fbdev init!?!\n");
+       return FALSE;
+    }
+
+    dpy->VarInfo.xres_virtual = dummy;
+    return TRUE;
 }
 
 /* Called at the start of each server generation. */
-static Bool RADEONScreenInit( ScrnInfoPtr pScrn, RADEONInfoPtr info )
+static GLboolean RADEONScreenInit( MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
 {
     info->FBDev        = TRUE;
     info->CPInUse      = FALSE;
     info->CPStarted    = FALSE;
-    info->directRenderingEnabled = FALSE;
-    pScrn->fbOffset    = 0;
-    if (!RADEONMapMem(pScrn)) return FALSE;
-
-
-    /* KW:  Here FBDev is asked to initialize a display mode -- Do we
-     *      need to do this?  If so we need to pull this function in.
-     */
-#if 0
-    if (info->FBDev) {
-	unsigned char *RADEONMMIO = info->MMIO;
-
-	if (!fbdevHWModeInit(pScrn, pScrn->currentMode)) return FALSE;
-	info->ModeReg.surface_cntl = INREG(RADEON_SURFACE_CNTL);
-    }
-#endif
-
-    
 
     {
-	int  width_bytes = (pScrn->displayWidth *
+	int  width_bytes = (dpy->VarInfo.xres_virtual *
 			    info->CurrentLayout.pixel_bytes);
 	int  maxy        = info->FbMapSize / width_bytes;
 
 
-	if (maxy <= pScrn->virtualY * 3) {
-	    xf86DrvMsg(scrnIndex, X_WARNING,
+	if (maxy <= dpy->VarInfo.yres_virtual * 3) {
+	   fprintf(stderr, 
 		       "Static buffer allocation failed -- "
 		       "need at least %d kB video memory\n",
-		       (pScrn->displayWidth * pScrn->virtualY *
+		       (dpy->VarInfo.xres_virtual * dpy->VarInfo.yres_virtual *
 			info->CurrentLayout.pixel_bytes * 3 + 1023) / 1024);
-	    info->directRenderingEnabled = FALSE;
-	} else if (info->ChipFamily >= CHIP_FAMILY_R300) {
-	    info->directRenderingEnabled = FALSE;
-	    xf86DrvMsg(scrnIndex, X_WARNING,
-		       "Direct rendering not yet supported on "
-		       "Radeon 9700 and newer cards\n");
 	    return FALSE;
-	} else {
-	   if (!RADEONDRIScreenInit(pScrn, info))
-	      return FALSE;
-	}
+	} 
     }
 
+
+    if (info->ChipFamily >= CHIP_FAMILY_R300) {
+       fprintf(stderr, 
+	       "Direct rendering not yet supported on "
+	       "Radeon 9700 and newer cards\n");
+       return FALSE;
+    }
+
+    if (!RADEONDRIScreenInit(dpy, info))
+       return FALSE;
+
     /* Memory manager setup */
-    if (info->directRenderingEnabled) {
+    {
 	FBAreaPtr  fbarea;
-	int        width_bytes = (pScrn->displayWidth *
+	int        width_bytes = (dpy->VarInfo.xres_virtual *
 				  info->CurrentLayout.pixel_bytes);
 	int        cpp         = info->CurrentLayout.pixel_bytes;
-	int        bufferSize  = ((pScrn->virtualY * width_bytes
+	int        bufferSize  = ((dpy->VarInfo.yres_virtual * width_bytes
 				   + RADEON_BUFFER_ALIGN)
 				  & ~RADEON_BUFFER_ALIGN);
-	int        depthSize   = ((((pScrn->virtualY+15) & ~15) * width_bytes
+	int        depthSize   = ((((dpy->VarInfo.yres_virtual+15) & ~15) * width_bytes
 				   + RADEON_BUFFER_ALIGN)
 				  & ~RADEON_BUFFER_ALIGN);
 	int        l;
 	int        scanlines;
 
 	info->frontOffset = 0;
-	info->frontPitch = pScrn->displayWidth;
+	info->frontPitch = dpy->varInfo.xres_virtual;
 
 	switch (info->CPMode) {
 	case RADEON_DEFAULT_CP_PIO_MODE:
-	    xf86DrvMsg(0, X_INFO, "CP in PIO mode\n");
+	    fprintf(stderr,  "CP in PIO mode\n");
 	    break;
 	case RADEON_DEFAULT_CP_BM_MODE:
-	    xf86DrvMsg(0, X_INFO, "CP in BM mode\n");
+	    fprintf(stderr,  "CP in BM mode\n");
 	    break;
 	default:
-	    xf86DrvMsg(0, X_INFO, "CP in UNKNOWN mode\n");
+	    fprintf(stderr,  "CP in UNKNOWN mode\n");
 	    break;
 	}
 
-	xf86DrvMsg(0, X_INFO,
+	fprintf(stderr, 
 		   "Using %d MB AGP aperture\n", info->agpSize);
-	xf86DrvMsg(0, X_INFO,
+	fprintf(stderr, 
 		   "Using %d MB for the ring buffer\n", info->ringSize);
-	xf86DrvMsg(0, X_INFO,
+	fprintf(stderr, 
 		   "Using %d MB for vertex/indirect buffers\n", info->bufSize);
-	xf86DrvMsg(0, X_INFO,
+	fprintf(stderr, 
 		   "Using %d MB for AGP textures\n", info->agpTexSize);
 
 	/* Front, back and depth buffers - everything else texture??
@@ -890,21 +723,21 @@ static Bool RADEONScreenInit( ScrnInfoPtr pScrn, RADEONInfoPtr info )
 	info->depthOffset = ((info->textureOffset - depthSize +
 			      RADEON_BUFFER_ALIGN) &
 			     ~(CARD32)RADEON_BUFFER_ALIGN);
-	info->depthPitch = pScrn->displayWidth;
+	info->depthPitch = dpy->VarInfo.xres_virtual;
 
 	info->backOffset = ((info->depthOffset - bufferSize +
 			     RADEON_BUFFER_ALIGN) &
 			    ~(CARD32)RADEON_BUFFER_ALIGN);
-	info->backPitch = pScrn->displayWidth;
+	info->backPitch = dpy->VarInfo.xres_virtual;
 
 
-	xf86DrvMsg(scrnIndex, X_INFO,
+	fprintf(stderr, 
 		   "Will use back buffer at offset 0x%x\n",
 		   info->backOffset);
-	xf86DrvMsg(scrnIndex, X_INFO,
+	fprintf(stderr, 
 		   "Will use depth buffer at offset 0x%x\n",
 		   info->depthOffset);
-	xf86DrvMsg(scrnIndex, X_INFO,
+	fprintf(stderr, 
 		   "Will use %d kb for textures at offset 0x%x\n",
 		   info->textureSize/1024, info->textureOffset);
 
@@ -918,13 +751,8 @@ static Bool RADEONScreenInit( ScrnInfoPtr pScrn, RADEONInfoPtr info )
 				  (info->depthOffset >> 10));
     } 
 
-    if (info->directRenderingEnabled) 
-       info->directRenderingEnabled = RADEONDRIFinishScreenInit(pScrn, info);
-
-    if (info->directRenderingEnabled) {
-	xf86DrvMsg(0, X_INFO, "Direct rendering enabled\n");
-    } else {
-	xf86DrvMsg(0, X_INFO, "Direct rendering disabled\n");
+    if (!RADEONDRIFinishScreenInit(dpy, info)) {
+       return FALSE;
     }
 
     return TRUE;
@@ -990,28 +818,19 @@ static void get_chipfamily_from_chipset( RADEONInfoPtr info )
 }
 
 
-
-void RADEON_ServerInit( void )
+/*
+ */
+GLboolean __driInitFBDev( struct MiniGLXDisplayRec *dpy )
 {
    RADEONInfoPtr info = calloc(sizeof(*info));
 
-   /* Need to be set up here somehow: Need to know total card memory,
-    * among other things:
-    */
-   pScrn->videoRam = fbdevHWGetVidmem(pScrn) / 1024;
-   if (pScrn->videoRam == 0) pScrn->videoRam = 8192;
-   pScrn->fbOffset = 0;
-
-   pScrn->virtualX = ??;
-   pScrn->virtualY = ??;
-   pScrn->depth = ??;
-   pScrn->bitsPerPixel = ??;
-
-   info->PciInfo.bus = ??;
-   info->PciInfo.device = ??;
-   info->PciInfo.func = ??;
+   dpy->driverInfo = (void *)info;
+   
+   info->PciInfo.bus = dpy->pciBus;
+   info->PciInfo.device = dpy->pciDevice;
+   info->PciInfo.func = dpy->pciFunc;
    info->PciInfo.memBase[0] = ??;
-   info->PciInfo.chipType = ??;
+   info->PciInfo.chipType = dpy->chipset;
 
    info->IsPCI = 0;
    info->CPMode        = RADEON_DEFAULT_CP_BM_MODE;
@@ -1022,36 +841,31 @@ void RADEON_ServerInit( void )
    info->agpTexSize    = RADEON_DEFAULT_AGP_TEX_SIZE;
    info->bufSize       = RADEON_DEFAULT_BUFFER_SIZE;
    info->ringSize      = RADEON_DEFAULT_RING_SIZE;
+  
+   info->CurrentLayout.bitsPerPixel = dpy->bpp;
+   info->CurrentLayout.depth        = dpy->bpp;	/* NOTE: was depth */
+   info->CurrentLayout.pixel_bytes  = dpy->bpp / 8;
+   info->CurrentLayout.pixel_code   = dpy->bpp;	/* NOTE: was depth or bpp */
 
-   /* Queries from fbdev environment:   Or instructions to it?
-    */
-   
-
-   
-   info->CurrentLayout.bitsPerPixel = pScrn->bitsPerPixel;
-   info->CurrentLayout.depth        = pScrn->depth;
-   info->CurrentLayout.pixel_bytes  = pScrn->bitsPerPixel / 8;
-   info->CurrentLayout.pixel_code   = (pScrn->bitsPerPixel != 16
-				       ? pScrn->bitsPerPixel
-				       : pScrn->depth);
-
-
-   info->BusCntl            = INREG(RADEON_BUS_CNTL);
+   info->BusCntl = INREG(RADEON_BUS_CNTL);
    info->Chipset = info->PciInfo->chipType;
    get_chipfamily_from_chipset( info );
 
-
-   info->frontPitch = pScrn->displayWidth;
-   info->FbMapSize = pScrn->videoRam * 1024;
+   info->frontPitch = dpy->VarInfo.xres_virtual;
+   info->FbMapSize = dpy->FrameBufferSize;
    info->LinearAddr = info->PciInfo->memBase[0] & 0xfc000000;
     
 
-   /* Choose pScrn->displayWidth?? */
-   RADEONSetPitch( pScrn );
+   /* Choose dpy->VarInfo.xres_virtual?? */
+   if (!RADEONSetPitch( dpy ))
+      return GL_FALSE;
 
    
    /* Jump to cut down code from X driver */
-   RADEONScreenInit( pScrn, info );
+   if (!RADEONScreenInit( dpy, info ))
+      return GL_FALSE;
+
+   return GL_TRUE;
 }
 
 void RADEON_ServerHalt( void )
