@@ -598,15 +598,10 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
    if (version) {
       int req_minor, req_patch;
 
-      if ((info->ChipFamily == CHIP_FAMILY_R200) ||
-	  (info->ChipFamily == CHIP_FAMILY_RV250) ||
-	  (info->ChipFamily == CHIP_FAMILY_M9)) {
-	 req_minor = 5;
-	 req_patch = 0;	
-      } else {
-	 req_minor = 3;
-	 req_patch = 0;	     
-      }
+      /* Need 1.8.x for proper cleanup-on-client-exit behaviour.
+       */
+      req_minor = 8;
+      req_patch = 0;	
 
       if (version->version_major != 1 ||
 	  version->version_minor < req_minor ||
