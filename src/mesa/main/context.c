@@ -1,4 +1,4 @@
-/* $Id: context.c,v 1.18.2.7 2000/01/24 16:20:17 brianp Exp $ */
+/* $Id: context.c,v 1.18.2.8 2000/03/06 16:59:26 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -622,7 +622,7 @@ static void initialize_context( GLcontext *ctx )
       gl_matrix_alloc_inv( &ctx->ModelView );
 
       ctx->ModelViewStackDepth = 0;
-      for (i = 0 ; i < MAX_MODELVIEW_STACK_DEPTH ; i++) {
+      for (i = 0; i < MAX_MODELVIEW_STACK_DEPTH - 1; i++) {
 	 gl_matrix_ctr( &ctx->ModelViewStack[i] );
 	 gl_matrix_alloc_inv( &ctx->ModelViewStack[i] );
       }
@@ -639,16 +639,16 @@ static void initialize_context( GLcontext *ctx )
       ctx->NearFarStack[0][0] = 1.0; /* These values seem weird by make */
       ctx->NearFarStack[0][1] = 0.0; /* sense mathematically. */
 
-      for (i = 0 ; i < MAX_PROJECTION_STACK_DEPTH ; i++) {
+      for (i = 0; i < MAX_PROJECTION_STACK_DEPTH - 1; i++) {
 	 gl_matrix_ctr( &ctx->ProjectionStack[i] );
 	 gl_matrix_alloc_inv( &ctx->ProjectionStack[i] );
       }
 
       /* Texture matrix */
-      for (i=0; i<MAX_TEXTURE_UNITS; i++) {
+      for (i = 0; i < MAX_TEXTURE_UNITS; i++) {
 	 gl_matrix_ctr( &ctx->TextureMatrix[i] );
 	 ctx->TextureStackDepth[i] = 0;
-	 for (j = 0 ; j < MAX_TEXTURE_STACK_DEPTH ; j++) {
+	 for (j = 0; j < MAX_TEXTURE_STACK_DEPTH - 1; j++) {
 	    ctx->TextureStack[i][j].inv = 0;
 	 }
       }
@@ -1370,9 +1370,8 @@ void gl_context_initialize( GLcontext *ctx )
 void gl_destroy_context( GLcontext *ctx )
 {
    if (ctx) {
-
-      GLuint i;
       struct gl_shine_tab *s, *tmps;
+      GLuint i, j;
 
 #ifdef PROFILE
       if (getenv("MESA_PROFILE")) {
@@ -1381,12 +1380,18 @@ void gl_destroy_context( GLcontext *ctx )
 #endif
 
       gl_matrix_dtr( &ctx->ModelView );
-      for (i = 0 ; i < MAX_MODELVIEW_STACK_DEPTH ; i++) {
+      for (i = 0 ; i < MAX_MODELVIEW_STACK_DEPTH - 1; i++) {
 	 gl_matrix_dtr( &ctx->ModelViewStack[i] );
       }
       gl_matrix_dtr( &ctx->ProjectionMatrix );
-      for (i = 0 ; i < MAX_PROJECTION_STACK_DEPTH ; i++) {
+      for (i = 0 ; i < MAX_PROJECTION_STACK_DEPTH - 1; i++) {
 	 gl_matrix_dtr( &ctx->ProjectionStack[i] );
+      }
+      for (i = 0; i < MAX_TEXTURE_UNITS; i++) {
+	 gl_matrix_dtr( &ctx->TextureMatrix[i] );
+	 for (j = 0; j < MAX_TEXTURE_STACK_DEPTH - 1; j++) {
+	    gl_matrix_dtr( &ctx->TextureStack[i][j] );
+	 }
       }
 
       FREE( ctx->PB );
