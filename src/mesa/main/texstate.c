@@ -1,4 +1,4 @@
-/* $Id: texstate.c,v 1.87 2002/11/05 20:58:37 brianp Exp $ */
+/* $Id: texstate.c,v 1.87.2.1 2002/12/30 19:20:11 alanh Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -2397,7 +2397,8 @@ _mesa_ActiveTextureARB( GLenum target )
       _mesa_debug(ctx, "glActiveTexture %s\n",
                   _mesa_lookup_enum_by_nr(target));
 
-   if (texUnit > ctx->Const.MaxTextureUnits) {
+   /* Cater for texture unit 0 is first, therefore use >= */
+   if (texUnit >= ctx->Const.MaxTextureUnits) {
       _mesa_error(ctx, GL_INVALID_ENUM, "glActiveTextureARB(target)");
       return;
    }
