@@ -1,7 +1,7 @@
-# $Id: Makefile.X11,v 1.7 1999/11/11 01:22:28 brianp Exp $
+# $Id: Makefile.X11,v 1.6.2.1 1999/11/16 15:25:50 brianp Exp $
 
 # Mesa 3-D graphics library
-# Version:  3.3
+# Version:  3.1
 # Copyright (C) 1995-1999  Brian Paul
 
 # Makefile for core library
@@ -18,13 +18,13 @@ VPATH = RCS
 INCDIR = ../include
 LIBDIR = ../lib
 
-
 CORE_SOURCES = \
-	glapi.c \
-	glapinoop.c \
 	accum.c \
 	alpha.c \
 	alphabuf.c \
+	api1.c \
+	api2.c \
+	apiext.c \
 	attrib.c \
 	bbox.c \
 	bitmap.c \
@@ -37,7 +37,6 @@ CORE_SOURCES = \
 	cva.c \
 	debug_xform.c \
 	depth.c \
-	dispatch.c \
 	dlist.c \
 	drawpix.c \
 	enable.c \
@@ -50,19 +49,18 @@ CORE_SOURCES = \
 	glmisc.c \
 	hash.c \
 	image.c \
-	imaging.c \
 	light.c \
 	lines.c \
 	logic.c \
 	masking.c \
 	matrix.c \
-	mem.c \
 	mmath.c \
 	mthreads.c \
 	pb.c \
 	pixel.c \
 	pipeline.c \
 	points.c \
+	pointers.c \
 	polygon.c \
 	quads.c \
 	rastpos.c \
@@ -222,7 +220,8 @@ X86/3dnow.o: X86/3dnow.c
 #	@echo "Specify a target configuration"
 
 clean:
-	-rm *.o *~ */*.o */*~
+	-rm *.o *~ */*.o */*~ *.lo *.la
+	-rm -rf .libs
 
 targets: $(LIBDIR)/$(GL_LIB)
 
