@@ -61,7 +61,10 @@
 #include "X86/common_x86_asm.h"
 #endif
 
-#define RADEON_DATE	"20021125"
+#include <sys/mman.h>
+
+
+#define RADEON_DATE	"20030501"
 
 #ifndef RADEON_DEBUG
 int RADEON_DEBUG = (0);
@@ -517,6 +520,7 @@ radeonDestroyContext( __DRIcontextPrivate *driContextPriv )
 #endif
 
       if (rmesa->dma.current.buf) {
+	 assert(rmesa->radeonScreen->buffers);
 	 radeonReleaseDmaRegion( rmesa, &rmesa->dma.current, __FUNCTION__ );
 	 radeonFlushCmdBuf( rmesa, __FUNCTION__ );
       }
@@ -712,6 +716,45 @@ radeonUnbindContext( __DRIcontextPrivate *driContextPriv )
 
    radeonVtxfmtUnbindContext( rmesa->glCtx );
    return GL_TRUE;
+}
+
+
+
+
+void radeonNotifyFocus( int have_focus )
+{
+#if !_HAVE_FULL_GL
+   GET_CURRENT_CONTEXT(ctx);
+   radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
+   int SAREASize = rmesa->dri.screen->display->driverContext.shared.SAREASize;
+
+   if (ctx->Driver.CurrentExecPrimitive != GL_POLYGON+1) 
+      ctx->Exec->End();
+   
+   if (have_focus && !rmesa->radeonScreen->buffers) {
+      rmesa->radeonScreen->buffers = drmMapBufs( rmesa->dri.fd );
+
+      /* Use mprotect rather than unmapping the framebuffer due to the
+       * large number of derived pointers into the sarea which would
+       * have to be updated if it changed its location on re-mapping.
+       */
+      mprotect(rmesa->dri.screen->pSAREA, SAREASize, PROT_READ|PROT_WRITE);
+   } 
+   else if (!have_focus && rmesa->radeonScreen->buffers) {
+      if (rmesa->dma.current.buf)
+	 radeonReleaseDmaRegion( rmesa, &rmesa->dma.current, __FUNCTION__ );
+      RADEON_FIREVERTICES( rmesa );
+
+      drmUnmapBufs( rmesa->radeonScreen->buffers );
+      rmesa->radeonScreen->buffers = 0;
+      
+      mprotect(rmesa->dri.screen->pSAREA, SAREASize, PROT_NONE);
+
+      assert(!rmesa->dma.current.buf); 
+   }
+
+   radeonVtxfmtInit( ctx );
+#endif
 }
 
 

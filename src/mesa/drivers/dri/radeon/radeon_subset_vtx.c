@@ -50,7 +50,6 @@
 #include "radeon_ioctl.h"
 #include "radeon_subset.h"
 
-
 /**
  * \brief Union for vertex data.
  */
@@ -987,25 +986,4 @@ void radeonVtxfmtInit( GLcontext *ctx )
 
 /*@}*/
 
-
-void radeonVtxfmtNotifyFocus( int have_focus )
-{
-   GET_CURRENT_CONTEXT(ctx);
-   radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
-
-   if (ctx->Driver.CurrentExecPrimitive != GL_POLYGON+1) 
-      radeon_End();
-   
-   if (have_focus && !rmesa->radeonScreen->buffers) {
-      rmesa->radeonScreen->buffers = drmMapBufs( rmesa->dri.fd );
-   } 
-   else if (!have_focus && rmesa->radeonScreen->buffers) {
-      RADEON_FIREVERTICES( rmesa );
-      drmUnmapBufs( rmesa->radeonScreen->buffers );
-      rmesa->radeonScreen->buffers = 0;
-/*       assert(!rmesa->dma.current.buf); */
-   }
-
-   radeonVtxfmtInit( ctx );
-}
 

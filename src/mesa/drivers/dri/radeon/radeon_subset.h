@@ -72,6 +72,4 @@ extern void radeonAgeTextures( radeonContextPtr rmesa, int heap );
 
 extern void radeonDestroyTexObj( radeonContextPtr rmesa, radeonTexObjPtr t );
 
-extern void radeonVtxfmtNotifyFocus( int have_focus );
-
 #endif

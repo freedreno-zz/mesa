@@ -755,6 +755,9 @@ static __inline GLuint radeonPackColor( GLuint cpp,
 }
 
 
+extern void radeonNotifyFocus( int have_focus );
+
+
 /******************************************************************
  * Debugging:
  */

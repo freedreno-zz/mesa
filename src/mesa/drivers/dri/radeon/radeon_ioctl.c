@@ -185,6 +185,7 @@ extern void radeonEmitVbufPrim( radeonContextPtr rmesa,
 
    assert(rmesa->dri.drmMinor >= 3); 
    assert(!(primitive & RADEON_CP_VC_CNTL_PRIM_WALK_IND));
+   assert(rmesa->radeonScreen->buffers );
    
    radeonEmitState( rmesa );
 
@@ -248,6 +249,7 @@ GLushort *radeonAllocEltsOpenEnded( radeonContextPtr rmesa,
 
    assert(rmesa->dri.drmMinor >= 3); 
    assert((primitive & RADEON_CP_VC_CNTL_PRIM_WALK_IND));
+   assert(rmesa->radeonScreen->buffers );
    
    radeonEmitState( rmesa );
    
@@ -398,6 +400,7 @@ void radeonFlushCmdBuf( radeonContextPtr rmesa, const char *caller )
 {
    int ret;
    assert (rmesa->dri.drmMinor >= 3);
+   assert (rmesa->radeonScreen->buffers);
 
    LOCK_HARDWARE( rmesa );
    ret = radeonFlushCmdBufLocked( rmesa, caller );
@@ -442,9 +445,10 @@ void radeonRefillCurrentDmaRegion( radeonContextPtr rmesa )
    if (RADEON_DEBUG & (DEBUG_IOCTL|DEBUG_DMA))
       fprintf(stderr, "%s\n", __FUNCTION__);  
 
-   if (rmesa->dma.flush) {
+   assert( rmesa->radeonScreen->buffers );
+
+   if (rmesa->dma.flush) 
       rmesa->dma.flush( rmesa );
-   }
 
    if (rmesa->dma.current.buf)
       radeonReleaseDmaRegion( rmesa, &rmesa->dma.current, __FUNCTION__ );
@@ -750,6 +754,8 @@ static void radeonWaitForFrameCompletion( radeonContextPtr rmesa )
 {
    RADEONSAREAPrivPtr sarea = rmesa->sarea;
 
+   assert (rmesa->radeonScreen->buffers);
+
    if (rmesa->do_irqs) {
       if (radeonGetLastFrame(rmesa) < sarea->last_frame) {
 	 if (!rmesa->irqsEmitted) {
@@ -773,7 +779,7 @@ static void radeonWaitForFrameCompletion( radeonContextPtr rmesa )
       while (radeonGetLastFrame (rmesa) < sarea->last_frame) {
 	 UNLOCK_HARDWARE( rmesa ); 
 	 if (rmesa->do_usleeps) 
-	    usleep(1); 
+	    usleep(1); 	 
 	 LOCK_HARDWARE( rmesa ); 
       }
    }
@@ -1160,9 +1166,10 @@ void radeonWaitForIdleLocked( radeonContextPtr rmesa )
  */
 static void radeonWaitForIdle( radeonContextPtr rmesa )
 {
-    LOCK_HARDWARE(rmesa);
-    radeonWaitForIdleLocked( rmesa );
-    UNLOCK_HARDWARE(rmesa);
+   assert(rmesa->radeonScreen->buffers);
+   LOCK_HARDWARE(rmesa);
+   radeonWaitForIdleLocked( rmesa );
+   UNLOCK_HARDWARE(rmesa);
 }
 
 

@@ -179,6 +179,7 @@ static __inline char *radeonAllocCmdBuf( radeonContextPtr rmesa,
       radeonFlushCmdBuf( rmesa, __FUNCTION__ );
    
    assert(rmesa->dri.drmMinor >= 3);
+   assert(rmesa->radeonScreen->buffers);
 
    {
       char *head = rmesa->store.cmd_buf + rmesa->store.cmd_used;

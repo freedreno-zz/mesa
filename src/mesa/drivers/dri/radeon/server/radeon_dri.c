@@ -1228,7 +1228,7 @@ static void radeonHaltFBDev( struct DRIDriverContextRec *ctx )
 }
 
 
-extern void radeonVtxfmtNotifyFocus( int );
+extern void radeonNotifyFocus( int );
 
 /**
  * \brief Exported driver interface for Mini GLX.
@@ -1246,6 +1246,6 @@ struct DRIDriverRec __driDriver = {
 #if _HAVE_FULL_GL
    0,
 #else
-   radeonVtxfmtNotifyFocus, 
+   radeonNotifyFocus, 
 #endif
 };
