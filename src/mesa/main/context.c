@@ -1,4 +1,4 @@
-/* $Id: context.c,v 1.18.2.1 1999/11/15 22:17:44 brianp Exp $ */
+/* $Id: context.c,v 1.18.2.2 1999/11/15 22:21:18 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -2468,7 +2468,6 @@ void gl_update_state( GLcontext *ctx )
       gl_update_normal_transform( ctx );
    }
 
- finished:
    gl_update_pipelines(ctx);
    ctx->NewState = 0;
 }
