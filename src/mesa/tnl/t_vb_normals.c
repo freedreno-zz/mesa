@@ -1,8 +1,8 @@
-/* $Id: t_vb_normals.c,v 1.9 2001/06/28 17:34:14 keithw Exp $ */
+/* $Id: t_vb_normals.c,v 1.9.2.1 2002/04/08 15:36:03 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.5
+ * Version:  4.0.3
  *
  * Copyright (C) 1999-2001  Brian Paul   All Rights Reserved.
  *
@@ -61,12 +61,22 @@ static GLboolean run_normal_stage( GLcontext *ctx,
 
    ASSERT(store->NormalTransform);
 
-   if (stage->changed_inputs)
+   if (stage->changed_inputs) {
+      /* We can only use the display list's saved normal lengths if we've
+       * got a transformation matrix with uniform scaling.
+       */
+      const GLfloat *lengths;
+      if (ctx->ModelView.flags & MAT_FLAG_GENERAL_SCALE)
+         lengths = NULL;
+      else
+         lengths = VB->NormalLengthPtr;
+
       store->NormalTransform( &ctx->ModelView,
 			      ctx->_ModelViewInvScale,
 			      VB->NormalPtr,
-			      VB->NormalLengthPtr,
+			      lengths,
 			      &store->normal );
+   }
 
    VB->NormalPtr = &store->normal;
    VB->NormalLengthPtr = 0;	/* no longer valid */
