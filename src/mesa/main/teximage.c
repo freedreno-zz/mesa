@@ -1,4 +1,4 @@
-/* $Id: teximage.c,v 1.104.2.8 2002/09/13 19:39:45 brianp Exp $ */
+/* $Id: teximage.c,v 1.104.2.9 2002/09/14 16:50:08 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -1338,7 +1338,7 @@ _mesa_GetTexImage( GLenum target, GLint level, GLenum format,
 {
    const struct gl_texture_unit *texUnit;
    const struct gl_texture_object *texObj;
-   struct gl_texture_image *texImage;
+   const struct gl_texture_image *texImage;
    GLint maxLevels = 0;
    GET_CURRENT_CONTEXT(ctx);
    ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx);
@@ -1417,7 +1417,7 @@ _mesa_GetTexImage( GLenum target, GLint level, GLenum format,
       for (img = 0; img < depth; img++) {
          for (row = 0; row < height; row++) {
             /* compute destination address in client memory */
-            GLvoid *dest = _mesa_image_address( &ctx->Unpack, pixels,
+            GLvoid *dest = _mesa_image_address( &ctx->Pack, pixels,
                                                 width, height, format, type,
                                                 img, row, 0);
             assert(dest);
@@ -1444,8 +1444,20 @@ _mesa_GetTexImage( GLenum target, GLint level, GLenum format,
                                      depthRow, &ctx->Pack);
             }
             else if (format == GL_YCBCR_MESA) {
-               /* XXX YUV to do */
-               _mesa_problem(ctx, "GetTexImage YUV not done");
+               /* No pixel transfer */
+               MEMCPY(dest, (const GLushort *) texImage->Data + row * width,
+                      width * sizeof(GLushort));
+               /* check for byte swapping */
+               if ((texImage->TexFormat->MesaFormat == MESA_FORMAT_YCBCR
+                    && type == GL_UNSIGNED_SHORT_8_8_REV_APPLE) ||
+                   (texImage->TexFormat->MesaFormat == MESA_FORMAT_YCBCR_REV
+                    && type == GL_UNSIGNED_SHORT_8_8_APPLE)) {
+                  if (!ctx->Pack.SwapBytes)
+                     _mesa_swap2((GLushort *) dest, width);
+               }
+               else if (ctx->Pack.SwapBytes) {
+                  _mesa_swap2((GLushort *) dest, width);
+               }
             }
             else {
                /* general case:  convert row to RGBA format */
