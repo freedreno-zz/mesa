@@ -1,4 +1,4 @@
-/* $Id: pixel.c,v 1.31.2.3 2002/09/20 19:40:53 brianp Exp $ */
+/* $Id: pixel.c,v 1.31.2.4 2002/09/21 17:12:34 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -146,6 +146,17 @@ _mesa_PixelStorei( GLenum pname, GLint param )
 	 FLUSH_VERTICES(ctx, _NEW_PACKUNPACK);
 	 ctx->Pack.Alignment = param;
 	 break;
+      case GL_PACK_INVERT_MESA:
+         if (!ctx->Extensions.MESA_pack_invert) {
+            _mesa_error( ctx, GL_INVALID_ENUM, "glPixelstore(pname)" );
+            return;
+         }
+         if (ctx->Pack.Invert == param)
+            return;
+         FLUSH_VERTICES(ctx, _NEW_PACKUNPACK);
+         ctx->Pack.Invert = param;
+         break;
+
       case GL_UNPACK_SWAP_BYTES:
 	 if (param == (GLint)ctx->Unpack.SwapBytes)
 	    return;

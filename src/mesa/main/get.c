@@ -1,4 +1,4 @@
-/* $Id: get.c,v 1.69.2.10 2002/09/13 17:34:17 brianp Exp $ */
+/* $Id: get.c,v 1.69.2.11 2002/09/21 17:12:33 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -671,6 +671,9 @@ _mesa_GetBooleanv( GLenum pname, GLboolean *params )
          break;
       case GL_PACK_IMAGE_HEIGHT_EXT:
          *params = ctx->Pack.ImageHeight;
+         break;
+      case GL_PACK_INVERT_MESA:
+         *params = ctx->Pack.Invert;
          break;
       case GL_PERSPECTIVE_CORRECTION_HINT:
 	 *params = ENUM_TO_BOOL(ctx->Hint.PerspectiveCorrection);
@@ -1975,6 +1978,9 @@ _mesa_GetDoublev( GLenum pname, GLdouble *params )
          break;
       case GL_PACK_IMAGE_HEIGHT_EXT:
          *params = (GLdouble) ctx->Pack.ImageHeight;
+         break;
+      case GL_PACK_INVERT_MESA:
+         *params = (GLdouble) ctx->Pack.Invert;
          break;
       case GL_PERSPECTIVE_CORRECTION_HINT:
 	 *params = ENUM_TO_DOUBLE(ctx->Hint.PerspectiveCorrection);
@@ -3284,6 +3290,9 @@ _mesa_GetFloatv( GLenum pname, GLfloat *params )
       case GL_PACK_IMAGE_HEIGHT_EXT:
          *params = (GLfloat) ctx->Pack.ImageHeight;
          break;
+      case GL_PACK_INVERT_MESA:
+         *params = (GLfloat) ctx->Pack.Invert;
+         break;
       case GL_PERSPECTIVE_CORRECTION_HINT:
 	 *params = ENUM_TO_FLOAT(ctx->Hint.PerspectiveCorrection);
 	 break;
@@ -4560,6 +4569,9 @@ _mesa_GetIntegerv( GLenum pname, GLint *params )
          break;
       case GL_PACK_IMAGE_HEIGHT_EXT:
          *params = ctx->Pack.ImageHeight;
+         break;
+      case GL_PACK_INVERT_MESA:
+         *params = ctx->Pack.Invert;
          break;
       case GL_PERSPECTIVE_CORRECTION_HINT:
 	 *params = (GLint) ctx->Hint.PerspectiveCorrection;

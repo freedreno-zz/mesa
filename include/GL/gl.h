@@ -1,4 +1,4 @@
-/* $Id: gl.h,v 1.59.2.10 2002/09/20 19:41:32 brianp Exp $ */
+/* $Id: gl.h,v 1.59.2.11 2002/09/21 17:12:10 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -2531,6 +2531,15 @@ GLAPI void GLAPIENTRY glTracePointerRangeMESA( const GLvoid* first, const GLvoid
 #define GL_UNSIGNED_SHORT_8_8_REV_MESA		0x85BB /* same as Apple */
 
 #endif /* GL_MESA_texture_ycbcr */
+
+
+
+#ifndef GL_MESA_pack_invert
+#define GL_MESA_pack_invert 1
+
+#define GL_PACK_INVERT_MESA                     0x8758
+
+#endif /* GL_MESA_pack_invert */
 
 
 

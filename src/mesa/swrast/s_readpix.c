@@ -1,4 +1,4 @@
-/* $Id: s_readpix.c,v 1.12.2.2 2002/04/19 01:10:48 brianp Exp $ */
+/* $Id: s_readpix.c,v 1.12.2.3 2002/09/21 17:12:34 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -282,8 +282,15 @@ read_fast_rgba_pixels( GLcontext *ctx,
       if (0) {
 #endif
          GLchan *dest = (GLchan *) pixels
-                         + (skipRows * rowLength + skipPixels) * 4;
+                      + (skipRows * rowLength + skipPixels) * 4;
          GLint row;
+
+         if (packing->Invert) {
+            /* start at top and go down */
+            dest += (readHeight - 1) * rowLength * 4;
+            rowLength = -rowLength;
+         }
+
          for (row=0; row<readHeight; row++) {
             (*swrast->Driver.ReadRGBASpan)(ctx, readWidth, srcX, srcY,
                                         (GLchan (*)[4]) dest);
