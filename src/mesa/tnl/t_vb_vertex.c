@@ -157,10 +157,15 @@ static GLboolean run_vertex_stage( GLcontext *ctx,
 
       /* Drivers expect this to be clean to element 4...
        */
-      if (VB->ClipPtr->size < 4) {
-	 if (VB->ClipPtr->size == 2)
-	    _mesa_vector4f_clean_elem( VB->ClipPtr, VB->Count, 2 );
+      switch (VB->ClipPtr->size) {
+      case 1:			
+	 /* impossible */
+      case 2:
+	 _mesa_vector4f_clean_elem( VB->ClipPtr, VB->Count, 2 );
+      case 3:
 	 _mesa_vector4f_clean_elem( VB->ClipPtr, VB->Count, 3 );
+      case 4:
+	 break;
       }
 
       /* Cliptest and perspective divide.  Clip functions must clear
