@@ -1,10 +1,10 @@
-/* $Id: pixel.c,v 1.37 2002/10/24 23:57:21 brianp Exp $ */
+/* $Id: pixel.c,v 1.37.2.1 2003/01/26 14:35:17 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  4.1
+ * Version:  5.0.1
  *
- * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2003  Brian Paul   All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -899,11 +899,10 @@ _mesa_lookup_rgba(const struct gl_color_table *table,
             GLuint i;
             for (i = 0; i < n; i++) {
                GLint j = IROUND(rgba[i][RCOMP] * scale);
-               GLfloat c = CHAN_TO_FLOAT(lut[CLAMP(j, 0, 1)]);
+               GLfloat c = CHAN_TO_FLOAT(lut[CLAMP(j, 0, max)]);
                rgba[i][RCOMP] = rgba[i][GCOMP] =
                   rgba[i][BCOMP] = rgba[i][ACOMP] = c;
             }
-
          }
          else {
             const GLint max = table->Size - 1;
