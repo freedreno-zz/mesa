@@ -450,6 +450,7 @@ EXPORTS
 	_swrast_Clear
 	_glapi_get_context
 	_mesa_ResizeBuffersMESA
+	_tnl_MakeCurrent
 	wglCopyContext
 	wglCreateContext
 	wglDeleteContext
