@@ -79,6 +79,8 @@ MakeWindow(Display * dpy, unsigned int width, unsigned int height)
    /* Bind the rendering context and window */
    glXMakeCurrent(dpy, win, ctx);
 
+   glViewport(0, 0, width, height);
+
    return win;
 }
 

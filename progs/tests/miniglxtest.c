@@ -1,4 +1,4 @@
-/* $Id: miniglxtest.c,v 1.1.4.8 2003/03/24 15:40:34 keithw Exp $ */
+/* $Id: miniglxtest.c,v 1.1.4.9 2003/03/24 18:46:57 keithw Exp $ */
 
 /*
  * Test the mini GLX interface.
@@ -121,6 +121,8 @@ static Window make_rgb_db_window( Display *dpy,
    }
 
    glXMakeCurrent( dpy, win, ctx );
+
+   glViewport(0, 0, width, height);
 
    return win;
 }
