@@ -1,4 +1,4 @@
-/* $Id: pixel.c,v 1.11 2000/05/07 20:41:30 brianp Exp $ */
+/* $Id: pixel.c,v 1.11.4.1 2000/10/19 20:09:29 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -105,6 +105,14 @@ _mesa_PixelStorei( GLenum pname, GLint param )
 	    ctx->Pack.SkipRows = param;
 	 }
 	 break;
+      case GL_PACK_SKIP_IMAGES:
+	 if (param<0) {
+	    gl_error( ctx, GL_INVALID_VALUE, "glPixelStore(param)" );
+	 }
+	 else {
+	    ctx->Pack.SkipImages = param;
+	 }
+	 break;
       case GL_PACK_ALIGNMENT:
          if (param==1 || param==2 || param==4 || param==8) {
 	    ctx->Pack.Alignment = param;
@@ -147,6 +155,14 @@ _mesa_PixelStorei( GLenum pname, GLint param )
 	 }
 	 else {
 	    ctx->Unpack.SkipRows = param;
+	 }
+	 break;
+      case GL_UNPACK_SKIP_IMAGES:
+	 if (param < 0) {
+	    gl_error( ctx, GL_INVALID_VALUE, "glPixelStore(param)" );
+	 }
+	 else {
+	    ctx->Unpack.SkipImages = param;
 	 }
 	 break;
       case GL_UNPACK_ALIGNMENT:
