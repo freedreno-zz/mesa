@@ -7,7 +7,7 @@ SOURCES = miniglx.c dispatch.c glapi.c XF86dri.c
 OBJS = $(SOURCES:.c=.o)
 
 INCLUDES = -I. -I.. -I../../include
-CFLAGS = -c -g $(INCLUDES) -MD -DUSE_DRI=1
+CFLAGS = -c -g $(INCLUDES) -MD 
 
 LIBS = -ldl -L/usr/X11R6/lib -lX11
 
