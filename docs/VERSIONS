@@ -1,4 +1,4 @@
-$Id: VERSIONS,v 1.13.2.6 2000/01/05 06:57:54 brianp Exp $
+$Id: VERSIONS,v 1.13.2.7 2000/01/07 08:38:08 brianp Exp $
 
 
 Mesa Version History
@@ -675,4 +675,5 @@ Mesa Version History
 3.2  January ??, 2000
     Bug fixes:
 	- mixed drawing of lines and bitmaps sometimes had wrong colors
+	- added missing glHintPGI() function
 
