@@ -44,7 +44,6 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "colormac.h"
 #include "light.h"
 #include "state.h"
-#include "vtxfmt.h"
 
 #include "radeon_context.h"
 #include "radeon_state.h"
@@ -65,12 +64,10 @@ void radeon_copy_to_current( GLcontext *ctx )
    assert(ctx->Driver.NeedFlush & FLUSH_UPDATE_CURRENT);
    assert(vb.context == ctx);
 
-   if (rmesa->vb.vertex_format & RADEON_CP_VC_FRMT_FPCOLOR) {
-      ctx->Current.Attrib[VERT_ATTRIB_COLOR0][0] = vb.floatcolorptr[0];
-      ctx->Current.Attrib[VERT_ATTRIB_COLOR0][1] = vb.floatcolorptr[1];
-      ctx->Current.Attrib[VERT_ATTRIB_COLOR0][2] = vb.floatcolorptr[2];
-      ctx->Current.Attrib[VERT_ATTRIB_COLOR0][3] = vb.floatcolorptr[3];
-   }
+   ctx->Current.Attrib[VERT_ATTRIB_COLOR0][0] = vb.floatcolorptr[0];
+   ctx->Current.Attrib[VERT_ATTRIB_COLOR0][1] = vb.floatcolorptr[1];
+   ctx->Current.Attrib[VERT_ATTRIB_COLOR0][2] = vb.floatcolorptr[2];
+   ctx->Current.Attrib[VERT_ATTRIB_COLOR0][3] = vb.floatcolorptr[3];
 
    if (rmesa->vb.vertex_format & RADEON_CP_VC_FRMT_ST0) {
       ctx->Current.Attrib[VERT_ATTRIB_TEX0][0] = vb.texcoordptr[0][0];
@@ -82,18 +79,6 @@ void radeon_copy_to_current( GLcontext *ctx )
    ctx->Driver.NeedFlush &= ~FLUSH_UPDATE_CURRENT;
 }
 
-static GLboolean discreet_gl_prim[GL_POLYGON+1] = {
-   1,				/* 0 points */
-   1,				/* 1 lines */
-   0,				/* 2 line_strip */
-   0,				/* 3 line_loop */
-   1,				/* 4 tris */
-   0,				/* 5 tri_fan */
-   0,				/* 6 tri_strip */
-   1,				/* 7 quads */
-   0,				/* 8 quadstrip */
-   0,				/* 9 poly */
-};
 
 static void flush_prims( radeonContextPtr rmesa )
 {
@@ -113,33 +98,7 @@ static void flush_prims( radeonContextPtr rmesa )
    rmesa->tcl.nr_aos_components = 1;
    rmesa->dma.flush = 0;
 
-   /* Optimize the primitive list:
-    */
-   if (rmesa->vb.nrprims > 1) {
-      for (j = 0, i = 1 ; i < rmesa->vb.nrprims; i++) {
-	 int pj = rmesa->vb.primlist[j].prim & 0xf;
-	 int pi = rmesa->vb.primlist[i].prim & 0xf;
-      
-	 if (pj == pi && discreet_gl_prim[pj] &&
-	     rmesa->vb.primlist[i].start == rmesa->vb.primlist[j].end) {
-	    rmesa->vb.primlist[j].end = rmesa->vb.primlist[i].end;
-	 }
-	 else {
-	    j++;
-	    if (j != i) rmesa->vb.primlist[j] = rmesa->vb.primlist[i];
-	 }
-      }
-      rmesa->vb.nrprims = j+1;
-   }
-
    for (i = 0 ; i < rmesa->vb.nrprims; i++) {
-      if (RADEON_DEBUG & DEBUG_PRIMS)
-	 fprintf(stderr, "vtxfmt prim %d: %s %d..%d\n", i,
-		 _mesa_lookup_enum_by_nr( rmesa->vb.primlist[i].prim & 
-					  PRIM_MODE_MASK ),
-		 rmesa->vb.primlist[i].start,
-		 rmesa->vb.primlist[i].end);
-
       radeonEmitPrimitive( vb.context,
 			   rmesa->vb.primlist[i].start,
 			   rmesa->vb.primlist[i].end,
@@ -340,16 +299,15 @@ void radeonVtxfmtInvalidate( GLcontext *ctx )
 static void radeonVtxfmtValidate( GLcontext *ctx )
 {
    radeonContextPtr rmesa = RADEON_CONTEXT( ctx );
-   GLuint ind = RADEON_CP_VC_FRMT_Z;
+   GLuint ind = (RADEON_CP_VC_FRMT_Z |
+		 RADEON_CP_VC_FRMT_FPCOLOR | 
+		 RADEON_CP_VC_FRMT_FPALPHA);
 
    if (RADEON_DEBUG & DEBUG_VFMT)
       fprintf(stderr, "%s\n", __FUNCTION__);
 
    if (ctx->Driver.NeedFlush)
       ctx->Driver.FlushVertices( ctx, ctx->Driver.NeedFlush );
-
-
-   ind |= RADEON_CP_VC_FRMT_PKCOLOR;
 	 
    if (ctx->Texture.Unit[0]._ReallyEnabled) 
       ind |= RADEON_CP_VC_FRMT_ST0;
@@ -359,40 +317,26 @@ static void radeonVtxfmtValidate( GLcontext *ctx )
 
    RADEON_NEWPRIM(rmesa);
    rmesa->vb.vertex_format = ind;
-   vb.vertex_size = 3;
    rmesa->vb.prim = &ctx->Driver.CurrentExecPrimitive;
+   vb.vertex_size = 3;
 
-   vb.colorptr = NULL;
-   vb.floatcolorptr = ctx->Current.Attrib[VERT_ATTRIB_COLOR0];
-   vb.texcoordptr[0] = ctx->Current.Attrib[VERT_ATTRIB_TEX0];
-
-   /* Run through and initialize the vertex components in the order
-    * the hardware understands:
+   /* Would prefer to use ubyte floats in the vertex:
     */
-
-   if (ind & RADEON_CP_VC_FRMT_FPCOLOR) {
-      assert(!(ind & RADEON_CP_VC_FRMT_PKCOLOR));
-      vb.floatcolorptr = &vb.vertex[vb.vertex_size].f;
-      vb.vertex_size += 3;
-      vb.floatcolorptr[0] = ctx->Current.Attrib[VERT_ATTRIB_COLOR0][0];
-      vb.floatcolorptr[1] = ctx->Current.Attrib[VERT_ATTRIB_COLOR0][1];
-      vb.floatcolorptr[2] = ctx->Current.Attrib[VERT_ATTRIB_COLOR0][2];
-
-      if (ind & RADEON_CP_VC_FRMT_FPALPHA) {
-	 vb.vertex_size += 1;
-	 vb.floatcolorptr[3] = ctx->Current.Attrib[VERT_ATTRIB_COLOR0][3];
-      }
-   }
+   vb.vertex_size += 4;
+   vb.floatcolorptr = &vb.vertex[vb.vertex_size].f;
+   vb.floatcolorptr[0] = ctx->Current.Attrib[VERT_ATTRIB_COLOR0][0];
+   vb.floatcolorptr[1] = ctx->Current.Attrib[VERT_ATTRIB_COLOR0][1];
+   vb.floatcolorptr[2] = ctx->Current.Attrib[VERT_ATTRIB_COLOR0][2];
+   vb.floatcolorptr[3] = ctx->Current.Attrib[VERT_ATTRIB_COLOR0][3];
    
-
-
    if (ind & RADEON_CP_VC_FRMT_ST0) {
       vb.texcoordptr[0] = &vb.vertex[vb.vertex_size].f;
       vb.vertex_size += 2;
       vb.texcoordptr[0][0] = ctx->Current.Attrib[VERT_ATTRIB_TEX0][0];
       vb.texcoordptr[0][1] = ctx->Current.Attrib[VERT_ATTRIB_TEX0][1];   
    } 
-
+   else
+      vb.texcoordptr[0] = ctx->Current.Attrib[VERT_ATTRIB_TEX0];
 
    rmesa->vb.recheck = GL_FALSE;
 }
@@ -512,7 +456,11 @@ static void radeonFlushVertices( GLcontext *ctx, GLuint flags )
 }
 
 
-static void radeon_Vertex3f( GLfloat x, GLfloat y, GLfloat z )
+
+/* Code each function once, let the compiler optimize away the inline
+ * calls:
+ */
+static __inline__ void radeon_Vertex3f( GLfloat x, GLfloat y, GLfloat z )
 {
    int i;
 
@@ -527,76 +475,8 @@ static void radeon_Vertex3f( GLfloat x, GLfloat y, GLfloat z )
       vb.notify();
 }
 
-
-static void radeon_Vertex3fv( const GLfloat *v )
-{
-   int i;
-
-   *vb.dmaptr++ = *(int *)&v[0];
-   *vb.dmaptr++ = *(int *)&v[1];
-   *vb.dmaptr++ = *(int *)&v[2];
-
-   for (i = 3; i < vb.vertex_size; i++)
-      *vb.dmaptr++ = vb.vertex[i].i;
-   
-   if (--vb.counter == 0)
-      vb.notify();
-}
-
-
-static void radeon_Vertex2f( GLfloat x, GLfloat y )
-{
-   int i;
-
-   *vb.dmaptr++ = *(int *)&x;
-   *vb.dmaptr++ = *(int *)&y;
-   *vb.dmaptr++ = 0;
-
-   for (i = 3; i < vb.vertex_size; i++)
-      *vb.dmaptr++ = *(int *)&vb.vertex[i];
-   
-   if (--vb.counter == 0)
-      vb.notify();
-}
-
-
-static void radeon_Vertex2fv( const GLfloat *v )
-{
-   int i;
-
-   *vb.dmaptr++ = *(int *)&v[0];
-   *vb.dmaptr++ = *(int *)&v[1];
-   *vb.dmaptr++ = 0;
-
-   for (i = 3; i < vb.vertex_size; i++)
-      *vb.dmaptr++ = vb.vertex[i].i;
-   
-   if (--vb.counter == 0)
-      vb.notify();
-}
-
-/* Color for float color+alpha formats:
- */
-
-static void radeon_Color3f_4f( GLfloat r, GLfloat g, GLfloat b )
-{
-   GLfloat *dest = vb.floatcolorptr;
-   dest[0] = r;
-   dest[1] = g;
-   dest[2] = b;
-   dest[3] = 1.0;		
-}
-
-static void radeon_Color3fv_4f( const GLfloat *v )
-{
-   GLfloat *dest = vb.floatcolorptr;
-   dest[0] = v[0];
-   dest[1] = v[1];
-   dest[2] = v[2];
-   dest[3] = 1.0;
-}
-
-static void radeon_Color4f_4f( GLfloat r, GLfloat g, GLfloat b, GLfloat a )
+static __inline__  void radeon_Color4f( GLfloat r, GLfloat g,
+					GLfloat b, GLfloat a )
 {
    GLfloat *dest = vb.floatcolorptr;
    dest[0] = r;
@@ -605,32 +485,48 @@ static void radeon_Color4f_4f( GLfloat r, GLfloat g, GLfloat b, GLfloat a )
    dest[3] = a;
 }
 
-static void radeon_Color4fv_4f( const GLfloat *v )
-{
-   GLfloat *dest = vb.floatcolorptr;
-   dest[0] = v[0];
-   dest[1] = v[1];
-   dest[2] = v[2];
-   dest[3] = v[3];
-}
-
-
-
-
-/* TexCoord
- */
-static void radeon_TexCoord2f( GLfloat s, GLfloat t )
+static __inline__ void radeon_TexCoord2f( GLfloat s, GLfloat t )
 {
    GLfloat *dest = vb.texcoordptr[0];
    dest[0] = s;
    dest[1] = t;
 }
 
+/* Rely on __inline__ to make these efficient:
+ */
+static void radeon_Vertex3fv( const GLfloat *v )
+{
+   radeon_Vertex3f( v[0], v[1], v[2] );
+}
+
+static void radeon_Vertex2f( GLfloat x, GLfloat y )
+{
+   radeon_Vertex3f( x, y, 0 );
+}
+
+static void radeon_Vertex2fv( const GLfloat *v )
+{
+   radeon_Vertex3f( v[0], v[1], 0 );
+}
+
+static void radeon_Color4fv( const GLfloat *v )
+{
+   radeon_Color4f( v[0], v[1], v[2], v[3] );
+}
+
+static void radeon_Color3f( GLfloat r, GLfloat g, GLfloat b )
+{
+   radeon_Color4f( r, g, b, 1.0 );
+}
+
+static void radeon_Color3fv( const GLfloat *v )
+{
+   radeon_Color4f( v[0], v[1], v[2], 1.0 );
+}
+
 static void radeon_TexCoord2fv( const GLfloat *v )
 {
-   GLfloat *dest = vb.texcoordptr[0];
-   dest[0] = v[0];
-   dest[1] = v[1];
+   radeon_TexCoord2f( v[0], v[1] );
 }
 
 
@@ -638,22 +534,21 @@ static void radeon_TexCoord2fv( const GLfloat *v )
 void radeonVtxfmtInit( GLcontext *ctx )
 {
    radeonContextPtr rmesa = RADEON_CONTEXT( ctx );
-   GLvertexformat *vfmt = &(rmesa->vb.vtxfmt);
+   struct _glapi_table *exec = ctx->Exec;
 
-   MEMSET( vfmt, 0, sizeof(GLvertexformat) );
 
-   vfmt->Color3f = radeon_Color3f;
-   vfmt->Color3fv = radeon_Color3fv;
-   vfmt->Color4f = radeon_Color4f;
-   vfmt->Color4fv = radeon_Color4fv;
-   vfmt->TexCoord2f = radeon_TexCoord2f;
-   vfmt->TexCoord2fv = radeon_TexCoord2fv;
-   vfmt->Vertex2f = radeon_Vertex2f;
-   vfmt->Vertex2fv = radeon_Vertex2fv;
-   vfmt->Vertex3f = radeon_Vertex3f;
-   vfmt->Vertex3fv = radeon_Vertex3fv;
-   vfmt->Begin = radeon_Begin;
-   vfmt->End = radeon_End;
+   exec->Color3f = radeon_Color3f;
+   exec->Color3fv = radeon_Color3fv;
+   exec->Color4f = radeon_Color4f;
+   exec->Color4fv = radeon_Color4fv;
+   exec->TexCoord2f = radeon_TexCoord2f;
+   exec->TexCoord2fv = radeon_TexCoord2fv;
+   exec->Vertex2f = radeon_Vertex2f;
+   exec->Vertex2fv = radeon_Vertex2fv;
+   exec->Vertex3f = radeon_Vertex3f;
+   exec->Vertex3fv = radeon_Vertex3fv;
+   exec->Begin = radeon_Begin;
+   exec->End = radeon_End;
 
 
    vb.context = ctx;

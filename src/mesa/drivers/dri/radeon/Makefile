@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.1.2.14 2003/01/22 12:23:20 keithw Exp $
+# $Id: Makefile,v 1.1.2.15 2003/01/22 16:19:42 keithw Exp $
 
 # Mesa 3-D graphics library
 # Version:  5.0
@@ -15,7 +15,7 @@ INCLUDES = -I$(MESABUILDDIR) -I$(MESA)/include -I. -I../common \
 DEFINES = \
 	-D_HAVE_SWRAST=0 \
 	-D_HAVE_SWTNL=0 \
-	-D_HAVE_SANITY=1 \
+	-D_HAVE_SANITY=0 \
 	-D_HAVE_CODEGEN=0
 
 CFLAGS = $(INCLUDES) $(DEFINES) -g -MD -DGLX_DIRECT_RENDERING
@@ -37,27 +37,32 @@ DRIVER_SOURCES = server/radeon_dri.c \
 		 radeon_screen.c \
 		 radeon_state.c \
 		 radeon_state_init.c \
-		 radeon_tcl.c \
 		 radeon_tex.c \
 		 radeon_texmem.c \
 		 radeon_texstate.c \
-		 radeon_vtxfmt.c \
-		 radeon_vtxfmt_c.c \
 		 ../common/mm.c 
 
-EXTRA_DRIVER_SOURCES = 	\
+SUBSET_DRIVER_SOURCES = \
+		radeon_subset_bitmap.c \
+		radeon_subset_tcl.c \
+		radeon_subset_vtx.c
+
+FULL_DRIVER_SOURCES = 	\
+		 radeon_tcl.c \
 		 radeon_swtcl.c \
 		 radeon_span.c \
 		 radeon_maos.c \
 		 radeon_sanity.c \
 	  	 radeon_compat.c \
+		 radeon_vtxfmt.c \
+		 radeon_vtxfmt_c.c \
 		 radeon_vtxfmt_sse.c \
 		 radeon_vtxfmt_x86.c 
 
 
 
 C_SOURCES = $(DRIVER_SOURCES) \
-	    $(EXTRA_DRIVER_SOURCES) \
+	    $(SUBSET_DRIVER_SOURCES) \
 	    $(DRI_SOURCES) 
 
 ASM_SOURCES = 
