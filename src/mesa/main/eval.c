@@ -1,4 +1,4 @@
-/* $Id: eval.c,v 1.6.2.1 2000/07/17 12:49:56 keithw Exp $ */
+/* $Id: eval.c,v 1.6.2.2 2000/07/20 15:54:06 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -2617,14 +2617,15 @@ void gl_eval_vb( struct vertex_buffer *VB )
       }
 
       if (all_eval) {
-	 for (i = 0 ; i < count ; i++) 
+	 for (i = 0 ; i <= count ; i++) 
 	    flags[i] = oldflags[i] | new_flags;
 	 andflag |= new_flags;
       } else {
 	 andflag = ~0;
-	 for (i = 0 ; i < count ; i++) {
-	    if (oldflags[i] & VERT_EVAL_ANY) 
-	       flags[i] = oldflags[i] | new_flags;
+	 for (i = 0 ; i <= count ; i++) {
+	    flags[i] = oldflags[i];
+	    if (flags[i] & VERT_EVAL_ANY) 
+	       flags[i] |= new_flags;
 	    andflag &= flags[i];
 	 }
       }
