@@ -1,4 +1,4 @@
-/* $Id: 3dnow.c,v 1.19 2001/03/30 14:44:43 gareth Exp $ */
+/* $Id: 3dnow.c,v 1.19.2.1 2001/11/19 13:50:35 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -80,7 +80,9 @@ void _mesa_init_3dnow_transform_asm( void )
    ASSIGN_XFORM_GROUP( 3dnow, 3 );
    ASSIGN_XFORM_GROUP( 3dnow, 4 );
 
-   ASSIGN_NORM_GROUP( 3dnow );
+/* Normalize function is broken - see demos/morph3d for example.
+ */
+/*     ASSIGN_NORM_GROUP( 3dnow ); */
 
 #ifdef DEBUG
    _math_test_all_transform_functions( "3DNow!" );
