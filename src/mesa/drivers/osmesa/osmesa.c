@@ -1,8 +1,8 @@
-/* $Id: osmesa.c,v 1.2.2.2 2000/04/04 00:51:41 brianp Exp $ */
+/* $Id: osmesa.c,v 1.2.2.3 2000/04/04 00:52:28 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.3
+ * Version:  3.2
  * 
  * Copyright (C) 1999-2000  Brian Paul   All Rights Reserved.
  * 
