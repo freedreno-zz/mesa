@@ -1,37 +1,36 @@
 /**
  * \file radeon_ioctl.h
+ * \brief DRM interface functions.
  *
  * \author Kevin E. Martin <martin@valinux.com>
  * \author Gareth Hughes <gareth@valinux.com>
  */
 
-/**************************************************************************
-
-Copyright 2000, 2001 ATI Technologies Inc., Ontario, Canada, and
-                     VA Linux Systems Inc., Fremont, California.
-
-All Rights Reserved.
-
-Permission is hereby granted, free of charge, to any person obtaining a
-copy of this software and associated documentation files (the "Software"),
-to deal in the Software without restriction, including without limitation
-on the rights to use, copy, modify, merge, publish, distribute, sub
-license, and/or sell copies of the Software, and to permit persons to whom
-the Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice (including the next
-paragraph) shall be included in all copies or substantial portions of the
-Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL
-ATI, VA LINUX SYSTEMS AND/OR THEIR SUPPLIERS BE LIABLE FOR ANY CLAIM,
-DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
-OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
-USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-**************************************************************************/
+/*
+ * Copyright 2000, 2001 ATI Technologies Inc., Ontario, Canada, and
+ *                      VA Linux Systems Inc., Fremont, California.
+ * 
+ * All Rights Reserved.
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * on the rights to use, copy, modify, merge, publish, distribute, sub
+ * license, and/or sell copies of the Software, and to permit persons to whom
+ * the Software is furnished to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL
+ * ATI, VA LINUX SYSTEMS AND/OR THEIR SUPPLIERS BE LIABLE FOR ANY CLAIM,
+ * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+ * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+ * USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
 
 /* $XFree86: xc/lib/GL/mesa/src/drv/radeon/radeon_ioctl.h,v 1.4 2002/09/16 18:05:20 eich Exp $ */
 
@@ -107,6 +106,8 @@ extern void radeonCompatEmitPrimitive( radeonContextPtr rmesa,
 
 /**
  * \brief Close off the last primitive, if it exists.
+ *
+ * \param rmesa Radeon context.
  */
 #define RADEON_NEWPRIM( rmesa )			\
 do {						\
@@ -117,6 +118,9 @@ do {						\
 /**
  * Can accomodate several state changes and primitive changes without
  * actually firing the buffer.
+ *
+ * \param rmesa Radeon context.
+ * \param ATOM state atom variable name.
  */
 #define RADEON_STATECHANGE( rmesa, ATOM )			\
 do {								\
@@ -148,6 +152,8 @@ static __inline int RADEON_DB_STATECHANGE(
 
 /**
  * \brief Fire the buffered vertices no matter what.
+ *
+ * \param rmesa Radeon context.
  */
 #define RADEON_FIREVERTICES( rmesa )			\
 do {							\
@@ -158,6 +164,13 @@ do {							\
 
 /**
  * \brief Allocate space in the command buffer
+ * 
+ * \param rmesa Radeon context.
+ * \param bytes number of bytes to allocate.
+ * \param where Not used.
+ *
+ * If there isn't enough space available flush the command buffer, otherwise
+ * just advance the buffer head the requested ammount.
  */
 static __inline char *radeonAllocCmdBuf( radeonContextPtr rmesa,
 					 int bytes, const char *where )

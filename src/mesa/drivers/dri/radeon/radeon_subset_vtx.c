@@ -1,5 +1,6 @@
 /**
  * \file radeon_subset_vtx.c
+ * \brief Vertex buffering.
  *
  * \author Keith Whitwell <keith@tungstengraphics.com>
  */
@@ -50,54 +51,88 @@
 #include "radeon_tex.h"
 #include "radeon_subset.h"
 
+
+/**
+ * \brief Union for vertex data.
+ */
 union vertex_dword { float f; int i; };
-#define MAX_VERTEX_DWORDS 10	/* xyzw rgba st */
 
-static struct {
 
-   /* Notification mechanism.  These are treated as a stack to allow
-    * us to do things like build quads in temporary storage and then
-    * emit them as triangles:
+/**
+ * \brief Maxium number of dwords per vertex.
+ *
+ * For \c xyzw \c rgba \c st.
+ */
+#define MAX_VERTEX_DWORDS 10
+
+
+/**
+ * \brief Vertex global data.
+ */
+static struct vb_t {
+   /* \brief Notification mechanism.  
+    *
+    * These are treated as a stack to allow us to do things like build quads in
+    * temporary storage and then emit them as triangles.
     */
    struct {
-      GLint vertspace;
-      GLint initial_vertspace;
-      GLint *dmaptr;
-      void (*notify)( void );
+      GLint vertspace;         /**< \brief free vertices count */
+      GLint initial_vertspace; /**< \brief total vertices count */
+      GLint *dmaptr;           /**< \brief */
+      void (*notify)( void );  /**< \brief notification callback */
    } stack[2];
 
-
-   /* Storage for current vertex:
+   /**
+    * \brief Storage for current vertex.
     */
    union vertex_dword vertex[MAX_VERTEX_DWORDS];
 
-   /* Temporary storage for quads, etc:
+   /**
+    * \brief Temporary storage for quads, etc.
     */
    union vertex_dword vertex_store[MAX_VERTEX_DWORDS * 4];
 
-   /* Pointers to either vertex or ctx->Current.Attrib, depending on
-    * whether color/texture participates in the current vertex:
+   /**
+    * \name Color/texture
+    *
+    * Pointers to either vertex or ctx->Current.Attrib, depending on whether
+    * color/texture participates in the current vertex.
     */
-   GLfloat *floatcolorptr;
-   GLfloat *texcoordptr;
+   /*@{*/
+   GLfloat *floatcolorptr; /**< \brief color */
+   GLfloat *texcoordptr;   /**< \brief texture */
+   /*@}*/
 
-   /* Pointer to the context.
+   /**
+    * \brief Pointer to the context.
     */
-   GLcontext *context;		
+   GLcontext *context;
 
-   /* Active prim (may differ from ctx->Driver.CurrentExecPrimitive)
+   /**
+    * \brief Active primitive.
+    *
+    * \note May differ from ctx->Driver.CurrentExecPrimitive.
     */
-   GLenum prim;
-   GLuint vertex_format;
-   GLint vertex_size;
+   /*@{*/
+   GLenum prim;          /**< \brief primitive */
+   GLuint vertex_format; /**< \brief vertex format */
+   GLint vertex_size;    /**< \brief vertex size */
    GLboolean recheck;
+   /*@}*/
 } vb;
 
 
 static void radeonFlushVertices( GLcontext *, GLuint );
 
 
-static struct { int start, incr, hwprim; } prims[10] = {
+/**
+ * \brief Primitive information table.
+ */
+static struct prims_t { 
+   int start,  /**< \brief start vertex count */
+       incr,   /**< \brief vertex increment */
+       hwprim; /**< \brief hardware primitive */
+} prims[10] = {
    { 1, 1, RADEON_CP_VC_CNTL_PRIM_TYPE_POINT},
    { 2, 2, RADEON_CP_VC_CNTL_PRIM_TYPE_LINE }, 
    { 2, 1, RADEON_CP_VC_CNTL_PRIM_TYPE_LINE_STRIP },
@@ -109,6 +144,7 @@ static struct { int start, incr, hwprim; } prims[10] = {
    { 4, 2, RADEON_CP_VC_CNTL_PRIM_TYPE_TRI_STRIP }, 
    { 3, 1, RADEON_CP_VC_CNTL_PRIM_TYPE_TRI_FAN }, 
 };
+
 
 static void finish_prim( radeonContextPtr rmesa )
 {
@@ -133,7 +169,6 @@ static void finish_prim( radeonContextPtr rmesa )
    rmesa->dma.current.ptr = 
       rmesa->dma.current.start += prim_end * vb.vertex_size * 4; 
 }
-
 
 
 static void copy_vertex( radeonContextPtr rmesa, GLuint n, GLfloat *dst )
@@ -267,7 +302,8 @@ static void push_notify( void (*notify)( void ), int space,
 }
 
 
-/* Emit a stored vertex (in vb.vertex_store) to dma.
+/**
+ * \brief Emit a stored vertex (in vb.vertex_store) to DMA.
  */
 static void emit_vertex( int v )
 {
@@ -281,7 +317,8 @@ static void emit_vertex( int v )
 }
 
 
-/* Emit a quad (in vb.vertex_store) to dma as two triangles.
+/**
+ * \brief Emit a quad (in vb.vertex_store) to dma as two triangles.
  */
 static void emit_quad( int v0, int v1, int v2, int v3 )
 {
@@ -289,7 +326,8 @@ static void emit_quad( int v0, int v1, int v2, int v3 )
    emit_vertex( v1 ); emit_vertex( v2 ); emit_vertex( v3 );
 }
 
-/* Every fourth vertex in a quad primitive, this is called to emit:
+/**
+ * \brief Every fourth vertex in a quad primitive, this is called to emit.
  */
 static void notify_quad( void )
 {
@@ -298,8 +336,9 @@ static void notify_quad( void )
    push_notify( notify_quad, 4, vb.vertex_store );
 }
 
-/* After the 4th vertex, emit either a quad or a flipped quad each two
- * vertices:
+/*
+ * After the 4th vertex, emit either a quad or a flipped quad each two
+ * vertices.
  */
 static void notify_qstrip1( void );
 static void notify_qstrip0( void )
@@ -316,8 +355,10 @@ static void notify_qstrip1( void )
    push_notify( notify_qstrip0, 2, vb.vertex_store + 2*vb.vertex_size );
 }
 
-/* Emit the saved vertex (but hang on to it for later).  Continue
- * processing this primitive as a linestrip.
+/**
+ * \brief Emit the saved vertex (but hang on to it for later).
+ *
+ * Continue processing this primitive as a linestrip.
  */
 static void notify_lineloop0( void )
 {
@@ -645,7 +686,12 @@ void radeonTclFallback( GLcontext *ctx, GLuint bit, GLboolean mode )
 }
 
 /**
- * Called by radeonPointsBitmap to disable TCL.
+ * \brief Called by radeonPointsBitmap() to disable TCL.
+ *
+ * \param rmesa Radeon context.
+ * \param flag whether to enable or disable TCL.
+ * 
+ * Updates radeon_tcl_info::tcl_flag.
  */
 void radeonSubsetVtxEnableTCL( radeonContextPtr rmesa, GLboolean flag )
 {

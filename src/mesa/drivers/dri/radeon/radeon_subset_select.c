@@ -1,5 +1,6 @@
 /**
  * \file radeon_subset_select.c
+ * \brief Selection.
  */
 
 /*
@@ -26,7 +27,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: radeon_subset_select.c,v 1.1.2.2 2003/02/16 20:48:12 jrfonseca Exp $ */
+/* $Id: radeon_subset_select.c,v 1.1.2.3 2003/02/22 09:17:11 jrfonseca Exp $ */
 
 
 #include "glheader.h"
@@ -41,11 +42,18 @@
 #include "radeon_context.h"
 #include "radeon_subset.h"
 
+/**
+ * \brief Vertex.
+ */
 typedef struct {
-   struct { GLfloat x, y, z, w; } pos, eyePos, clipPos, winPos;
-   struct { GLfloat s, t; } texCoord;
-   struct { GLfloat r, g, b, a; } color;
+   struct { GLfloat x, y, z, w; } pos,      /**< \brief position */
+                                  eyePos,   /**< \brief position, eye coordinates */
+				  clipPos,  /**< \brief clipped coordiantes */
+				  winPos;   /**< \brief position, windows coordinates */
+   struct { GLfloat s, t; } texCoord;       /**< \brief texture coordinates */
+   struct { GLfloat r, g, b, a; } color;    /**< \brief color */
 } vertex;
+
 
 static struct {
    GLuint    vCount;
@@ -63,16 +71,24 @@ static struct {
 /*@{*/
 
 /**
- * \brief Transform a point (column vector) by a matrix:   Q = M * P
+ * \brief Transform a point (column vector) by a matrix:  Q = M * P.
+ *
+ * \param Q destination point.
+ * \param P source point.
+ * \param M transformation matrix.
  */
-#define TRANSFORM_POINT( Q, M, P )					\
+#define TRANSFORM_POINT( Q, M, P )				\
    Q.x = M[0] * P.x + M[4] * P.y + M[8] *  P.z + M[12] * P.w;	\
    Q.y = M[1] * P.x + M[5] * P.y + M[9] *  P.z + M[13] * P.w;	\
    Q.z = M[2] * P.x + M[6] * P.y + M[10] * P.z + M[14] * P.w;	\
    Q.w = M[3] * P.x + M[7] * P.y + M[11] * P.z + M[15] * P.w;
 
 /**
- * \brief Clip coord to window coord mapping
+ * \brief Clip coord to window coord mapping.
+ *
+ * \param Q destination point.
+ * \param P source point.
+ * \param VP view port.
  */
 #define MAP_POINT( Q, P, VP )                                      \
    Q.x = (GLfloat) (((P.x / P.w) + 1.0) * VP.Width / 2.0 + VP.X);  \
@@ -82,7 +98,12 @@ static struct {
 
 
 /**
- * \brief Linear interpolation:
+ * \brief Linear interpolation:  (1 - T) * A + T * B.
+ *
+ * \param T interpolation factor.
+ * \param A first value.
+ * \param B second value.
+ * \result interpolated value.
  */
 #define INTERPOLATE(T, A, B)   ((A) + ((B) - (A)) * (T))
 
@@ -90,6 +111,13 @@ static struct {
 
 /**
  * \brief Interpolate vertex position, color, texcoords, etc.
+ *
+ * \param t interpolation factor.
+ * \param v0 first vertex.
+ * \param v1 second vertex.
+ * \param vOut output vertex.
+ * 
+ * Uses the #INTERPOLATE macro for all the interpolation of all elements.
  */
 static void
 interpolate_vertex(GLfloat t, const vertex *v0, const vertex *v1, 
@@ -131,7 +159,10 @@ interpolate_vertex(GLfloat t, const vertex *v0, const vertex *v1,
 /**
  * \brief Apply view volume clip testing to a point.
  *
- * \return zero if visible, or the clip code mask (binary OR of above CLIP_* bits)
+ * \param v point to test.
+ * \return zero if visible, or the clip code mask, i.e., binary OR of a
+ * combination of the #CLIP_LEFT, #CLIP_RIGHT, #CLIP_BOTTOM, #CLIP_TOP, #CLIP_NEAR,
+ * #CLIP_FAR clip bit codes.
  */
 static GLuint
 clip_point(const vertex *v)
@@ -148,6 +179,16 @@ clip_point(const vertex *v)
 
 
 /**
+ * \def GENERAL_CLIP
+ * \brief Clipping utility macro.
+ * 
+ * We use 6 instances of this code in each of the clip_line() and
+ * clip_polygon() to clip agains the 6 planes.  For each plane, we define the
+ * #OUTSIDE and #COMPUTE_INTERSECTION macros appropriately.
+ */
+
+
+/**
  * \brief Apply clipping to a line segment.
  *
  * \param v0in input start vertice
@@ -155,8 +196,10 @@ clip_point(const vertex *v)
  * \param v0new output start vertice
  * \param v1new output end vertice
  *
- * \return GL_TRUE if the line segment is visible, ot GL_FALS if it is totally
+ * \return GL_TRUE if the line segment is visible, ot GL_FALSE if it is totally
  * clipped.
+ *
+ * \sa #GENERAL_CLIP.
  */
 static GLboolean
 clip_line(const vertex *v0in, const vertex *v1in,
@@ -180,11 +223,6 @@ clip_line(const vertex *v0in, const vertex *v1in,
    v1 = *v1in;
 
 
-/**
- * We use 6 instances of this code to clip agains the 6 planes.
- * For each plane, we define the OUTSIDE and COMPUTE_INTERSECTION
- * macros apprpriately.
- */
 #define GENERAL_CLIP                                                    \
    if (OUTSIDE(v0)) {                                                   \
       if (OUTSIDE(v1)) {                                                \
@@ -208,7 +246,7 @@ clip_line(const vertex *v0in, const vertex *v1in,
       /* else both verts are inside ==> do nothing */                   \
    }
 
-   /*** Clip against +X side ***/
+   /* Clip against +X side */
 #define OUTSIDE(V)      (V.clipPos.x > V.clipPos.w)
 #define COMPUTE_INTERSECTION( IN, OUT, NEW )                         \
         dx = OUT.clipPos.x - IN.clipPos.x;                           \
@@ -218,7 +256,7 @@ clip_line(const vertex *v0in, const vertex *v1in,
 #undef OUTSIDE
 #undef COMPUTE_INTERSECTION
 
-   /*** Clip against -X side ***/
+   /* Clip against -X side */
 #define OUTSIDE(V)      (V.clipPos.x < -(V.clipPos.w))
 #define COMPUTE_INTERSECTION( IN, OUT, NEW )                         \
         dx = OUT.clipPos.x - IN.clipPos.x;                           \
@@ -228,7 +266,7 @@ clip_line(const vertex *v0in, const vertex *v1in,
 #undef OUTSIDE
 #undef COMPUTE_INTERSECTION
 
-   /*** Clip against +Y side ***/
+   /* Clip against +Y side */
 #define OUTSIDE(V)      (V.clipPos.y > V.clipPos.w)
 #define COMPUTE_INTERSECTION( IN, OUT, NEW )                         \
         dy = OUT.clipPos.y - IN.clipPos.y;                           \
@@ -238,7 +276,7 @@ clip_line(const vertex *v0in, const vertex *v1in,
 #undef OUTSIDE
 #undef COMPUTE_INTERSECTION
 
-   /*** Clip against -Y side ***/
+   /* Clip against -Y side */
 #define OUTSIDE(V)      (V.clipPos.y < -(V.clipPos.w))
 #define COMPUTE_INTERSECTION( IN, OUT, NEW )                         \
         dy = OUT.clipPos.y - IN.clipPos.y;                           \
@@ -248,7 +286,7 @@ clip_line(const vertex *v0in, const vertex *v1in,
 #undef OUTSIDE
 #undef COMPUTE_INTERSECTION
 
-   /*** Clip against +Z side ***/
+   /* Clip against +Z side */
 #define OUTSIDE(V)      (V.clipPos.z > V.clipPos.w)
 #define COMPUTE_INTERSECTION( IN, OUT, NEW )                         \
         dz = OUT.clipPos.z - IN.clipPos.z;                           \
@@ -258,7 +296,7 @@ clip_line(const vertex *v0in, const vertex *v1in,
 #undef OUTSIDE
 #undef COMPUTE_INTERSECTION
 
-   /*** Clip against -Z side ***/
+   /* Clip against -Z side */
 #define OUTSIDE(V)      (V.clipPos.z < -(V.clipPos.w))
 #define COMPUTE_INTERSECTION( IN, OUT, NEW )                         \
         dz = OUT.clipPos.z - IN.clipPos.z;                           \
@@ -285,6 +323,8 @@ clip_line(const vertex *v0in, const vertex *v1in,
  * \param vOut array of output vertices.
  *
  * \return number of vertices in /p vOut.
+ *
+ * \sa #GENERAL_CLIP.
  */
 static GLuint
 clip_polygon(const vertex *vIn, unsigned int inCount, vertex *vOut)
@@ -775,7 +815,6 @@ static void radeon_select_Begin(GLenum mode)
    vb.partialLineLoop = GL_FALSE;
 }
 
-
 static void radeon_select_End(void)
 {
    GET_CURRENT_CONTEXT(ctx);
@@ -803,7 +842,6 @@ static void radeonSelectFlushVertices( GLcontext *ctx, GLuint flags )
    ctx->Driver.NeedFlush = 0;
 }
 
-
 void radeon_select_Install( GLcontext *ctx )
 {
    struct _glapi_table *exec = ctx->Exec;
@@ -823,7 +861,6 @@ void radeon_select_Install( GLcontext *ctx )
 
    ctx->Driver.FlushVertices = radeonSelectFlushVertices;
 }
-
 
 static void radeonRenderMode( GLcontext *ctx, GLenum mode )
 {

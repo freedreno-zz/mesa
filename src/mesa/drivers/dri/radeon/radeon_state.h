@@ -1,5 +1,6 @@
 /**
  * \file radeon_state.h
+ * \brief State management.
  * 
  * \authors Kevin E. Martin <martin@valinux.com>
  * \author Gareth Hughes <gareth@valinux.com>

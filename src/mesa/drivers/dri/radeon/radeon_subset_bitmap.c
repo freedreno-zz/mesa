@@ -1,5 +1,6 @@
 /**
  * \file radeon_subset_bitmap.c
+ * \brief Bitmap drawing.
  * 
  * \author Keith Whitwell <keith@tungstengraphics.com>
  */
@@ -48,6 +49,19 @@
 
 /**
  * \brief Cope with depth operations by drawing individual pixels as points
+ *
+ * \param ctx GL context.
+ * \param px x coordinate of the bitmap corner.
+ * \param py y coordinate of the bitmap corner.
+ * \param width bitmap width.
+ * \param height bitmap height.
+ * \param unpack unpacking pixel attributes.
+ * \param bitmap bitmap pointer.
+ * 
+ * Clips the bitmap coordinates and adjusts for windows coordinates. Draws the
+ * bitmap with glPoints(), turning off TCL and hardware viewport transformation
+ * to emit raw pixel coordinates. Finally fires any outstanding vertices and
+ * restores TCL, viewport, texture and color states.
  */
 void
 radeonPointsBitmap( GLcontext *ctx, GLint px, GLint py,

@@ -1,38 +1,37 @@
 /**
  * \file radeon_ioctl.c
+ * \brief DRM interface functions.
  *
  * \author Kevin E. Martin <martin@valinux.com>
  * \author Gareth Hughes <gareth@valinux.com>
  * \author Keith Whitwell <keith@tungstengraphics.com>
  */
 
-/**************************************************************************
-
-Copyright 2000, 2001 ATI Technologies Inc., Ontario, Canada, and
-                     VA Linux Systems Inc., Fremont, California.
-
-All Rights Reserved.
-
-Permission is hereby granted, free of charge, to any person obtaining a
-copy of this software and associated documentation files (the "Software"),
-to deal in the Software without restriction, including without limitation
-on the rights to use, copy, modify, merge, publish, distribute, sub
-license, and/or sell copies of the Software, and to permit persons to whom
-the Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice (including the next
-paragraph) shall be included in all copies or substantial portions of the
-Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL
-ATI, VA LINUX SYSTEMS AND/OR THEIR SUPPLIERS BE LIABLE FOR ANY CLAIM,
-DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
-OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
-USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-**************************************************************************/
+/*
+ * Copyright 2000, 2001 ATI Technologies Inc., Ontario, Canada, and
+ *                      VA Linux Systems Inc., Fremont, California.
+ * 
+ * All Rights Reserved.
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * on the rights to use, copy, modify, merge, publish, distribute, sub
+ * license, and/or sell copies of the Software, and to permit persons to whom
+ * the Software is furnished to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL
+ * ATI, VA LINUX SYSTEMS AND/OR THEIR SUPPLIERS BE LIABLE FOR ANY CLAIM,
+ * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+ * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+ * USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
 
 /* $XFree86: xc/lib/GL/mesa/src/drv/radeon/radeon_ioctl.c,v 1.7 2002/09/16 18:05:19 eich Exp $ */
 
@@ -60,11 +59,18 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 static void radeonWaitForIdle( radeonContextPtr rmesa );
 
-/***************************************************************
- * \name Kernel command buffer handling
+/***************************************************************/
+/** \name Kernel command buffer handling
  */
 /*@{*/
 
+/**
+ * \brief Print state atom information.
+ *
+ * For debugging purposes only.
+ *
+ * \param state state atom.
+ */
 static void print_state_atom( struct radeon_state_atom *state )
 {
    int i;
@@ -77,6 +83,16 @@ static void print_state_atom( struct radeon_state_atom *state )
 
 }
 
+/**
+ * \brief Emit a list of state atoms.
+ *
+ * \param rmesa Radeon context.
+ * \param list state atom list.
+ * 
+ * For each active state in the list copies the associated commands into the
+ * command buffer, and moves the atom into the clean list.
+ *
+ */
 static void radeon_emit_state_list( radeonContextPtr rmesa, 
 				    struct radeon_state_atom *list )
 {
@@ -97,6 +113,18 @@ static void radeon_emit_state_list( radeonContextPtr rmesa,
 }
 
 
+/**
+ * \brief Emit dirty state.
+ *
+ * \param rmesa Radeon context.
+ *
+ * Calls radeon_emit_state_list() with the radeon_hw_state::dirty list. 
+ *
+ * If radeon_context::lost_context is set then all state is emited by moving
+ * everything in radeon_hw_state::dirty prior to the radeon_emit_state_list()
+ * call. For woring around a Quake3 lock-up radeon_hw_state::zbs is always made
+ * \e dirty.
+ */
 void radeonEmitState( radeonContextPtr rmesa )
 {
    struct radeon_state_atom *state, *tmp;
@@ -137,6 +165,14 @@ void radeonEmitState( radeonContextPtr rmesa )
 /**
  * Fire a section of the retained (indexed_verts) buffer as a regular
  * primitive.  
+ *
+ * \param rmesa Radeon context.
+ * \param vertex_format vertex format.
+ * \param primitive primitive.
+ * \param vertex_nr number of vertices.
+ *
+ * Emits the dirty state and adds a new command to the command buffer for
+ * firing the vertices pointed by radeon_context::ioctl.
  */
 extern void radeonEmitVbufPrim( radeonContextPtr rmesa,
 				GLuint vertex_format,
@@ -257,7 +293,15 @@ void radeonEmitAOS( radeonContextPtr rmesa,
 #endif
 
 
-
+/**
+ * \brief Emit vertex.
+ *
+ * \param rmesa Radeon context.
+ * \param vertex_size size of the vertex buffer.
+ * \param offset offset of the vertex buffer.
+ * 
+ * Updates radeon_context::ioctl with the parameters given.
+ */
 void radeonEmitVertexAOS( radeonContextPtr rmesa,
 			  GLuint vertex_size,
 			  GLuint offset )
@@ -267,8 +311,23 @@ void radeonEmitVertexAOS( radeonContextPtr rmesa,
 }
 		       
 
-
-
+/**
+ * \brief Flush the command buffer while holding the hardware lock.
+ *
+ * \param rmesa Radeon context.
+ * \param caller name of the calling function for debugging purposes.
+ *
+ * \return zero on success, non-zero otherwise.
+ *
+ * Issues a DRM_RADEON_CMDBUF command to the DRM passing a drmRadeonCmdBuffer
+ * structure as argument. The command buffer is reset before returning.
+ *
+ * If debugging is enabled, it prints several debug information and performs a
+ * sanity check before.
+ * 
+ * \note Does not emit any commands to avoid recursion on
+ * radeonAllocCmdBuf().
+ */ 
 static int radeonFlushCmdBufLocked( radeonContextPtr rmesa, 
 				    const char * caller )
 {
@@ -327,8 +386,13 @@ static int radeonFlushCmdBufLocked( radeonContextPtr rmesa,
 
 
 /**
- * \note Does not emit any commands to avoid recursion on
- * radeonAllocCmdBuf().
+ * \brief Flush the command buffer.
+ *
+ * \param rmesa Radeon context.
+ * \param caller name of the calling function for debugging purposes.
+ *
+ * Locks the hardware and calls radeonFlushCmdBufLocked(), aborting in case of
+ * failure.
  */
 void radeonFlushCmdBuf( radeonContextPtr rmesa, const char *caller )
 {
@@ -348,11 +412,24 @@ void radeonFlushCmdBuf( radeonContextPtr rmesa, const char *caller )
 /*@}*/
 
 
-/***************************************************************
- * \name Hardware vertex buffer handling
+/***************************************************************/
+/** \name Hardware vertex buffer handling
  */
 /*@{*/
 
+/**
+ * \brief Refill the current DMA region.
+ *
+ * \param rmesa Radeon context.
+ *
+ * Releases and eventually flushes the current DMA region (if the number of
+ * released buffers is greater than 4). Locks the hardware and requests a new
+ * DMA buffer as the new current DMA region. 
+ *
+ * In case of failure in the first try to get a new DMA buffer, flushes any
+ * previously released buffers, wait's for engine idle and tries once more,
+ * aborting if it fails.
+ */
 void radeonRefillCurrentDmaRegion( radeonContextPtr rmesa )
 {
    struct radeon_dma_buffer *dmabuf;
@@ -459,8 +536,14 @@ void radeonReleaseDmaRegion( radeonContextPtr rmesa,
 }
 
 /**
- * Allocates a region from rmesa->dma.current.  If there isn't enough space in
- * current, grab a new buffer (and discard what was left of current)
+ * \brief Allocates a new region from rmesa->dma.current.
+ *
+ * \param rmesa Radeon context.
+ * \param region will received the allocated region.
+ * \param bytes size
+ * \param alignment
+ * 
+ * If there isn't enough space incurrent, grab a new buffer (and discard what was left of current).
  */
 void radeonAllocDmaRegion( radeonContextPtr rmesa, 
 			   struct radeon_dma_region *region,
@@ -498,6 +581,11 @@ void radeonAllocDmaRegion( radeonContextPtr rmesa,
       radeonRefillCurrentDmaRegion( rmesa );
 }
 
+/**
+ * \brief Allocate a DMA region for vertices.
+ * 
+ * Calls radeonAllocDmaRegion() with \p bytes = \p vertsize * \p numverts.
+ */
 void radeonAllocDmaRegionVerts( radeonContextPtr rmesa, 
 				struct radeon_dma_region *region,
 				int numverts,
@@ -510,11 +598,21 @@ void radeonAllocDmaRegionVerts( radeonContextPtr rmesa,
 /*@}*/
 
 
-/******************************************************************
- * \name SwapBuffers with client-side throttling
+/******************************************************************/
+/** \name SwapBuffers with client-side throttling
  */
 /*@{*/
 
+/**
+ * \brief Get last frame.
+ *
+ * \param rmesa Radeon context.
+ *
+ * \return last frame number on success, or a nec
+ * 
+ * Gets the last frame number via the DRM_RADEON_GETPARAM command in recent
+ * DRMs, or via the RADEON_LAST_FRAME_REG register.
+ */
 static GLuint radeonGetLastFrame (radeonContextPtr rmesa) 
 {
    unsigned char *RADEONMMIO = rmesa->radeonScreen->mmio.map;
@@ -543,6 +641,14 @@ static GLuint radeonGetLastFrame (radeonContextPtr rmesa)
    return frame;
 }
 
+
+/**
+ * \brief Emit an IRQ while holding the hardware lock.
+ *
+ * \param rmesa Radeon context.
+ *
+ * Sends the DRM_RADEON_IRQ_EMIT command, aborting on failure.
+ */
 static void radeonEmitIrqLocked( radeonContextPtr rmesa )
 {
    drmRadeonIrqEmit ie;
@@ -558,6 +664,13 @@ static void radeonEmitIrqLocked( radeonContextPtr rmesa )
 }
 
 
+/**
+ * \brief Wait on IRQ.
+ *
+ * \param rmesa Radeon context.
+ *
+ * Sends the DRM_RADEON_IRQ_WAIT command, aborting on failure.
+ */
 static void radeonWaitIrq( radeonContextPtr rmesa )
 {
    int ret;
@@ -574,6 +687,19 @@ static void radeonWaitIrq( radeonContextPtr rmesa )
 }
 
 
+/**
+ * \brief Wait for frame completion.
+ *
+ * \param rmesa Radeon context.
+ *
+ * Waits until the number of processed frames reaches the one specifies in the SAREA.
+ *
+ * If IRQs are enabled and one has been emited then wait on the IRQ and send
+ * one afterwards.
+ *
+ * It assumes that the hardware was locked prior to the call but all waits are
+ * internally done with the hardware unlocked.
+ */
 static void radeonWaitForFrameCompletion( radeonContextPtr rmesa )
 {
    RADEONSAREAPrivPtr sarea = rmesa->sarea;
@@ -609,6 +735,12 @@ static void radeonWaitForFrameCompletion( radeonContextPtr rmesa )
 
 /**
  * \brief Copy the back color buffer to the front color buffer.
+ *
+ * \param dPriv DRI specific drawable data.
+ * 
+ * Fires the existing vertices and waits for frame completion and vertical
+ * retrace. Sends the DRM_RADEON_SWAP command for each set of existing
+ * cliprects.
  */
 void radeonCopyBuffer( const __DRIdrawablePrivate *dPriv )
 {
@@ -660,6 +792,16 @@ void radeonCopyBuffer( const __DRIdrawablePrivate *dPriv )
    UNLOCK_HARDWARE( rmesa );
 }
 
+
+/**
+ * \brief Do page flipping.
+ *
+ * \param dPriv DRI drawable speficic data.
+ *
+ * Fires the existing vertices and waits for frame completion and vertical
+ * retrace. Sends the DRM_RADEON_FLIP command and swaps the front and back
+ * buffer offsets and pitches.
+ */
 void radeonPageFlip( const __DRIdrawablePrivate *dPriv )
 {
    radeonContextPtr rmesa;
@@ -722,8 +864,8 @@ void radeonPageFlip( const __DRIdrawablePrivate *dPriv )
 /*@}*/
 
 
-/******************************************************************
- * Buffer clear
+/******************************************************************/
+/* \name Buffer clear
  */
 /*@{*/
 
@@ -897,6 +1039,14 @@ static void radeonClear( GLcontext *ctx, GLbitfield mask, GLboolean all,
 }
 
 
+/**
+ * \brief Wait for engine idle while holding the hardware lock.
+ *
+ * \param rmesa Radeon context.
+ *
+ * Sends the DRM_RADEON_CP_IDLE command until the engine is reported as idle or
+ * a timeout occurs.
+ */
 void radeonWaitForIdleLocked( radeonContextPtr rmesa )
 {
     int fd = rmesa->dri.fd;
@@ -917,6 +1067,13 @@ void radeonWaitForIdleLocked( radeonContextPtr rmesa )
 }
 
 
+/**
+ * \brief Wait for engine idle.
+ *
+ * \param rmesa Radeon context.
+ *
+ * Locks the hardware and calls radeonWaitForIdleLocked().
+ */
 static void radeonWaitForIdle( radeonContextPtr rmesa )
 {
     LOCK_HARDWARE(rmesa);
@@ -925,6 +1082,13 @@ static void radeonWaitForIdle( radeonContextPtr rmesa )
 }
 
 
+/**
+ * \brief Wait for vertical retrace.
+ *
+ * \param rmesa Radeon context.
+ *
+ * Disabled - no-op.
+ */
 void radeonWaitForVBlank( radeonContextPtr rmesa )
 {
 #if 0
@@ -962,6 +1126,14 @@ void radeonWaitForVBlank( radeonContextPtr rmesa )
 #endif
 }
 
+/**
+ * \brief Flush all dirty state and pending buffers.
+ * 
+ * \param ctx GL context.
+ *
+ * Calls radeonEmitState() with the dirty state list if not empty, and
+ * radeonFlushCmdBuf() if the command buffer has been used.
+ */
 void radeonFlush( GLcontext *ctx )
 {
    radeonContextPtr rmesa = RADEON_CONTEXT( ctx );
@@ -982,8 +1154,13 @@ void radeonFlush( GLcontext *ctx )
 }
 
 /**
- * Make sure all commands have been sent to the hardware and have
+ * \brief Make sure all commands have been sent to the hardware and have
  * completed processing.
+ *
+ * \param ctx GL context.
+ *
+ * If IRQs are enabled then emits and waits on the IRQ, otherwise waits for
+ * engine idle.
  */
 void radeonFinish( GLcontext *ctx )
 {

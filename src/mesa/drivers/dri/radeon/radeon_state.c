@@ -1,5 +1,6 @@
 /**
  * \file radeon_state.c
+ * \brief State management.
  * 
  * \author Gareth Hughes <gareth@valinux.com>
  * \author Keith Whitwell <keith@tungstengraphics.com>
@@ -65,8 +66,8 @@
 #define TEXMAT_2   5
 
 
-/***************************************************************
- * \name Alpha blending
+/***************************************************************/
+/** \name Alpha blending
  */
 /*@{*/
 
@@ -288,8 +289,8 @@ static void radeonBlendFuncSeparate( GLcontext *ctx,
 /*@}*/
 
 
-/***************************************************************
- * \name Depth testing
+/***************************************************************/
+/** \name Depth testing
  */
 /*@{*/
 
@@ -393,8 +394,8 @@ static void radeonClearDepth( GLcontext *ctx, GLclampd d )
 /*@}*/
 
 
-/***************************************************************
- * \name Scissoring
+/***************************************************************/
+/** \name Scissoring
  */
 /*@{*/
 
@@ -499,8 +500,8 @@ static void radeonScissor( GLcontext *ctx,
 /*@}*/
 
 
-/***************************************************************
- * \name Culling
+/***************************************************************/
+/** \name Culling
  */
 /*@{*/
 
@@ -590,8 +591,8 @@ static void radeonFrontFace( GLcontext *ctx, GLenum mode )
 /*@}*/
 
 
-/***************************************************************
- * \name Line state
+/***************************************************************/
+/** \name Line state
  */
 /*@{*/
 
@@ -647,8 +648,8 @@ static void radeonLineStipple( GLcontext *ctx, GLint factor, GLushort pattern )
 /*@}*/
 
 
-/***************************************************************
- * \name Masks
+/***************************************************************/
+/** \name Masks
  */
 /*@{*/
 
@@ -686,8 +687,8 @@ static void radeonColorMask( GLcontext *ctx,
 /*@}*/
 
 
-/***************************************************************
- * \name Polygon state
+/***************************************************************/
+/** \name Polygon state
  */
 /*@{*/
 
@@ -765,8 +766,8 @@ static void radeonShadeModel( GLcontext *ctx, GLenum mode )
 /*@}*/
 
 
-/***************************************************************
- * \name Stencil
+/***************************************************************/
+/** \name Stencil
  */
 /*@{*/
 
@@ -964,8 +965,8 @@ static void radeonClearStencil( GLcontext *ctx, GLint s )
 /*@}*/
 
 
-/***************************************************************
- * \name Window position and viewport transformation
+/***************************************************************/
+/** \name Window position and viewport transformation
  */
 /*@{*/
 
@@ -1047,8 +1048,8 @@ static void radeonDepthRange( GLcontext *ctx, GLclampd nearval,
 /*@}*/
 
 
-/***************************************************************
- * \name Miscellaneous
+/***************************************************************/
+/** \name Miscellaneous
  */
 /*@{*/
 
@@ -1231,8 +1232,8 @@ static void radeonReadBuffer( GLcontext *ctx, GLenum mode )
 /*@}*/
 
 
-/***************************************************************
- * \name State enable/disable
+/***************************************************************/
+/** \name State enable/disable
  */
 /*@{*/
 
@@ -1550,8 +1551,8 @@ static void radeonEnable( GLcontext *ctx, GLenum cap, GLboolean state )
 /*@}*/
 
 
-/***************************************************************
- * \name Deferred state management - matrices, textures, other?
+/***************************************************************/
+/** \name Deferred state management - matrices, textures, other?
  */
 /*@{*/
 

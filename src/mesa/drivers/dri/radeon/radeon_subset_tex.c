@@ -1,5 +1,6 @@
 /**
  * \file radeon_subset_tex.c
+ * \brief Texturing.
  *
  * \author Gareth Hughes <gareth@valinux.com>
  * \author Brian Paul <brianp@valinux.com>
@@ -55,8 +56,11 @@
 /**
  * \brief Destroy hardware state associated with a texture.
  *
- * \param rmesa device context data.
- * \param t texture object to be destroyed.
+ * \param rmesa Radeon context.
+ * \param t Radeon texture object to be destroyed.
+ *
+ * Frees the momery associated with the texture and if the texture is bound to
+ * a texture unit cleans the associated hardware state.
  */
 void radeonDestroyTexObj( radeonContextPtr rmesa, radeonTexObjPtr t )
 {
@@ -83,6 +87,11 @@ void radeonDestroyTexObj( radeonContextPtr rmesa, radeonTexObjPtr t )
 
 /**
  * \brief Keep track of swapped out texture objects.
+ * 
+ * \param rmesa Radeon context.
+ * \param t Radeon texture object.
+ * Frees the memory associated with the texture, signal all mipmap images in
+ * the texture as dirty and add it to the radeon_texture::swapped list.
  */
 static void radeonSwapOutTexObj( radeonContextPtr rmesa, radeonTexObjPtr t )
 {
@@ -96,9 +105,13 @@ static void radeonSwapOutTexObj( radeonContextPtr rmesa, radeonTexObjPtr t )
 }
 
 
-
 /**
  * Texture space has been invalidated.
+ *
+ * \param rmesa Radeon context.
+ * \param heap texture heap number.
+ * 
+ * Swaps out every texture in the specified heap.
  */
 void radeonAgeTextures( radeonContextPtr rmesa, int heap )
 {
@@ -111,13 +124,24 @@ void radeonAgeTextures( radeonContextPtr rmesa, int heap )
 }
 
 
-/***************************************************************
- * \name Texture image conversions
+/***************************************************************/
+/** \name Texture image conversions
  */
 /*@{*/
 
-/* Upload the texture image associated with texture `t' at level `level'
- * at the address relative to `start'.
+/**
+ * \brief Upload texture image.
+ *
+ * \param rmesa Radeon context.
+ * \param t Radeon texture object.
+ * \param level level of the image to take the sub-image.
+ * \param x sub-image abcissa.
+ * \param y sub-image ordinate.
+ * \param width sub-image width.
+ * \param height sub-imate height.
+ *
+ * Fills in a drmRadeonTexture and drmRadeonTexImage structures and uploads the
+ * texture via the DRM_RADEON_TEXTURE IOCTL, aborting in case of failure.
  */
 static void radeonUploadSubImage( radeonContextPtr rmesa,
 				  radeonTexObjPtr t, GLint level,
@@ -162,7 +186,16 @@ static void radeonUploadSubImage( radeonContextPtr rmesa,
  *
  * This might require removing our own and/or other client's texture objects to
  * make room for these images.
- * 
+ *
+ * \param rmesa Radeon context.
+ * \param tObj texture object to upload.
+ *
+ * Sets the matching hardware texture format. Calculates which mipmap levels to
+ * send, depending of the base image size, GL_TEXTURE_MIN_LOD,
+ * GL_TEXTURE_MAX_LOD, GL_TEXTURE_BASE_LEVEL, and GL_TEXTURE_MAX_LEVEL and the
+ * Radeon offset rules. Kicks out textures until the requested texture fits,
+ * sets the texture hardware state and, while holding the hardware lock,
+ * uploads any images that are new.
  */
 static void radeonSetTexImages( radeonContextPtr rmesa,
 				struct gl_texture_object *tObj )
@@ -336,18 +369,24 @@ static void radeonSetTexImages( radeonContextPtr rmesa,
 /*@}*/
 
 
-/******************************************************************
- * \name Texture combine functions
+/******************************************************************/
+/** \name Texture combine functions
  */
 /*@{*/
 
-#define RADEON_DISABLE		0
-#define RADEON_REPLACE		1
-#define RADEON_MODULATE		2
-#define RADEON_DECAL		3
-#define RADEON_BLEND		4
-#define RADEON_MAX_COMBFUNC	5
+enum {
+   RADEON_DISABLE	= 0, /**< \brief disabled */
+   RADEON_REPLACE	= 1, /**< \brief replace function */
+   RADEON_MODULATE	= 2, /**< \brief modulate function */
+   RADEON_DECAL		= 3, /**< \brief decal function */
+   RADEON_BLEND		= 4, /**< \brief blend function */
+   RADEON_MAX_COMBFUNC	= 5  /**< \brief max number of combine functions */
+}
 
+
+/**
+ * \brief Color combine function hardware state table.
+ */
 static GLuint radeon_color_combine[][RADEON_MAX_COMBFUNC] =
 {
    /* Unit 0:
@@ -401,6 +440,9 @@ static GLuint radeon_color_combine[][RADEON_MAX_COMBFUNC] =
 
 };
 
+/**
+ * \brief Alpha combine function hardware state table.
+ */
 static GLuint radeon_alpha_combine[][RADEON_MAX_COMBFUNC] =
 {
    /* Unit 0:
@@ -458,8 +500,8 @@ static GLuint radeon_alpha_combine[][RADEON_MAX_COMBFUNC] =
 /*@}*/
 
 
-/******************************************************************
- * \name Texture unit state management
+/******************************************************************/
+/** \name Texture unit state management
  */
 /*@{*/
 

@@ -73,6 +73,14 @@ void radeonPrintDirty( radeonContextPtr rmesa, const char *msg )
    fprintf(stderr, "\n");
 }
 
+/**
+ * \brief Constructs a register packet command.
+ *
+ * \param register ID.
+ * \return integer equivalent of the command.
+ * 
+ * \sa drmRadeonCmdHeader and drmRadeonCmdType::RADEON_CMD_PACKET.
+ */
 static int cmdpkt( int id ) 
 {
    drmRadeonCmdHeader h;
@@ -82,6 +90,17 @@ static int cmdpkt( int id )
    return h.i;
 }
 
+/**
+ * \brief Constructs a vector data command
+ *
+ * \param offset data offset.
+ * \param stride array stride.
+ * \param count vector count.
+ *
+ * \return integer equivalent of the command.
+ *
+ * \sa drmRadeonCmdHeader and drmRadeonCmdType::RADEON_CMD_VECTORS.
+ */
 static int cmdvec( int offset, int stride, int count ) 
 {
    drmRadeonCmdHeader h;
@@ -93,6 +112,17 @@ static int cmdvec( int offset, int stride, int count )
    return h.i;
 }
 
+/**
+ * \brief Constructs a scalar data command.
+ *
+ * \param offset data offset.
+ * \param stride array stride.
+ * \param count scalar count.
+ *
+ * \return integer equivalent of the command.
+ *
+ * \sa drmRadeonCmdHeader and drmRadeonCmdType::RADEON_CMD_SCALARS.
+ */
 static int cmdscl( int offset, int stride, int count ) 
 {
    drmRadeonCmdHeader h;
@@ -104,9 +134,14 @@ static int cmdscl( int offset, int stride, int count )
    return h.i;
 }
 
-
 /**
  * \brief Utility macro for state checking functions definition.
+ *
+ * It is used for a shorthand definiton of the state checking functions. Four
+ * functions are defined:
+ * - one which always returns GL_TRUE for state which is always active;
+ * - two which determine whether the respective texture unit is enabled;
+ * - one which determines whether fog is enabled.
  */
 #define CHECK( NM, FLAG )			\
 static GLboolean check_##NM( GLcontext *ctx )	\
@@ -116,6 +151,16 @@ static GLboolean check_##NM( GLcontext *ctx )	\
 
 /**
  * \brief Utility macro for TCL state checking functions definition.
+ *
+ * Same as for #CHECK but the functions defined by this macro always check
+ * whether TCL is enabled. Several functions are defined:
+ * - one which simply returns whether TCL is enabled;
+ * - for the texture units (2);
+ * - ligthing
+ * - eye-space coordinates and lighting
+ * - lights sources (8).
+ * - clip planes (6)
+ * - eye-space coordinates or fog
  */
 #define TCL_CHECK( NM, FLAG )				\
 static GLboolean check_##NM( GLcontext *ctx )		\
@@ -151,9 +196,30 @@ TCL_CHECK( tcl_ucp5, (ctx->Transform.ClipPlanesEnabled & 0x20) )
 TCL_CHECK( tcl_eyespace_or_fog, ctx->_NeedEyeCoords || ctx->Fog.Enabled ) 
 
 
+/**
+ * \def ALLOC_STATE
+ * \brief Utility macro to initialize a state atom.
+ *
+ * Used internally by radeonInitState() to allocate the state atom command
+ * buffer and initiaze the state checking function.
+ * 
+ * \param ATOM atom name, as defined in radeon_hw_state.
+ * \param CHK state checking function, as defined by #CHECK or #TCL_CHECK.
+ * \param SZ command buffer size.
+ * \param NM C string name for debugging output purposes.
+ * \param FLAG whether is a TCL dependent flag.
+ */
+
 
 /**
  * \brief Initialize the context's hardware state.
+ *
+ * \param rmesa Radeon context.
+ *
+ * Initalizes all state atoms giving apropriate inital state values. Allocates
+ * the state atoms' command buffers, using internally the #ALLOC_STATE macro
+ * for this effect.  Fills in the packet headers with the register ID
+ * associated with the atom, via cmdpkt().
  */
 void radeonInitState( radeonContextPtr rmesa )
 {
@@ -224,14 +290,14 @@ void radeonInitState( radeonContextPtr rmesa )
    make_empty_list(&(rmesa->hw.clean));
 
 
-#define ALLOC_STATE( ATOM, CHK, SZ, NM, FLAG )				\
+#define ALLOC_STATE( ATOM, CHK, SZ, NM, FLAG )			\
    do {								\
       rmesa->hw.ATOM.cmd_size = SZ;				\
       rmesa->hw.ATOM.cmd = (int *)CALLOC(SZ * sizeof(int));	\
       rmesa->hw.ATOM.lastcmd = (int *)CALLOC(SZ * sizeof(int));	\
       rmesa->hw.ATOM.name = NM;					\
-      rmesa->hw.ATOM.is_tcl = FLAG;					\
-      rmesa->hw.ATOM.check = check_##CHK;				\
+      rmesa->hw.ATOM.is_tcl = FLAG;				\
+      rmesa->hw.ATOM.check = check_##CHK;			\
       insert_at_head(&(rmesa->hw.dirty), &(rmesa->hw.ATOM));	\
    } while (0)
       

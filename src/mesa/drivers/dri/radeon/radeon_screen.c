@@ -1,5 +1,6 @@
 /**
  * \file radeon_screen.c
+ * \brief Screen initialization functions.
  * 
  * \author Kevin E. Martin <martin@valinux.com>
  * \author Gareth Hughes <gareth@valinux.com>
@@ -61,9 +62,9 @@
 
 
 /**
- * \brief Create the device specific screen private data struct.
+ * \brief Create the device specific screen data structure.
  *
- * \param sPriv DRI screen private data.
+ * \param sPriv DRI specific screen data.
  * 
  * \return pointer to the device specific screen private data.
  *
@@ -265,9 +266,9 @@ radeonScreenPtr radeonCreateScreen( __DRIscreenPrivate *sPriv )
 }
 
 /**
- * \brief Destroy the device specific screen private data struct.
+ * \brief Destroy the device specific screen data.
  *
- * \param sPriv DRI screen private data.
+ * \param sPriv DRI specific screen data.
  *
  * Unmaps all previously mapped regions and deallocates the device specific
  * private data.

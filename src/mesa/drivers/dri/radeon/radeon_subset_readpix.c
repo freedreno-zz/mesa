@@ -1,5 +1,6 @@
 /**
  * \file radeon_subset_readpix.c
+ * \brief Pixel reading.
  * 
  * \author Keith Whitwell <keith@tungstengraphics.com>
  * \author Brian Paul <brian@tungstengraphics.com>
@@ -29,7 +30,6 @@
  * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
  * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
  * USE OR OTHER DEALINGS IN THE SOFTWARE.
- * 
  */
 
 /* $XFree86$ */
@@ -47,6 +47,12 @@
 #include "radeon_state.h"
 #include "radeon_subset.h"
 
+/**
+ * \brief Read pixel in RGBA format on a Radeon 16bpp frame buffer.
+ *
+ * \param rgba destination pointer.
+ * \param ptr pointer to the pixel in the frame buffer.
+ */
 #define READ_RGBA_16( rgba, ptr )		\
 do {						\
     GLushort p = *(GLushort *)ptr;		\
@@ -56,6 +62,12 @@ do {						\
     rgba[3] = 0xff;				\
 } while (0)
 
+/**
+ * \brief Read pixel in RGBA format on a Radeon 32bpp frame buffer.
+ *
+ * \param rgba destination pointer.
+ * \param ptr pointer to the pixel in the frame buffer.
+ */
 #define READ_RGBA_32( rgba, ptr )		\
 do {						\
    GLuint p = *(GLuint *)ptr;			\
@@ -65,6 +77,18 @@ do {						\
    rgba[3] = (p >> 24) & 0xff;			\
 } while (0)
 
+/**
+ * \brief Read a span in RGBA format.
+ * 
+ * \param ctx GL context.
+ * \param n number of pixels in the span.
+ * \param x x position of the span start.
+ * \param y y position of the span.
+ * \param rgba destination buffer.
+ *
+ * Calculates the pointer to the span start in the frame buffer and uses either
+ * #READ_RGBA_16 or #READ_RGBA_32 macros to copy the values.
+ */
 static void ReadRGBASpan( const GLcontext *ctx,
 			       GLuint n, GLint x, GLint y,
 			       GLubyte rgba[][4])
@@ -88,12 +112,24 @@ static void ReadRGBASpan( const GLcontext *ctx,
 }
 
 
-
 /**
- * \brief Optimized glReadPixels 
+ * \brief Optimized glReadPixels().
  *
- * For particular pixel formats GL_UNSIGNED_BYTE, GL_RGBA when pixel scaling,
- * biasing and mapping are disabled.
+ * To be used with particular pixel formats GL_UNSIGNED_BYTE and GL_RGBA, when pixel
+ * scaling, biasing and mapping are disabled.
+ *
+ * \param ctx GL context.
+ * \param x x start position of the reading rectangle.
+ * \param y y start position of the reading rectangle.
+ * \param width width of the reading rectangle.
+ * \param height height of the reading recatangle.
+ * \param format pixel format. Must be GL_RGBA.
+ * \param format pixel type. Must be GL_UNSIGNED_BYTE.
+ * \param packing packing attributes. Must specify byte alignment and no byte
+ * swaping or LSB ordering.
+ * 
+ * After asserting the above conditions, compensates for clipping and calls
+ * ReadRGBASpan() to read each row.
  */
 void radeonReadPixels( GLcontext *ctx,
 		       GLint x, GLint y,

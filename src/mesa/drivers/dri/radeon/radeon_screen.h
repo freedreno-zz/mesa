@@ -1,5 +1,6 @@
 /**
  * \file radeon_screen.h
+ * \brief Screen initialization functions.
  * 
  * \author Kevin E. Martin <martin@valinux.com>
  * \author Gareth Hughes <gareth@valinux.com>
@@ -61,7 +62,7 @@ typedef struct {
 #define RADEON_CHIPSET_TCL	(1 << 0)
 
 /**
- * \brief Device specific screen private data.
+ * \brief Device specific screen data.
  */
 typedef struct {
 

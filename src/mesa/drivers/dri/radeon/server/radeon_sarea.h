@@ -1,6 +1,6 @@
 /**
  * \file server/radeon_sarea.h
- * \brief SAREA definition for the Radeon driver.
+ * \brief SAREA definition.
  * 
  * \author Kevin E. Martin <martin@xfree86.org>
  * \author Gareth Hughes <gareth@valinux.com>
