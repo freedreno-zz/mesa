@@ -859,10 +859,14 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
  * 
  * \param driver private data.
  *
- * Called by __driInitFBDev() to set RADEONInfoRec::ChipFamily according to the
- * value of RADEONInfoRec::Chipset.
+ * \return non-zero on sucess, or zero on failure.
+ *
+ * Called by __driInitFBDev() to set RADEONInfoRec::ChipFamily
+ * according to the value of RADEONInfoRec::Chipset.  Fails if the
+ * chipset is unrecognized or not appropriate for this driver (ie. not
+ * an r100 style radeon)
  */
-static void get_chipfamily_from_chipset( RADEONInfoPtr info )
+static int get_chipfamily_from_chipset( RADEONInfoPtr info )
 {
     switch (info->Chipset) {
     case PCI_CHIP_RADEON_LY:
@@ -875,14 +879,6 @@ static void get_chipfamily_from_chipset( RADEONInfoPtr info )
 	info->ChipFamily = CHIP_FAMILY_VE;
 	break;
 
-    case PCI_CHIP_R200_QL:
-    case PCI_CHIP_R200_QN:
-    case PCI_CHIP_R200_QO:
-    case PCI_CHIP_R200_Ql:
-/*     case PCI_CHIP_R200_BB: */
-	info->ChipFamily = CHIP_FAMILY_R200;
-	break;
-
     case PCI_CHIP_RV200_QW: /* RV200 desktop */
     case PCI_CHIP_RV200_QX:
 	info->ChipFamily = CHIP_FAMILY_RV200;
@@ -893,31 +889,38 @@ static void get_chipfamily_from_chipset( RADEONInfoPtr info )
 	info->ChipFamily = CHIP_FAMILY_M7;
 	break;
 
-/*     case PCI_CHIP_RV250_Id: */
-/*     case PCI_CHIP_RV250_Ie: */
-/*     case PCI_CHIP_RV250_If: */
-/*     case PCI_CHIP_RV250_Ig: */
-/* 	info->ChipFamily = CHIP_FAMILY_RV250; */
-/* 	break; */
+    case PCI_CHIP_RADEON_QD:
+    case PCI_CHIP_RADEON_QE:
+    case PCI_CHIP_RADEON_QF:
+    case PCI_CHIP_RADEON_QG:
+	/* Original Radeon/7200 */
+	info->ChipFamily = CHIP_FAMILY_RADEON;
+	break;
+
+    case PCI_CHIP_R200_QL:
+    case PCI_CHIP_R200_QN:
+    case PCI_CHIP_R200_QO:
+    case PCI_CHIP_R200_Ql:	/* r200 */
+       return 0;
 
     case PCI_CHIP_RV250_Ld:
     case PCI_CHIP_RV250_Le:
     case PCI_CHIP_RV250_Lf:
-    case PCI_CHIP_RV250_Lg:
-	info->ChipFamily = CHIP_FAMILY_M9;
-	break;
+    case PCI_CHIP_RV250_Lg:	/* m9 */
+       return 0;
 
     case PCI_CHIP_R300_ND:
     case PCI_CHIP_R300_NE:
     case PCI_CHIP_R300_NF:
-    case PCI_CHIP_R300_NG:
-	info->ChipFamily = CHIP_FAMILY_R300;
-        break;
+    case PCI_CHIP_R300_NG:	/* r300 */
+       return 0;
+
 
     default:
-	/* Original Radeon/7200 */
-	info->ChipFamily = CHIP_FAMILY_RADEON;
+       return 0;
     }
+
+    return 1;
 }
 
 
@@ -1090,7 +1093,11 @@ static int __driInitFBDev( struct MiniGLXDisplayRec *dpy )
    info->ringSize      = RADEON_DEFAULT_RING_SIZE;
   
    info->Chipset = dpy->chipset;
-   get_chipfamily_from_chipset( info );
+
+   if (!get_chipfamily_from_chipset( info )) {
+      fprintf(stderr, "Unknown or non-radeon chipset -- cannot continue\n");
+      return 0;
+   }
 
    info->frontPitch = dpy->virtualWidth;
    info->LinearAddr = dpy->FixedInfo.smem_start & 0xfc000000;
