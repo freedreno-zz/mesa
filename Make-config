@@ -1,4 +1,4 @@
-# $Id: Make-config,v 1.50.2.5 2002/02/12 03:13:41 brianp Exp $
+# $Id: Make-config,v 1.50.2.6 2002/03/01 19:38:53 brianp Exp $
 
 MESA_MAJOR=4
 MESA_MINOR=0
@@ -867,7 +867,7 @@ linux-osmesa16:
 	"OSMESA16_LIB = libOSMesa16.so" \
 	"CC = gcc" \
 	"CPLUSPLUS = g++" \
-	"CFLAGS = -g -ansi -pedantic -Wall -Wmissing-prototypes -Wundef -fPIC -ffast-math -D_SVID_SOURCE -D_BSD_SOURCE -I/usr/X11R6/include -DUSE_XSHM -DPTHREADS -DDEBUG -DMESA_DEBUG -DCHAN_BITS=16 -DDEFAULT_SOFTWARE_DEPTH_BITS=31" \
+	"CFLAGS = -O3 -ansi -pedantic -Wall -Wmissing-prototypes -Wundef -fPIC -ffast-math -D_SVID_SOURCE -D_BSD_SOURCE -I/usr/X11R6/include -DUSE_XSHM -DPTHREADS -DDEBUG -DMESA_DEBUG -DCHAN_BITS=16 -DDEFAULT_SOFTWARE_DEPTH_BITS=31" \
 	"CCFLAGS = $(CFLAGS)" \
 	"MAKELIB = ../bin/mklib.linux" \
 	"GL_LIB_DEPS = -lm -lpthread" \
@@ -879,7 +879,7 @@ linux-osmesa32:
 	"OSMESA16_LIB = libOSMesa32.so" \
 	"CC = gcc" \
 	"CPLUSPLUS = g++" \
-	"CFLAGS = -g -ansi -pedantic -Wall -Wmissing-prototypes -Wundef -fPIC -ffast-math -D_SVID_SOURCE -D_BSD_SOURCE -I/usr/X11R6/include -DUSE_XSHM -DPTHREADS -DDEBUG -DMESA_DEBUG -DCHAN_BITS=32 -DDEFAULT_SOFTWARE_DEPTH_BITS=31" \
+	"CFLAGS = -O3 -ansi -pedantic -Wall -Wmissing-prototypes -Wundef -fPIC -ffast-math -D_SVID_SOURCE -D_BSD_SOURCE -I/usr/X11R6/include -DUSE_XSHM -DPTHREADS -DDEBUG -DMESA_DEBUG -DCHAN_BITS=32 -DDEFAULT_SOFTWARE_DEPTH_BITS=31" \
 	"CCFLAGS = $(CFLAGS)" \
 	"MAKELIB = ../bin/mklib.linux" \
 	"GL_LIB_DEPS = -lm -lpthread" \
@@ -1487,13 +1487,13 @@ linux-debug:
 	"OSMESA_LIB = libOSMesa.so" \
 	"CC = gcc" \
 	"CPLUSPLUS = g++" \
-	"CFLAGS = -g -ansi -pedantic -Wall -Wmissing-prototypes -Wundef -fPIC -ffast-math -D_SVID_SOURCE -D_BSD_SOURCE -I/usr/X11R6/include -DUSE_XSHM -DPTHREADS -DDEBUG -DMESA_DEBUG -DSVGA -I/usr/include/glide -DFX -DMESA_TRACE" \
+	"CFLAGS = -g -ansi -pedantic -Wall -Wmissing-prototypes -Wundef -fPIC -ffast-math -D_SVID_SOURCE -D_BSD_SOURCE -I/usr/X11R6/include -DUSE_XSHM -DPTHREADS -DDEBUG -DMESA_DEBUG -DSVGA_foo -I/usr/include/glide -DFX_foo -DMESA_TRACE" \
 	"CCFLAGS = $(CFLAGS)" \
 	"MAKELIB = ../bin/mklib.linux" \
-	"GL_LIB_DEPS = -L/usr/X11R6/lib -lX11 -lXext -lm -lpthread -L/usr/local/glide/lib -lglide2x -lvga" \
+	"GL_LIB_DEPS = -L/usr/X11R6/lib -lX11 -lXext -lm -lpthread" \
 	"GLU_LIB_DEPS = -L../lib -lGL -lm" \
 	"GLUT_LIB_DEPS = -L../lib -lGLU -lGL -L/usr/X11R6/lib -lX11 -lXmu -lXt -lXi -lm" \
-	"APP_LIB_DEPS = -lglut -lGLU -lGL -L/usr/local/glide/lib -lglide2x"
+	"APP_LIB_DEPS = -lglut -lGLU -lGL"
 
 linux-x11-debug:
 	$(MAKE) $(MFLAGS) -f Makefile.X11 targets \
