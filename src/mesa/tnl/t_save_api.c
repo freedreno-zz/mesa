@@ -388,6 +388,8 @@ static void _save_upgrade_vertex( GLcontext *ctx,
     */
    if (tnl->save.initial_counter != tnl->save.counter) 
       _save_wrap_buffers( ctx );
+   else
+      assert( tnl->save.copied.nr == 0 );
 
    /* Do a COPY_TO_CURRENT to ensure back-copying works for the case
     * when the attribute already exists in the vertex and is having
@@ -1158,10 +1160,10 @@ static void _save_End( void )
    tnl->save.prim[i].count = ((tnl->save.initial_counter - tnl->save.counter) - 
 			      tnl->save.prim[i].start);
 
-   if (i == tnl->save.prim_max - 1)
+   if (i == tnl->save.prim_max - 1) {
       _save_compile_vertex_list( ctx );
-
-   assert(tnl->save.copied.nr == 0);
+      assert(tnl->save.copied.nr == 0);
+   }
 
    /* Swap out this vertex format while outside begin/end.  Any color,
     * etc. received between here and the next begin will be compiled
