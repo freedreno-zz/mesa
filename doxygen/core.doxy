@@ -55,7 +55,7 @@ INPUT                  = ../src/
 FILE_PATTERNS          = *.c *.h
 RECURSIVE              = NO
 EXCLUDE                = ../src/glapitemp.h ../src/glapioffsets.h
-EXCLUDE_PATTERNS       = 
+EXCLUDE_PATTERNS       = subset_*
 EXAMPLE_PATH           = 
 EXAMPLE_PATTERNS       = 
 EXAMPLE_RECURSIVE      = NO
@@ -132,13 +132,13 @@ GENERATE_AUTOGEN_DEF   = NO
 # Configuration options related to the preprocessor   
 #---------------------------------------------------------------------------
 ENABLE_PREPROCESSING   = YES
-MACRO_EXPANSION        = NO
-EXPAND_ONLY_PREDEF     = NO
+MACRO_EXPANSION        = YES
+EXPAND_ONLY_PREDEF     = YES
 SEARCH_INCLUDES        = YES
 INCLUDE_PATH           = ../include/
 INCLUDE_FILE_PATTERNS  = 
-PREDEFINED             = 
-EXPAND_AS_DEFINED      = 
+PREDEFINED             = _HAVE_FULL_GL=1
+EXPAND_AS_DEFINED      = _glthread_DECLARE_STATIC_MUTEX
 SKIP_FUNCTION_MACROS   = YES
 #---------------------------------------------------------------------------
 # Configuration::addtions related to external references   
