@@ -1,4 +1,4 @@
-/* $Id: miniglx.c,v 1.1.4.11 2002/12/12 14:22:03 keithw Exp $ */
+/* $Id: miniglx.c,v 1.1.4.12 2002/12/13 15:18:09 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -354,6 +354,23 @@ SetupFBDev( Display *dpy, Window win )
               strerror(errno));
       return GL_FALSE;
    }
+
+   {
+      int x, y;
+      char *scrn = (char *)dpy->FrameBuffer;
+
+      fprintf(stderr, "scrn: %p bottom %p\n",
+	      scrn, scrn+800*599*4);
+
+      for (y = 100 ; y < 200 ; y++)
+	 for (x = 100 ; x < 200 ; x++) {
+	    scrn[(x+y*800)*4+0] = 255;
+	    scrn[(x+y*800)*4+1] = 0;
+	    scrn[(x+y*800)*4+2] = 255;
+	    scrn[(x+y*800)*4+3] = 255;
+	 }
+   }
+	    
 
    /* mmap the MMIO region into our address space */
    dpy->MMIOSize = dpy->FixedInfo.mmio_len;
