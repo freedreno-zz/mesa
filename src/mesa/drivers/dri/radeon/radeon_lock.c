@@ -61,11 +61,6 @@ radeonUpdatePageFlipping( radeonContextPtr rmesa )
    use_back = (rmesa->glCtx->Color._DrawDestMask == BACK_LEFT_BIT);
    use_back ^= (rmesa->sarea->pfCurrentPage == 1);
 
-   if ( RADEON_DEBUG & DEBUG_VERBOSE )
-      fprintf(stderr, "%s allow %d current %d\n", __FUNCTION__, 
-	      rmesa->doPageFlip,
-	      rmesa->sarea->pfCurrentPage );
-
    if ( use_back ) {
 	 rmesa->state.color.drawOffset = rmesa->radeonScreen->backOffset;
 	 rmesa->state.color.drawPitch  = rmesa->radeonScreen->backPitch;
@@ -73,6 +68,10 @@ radeonUpdatePageFlipping( radeonContextPtr rmesa )
 	 rmesa->state.color.drawOffset = rmesa->radeonScreen->frontOffset;
 	 rmesa->state.color.drawPitch  = rmesa->radeonScreen->frontPitch;
    }
+
+   fprintf(stderr, "%s: pfCurrentPage %d COLOROFFSET %x\n", __FUNCTION__,
+	   rmesa->sarea->pfCurrentPage,
+	   rmesa->state.color.drawOffset);
 
    RADEON_STATECHANGE( rmesa, ctx );
    rmesa->hw.ctx.cmd[CTX_RB3D_COLOROFFSET] = rmesa->state.color.drawOffset;

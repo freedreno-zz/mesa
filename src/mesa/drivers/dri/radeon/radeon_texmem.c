@@ -33,6 +33,7 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
  *   Gareth Hughes <gareth@valinux.com>
  *
  */
+#include <errno.h>
 
 #include "glheader.h"
 #include "imports.h"
@@ -43,7 +44,7 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #include "radeon_context.h"
 #include "radeon_tex.h"
-#include <errno.h>
+
 
 /* Destroy hardware state associated with texture `t'.
  */

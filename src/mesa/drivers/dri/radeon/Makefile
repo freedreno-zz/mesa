@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.1.2.8 2002/12/30 15:20:36 keithw Exp $
+# $Id: Makefile,v 1.1.2.9 2002/12/30 17:24:05 keithw Exp $
 
 # Mesa 3-D graphics library
 # Version:  5.0
@@ -12,7 +12,7 @@ MESABUILDDIR = ../..
 INCLUDES = -I$(MESABUILDDIR) -I$(MESA)/include -I. -I../common \
 	   -I$(MESABUILDDIR)/miniglx -Iserver
 
-DEFINES = -D_HAVE_SWRAST=1 -D_HAVE_SWTNL=1 -D_HAVE_SANITY=1
+DEFINES = -D_HAVE_SWRAST=0 -D_HAVE_SWTNL=0 -D_HAVE_SANITY=1
 CFLAGS = $(INCLUDES) $(DEFINES) -g -MD -DGLX_DIRECT_RENDERING
 
 # The .a files for each mesa module required by this driver:
@@ -22,7 +22,8 @@ COREMESA = 	$(MESABUILDDIR)/swrast_setup/swrast_setup.a \
 		$(MESABUILDDIR)/math/math.a \
 		$(MESABUILDDIR)/array_cache/array_cache.a \
 		$(MESABUILDDIR)/swrast/swrast.a \
-		$(MESABUILDDIR)/mesa.a 
+		$(MESABUILDDIR)/mesa.a \
+		$(MESABUILDDIR)/math/math.a #kludge
 
 DRIVER_SOURCES = server/radeon_dri.c \
 	  	 radeon_compat.c \
@@ -46,6 +47,7 @@ DRIVER_SOURCES = server/radeon_dri.c \
 		 radeon_vtxfmt_x86.c \
 		 ../common/mm.c 
 
+
 C_SOURCES = $(DRIVER_SOURCES) \
 	    $(DRI_SOURCES) 
 
@@ -61,7 +63,7 @@ OBJECTS = $(C_SOURCES:.c=.o) \
 .S.o:
 	$(CC) -c $(CFLAGS) $< -o $@
 
-.c.o:
+.c.o: 
 	$(CC) -c $(CFLAGS) $< -o $@
 
 ##### TARGETS #####

@@ -35,6 +35,8 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
  *
  */
 
+#if _HAVE_SWRAST
+
 #include "glheader.h"
 #include "swrast/swrast.h"
 
@@ -327,6 +329,11 @@ static void radeonSetBuffer( GLcontext *ctx,
       assert(0);
       break;
    }
+
+   fprintf(stderr, "%s: pfCurrentPage %d COLOROFFSET %x\n", __FUNCTION__,
+	   rmesa->sarea->pfCurrentPage,
+	   rmesa->state.color.drawOffset);
+
 }
 
 /* Move locking out to get reasonable span performance (10x better
@@ -410,3 +417,5 @@ void radeonInitSpanFuncs( GLcontext *ctx )
    swdd->SpanRenderStart          = radeonSpanRenderStart;
    swdd->SpanRenderFinish         = radeonSpanRenderFinish; 
 }
+
+#endif

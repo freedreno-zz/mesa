@@ -40,17 +40,20 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "mtypes.h"
 #include "enums.h"
 
+#if _HAVE_SWTNL
 #include "array_cache/acache.h"
 #include "tnl/tnl.h"
 #include "tnl/t_pipeline.h"
+#include "radeon_swtcl.h"
+#include "radeon_maos.h"
+#endif
 
 #include "radeon_context.h"
 #include "radeon_state.h"
 #include "radeon_ioctl.h"
 #include "radeon_tex.h"
 #include "radeon_tcl.h"
-#include "radeon_swtcl.h"
-#include "radeon_maos.h"
+
 
 
 
@@ -231,9 +234,12 @@ static void EMIT_PRIM( GLcontext *ctx,
 #endif
 #define EMIT_TWO_ELTS(offset, x, y)  *(GLuint *)(dest+offset) = ((y)<<16)|(x);
 #define INCR_ELTS( nr ) dest += nr
-#define RELEASE_ELT_VERTS() \
-   radeonReleaseArrays( ctx, ~0 )
 
+#if _HAVE_SWTNL
+#define RELEASE_ELT_VERTS() radeonReleaseArrays( ctx, ~0 )
+#else
+#define RELEASE_ELT_VERTS() 
+#endif
 
 
 #define TAG(x) tcl_##x
@@ -287,7 +293,7 @@ void radeonTclPrimitive( GLcontext *ctx,
    }
 }
 
-
+#if _HAVE_SWTNL
 /**********************************************************************/
 /*                          Render pipeline stage                     */
 /**********************************************************************/
@@ -544,3 +550,16 @@ void radeonTclFallback( GLcontext *ctx, GLuint bit, GLboolean mode )
       }
    }
 }
+#else
+void radeonFallback( GLcontext *ctx, GLuint bit, GLboolean mode )
+{
+   if (mode)
+      fprintf(stderr, "Warning: hit nonexistant fallback path!\n");
+}
+
+void radeonTclFallback( GLcontext *ctx, GLuint bit, GLboolean mode )
+{
+   if (mode)
+      fprintf(stderr, "Warning: hit nonexistant fallback path!\n");
+}
+#endif

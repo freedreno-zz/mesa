@@ -43,22 +43,26 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "matrix.h"
 #include "extensions.h"
 
+#if _HAVE_SWRAST
 #include "swrast/swrast.h"
 #include "swrast_setup/swrast_setup.h"
-#include "array_cache/acache.h"
+#include "radeon_span.h"
+#endif
 
+#if _HAVE_SWTNL
+#include "array_cache/acache.h"
 #include "tnl/tnl.h"
 #include "tnl/t_pipeline.h"
+#include "radeon_swtcl.h"
+#include "radeon_maos.h"
+#endif
 
 #include "radeon_context.h"
 #include "radeon_ioctl.h"
 #include "radeon_state.h"
-#include "radeon_span.h"
 #include "radeon_tex.h"
-#include "radeon_swtcl.h"
 #include "radeon_tcl.h"
 #include "radeon_vtxfmt.h"
-#include "radeon_maos.h"
 
 #if defined(USE_X86_ASM)
 #include "X86/common_x86_asm.h"
@@ -200,6 +204,7 @@ static void radeonInitExtensions( GLcontext *ctx )
    }
 }
 
+#if _HAVE_SWTNL
 extern const struct gl_pipeline_stage _radeon_render_stage;
 extern const struct gl_pipeline_stage _radeon_tcl_stage;
 
@@ -234,17 +239,22 @@ static const struct gl_pipeline_stage *radeon_pipeline[] = {
    &_tnl_render_stage,		/* FALLBACK:  */
    0,
 };
+#endif
 
-
+static void ResizeBuffers( GLframebuffer *buffer )
+{
+#if _HAVE_SWRAST
+   _swrast_alloc_buffers( buffer );
+#endif
+}
 
 /* Initialize the driver's misc functions.
  */
 static void radeonInitDriverFuncs( GLcontext *ctx )
 {
     ctx->Driver.GetBufferSize		= radeonGetBufferSize;
-    ctx->Driver.ResizeBuffers           = _swrast_alloc_buffers;
     ctx->Driver.GetString		= radeonGetString;
-
+    ctx->Driver.ResizeBuffers           = ResizeBuffers;
     ctx->Driver.Error			= NULL;
     ctx->Driver.DrawPixels		= NULL;
     ctx->Driver.Bitmap			= NULL;
@@ -371,11 +381,18 @@ radeonCreateContext( const __GLcontextModes *glVisual,
 
    /* Initialize the software rasterizer and helper modules.
     */
+#if _HAVE_SWRAST
    _swrast_CreateContext( ctx );
+
+   /* Configure swrast to match hardware characteristics:
+    */
+   _swrast_allow_pixel_fog( ctx, GL_FALSE );
+   _swrast_allow_vertex_fog( ctx, GL_TRUE );
+#endif
+   _ae_create_context( ctx );
+#if _HAVE_SWTNL
    _ac_CreateContext( ctx );
    _tnl_CreateContext( ctx );
-   _swsetup_CreateContext( ctx );
-   _ae_create_context( ctx );
 
    /* Install the customized pipeline:
     */
@@ -385,14 +402,10 @@ radeonCreateContext( const __GLcontextModes *glVisual,
    /* Try and keep materials and vertices separate:
     */
    _tnl_isolate_materials( ctx, GL_TRUE );
-
-
-/*     _mesa_allow_light_in_model( ctx, GL_FALSE ); */
-
-   /* Configure swrast to match hardware characteristics:
-    */
-   _swrast_allow_pixel_fog( ctx, GL_FALSE );
-   _swrast_allow_vertex_fog( ctx, GL_TRUE );
+#if _HAVE_SWRAST
+   _swsetup_CreateContext( ctx );
+#endif
+#endif
 
 
    _math_matrix_ctr( &rmesa->TexGenMatrix[0] );
@@ -406,10 +419,14 @@ radeonCreateContext( const __GLcontextModes *glVisual,
    radeonInitDriverFuncs( ctx );
    radeonInitIoctlFuncs( ctx );
    radeonInitStateFuncs( ctx );
+#if _HAVE_SWRAST
    radeonInitSpanFuncs( ctx );
+#endif
    radeonInitTextureFuncs( ctx );
    radeonInitState( rmesa );
+#if _HAVE_SWTNL
    radeonInitSwtcl( ctx );
+#endif
 
    rmesa->do_irqs = (rmesa->radeonScreen->irq && !getenv("RADEON_NO_IRQS"));
    rmesa->irqsEmitted = 0;
@@ -516,8 +533,9 @@ radeonCreateContext( const __GLcontextModes *glVisual,
    if (rmesa->radeonScreen->chipset & RADEON_CHIPSET_TCL) {
       if (!getenv("RADEON_NO_VTXFMT"))
 	 radeonVtxfmtInit( ctx );
-
+#if _HAVE_SWTNL
       _tnl_need_dlist_norm_lengths( ctx, GL_FALSE );
+#endif
    }
    return GL_TRUE;
 }
@@ -563,14 +581,18 @@ radeonDestroyContext( __DRIcontextPrivate *driContextPriv )
          }
       }
 
+
+#if _HAVE_SWRAST
       _swsetup_DestroyContext( rmesa->glCtx );
+      _swrast_DestroyContext( rmesa->glCtx );
+#endif
+#if _HAVE_SWTNL
       _tnl_DestroyContext( rmesa->glCtx );
       _ac_DestroyContext( rmesa->glCtx );
-      _swrast_DestroyContext( rmesa->glCtx );
-
       radeonDestroySwtcl( rmesa->glCtx );
-
       radeonReleaseArrays( rmesa->glCtx, ~0 );
+#endif
+
       if (rmesa->dma.current.buf) {
 	 radeonReleaseDmaRegion( rmesa, &rmesa->dma.current, __FUNCTION__ );
 	 radeonFlushCmdBuf( rmesa, __FUNCTION__ );
@@ -592,10 +614,6 @@ radeonDestroyContext( __DRIcontextPrivate *driContextPriv )
       FREE( rmesa );
    }
 
-#if 0
-   /* Use this to force shared object profiling. */
-   glx_fini_prof();
-#endif
 }
 
 

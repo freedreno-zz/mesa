@@ -38,14 +38,18 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "glheader.h"
 #include "imports.h"
 #include "simple_list.h"
+
+#if _HAVE_SWRAST
 #include "swrast/swrast.h"
+#endif
+#if _HAVE_SANITY
+#include "radeon_sanity.h"
+#endif
 
 #include "radeon_context.h"
 #include "radeon_state.h"
 #include "radeon_ioctl.h"
 #include "radeon_tcl.h"
-#include "radeon_sanity.h"
-
 #include "radeon_macros.h"  /* for INREG() */
 
 #undef usleep
@@ -400,6 +404,7 @@ static int radeonFlushCmdBufLocked( radeonContextPtr rmesa,
 
 
    if (RADEON_DEBUG & DEBUG_SANITY) {
+#if _HAVE_SANITY
       if (rmesa->state.scissor.enabled) 
 	 ret = radeonSanityCmdBuffer( rmesa, 
 				      rmesa->state.scissor.numClipRects,
@@ -408,6 +413,7 @@ static int radeonFlushCmdBufLocked( radeonContextPtr rmesa,
 	 ret = radeonSanityCmdBuffer( rmesa, 
 				      rmesa->numClipRects,
 				      rmesa->pClipRects);
+#endif
    }
 
    cmd.bufsz = rmesa->store.cmd_used;
@@ -821,6 +827,10 @@ void radeonPageFlip( const __DRIdrawablePrivate *dPriv )
 	 rmesa->state.color.drawPitch  = rmesa->radeonScreen->backPitch;
    }
 
+   fprintf(stderr, "%s: pfCurrentPage %d COLOROFFSET %x\n", __FUNCTION__,
+	   rmesa->sarea->pfCurrentPage,
+	   rmesa->state.color.drawOffset);
+
    RADEON_STATECHANGE( rmesa, ctx );
    rmesa->hw.ctx.cmd[CTX_RB3D_COLOROFFSET] = rmesa->state.color.drawOffset;
    rmesa->hw.ctx.cmd[CTX_RB3D_COLORPITCH]  = rmesa->state.color.drawPitch;
@@ -878,8 +888,10 @@ static void radeonClear( GLcontext *ctx, GLbitfield mask, GLboolean all,
       mask &= ~DD_STENCIL_BIT;
    }
 
+#if _HAVE_SWRAST
    if ( mask )
       _swrast_Clear( ctx, mask, all, cx, cy, cw, ch );
+#endif
 
    if ( !flags ) 
       return;

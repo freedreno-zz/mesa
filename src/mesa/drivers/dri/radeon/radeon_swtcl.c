@@ -32,6 +32,7 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
  *   Keith Whitwell <keith@tungstengraphics.com>
  *
  */
+#if _HAVE_SWTNL
 
 #include "glheader.h"
 #include "mtypes.h"
@@ -1189,3 +1190,6 @@ void radeonDestroySwtcl( GLcontext *ctx )
       rmesa->UbyteColor.Ptr = 0;
    }
 }
+
+
+#endif

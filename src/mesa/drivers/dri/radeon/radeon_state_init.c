@@ -33,18 +33,21 @@
 #include "mmath.h"
 #include "api_arrayelt.h"
 
+#if _HAVE_SWRAST
 #include "swrast/swrast.h"
+#include "swrast_setup/swrast_setup.h"
+#endif
+#if _HAVE_SWTNL
 #include "array_cache/acache.h"
 #include "tnl/tnl.h"
 #include "tnl/t_pipeline.h"
-#include "swrast_setup/swrast_setup.h"
+#endif
 
 #include "radeon_context.h"
 #include "radeon_ioctl.h"
 #include "radeon_state.h"
 #include "radeon_tcl.h"
 #include "radeon_tex.h"
-#include "radeon_swtcl.h"
 #include "radeon_vtxfmt.h"
 
 /* =============================================================
@@ -183,15 +186,29 @@ void radeonInitState( radeonContextPtr rmesa )
 
    rmesa->Fallback = 0;
 
-   if ( ctx->Visual.doubleBufferMode && rmesa->sarea->pfCurrentPage == 0 ) {
-      rmesa->state.color.drawOffset = rmesa->radeonScreen->backOffset;
-      rmesa->state.color.drawPitch  = rmesa->radeonScreen->backPitch;
-   } else {
-      rmesa->state.color.drawOffset = rmesa->radeonScreen->frontOffset;
-      rmesa->state.color.drawPitch  = rmesa->radeonScreen->frontPitch;
+
+   {
+      int use_back;
+
+      use_back = (rmesa->glCtx->Color._DrawDestMask == BACK_LEFT_BIT);
+      use_back ^= (rmesa->sarea->pfCurrentPage == 1);
+
+      if ( ctx->Visual.doubleBufferMode && use_back ) {
+	 rmesa->state.color.drawOffset = rmesa->radeonScreen->backOffset;
+	 rmesa->state.color.drawPitch  = rmesa->radeonScreen->backPitch;
+      } else {
+	 rmesa->state.color.drawOffset = rmesa->radeonScreen->frontOffset;
+	 rmesa->state.color.drawPitch  = rmesa->radeonScreen->frontPitch;
+      }
+
+      fprintf(stderr, "use_back %d doubleBufferMode %d COLOROFFSET %x\n",
+	      use_back,
+	      ctx->Visual.doubleBufferMode,
+	      rmesa->state.color.drawOffset);
+
+      rmesa->state.pixel.readOffset = rmesa->state.color.drawOffset;
+      rmesa->state.pixel.readPitch  = rmesa->state.color.drawPitch;
    }
-   rmesa->state.pixel.readOffset = rmesa->state.color.drawOffset;
-   rmesa->state.pixel.readPitch  = rmesa->state.color.drawPitch;
 
    /* Initialize lists:
     */
@@ -524,7 +541,9 @@ void radeonInitState( radeonContextPtr rmesa )
    ctx->Driver.LightModelfv( ctx, GL_LIGHT_MODEL_AMBIENT, 
 			     ctx->Light.Model.Ambient );
 
+#if _HAVE_SWTNL
    TNL_CONTEXT(ctx)->Driver.NotifyMaterialChange( ctx );
+#endif
 
    for (i = 0 ; i < 6; i++) {
       ctx->Driver.ClipPlane( ctx, GL_CLIP_PLANE0 + i, NULL );

@@ -35,19 +35,21 @@
 #include "enums.h"
 #include "colormac.h"
 
-#include "swrast/swrast.h"
+#if _HAVE_SWTNL
 #include "array_cache/acache.h"
 #include "tnl/tnl.h"
 #include "tnl/t_pipeline.h"
+#endif
+#if _HAVE_SWRAST
+#include "swrast/swrast.h"
 #include "swrast_setup/swrast_setup.h"
-
+#endif
 
 #include "radeon_context.h"
 #include "radeon_ioctl.h"
 #include "radeon_state.h"
 #include "radeon_tcl.h"
 #include "radeon_tex.h"
-#include "radeon_swtcl.h"
 #include "radeon_vtxfmt.h"
 
 
@@ -657,6 +659,7 @@ static void radeonPolygonStipple( GLcontext *ctx, const GLubyte *mask )
 
 static void radeonPolygonMode( GLcontext *ctx, GLenum face, GLenum mode )
 {
+#if _HAVE_SWTNL
    radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
    GLboolean flag = (ctx->_TriangleCaps & DD_TRI_UNFILLED) != 0;
 
@@ -668,6 +671,7 @@ static void radeonPolygonMode( GLcontext *ctx, GLenum face, GLenum mode )
       radeonChooseRenderState( ctx );
       radeonChooseVertexState( ctx );
    }
+#endif
 }
 
 
@@ -744,12 +748,14 @@ static void radeonUpdateSpecular( GLcontext *ctx )
       rmesa->hw.tcl.cmd[TCL_LIGHT_MODEL_CTL] &= ~RADEON_LIGHTING_ENABLE;
    }
 
+#if _HAVE_SWTNL
    /* Update vertex/render formats
     */
    if (rmesa->TclFallback) { 
       radeonChooseRenderState( ctx );
       radeonChooseVertexState( ctx );
    }
+#endif
 }
 
 
@@ -1130,10 +1136,12 @@ static void radeonLightModelfv( GLcontext *ctx, GLenum pname,
 
 	 check_twoside_fallback( ctx );
 
+#if _HAVE_SWTNL
 	 if (rmesa->TclFallback) {
 	    radeonChooseRenderState( ctx );
 	    radeonChooseVertexState( ctx );
 	 }
+#endif
          break;
 
       case GL_LIGHT_MODEL_COLOR_CONTROL:
@@ -1582,10 +1590,39 @@ static void radeonDrawBuffer( GLcontext *ctx, GLenum mode )
       return;
    }
 
+   {
+      int use_back;
+
+      use_back = (rmesa->glCtx->Color._DrawDestMask == BACK_LEFT_BIT);
+      use_back ^= (rmesa->sarea->pfCurrentPage == 1);
+
+      if ( ctx->Visual.doubleBufferMode && use_back ) {
+	 rmesa->state.color.drawOffset = rmesa->radeonScreen->backOffset;
+	 rmesa->state.color.drawPitch  = rmesa->radeonScreen->backPitch;
+      } else {
+	 rmesa->state.color.drawOffset = rmesa->radeonScreen->frontOffset;
+	 rmesa->state.color.drawPitch  = rmesa->radeonScreen->frontPitch;
+      }
+
+      fprintf(stderr, "use_back %d doubleBufferMode %d COLOROFFSET %x\n",
+	      use_back,
+	      ctx->Visual.doubleBufferMode,
+	      rmesa->state.color.drawOffset);
+
+      rmesa->state.pixel.readOffset = rmesa->state.color.drawOffset;
+      rmesa->state.pixel.readPitch  = rmesa->state.color.drawPitch;
+   }
+
+#if _HAVE_SWRAST
    /* We want to update the s/w rast state too so that r200SetBuffer()
     * gets called.
     */
    _swrast_DrawBuffer(ctx, mode);
+#endif
+
+   fprintf(stderr, "%s: pfCurrentPage %d COLOROFFSET %x\n", __FUNCTION__,
+	   rmesa->sarea->pfCurrentPage,
+	   rmesa->state.color.drawOffset);
 
    RADEON_STATECHANGE( rmesa, ctx );
    rmesa->hw.ctx.cmd[CTX_RB3D_COLOROFFSET] = (rmesa->state.color.drawOffset &
@@ -1700,8 +1737,10 @@ static void radeonEnable( GLcontext *ctx, GLenum cap, GLboolean state )
 	 rmesa->hw.tcl.cmd[TCL_UCP_VERT_BLEND_CTL] &= ~RADEON_TCL_FOG_MASK;
       }
       radeonUpdateSpecular( ctx ); /* for PK_SPEC */
+#if _HAVE_SWTNL
       if (rmesa->TclFallback) 
 	 radeonChooseVertexState( ctx );
+#endif
       break;
 
    case GL_LIGHT0:
@@ -1785,7 +1824,9 @@ static void radeonEnable( GLcontext *ctx, GLenum cap, GLboolean state )
 
    case GL_POLYGON_OFFSET_POINT:
       if (rmesa->dri.drmMinor == 1) {
+#if _HAVE_SWTNL
 	 radeonChooseRenderState( ctx );
+#endif
       } 
       else {
 	 RADEON_STATECHANGE( rmesa, set );
@@ -1799,7 +1840,9 @@ static void radeonEnable( GLcontext *ctx, GLenum cap, GLboolean state )
 
    case GL_POLYGON_OFFSET_LINE:
       if (rmesa->dri.drmMinor == 1) {
+#if _HAVE_SWTNL
 	 radeonChooseRenderState( ctx );
+#endif
       } 
       else {
 	 RADEON_STATECHANGE( rmesa, set );
@@ -1813,7 +1856,9 @@ static void radeonEnable( GLcontext *ctx, GLenum cap, GLboolean state )
 
    case GL_POLYGON_OFFSET_FILL:
       if (rmesa->dri.drmMinor == 1) {
+#if _HAVE_SWTNL
 	 radeonChooseRenderState( ctx );
+#endif
       } 
       else {
 	 RADEON_STATECHANGE( rmesa, set );
@@ -2058,15 +2103,20 @@ void radeonValidateState( GLcontext *ctx )
 
 static void radeonInvalidateState( GLcontext *ctx, GLuint new_state )
 {
+#if _HAVE_SWRAST
    _swrast_InvalidateState( ctx, new_state );
    _swsetup_InvalidateState( ctx, new_state );
+#endif
+#if _HAVE_SWTNL
    _ac_InvalidateState( ctx, new_state );
    _tnl_InvalidateState( ctx, new_state );
+#endif
    _ae_invalidate_state( ctx, new_state );
    RADEON_CONTEXT(ctx)->NewGLState |= new_state;
    radeonVtxfmtInvalidate( ctx );
 }
 
+#if _HAVE_SWTNL
 static void radeonWrapRunPipeline( GLcontext *ctx )
 {
    radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
@@ -2093,7 +2143,7 @@ static void radeonWrapRunPipeline( GLcontext *ctx )
       radeonUpdateMaterial( ctx ); /* not needed any more? */
    }
 }
-
+#endif
 
 
 
@@ -2145,6 +2195,7 @@ void radeonInitStateFuncs( GLcontext *ctx )
    ctx->Driver.StencilOp		= radeonStencilOp;
    ctx->Driver.Viewport			= radeonViewport;
 
+#if _HAVE_SWRAST
    /* Pixel path fallbacks
     */
    ctx->Driver.Accum                    = _swrast_Accum;
@@ -2159,7 +2210,10 @@ void radeonInitStateFuncs( GLcontext *ctx )
    ctx->Driver.CopyColorSubTable	= _swrast_CopyColorSubTable;
    ctx->Driver.CopyConvolutionFilter1D	= _swrast_CopyConvolutionFilter1D;
    ctx->Driver.CopyConvolutionFilter2D	= _swrast_CopyConvolutionFilter2D;
+#endif
 
+#if _HAVE_SWTNL
    TNL_CONTEXT(ctx)->Driver.NotifyMaterialChange = radeonUpdateMaterial;
    TNL_CONTEXT(ctx)->Driver.RunPipeline = radeonWrapRunPipeline;
+#endif
 }

@@ -62,5 +62,18 @@ extern void radeonTclFallback( GLcontext *ctx, GLuint bit, GLboolean mode );
 #define TCL_FALLBACK( ctx, bit, mode )	radeonTclFallback( ctx, bit, mode )
 
 
+#if !_HAVE_SWTNL
+
+#define PRIM_MODE_MASK  0xff   /* Extract the actual primitive */
+#define PRIM_BEGIN      0x100  /* The prim starts here (not wrapped) */
+#define PRIM_END        0x200  /* The prim ends in this VB (does not wrap) */
+#define PRIM_PARITY     0x400  /* The prim wrapped on an odd number of verts */
+#define PRIM_LAST       0x800  /* No more prims in the VB */
+
+typedef void (*render_func)( GLcontext *ctx, GLuint start, GLuint count,
+			     GLuint flags );
+
+#endif
+
 #endif
 #endif

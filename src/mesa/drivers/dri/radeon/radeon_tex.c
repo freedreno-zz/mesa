@@ -42,10 +42,11 @@
 #include "radeon_context.h"
 #include "radeon_state.h"
 #include "radeon_ioctl.h"
-#include "radeon_swtcl.h"
 #include "radeon_tex.h"
 
-
+#if _HAVE_SWTNL
+#include "radeon_swtcl.h"
+#endif
 
 /* =============================================================
  * Utility functions:
@@ -668,11 +669,14 @@ void radeonInitTextureFuncs( GLcontext *ctx )
    ctx->Driver.TexSubImage1D		= radeonTexSubImage1D;
    ctx->Driver.TexSubImage2D		= radeonTexSubImage2D;
    ctx->Driver.TexSubImage3D		= _mesa_store_texsubimage3d;
+#if _HAVE_SWRAST
+   /* XXX */
    ctx->Driver.CopyTexImage1D		= _swrast_copy_teximage1d;
    ctx->Driver.CopyTexImage2D		= _swrast_copy_teximage2d;
    ctx->Driver.CopyTexSubImage1D	= _swrast_copy_texsubimage1d;
    ctx->Driver.CopyTexSubImage2D	= _swrast_copy_texsubimage2d;
    ctx->Driver.CopyTexSubImage3D 	= _swrast_copy_texsubimage3d;
+#endif
    ctx->Driver.TestProxyTexImage	= _mesa_test_proxy_teximage;
 
    ctx->Driver.BindTexture		= radeonBindTexture;

@@ -46,9 +46,12 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "radeon_context.h"
 #include "radeon_state.h"
 #include "radeon_ioctl.h"
-#include "radeon_swtcl.h"
 #include "radeon_tex.h"
 #include "radeon_tcl.h"
+
+#if _HAVE_SWTNL
+#include "radeon_swtcl.h"
+#endif
 
 
 static void radeonSetTexImages( radeonContextPtr rmesa,
@@ -1402,6 +1405,8 @@ void radeonUpdateTextureState( GLcontext *ctx )
 
    FALLBACK( rmesa, RADEON_FALLBACK_TEXTURE, !ok );
 
+#if _HAVE_SWTNL
    if (rmesa->TclFallback)
       radeonChooseVertexState( ctx );
+#endif
 }

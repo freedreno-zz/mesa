@@ -46,9 +46,11 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "state.h"
 #include "vtxfmt.h"
 
+#if _HAVE_SWTNL
 #include "tnl/tnl.h"
 #include "tnl/t_context.h"
 #include "tnl/t_array_api.h"
+#endif
 
 #include "radeon_context.h"
 #include "radeon_state.h"
@@ -329,6 +331,7 @@ static GLuint copy_dma_verts( radeonContextPtr rmesa, GLfloat (*tmp)[15] )
 
 static void VFMT_FALLBACK_OUTSIDE_BEGIN_END( const char *caller )
 {
+#if _HAVE_SWTNL
    GLcontext *ctx = vb.context;
    radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
 
@@ -347,11 +350,15 @@ static void VFMT_FALLBACK_OUTSIDE_BEGIN_END( const char *caller )
    rmesa->vb.fell_back = GL_TRUE;
    rmesa->vb.installed = GL_FALSE;
    vb.context = 0;
+#else
+   fprintf(stderr, "Warning: control reached %s\n", __FUNCTION__);
+#endif
 }
 
 
 static void VFMT_FALLBACK( const char *caller )
 {
+#if _HAVE_SWTNL
    GLcontext *ctx = vb.context;
    radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
    GLfloat tmp[3][15];
@@ -460,6 +467,9 @@ static void VFMT_FALLBACK( const char *caller )
 
    if (ind & RADEON_CP_VC_FRMT_ST1) 
       glMultiTexCoord2fvARB( GL_TEXTURE1_ARB, vb.texcoordptr[1] );
+#else
+   fprintf(stderr, "Warning: control reached %s\n", __FUNCTION__);
+#endif
 }
 
 
@@ -738,6 +748,9 @@ static void radeonVtxfmtValidate( GLcontext *ctx )
 	 fprintf(stderr, "%s: already installed", __FUNCTION__);
    } 
    else {
+#if !_HAVE_SWTNL
+      assert(0);
+#else
       if (RADEON_DEBUG & DEBUG_VFMT)
 	 fprintf(stderr, "%s: failed\n", __FUNCTION__);
 
@@ -748,6 +761,7 @@ static void radeonVtxfmtValidate( GLcontext *ctx )
 	 rmesa->vb.installed = GL_FALSE;
 	 vb.context = 0;
       }
+#endif
    }      
 }
 
@@ -871,7 +885,7 @@ do {						\
 #include "vtxfmt_tmp.h"
 
 
-
+#if _HAVE_SWTNL
 static GLboolean radeonNotifyBegin( GLcontext *ctx, GLenum p )
 {
    radeonContextPtr rmesa = RADEON_CONTEXT( ctx );
@@ -902,6 +916,7 @@ static GLboolean radeonNotifyBegin( GLcontext *ctx, GLenum p )
    radeon_Begin( p );
    return GL_TRUE;
 }
+#endif
 
 static void radeonFlushVertices( GLcontext *ctx, GLuint flags )
 {
@@ -1002,7 +1017,9 @@ void radeonVtxfmtInit( GLcontext *ctx )
 
    (void)radeon_fallback_vtxfmt;
 
+#if _HAVE_SWTNL
    TNL_CONTEXT(ctx)->Driver.NotifyBegin = radeonNotifyBegin;
+#endif
 
    vb.context = ctx;
    rmesa->vb.enabled = 1;
@@ -1037,6 +1054,12 @@ void radeonVtxfmtInit( GLcontext *ctx )
    make_empty_list( &rmesa->vb.dfn_cache.MultiTexCoord1fvARB );
 
    radeonInitCodegen( &rmesa->vb.codegen );
+
+#if !_HAVE_SWTNL
+   ctx->Driver.CurrentExecPrimitive = PRIM_OUTSIDE_BEGIN_END;
+   radeonVtxfmtValidate( ctx );
+   assert( rmesa->vb.installed );
+#endif
 }
 
 static void free_funcs( struct dynfn *l )
@@ -1051,19 +1074,19 @@ static void free_funcs( struct dynfn *l )
 
 void radeonVtxfmtUnbindContext( GLcontext *ctx )
 {
+#if _HAVE_SWTNL
    if (RADEON_CONTEXT(ctx)->vb.installed) {
       assert(vb.context == ctx);
       VFMT_FALLBACK_OUTSIDE_BEGIN_END( __FUNCTION__ );
    }
 
    TNL_CONTEXT(ctx)->Driver.NotifyBegin = 0;
+#endif
 }
 
 
 void radeonVtxfmtMakeCurrent( GLcontext *ctx )
 {
-   radeonContextPtr rmesa = RADEON_CONTEXT( ctx );
-
 #if defined(THREADS)
    static GLboolean ThreadSafe = GL_FALSE;  /* In thread-safe mode? */
    if (!ThreadSafe) {
@@ -1084,9 +1107,11 @@ void radeonVtxfmtMakeCurrent( GLcontext *ctx )
       return;
 #endif
 
-   if (rmesa->vb.enabled) {
+#if _HAVE_SWTNL
+   if (RADEON_CONTEXT(ctx)->vb.enabled) {
       TNL_CONTEXT(ctx)->Driver.NotifyBegin = radeonNotifyBegin;
    }
+#endif
 }
 
 

@@ -1,4 +1,4 @@
-
+#if _HAVE_SWTNL
 
 /* If using new packets, can choose either verts or arrays.
  * Otherwise, must use verts.
@@ -9,4 +9,6 @@
 #include "radeon_maos_verts.c"
 #else
 #include "radeon_maos_arrays.c"
+#endif
+
 #endif
