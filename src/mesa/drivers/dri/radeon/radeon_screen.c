@@ -188,6 +188,7 @@ radeonScreenPtr radeonCreateScreen( __DRIscreenPrivate *sPriv )
    radeonScreen->scratch = (__volatile__ GLuint *)
       ((GLubyte *)radeonScreen->status.map + RADEON_SCRATCH_REG_OFFSET);
 
+#if !_HAVE_FULL_GL
    radeonScreen->buffers = drmMapBufs( sPriv->fd );
    if ( !radeonScreen->buffers ) {
       drmUnmap( radeonScreen->status.map, radeonScreen->status.size );
@@ -204,7 +205,8 @@ radeonScreenPtr radeonCreateScreen( __DRIscreenPrivate *sPriv )
 		   radeonScreen->agpTextures.handle,
 		   radeonScreen->agpTextures.size,
 		   (drmAddressPtr)&radeonScreen->agpTextures.map ) ) {
-	 drmUnmapBufs( radeonScreen->buffers );
+	 if (radeonScreen->buffers)
+	    drmUnmapBufs( radeonScreen->buffers ); 
 	 drmUnmap( radeonScreen->status.map, radeonScreen->status.size );
 	 drmUnmap( radeonScreen->mmio.map, radeonScreen->mmio.size );
 	 FREE( radeonScreen );
@@ -212,6 +214,7 @@ radeonScreenPtr radeonCreateScreen( __DRIscreenPrivate *sPriv )
 	 return NULL;
       }
    }
+#endif
 
    radeonScreen->chipset = 0;
    switch ( radeonDRIPriv->deviceID ) {
@@ -280,11 +283,12 @@ void radeonDestroyScreen( __DRIscreenPrivate *sPriv )
    if (!radeonScreen)
       return;
 
-   if ( !radeonScreen->IsPCI ) {
+   if ( radeonScreen->agpTextures.map ) {
       drmUnmap( radeonScreen->agpTextures.map,
 		radeonScreen->agpTextures.size );
    }
-   drmUnmapBufs( radeonScreen->buffers );
+   if (radeonScreen->buffers)
+      drmUnmapBufs( radeonScreen->buffers ); 
    drmUnmap( radeonScreen->status.map, radeonScreen->status.size );
    drmUnmap( radeonScreen->mmio.map, radeonScreen->mmio.size );
 

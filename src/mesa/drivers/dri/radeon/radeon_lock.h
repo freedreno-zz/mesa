@@ -90,8 +90,6 @@ extern int prevLockLine;
    do {								\
       char __ret = 0;						\
       DEBUG_CHECK_LOCK();					\
-      if (0 && !rmesa->radeonScreen->buffers) \
-          fprintf(stderr, "LOCK_HARDWARE in %s -- no buffers\n", __FUNCTION__); \
       DRM_CAS( rmesa->dri.hwLock, rmesa->dri.hwContext,		\
 	       (DRM_LOCK_HELD | rmesa->dri.hwContext), __ret );	\
       if ( __ret )						\

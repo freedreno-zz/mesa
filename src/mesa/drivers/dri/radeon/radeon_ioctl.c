@@ -1249,6 +1249,10 @@ void radeonFlush( GLcontext *ctx )
 void radeonFinish( GLcontext *ctx )
 {
    radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
+
+   if (!rmesa->radeonScreen->buffers)
+      return;
+
    radeonFlush( ctx );
 
    if (rmesa->do_irqs) {

@@ -81,6 +81,7 @@ int RADEON_DEBUG = (0);
 static void radeonGetBufferSize( GLframebuffer *buffer,
 				 GLuint *width, GLuint *height )
 {
+#if _HAVE_FULL_GL
    GET_CURRENT_CONTEXT(ctx);
    radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
 
@@ -88,6 +89,7 @@ static void radeonGetBufferSize( GLframebuffer *buffer,
    *width  = rmesa->dri.drawable->w;
    *height = rmesa->dri.drawable->h;
    UNLOCK_HARDWARE( rmesa );
+#endif
 }
 
 /**
