@@ -1,4 +1,4 @@
-/* $Id: miniglx.c,v 1.1.4.20 2002/12/20 19:41:41 jrfonseca Exp $ */
+/* $Id: miniglx.c,v 1.1.4.21 2002/12/21 02:47:26 jrfonseca Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -50,6 +50,8 @@
  * - Mini GLX Specification, Tungsten Graphics, Inc.
  * - OpenGL Graphics with the X Window System, Silicon Graphics, Inc.,
  *   ftp://ftp.sgi.com/opengl/doc/opengl1.2/glx1.3.ps
+ * - Xlib - C Language X Interface, X Consortium Standard, X Version 11,
+ *   Release 6.4, ftp://ftp.x.org/pub/R6.4/xc/doc/hardcopy/X11/xlib.PS.gz
  * - XFree86 Man pages, The XFree86 Project, Inc.,
  *   http://www.xfree86.org/current/manindex3.html
  *  
@@ -114,16 +116,23 @@
 
 
 
+/**
+ * \brief Current GLX context.
+ *
+ * \sa glXGetCurrentContext().
+ */
 static GLXContext CurrentContext = NULL;
 
 
 /**********************************************************************/
-/* FBdev functions                                                    */
+/** \name FBdev functions                                             */
 /**********************************************************************/
+/*@{*/
 
-
-/*
- * Do first part of setting up fbdev.  This is called during XOpenDisplay().
+/**
+ * \brief Do first part of setting up fbdev.
+ *
+ * This is called during XOpenDisplay().
  */
 static GLboolean
 OpenFBDev( Display *dpy )
@@ -222,10 +231,10 @@ OpenFBDev( Display *dpy )
 }
 
 
-
-/*
- * Setup up our desired fbdev framebuffer mode.  This is called during
- * XCreateWindow.
+/**
+ * \brief Setup up our desired fbdev framebuffer mode.  
+ *
+ * This is called during XCreateWindow().
  */
 static GLboolean
 SetupFBDev( Display *dpy, Window win )
@@ -406,9 +415,9 @@ SetupFBDev( Display *dpy, Window win )
 }
 
 
-
-/*
- * Restore framebuffer to state it was in before we started.
+/**
+ * \brief Restore framebuffer to state it was in before we started.
+ * 
  * Called from XDestroyWindow().
  */
 static GLboolean
@@ -425,9 +434,10 @@ RestoreFBDev( Display *dpy )
 }
 
 
-
-/*
- * Close FBDev.  Called from XCloseDisplay().
+/**
+ * \brief Close FBDev.  
+ *
+ * Called from XCloseDisplay().
  */
 static void
 CleanupFBDev( Display *dpy )
@@ -456,10 +466,13 @@ CleanupFBDev( Display *dpy )
    close(dpy->ConsoleFD);
 }
 
+/*@}*/
+
 
 /**********************************************************************/
-/* Misc functions needed for DRI drivers                              */
+/** \name Misc functions needed for DRI drivers                       */
 /**********************************************************************/
+/*@{*/
 
 __DRIscreen *
 __glXFindDRIScreen(Display *dpy, int scrn)
@@ -520,11 +533,13 @@ InitializeScreenConfigs(int *numConfigs, __GLXvisualConfig **configs)
    }
 }
 
+/*@}*/
+
 
 /**********************************************************************/
-/* Public API functions (Xlib and GLX)                                */
+/** \name Public API functions (Xlib and GLX)                         */
 /**********************************************************************/
-
+/*@{*/
 
 /* Replace with a config file read at runtime, eventually...
  */
@@ -648,11 +663,11 @@ XCloseDisplay( Display *display )
  * screen height such as 768 or 1024.
  * \param border_width This parameter should be zero.
  * \param depth the window pixel depth. For Mini GLX this should be the depth
- * found in the #XVisualInfo object returned by glxChooseVisual() 
+ * found in the #XVisualInfo object returned by glXChooseVisual() 
  * \param class the window class. For Mini GLX this value should be
  * #InputOutput.
  * \param visual the visual type. It should be the visual field of the
- * #XVisualInfo object returned by glxChooseVisual().
+ * #XVisualInfo object returned by glXChooseVisual().
  * \param valuemask which fields of the XSetWindowAttributes() are to be used.
  * For Mini GLX this is typically the bitmask 
  * \code CWBackPixel | CWBorderPixel | CWColormap \endcode
@@ -829,7 +844,7 @@ XMapWindow( Display *display, Window w )
  * \param dpy The display handle as returned by XOpenDisplay().
  * \param w the window on whose screen you want to create a colormap. This
  * parameter is ignored by Mini GLX but should be the value returned by the
- * RootWindow(dpy, 0) macro.
+ * \code RootWindow(display, 0) \endcode macro.
  * \param visual a visual type supported on the screen. This parameter is
  * ignored by Mini GLX but should be the XVisualInfo::visual returned by
  * glXChooseVisual().
@@ -1431,3 +1446,4 @@ glXQueryVersion( Display *dpy, int *major, int *minor )
    *minor = 0;
 }
 
+/*@}*/
