@@ -1,4 +1,4 @@
-# $Id: Makefile.X11,v 1.56.2.8 2002/04/26 13:57:15 brianp Exp $
+# $Id: Makefile.X11,v 1.56.2.9 2002/05/05 15:57:09 brianp Exp $
 
 # Mesa 3-D graphics library
 # Version:  4.0.3
@@ -87,6 +87,7 @@ default:
 	@echo "  make linux-sparc-ultra    for UltraSparc systems, make ELF shared libs"
 	@echo "  make linux-osmesa16       for 16-bit/channel OSMesa"
 	@echo "  make linux-osmesa32       for 32-bit/channel OSMesa"
+	@echo "  make linux-icc            for Linux with the Intel C/C++ compiler"
 	@echo "  make lynxos               for LynxOS systems with GCC"
 	@echo "  make macintosh            for Macintosh"
 	@echo "  make machten-2.2          for Macs w/ MachTen 2.2 (68k w/ FPU)"
@@ -143,7 +144,7 @@ hpux9 hpux9-sl hpux9-gcc hpux9-gcc-sl \
 hpux10 hpux10-sl hpux10-gcc hpux10-gcc-sl \
 irix4 irix5 irix5-gcc irix5-dso \
 linux linux-static linux-debug linux-x11-debug linux-static-debug linux-prof \
-linux-x86 linux-x86-static linux-x86-debug \
+linux-x86 linux-icc linux-x86-static linux-x86-debug \
 linux-glide linux-386-glide linux-386-opt-glide \
 linux-x86-glide linux-glide-debug linux-glide-prof \
 linux-alpha-static linux-alpha \
