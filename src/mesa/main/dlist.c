@@ -1,4 +1,4 @@
-/* $Id: dlist.c,v 1.15.2.1 2000/01/24 16:20:17 brianp Exp $ */
+/* $Id: dlist.c,v 1.15.2.2 2000/07/10 13:04:53 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -2522,7 +2522,7 @@ static void execute_list( GLcontext *ctx, GLuint list )
             break;
          case OPCODE_VERTEX_CASSETTE: {
 	    struct immediate *IM;
-
+	    
 	    if (ctx->NewState)
 	       gl_update_state(ctx);
 	    if (ctx->CompileCVAFlag) {
@@ -2868,6 +2868,7 @@ static void execute_list( GLcontext *ctx, GLuint list )
 	    break;
          case OPCODE_RECTF:
             gl_Rectf( ctx, n[1].f, n[2].f, n[3].f, n[4].f );
+ 	    FLUSH_VB( ctx, "dlist rectf");
             break;
          case OPCODE_SCALE:
             gl_Scalef( ctx, n[1].f, n[2].f, n[3].f );
@@ -3260,9 +3261,6 @@ void gl_CallLists( GLcontext *ctx,
    /* also restore API function pointers to point to "save" versions */
    if (save_compile_flag)
            ctx->API = ctx->Save;
-
-
-/*    RESET_IMMEDIATE( ctx ); */
 }
 
 
