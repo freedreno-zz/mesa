@@ -1,4 +1,4 @@
-/* $Id: texformat.h,v 1.7 2001/06/15 14:18:46 brianp Exp $ */
+/* $Id: texformat.h,v 1.7.2.1 2002/06/08 12:43:40 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -70,7 +70,7 @@ enum _format {
     *
     * NOTE: Because these are based on the GLchan datatype, one cannot
     * assume 8 bits per channel with these formats.  If you require
-    * GLubyte per channel, use one of the hardware formats below.
+    * GLubyte per channel, use one of the hardware formats above.
     */
    MESA_FORMAT_RGBA,
    MESA_FORMAT_RGB,
