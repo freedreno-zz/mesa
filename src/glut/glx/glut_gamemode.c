@@ -158,7 +158,7 @@ findMatch(DisplayMode * dmodes, int ndmodes,
 {
   DisplayMode *found;
   int *bestScore, *thisScore;
-  int i, j, numok, result, worse, better;
+  int i, j, numok, result = 0, worse, better;
 
   found = NULL;
   numok = 1;            /* "num" capability is indexed from 1,
@@ -382,7 +382,7 @@ static int
 parseCriteria(char *word, Criterion * criterion)
 {
   char *cstr, *vstr, *response;
-  int comparator, value;
+  int comparator, value = 0;
 
   cstr = strpbrk(word, "=><!~");
   if (cstr) {

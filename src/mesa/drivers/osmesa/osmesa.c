@@ -1,4 +1,4 @@
-/* $Id: osmesa.c,v 1.19.4.1 2000/09/28 22:39:42 brianp Exp $ */
+/* $Id: osmesa.c,v 1.19.4.2 2000/11/10 17:17:20 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -103,7 +103,7 @@ OSMesaCreateContext( GLenum format, OSMesaContext sharelist )
    OSMesaContext osmesa;
    GLint rshift, gshift, bshift, ashift;
    GLint rind, gind, bind;
-   GLint indexBits, alphaBits;
+   GLint indexBits, alphaBits = 0;
    GLboolean rgbmode;
    GLboolean swalpha;
    GLuint i4 = 1;
