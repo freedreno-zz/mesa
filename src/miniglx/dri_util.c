@@ -1,37 +1,3 @@
-/* $XFree86$ */
-/**************************************************************************
-
-Copyright 1998-1999 Precision Insight, Inc., Cedar Park, Texas.
-All Rights Reserved.
-
-Permission is hereby granted, free of charge, to any person obtaining a
-copy of this software and associated documentation files (the
-"Software"), to deal in the Software without restriction, including
-without limitation the rights to use, copy, modify, merge, publish,
-distribute, sub license, and/or sell copies of the Software, and to
-permit persons to whom the Software is furnished to do so, subject to
-the following conditions:
-
-The above copyright notice and this permission notice (including the
-next paragraph) shall be included in all copies or substantial portions
-of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
-OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
-IN NO EVENT SHALL PRECISION INSIGHT AND/OR ITS SUPPLIERS BE LIABLE FOR
-ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-**************************************************************************/
-
-/*
- * Authors:
- *   Kevin E. Martin <kevin@precisioninsight.com>
- *   Brian E. Paul <brian@precisioninsight.com>
- */
-
 
 
 #include <assert.h>
@@ -52,82 +18,9 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 
-
-
-static void XF86DRIGetClientDriverName(Display* dpy,
-				       int screen,
-				       int* ddxDriverMajorVersion,
-				       int* ddxDriverMinorVersion,
-				       int* ddxDriverPatchVersion,
-				       char** clientDriverName)
-{
-    *ddxDriverMajorVersion = 4;
-    *ddxDriverMinorVersion = 0;
-    *ddxDriverPatchVersion = 1;
-
-    fprintf(stderr, "accel: %d\n", dpy->FixedInfo.accel);
-
-    switch (dpy->FixedInfo.accel) {
-/*     case FB_ACCEL_ATI_RADEON: */
-/*        *clientDriverName = strdup("radeon"); */
-/*        break; */
-
-    default:
-       *clientDriverName = strdup("fb");
-       break;
-    }
-}
-
-
-
-
-/* KW: this looks like a reasonable place to hook in the
- *     hardware init lifted from the 2d driver.
- */
-Bool XF86DRIGetDeviceInfo(dpy, screen, hFrameBuffer, 
-	fbOrigin, fbSize, fbStride, devPrivateSize, pDevPrivate)
-    Display* dpy;
-    int screen;
-    drmHandlePtr hFrameBuffer;
-    int* fbOrigin;
-    int* fbSize;
-    int* fbStride;
-    int* devPrivateSize;
-    void** pDevPrivate;
-{
-#if 0
-    DRIScreenPrivPtr pDRIPriv = DRI_SCREEN_PRIV(pScreen);
-
-    *hFrameBuffer = pDRIPriv->hFrameBuffer;
-    *fbOrigin = 0;
-    *fbSize = pDRIPriv->pDriverInfo->frameBufferSize;
-    *fbStride = pDRIPriv->pDriverInfo->frameBufferStride;
-    *devPrivateSize = 0;
-    *pDevPrivate = 0;
-#else
-    /* typical observed values: */
-    *hFrameBuffer = 0xd0000000;
-    *fbOrigin = 0;  /* unused? */
-    *fbSize = 128 * 1024 * 1024; /* needed for drmMap/Unmap */
-    *fbStride = 1600 * 4;   /* unused? */
-    *devPrivateSize = 100;  /* unused? */
-    *pDevPrivate = calloc(1, *devPrivateSize); /* pointer to RADEONDRIRec */
-#endif
-
-    return True;
-}
-
-
-
-
-/* forward declarations */
-static void driDestroyDrawable(Display *dpy, void *drawablePrivate);
-
-
-
-
 /*
 ** Print message to stderr if LIBGL_DEBUG env var is set.
+** (Called from drivers)
 */
 void
 __driUtilMessage(const char *f, ...)
@@ -142,6 +35,74 @@ __driUtilMessage(const char *f, ...)
         fprintf(stderr, "\n");
     }
 }
+
+
+static void GetClientDriverName(Display* dpy,
+				int screen,
+				int* ddxDriverMajorVersion,
+				int* ddxDriverMinorVersion,
+				int* ddxDriverPatchVersion,
+				char** clientDriverName)
+{
+    *ddxDriverMajorVersion = 4;
+    *ddxDriverMinorVersion = 0;
+    *ddxDriverPatchVersion = 1;
+
+    fprintf(stderr, "accel: %d\n", dpy->FixedInfo.accel);
+
+    switch (dpy->FixedInfo.accel) {
+/*     case FB_ACCEL_ATI_RADEON: */
+/*        *clientDriverName = "radeon"; */
+/*        break; */
+
+    default:
+       *clientDriverName = "radeon"; 
+       *clientDriverName = "fb";
+       break;
+    }
+}
+
+
+
+
+/* KW: this looks like a reasonable place to hook in the
+ *     hardware init lifted from the 2d driver.
+ */
+static void GetDeviceInfo(Display* dpy,
+			  int screen,
+			  drmHandlePtr hFrameBuffer,
+			  int* fbOrigin,
+			  int* fbSize,
+			  int* fbStride,
+			  int* devPrivateSize,
+			  void** pDevPrivate)
+{
+#if 0
+    DRIScreenPrivPtr pDRIPriv = DRI_SCREEN_PRIV(pScreen);
+
+    *hFrameBuffer = pDRIPriv->hFrameBuffer;
+    *fbOrigin = 0;
+    *fbSize = pDRIPriv->pDriverInfo->frameBufferSize;
+    *fbStride = pDRIPriv->pDriverInfo->frameBufferStride;
+    *devPrivateSize = 0;
+    *pDevPrivate = 0;
+#else
+    /* typical observed values: */
+    *hFrameBuffer = 0xd0000000;
+    *fbOrigin = 0;  /* duplicates values in pDevPriv on radeon */
+    *fbSize = 128 * 1024 * 1024; /* needed for drmMap/Unmap */
+    *fbStride = 1600 * 4;   /* ? */
+    *devPrivateSize = 100;  /* RADEONDRIRec from Xserver */
+    *pDevPrivate = calloc(1, *devPrivateSize); /* pointer to RADEONDRIRec */
+#endif
+}
+
+
+
+
+
+
+
 
 
 /*****************************************************************/
@@ -336,6 +297,21 @@ static void driSwapBuffers( Display *dpy, void *drawablePrivate )
 }
 
 
+static void driDestroyDrawable(Display *dpy, void *drawablePrivate)
+{
+    __DRIdrawablePrivate *pdp = (__DRIdrawablePrivate *) drawablePrivate;
+    __DRIscreenPrivate *psp = pdp->driScreenPriv;
+    int scrn = psp->myNum;
+
+    if (pdp) {
+        (*psp->DriverAPI.DestroyBuffer)(pdp);
+	if (pdp->pClipRects)
+	    free(pdp->pClipRects);
+	free(pdp);
+    }
+}
+
+
 static void *driCreateDrawable(Display *dpy, int scrn,
                                      GLXDrawable draw,
                                      VisualID vid, __DRIdrawable *pdraw)
@@ -399,29 +375,9 @@ static void *driCreateDrawable(Display *dpy, int scrn,
 static __DRIdrawable *driGetDrawable(Display *dpy, GLXDrawable draw,
 					 void *screenPrivate)
 {
-    __DRIscreenPrivate *psp = (__DRIscreenPrivate *) screenPrivate;
-
-    /*
-    ** Make sure this routine returns NULL if the drawable is not bound
-    ** to a direct rendering context!
-    */
-/*     return __driFindDrawable(psp->drawHash, draw); */
     return &draw->driDrawable;
 }
 
-static void driDestroyDrawable(Display *dpy, void *drawablePrivate)
-{
-    __DRIdrawablePrivate *pdp = (__DRIdrawablePrivate *) drawablePrivate;
-    __DRIscreenPrivate *psp = pdp->driScreenPriv;
-    int scrn = psp->myNum;
-
-    if (pdp) {
-        (*psp->DriverAPI.DestroyBuffer)(pdp);
-	if (pdp->pClipRects)
-	    free(pdp->pClipRects);
-	free(pdp);
-    }
-}
 
 /*****************************************************************/
 
@@ -432,13 +388,6 @@ static void driDestroyContext(Display *dpy, int scrn, void *contextPrivate)
     __DRIdrawablePrivate *pdp;
 
     if (pcp) {
-  	if ((pdp = pcp->driDrawablePriv)) {
- 	    /* Shut down fullscreen mode */
- 	    if ((psp = pdp->driScreenPriv) && psp->fullscreen) {
- 		psp->DriverAPI.CloseFullScreen(pcp);
- 		psp->fullscreen = NULL;
- 	    }
-	}
 	(*pcp->driScreenPriv->DriverAPI.DestroyContext)(pcp);
         psp = pcp->driDrawablePriv->driScreenPriv;
 	if (psp->fd) {
@@ -532,7 +481,7 @@ static void driDestroyScreen(Display *dpy, int scrn, void *screenPrivate)
 
 
 __DRIscreenPrivate *
-__driUtilCreateScreen_drm(Display *dpy, int scrn, __DRIscreen *psc,
+__driUtilCreateScreen(Display *dpy, int scrn, __DRIscreen *psc,
                       int numConfigs, __GLXvisualConfig *config,
                       const struct __DriverAPIRec *driverAPI)
 {
@@ -592,11 +541,11 @@ __driUtilCreateScreen_drm(Display *dpy, int scrn, __DRIscreen *psc,
     * We'll check the version in each DRI driver's "createScreen"
     * function.
     */
-   XF86DRIGetClientDriverName(dpy, scrn,
-			      &psp->ddxMajor,
-			      &psp->ddxMinor,
-			      &psp->ddxPatch,
-			      &driverName);
+   GetClientDriverName(dpy, scrn,
+		       &psp->ddxMajor,
+		       &psp->ddxMinor,
+		       &psp->ddxPatch,
+		       &driverName);
 
    /*
     * Fake the DRI X extension version. 
@@ -616,19 +565,14 @@ __driUtilCreateScreen_drm(Display *dpy, int scrn, __DRIscreen *psc,
     * that has information about the screen size, depth, pitch,
     * ancilliary buffers, DRM mmap handles, etc.
     */
-   if (!XF86DRIGetDeviceInfo(dpy, scrn,
-			     &hFB,
-			     &psp->fbOrigin,
-			     &psp->fbSize,
-			     &psp->fbStride,
-			     &psp->devPrivSize,
-			     &psp->pDevPriv)) {
-      fprintf(stderr, "libGL error: XF86DRIGetDeviceInfo failed\n");
-      (void)drmClose(psp->fd);
-      free(psp);
-      return NULL;
-   }
-
+   GetDeviceInfo(dpy, scrn,
+		 &hFB,
+		 &psp->fbOrigin,
+		 &psp->fbSize,
+		 &psp->fbStride,
+		 &psp->devPrivSize,
+		 &psp->pDevPriv);
+   
    psp->fbWidth = dpy->VarInfo.xres;
    psp->fbHeight = dpy->VarInfo.yres;
    psp->fbBPP = dpy->VarInfo.bits_per_pixel;
@@ -689,9 +633,9 @@ __driUtilCreateScreen_drm(Display *dpy, int scrn, __DRIscreen *psc,
 /* Version for drivers without a drm module:
  */
 __DRIscreenPrivate *
-__driUtilCreateScreen(Display *dpy, int scrn, __DRIscreen *psc,
-		      int numConfigs, __GLXvisualConfig *config,
-		      const struct __DriverAPIRec *driverAPI)
+__driUtilCreateScreenNoDRM(Display *dpy, int scrn, __DRIscreen *psc,
+			   int numConfigs, __GLXvisualConfig *config,
+			   const struct __DriverAPIRec *driverAPI)
 {
     __DRIscreenPrivate *psp;
     char *driverName;
@@ -707,11 +651,11 @@ __driUtilCreateScreen(Display *dpy, int scrn, __DRIscreen *psc,
      * We'll check the version in each DRI driver's "createScreen"
      * function.
      */
-    XF86DRIGetClientDriverName(dpy, scrn,
-			       &psp->ddxMajor,
-			       &psp->ddxMinor,
-			       &psp->ddxPatch,
-			       &driverName);
+    GetClientDriverName(dpy, scrn,
+			&psp->ddxMajor,
+			&psp->ddxMinor,
+			&psp->ddxPatch,
+			&driverName);
 
     /* Screen private information -- yet another duplicate of
      * fbdev info.

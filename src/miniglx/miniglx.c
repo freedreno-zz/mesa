@@ -1,4 +1,4 @@
-/* $Id: miniglx.c,v 1.1.4.12 2002/12/13 15:18:09 keithw Exp $ */
+/* $Id: miniglx.c,v 1.1.4.13 2002/12/16 13:40:46 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -27,13 +27,6 @@
 
 /*
  * *PROTOTYPE* mini-GLX interface, layered on fbdev.
- *
- * NOTE!!!!
- * This driver has two distinct personalities:
- *   1. a software-based Mesa driver
- *             ==> Turn this into a demonstration dri driver.  Moved
- *             to miniglx_standalone.c
- *   2. a DRI driver loader
  *
  */
 
@@ -549,7 +542,6 @@ XOpenDisplay( const char *display_name )
       return NULL;
    }
 
-#if 1
    /* this effectively initializes the DRI driver - just an idea */
    dpy->driScreen.private = (*dpy->createScreen)(dpy, 0, &(dpy->driScreen),
                                                  dpy->numConfigs,
@@ -558,7 +550,6 @@ XOpenDisplay( const char *display_name )
       FREE(dpy);
       return NULL;
    }
-#endif
 
    return dpy;
 }

@@ -370,6 +370,11 @@ __driUtilCreateScreen(Display *dpy, int scrn, __DRIscreen *psc,
                       int numConfigs, __GLXvisualConfig *config,
                       const struct __DriverAPIRec *driverAPI);
 
+__DRIscreenPrivate *
+__driUtilCreateScreenNoDRM(Display *dpy, int scrn, __DRIscreen *psc,
+			   int numConfigs, __GLXvisualConfig *config,
+			   const struct __DriverAPIRec *driverAPI);
+
 /* This must be implemented in each driver */
 extern void *
 __driCreateScreen(Display *dpy, int scrn, __DRIscreen *psc,
