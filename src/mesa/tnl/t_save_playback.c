@@ -55,8 +55,6 @@ static void _tnl_bind_vertex_list( GLcontext *ctx,
    GLfloat *data = node->buffer;
    GLuint attr, i;
 
-   _mesa_debug( 0, "%s\n", __FUNCTION__); 
-
    /* Setup constant data in the VB.
     */
    VB->Count = node->count;
@@ -124,9 +122,6 @@ void _tnl_playback_vertex_list( GLcontext *ctx, void *data )
 {
    struct tnl_vertex_list *node = (struct tnl_vertex_list *)data;
    TNLcontext *tnl = TNL_CONTEXT(ctx);
-
-   _mesa_debug( 0, "%s %d prims %d verts\n", __FUNCTION__,
-		node->prim_count, node->count); 
 
    if (!node->prim_count || !node->count) 
       return;

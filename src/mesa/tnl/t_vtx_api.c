@@ -47,8 +47,6 @@ static void _tnl_wrap_buffers( GLcontext *ctx )
 {
    TNLcontext *tnl = TNL_CONTEXT(ctx);
 
-   _mesa_debug( 0, "%s\n", __FUNCTION__); 
-
    if (ctx->Driver.CurrentExecPrimitive != GL_POLYGON+1) {
       GLint i = tnl->vtx.prim_count - 1;
       assert(i >= 0);
@@ -79,8 +77,6 @@ static void _tnl_wrap_filled_vertex( GLcontext *ctx )
    GLfloat *data = tnl->vtx.copied.buffer;
    int i;
 
-   _mesa_debug( 0, "%s\n", __FUNCTION__); 
-
    /* Run pipeline on current vertices, copy wrapped vertices
     * to tnl->copied.
     */
@@ -105,8 +101,6 @@ static void _tnl_copy_to_current( GLcontext *ctx )
    TNLcontext *tnl = TNL_CONTEXT(ctx); 
    GLuint i;
 
-   _mesa_debug( 0, "%s\n", __FUNCTION__); 
-
    for (i = _TNL_ATTRIB_POS+1 ; i <= _TNL_ATTRIB_INDEX ; i++) 
       if (tnl->vtx.attrsz[i]) {
 	 ASSIGN_4V( tnl->vtx.current[i], 0, 0, 0, 1 );
@@ -129,8 +123,6 @@ static void _tnl_copy_from_current( GLcontext *ctx )
 {
    TNLcontext *tnl = TNL_CONTEXT(ctx); 
    GLint i;
-
-   _mesa_debug( 0, "%s\n", __FUNCTION__); 
 
    for (i = _TNL_ATTRIB_POS+1 ; i <= _TNL_ATTRIB_INDEX ; i++) 
       switch (tnl->vtx.attrsz[i]) {
@@ -165,8 +157,6 @@ static void _tnl_wrap_upgrade_vertex( GLcontext *ctx,
    GLuint oldsz;
    GLint i;
    GLfloat *tmp;
-
-   _mesa_debug( 0, "%s\n", __FUNCTION__); 
 
 
    /* Run pipeline on current vertices, copy wrapped vertices
@@ -250,8 +240,6 @@ static void _tnl_fixup_vertex( GLcontext *ctx, GLuint attr, GLuint sz )
    static float id[4] = { 0, 0, 0, 1 };
    int i;
 
-   _mesa_debug( 0, "%s\n", __FUNCTION__); 
-
    if (tnl->vtx.attrsz[attr] < sz) {
       /* New size is larger.  Need to flush existing vertices and get
        * an enlarged vertex format.
@@ -283,8 +271,6 @@ static void do_choose( GLuint attr, GLuint sz,
 { 
    GET_CURRENT_CONTEXT( ctx ); 
    TNLcontext *tnl = TNL_CONTEXT(ctx); 
-
-   _mesa_debug( 0, "%s\n", __FUNCTION__); 
 
    if (tnl->vtx.attrsz[attr] != sz)
       _tnl_fixup_vertex( ctx, attr, sz );
@@ -330,8 +316,6 @@ static void attrib_##ATTR##_##N( const GLfloat *v )	\
    GET_CURRENT_CONTEXT( ctx );				\
    TNLcontext *tnl = TNL_CONTEXT(ctx);			\
 							\
-   _mesa_debug( 0, "%s\n", __FUNCTION__);		\
-							\
    if ((ATTR) == 0) {					\
       int i;						\
 							\
@@ -360,8 +344,6 @@ static void attrib_##ATTR##_##N( const GLfloat *v )	\
 #define CHOOSE( ATTR, N )				\
 static void choose_##ATTR##_##N( const GLfloat *v )	\
 {							\
-   _mesa_debug( 0, "%s\n", __FUNCTION__);		\
-							\
    do_choose(ATTR, N,					\
 	     attrib_##ATTR##_##N,			\
 	     choose_##ATTR##_1,				\
@@ -374,8 +356,6 @@ static void choose_##ATTR##_##N( const GLfloat *v )	\
 #define INIT(ATTR)					\
 static void init_##ATTR( TNLcontext *tnl )		\
 {							\
-   _mesa_debug( 0, "%s\n", __FUNCTION__);		\
-							\
    tnl->vtx.tabfv[ATTR][0] = choose_##ATTR##_1;		\
    tnl->vtx.tabfv[ATTR][1] = choose_##ATTR##_2;		\
    tnl->vtx.tabfv[ATTR][2] = choose_##ATTR##_3; 	\
@@ -420,8 +400,6 @@ static void init_attrfv( TNLcontext *tnl )
 {
    GLuint i;
 
-   _mesa_debug( 0, "%s\n", __FUNCTION__);
-						
    init_0( tnl );
    init_1( tnl );
    init_2( tnl );
@@ -859,8 +837,6 @@ static void _tnl_EvalCoord1f( GLfloat u )
    GET_CURRENT_CONTEXT( ctx );
    TNLcontext *tnl = TNL_CONTEXT(ctx);
 
-   _mesa_debug(0, "%s\n", __FUNCTION__);
-
    /* TODO: use a CHOOSE() function for this: */
    {
       GLint i;
@@ -888,8 +864,6 @@ static void _tnl_EvalCoord2f( GLfloat u, GLfloat v )
 {
    GET_CURRENT_CONTEXT( ctx );
    TNLcontext *tnl = TNL_CONTEXT(ctx);
-
-   _mesa_debug(0, "%s\n", __FUNCTION__);
 
    /* TODO: use a CHOOSE() function for this: */
    {
@@ -959,9 +933,6 @@ static void _tnl_Begin( GLenum mode )
 {
    GET_CURRENT_CONTEXT( ctx ); 
 
-   _mesa_debug( 0, "%s\n", __FUNCTION__); 
-
-
    if (ctx->Driver.CurrentExecPrimitive == GL_POLYGON+1) {
       TNLcontext *tnl = TNL_CONTEXT(ctx); 
       int i;
@@ -987,8 +958,6 @@ static void _tnl_Begin( GLenum mode )
 static void _tnl_End( void )
 {
    GET_CURRENT_CONTEXT( ctx ); 
-
-   _mesa_debug( 0, "%s\n", __FUNCTION__); 
 
    if (ctx->Driver.CurrentExecPrimitive != GL_POLYGON+1) {
       TNLcontext *tnl = TNL_CONTEXT(ctx); 
@@ -1078,13 +1047,8 @@ void _tnl_FlushVertices( GLcontext *ctx, GLuint flags )
 {
    TNLcontext *tnl = TNL_CONTEXT(ctx);
 
-   _mesa_debug( 0, "%s\n", __FUNCTION__); 
-
-
-   if (ctx->Driver.CurrentExecPrimitive != PRIM_OUTSIDE_BEGIN_END) {
-      _mesa_debug( 0, "%s -- inside begin/end\n", __FUNCTION__); 
+   if (ctx->Driver.CurrentExecPrimitive != PRIM_OUTSIDE_BEGIN_END)
       return;
-   }
 
    if (tnl->vtx.counter != tnl->vtx.initial_counter) {
       _tnl_flush_vtx( ctx );

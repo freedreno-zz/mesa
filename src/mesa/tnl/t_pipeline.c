@@ -125,8 +125,6 @@ void _tnl_run_pipeline( GLcontext *ctx )
    GLboolean running = GL_TRUE;
    unsigned short __tmp;
 
-   _mesa_debug( 0, "%s\n", __FUNCTION__); 
-
    pipe->run_state_changes = 0;
    pipe->run_input_changes = 0;
 

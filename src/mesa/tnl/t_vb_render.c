@@ -314,7 +314,7 @@ static GLboolean run_render( GLcontext *ctx,
 
 	 assert((prim & PRIM_MODE_MASK) < GL_POLYGON+1);
 
-/* 	 if (MESA_VERBOSE & VERBOSE_PRIMS) */
+	 if (MESA_VERBOSE & VERBOSE_PRIMS) 
 	    _mesa_debug(NULL, "MESA prim %s %d..%d\n", 
 			_mesa_lookup_enum_by_nr(prim & PRIM_MODE_MASK), 
 			start, start+length);

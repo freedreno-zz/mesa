@@ -319,10 +319,6 @@ static void texgen_sphere_map( GLcontext *ctx,
    GLfloat (*f)[3] = store->tmp_f;
    GLfloat *m = store->tmp_m;
 
-/*     _mesa_debug(NULL, "%s normstride %d eyestride %d\n",  */
-/*  	   __FUNCTION__, VB->NormalPtr->stride, */
-/*  	   VB->EyePtr->stride); */
-
    (build_m_tab[VB->EyePtr->size])( store->tmp_f,
 				    store->tmp_m,
 				    VB->NormalPtr,

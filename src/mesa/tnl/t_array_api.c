@@ -87,7 +87,6 @@ static void _tnl_draw_range_elements( GLcontext *ctx, GLenum mode,
    int i;
    FLUSH_CURRENT( ctx, 0 );
    
-   /*  _mesa_debug(ctx, "%s\n", __FUNCTION__); */
    if (tnl->pipeline.build_state_changes)
       _tnl_validate_pipeline( ctx );
 

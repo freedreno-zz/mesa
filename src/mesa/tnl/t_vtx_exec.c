@@ -88,9 +88,6 @@ static void _tnl_vb_bind_vtx( GLcontext *ctx )
    GLuint count = tnl->vtx.initial_counter - tnl->vtx.counter;
    GLuint attr, i;
 
-   _mesa_debug( 0, "%s\n", __FUNCTION__); 
-
-
    /* Setup constant data in the VB.
     */
    VB->Count = count;
@@ -167,8 +164,6 @@ static GLuint _tnl_copy_vertices( GLcontext *ctx )
 		   tnl->vtx.prim[tnl->vtx.prim_count-1].start * 
 		   tnl->vtx.vertex_size);
 
-   _mesa_debug( 0, "%s\n", __FUNCTION__); 
-
 
    switch( ctx->Driver.CurrentExecPrimitive )
    {
@@ -238,8 +233,6 @@ static GLuint _tnl_copy_vertices( GLcontext *ctx )
 void _tnl_flush_vtx( GLcontext *ctx )
 {
    TNLcontext *tnl = TNL_CONTEXT(ctx);
-
-   _mesa_debug( 0, "%s\n", __FUNCTION__); 
 
    if (tnl->vtx.prim_count && 
        tnl->vtx.counter != tnl->vtx.initial_counter) {

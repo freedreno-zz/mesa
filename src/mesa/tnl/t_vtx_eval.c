@@ -66,8 +66,6 @@ void _tnl_update_eval( GLcontext *ctx )
    TNLcontext *tnl = TNL_CONTEXT(ctx);
    GLuint attr;
 
-   _mesa_debug(0, "%s\n", __FUNCTION__);
-
    /* Vertex program maps have priority over conventional attribs */
 
    for (attr = 0; attr < VERT_ATTRIB_MAX; attr++) {
