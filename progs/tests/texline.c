@@ -1,4 +1,4 @@
-/* $Id: texline.c,v 1.4.6.1 2003/03/22 08:46:22 keithw Exp $ */
+/* $Id: texline.c,v 1.4.6.2 2003/05/01 06:54:21 keithw Exp $ */
 
 /*
  * Test textured lines.
@@ -17,7 +17,7 @@
 #define TEXTURE_FILE "../images/girl.rgb"
 
 static GLboolean Antialias = GL_FALSE;
-static GLboolean Animate = GL_FALSE;
+static GLboolean Animate = GL_TRUE;
 static GLint Texture = 1;
 static GLboolean Stipple = GL_FALSE;
 static GLfloat LineWidth = 1.0;
