@@ -1,10 +1,10 @@
-/* $Id: get.c,v 1.30.2.4 2001/01/24 04:49:27 brianp Exp $*/
+/* $Id: get.c,v 1.30.2.5 2001/05/14 19:11:32 brianp Exp $*/
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.4
+ * Version:  3.4.2
  * 
- * Copyright (C) 1999-2000  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2001  Brian Paul   All Rights Reserved.
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -5095,7 +5095,7 @@ _mesa_GetString( GLenum name )
    GET_CURRENT_CONTEXT(ctx);
    static const char *vendor = "Brian Paul";
    static const char *renderer = "Mesa";
-   static const char *version = "1.2 Mesa 3.4.1";
+   static const char *version = "1.2 Mesa 3.4.2";
 
    ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH_WITH_RETVAL(ctx, "glGetString", 0);
 

@@ -1,5 +1,5 @@
 
-                     3Dfx Glide device driver for Mesa 3.4.1
+                     3Dfx Glide device driver for Mesa 3.4.2
 				(see below for FAQ)
 
 
@@ -16,7 +16,7 @@ What do you need ?
 	  under Linux (more information in the "Useful Glide Environment
 	  Variables");
 
-	- Mesa 3.4.1;
+	- Mesa 3.4.2;
 
 	- The 3Dfx Glide library 2.3 or later for your OS (the 2.4 works fine).
 	  The Voodoo2 requires the Glide library 2.51. The Glide 3.1 is not
@@ -78,18 +78,18 @@ Linux:
 	  If your Glide libraries and headers are in a different directory
 	  you'll have to modify the Mesa-config and mklib.glide files.
 
-	- Unpack the MesaLib-3.4.1.tar.gz and MesaDemos-3.4.1.tar.gz archives;
+	- Unpack the MesaLib-3.4.2.tar.gz and MesaDemos-3.4.2.tar.gz archives;
 
 	- If you're going to use a newer Mesa/Glide driver than v0.27 then
           unpack the new driver archive over the Mesa directory.
 
-	- In the Mesa-3.4.1 directory type "make linux-glide"
+	- In the Mesa-3.4.2 directory type "make linux-glide"
 
 	- Compilation _should_ finish without errors;
 
 	- Set your LD_LIBRARY_PATH environment variable so that the
 	  libglide2x.so and Mesa library files can be found.  For example:
-	    setenv LD_LIBRARY_PATH "/usr/local/glide/lib:/SOMEDIR/Mesa-3.4.1/lib"
+	    setenv LD_LIBRARY_PATH "/usr/local/glide/lib:/SOMEDIR/Mesa-3.4.2/lib"
 
 	- You'll have to run Glide-based programs as root or set the suid
 	  bit on executables;
@@ -115,10 +115,10 @@ MS Windows:
 
 	- You must have the vcvars32.bat script in your PATH;
 
-	- Go to the directory Mesa-3.4.1 and run the mesafx.bat;
+	- Go to the directory Mesa-3.4.2 and run the mesafx.bat;
 
-	- The script will compile everything (Mesa-3.4.1/lib/OpenGL32.{lib,dll},
-	  Mesa-3.4.1/lib/GLU32.{lib,dll}, Mesa-3.4.1/lib/GLUT32.{lib,dll};
+	- The script will compile everything (Mesa-3.4.2/lib/OpenGL32.{lib,dll},
+	  Mesa-3.4.2/lib/GLU32.{lib,dll}, Mesa-3.4.2/lib/GLUT32.{lib,dll};
 
 	- Try some demo (fire.exe, teapot.exe, etc.) in order to check if
 	  everything is OK (you can use Alt-Tab or Ctrl-F9 to switch between
@@ -386,7 +386,7 @@ Hints and Special Features:
         - The Voodoo driver support multiple Voodoo Graphics boards in the
           some PC. Using this feature, you can write applications that use
           multiple monitors, videoprojectors or HMDs for the output. See
-	  Mesa-3.4.1/demos/tunnel2.c for an example of how setup one
+	  Mesa-3.4.2/demos/tunnel2.c for an example of how setup one
           context for each board.
 
 	- The v0.19 introduces a new powerful texture memory manager: the
@@ -404,7 +404,7 @@ Hints and Special Features:
 	- The Voodoo driver supports the GL_EXT_paletted_texture. it works
 	  only with GL_COLOR_INDEX8_EXT, GL_RGBA palettes and the alpha value
 	  is ignored because this is a limitation of the the current Glide
-	  version and of the Voodoo hardware. See Mesa-3.4.1/demos/paltex.c
+	  version and of the Voodoo hardware. See Mesa-3.4.2/demos/paltex.c
 	  for a demo of this extension.
 
 	- The Voodoo driver chooses the screen resolution according to the
@@ -476,12 +476,12 @@ version of GLQuake with works with the Mesa/3Dfx/Glide combo.
 Here's what you need to run GLQuake on Linux:
    PC with 100MHz Pentium or better
    a 3Dfx-based card
-   Mesa 3.4.1 libraries:  libGL.so  libGLU.so
+   Mesa 3.4.2 libraries:  libGL.so  libGLU.so
    Glide 2.4 libraries:  libglide2x.so  libtexus.so
    GLQuake for Linux.
 
 Also, the windows version of GLQuake works fine with the Mesa OpenGL32.dll,
-you have only to copy the Mesa-3.4.1/lib/OpenGL32.dll in the GLQuake directory
+you have only to copy the Mesa-3.4.2/lib/OpenGL32.dll in the GLQuake directory
 in order to test 'MesaQuake'.
 
 
