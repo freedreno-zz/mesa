@@ -22,7 +22,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: miniglx_events.c,v 1.1.2.9 2003/04/27 17:02:20 keithw Exp $ */
+/* $Id: miniglx_events.c,v 1.1.2.10 2003/04/28 11:30:14 keithw Exp $ */
 
 
 /**
@@ -277,7 +277,7 @@ handle_fifo_read( Display *dpy, int i )
 
       if (dpy->IsClient) {
 	 switch (id) {
-	    /* The server has called 'XMapWindow' on a client window */
+	    /* The server has called XMapWindow on a client window */
 	 case _YouveGotFocus:
 	    er = queue_event(dpy);
 	    if (!er) return False;
@@ -292,8 +292,7 @@ handle_fifo_read( Display *dpy, int i )
 	       dpy->driver->notifyFocus( 1 ); 
 	    break;
 
-	    /* The server has called 'XMapWindow' or 'X???'  on a client
-	     * window */
+	    /* The server has called XMapWindow on a client window */
 	 case _RepaintPlease:
 	    er = queue_event(dpy);
 	    if (!er) return False;
@@ -317,10 +316,8 @@ handle_fifo_read( Display *dpy, int i )
 	    er->xexpose.count = 0;
 	    break;
 
-	    /* The server has called 'XUnmapWindow' on a client window.
-	     *
-	     * Need to set lock contended and adjust cliprects (or the
-	     * server does).
+	    /* The server has called 'XUnmapWindow' on a client
+	     * window.
 	     */
 	 case _YouveLostFocus:
 	    er = queue_event(dpy);
@@ -444,6 +441,7 @@ __miniglx_Select( Display *dpy, int n, fd_set *rfds, fd_set *wfds, fd_set *xfds,
    int i;
    int retval;
    fd_set my_rfds, my_wfds;
+   struct timeval my_tv;
 
    if (!rfds) {
       rfds = &my_rfds;
@@ -455,7 +453,14 @@ __miniglx_Select( Display *dpy, int n, fd_set *rfds, fd_set *wfds, fd_set *xfds,
       FD_ZERO(wfds);
    }
 
-   assert( dpy->eventqueue.head == dpy->eventqueue.tail );
+   /* Don't block if there are events queued.  Review this if the
+    * flush in XMapWindow is changed to blocking.  (Test case:
+    * miniglxtest).
+    */
+   if (dpy->eventqueue.head != dpy->eventqueue.tail) {
+      my_tv.tv_sec = my_tv.tv_usec = 0;
+      tv = &my_tv;
+   }
 
    for (i = 0 ; i < dpy->nrFds; i++) {
       if (dpy->fd[i].fd < 0)
@@ -487,7 +492,8 @@ __miniglx_Select( Display *dpy, int n, fd_set *rfds, fd_set *wfds, fd_set *xfds,
       return retval;
    }
 
-   /* Handle server fd[0] specially:
+   /* Handle server fd[0] specially on the server - accept new client
+    * connections.
     */
    if (!dpy->IsClient) {
       if (FD_ISSET(dpy->fd[0].fd, rfds)) {
@@ -644,8 +650,13 @@ int __miniglx_open_connections( Display *dpy )
 void __miniglx_close_connections( Display *dpy )
 {
    int i;
-   for (i = 0 ; i < dpy->nrFds ; i++)
-      shut_fd( dpy, i );
+
+   for (i = 0 ; i < dpy->nrFds ; i++) {
+      if (dpy->fd[i].fd >= 0) {
+	 shutdown (dpy->fd[i].fd, SHUT_RDWR);
+	 close (dpy->fd[i].fd);
+      }
+   }
 
    dpy->nrFds = 0;
    FREE(dpy->fd);
