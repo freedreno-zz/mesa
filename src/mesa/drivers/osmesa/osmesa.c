@@ -1,8 +1,8 @@
-/* $Id: osmesa.c,v 1.71.2.4 2002/03/25 23:52:34 kschultz Exp $ */
+/* $Id: osmesa.c,v 1.71.2.5 2002/04/04 17:12:47 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  4.0.2
+ * Version:  4.0.3
  *
  * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
  *
@@ -37,6 +37,7 @@
 
 #include "glheader.h"
 #include "GL/osmesa.h"
+#include "buffers.h"
 #include "context.h"
 #include "colormac.h"
 #include "depth.h"
@@ -479,6 +480,10 @@ OSMesaMakeCurrent( OSMesaContext ctx, void *buffer, GLenum type,
       _mesa_Viewport( 0, 0, width, height );
       ctx->gl_ctx.Scissor.Width = width;
       ctx->gl_ctx.Scissor.Height = height;
+   }
+   else {
+      /* this will make ensure we recognize the new buffer size */
+      _mesa_ResizeBuffersMESA();
    }
 
    return GL_TRUE;
