@@ -1,8 +1,8 @@
-/* $Id: xm_api.c,v 1.29.2.6 2002/03/16 00:50:13 brianp Exp $ */
+/* $Id: xm_api.c,v 1.29.2.7 2002/04/26 13:51:54 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  4.0.2
+ * Version:  4.0.3
  *
  * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
  *
@@ -2515,7 +2515,7 @@ const char *XMesaGetString( XMesaContext c, int name )
 {
    (void) c;
    if (name==XMESA_VERSION) {
-      return "3.5";
+      return "4.0.3";
    }
    else if (name==XMESA_EXTENSIONS) {
       return "";

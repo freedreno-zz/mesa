@@ -1,10 +1,10 @@
-/* $Id: osmesa.h,v 1.9 2001/09/23 16:06:13 brianp Exp $ */
+/* $Id: osmesa.h,v 1.9.2.1 2002/04/26 13:53:09 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  4.0
+ * Version:  4.0.3
  * 
- * Copyright (C) 1999-2001  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -64,7 +64,7 @@ extern "C" {
 
 #define OSMESA_MAJOR_VERSION 4
 #define OSMESA_MINOR_VERSION 0
-#define OSMESA_PATCH_VERSION 0
+#define OSMESA_PATCH_VERSION 3
 
 
 

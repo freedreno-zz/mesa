@@ -1,10 +1,10 @@
-/* $Id: xmesa.h,v 1.12.2.1 2002/03/16 00:50:36 brianp Exp $ */
+/* $Id: xmesa.h,v 1.12.2.2 2002/04/26 13:53:09 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  4.0.2
+ * Version:  4.0.3
  * 
- * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2003  Brian Paul   All Rights Reserved.
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
