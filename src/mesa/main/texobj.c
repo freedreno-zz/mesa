@@ -1,8 +1,8 @@
-/* $Id: texobj.c,v 1.8 1999/11/11 01:22:28 brianp Exp $ */
+/* $Id: texobj.c,v 1.7.2.1 1999/12/01 21:07:26 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.3
+ * Version:  3.1
  * 
  * Copyright (C) 1999  Brian Paul   All Rights Reserved.
  * 
@@ -23,16 +23,25 @@
  * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+/* $XFree86: xc/lib/GL/mesa/src/texobj.c,v 1.3 1999/04/04 00:20:32 dawes Exp $ */
+
+
 
 
 #ifdef PC_HEADER
 #include "all.h"
 #else
-#include "glheader.h"
+#ifndef XFree86Server
+#include <assert.h>
+#include <stdio.h>
+#include <stdlib.h>
+#else
+#include "GL/xf86glx.h"
+#endif
 #include "context.h"
 #include "enums.h"
 #include "hash.h"
-#include "mem.h"
+#include "macros.h"
 #include "teximage.h"
 #include "texstate.h"
 #include "texobj.h"
@@ -56,7 +65,7 @@ gl_alloc_texture_object( struct gl_shared_state *shared, GLuint name,
 {
    struct gl_texture_object *obj;
 
-   assert(dimensions <= 3);
+   ASSERT(dimensions <= 3);
 
    obj = (struct gl_texture_object *)
                      calloc(1,sizeof(struct gl_texture_object));
@@ -74,13 +83,13 @@ gl_alloc_texture_object( struct gl_shared_state *shared, GLuint name,
       obj->BaseLevel = 0;
       obj->MaxLevel = 1000;
       obj->MinMagThresh = 0.0F;
-      obj->Palette.Table[0] = 255;
-      obj->Palette.Table[1] = 255;
-      obj->Palette.Table[2] = 255;
-      obj->Palette.Table[3] = 255;
-      obj->Palette.Size = 1;
-      obj->Palette.IntFormat = GL_RGBA;
-      obj->Palette.Format = GL_RGBA;
+      obj->Palette[0] = 255;
+      obj->Palette[1] = 255;
+      obj->Palette[2] = 255;
+      obj->Palette[3] = 255;
+      obj->PaletteSize = 1;
+      obj->PaletteIntFormat = GL_RGBA;
+      obj->PaletteFormat = GL_RGBA;
 
       /* insert into linked list */
       if (shared) {
@@ -325,10 +334,8 @@ void gl_test_texture_object_completeness( const GLcontext *ctx, struct gl_textur
 /*
  * Execute glGenTextures
  */
-void
-_mesa_GenTextures( GLsizei n, GLuint *texName )
+void gl_GenTextures( GLcontext *ctx, GLsizei n, GLuint *texName )
 {
-   GET_CURRENT_CONTEXT(ctx);
    GLuint first;
    GLint i;
 
@@ -358,10 +365,8 @@ _mesa_GenTextures( GLsizei n, GLuint *texName )
 /*
  * Execute glDeleteTextures
  */
-void
-_mesa_DeleteTextures( GLsizei n, const GLuint *texName)
+void gl_DeleteTextures( GLcontext *ctx, GLsizei n, const GLuint *texName)
 {
-   GET_CURRENT_CONTEXT(ctx);
    GLint i;
 
    ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx, "glDeleteTextures");
@@ -404,10 +409,8 @@ _mesa_DeleteTextures( GLsizei n, const GLuint *texName)
 /*
  * Execute glBindTexture
  */
-void
-_mesa_BindTexture( GLenum target, GLuint texName )
+void gl_BindTexture( GLcontext *ctx, GLenum target, GLuint texName )
 {
-   GET_CURRENT_CONTEXT(ctx);
    GLuint unit = ctx->Texture.CurrentUnit;
    struct gl_texture_unit *texUnit = &ctx->Texture.Unit[unit];
    struct gl_texture_object *oldTexObj;
@@ -420,14 +423,21 @@ _mesa_BindTexture( GLenum target, GLuint texName )
 
    ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx, "glBindTexture");
 
-   dim = (GLuint) (target - GL_TEXTURE_1D);
-
-   if (dim < 0 || dim > 2) {
-      gl_error( ctx, GL_INVALID_ENUM, "glBindTexture" );
-      return;
+   switch (target) {
+      case GL_TEXTURE_1D:
+         dim = 1;
+         break;
+      case GL_TEXTURE_2D:
+         dim = 2;
+         break;
+      case GL_TEXTURE_3D:
+         dim = 3;
+         break;
+      default:
+         gl_error( ctx, GL_INVALID_ENUM, "glBindTexture(target)" );
+         return;
    }
 
-   dim++;
    oldTexObj = texUnit->CurrentD[dim];
 
    if (oldTexObj->Name == texName)
@@ -444,6 +454,7 @@ _mesa_BindTexture( GLenum target, GLuint texName )
 
       if (newTexObj->Dimensions != dim) {
 	 if (newTexObj->Dimensions) {
+            /* the named texture object's dimensions don't match the target */
 	    gl_error( ctx, GL_INVALID_OPERATION, "glBindTexture" );
 	    return;
 	 }
@@ -498,11 +509,10 @@ _mesa_BindTexture( GLenum target, GLuint texName )
 /*
  * Execute glPrioritizeTextures
  */
-void
-_mesa_PrioritizeTextures( GLsizei n, const GLuint *texName,
-                          const GLclampf *priorities )
+void gl_PrioritizeTextures( GLcontext *ctx,
+                            GLsizei n, const GLuint *texName,
+                            const GLclampf *priorities )
 {
-   GET_CURRENT_CONTEXT(ctx);
    GLint i;
 
    ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx, "glPrioritizeTextures");
@@ -531,11 +541,10 @@ _mesa_PrioritizeTextures( GLsizei n, const GLuint *texName,
 /*
  * Execute glAreTexturesResident 
  */
-GLboolean
-_mesa_AreTexturesResident( GLsizei n, const GLuint *texName,
-                           GLboolean *residences )
+GLboolean gl_AreTexturesResident( GLcontext *ctx, GLsizei n,
+                                  const GLuint *texName,
+                                  GLboolean *residences )
 {
-   GET_CURRENT_CONTEXT(ctx);
    GLboolean resident = GL_TRUE;
    GLint i;
 
@@ -574,10 +583,8 @@ _mesa_AreTexturesResident( GLsizei n, const GLuint *texName,
 /*
  * Execute glIsTexture
  */
-GLboolean
-_mesa_IsTexture( GLuint texture )
+GLboolean gl_IsTexture( GLcontext *ctx, GLuint texture )
 {
-   GET_CURRENT_CONTEXT(ctx);
    ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH_WITH_RETVAL(ctx, "glIsTextures",
 						  GL_FALSE);
    if (texture>0 && HashLookup(ctx->Shared->TexObjects, texture)) {
