@@ -105,10 +105,11 @@ Several bugs have been found in the radeonfb.o framebuffer driver.
 or 'translated', particularly in higher resolution modes.  This is
 definitely a bug in radeonfb.o as this can be provoked even when using
 the software dri driver (fb_dri.so).  Importance: High.  Workaround:
-None, except restarting the application.
+None, except restarting the application.   
 
 2) Modes with virtual resolutions different to displayed resolutions
 do not work.  Importance: medium.  Workaround: Avoid these situations
 by always setting the visible resolution to the virtual resolution
 specified in the configuration file.
+
 

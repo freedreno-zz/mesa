@@ -22,7 +22,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: miniglx.c,v 1.1.4.34 2003/01/17 00:56:14 keithw Exp $ */
+/* $Id: miniglx.c,v 1.1.4.35 2003/01/17 16:19:19 keithw Exp $ */
 
 
 /**
@@ -351,7 +351,7 @@ SetupFBDev( Display *dpy, Window win )
       dpy->VarInfo.transp.length = 8;
    }
    else if (dpy->VarInfo.bits_per_pixel == 16) {
-      assert(win->visual->pixelFormat == PF_B5G5R5);
+      assert(win->visual->pixelFormat == PF_B5G6R5);
       dpy->VarInfo.red.offset = 11;
       dpy->VarInfo.green.offset = 5;
       dpy->VarInfo.blue.offset = 0;
@@ -455,6 +455,7 @@ SetupFBDev( Display *dpy, Window win )
       }
       if (ioctl(dpy->FrameBufferFD, FBIOPUTCMAP, (void *) &cmap) < 0) {
          fprintf(stderr, "ioctl(FBIOPUTCMAP) failed [%d]\n", i);
+	 exit(1);
       }
    }
 
@@ -634,10 +635,12 @@ int __read_config_file( Display *dpy )
       else if (strcmp(opt, "bpp") == 0) {
 	 if (sscanf(val, "%d", &dpy->bpp) != 1)
 	    fprintf(stderr, "malformed bpp: %s\n", opt);
-	 if (dpy->bpp != 32) {
-	    fprintf(stderr, "Only 32bpp modes currently supported\n");
-	    dpy->bpp = 32;
-	 }
+#if 1
+ 	 if (dpy->bpp != 32) { 
+ 	    fprintf(stderr, "Only 32bpp modes currently supported\n"); 
+ 	    dpy->bpp = 32; 
+ 	 } 
+#endif
 	 dpy->cpp = dpy->bpp / 8;
       }
    }
@@ -728,7 +731,7 @@ XOpenDisplay( const char *display_name )
 
    /* Ask the driver for a list of supported configs:
     */
-   dpy->driver->initScreenConfigs( &dpy->numConfigs, &dpy->configs );
+   dpy->driver->initScreenConfigs( dpy, &dpy->numConfigs, &dpy->configs );
 
 
    /* Perform the initialization normally done in the X server */
@@ -887,7 +890,6 @@ XCreateWindow( Display *display, Window parent, int x, int y,
    win->visual = visual;  /* ptr assignment */
 
    /* do fbdev setup
-    * TODO:  Let the driver influence the choice of window pitch.
     */
    if (!SetupFBDev(display, win)) {
       FREE(win);
@@ -897,10 +899,14 @@ XCreateWindow( Display *display, Window parent, int x, int y,
 
    win->bytesPerPixel = display->bpp / 8;
    win->rowStride = display->VarInfo.xres_virtual * win->bytesPerPixel;
-   win->size = win->rowStride * height; /* XXX stride? */
+   win->size = win->rowStride * height; 
    win->frontStart = display->FrameBuffer;
    win->frontBottom = (GLubyte *) win->frontStart + (height-1) * win->rowStride;
 
+   /* This is incorrect: the hardware driver could put the backbuffer
+    * just about anywhere.  These fields, including the above are
+    * hardware dependent & don't really belong here.
+    */
    if (visual->glxConfig->doubleBuffer) {
       win->backStart = (GLubyte *) win->frontStart +
 	 win->rowStride * display->VarInfo.yres_virtual;
@@ -1115,7 +1121,12 @@ XGetVisualInfo( Display *dpy, long vinfo_mask, XVisualInfo *vinfo_template, int 
       visResults[i].glxConfig = dpy->configs + i;
       visResults[i].visInfo = results + i;
       visResults[i].dpy = dpy;
-      visResults[i].pixelFormat = PF_B8G8R8A8; /* XXX: FIX ME */
+
+      if (dpy->bpp == 32)
+	 visResults[i].pixelFormat = PF_B8G8R8A8; /* XXX: FIX ME */
+      else
+	 visResults[i].pixelFormat = PF_B5G6R5; /* XXX: FIX ME */
+
       results[i].visual = visResults + i;
       results[i].visualid = dpy->configs[i].vid;
       results[i].class = TrueColor;
@@ -1123,7 +1134,7 @@ XGetVisualInfo( Display *dpy, long vinfo_mask, XVisualInfo *vinfo_template, int 
                          dpy->configs[i].greenSize +
                          dpy->configs[i].blueSize +
                          dpy->configs[i].alphaSize;
-      results[i].bits_per_rgb = 32;
+      results[i].bits_per_rgb = dpy->bpp;
    }
    *nitens_return = n;
    return results;
@@ -1307,9 +1318,12 @@ glXChooseVisual( Display *dpy, int screen, int *attribList )
    if (rgbFlag) {
       /* XXX maybe support depth 16 someday */
       visInfo->class = TrueColor;
-      visInfo->depth = 32;
-      visInfo->bits_per_rgb = 32;
-      vis->pixelFormat = PF_B8G8R8A8;
+      visInfo->depth = dpy->bpp;
+      visInfo->bits_per_rgb = dpy->bpp;
+      if (dpy->bpp == 32)
+	 vis->pixelFormat = PF_B8G8R8A8;
+      else
+	 vis->pixelFormat = PF_B5G6R5;
    }
    else {
       /* color index mode */

@@ -821,35 +821,71 @@ static void get_chipfamily_from_chipset( RADEONInfoPtr info )
  * Establish the set of visuals available for the display.
  * Requires the ::__GLXvisualConfig data type.
  */
-static int __driInitScreenConfigs(int *numConfigs, __GLXvisualConfig **configs)
+static int __driInitScreenConfigs( struct MiniGLXDisplayRec *dpy,
+				   int *numConfigs, __GLXvisualConfig **configs)
 {
    int i;
 
    *numConfigs = 1;
    *configs = (__GLXvisualConfig *) calloc(*numConfigs, 
 					   sizeof(__GLXvisualConfig));
-   for (i = 0; i < *numConfigs; i++) {
-      (*configs)[i].vid = 100 + i;
-      (*configs)[i].class = TrueColor;
-      (*configs)[i].rgba = True;
-      (*configs)[i].redSize = 8;
-      (*configs)[i].greenSize = 8;
-      (*configs)[i].blueSize = 8;
-      (*configs)[i].alphaSize = 8;
-      (*configs)[i].redMask = 0xff0000;
-      (*configs)[i].greenMask = 0xff00;
-      (*configs)[i].blueMask = 0xff;
-      (*configs)[i].alphaMask = 0xff000000;
-      (*configs)[i].doubleBuffer = True;
-      (*configs)[i].stereo = False;
-      (*configs)[i].bufferSize = 32;
-      (*configs)[i].depthSize = 24;
-      (*configs)[i].stencilSize = 8;
-      (*configs)[i].auxBuffers = 0;
-      (*configs)[i].level = 0;
-      /* leave remaining fields zero */
-   }
-   
+
+   switch (dpy->bpp) {
+   case 32:
+      for (i = 0; i < *numConfigs; i++) {
+	 (*configs)[i].vid = 100 + i;
+	 (*configs)[i].class = TrueColor;
+	 (*configs)[i].rgba = True;
+	 (*configs)[i].redSize = 8;
+	 (*configs)[i].greenSize = 8;
+	 (*configs)[i].blueSize = 8;
+	 (*configs)[i].alphaSize = 8;
+	 (*configs)[i].redMask = 0xff0000;
+	 (*configs)[i].greenMask = 0xff00;
+	 (*configs)[i].blueMask = 0xff;
+	 (*configs)[i].alphaMask = 0xff000000;
+	 (*configs)[i].doubleBuffer = True;
+	 (*configs)[i].stereo = False;
+	 (*configs)[i].bufferSize = 32;
+	 (*configs)[i].depthSize = 24;
+	 (*configs)[i].stencilSize = 8;
+	 (*configs)[i].auxBuffers = 0;
+	 (*configs)[i].level = 0;
+	 /* leave remaining fields zero */
+      }
+      break;
+
+   case 16:
+      for (i = 0; i < *numConfigs; i++) {
+	 (*configs)[i].vid = 100 + i;
+	 (*configs)[i].class = TrueColor;
+	 (*configs)[i].rgba = True;
+	 (*configs)[i].redSize = 5;
+	 (*configs)[i].greenSize = 6;
+	 (*configs)[i].blueSize = 5;
+	 (*configs)[i].alphaSize = 0;
+	 (*configs)[i].redMask = 0xf800;
+	 (*configs)[i].greenMask = 0x07e0;
+	 (*configs)[i].blueMask = 0x001f;
+	 (*configs)[i].alphaMask = 0x0000;
+	 (*configs)[i].doubleBuffer = True;
+	 (*configs)[i].stereo = False;
+	 (*configs)[i].bufferSize = 16;
+	 (*configs)[i].depthSize = 16;
+	 (*configs)[i].stencilSize = 0;
+	 (*configs)[i].auxBuffers = 0;
+	 (*configs)[i].level = 0;
+	 /* leave remaining fields zero */
+      }
+      break;
+
+   default:
+      fprintf(stderr, "Unknown bpp in %s: %d\n", __FUNCTION__, 
+	      dpy->bpp);
+      exit(1);
+      break;
+
+   }   
    return 1;
 }
 

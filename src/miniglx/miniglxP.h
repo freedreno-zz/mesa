@@ -184,7 +184,8 @@ struct __DRIdrawableRec {
  * initalization and takedown routines.
  */
 struct MiniGLXDriverRec { 
-   int (*initScreenConfigs)( int *numConfigs, __GLXvisualConfig **configs );
+   int (*initScreenConfigs)( struct MiniGLXDisplayRec *dpy,
+			     int *numConfigs, __GLXvisualConfig **configs );
    int (*validateMode)( struct MiniGLXDisplayRec *dpy );
    int (*initFBDev)( struct MiniGLXDisplayRec *dpy );
    void (*haltFBDev)( struct MiniGLXDisplayRec *dpy );
