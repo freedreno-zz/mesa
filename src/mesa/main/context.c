@@ -1,4 +1,3 @@
-/* $Id: context.c,v 1.79.2.2 2000/09/12 21:08:11 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -594,6 +593,8 @@ init_texture_unit( GLcontext *ctx, GLuint unit )
 {
    struct gl_texture_unit *texUnit = &ctx->Texture.Unit[unit];
 
+   texUnit->Enabled = 0;
+   texUnit->ReallyEnabled = 0;
    texUnit->EnvMode = GL_MODULATE;
    texUnit->CombineModeRGB = GL_MODULATE;
    texUnit->CombineModeA = GL_MODULATE;
@@ -1150,9 +1151,10 @@ init_attrib_groups( GLcontext *ctx )
    /* Texture group */
    ctx->Texture.CurrentUnit = 0;      /* multitexture */
    ctx->Texture.CurrentTransformUnit = 0; /* multitexture */
-   ctx->Texture.Enabled = 0;
+   ctx->Texture.ReallyEnabled = 0;
    for (i=0; i<MAX_TEXTURE_UNITS; i++)
       init_texture_unit( ctx, i );
+   ctx->Texture.SharedPalette = GL_FALSE;
    _mesa_init_colortable(&ctx->Texture.Palette);
 
    /* Transformation group */

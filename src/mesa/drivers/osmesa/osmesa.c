@@ -1,4 +1,4 @@
-/* $Id: osmesa.c,v 1.19 2000/06/27 21:42:14 brianp Exp $ */
+/* $Id: osmesa.c,v 1.19.4.1 2000/09/28 22:39:42 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -1357,7 +1357,7 @@ static line_func choose_line_function( GLcontext *ctx )
    OSMesaContext osmesa = (OSMesaContext) ctx;
 
    if (ctx->Line.SmoothFlag)              return NULL;
-   if (ctx->Texture.Enabled)              return NULL;
+   if (ctx->Texture.ReallyEnabled)        return NULL;
    if (ctx->Light.ShadeModel!=GL_FLAT)    return NULL;
 
    if (ctx->Line.Width==1.0F
@@ -1543,7 +1543,7 @@ static triangle_func choose_triangle_function( GLcontext *ctx )
 
    if (ctx->Polygon.SmoothFlag)     return NULL;
    if (ctx->Polygon.StippleFlag)    return NULL;
-   if (ctx->Texture.Enabled)        return NULL;
+   if (ctx->Texture.ReallyEnabled)  return NULL;
 
    if (ctx->RasterMask==DEPTH_BIT
        && ctx->Depth.Func==GL_LESS
