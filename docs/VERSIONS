@@ -1,4 +1,4 @@
-$Id: VERSIONS,v 1.118 2002/11/13 15:33:50 brianp Exp $
+$Id: VERSIONS,v 1.118.2.1 2002/11/20 21:41:15 brianp Exp $
 
 
 Mesa Version History
@@ -1080,3 +1080,8 @@ Mesa Version History
 	- fixed one-bit error in point/line fragment Z calculation
 	- fixed potential segfault in fakeglx code
 	- fixed color overflow problem in DOT3 texture env mode
+
+
+5.0.1  Month day, year
+    Bug fixes:
+	- auto mipmap generation for cube maps was broken (bug 641363)
