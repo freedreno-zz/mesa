@@ -1,4 +1,4 @@
-# $Id: Makefile.X11,v 1.12.2.4 2000/01/08 11:13:10 brianp Exp $
+# $Id: Makefile.X11,v 1.12.2.5 2000/02/10 15:57:03 brianp Exp $
 
 # Mesa 3-D graphics library
 # Version:  3.2
@@ -493,7 +493,8 @@ LIB_FILES =	\
 	$(DIRECTORY)/macos/resources/*.rsrc			\
 	$(DIRECTORY)/macos/src-agl/*.exp			\
 	$(DIRECTORY)/macos/src-agl/*.[ch]			\
-	$(DIRECTORY)/macos/src-gli/*.[ch]
+	$(DIRECTORY)/macos/src-gli/*.[ch]			\
+	$(DIRECTORY)/OpenStep					\
 
 
 DEMO_FILES =	\
