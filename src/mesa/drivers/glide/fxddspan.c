@@ -428,13 +428,39 @@ void fxDDReadDepthSpanFloat(GLcontext *ctx,
 			    GLuint n, GLint x, GLint y, GLfloat depth[])
 {
   fxMesaContext fxMesa=(fxMesaContext)ctx->DriverCtx;
-  GLuint i;
+  GLint i;
   GLint bottom=fxMesa->height+fxMesa->y_offset-1;
   GLushort data[MAX_WIDTH];
+  GLint count = (GLint) n;
 
   if (MESA_VERBOSE&VERBOSE_DRIVER) {
      fprintf(stderr,"fxmesa: fxDDReadDepthSpanFloat(...)\n");
   }
+
+  if (y < 0 || y >= ctx->Buffer->Height ||
+      x >= ctx->Buffer->Width || x + count < 0) {
+    /* completely outside frame buffer */
+    for (i = 0; i < count; i++)
+      depth[i] = 0;
+    return;
+  }
+
+  if (x < 0) {
+    GLint dx = -x;
+    for (i = 0; i < dx; i++)
+      depth[i] = 0;
+    x = 0;
+    depth += dx;
+    count -= dx;
+  }
+  if (x + count > ctx->Buffer->Width) {
+    GLint dx = x + count - ctx->Buffer->Width;
+    for (i = 0; i < dx; i++)
+      depth[count - dx - 1] = 0;
+    count -= dx;
+  }
+  if (count <= 0)
+    return;
 
   x+=fxMesa->x_offset;
   FX_grLfbReadRegion(GR_BUFFER_AUXBUFFER,x,bottom-y,n,1,0,data);
@@ -451,10 +477,37 @@ void fxDDReadDepthSpanInt(GLcontext *ctx,
 {
   fxMesaContext fxMesa=(fxMesaContext)ctx->DriverCtx;
   GLint bottom=fxMesa->height+fxMesa->y_offset-1;
+  GLint count = (GLint) n;
+  GLint i;
 
   if (MESA_VERBOSE&VERBOSE_DRIVER) {
      fprintf(stderr,"fxmesa: fxDDReadDepthSpanInt(...)\n");
   }
+
+  if (y < 0 || y >= ctx->Buffer->Height ||
+      x >= ctx->Buffer->Width || x + count < 0) {
+    /* completely outside frame buffer */
+    for (i = 0; i < count; i++)
+      depth[i] = 0;
+    return;
+  }
+
+  if (x < 0) {
+    GLint dx = -x;
+    for (i = 0; i < dx; i++)
+      depth[i] = 0;
+    x = 0;
+    depth += dx;
+    count -= dx;
+  }
+  if (x + count > ctx->Buffer->Width) {
+    GLint dx = x + count - ctx->Buffer->Width;
+    for (i = 0; i < dx; i++)
+      depth[count - dx - 1] = 0;
+    count -= dx;
+  }
+  if (count <= 0)
+    return;
 
   x+=fxMesa->x_offset;
   FX_grLfbReadRegion(GR_BUFFER_AUXBUFFER,x,bottom-y,n,1,0,depth);
