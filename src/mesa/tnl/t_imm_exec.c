@@ -1,4 +1,4 @@
-/* $Id: t_imm_exec.c,v 1.29.2.2 2002/02/12 17:37:26 keithw Exp $ */
+/* $Id: t_imm_exec.c,v 1.29.2.3 2002/02/13 23:52:48 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -456,7 +456,7 @@ void _tnl_execute_cassette( GLcontext *ctx, struct immediate *IM )
    if (tnl->pipeline.build_state_changes)
       _tnl_validate_pipeline( ctx );
 
-   if (0 && IM->CopyStart == IM->Count) {
+   if (IM->CopyStart == IM->Count) {
       exec_empty_cassette( ctx, IM );
    }
    else if ((IM->CopyOrFlag & VERT_DATA) == VERT_ELT &&
