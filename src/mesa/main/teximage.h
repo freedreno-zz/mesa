@@ -1,4 +1,4 @@
-/* $Id: teximage.h,v 1.11.4.1 2000/08/29 22:58:57 brianp Exp $ */
+/* $Id: teximage.h,v 1.11.4.2 2000/10/16 23:37:16 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -65,8 +65,14 @@ _mesa_select_tex_image(GLcontext *ctx, const struct gl_texture_unit *texUnit,
 
 
 extern void
-_mesa_get_teximage_from_driver( GLcontext *ctx, GLenum target, GLint level,
-                                const struct gl_texture_object *texObj );
+_mesa_get_teximage_from_driver(GLcontext *ctx, GLenum target, GLint level,
+                               const struct gl_texture_object *texObj);
+
+
+extern GLboolean
+_mesa_get_teximages_from_driver(GLcontext *ctx,
+                                struct gl_texture_object *texObj);
+
 
 
 /*** API entry point functions ***/
