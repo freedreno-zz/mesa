@@ -92,6 +92,9 @@ extern int prevLockLine;
    do {								\
       char __ret = 0;						\
       DEBUG_CHECK_LOCK();					\
+      fprintf(stderr, "LOCK_HARDWARE (fd %d, lock %p, ctx %d) in %s\n", \
+	      rmesa->dri.fd, rmesa->dri.hwLock, rmesa->dri.hwContext,  \
+	      __FUNCTION__); \
       DRM_CAS( rmesa->dri.hwLock, rmesa->dri.hwContext,		\
 	       (DRM_LOCK_HELD | rmesa->dri.hwContext), __ret );	\
       if ( __ret )						\

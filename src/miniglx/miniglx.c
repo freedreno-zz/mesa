@@ -22,7 +22,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: miniglx.c,v 1.1.4.23 2002/12/22 17:11:05 jrfonseca Exp $ */
+/* $Id: miniglx.c,v 1.1.4.24 2002/12/25 12:51:21 keithw Exp $ */
 
 
 /**
@@ -126,6 +126,10 @@
 static GLXContext CurrentContext = NULL;
 
 
+static void SwitchDisplay(int i_signal)
+{
+}
+
 /**********************************************************************/
 /** \name FBdev functions                                             */
 /**********************************************************************/
@@ -185,6 +189,8 @@ OpenFBDev( Display *dpy )
    /* some magic to restore the vt when we exit */
    {
       struct vt_mode vt;
+      struct sigaction sig_tty;
+
       if (ioctl(dpy->ConsoleFD, VT_ACTIVATE, vtnumber) != 0)
          printf("ioctl VT_ACTIVATE: %s\n", strerror(errno));
       if (ioctl(dpy->ConsoleFD, VT_WAITACTIVE, vtnumber) != 0)
@@ -195,7 +201,22 @@ OpenFBDev( Display *dpy )
          return GL_FALSE;
       }
 
+
+
+      /* Set-up tty signal handler to catch the signal we request below */
+      memset( &sig_tty, 0, sizeof( sig_tty ) );
+      sig_tty.sa_handler = SwitchDisplay;
+      sigemptyset( &sig_tty.sa_mask );
+      if( sigaction( SIGUSR1, &sig_tty, &dpy->OrigSigUsr1 ) )
+      {
+	 fprintf(stderr, "error: can't set up signal handler (%s)",
+		 strerror(errno) );
+	 return GL_FALSE;
+      }
+
+
       vt.mode = VT_PROCESS;
+      vt.waitv = 0;
       vt.relsig = SIGUSR1;
       vt.acqsig = SIGUSR1;
       if (ioctl(dpy->ConsoleFD, VT_SETMODE, &vt) < 0) {
@@ -379,7 +400,7 @@ SetupFBDev( Display *dpy, Window win )
 
    dpy->cpp = dpy->VarInfo.bits_per_pixel / 8;
 
-   if (0)
+   if (1)
    {
       int x, y;
       char *scrn = (char *)dpy->FrameBuffer;
@@ -418,7 +439,8 @@ SetupFBDev( Display *dpy, Window win )
 
 
 /**
- * \brief Restore framebuffer to state it was in before we started.
+ * \brief Restore framebuffer to state it was in before we started
+ * (undoes work done in SetupFBDev).
  * 
  * \sa Called from XDestroyWindow().
  */
@@ -432,6 +454,10 @@ RestoreFBDev( Display *dpy )
       return GL_FALSE;
    }
    dpy->VarInfo = dpy->OrigVarInfo;
+
+   munmap(dpy->FrameBuffer, dpy->FrameBufferSize);
+   munmap(dpy->MMIOAddress, dpy->MMIOSize);
+
    return GL_TRUE;
 }
 
@@ -442,13 +468,9 @@ RestoreFBDev( Display *dpy )
  * \sa Called from XCloseDisplay().
  */
 static void
-CleanupFBDev( Display *dpy )
+CloseFBDev( Display *dpy )
 {
    struct vt_mode VT;
-
-   munmap(dpy->FrameBuffer, dpy->FrameBufferSize);
-   munmap(dpy->MMIOAddress, dpy->MMIOSize);
-   close(dpy->FrameBufferFD);
 
    /* restore text mode */
    ioctl(dpy->ConsoleFD, KDSETMODE, KD_TEXT);
@@ -465,6 +487,7 @@ CleanupFBDev( Display *dpy )
       dpy->OriginalVT = -1;
    }
 
+   close(dpy->FrameBufferFD);
    close(dpy->ConsoleFD);
 }
 
@@ -555,6 +578,7 @@ InitializeScreenConfigs(int *numConfigs, __GLXvisualConfig **configs)
  */
 int __read_config_file( Display *dpy )
 {
+#if 1
    dpy->fbdevDevice = "/dev/fb0";
    dpy->clientDriverName = "radeon_dri.so";
    dpy->drmModuleName = "radeon";
@@ -565,6 +589,17 @@ int __read_config_file( Display *dpy )
    dpy->pciBusID = malloc(64);
    sprintf((char *)dpy->pciBusID, "PCI:%d:%d:%d", 
 	   dpy->pciBus, dpy->pciDevice, dpy->pciFunc);
+
+#else 
+   dpy->fbdevDevice = "/dev/fb0";
+   dpy->clientDriverName = "fb_dri.so";
+   dpy->drmModuleName = 0;
+   dpy->pciBus = 0;
+   dpy->pciDevice = 0;
+   dpy->pciFunc = 0;
+   dpy->chipset = 0;   
+   dpy->pciBusID = 0;
+#endif
 
    return 1;
 }
@@ -615,7 +650,7 @@ XOpenDisplay( const char *display_name )
    if (!dpy->dlHandle) {
       fprintf(stderr, "Unable to open %s: %s\n", dpy->clientDriverName,
 	      dlerror());
-      CleanupFBDev(dpy);
+      CloseFBDev(dpy);
       FREE(dpy);
       return NULL;
    }
@@ -624,6 +659,16 @@ XOpenDisplay( const char *display_name )
 						"__driInitFBDev");
    if (!dpy->driverInitFBDev) {
       fprintf(stderr, "Couldn't find __driInitFBDev in %s\n",
+              dpy->clientDriverName);
+      dlclose(dpy->dlHandle);
+      FREE(dpy);
+      return NULL;
+   }
+
+   dpy->driverHaltFBDev = (HaltFBDevFunc) dlsym(dpy->dlHandle, 
+						"__driHaltFBDev");
+   if (!dpy->driverHaltFBDev) {
+      fprintf(stderr, "Couldn't find __driHaltFBDev in %s\n",
               dpy->clientDriverName);
       dlclose(dpy->dlHandle);
       FREE(dpy);
@@ -661,9 +706,11 @@ XOpenDisplay( const char *display_name )
 void
 XCloseDisplay( Display *display )
 {
-   (*display->driScreen.destroyScreen)(display, 0, display->driScreen.private);
+   if (display->NumWindows) {
+      XDestroyWindow( display, display->TheWindow );
+   }
    dlclose(display->dlHandle);
-   CleanupFBDev(display);
+   CloseFBDev(display);
    FREE(display);
 }
 
@@ -791,6 +838,7 @@ XCreateWindow( Display *display, Window parent, int x, int y,
     *
     * Need to shut down drm and free dri data in XDestroyWindow, too.
     */
+#if 1
    display->driScreen.private = (*display->createScreen)(display, 0, 
                                                          &(display->driScreen),
                                                          display->numConfigs,
@@ -813,10 +861,18 @@ XCreateWindow( Display *display, Window parent, int x, int y,
       return NULL;
    }
 
+#endif
+
    display->NumWindows++;
    display->TheWindow = win;
 
-   return win;
+   if (0) {
+      fprintf(stderr, "Now, destroy it!\n");
+      XDestroyWindow( display, win );
+      return NULL;
+   } 
+   else
+      return win; 
 }
 
 
@@ -843,9 +899,25 @@ XDestroyWindow( Display *display, Window w )
       if (w == curDraw) {
          glXMakeCurrent( display, NULL, NULL);
       }
-      (*w->driDrawable.destroyDrawable)(display, w->driDrawable.private);
+
+      /* Destroy the drawable.
+       */
+      if (w->driDrawable.private)
+	 (*w->driDrawable.destroyDrawable)(display, w->driDrawable.private);
+
+      /* As this is done in CreateWindow, need to undo it here:
+       */
+      if (display->driScreen.private) 
+	 (*display->driScreen.destroyScreen)(display, 0, 
+					     display->driScreen.private);
+
+      /* As this is done in CreateWindow, need to undo it here:
+       */
+      (*display->driverHaltFBDev)( display );
+
       /* put framebuffer back to initial state */
       RestoreFBDev(display);
+
       FREE(w);
       /* unlink window from display */
       display->NumWindows--;

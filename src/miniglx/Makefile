@@ -19,11 +19,13 @@ LIBS = -ldl
 
 
 
-default: libGL.so.1.2
+default: libGL.so.1.2 install drmtest
 
 
 libGL.so.1.2: $(OBJS) Makefile
 	gcc -shared -Wl,-soname,libGL.so -Wl,-Bsymbolic $(OBJS) $(LIBS) -o $@ 
+
+install:
 	rm -f $(MESA)/lib/libGL.so*
 	install -D libGL.so.1.2 $(MESA)/lib/libGL.so.1.2
 	ln -s libGL.so.1.2 $(MESA)/lib/libGL.so.1
@@ -31,6 +33,10 @@ libGL.so.1.2: $(OBJS) Makefile
 
 #miniglx.a: $(OBJECTS) Makefile
 #	rm -f $@ && ar rcv $@ $(OBJECTS) && ranlib $@
+
+
+drmtest: xf86drm.o drmtest.o
+	rm -f drmtest && $(CC) -o drmtest xf86drm.o drmtest.o
 
 glapi.c: ../glapi.c
 	ln -s ../glapi.c .

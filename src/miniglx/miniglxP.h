@@ -10,6 +10,7 @@
 #ifndef _mini_GLX_client_h_
 #define _mini_GLX_client_h_
 
+#include <signal.h>
 #include <linux/fb.h>
 
 #include <GL/miniglx.h>
@@ -60,6 +61,7 @@ typedef void *(*CreateScreenFunc)(Display *dpy, int scrn, __DRIscreen *psc,
                                   int numConfigs, __GLXvisualConfig *config);
 
 typedef void *(*InitFBDevFunc)( Display *dpy );
+typedef void *(*HaltFBDevFunc)( Display *dpy );
 
 
 /**
@@ -234,6 +236,7 @@ struct MiniGLXContextRec {
 struct MiniGLXDisplayRec {
    struct fb_fix_screeninfo FixedInfo;
    struct fb_var_screeninfo OrigVarInfo, VarInfo;
+   struct sigaction OrigSigUsr1;
    int DesiredDepth;
    int OriginalVT;
    int ConsoleFD;
@@ -259,7 +262,6 @@ struct MiniGLXDisplayRec {
     * \name From __GLXdisplayPrivate
     */
    /*@{*/
-   InitFBDevFunc driverInitFBDev;
    CreateScreenFunc createScreen;
    __DRIscreen driScreen;
    void *dlHandle;                /**<
@@ -268,6 +270,13 @@ struct MiniGLXDisplayRec {
 				   */
    /*@}*/
 
+   /**
+    * \name New driver hooks
+    */
+   /*@{*/
+   InitFBDevFunc driverInitFBDev;
+   HaltFBDevFunc driverHaltFBDev;
+   /*@}*/
 
    /**
     * \name Configuration details
@@ -304,9 +313,9 @@ struct MiniGLXDisplayRec {
     * Populated by __driInitFBDev()
     */
    /*@{*/
-   void *driverPrivate;
    void *driverInfo;
-   int driverInfoSize;
+   void *driverClientMsg;
+   int driverClientMsgSize;
    /*@}*/
 };
 

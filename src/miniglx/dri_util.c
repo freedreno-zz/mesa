@@ -408,13 +408,16 @@ static void *driCreateContext(Display *dpy, XVisualInfo *vis,
 static void driDestroyScreen(Display *dpy, int scrn, void *screenPrivate)
 {
     __DRIscreenPrivate *psp = (__DRIscreenPrivate *) screenPrivate;
+    
+    fprintf(stderr, "%s\n", __FUNCTION__);
 
     if (psp) {
 	if (psp->DriverAPI.DestroyScreen)
 	    (*psp->DriverAPI.DestroyScreen)(psp);
 
 	if (psp->fd) {
-	   (void)drmUnmap((drmAddress)psp->pSAREA, SAREA_MAX);
+/* 	   (void)drmUnmap((drmAddress)psp->pSAREA, SAREA_MAX); */
+	   fprintf(stderr, "%s: Closing DRM fd\n", __FUNCTION__);
 	   (void)drmClose(psp->fd);
 	}
 
@@ -431,9 +434,8 @@ __driUtilCreateScreen(Display *dpy, int scrn, __DRIscreen *psc,
 {
    __DRIscreenPrivate *psp;
    char *driverName;
-   drmHandle hFB, hSAREA;
+   drmHandle hFB;
    drmMagic magic;
-   char *BusID;
 
    psp = (__DRIscreenPrivate *)malloc(sizeof(__DRIscreenPrivate));
    if (!psp) {
@@ -443,12 +445,7 @@ __driUtilCreateScreen(Display *dpy, int scrn, __DRIscreen *psc,
    psp->display = dpy;
    psp->myNum = scrn;
 
-   hSAREA = dpy->hSAREA;
-   BusID = dpy->pciBusID;
-   
-   printf("hSAREA = 0x%x  BusID = %s\n", (int) hSAREA, BusID);
-
-   psp->fd = drmOpen(NULL,BusID);
+   psp->fd = drmOpen(NULL,dpy->pciBusID);
    if (psp->fd < 0) {
       fprintf(stderr, "libGL error: failed to open DRM: %s\n", strerror(-psp->fd));
       free(psp);
@@ -498,8 +495,8 @@ __driUtilCreateScreen(Display *dpy, int scrn, __DRIscreen *psc,
    psp->fbOrigin = 0;  
    psp->fbSize = dpy->FrameBufferSize; 
    psp->fbStride = dpy->VarInfo.xres_virtual * dpy->cpp; 
-   psp->devPrivSize = dpy->driverInfoSize;
-   psp->pDevPriv = dpy->driverInfo;
+   psp->devPrivSize = dpy->driverClientMsgSize;
+   psp->pDevPriv = dpy->driverClientMsg;
    psp->fbWidth = dpy->VarInfo.xres;
    psp->fbHeight = dpy->VarInfo.yres;
    psp->fbBPP = dpy->VarInfo.bits_per_pixel;
@@ -509,7 +506,7 @@ __driUtilCreateScreen(Display *dpy, int scrn, __DRIscreen *psc,
    if (psp->DriverAPI.InitDriver) {
       if (!(*psp->DriverAPI.InitDriver)(psp)) {
 	 fprintf(stderr, "libGL error: InitDriver failed\n");
-	 (void)drmUnmap((drmAddress)psp->pSAREA, SAREA_MAX);
+/* 	 (void)drmUnmap((drmAddress)psp->pSAREA, SAREA_MAX); */
 	 free(psp->pDevPriv);
 	 (void)drmClose(psp->fd);
 	 free(psp);
