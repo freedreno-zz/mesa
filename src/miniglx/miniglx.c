@@ -22,7 +22,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: miniglx.c,v 1.1.4.36 2003/01/17 19:01:22 keithw Exp $ */
+/* $Id: miniglx.c,v 1.1.4.37 2003/01/18 12:16:16 keithw Exp $ */
 
 
 /**
@@ -251,6 +251,18 @@ OpenFBDev( Display *dpy )
    /* make copy */
    dpy->VarInfo = dpy->OrigVarInfo;  /* structure copy */
 
+   /* Turn off hw accels (otherwise mmap of mmio region will be
+    * refused)
+    */
+   dpy->VarInfo.accel_flags = 0; 
+   if (ioctl(dpy->FrameBufferFD, FBIOPUT_VSCREENINFO, &dpy->VarInfo)) {
+      fprintf(stderr, "error: ioctl(FBIOPUT_VSCREENINFO) failed: %s\n",
+	      strerror(errno));
+      return GL_FALSE;
+   }
+
+
+
    /* Get the fixed screen info */
    if (ioctl(dpy->FrameBufferFD, FBIOGET_FSCREENINFO, &dpy->FixedInfo)) {
       fprintf(stderr, "error: ioctl(FBIOGET_FSCREENINFO) failed: %s\n",
@@ -425,6 +437,19 @@ SetupFBDev( Display *dpy, Window win )
       return GL_FALSE;
    }
 
+   /* get the variable screen info, in case it has been modified */
+   if (ioctl(dpy->FrameBufferFD, FBIOGET_VSCREENINFO, &dpy->VarInfo)) {
+      fprintf(stderr, "error: ioctl(FBIOGET_VSCREENINFO) failed: %s\n",
+              strerror(errno));
+      return GL_FALSE;
+   }
+
+
+   fprintf(stderr, "[miniglx] Readback mode: visible %dx%d virtual %dx%dx%d\n",
+	   dpy->VarInfo.xres, dpy->VarInfo.yres,
+	   dpy->VarInfo.xres_virtual, dpy->VarInfo.yres_virtual,
+	   dpy->VarInfo.bits_per_pixel);
+
    /* Get the fixed screen info */
    if (ioctl(dpy->FrameBufferFD, FBIOGET_FSCREENINFO, &dpy->FixedInfo)) {
       fprintf(stderr, "error: ioctl(FBIOGET_FSCREENINFO) failed: %s\n",
@@ -559,13 +584,58 @@ _glthread_GetID(void)
 
 
 /**
+ * \brief Scan linux /prog/bus/pci/devices file to determine hardware
+ * chipset based on supplied busid.
+ * 
+ * \return non-zeros on success, zero otherwise.
+ * 
+ * \internal 
+ */
+static int get_chipset_from_busid( Display *dpy )
+{
+   char buf[0x200];
+   FILE *file;
+   const char *fname = "/proc/bus/pci/devices";
+   int retval = 0;
+
+   if (!(file = fopen(fname,"r"))) {
+      fprintf(stderr, "couldn't open %s: %s\n", fname, strerror(errno));
+      return 0;
+   }
+
+   while (fgets(buf, sizeof(buf)-1, file)) {
+      int nr, bus, dev, fn, vendor, device;
+      nr = sscanf(buf, "%02x%01x%01x\t%04x%04x", &bus, &dev, &fn, 
+		  &vendor, &device);
+
+      if (nr != 5)
+	 break;
+
+      if (bus == dpy->pciBus && dev == dpy->pciDevice && fn == dpy->pciFunc) {
+	 retval = device;
+	 break;
+      }
+   }
+
+   fclose(file);
+
+   if (retval)
+      fprintf(stderr, "[miniglx]: probed chipset 0x%x\n", retval);
+   else
+      fprintf(stderr, "[miniglx]: failed to probe chipset\n");
+
+   return retval;
+}
+
+
+/**
  * \brief Read settings from a configuration file.
  * 
  * \return non-zeros on success, zero otherwise.
  * 
  * \internal 
  */
-int __read_config_file( Display *dpy )
+static int __read_config_file( Display *dpy )
 {
    FILE *file;
    const char *fname;
@@ -603,6 +673,7 @@ int __read_config_file( Display *dpy )
        */
       while (isspace(*opt)) opt++;
       val = opt;
+      if (*val == '#') continue; /* comment */
       while (!isspace(*val) && *val != '=' && *val) val++;
       tmp1 = val;
       while (isspace(*val)) val++;
@@ -649,6 +720,10 @@ int __read_config_file( Display *dpy )
    }
 
    fclose(file);
+
+   if (dpy->chipset == 0 && dpy->pciBusID != 0) 
+      dpy->chipset = get_chipset_from_busid( dpy );
+
    return 1;
 }
 
