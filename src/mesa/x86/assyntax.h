@@ -243,9 +243,10 @@
 #endif /* ACK_ASSEMBLER */
 
 
-#if defined(Lynx) || (defined(SYSV) || defined(SVR4)) && !defined(ACK_ASSEMBLER) \
+#if (defined(Lynx) || (defined(SYSV) || defined(SVR4)) && !defined(ACK_ASSEMBLER) \
  || (defined(linux) || defined(__OS2ELF__)) && defined(__ELF__) \
- || defined(__FreeBSD__) && __FreeBSD__ >= 3
+ || defined(__FreeBSD__) && __FreeBSD__ >= 3) \
+ || (defined(__NetBSD__) && defined(__ELF__))
 #define GLNAME(a)       a
 #else
 #define GLNAME(a)       CONCAT(_,a)
@@ -884,9 +885,17 @@
 #define D_BYTE db
 /* #define SPACE */
 /* #define COMM */
+#if defined(__WATCOMC__)
+SECTION _TEXT public align=16 class=CODE use32 flat
+SECTION _DATA public align=16 class=DATA use32 flat
+#define SEG_TEXT SECTION _TEXT
+#define SEG_DATA SECTION _DATA
+#define SEG_BSS SECTION .bss
+#else
 #define SEG_DATA SECTION .data
 #define SEG_TEXT SECTION .text
 #define SEG_BSS SECTION .bss
+#endif
 
 #define D_SPACE(n) db n REP 0
 
@@ -1567,7 +1576,7 @@
 
 #define FEMMS	femms
 #define PREFETCH(a) 	prefetch P_ARG1(a)
-#define PREFETCHW(a) 	prefetchw P_ARG1(a)
+#define PREFETCHW(a)    prefetchw P_ARG1(a)
 
 /* Intel SSE */
 #define ADDPS(a, b)	addps P_ARG2(a, b)
