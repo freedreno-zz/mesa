@@ -1,6 +1,23 @@
 /**
  * \file dri_util.h
+ * \brief DRI utility functions definitions.
+ *
+ * This module acts as glue between GLX and the actual hardware driver.  A DRI
+ * driver doesn't really \e have to use any of this - it's optional.  But, some
+ * useful stuff is done here that otherwise would have to be duplicated in most
+ * drivers.
  * 
+ * Basically, these utility functions take care of some of the dirty details of
+ * screen initialization, context creation, context binding, DRM setup, etc.
+ *
+ * These functions are compiled into each DRI driver so libGL.so knows nothing
+ * about them.
+ *
+ * Look for more comments in the dri_util.c file.
+ * 
+ * \author Kevin E. Martin <kevin@precisioninsight.com>
+ * \author Brian Paul <brian@precisioninsight.com>
+ *
  * Copyright 1998-1999 Precision Insight, Inc., Cedar Park, Texas.
  * All Rights Reserved.
  * 
@@ -23,23 +40,6 @@
  * ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- * 
- * \author Kevin E. Martin <kevin@precisioninsight.com>
- * \author Brian Paul <brian@precisioninsight.com>
- *
- * This module acts as glue between GLX and the actual hardware driver.
- * A DRI driver doesn't really \e have to use any of this - it's optional.
- * But, some useful stuff is done here that otherwise would have to be
- * duplicated in most drivers.
- * 
- * Basically, these utility functions take care of some of the dirty details
- * of screen initialization, context creation, context binding, DRM setup,
- * etc.
- *
- * These functions are compiled into each DRI driver so libGL.so knows
- * nothing about them.
- *
- * Look for more comments in the dri_util.c file.
  */
 
 /* $XFree86$ */
@@ -50,9 +50,9 @@
 
 #define CAPI  /* XXX this should be globally defined somewhere */
 
-#include "GL/miniglx.h"           /* for GLXDrawable */
-#include "sarea.h"               /* for XF86DRISAREAPtr */
-#include "GL/internal/glcore.h"  /* for __GLcontextModes */
+#include "GL/miniglx.h"		/* for GLXDrawable */
+#include "sarea.h"		/* for XF86DRISAREAPtr */
+#include "GL/internal/glcore.h"	/* for __GLcontextModes */
 #include "miniglxP.h"		/* XID, etc */
 
 
@@ -63,6 +63,9 @@ typedef struct __DRIcontextPrivateRec  __DRIcontextPrivate;
 typedef struct __DRIdrawablePrivateRec __DRIdrawablePrivate;
 
 
+/**
+ * Used by DRI_VALIDATE_DRAWABLE_INFO
+ */
 #define DRI_VALIDATE_DRAWABLE_INFO_ONCE(pDrawPriv)              \
     do {                                                        \
 	if (*(pDrawPriv->pStamp) != pDrawPriv->lastStamp) {     \
@@ -71,6 +74,11 @@ typedef struct __DRIdrawablePrivateRec __DRIdrawablePrivate;
     } while (0)
 
 
+/**
+ * \brief Utility macro to validate the drawable information.
+ *
+ * See __DRIdrawablePrivateRec::pStamp and __DRIdrawablePrivateRec::lastStamp.
+ */
 #define DRI_VALIDATE_DRAWABLE_INFO(psp, pdp)                            \
 do {                                                                    \
     while (*(pdp->pStamp) != pdp->lastStamp) {                          \
@@ -88,6 +96,8 @@ do {                                                                    \
 
 
 /**
+ * \brief Driver callback functions.
+ *
  * Each DRI driver must have one of these structs with all the pointers set to
  * appropriate functions within the driver.
  * 
@@ -96,70 +106,127 @@ do {                                                                    \
  * this structure.
  */
 struct __DriverAPIRec {
+    /** 
+     * \brief Driver initialization callback
+     */
     GLboolean (*InitDriver)(__DRIscreenPrivate *driScrnPriv);
+    
+    /**
+     * \brief Screen destruction callback
+     */
     void (*DestroyScreen)(__DRIscreenPrivate *driScrnPriv);
+
+    /**
+     * \brief Context creation callback
+     */	    	    
     GLboolean (*CreateContext)(const __GLcontextModes *glVis,
                                __DRIcontextPrivate *driContextPriv,
                                void *sharedContextPrivate);
+
+    /**
+     * \brief Context destruction callback
+     */
     void (*DestroyContext)(__DRIcontextPrivate *driContextPriv);
+
+    /**
+     * \brief Buffer (drawable) creation callback
+     */
     GLboolean (*CreateBuffer)(__DRIscreenPrivate *driScrnPriv,
                               __DRIdrawablePrivate *driDrawPriv,
                               const __GLcontextModes *glVis,
                               GLboolean pixmapBuffer);
+    
+    /**
+     * \brief Buffer (drawable) destruction callback
+     */
     void (*DestroyBuffer)(__DRIdrawablePrivate *driDrawPriv);
+
+    /**
+     * \brief Buffer swaping callback 
+     */
     void (*SwapBuffers)(__DRIdrawablePrivate *driDrawPriv);
+
+    /**
+     * \brief Context actication callback
+     */
     GLboolean (*MakeCurrent)(__DRIcontextPrivate *driContextPriv,
                              __DRIdrawablePrivate *driDrawPriv,
                              __DRIdrawablePrivate *driReadPriv);
+
+    /**
+     * \brief Context unbinding callback
+     */
     GLboolean (*UnbindContext)(__DRIcontextPrivate *driContextPriv);
+  
+    /**
+     * \brief Full screen mode opening callback.
+     */
     GLboolean (*OpenFullScreen)(__DRIcontextPrivate *driContextPriv);
+
+    /**
+     * \brief Full screen mode closing callback.
+     */
     GLboolean (*CloseFullScreen)(__DRIcontextPrivate *driContextPriv);
 };
 
 
+/**
+ * \brief Per-drawable private DRI driver information.
+ *
+ */
 struct __DRIdrawablePrivateRec {
     /**
-     * Kernel drawable handle (not currently used).
+     * \brief Kernel drawable handle
+     *
+     * \note Not currently used.
      */
     drmDrawable hHWDrawable;
 
     /**
-     * Driver's private drawable information.  This structure is opaque.
+     * \brief Driver's private drawable information.  
+     *
+     * This structure is opaque.
      */
     void *driverPrivate;
 
     /**
-     * X's drawable ID associated with this private drawable.
+     * \brief X's drawable ID associated with this private drawable.
      */
     GLXDrawable draw;
 
     /**
-     * Reference count for number of context's currently bound to this
-     * drawable.  Once the refcount reaches 0, the drawable can be
-     * destroyed.  This behavior will change with GLX 1.3.
+     * \brief Reference count for number of context's currently bound to this
+     * drawable.  
+     *
+     * Once it reaches zero, the drawable can be destroyed.
+     *
+     * \note This behavior will change with GLX 1.3.
      */
     int refcount;
 
     /**
-     * Index of this drawable's information in the SAREA.
+     * \brief Index of this drawable's information in the SAREA.
      */
     unsigned int index;
 
     /**
-     * Pointer to the "drawable has changed ID" stamp in the SAREA.
+     * \brief Pointer to the "drawable has changed ID" stamp in the SAREA.
      */
     unsigned int *pStamp;
 
     /**
-     * Last value of the stamp.  If this differs from the value stored
-     * at *pStamp, then the drawable information has been modified by
-     * the X server, and the drawable information (below) should be
+     * \brief Last value of the stamp.
+     *
+     * If this differs from the value stored at
+     * __DRIdrawablePrivateRec::pStamp, then the drawable information has been
+     * modified by the X server, and the drawable information (below) should be
      * retrieved from the X server.
      */
     unsigned int lastStamp;
 
     /**
-     * \name Drawable information used in software fallbacks.
+     * \name Drawable 
+     * Drawable information used in software fallbacks.
      */
     /*@{*/
     int x;
@@ -171,8 +238,8 @@ struct __DRIdrawablePrivateRec {
     /*@}*/
 
     /**
-     * Information about the back and depthbuffer where different
-     * from above.
+     * \name Back and depthbuffer
+     * Information about the back and depthbuffer where different from above.
      */
     /*@{*/
     int backX;
@@ -183,78 +250,88 @@ struct __DRIdrawablePrivateRec {
     /*@}*/
 
     /**
-     * Pointer to context to which this drawable is currently bound.
+     * \brief Pointer to context to which this drawable is currently bound.
      */
     __DRIcontextPrivate *driContextPriv;
 
     /**
-     * Pointer to screen on which this drawable was created.
+     * \brief Pointer to screen on which this drawable was created.
      */
     __DRIscreenPrivate *driScreenPriv;
 
     /**
+     * \name 
      * Basically just need these for when the locking code needs to call
      * __driUtilUpdateDrawableInfo() which calls XF86DRIGetDrawableInfo().
      */
+    /*@{*/
     Display *display;
     int screen;
+    /*@}*/
 
     /**
-     * Called via glXSwapBuffers().
+     * \brief Called via glXSwapBuffers().
      */
     void (*swapBuffers)( __DRIdrawablePrivate *dPriv );
 };
 
+/**
+ * \brief Per-context private driver information.
+ */
 struct __DRIcontextPrivateRec {
     /**
-     * Kernel context handle used to access the device lock.
+     * \brief Kernel context handle used to access the device lock.
      */
     XID contextID;
 
     /**
-     * Kernel context handle used to access the device lock.
+     * \brief Kernel context handle used to access the device lock.
      */
     drmContext hHWContext;
 
     /**
-     * Device driver's private context data.  This structure is opaque.
+     * \brief Device driver's private context data.  This structure is opaque.
      */
     void *driverPrivate;
 
     /**
-     * This context's display pointer.
+     * \brief This context's display pointer.
      */
     Display *display;
 
     /**
-     * Pointer to drawable currently bound to this context.
+     * \brief Pointer to drawable currently bound to this context.
      */
     __DRIdrawablePrivate *driDrawablePriv;
 
     /**
-     * Pointer to screen on which this context was created.
+     * \brief Pointer to screen on which this context was created.
      */
     __DRIscreenPrivate *driScreenPriv;
 };
 
+/**
+ * \brief Per-screen private driver information.
+ */
 struct __DRIscreenPrivateRec {
     /**
-     * Display for this screen
+     * \brief Display for this screen
      */
     Display *display;
 
     /**
-     * Current screen's number
+     * \brief Current screen's number
      */
     int myNum;
 
     /**
-     * Callback functions into the hardware-specific DRI driver code.
+     * \brief Callback functions into the hardware-specific DRI driver code.
      */
     struct __DriverAPIRec DriverAPI;
 
     /**
-     * \name DDX / 2D driver version information.
+     * \name DDX version
+     * DDX / 2D driver version information.
      */
     /*@{*/
     int ddxMajor;
@@ -263,7 +340,8 @@ struct __DRIscreenPrivateRec {
     /*@}*/
 
     /**
-     * \name DRI X extension version information.
+     * \name DRI version
+     * DRI X extension version information.
      */
     /*@{*/
     int driMajor;
@@ -272,7 +350,8 @@ struct __DRIscreenPrivateRec {
     /*@}*/
 
     /**
-     * \name DRM (kernel module) version information.
+     * \name DRM version
+     * DRM (kernel module) version information.
      */
     /*@{*/
     int drmMajor;
@@ -281,15 +360,17 @@ struct __DRIscreenPrivateRec {
     /*@}*/
 
     /**
-     * ID used when the client sets the drawable lock.  The X server
-     * uses this value to detect if the client has died while holding
-     * the drawable lock.
+     * \brief ID used when the client sets the drawable lock.
+     *
+     * The X server uses this value to detect if the client has died while
+     * holding the drawable lock.
      */
     int drawLockID;
 
     /**
-     * File descriptor returned when the kernel device driver is opened.
-     * It is used to:
+     * \brief File descriptor returned when the kernel device driver is opened.
+     * 
+     * Used to:
      *   - authenticate client to kernel
      *   - map the frame buffer, SAREA, etc.
      *   - close the kernel device driver
@@ -297,15 +378,17 @@ struct __DRIscreenPrivateRec {
     int fd;
 
     /**
-     * SAREA pointer used to access:
+     * \brief SAREA pointer 
+     *
+     * Used to access:
      *   - the device lock
      *   - the device-independent per-drawable and per-context(?) information
      */
     XF86DRISAREAPtr pSAREA;
 
     /**
-     * \name Direct frame buffer access information used for software
-     * fallbacks.
+     * \name Direct frame buffer access information 
+     * Used for software fallbacks.
      */
     /*@{*/
     unsigned char *pFB;
@@ -328,38 +411,44 @@ struct __DRIscreenPrivateRec {
     /*@}*/
 
     /**
-     * Dummy context to which drawables are bound when not bound to any
-     * other context. A dummy hHWContext is created for this context,
-     * and is used by the GL core when a HW lock is required but the
-     * drawable is not currently bound (e.g., potentially during a
-     * SwapBuffers request).  The dummy context is created when the
-     * first "real" context is created on this screen.
+     * \brief Dummy context to which drawables are bound when not bound to any
+     * other context. 
+     *
+     * A dummy hHWContext is created for this context, and is used by the GL
+     * core when a HW lock is required but the drawable is not currently bound
+     * (e.g., potentially during a SwapBuffers request).  The dummy context is
+     * created when the first "real" context is created on this screen.
      */
     __DRIcontextPrivate dummyContextPriv;
 
     /**
-     * Hash table to hold the drawable information for this screen.
+     * \brief Hash table to hold the drawable information for this screen.
      */
     void *drawHash;
 
     /**
-     * Device-dependent private information (not stored in the SAREA).
+     * \brief Device-dependent private information (not stored in the SAREA).
+     * 
      * This pointer is never touched by the DRI layer.
      */
     void *private;
 
     /**
+     * \brief Full screen mode.
+     *
      * If we're in full screen mode (via DRIOpenFullScreen()), this points to
      * the drawable that was bound.  Otherwise, this is NULL.
      */
     __DRIdrawablePrivate *fullscreen;
 
     /**
-     * \name Number of visuals (configs) for this screen, and a pointer to them.
+     * \name Visuals 
+     *
+     * Visuals (configs) in this screen.
      */
     /*@{*/
-    int numConfigs;
-    __GLXvisualConfig *configs;
+    int numConfigs;		/**< \brief Number of visuals. */
+    __GLXvisualConfig *configs;	/**< \brief Visuals list pointer. */
     /*@}*/
 };
 
