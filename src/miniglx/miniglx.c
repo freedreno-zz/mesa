@@ -1,4 +1,4 @@
-/* $Id: miniglx.c,v 1.1.4.9 2002/12/06 16:21:28 keithw Exp $ */
+/* $Id: miniglx.c,v 1.1.4.10 2002/12/09 22:33:09 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -36,6 +36,30 @@
  *   2. a DRI driver loader
  *
  */
+
+/*
+ * Notes on the XVisualInfo, Visual, and __GLXvisualConfig data types:
+ *
+ * 1. X is kind of silly in that it has two (or three) datatypes which
+ *    describe visuals.  In a perfect world there would just be one.
+ * 
+ * 2. We need the __GLXvisualConfig type to augment XVisualInfo and Visual
+ *    because we need to describe the GLX-specific attributes of visuals.
+ *
+ * 3. In this interface there is a one-to-one-to-one correspondence between
+ *    the three types and they're all interconnected.
+ *
+ * 4. The XVisualInfo type has a pointer to a Visual.  The Visual structure
+ *    (aka MiniGLXVisualRec) has a pointer to the __GLXvisualConfig.  The
+ *    Visual structure also has a pointer pointing back to the XVisualInfo.
+ *
+ * 5. The XVisualInfo structure is the only one who's contents are public.
+ *
+ * 6. The glXChooseVisual and XGetVisualInfo are the only functions that
+ *    return XVisualInfo structures.  They can be freed with XFree(), though
+ *    there is a small memory leak.
+ */
+
 
 #include <assert.h>
 #include <errno.h>
@@ -83,7 +107,7 @@ static GLXContext CurrentContext = NULL;
 
 
 /**********************************************************************/
-/* FBdev fucntions                                                    */
+/* FBdev functions                                                    */
 /**********************************************************************/
 
 
@@ -427,7 +451,11 @@ _glthread_GetID(void)
 }
 
 
-
+/*
+ * XXX This code might be moved into the driver.
+ * The idea is to establish the set of visuals available for the display.
+ * The DRI drivers (or dri_util) requires the __GLXvisualConfig data type.
+ */
 static void
 InitializeScreenConfigs(int *numConfigs, __GLXvisualConfig **configs)
 {
@@ -504,7 +532,8 @@ XOpenDisplay( const char *display_name )
       return NULL;
    }
 
-   /* this effectively initializes the DRI driver */
+#if 0
+   /* this effectively initializes the DRI driver - just an idea */
    dpy->driScreen.private = (*dpy->createScreen)(dpy, 0, &(dpy->driScreen),
                                                  dpy->numConfigs,
                                                  dpy->configs);
@@ -512,6 +541,7 @@ XOpenDisplay( const char *display_name )
       FREE(dpy);
       return NULL;
    }
+#endif
 
    return dpy;
 }
@@ -605,21 +635,6 @@ XCreateWindow( Display *dpy, Window parent, int x, int y,
 }
 
 
-int
-DefaultScreen( Display *dpy )
-{
-   (void) dpy;
-   return 0;
-}
-
-
-Window
-RootWindow( Display *display, int scrNum )
-{
-   return 0;
-}
-
-
 void
 XDestroyWindow( Display *dpy, Window win )
 {
@@ -678,7 +693,56 @@ XFree( void *pointer )
 }
 
 
+/*
+ * Return list of all XVisualInfos we have (one per __GLXvisualConfig).
+ */
+XVisualInfo *
+XGetVisualInfo( Display *dpy, long visMask, XVisualInfo *visTemplate, int *numVisuals )
+{
+   XVisualInfo *results;
+   Visual *visResults;
+   int i, n;
 
+   ASSERT(visMask == VisualScreenMask);
+   ASSERT(visTemplate.screen == 0);
+
+   n = dpy->numConfigs;
+   results = (XVisualInfo *) CALLOC(n * sizeof(XVisualInfo));
+   if (!results) {
+      *numVisuals = 0;
+      return NULL;
+   }
+
+   visResults = (Visual *) CALLOC(n * sizeof(Visual));
+   if (!results) {
+      FREE(results);
+      *numVisuals = 0;
+      return NULL;
+   }
+
+   for (i = 0; i < n; i++) {
+      visResults[i].glxConfig = dpy->configs + i;
+      visResults[i].visInfo = results + i;
+      visResults[i].dpy = dpy;
+      visResults[i].pixelFormat = 0;
+      results[i].visual = visResults + i;
+      results[i].visualid = dpy->configs[i].vid;
+      results[i].class = TrueColor;
+      results[i].depth = dpy->configs[i].redSize +
+                         dpy->configs[i].greenSize +
+                         dpy->configs[i].blueSize +
+                         dpy->configs[i].alphaSize;
+      results[i].bits_per_rgb = 32;
+   }
+   *numVisuals = n;
+   return results;
+}
+
+
+/*
+ * Return a pointer to an XVisualInfo which best matches the GLX parameters
+ * specified by the attribs list.
+ */
 XVisualInfo*
 glXChooseVisual( Display *dpy, int screen, int *attribs )
 {
@@ -697,6 +761,7 @@ glXChooseVisual( Display *dpy, int screen, int *attribs )
     * XXX in the future, <screen> might be interpreted as a VT
     */
    ASSERT(dpy);
+   ASSERT(screen == 0);
 
    vis = (Visual *) CALLOC(sizeof(Visual));
    if (!vis)
@@ -709,7 +774,6 @@ glXChooseVisual( Display *dpy, int screen, int *attribs )
    }
 
    visInfo->visual = vis;
-   visInfo->visualid = 0;
    vis->visInfo = visInfo;
    vis->dpy = dpy;
 
@@ -738,12 +802,13 @@ glXChooseVisual( Display *dpy, int screen, int *attribs )
          redBits = attrib[1];
          attrib++;
          break;
-      case GLX_DEPTH_SIZE:
-         depthBits = attrib[1];
-         attrib++;
-         break;
       case GLX_STENCIL_SIZE:
          stencilBits = attrib[1];
+         attrib++;
+         break;
+#if 0
+      case GLX_DEPTH_SIZE:
+         depthBits = attrib[1];
          attrib++;
          break;
       case GLX_ACCUM_RED_SIZE:
@@ -765,6 +830,7 @@ glXChooseVisual( Display *dpy, int screen, int *attribs )
       case GLX_LEVEL:
          /* ignored for now */
          break;
+#endif
       default:
          /* unexpected token */
          fprintf(stderr, "unexpected token in glXChooseVisual attrib list\n");
@@ -784,9 +850,12 @@ glXChooseVisual( Display *dpy, int screen, int *attribs )
    (void) stereoFlag;
    for (i = 0; i < dpy->numConfigs; i++) {
       const __GLXvisualConfig *config = dpy->configs + i;
-      /* XXX add more tests */
       if (config->rgba == rgbFlag &&
-          config->depthSize >= depthBits &&
+          config->redSize >= redBits &&
+          config->greenSize >= greenBits &&
+          config->blueSize >= blueBits &&
+          config->alphaSize >= alphaBits &&
+          /*config->depthSize >= depthBits &&*/
           config->stencilSize >= stencilBits) {
          /* found it */
          visInfo->visualid = config->vid;
@@ -812,6 +881,51 @@ glXChooseVisual( Display *dpy, int screen, int *attribs )
    }
 
    return visInfo;
+}
+
+
+int
+glXGetConfig( Display *dpy, XVisualInfo *vis, int attrib, int *value )
+{
+   const __GLXvisualConfig *config = vis->visual->glxConfig;
+   if (!config) {
+      *value = 0;
+      return GLX_BAD_VISUAL;
+   }
+
+   switch (attrib) {
+   case GLX_USE_GL:
+      *value = True;
+      return 0;
+   case GLX_RGBA:
+      *value = config->rgba;
+      return 0;
+   case GLX_DOUBLEBUFFER:
+      *value = config->doubleBuffer;
+      return 0;
+   case GLX_RED_SIZE:
+      *value = config->redSize;
+      return 0;
+   case GLX_GREEN_SIZE:
+      *value = config->greenSize;
+      return 0;
+   case GLX_BLUE_SIZE:
+      *value = config->blueSize;
+      return 0;
+   case GLX_ALPHA_SIZE:
+      *value = config->alphaSize;
+      return 0;
+   case GLX_DEPTH_SIZE:
+      *value = config->depthSize;
+      return 0;
+   case GLX_STENCIL_SIZE:
+      *value = config->stencilSize;
+      return 0;
+   default:
+      *value = 0;
+      return GLX_BAD_ATTRIBUTE;
+   }
+   return 0;
 }
 
 
@@ -931,6 +1045,15 @@ glXGetProcAddress( const GLubyte *procName )
       { "glXGetCurrentContext", (void *) glXGetCurrentContext },
       { "glXGetCurrentDrawable", (void *) glXGetCurrentDrawable },
       { "glXGetProcAddress", (void *) glXGetProcAddress },
+      { "XOpenDisplay", (void *) XOpenDisplay },
+      { "XCloseDisplay", (void *) XCloseDisplay },
+      { "XCreateWindow", (void *) XCreateWindow },
+      { "XDestroyWindow", (void *) XDestroyWindow },
+      { "XMapWindow", (void *) XMapWindow },
+      { "XCreateColormap", (void *) XCreateColormap },
+      { "XFreeColormap", (void *) XFreeColormap },
+      { "XFree", (void *) XFree },
+      { "XGetVisualinfo", (void *) XGetVisualInfo },
       { NULL, NULL }
    };
    const struct name_address *entry;
