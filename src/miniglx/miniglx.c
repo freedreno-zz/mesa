@@ -1,8 +1,8 @@
 /*
  * Mesa 3-D graphics library
- * Version:  4.1
+ * Version:  5.0
  *
- * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2003  Brian Paul   All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -22,20 +22,23 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: miniglx.c,v 1.1.4.29 2003/01/09 16:54:49 keithw Exp $ */
+/* $Id: miniglx.c,v 1.1.4.30 2003/01/10 21:56:04 brianp Exp $ */
 
 
 /**
  * \file miniglx.c
- * \brief Mini GLX interface, layered on fbdev.
+ * \brief Mini GLX interface functions.
  * \author Brian Paul
- * \note *PROTOTYPE*
+ *
+ * The Mini GLX interface is a subset of the GLX interface, plus a
+ * minimal set of Xlib functions.
  */
+
 
 /**
  * \mainpage Mini GLX
  *
- * \section intro Introduction
+ * \section miniglxIntro Introduction
  *
  * The Mini GLX interface facilitates OpenGL rendering on embedded devices. The
  * interface is a subset of the GLX interface, plus a minimal set of Xlib-like
@@ -45,9 +48,20 @@
  * systems with the X Window System and the GLX extension. The intention is to
  * allow flexibility for prototyping and testing.
  *
- * \section references References
  *
- * - Mini GLX Specification, Tungsten Graphics, Inc.
+ * \section miniglxDoxygen About Doxygen
+ *
+ * For a list of all files, select <b>File List</b>.  Choose a file from
+ * the list for a list of all functions in the file.
+ *
+ * For a list of all functions, types, constants, etc.
+ * select <b>File Members</b>.
+ *
+ *
+ * \section miniglxReferences References
+ *
+ * - <A HREF="file:../../docs/MiniGLX.html">Mini GLX Specification</A>,
+ *   Tungsten Graphics, Inc.
  * - OpenGL Graphics with the X Window System, Silicon Graphics, Inc.,
  *   ftp://ftp.sgi.com/opengl/doc/opengl1.2/glx1.3.ps
  * - Xlib - C Language X Interface, X Consortium Standard, X Version 11,
@@ -60,8 +74,8 @@
 /**
  * \page datatypes Notes on the XVisualInfo, Visual, and __GLXvisualConfig data types
  * 
- * -# X is kind of silly in that it has two (or three) datatypes which
- *    describe visuals.  In a perfect world there would just be one.
+ * -# X (unfortunately) has two (or three) datatypes which
+ *    describe visuals.  Ideally, there would just be one.
  * -# We need the #__GLXvisualConfig type to augment #XVisualInfo and #Visual
  *    because we need to describe the GLX-specific attributes of visuals.
  * -# In this interface there is a one-to-one-to-one correspondence between
@@ -100,21 +114,6 @@
 #define CALLOC_STRUCT(T) ((struct T *) calloc(1, sizeof(struct T)))
 #define FREE(P)   free(P)
 #define STRCMP(A, B)  strcmp(A, B)
-
-
-
-/**
- * \defgroup pixelformats Pixel formats
- *
- * \sa MiniGLXVisualRec::pixelFormat.
- */
-/*@{*/
-#define PF_B8G8R8     1
-#define PF_B8G8R8A8   2
-#define PF_B5G6R5     3
-#define PF_B5G5R5     4
-#define PF_CI8        5
-/*@}*/
 
 
 
@@ -575,11 +574,6 @@ InitializeScreenConfigs(int *numConfigs, __GLXvisualConfig **configs)
 /*@}*/
 
 
-/**********************************************************************/
-/** \name Public API functions (Xlib and GLX)                         */
-/**********************************************************************/
-/*@{*/
-
 /**
  * \brief Read settings from a configuration file.
  * 
@@ -629,6 +623,12 @@ int __read_config_file( Display *dpy )
 
    return 1;
 }
+
+
+/**********************************************************************/
+/** \name Public API functions (Xlib and GLX)                         */
+/**********************************************************************/
+/*@{*/
 
 
 /**
@@ -901,11 +901,12 @@ XCreateWindow( Display *display, Window parent, int x, int y,
  * \param w window handle.
  *
  * \internal
- * This function frees \p w after calling __DRIdrawableRec::destroyDrawable to destroy the
+ * This function frees window \p w after calling
+ * __DRIdrawableRec::destroyDrawable to destroy the
  * private data and restoring the framebuffer via RestoreFBDev().
  * 
- * In case of destroying the current buffer first unbinds the GLX context by calling
- * glXMakeCurrent() with no drawable.
+ * In case of destroying the current buffer first unbinds the GLX context
+ * by calling glXMakeCurrent() with no drawable.
  */
 void
 XDestroyWindow( Display *display, Window w )

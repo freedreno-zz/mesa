@@ -180,6 +180,20 @@ struct __DRIdrawableRec {
 
 
 /**
+ * \brief Supported pixel formats.
+ * \union pixelFormat
+ */
+enum PixelFormat {
+   PF_B8G8R8,    /**< 24-bit BGR */
+   PF_B8G8R8A8,  /**< 32-bit BGRA */
+   PF_B5G6R5,    /**< 16-bit BGR */
+   PF_B5G5R5,    /**< 15-bit BGR */
+   PF_CI8        /**< 8-bit color index */
+};
+
+
+
+/**
  * \brief X Visual type.
  *
  * \sa ::Visual, \ref datatypes.
@@ -188,7 +202,7 @@ struct MiniGLXVisualRec {
    const __GLXvisualConfig *glxConfig;
    XVisualInfo *visInfo;     /**< \brief pointer back to corresponding ::XVisualInfo */
    Display *dpy;
-   GLuint pixelFormat;       /**< \brief one of \link pixelformats PF_* values \endlink */
+   enum PixelFormat pixelFormat;
 };
 
 
