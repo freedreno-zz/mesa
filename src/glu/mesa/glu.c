@@ -1,9 +1,9 @@
-/* $Id: glu.c,v 1.24 2001/03/20 17:56:10 brianp Exp $ */
+/* $Id: glu.c,v 1.24.2.1 2002/02/12 03:13:42 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.5
- * Copyright (C) 1995-2001  Brian Paul
+ * Version:  4.0.2
+ * Copyright (C) 1995-2002  Brian Paul
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -330,7 +330,7 @@ const GLubyte *GLAPIENTRY
 gluGetString(GLenum name)
 {
    static char *extensions = "GL_EXT_abgr";
-   static char *version = "1.1 Mesa 3.5";
+   static char *version = "1.1 Mesa 4.0.2";
 
    switch (name) {
    case GLU_EXTENSIONS:

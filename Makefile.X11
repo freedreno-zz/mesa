@@ -1,9 +1,9 @@
-# $Id: Makefile.X11,v 1.56.2.3 2001/12/14 17:11:46 kschultz Exp $
+# $Id: Makefile.X11,v 1.56.2.4 2002/02/12 03:13:41 brianp Exp $
 
 # Mesa 3-D graphics library
-# Version:  4.0
+# Version:  4.0.2
 # 
-# Copyright (C) 1999-2001  Brian Paul   All Rights Reserved.
+# Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -329,10 +329,10 @@ realclean: clean
 
 
 
-DIRECTORY = Mesa-4.0
-LIB_NAME = MesaLib-4.0
-DEMO_NAME = MesaDemos-4.0
-GLU_NAME = MesaGLU-4.0
+DIRECTORY = Mesa-4.0.1
+LIB_NAME = MesaLib-4.0.1
+DEMO_NAME = MesaDemos-4.0.1
+GLU_NAME = MesaGLU-4.0.1
 GLUT_NAME = GLUT-3.7
 
 
@@ -377,7 +377,7 @@ LIB_FILES =	\
 	$(DIRECTORY)/include/GL/internal/glcore.h			\
 	$(DIRECTORY)/include/GL/Makefile.in				\
 	$(DIRECTORY)/include/GL/Makefile.am				\
-	$(DIRECTORY)/include/GL/dosmesa.h				\
+	$(DIRECTORY)/include/GL/dmesa.h					\
 	$(DIRECTORY)/include/GL/amesa.h					\
 	$(DIRECTORY)/include/GL/fxmesa.h				\
 	$(DIRECTORY)/include/GL/ggimesa.h				\
@@ -431,6 +431,7 @@ LIB_FILES =	\
 	$(DIRECTORY)/src/windml/man3/*.3				\
 	$(DIRECTORY)/src/windml/man3/*.html				\
 	$(DIRECTORY)/src/BeOS/*.cpp					\
+	$(DIRECTORY)/src/DOS/*.[ch]					\
 	$(DIRECTORY)/src/FX/Makefile.am					\
 	$(DIRECTORY)/src/FX/Makefile.in					\
 	$(DIRECTORY)/src/FX/libMesaFX_la_SOURCES			\
@@ -611,6 +612,10 @@ DEMO_FILES =	\
 	$(DIRECTORY)/src-glut/descrip.mms	\
 	$(DIRECTORY)/src-glut/mms_depend	\
 	$(DIRECTORY)/src-glut/*.[ch]		\
+	$(DIRECTORY)/src-glut.dos/*.[ch]	\
+	$(DIRECTORY)/src-glut.dos/Makefile.DJ	\
+	$(DIRECTORY)/src-glut.dos/depend	\
+	$(DIRECTORY)/src-glut.dos/PC_HW/*.[chS]	\
 	$(DIRECTORY)/images/*			\
 	$(DIRECTORY)/demos/Makefile*		\
 	$(DIRECTORY)/demos/descrip.mms		\
