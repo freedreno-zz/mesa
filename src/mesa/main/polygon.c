@@ -1,4 +1,4 @@
-/* $Id: polygon.c,v 1.25.4.2 2003/03/17 15:18:16 keithw Exp $ */
+/* $Id: polygon.c,v 1.25.4.3 2003/03/20 09:21:05 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -207,3 +207,56 @@ _mesa_PolygonOffsetEXT( GLfloat factor, GLfloat bias )
 }
 
 #endif
+
+
+
+
+/**********************************************************************/
+/*****                    State Management                        *****/
+/**********************************************************************/
+
+/*
+ * Check polygon state and set DD_TRI_CULL_FRONT_BACK and/or DD_TRI_OFFSET
+ * in ctx->_TriangleCaps if needed.
+ */
+void _mesa_update_polygon( GLcontext *ctx )
+{
+   ctx->_TriangleCaps &= ~(DD_TRI_CULL_FRONT_BACK | DD_TRI_OFFSET);
+
+   if (ctx->Polygon.CullFlag && ctx->Polygon.CullFaceMode == GL_FRONT_AND_BACK)
+      ctx->_TriangleCaps |= DD_TRI_CULL_FRONT_BACK;
+
+   /* Any Polygon offsets enabled? */
+   if (ctx->Polygon.OffsetPoint ||
+       ctx->Polygon.OffsetLine ||
+       ctx->Polygon.OffsetFill) {
+      ctx->_TriangleCaps |= DD_TRI_OFFSET;
+   }
+}
+
+
+/**********************************************************************/
+/*****                      Initialization                        *****/
+/**********************************************************************/
+
+void _mesa_init_polygon( GLcontext * ctx )
+{
+   /* Polygon group */
+   ctx->Polygon.CullFlag = GL_FALSE;
+   ctx->Polygon.CullFaceMode = GL_BACK;
+   ctx->Polygon.FrontFace = GL_CCW;
+   ctx->Polygon._FrontBit = 0;
+   ctx->Polygon.FrontMode = GL_FILL;
+   ctx->Polygon.BackMode = GL_FILL;
+   ctx->Polygon.SmoothFlag = GL_FALSE;
+   ctx->Polygon.StippleFlag = GL_FALSE;
+   ctx->Polygon.OffsetFactor = 0.0F;
+   ctx->Polygon.OffsetUnits = 0.0F;
+   ctx->Polygon.OffsetPoint = GL_FALSE;
+   ctx->Polygon.OffsetLine = GL_FALSE;
+   ctx->Polygon.OffsetFill = GL_FALSE;
+
+
+   /* Polygon Stipple group */
+   MEMSET( ctx->PolygonStipple, 0xff, 32*sizeof(GLuint) );
+}

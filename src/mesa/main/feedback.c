@@ -1,4 +1,4 @@
-/* $Id: feedback.c,v 1.27.4.2 2003/03/17 17:03:49 keithw Exp $ */
+/* $Id: feedback.c,v 1.27.4.3 2003/03/20 09:20:42 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -410,4 +410,29 @@ _mesa_RenderMode( GLenum mode )
       ctx->Driver.RenderMode( ctx, mode );
 
    return result;
+}
+
+
+
+/**********************************************************************/
+/*****                      Initialization                        *****/
+/**********************************************************************/
+
+void _mesa_init_feedback( GLcontext * ctx )
+{
+   /* Feedback */
+   ctx->Feedback.Type = GL_2D;   /* TODO: verify */
+   ctx->Feedback.Buffer = NULL;
+   ctx->Feedback.BufferSize = 0;
+   ctx->Feedback.Count = 0;
+
+   /* Selection/picking */
+   ctx->Select.Buffer = NULL;
+   ctx->Select.BufferSize = 0;
+   ctx->Select.BufferCount = 0;
+   ctx->Select.Hits = 0;
+   ctx->Select.NameStackDepth = 0;
+
+   /* Miscellaneous */
+   ctx->RenderMode = GL_RENDER;
 }

@@ -1,4 +1,4 @@
-/* $Id: stencil.h,v 1.10 2002/09/06 02:56:09 brianp Exp $ */
+/* $Id: stencil.h,v 1.10.6.1 2003/03/20 09:21:12 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -51,5 +51,8 @@ _mesa_StencilOp( GLenum fail, GLenum zfail, GLenum zpass );
 extern void
 _mesa_ActiveStencilFaceEXT(GLenum face);
 
+
+extern void
+_mesa_init_stencil( GLcontext * ctx );
 
 #endif

@@ -27,7 +27,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: blend.h,v 1.9.8.1 2003/03/19 15:43:14 jrfonseca Exp $ */
+/* $Id: blend.h,v 1.9.8.2 2003/03/20 09:19:59 keithw Exp $ */
 
 
 #ifndef BLEND_H
@@ -69,5 +69,7 @@ extern void
 _mesa_ColorMask( GLboolean red, GLboolean green,
                  GLboolean blue, GLboolean alpha );
 
+extern void 
+_mesa_init_color( GLcontext * ctx );
 
 #endif

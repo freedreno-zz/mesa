@@ -1,4 +1,4 @@
-/* $Id: lines.c,v 1.30 2002/10/24 23:57:21 brianp Exp $ */
+/* $Id: lines.c,v 1.30.4.1 2003/03/20 09:20:56 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -85,4 +85,26 @@ _mesa_LineStipple( GLint factor, GLushort pattern )
 
    if (ctx->Driver.LineStipple)
       ctx->Driver.LineStipple( ctx, factor, pattern );
+}
+
+
+/**********************************************************************/
+/*****                      Initialization                        *****/
+/**********************************************************************/
+
+void _mesa_init_line( GLcontext * ctx )
+{
+   /* Line group */
+   ctx->Line.SmoothFlag = GL_FALSE;
+   ctx->Line.StippleFlag = GL_FALSE;
+   ctx->Line.Width = 1.0;
+   ctx->Line._Width = 1.0;
+   ctx->Line.StipplePattern = 0xffff;
+   ctx->Line.StippleFactor = 1;
+
+   ctx->Const.MinLineWidth = MIN_LINE_WIDTH;
+   ctx->Const.MaxLineWidth = MAX_LINE_WIDTH;
+   ctx->Const.MinLineWidthAA = MIN_LINE_WIDTH;
+   ctx->Const.MaxLineWidthAA = MAX_LINE_WIDTH;
+   ctx->Const.LineWidthGranularity = (GLfloat) LINE_WIDTH_GRANULARITY;
 }

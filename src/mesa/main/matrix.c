@@ -1,4 +1,4 @@
-/* $Id: matrix.c,v 1.45.4.1 2003/03/17 21:22:52 keithw Exp $ */
+/* $Id: matrix.c,v 1.45.4.2 2003/03/20 09:20:58 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -379,7 +379,6 @@ _mesa_MultTransposeMatrixdARB( const GLdouble *m )
 }
 #endif
 
-
 /*
  * Called via glViewport or display list execution.
  */
@@ -482,3 +481,218 @@ _mesa_DepthRange( GLclampd nearval, GLclampd farval )
    }
 }
 #endif
+
+
+
+/**********************************************************************/
+/*****                    State management                        *****/
+/**********************************************************************/
+
+
+/* NOTE: This routine references Tranform attribute values to compute
+ * userclip positions in clip space, but is only called on
+ * _NEW_PROJECTION.  The _mesa_ClipPlane() function keeps these values
+ * up to date across changes to the Transform attributes.
+ */
+static void
+update_projection( GLcontext *ctx )
+{
+   _math_matrix_analyse( ctx->ProjectionMatrixStack.Top );
+
+#if FEATURE_userclip
+   /* Recompute clip plane positions in clipspace.  This is also done
+    * in _mesa_ClipPlane().
+    */
+   if (ctx->Transform.ClipPlanesEnabled) {
+      GLuint p;
+      for (p = 0; p < ctx->Const.MaxClipPlanes; p++) {
+	 if (ctx->Transform.ClipPlanesEnabled & (1 << p)) {
+	    _mesa_transform_vector( ctx->Transform._ClipUserPlane[p],
+				 ctx->Transform.EyeUserPlane[p],
+				 ctx->ProjectionMatrixStack.Top->inv );
+	 }
+      }
+   }
+#endif
+}
+
+
+static void
+calculate_model_project_matrix( GLcontext *ctx )
+{
+   _math_matrix_mul_matrix( &ctx->_ModelProjectMatrix,
+                            ctx->ProjectionMatrixStack.Top,
+                            ctx->ModelviewMatrixStack.Top );
+
+   _math_matrix_analyse( &ctx->_ModelProjectMatrix );
+}
+
+
+void _mesa_update_modelview_project( GLcontext *ctx, GLuint new_state )
+{
+   if (new_state & _NEW_MODELVIEW)
+      _math_matrix_analyse( ctx->ModelviewMatrixStack.Top );
+
+   if (new_state & _NEW_PROJECTION)
+      update_projection( ctx );
+
+   /* Keep ModelviewProject uptodate always to allow tnl
+    * implementations that go model->clip even when eye is required.
+    */
+   calculate_model_project_matrix(ctx);
+}
+
+
+
+
+/**********************************************************************/
+/*****                      Initialization                        *****/
+/**********************************************************************/
+
+/**
+ * \brief Initialize a matrix stack.
+ *
+ * \param stack matrix stack.
+ * \param maxDepth maximum stack depth.
+ * \param dirtyFlag dirty flag.
+ * 
+ * Allocates an array of \p maxDepth elements for the matrix stack and calls
+ * _math_matrix_ctr() and _math_matrix_alloc_inv() for each element to
+ * initialize it.
+ */
+static void
+init_matrix_stack( struct matrix_stack *stack,
+                   GLuint maxDepth, GLuint dirtyFlag )
+{
+   GLuint i;
+
+   stack->Depth = 0;
+   stack->MaxDepth = maxDepth;
+   stack->DirtyFlag = dirtyFlag;
+   /* The stack */
+   stack->Stack = (GLmatrix *) CALLOC(maxDepth * sizeof(GLmatrix));
+   for (i = 0; i < maxDepth; i++) {
+      _math_matrix_ctr(&stack->Stack[i]);
+      _math_matrix_alloc_inv(&stack->Stack[i]);
+   }
+   stack->Top = stack->Stack;
+}
+
+/**
+ * \brief Free matrix stack.
+ * 
+ * \param stack matrix stack.
+ * 
+ * Calls _math_matrix_dtr() for each element of the matrix stack and
+ * frees the array.
+ */
+static void
+free_matrix_stack( struct matrix_stack *stack )
+{
+   GLuint i;
+   for (i = 0; i < stack->MaxDepth; i++) {
+      _math_matrix_dtr(&stack->Stack[i]);
+   }
+   FREE(stack->Stack);
+   stack->Stack = stack->Top = NULL;
+}
+
+
+/**********************************************************************/
+/*****                      Initialization                        *****/
+/**********************************************************************/
+
+
+void _mesa_init_matrix( GLcontext * ctx )
+{
+   GLint i;
+
+   /* Initialize matrix stacks */
+   init_matrix_stack(&ctx->ModelviewMatrixStack, MAX_MODELVIEW_STACK_DEPTH,
+                     _NEW_MODELVIEW);
+   init_matrix_stack(&ctx->ProjectionMatrixStack, MAX_PROJECTION_STACK_DEPTH,
+                     _NEW_PROJECTION);
+   init_matrix_stack(&ctx->ColorMatrixStack, MAX_COLOR_STACK_DEPTH,
+                     _NEW_COLOR_MATRIX);
+   for (i = 0; i < MAX_TEXTURE_UNITS; i++)
+      init_matrix_stack(&ctx->TextureMatrixStack[i], MAX_TEXTURE_STACK_DEPTH,
+                        _NEW_TEXTURE_MATRIX);
+   for (i = 0; i < MAX_PROGRAM_MATRICES; i++)
+      init_matrix_stack(&ctx->ProgramMatrixStack[i], MAX_PROGRAM_STACK_DEPTH,
+                        _NEW_TRACK_MATRIX);
+   ctx->CurrentStack = &ctx->ModelviewMatrixStack;
+
+   /* Init combined Modelview*Projection matrix */
+   _math_matrix_ctr( &ctx->_ModelProjectMatrix );
+}
+
+/*
+ * Free transformation matrix stacks
+ */
+void _mesa_free_matrix_data( GLcontext *ctx )
+{
+   GLint i;
+
+   free_matrix_stack(&ctx->ModelviewMatrixStack);
+   free_matrix_stack(&ctx->ProjectionMatrixStack);
+   free_matrix_stack(&ctx->ColorMatrixStack);
+   for (i = 0; i < MAX_TEXTURE_UNITS; i++)
+      free_matrix_stack(&ctx->TextureMatrixStack[i]);
+   for (i = 0; i < MAX_PROGRAM_MATRICES; i++)
+      free_matrix_stack(&ctx->ProgramMatrixStack[i]);
+   /* combined Modelview*Projection matrix */
+   _math_matrix_dtr( &ctx->_ModelProjectMatrix );
+
+}
+
+
+/* Todo: move this to a new file with other 'transform' routines.
+ */
+void _mesa_init_transform( GLcontext *ctx )
+{
+   GLint i;
+
+   /* Constants, may be overriden by device drivers */
+   ctx->Const.MaxClipPlanes = MAX_CLIP_PLANES;
+
+   /* Transformation group */
+   ctx->Transform.MatrixMode = GL_MODELVIEW;
+   ctx->Transform.Normalize = GL_FALSE;
+   ctx->Transform.RescaleNormals = GL_FALSE;
+   ctx->Transform.RasterPositionUnclipped = GL_FALSE;
+   for (i=0;i<MAX_CLIP_PLANES;i++) {
+      ASSIGN_4V( ctx->Transform.EyeUserPlane[i], 0.0, 0.0, 0.0, 0.0 );
+   }
+   ctx->Transform.ClipPlanesEnabled = 0;
+}
+
+
+/* Todo: move this to a new file with other 'viewport' routines.
+ */
+void _mesa_init_viewport( GLcontext *ctx )
+{
+   /* Viewport group */
+   ctx->Viewport.X = 0;
+   ctx->Viewport.Y = 0;
+   ctx->Viewport.Width = 0;
+   ctx->Viewport.Height = 0;
+   ctx->Viewport.Near = 0.0;
+   ctx->Viewport.Far = 1.0;
+   _math_matrix_ctr(&ctx->Viewport._WindowMap);
+
+#define Sz 10
+#define Tz 14
+   ctx->Viewport._WindowMap.m[Sz] = 0.5F * ctx->DepthMaxF;
+   ctx->Viewport._WindowMap.m[Tz] = 0.5F * ctx->DepthMaxF;
+#undef Sz
+#undef Tz
+
+   ctx->Viewport._WindowMap.flags = MAT_FLAG_GENERAL_SCALE|MAT_FLAG_TRANSLATION;
+   ctx->Viewport._WindowMap.type = MATRIX_3D_NO_ROT;
+}
+
+
+void _mesa_free_viewport_data( GLcontext *ctx )
+{
+   _math_matrix_dtr(&ctx->Viewport._WindowMap);
+}

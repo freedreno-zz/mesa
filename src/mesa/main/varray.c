@@ -1,4 +1,4 @@
-/* $Id: varray.c,v 1.47 2002/10/24 23:57:21 brianp Exp $ */
+/* $Id: varray.c,v 1.47.4.1 2003/03/20 09:21:17 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -832,4 +832,73 @@ _mesa_MultiDrawElementsEXT( GLenum mode, const GLsizei *count, GLenum type,
          (ctx->Exec->DrawElements)(mode, count[i], type, indices[i]);
       }
    }
+}
+
+
+/**********************************************************************/
+/*****                      Initialization                        *****/
+/**********************************************************************/
+
+void _mesa_init_varray( GLcontext * ctx )
+{
+   /* Vertex arrays */
+   ctx->Array.Vertex.Size = 4;
+   ctx->Array.Vertex.Type = GL_FLOAT;
+   ctx->Array.Vertex.Stride = 0;
+   ctx->Array.Vertex.StrideB = 0;
+   ctx->Array.Vertex.Ptr = NULL;
+   ctx->Array.Vertex.Enabled = GL_FALSE;
+   ctx->Array.Vertex.Flags = CA_CLIENT_DATA;
+   ctx->Array.Normal.Type = GL_FLOAT;
+   ctx->Array.Normal.Stride = 0;
+   ctx->Array.Normal.StrideB = 0;
+   ctx->Array.Normal.Ptr = NULL;
+   ctx->Array.Normal.Enabled = GL_FALSE;
+   ctx->Array.Normal.Flags = CA_CLIENT_DATA;
+   ctx->Array.Color.Size = 4;
+   ctx->Array.Color.Type = GL_FLOAT;
+   ctx->Array.Color.Stride = 0;
+   ctx->Array.Color.StrideB = 0;
+   ctx->Array.Color.Ptr = NULL;
+   ctx->Array.Color.Enabled = GL_FALSE;
+   ctx->Array.Color.Flags = CA_CLIENT_DATA;
+   ctx->Array.SecondaryColor.Size = 4;
+   ctx->Array.SecondaryColor.Type = GL_FLOAT;
+   ctx->Array.SecondaryColor.Stride = 0;
+   ctx->Array.SecondaryColor.StrideB = 0;
+   ctx->Array.SecondaryColor.Ptr = NULL;
+   ctx->Array.SecondaryColor.Enabled = GL_FALSE;
+   ctx->Array.SecondaryColor.Flags = CA_CLIENT_DATA;
+   ctx->Array.FogCoord.Size = 1;
+   ctx->Array.FogCoord.Type = GL_FLOAT;
+   ctx->Array.FogCoord.Stride = 0;
+   ctx->Array.FogCoord.StrideB = 0;
+   ctx->Array.FogCoord.Ptr = NULL;
+   ctx->Array.FogCoord.Enabled = GL_FALSE;
+   ctx->Array.FogCoord.Flags = CA_CLIENT_DATA;
+   ctx->Array.Index.Type = GL_FLOAT;
+   ctx->Array.Index.Stride = 0;
+   ctx->Array.Index.StrideB = 0;
+   ctx->Array.Index.Ptr = NULL;
+   ctx->Array.Index.Enabled = GL_FALSE;
+   ctx->Array.Index.Flags = CA_CLIENT_DATA;
+   for (i = 0; i < MAX_TEXTURE_UNITS; i++) {
+      ctx->Array.TexCoord[i].Size = 4;
+      ctx->Array.TexCoord[i].Type = GL_FLOAT;
+      ctx->Array.TexCoord[i].Stride = 0;
+      ctx->Array.TexCoord[i].StrideB = 0;
+      ctx->Array.TexCoord[i].Ptr = NULL;
+      ctx->Array.TexCoord[i].Enabled = GL_FALSE;
+      ctx->Array.TexCoord[i].Flags = CA_CLIENT_DATA;
+   }
+   ctx->Array.TexCoordInterleaveFactor = 1;
+   ctx->Array.EdgeFlag.Stride = 0;
+   ctx->Array.EdgeFlag.StrideB = 0;
+   ctx->Array.EdgeFlag.Ptr = NULL;
+   ctx->Array.EdgeFlag.Enabled = GL_FALSE;
+   ctx->Array.EdgeFlag.Flags = CA_CLIENT_DATA;
+   ctx->Array.ActiveTexture = 0;   /* GL_ARB_multitexture */
+
+   /* Constants, may be overriden by device drivers */
+   ctx->Const.MaxArrayLockSize = MAX_ARRAY_LOCK_SIZE;
 }

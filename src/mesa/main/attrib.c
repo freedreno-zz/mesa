@@ -1,4 +1,4 @@
-/* $Id: attrib.c,v 1.75 2002/10/24 23:57:19 brianp Exp $ */
+/* $Id: attrib.c,v 1.75.4.1 2003/03/20 09:19:51 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -1213,4 +1213,12 @@ _mesa_PopClientAttrib(void)
       FREE( attr );
       attr = next;
    }
+}
+
+
+void _mesa_init_attrib( GLcontext *ctx )
+{
+   /* Renderer and client attribute stacks */
+   ctx->AttribStackDepth = 0;
+   ctx->ClientAttribStackDepth = 0;
 }

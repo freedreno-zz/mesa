@@ -1,4 +1,4 @@
-/* $Id: points.c,v 1.34.4.1 2003/03/17 17:03:50 keithw Exp $ */
+/* $Id: points.c,v 1.34.4.2 2003/03/20 09:21:03 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -130,7 +130,6 @@ _mesa_PointParameterfvEXT( GLenum pname, const GLfloat *params)
 
             if (tmp != ctx->Point._Attenuated) {
                ctx->_TriangleCaps ^= DD_POINT_ATTEN;
-	       ctx->_NeedEyeCoords ^= NEED_EYE_POINT_ATTEN;
             }
          }
          else {
@@ -222,3 +221,37 @@ _mesa_PointParameterfvEXT( GLenum pname, const GLfloat *params)
       (*ctx->Driver.PointParameterfv)(ctx, pname, params);
 }
 #endif
+
+
+/**********************************************************************/
+/*****                      Initialization                        *****/
+/**********************************************************************/
+
+void _mesa_init_point( GLcontext * ctx )
+{
+   int i;
+   
+   /* Point group */
+   ctx->Point.SmoothFlag = GL_FALSE;
+   ctx->Point.Size = 1.0;
+   ctx->Point._Size = 1.0;
+   ctx->Point.Params[0] = 1.0;
+   ctx->Point.Params[1] = 0.0;
+   ctx->Point.Params[2] = 0.0;
+   ctx->Point._Attenuated = GL_FALSE;
+   ctx->Point.MinSize = 0.0;
+   ctx->Point.MaxSize = ctx->Const.MaxPointSize;
+   ctx->Point.Threshold = 1.0;
+   ctx->Point.PointSprite = GL_FALSE; /* GL_NV_point_sprite */
+   ctx->Point.SpriteRMode = GL_ZERO; /* GL_NV_point_sprite */
+   for (i = 0; i < MAX_TEXTURE_UNITS; i++) {
+      ctx->Point.CoordReplace[i] = GL_FALSE; /* GL_NV_point_sprite */
+   }
+
+   /* Constants, may be overriden by device drivers */
+   ctx->Const.MinPointSize = MIN_POINT_SIZE;
+   ctx->Const.MaxPointSize = MAX_POINT_SIZE;
+   ctx->Const.MinPointSizeAA = MIN_POINT_SIZE;
+   ctx->Const.MaxPointSizeAA = MAX_POINT_SIZE;
+   ctx->Const.PointSizeGranularity = (GLfloat) POINT_SIZE_GRANULARITY;
+}

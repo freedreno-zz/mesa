@@ -1,4 +1,4 @@
-/* $Id: lines.h,v 1.5 2001/03/12 00:48:38 gareth Exp $ */
+/* $Id: lines.h,v 1.5.8.1 2003/03/20 09:20:57 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -38,5 +38,7 @@ _mesa_LineWidth( GLfloat width );
 extern void
 _mesa_LineStipple( GLint factor, GLushort pattern );
 
+extern void 
+_mesa_init_line( GLcontext * ctx );
 
 #endif

@@ -1,4 +1,4 @@
-/* $Id: polygon.h,v 1.4 2001/03/12 00:48:38 gareth Exp $ */
+/* $Id: polygon.h,v 1.4.8.1 2003/03/20 09:21:06 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -53,5 +53,10 @@ _mesa_PolygonStipple( const GLubyte *mask );
 extern void
 _mesa_GetPolygonStipple( GLubyte *mask );
 
+extern void 
+_mesa_update_polygon( GLcontext *ctx );
+
+extern void 
+_mesa_init_polygon( GLcontext * ctx );
 
 #endif

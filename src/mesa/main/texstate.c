@@ -1,4 +1,4 @@
-/* $Id: texstate.c,v 1.87.4.1 2003/03/05 14:22:25 keithw Exp $ */
+/* $Id: texstate.c,v 1.87.4.2 2003/03/20 09:21:15 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -2557,4 +2557,382 @@ _mesa_GetPixelTexGenParameterivSGIS(GLenum target, GLint *value)
    else {
       _mesa_error(ctx, GL_INVALID_ENUM, "glGetPixelTexGenParameterivSGIS(target)");
    }
+}
+
+
+
+/**********************************************************************/
+/*****                    State management                        *****/
+/**********************************************************************/
+
+
+/* Note: This routine refers to derived texture attribute values to
+ * compute the ENABLE_TEXMAT flags, but is only called on
+ * _NEW_TEXTURE_MATRIX.  On changes to _NEW_TEXTURE, the ENABLE_TEXMAT
+ * flags are updated by _mesa_update_textures(), below.
+ *
+ * If both TEXTURE and TEXTURE_MATRIX change at once, these values
+ * will be computed twice.
+ */
+static void
+update_texture_matrices( GLcontext *ctx )
+{
+   GLuint i;
+
+   ctx->Texture._TexMatEnabled = 0;
+
+   for (i=0; i < ctx->Const.MaxTextureUnits; i++) {
+      if (ctx->TextureMatrixStack[i].Top->flags & MAT_DIRTY) {
+	 _math_matrix_analyse( ctx->TextureMatrixStack[i].Top );
+
+	 if (ctx->Texture.Unit[i]._ReallyEnabled &&
+	     ctx->TextureMatrixStack[i].Top->type != MATRIX_IDENTITY)
+	    ctx->Texture._TexMatEnabled |= ENABLE_TEXMAT(i);
+
+	 if (ctx->Driver.TextureMatrix)
+	    ctx->Driver.TextureMatrix( ctx, i, ctx->TextureMatrixStack[i].Top);
+      }
+   }
+}
+
+
+
+/* Note: This routine refers to derived texture matrix values to
+ * compute the ENABLE_TEXMAT flags, but is only called on
+ * _NEW_TEXTURE.  On changes to _NEW_TEXTURE_MATRIX, the ENABLE_TEXMAT
+ * flags are updated by _mesa_update_texture_matrices, above.
+ *
+ * If both TEXTURE and TEXTURE_MATRIX change at once, these values
+ * will be computed twice.
+ */
+static void
+update_texture_state( GLcontext *ctx )
+{
+   GLuint unit;
+
+   ctx->Texture._EnabledUnits = 0;
+   ctx->Texture._GenFlags = 0;
+   ctx->Texture._TexMatEnabled = 0;
+   ctx->Texture._TexGenEnabled = 0;
+
+   /* Update texture unit state.
+    */
+   for (unit = 0; unit < ctx->Const.MaxTextureUnits; unit++) {
+      struct gl_texture_unit *texUnit = &ctx->Texture.Unit[unit];
+
+      texUnit->_ReallyEnabled = 0;
+      texUnit->_GenFlags = 0;
+
+      if (!texUnit->Enabled)
+	 continue;
+
+      /* Look for the highest-priority texture target that's enabled and
+       * complete.  That's the one we'll use for texturing.
+       */
+      if (texUnit->Enabled & TEXTURE_CUBE_BIT) {
+         struct gl_texture_object *texObj = texUnit->CurrentCubeMap;
+         if (!texObj->Complete) {
+            _mesa_test_texobj_completeness(ctx, texObj);
+         }
+         if (texObj->Complete) {
+            texUnit->_ReallyEnabled = TEXTURE_CUBE_BIT;
+            texUnit->_Current = texObj;
+         }
+      }
+
+      if (!texUnit->_ReallyEnabled && (texUnit->Enabled & TEXTURE_3D_BIT)) {
+         struct gl_texture_object *texObj = texUnit->Current3D;
+         if (!texObj->Complete) {
+            _mesa_test_texobj_completeness(ctx, texObj);
+         }
+         if (texObj->Complete) {
+            texUnit->_ReallyEnabled = TEXTURE_3D_BIT;
+            texUnit->_Current = texObj;
+         }
+      }
+
+      if (!texUnit->_ReallyEnabled && (texUnit->Enabled & TEXTURE_RECT_BIT)) {
+         struct gl_texture_object *texObj = texUnit->CurrentRect;
+         if (!texObj->Complete) {
+            _mesa_test_texobj_completeness(ctx, texObj);
+         }
+         if (texObj->Complete) {
+            texUnit->_ReallyEnabled = TEXTURE_RECT_BIT;
+            texUnit->_Current = texObj;
+         }
+      }
+
+      if (!texUnit->_ReallyEnabled && (texUnit->Enabled & TEXTURE_2D_BIT)) {
+         struct gl_texture_object *texObj = texUnit->Current2D;
+         if (!texObj->Complete) {
+            _mesa_test_texobj_completeness(ctx, texObj);
+         }
+         if (texObj->Complete) {
+            texUnit->_ReallyEnabled = TEXTURE_2D_BIT;
+            texUnit->_Current = texObj;
+         }
+      }
+
+      if (!texUnit->_ReallyEnabled && (texUnit->Enabled & TEXTURE_1D_BIT)) {
+         struct gl_texture_object *texObj = texUnit->Current1D;
+         if (!texObj->Complete) {
+            _mesa_test_texobj_completeness(ctx, texObj);
+         }
+         if (texObj->Complete) {
+            texUnit->_ReallyEnabled = TEXTURE_1D_BIT;
+            texUnit->_Current = texObj;
+         }
+      }
+
+      if (!texUnit->_ReallyEnabled) {
+	 texUnit->_Current = NULL;
+	 continue;
+      }
+
+      if (texUnit->_ReallyEnabled)
+         ctx->Texture._EnabledUnits |= (1 << unit);
+
+      if (texUnit->TexGenEnabled) {
+	 if (texUnit->TexGenEnabled & S_BIT) {
+	    texUnit->_GenFlags |= texUnit->_GenBitS;
+	 }
+	 if (texUnit->TexGenEnabled & T_BIT) {
+	    texUnit->_GenFlags |= texUnit->_GenBitT;
+	 }
+	 if (texUnit->TexGenEnabled & Q_BIT) {
+	    texUnit->_GenFlags |= texUnit->_GenBitQ;
+	 }
+	 if (texUnit->TexGenEnabled & R_BIT) {
+	    texUnit->_GenFlags |= texUnit->_GenBitR;
+	 }
+
+	 ctx->Texture._TexGenEnabled |= ENABLE_TEXGEN(unit);
+	 ctx->Texture._GenFlags |= texUnit->_GenFlags;
+      }
+
+      if (ctx->TextureMatrixStack[unit].Top->type != MATRIX_IDENTITY)
+	 ctx->Texture._TexMatEnabled |= ENABLE_TEXMAT(unit);
+   }
+}
+
+
+void _mesa_update_texture( GLcontext *ctx, GLuint new_state )
+{
+   if (new_state & _NEW_TEXTURE_MATRIX)
+      update_texture_matrices( ctx );
+
+   if (new_state & _NEW_TEXTURE)
+      update_texture_state( ctx );
+}
+
+/**********************************************************************/
+/*****                      Initialization                        *****/
+/**********************************************************************/
+
+/**
+ * \brief Allocate the proxy textures.  
+ *
+ * \return GL_TRUE on success, or GL_FALSE on failure
+ * 
+ * If run out of memory part way through the allocations, clean up and return
+ * GL_FALSE.
+ */
+static GLboolean
+alloc_proxy_textures( GLcontext *ctx )
+{
+   GLboolean out_of_memory;
+   GLint i;
+
+   ctx->Texture.Proxy1D = _mesa_alloc_texture_object(NULL, 0, GL_TEXTURE_1D);
+   if (!ctx->Texture.Proxy1D) {
+      return GL_FALSE;
+   }
+
+   ctx->Texture.Proxy2D = _mesa_alloc_texture_object(NULL, 0, GL_TEXTURE_2D);
+   if (!ctx->Texture.Proxy2D) {
+      _mesa_free_texture_object(NULL, ctx->Texture.Proxy1D);
+      return GL_FALSE;
+   }
+
+   ctx->Texture.Proxy3D = _mesa_alloc_texture_object(NULL, 0, GL_TEXTURE_3D);
+   if (!ctx->Texture.Proxy3D) {
+      _mesa_free_texture_object(NULL, ctx->Texture.Proxy1D);
+      _mesa_free_texture_object(NULL, ctx->Texture.Proxy2D);
+      return GL_FALSE;
+   }
+
+   ctx->Texture.ProxyCubeMap = _mesa_alloc_texture_object(NULL, 0,
+                                                     GL_TEXTURE_CUBE_MAP_ARB);
+   if (!ctx->Texture.ProxyCubeMap) {
+      _mesa_free_texture_object(NULL, ctx->Texture.Proxy1D);
+      _mesa_free_texture_object(NULL, ctx->Texture.Proxy2D);
+      _mesa_free_texture_object(NULL, ctx->Texture.Proxy3D);
+      return GL_FALSE;
+   }
+
+   ctx->Texture.ProxyRect = _mesa_alloc_texture_object(NULL, 0,
+                                                      GL_TEXTURE_RECTANGLE_NV);
+   if (!ctx->Texture.ProxyRect) {
+      _mesa_free_texture_object(NULL, ctx->Texture.Proxy1D);
+      _mesa_free_texture_object(NULL, ctx->Texture.Proxy2D);
+      _mesa_free_texture_object(NULL, ctx->Texture.Proxy3D);
+      _mesa_free_texture_object(NULL, ctx->Texture.ProxyCubeMap);
+      return GL_FALSE;
+   }
+
+   out_of_memory = GL_FALSE;
+   for (i=0;i<MAX_TEXTURE_LEVELS;i++) {
+      ctx->Texture.Proxy1D->Image[i] = _mesa_alloc_texture_image();
+      ctx->Texture.Proxy2D->Image[i] = _mesa_alloc_texture_image();
+      ctx->Texture.Proxy3D->Image[i] = _mesa_alloc_texture_image();
+      ctx->Texture.ProxyCubeMap->Image[i] = _mesa_alloc_texture_image();
+      if (!ctx->Texture.Proxy1D->Image[i]
+          || !ctx->Texture.Proxy2D->Image[i]
+          || !ctx->Texture.Proxy3D->Image[i]
+          || !ctx->Texture.ProxyCubeMap->Image[i]) {
+         out_of_memory = GL_TRUE;
+      }
+   }
+   ctx->Texture.ProxyRect->Image[0] = _mesa_alloc_texture_image();
+   if (!ctx->Texture.ProxyRect->Image[0])
+      out_of_memory = GL_TRUE;
+
+   if (out_of_memory) {
+      for (i=0;i<MAX_TEXTURE_LEVELS;i++) {
+         if (ctx->Texture.Proxy1D->Image[i]) {
+            _mesa_free_texture_image(ctx->Texture.Proxy1D->Image[i]);
+         }
+         if (ctx->Texture.Proxy2D->Image[i]) {
+            _mesa_free_texture_image(ctx->Texture.Proxy2D->Image[i]);
+         }
+         if (ctx->Texture.Proxy3D->Image[i]) {
+            _mesa_free_texture_image(ctx->Texture.Proxy3D->Image[i]);
+         }
+         if (ctx->Texture.ProxyCubeMap->Image[i]) {
+            _mesa_free_texture_image(ctx->Texture.ProxyCubeMap->Image[i]);
+         }
+      }
+      if (ctx->Texture.ProxyRect->Image[0]) {
+         _mesa_free_texture_image(ctx->Texture.ProxyRect->Image[0]);
+      }
+      _mesa_free_texture_object(NULL, ctx->Texture.Proxy1D);
+      _mesa_free_texture_object(NULL, ctx->Texture.Proxy2D);
+      _mesa_free_texture_object(NULL, ctx->Texture.Proxy3D);
+      _mesa_free_texture_object(NULL, ctx->Texture.ProxyCubeMap);
+      _mesa_free_texture_object(NULL, ctx->Texture.ProxyRect);
+      return GL_FALSE;
+   }
+   else {
+      return GL_TRUE;
+   }
+}
+
+
+/**
+ * \brief Initalize a texture unit.
+ *
+ * \param ctx GL context.
+ * \param unit texture unit number to be initialized.
+ */
+static void
+init_texture_unit( GLcontext *ctx, GLuint unit )
+{
+   struct gl_texture_unit *texUnit = &ctx->Texture.Unit[unit];
+
+   texUnit->EnvMode = GL_MODULATE;
+   ASSIGN_4V( texUnit->EnvColor, 0.0, 0.0, 0.0, 0.0 );
+
+   texUnit->CombineModeRGB = GL_MODULATE;
+   texUnit->CombineModeA = GL_MODULATE;
+   texUnit->CombineSourceRGB[0] = GL_TEXTURE;
+   texUnit->CombineSourceRGB[1] = GL_PREVIOUS_EXT;
+   texUnit->CombineSourceRGB[2] = GL_CONSTANT_EXT;
+   texUnit->CombineSourceA[0] = GL_TEXTURE;
+   texUnit->CombineSourceA[1] = GL_PREVIOUS_EXT;
+   texUnit->CombineSourceA[2] = GL_CONSTANT_EXT;
+   texUnit->CombineOperandRGB[0] = GL_SRC_COLOR;
+   texUnit->CombineOperandRGB[1] = GL_SRC_COLOR;
+   texUnit->CombineOperandRGB[2] = GL_SRC_ALPHA;
+   texUnit->CombineOperandA[0] = GL_SRC_ALPHA;
+   texUnit->CombineOperandA[1] = GL_SRC_ALPHA;
+   texUnit->CombineOperandA[2] = GL_SRC_ALPHA;
+   texUnit->CombineScaleShiftRGB = 0;
+   texUnit->CombineScaleShiftA = 0;
+
+   texUnit->TexGenEnabled = 0;
+   texUnit->GenModeS = GL_EYE_LINEAR;
+   texUnit->GenModeT = GL_EYE_LINEAR;
+   texUnit->GenModeR = GL_EYE_LINEAR;
+   texUnit->GenModeQ = GL_EYE_LINEAR;
+   texUnit->_GenBitS = TEXGEN_EYE_LINEAR;
+   texUnit->_GenBitT = TEXGEN_EYE_LINEAR;
+   texUnit->_GenBitR = TEXGEN_EYE_LINEAR;
+   texUnit->_GenBitQ = TEXGEN_EYE_LINEAR;
+
+   /* Yes, these plane coefficients are correct! */
+   ASSIGN_4V( texUnit->ObjectPlaneS, 1.0, 0.0, 0.0, 0.0 );
+   ASSIGN_4V( texUnit->ObjectPlaneT, 0.0, 1.0, 0.0, 0.0 );
+   ASSIGN_4V( texUnit->ObjectPlaneR, 0.0, 0.0, 0.0, 0.0 );
+   ASSIGN_4V( texUnit->ObjectPlaneQ, 0.0, 0.0, 0.0, 0.0 );
+   ASSIGN_4V( texUnit->EyePlaneS, 1.0, 0.0, 0.0, 0.0 );
+   ASSIGN_4V( texUnit->EyePlaneT, 0.0, 1.0, 0.0, 0.0 );
+   ASSIGN_4V( texUnit->EyePlaneR, 0.0, 0.0, 0.0, 0.0 );
+   ASSIGN_4V( texUnit->EyePlaneQ, 0.0, 0.0, 0.0, 0.0 );
+
+   texUnit->Current1D = ctx->Shared->Default1D;
+   texUnit->Current2D = ctx->Shared->Default2D;
+   texUnit->Current3D = ctx->Shared->Default3D;
+   texUnit->CurrentCubeMap = ctx->Shared->DefaultCubeMap;
+   texUnit->CurrentRect = ctx->Shared->DefaultRect;
+}
+
+
+GLboolean _mesa_init_texture( GLcontext * ctx )
+{
+   int i;
+
+   assert(MAX_TEXTURE_LEVELS >= MAX_3D_TEXTURE_LEVELS);
+   assert(MAX_TEXTURE_LEVELS >= MAX_CUBE_TEXTURE_LEVELS);
+
+   /* Effectively bind the default textures to all texture units */
+   ctx->Shared->Default1D->RefCount += MAX_TEXTURE_UNITS;
+   ctx->Shared->Default2D->RefCount += MAX_TEXTURE_UNITS;
+   ctx->Shared->Default3D->RefCount += MAX_TEXTURE_UNITS;
+   ctx->Shared->DefaultCubeMap->RefCount += MAX_TEXTURE_UNITS;
+   ctx->Shared->DefaultRect->RefCount += MAX_TEXTURE_UNITS;
+
+   /* Texture group */
+   ctx->Texture.CurrentUnit = 0;      /* multitexture */
+   ctx->Texture._EnabledUnits = 0;
+   for (i=0; i<MAX_TEXTURE_UNITS; i++)
+      init_texture_unit( ctx, i );
+   ctx->Texture.SharedPalette = GL_FALSE;
+   _mesa_init_colortable(&ctx->Texture.Palette);
+
+   /* Constants, may be overriden by device drivers */
+   ctx->Const.MaxTextureLevels = MAX_TEXTURE_LEVELS;
+   ctx->Const.Max3DTextureLevels = MAX_3D_TEXTURE_LEVELS;
+   ctx->Const.MaxCubeTextureLevels = MAX_CUBE_TEXTURE_LEVELS;
+   ctx->Const.MaxTextureRectSize = MAX_TEXTURE_RECT_SIZE;
+   ctx->Const.MaxTextureUnits = MAX_TEXTURE_UNITS;
+   ctx->Const.MaxTextureMaxAnisotropy = MAX_TEXTURE_MAX_ANISOTROPY;
+   ctx->Const.MaxTextureLodBias = MAX_TEXTURE_LOD_BIAS;
+
+   /* Allocate proxy textures */
+   if (!alloc_proxy_textures( ctx ))
+      return GL_FALSE;
+
+   return GL_TRUE;
+}
+
+void _mesa_free_texture_data( GLcontext *ctx )
+{
+   /* Free proxy texture objects */
+   _mesa_free_texture_object( NULL, ctx->Texture.Proxy1D );
+   _mesa_free_texture_object( NULL, ctx->Texture.Proxy2D );
+   _mesa_free_texture_object( NULL, ctx->Texture.Proxy3D );
+   _mesa_free_texture_object( NULL, ctx->Texture.ProxyCubeMap );
+   _mesa_free_texture_object( NULL, ctx->Texture.ProxyRect );
+
+   _mesa_free_colortable_data( &ctx->Texture.Palette );
 }

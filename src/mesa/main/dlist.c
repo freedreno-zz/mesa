@@ -27,7 +27,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: dlist.c,v 1.100.4.2 2003/03/09 10:52:20 jrfonseca Exp $ */
+/* $Id: dlist.c,v 1.100.4.3 2003/03/20 09:20:31 keithw Exp $ */
 
 #include "glheader.h"
 #include "imports.h"
@@ -6486,4 +6486,25 @@ void mesa_print_display_list( GLuint list )
 {
    GET_CURRENT_CONTEXT(ctx);
    print_list( ctx, list );
+}
+
+
+/**********************************************************************/
+/*****                      Initialization                        *****/
+/**********************************************************************/
+
+void _mesa_init_display_list( GLcontext * ctx )
+{
+   /* Display list */
+   ctx->CallDepth = 0;
+   ctx->ExecuteFlag = GL_TRUE;
+   ctx->CompileFlag = GL_FALSE;
+   ctx->CurrentListPtr = NULL;
+   ctx->CurrentBlock = NULL;
+   ctx->CurrentListNum = 0;
+   ctx->CurrentPos = 0;
+
+   /* Display List group */
+   ctx->List.ListBase = 0;
+
 }

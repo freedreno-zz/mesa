@@ -1,4 +1,4 @@
-/* $Id: colortab.c,v 1.46 2002/10/24 23:57:19 brianp Exp $ */
+/* $Id: colortab.c,v 1.46.4.1 2003/03/20 09:20:08 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -93,26 +93,6 @@ base_colortab_format( GLenum format )
    }
 }
 
-
-void
-_mesa_init_colortable( struct gl_color_table *p )
-{
-   p->FloatTable = GL_FALSE;
-   p->Table = NULL;
-   p->Size = 0;
-   p->IntFormat = GL_RGBA;
-}
-
-
-
-void
-_mesa_free_colortable_data( struct gl_color_table *p )
-{
-   if (p->Table) {
-      FREE(p->Table);
-      p->Table = NULL;
-   }
-}
 
 
 /*
@@ -1221,4 +1201,55 @@ _mesa_GetColorTableParameteriv( GLenum target, GLenum pname, GLint *params )
          _mesa_error(ctx, GL_INVALID_ENUM, "glGetColorTableParameteriv(pname)" );
          return;
    }
+}
+
+/**********************************************************************/
+/*****                      Initialization                        *****/
+/**********************************************************************/
+
+
+void
+_mesa_init_one_colortable( struct gl_color_table *p )
+{
+   p->FloatTable = GL_FALSE;
+   p->Table = NULL;
+   p->Size = 0;
+   p->IntFormat = GL_RGBA;
+}
+
+
+
+void
+_mesa_free_one_colortable( struct gl_color_table *p )
+{
+   if (p->Table) {
+      FREE(p->Table);
+      p->Table = NULL;
+   }
+}
+
+void _mesa_init_colortable( GLcontext * ctx )
+{
+   /* Constants, may be overriden by device drivers */
+   ctx->Const.MaxColorTableSize = MAX_COLOR_TABLE_SIZE;
+   ctx->Const.MaxConvolutionWidth = MAX_CONVOLUTION_WIDTH;
+   ctx->Const.MaxConvolutionHeight = MAX_CONVOLUTION_HEIGHT;
+
+   /* Color tables */
+   _mesa_init_one_colortable(&ctx->ColorTable);
+   _mesa_init_one_colortable(&ctx->ProxyColorTable);
+   _mesa_init_one_colortable(&ctx->PostConvolutionColorTable);
+   _mesa_init_one_colortable(&ctx->ProxyPostConvolutionColorTable);
+   _mesa_init_one_colortable(&ctx->PostColorMatrixColorTable);
+   _mesa_init_one_colortable(&ctx->ProxyPostColorMatrixColorTable);
+}
+
+void _mesa_free_colortable_data( GLcontext *ctx )
+{
+   _mesa_free_colortable_data( &ctx->ColorTable );
+   _mesa_free_colortable_data( &ctx->ProxyColorTable );
+   _mesa_free_colortable_data( &ctx->PostConvolutionColorTable );
+   _mesa_free_colortable_data( &ctx->ProxyPostConvolutionColorTable );
+   _mesa_free_colortable_data( &ctx->PostColorMatrixColorTable );
+   _mesa_free_colortable_data( &ctx->ProxyPostColorMatrixColorTable );
 }

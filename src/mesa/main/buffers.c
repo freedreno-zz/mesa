@@ -27,12 +27,11 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: buffers.c,v 1.42.4.2 2003/03/19 15:43:14 jrfonseca Exp $ */
+/* $Id: buffers.c,v 1.42.4.3 2003/03/20 09:19:59 keithw Exp $ */
 
 
 #include "glheader.h"
 #include "imports.h"
-#include "accum.h"
 #include "buffers.h"
 #include "colormac.h"
 #include "context.h"
@@ -543,4 +542,59 @@ _mesa_Scissor( GLint x, GLint y, GLsizei width, GLsizei height )
       ctx->Driver.Scissor( ctx, x, y, width, height );
 }
 
+/**********************************************************************/
+/*****                    State management                        *****/
+/**********************************************************************/
+
+/* Update screen bounds.
+ */
+void _mesa_update_buffers( GLcontext *ctx )
+{
+   ctx->DrawBuffer->_Xmin = 0;
+   ctx->DrawBuffer->_Ymin = 0;
+   ctx->DrawBuffer->_Xmax = ctx->DrawBuffer->Width;
+   ctx->DrawBuffer->_Ymax = ctx->DrawBuffer->Height;
+   if (ctx->Scissor.Enabled) {
+      if (ctx->Scissor.X > ctx->DrawBuffer->_Xmin) {
+	 ctx->DrawBuffer->_Xmin = ctx->Scissor.X;
+      }
+      if (ctx->Scissor.Y > ctx->DrawBuffer->_Ymin) {
+	 ctx->DrawBuffer->_Ymin = ctx->Scissor.Y;
+      }
+      if (ctx->Scissor.X + ctx->Scissor.Width < ctx->DrawBuffer->_Xmax) {
+	 ctx->DrawBuffer->_Xmax = ctx->Scissor.X + ctx->Scissor.Width;
+      }
+      if (ctx->Scissor.Y + ctx->Scissor.Height < ctx->DrawBuffer->_Ymax) {
+	 ctx->DrawBuffer->_Ymax = ctx->Scissor.Y + ctx->Scissor.Height;
+      }
+   }
+}
+
 			   
+/**********************************************************************/
+/*****                      Initialization                        *****/
+/**********************************************************************/
+
+void _mesa_init_buffers( GLcontext * ctx )
+{
+   /* Scissor group */
+   ctx->Scissor.Enabled = GL_FALSE;
+   ctx->Scissor.X = 0;
+   ctx->Scissor.Y = 0;
+   ctx->Scissor.Width = 0;
+   ctx->Scissor.Height = 0;
+
+   /* Multisample */
+   ctx->Multisample.Enabled = GL_FALSE;
+   ctx->Multisample.SampleAlphaToCoverage = GL_FALSE;
+   ctx->Multisample.SampleAlphaToOne = GL_FALSE;
+   ctx->Multisample.SampleCoverage = GL_FALSE;
+   ctx->Multisample.SampleCoverageValue = 1.0;
+   ctx->Multisample.SampleCoverageInvert = GL_FALSE;
+
+   /* Constants, may be overriden by device drivers */
+   ctx->Const.NumAuxBuffers = NUM_AUX_BUFFERS;
+
+}
+
+

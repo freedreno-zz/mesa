@@ -1,4 +1,4 @@
-/* $Id: attrib.h,v 1.6 2002/02/13 00:53:19 keithw Exp $ */
+/* $Id: attrib.h,v 1.6.6.1 2003/03/20 09:19:54 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -31,6 +31,8 @@
 
 #include "mtypes.h"
 
+
+#if _HAVE_FULL_GL
 extern void
 _mesa_PushAttrib( GLbitfield mask );
 
@@ -43,5 +45,10 @@ _mesa_PushClientAttrib( GLbitfield mask );
 extern void
 _mesa_PopClientAttrib( void );
 
+extern void 
+_mesa_init_attrib( GLcontext *ctx );
+#else
+#define _mesa_init_attrib( c ) ((void)0)
+#endif
 
 #endif

@@ -1,4 +1,4 @@
-/* $Id: state.h,v 1.8 2002/02/13 00:53:19 keithw Exp $ */
+/* $Id: state.h,v 1.8.6.1 2003/03/20 09:21:11 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -30,7 +30,6 @@
 
 #include "mtypes.h"
 
-
 extern void
 _mesa_init_no_op_table(struct _glapi_table *exec, GLuint tableSize);
 
@@ -40,13 +39,5 @@ _mesa_init_exec_table(struct _glapi_table *exec, GLuint tableSize);
 extern void
 _mesa_update_state( GLcontext *ctx );
 
-extern void
-_mesa_print_state( const char *msg, GLuint state );
-
-extern void
-_mesa_print_enable_flags( const char *msg, GLuint flags );
-
-extern void
-_mesa_allow_light_in_model( GLcontext *ctx, GLboolean flag );
 
 #endif

@@ -1,4 +1,4 @@
-/* $Id: texstate.h,v 1.9 2002/06/17 23:36:31 brianp Exp $ */
+/* $Id: texstate.h,v 1.9.6.1 2003/03/20 09:21:17 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -163,5 +163,15 @@ _mesa_GetPixelTexGenParameterfvSGIS(GLenum target, GLfloat *value);
 extern void
 _mesa_GetPixelTexGenParameterivSGIS(GLenum target, GLint *value);
 
+/* Initialization, State maintainance
+ */
+extern void 
+_mesa_update_texture( GLcontext *ctx, GLuint new_state );
+
+extern GLboolean
+_mesa_init_texture( GLcontext *ctx );
+
+extern void 
+_mesa_free_texture_data( GLcontext *ctx );
 
 #endif

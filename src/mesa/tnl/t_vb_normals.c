@@ -1,4 +1,4 @@
-/* $Id: t_vb_normals.c,v 1.17 2002/10/29 20:29:04 brianp Exp $ */
+/* $Id: t_vb_normals.c,v 1.17.4.1 2003/03/20 09:21:29 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -89,8 +89,6 @@ static GLboolean run_validate_normal_stage( GLcontext *ctx,
 {
    struct normal_stage_data *store = NORMAL_STAGE_DATA(stage);
 
-   ASSERT(ctx->_NeedNormals);
-
    if (ctx->_NeedEyeCoords) {
       GLuint transform = NORM_TRANSFORM_NO_ROT;
 
@@ -138,7 +136,10 @@ static GLboolean run_validate_normal_stage( GLcontext *ctx,
 static void check_normal_transform( GLcontext *ctx,
 				    struct gl_pipeline_stage *stage )
 {
-   stage->active = ctx->_NeedNormals && !ctx->VertexProgram.Enabled;
+   stage->active = (ctx->Light.Enabled ||
+		    (ctx->Texture._GenFlags & TEXGEN_NEED_NORMALS)) &&
+		    !ctx->VertexProgram.Enabled;
+
    /* Don't clobber the initialize function:
     */
    if (stage->privatePtr)

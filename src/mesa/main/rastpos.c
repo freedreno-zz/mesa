@@ -1,4 +1,4 @@
-/* $Id: rastpos.c,v 1.39.4.2 2003/03/17 16:07:22 keithw Exp $ */
+/* $Id: rastpos.c,v 1.39.4.3 2003/03/20 09:21:07 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -793,3 +793,45 @@ void glWindowPos4fMESA( GLfloat x, GLfloat y, GLfloat z, GLfloat w )
 }
 
 #endif
+
+
+/**********************************************************************/
+/*****                      Initialization                        *****/
+/**********************************************************************/
+
+void _mesa_init_rastpos( GLcontext * ctx )
+{
+   int i;
+
+   ASSIGN_4V( ctx->Current.RasterPos, 0.0, 0.0, 0.0, 1.0 );
+   ctx->Current.RasterDistance = 0.0;
+   ASSIGN_4V( ctx->Current.RasterColor, 1.0, 1.0, 1.0, 1.0 );
+   ctx->Current.RasterIndex = 1;
+   for (i=0; i<MAX_TEXTURE_UNITS; i++)
+      ASSIGN_4V( ctx->Current.RasterTexCoords[i], 0.0, 0.0, 0.0, 1.0 );
+   ctx->Current.RasterPosValid = GL_TRUE;
+
+  /*
+    * For XFree86/DRI: tell libGL to add these functions to the dispatcher.
+    * Basically, we should add all extension functions above offset 577.
+    * This enables older libGL libraries to work with newer drivers that
+    * have newer extensions.
+    */
+   /* GL_ARB_window_pos aliases with GL_MESA_window_pos */
+   _glapi_add_entrypoint("glWindowPos2dARB", 513);
+   _glapi_add_entrypoint("glWindowPos2dvARB", 514);
+   _glapi_add_entrypoint("glWindowPos2fARB", 515);
+   _glapi_add_entrypoint("glWindowPos2fvARB", 516);
+   _glapi_add_entrypoint("glWindowPos2iARB", 517);
+   _glapi_add_entrypoint("glWindowPos2ivARB", 518);
+   _glapi_add_entrypoint("glWindowPos2sARB", 519);
+   _glapi_add_entrypoint("glWindowPos2svARB", 520);
+   _glapi_add_entrypoint("glWindowPos3dARB", 521);
+   _glapi_add_entrypoint("glWindowPos3dvARB", 522);
+   _glapi_add_entrypoint("glWindowPos3fARB", 523);
+   _glapi_add_entrypoint("glWindowPos3fvARB", 524);
+   _glapi_add_entrypoint("glWindowPos3iARB", 525);
+   _glapi_add_entrypoint("glWindowPos3ivARB", 526);
+   _glapi_add_entrypoint("glWindowPos3sARB", 527);
+   _glapi_add_entrypoint("glWindowPos3svARB", 528);
+}

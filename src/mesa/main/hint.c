@@ -1,4 +1,4 @@
-/* $Id: hint.c,v 1.14 2002/10/24 23:57:21 brianp Exp $ */
+/* $Id: hint.c,v 1.14.4.1 2003/03/20 09:20:46 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -120,4 +120,22 @@ _mesa_Hint( GLenum target, GLenum mode )
    if (ctx->Driver.Hint) {
       (*ctx->Driver.Hint)( ctx, target, mode );
    }
+}
+
+
+/**********************************************************************/
+/*****                      Initialization                        *****/
+/**********************************************************************/
+
+void _mesa_init_hint( GLcontext * ctx )
+{
+   /* Hint group */
+   ctx->Hint.PerspectiveCorrection = GL_DONT_CARE;
+   ctx->Hint.PointSmooth = GL_DONT_CARE;
+   ctx->Hint.LineSmooth = GL_DONT_CARE;
+   ctx->Hint.PolygonSmooth = GL_DONT_CARE;
+   ctx->Hint.Fog = GL_DONT_CARE;
+   ctx->Hint.ClipVolumeClipping = GL_DONT_CARE;
+   ctx->Hint.TextureCompression = GL_DONT_CARE;
+   ctx->Hint.GenerateMipmap = GL_DONT_CARE;
 }

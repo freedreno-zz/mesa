@@ -27,7 +27,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: buffers.h,v 1.5.8.1 2003/03/19 15:43:14 jrfonseca Exp $ */
+/* $Id: buffers.h,v 1.5.8.2 2003/03/20 09:20:01 keithw Exp $ */
 
 
 #ifndef BUFFERS_H
@@ -62,5 +62,10 @@ _mesa_Scissor( GLint x, GLint y, GLsizei width, GLsizei height );
 extern void
 _mesa_SampleCoverageARB(GLclampf value, GLboolean invert);
 
+extern void 
+_mesa_init_buffers( GLcontext * ctx );
+
+extern void 
+_mesa_update_buffers( GLcontext *ctx );
 
 #endif

@@ -1,4 +1,4 @@
-/* $Id: clip.c,v 1.26 2002/10/24 23:57:19 brianp Exp $ */
+/* $Id: clip.c,v 1.26.4.1 2003/03/20 09:20:02 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -118,3 +118,4 @@ _mesa_GetClipPlane( GLenum plane, GLdouble *equation )
    equation[2] = (GLdouble) ctx->Transform.EyeUserPlane[p][2];
    equation[3] = (GLdouble) ctx->Transform.EyeUserPlane[p][3];
 }
+

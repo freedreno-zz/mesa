@@ -27,7 +27,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: blend.c,v 1.38.4.2 2003/03/19 15:43:14 jrfonseca Exp $ */
+/* $Id: blend.c,v 1.38.4.3 2003/03/20 09:19:54 keithw Exp $ */
 
 
 #include "glheader.h"
@@ -536,4 +536,44 @@ _mesa_ColorMask( GLboolean red, GLboolean green,
 
    if (ctx->Driver.ColorMask)
       ctx->Driver.ColorMask( ctx, red, green, blue, alpha );
+}
+
+/**********************************************************************/
+/*****                      Initialization                        *****/
+/**********************************************************************/
+
+void _mesa_init_color( GLcontext * ctx )
+{
+   /* Color buffer group */
+   ctx->Color.IndexMask = 0xffffffff;
+   ctx->Color.ColorMask[0] = 0xff;
+   ctx->Color.ColorMask[1] = 0xff;
+   ctx->Color.ColorMask[2] = 0xff;
+   ctx->Color.ColorMask[3] = 0xff;
+   ctx->Color.ClearIndex = 0;
+   ASSIGN_4V( ctx->Color.ClearColor, 0, 0, 0, 0 );
+   ctx->Color.DrawBuffer = GL_FRONT;
+   ctx->Color.AlphaEnabled = GL_FALSE;
+   ctx->Color.AlphaFunc = GL_ALWAYS;
+   ctx->Color.AlphaRef = 0;
+   ctx->Color.BlendEnabled = GL_FALSE;
+   ctx->Color.BlendSrcRGB = GL_ONE;
+   ctx->Color.BlendDstRGB = GL_ZERO;
+   ctx->Color.BlendSrcA = GL_ONE;
+   ctx->Color.BlendDstA = GL_ZERO;
+   ctx->Color.BlendEquation = GL_FUNC_ADD_EXT;
+   ASSIGN_4V( ctx->Color.BlendColor, 0.0, 0.0, 0.0, 0.0 );
+   ctx->Color.IndexLogicOpEnabled = GL_FALSE;
+   ctx->Color.ColorLogicOpEnabled = GL_FALSE;
+   ctx->Color.LogicOp = GL_COPY;
+   ctx->Color.DitherFlag = GL_TRUE;
+
+   if (ctx->Visual.doubleBufferMode) {
+      ctx->Color.DrawBuffer = GL_BACK;
+      ctx->Color._DrawDestMask = BACK_LEFT_BIT;
+   }
+   else {
+      ctx->Color.DrawBuffer = GL_FRONT;
+      ctx->Color._DrawDestMask = FRONT_LEFT_BIT;
+   }
 }

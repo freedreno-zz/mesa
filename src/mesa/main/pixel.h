@@ -1,4 +1,4 @@
-/* $Id: pixel.h,v 1.10 2001/03/12 00:48:38 gareth Exp $ */
+/* $Id: pixel.h,v 1.10.8.1 2003/03/20 09:21:02 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -135,5 +135,11 @@ extern void
 _mesa_chan_to_float_span(const GLcontext *ctx, GLuint n,
                          CONST GLchan rgba[][4], GLfloat rgbaf[][4]);
 
+
+extern void 
+_mesa_update_pixel( GLcontext *ctx, GLuint newstate );
+
+extern void 
+_mesa_init_pixel( GLcontext * ctx );
 
 #endif

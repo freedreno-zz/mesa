@@ -1,4 +1,4 @@
-/* $Id: depth.h,v 1.11 2001/03/12 00:48:37 gareth Exp $ */
+/* $Id: depth.h,v 1.11.8.1 2003/03/20 09:20:29 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -32,10 +32,7 @@
 #include "mtypes.h"
 
 
-/*
- * Immediate-mode API entrpoints
- */
-
+#if _HAVE_FULL_GL
 extern void
 _mesa_ClearDepth( GLclampd depth );
 
@@ -48,6 +45,10 @@ extern void
 _mesa_DepthMask( GLboolean flag );
 
 
-
+exern void 
+_mesa_init_depth( GLcontext * ctx )
+#else
+#define _mesa_init_depth( c ) ((void)0)
+#endif
 
 #endif

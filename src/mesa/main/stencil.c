@@ -1,4 +1,4 @@
-/* $Id: stencil.c,v 1.29.4.1 2003/03/18 08:55:20 keithw Exp $ */
+/* $Id: stencil.c,v 1.29.4.2 2003/03/20 09:21:11 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -213,3 +213,32 @@ _mesa_ActiveStencilFaceEXT(GLenum face)
    }
 }
 #endif
+
+
+/**********************************************************************/
+/*****                      Initialization                        *****/
+/**********************************************************************/
+
+void _mesa_init_stencil( GLcontext * ctx )
+{
+
+   /* Stencil group */
+   ctx->Stencil.Enabled = GL_FALSE;
+   ctx->Stencil.TestTwoSide = GL_FALSE;
+   ctx->Stencil.ActiveFace = 0;  /* 0 = GL_FRONT, 1 = GL_BACK */
+   ctx->Stencil.Function[0] = GL_ALWAYS;
+   ctx->Stencil.Function[1] = GL_ALWAYS;
+   ctx->Stencil.FailFunc[0] = GL_KEEP;
+   ctx->Stencil.FailFunc[1] = GL_KEEP;
+   ctx->Stencil.ZPassFunc[0] = GL_KEEP;
+   ctx->Stencil.ZPassFunc[1] = GL_KEEP;
+   ctx->Stencil.ZFailFunc[0] = GL_KEEP;
+   ctx->Stencil.ZFailFunc[1] = GL_KEEP;
+   ctx->Stencil.Ref[0] = 0;
+   ctx->Stencil.Ref[1] = 0;
+   ctx->Stencil.ValueMask[0] = STENCIL_MAX;
+   ctx->Stencil.ValueMask[1] = STENCIL_MAX;
+   ctx->Stencil.WriteMask[0] = STENCIL_MAX;
+   ctx->Stencil.WriteMask[1] = STENCIL_MAX;
+   ctx->Stencil.Clear = 0;
+}

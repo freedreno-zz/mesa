@@ -1,4 +1,4 @@
-/* $Id: rastpos.h,v 1.6 2002/05/27 17:03:09 brianp Exp $ */
+/* $Id: rastpos.h,v 1.6.6.1 2003/03/20 09:21:09 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -181,5 +181,7 @@ _mesa_WindowPos4ivMESA(const GLint *v);
 extern void
 _mesa_WindowPos4svMESA(const GLshort *v);
 
+extern void 
+_mesa_init_rastpos( GLcontext * ctx );
 
 #endif

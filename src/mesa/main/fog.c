@@ -1,4 +1,4 @@
-/* $Id: fog.c,v 1.36 2002/10/24 23:57:20 brianp Exp $ */
+/* $Id: fog.c,v 1.36.4.1 2003/03/20 09:20:44 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -157,4 +157,23 @@ _mesa_Fogfv( GLenum pname, const GLfloat *params )
    if (ctx->Driver.Fogfv) {
       (*ctx->Driver.Fogfv)( ctx, pname, params );
    }
+}
+
+
+/**********************************************************************/
+/*****                      Initialization                        *****/
+/**********************************************************************/
+
+void _mesa_init_fog( GLcontext * ctx )
+{
+   /* Fog group */
+   ctx->Fog.Enabled = GL_FALSE;
+   ctx->Fog.Mode = GL_EXP;
+   ASSIGN_4V( ctx->Fog.Color, 0.0, 0.0, 0.0, 0.0 );
+   ctx->Fog.Index = 0.0;
+   ctx->Fog.Density = 1.0;
+   ctx->Fog.Start = 0.0;
+   ctx->Fog.End = 1.0;
+   ctx->Fog.ColorSumEnabled = GL_FALSE;
+   ctx->Fog.FogCoordinateSource = GL_FRAGMENT_DEPTH_EXT;
 }

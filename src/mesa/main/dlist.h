@@ -1,4 +1,4 @@
-/* $Id: dlist.h,v 1.17.6.1 2003/03/05 14:04:19 keithw Exp $ */
+/* $Id: dlist.h,v 1.17.6.2 2003/03/20 09:20:34 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -104,10 +104,12 @@ extern void _mesa_save_EvalMesh2(GLenum mode, GLint i1, GLint i2,
 extern void _mesa_save_EvalMesh1( GLenum mode, GLint i1, GLint i2 );
 extern void _mesa_save_CallLists( GLsizei n, GLenum type, const GLvoid *lists );
 extern void _mesa_save_CallList( GLuint list );
+extern void _mesa_init_display_list( GLcontext * ctx );
 #else
 #define _mesa_init_lists() ((void)0)
 #define _mesa_destroy_list(c,l) ((void)0)
 #define _mesa_init_dlist_table(t,ts) ((void)0)
+#define _mesa_init_display_list(c) ((void)0)
 #endif
 
 

@@ -1,4 +1,4 @@
-/* $Id: accum.c,v 1.39 2002/10/24 23:57:19 brianp Exp $ */
+/* $Id: accum.c,v 1.39.4.1 2003/03/20 09:19:50 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -85,4 +85,11 @@ _mesa_Accum( GLenum op, GLfloat value )
    }
 
    ctx->Driver.Accum( ctx, op, value, xpos, ypos, width, height );
+}
+
+void 
+_mesa_init_accum( GLcontext *ctx )
+{
+   /* Accumulate buffer group */
+   ASSIGN_4V( ctx->Accum.ClearColor, 0.0, 0.0, 0.0, 0.0 );
 }
