@@ -9,7 +9,7 @@ For the radeon driver, it's necessary to get the right set of kernel
 modules installed before attempting to run any programs:
 
     rmmod radeon agpgart;
-    insmod agpgart.o;
+    insmod agpgart;
     insmod $(MESA)/src/kernel/radeonfb/radeonfb.o;
     insmod $(MESA)/src/kernel/radeon/radeon.o;
 
