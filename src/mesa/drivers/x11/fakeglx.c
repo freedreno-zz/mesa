@@ -1341,8 +1341,10 @@ static void
 Fake_glXCopyContext( Display *dpy, GLXContext src, GLXContext dst,
                      unsigned long mask )
 {
-   XMesaContext xm_src = (XMesaContext) src;
-   XMesaContext xm_dst = (XMesaContext) dst;
+   struct fake_glx_context *fakeSrc = (struct fake_glx_context *) src;
+   struct fake_glx_context *fakeDst = (struct fake_glx_context *) dst;
+   XMesaContext xm_src = fakeSrc->xmesaContext;
+   XMesaContext xm_dst = fakeDst->xmesaContext;
    (void) dpy;
    _mesa_copy_context( xm_src->gl_ctx, xm_dst->gl_ctx, (GLuint) mask );
 }
