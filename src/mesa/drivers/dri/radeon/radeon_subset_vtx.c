@@ -48,7 +48,6 @@
 #include "radeon_context.h"
 #include "radeon_state.h"
 #include "radeon_ioctl.h"
-#include "radeon_tex.h"
 #include "radeon_subset.h"
 
 
@@ -301,8 +300,6 @@ static void notify_wrap_buffer( void )
    GLfloat tmp[3][MAX_VERTEX_DWORDS];
    GLuint i, nrverts = 0;
 
-   fprintf(stderr, "%s\n", __FUNCTION__);
-
    /* Copy vertices out of dma:
     */
    nrverts = copy_dma_verts( rmesa, tmp );
@@ -450,7 +447,7 @@ static void notify_qstrip0( void )
 static void notify_qstrip1( void )
 {
    pop_notify();
-   emit_quad( 1, 0, 2, 3 ); 
+   emit_quad( 2, 3, 1, 0 ); 
    push_notify( notify_qstrip0, 2, vb.vertex_store + 2*vb.vertex_size );
 }
 
