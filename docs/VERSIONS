@@ -1,4 +1,4 @@
-$Id: VERSIONS,v 1.38.2.36 2001/05/10 12:58:41 brianp Exp $
+$Id: VERSIONS,v 1.38.2.37 2001/05/10 14:12:14 brianp Exp $
 
 
 Mesa Version History
@@ -811,4 +811,7 @@ post-3.4.1
 	- fixed bugs in wglUseFontBitmapsA(), by Frank Warmerdam
 	- fixed memory leak in glXUseXFont()
 	- fragment sampling in AA triangle function was off by 1/2 pixel
-	- fixed segfault in FX driver when using tex unit 1 but not unit 0
+	- Window: reading pixels from framebuffer didn't always work
+	- glConvolutionFilter2D could segfault or cause fp exception
+	- fixed segfaults in FX and X drivers when using tex unit 1
+	  but not unit 0
