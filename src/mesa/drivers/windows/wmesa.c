@@ -1,4 +1,4 @@
-/* $Id: wmesa.c,v 1.22.2.9 2002/08/28 17:08:37 kschultz Exp $ */
+/* $Id: wmesa.c,v 1.22.2.10 2002/09/12 17:02:52 kschultz Exp $ */
 
 /*
  * Windows (Win32) device driver for Mesa 3.4
@@ -1410,6 +1410,9 @@ void WMesaDestroyContext( void )
   if(parallelMachine)
     PRDestroyRenderBuffer();
 #endif
+
+  // There is no longer a current context.
+  WMesaMakeCurrent( NULL );
 }
 
 
