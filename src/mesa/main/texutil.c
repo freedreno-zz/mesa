@@ -1,4 +1,4 @@
-/* $Id: texutil.c,v 1.25.2.3 2002/06/03 16:02:05 brianp Exp $ */
+/* $Id: texutil.c,v 1.25.2.4 2002/06/05 16:40:21 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -44,7 +44,7 @@
 #define DEBUG_TEXUTIL 0
 
 
-#ifdef __BIG_ENDIAN
+#if defined(BYTE_ORDER) && defined(BIG_ENDIAN) && BYTE_ORDER == BIG_ENDIAN
 #define APPEND16( a, b )	( (a) << 16 | (b) )
 #else
 #define APPEND16( a, b )	( (a) | (b) << 16 )
@@ -417,7 +417,7 @@ CONVERT_ARGB4444( texsubimage3d )
 #include "texutil_tmp.h"
 
 
-#ifdef __BIG_ENDIAN
+#if defined(BYTE_ORDER) && defined(BIG_ENDIAN) && BYTE_ORDER == BIG_ENDIAN
 
 #define CONVERT_TEXEL( dst, src )					\
 	{ const GLushort s = *(GLushort *)src;				\

@@ -1,4 +1,4 @@
-/* $Id: macros.h,v 1.24.2.2 2002/06/03 16:02:04 brianp Exp $ */
+/* $Id: macros.h,v 1.24.2.3 2002/06/05 16:40:21 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -457,7 +457,7 @@ do {						\
 /* Byte swapping
  */
 
-#ifdef __BIG_ENDIAN
+#if defined(BYTE_ORDER) && defined(BIG_ENDIAN) && BYTE_ORDER == BIG_ENDIAN
 #include <byteswap.h>
 #define CPU_TO_LE32( x )	bswap_32( x )
 #else
@@ -493,7 +493,7 @@ do {						\
    (((a) & 0xe0) | (((b) & 0xe0) >> 3) | (((c) & 0xc0) >> 6))
 
 
-#ifdef __BIG_ENDIAN
+#if defined(BYTE_ORDER) && defined(BIG_ENDIAN) && BYTE_ORDER == BIG_ENDIAN
 
 #define PACK_COLOR_8888_LE( a, b, c, d )	PACK_COLOR_8888( d, c, b, a )
 
