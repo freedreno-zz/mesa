@@ -70,7 +70,7 @@ static void fxSetupFog(GLcontext *ctx, GLboolean forceTableRebuild);
 static void fxSetupScissor(GLcontext *ctx);
 static void fxSetupCull(GLcontext *ctx);
 static void gl_print_fx_state_flags( const char *msg, GLuint flags);
-static GLboolean fxMultipassBlend(struct vertex_buffer *, GLuint);
+/*static GLboolean fxMultipassBlend(struct vertex_buffer *, GLuint);*/
 static GLboolean fxMultipassTexture( struct vertex_buffer *, GLuint );
 
 static void fxTexValidate(GLcontext *ctx, struct gl_texture_object *tObj)
@@ -537,7 +537,7 @@ static void fxSetupTextureSingleTMU_NoLock(GLcontext *ctx, GLuint textureset)
 			       localc,
 			       GR_COMBINE_OTHER_TEXTURE,
 			       FXTRUE);
-    ctx->Driver.MultipassFunc = fxMultipassBlend;
+    /*ctx->Driver.MultipassFunc = fxMultipassBlend;*/
     break;
   case GL_REPLACE:
     if((ifmt==GL_RGB) || (ifmt==GL_LUMINANCE))
