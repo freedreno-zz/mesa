@@ -899,12 +899,8 @@ typedef struct {
    void (*ArrayElement)( GLint ); /* NOTE */
    void (*Color3f)( GLfloat, GLfloat, GLfloat );
    void (*Color3fv)( const GLfloat * );
-   void (*Color3ub)( GLubyte, GLubyte, GLubyte );
-   void (*Color3ubv)( const GLubyte * );
    void (*Color4f)( GLfloat, GLfloat, GLfloat, GLfloat );
    void (*Color4fv)( const GLfloat * );
-   void (*Color4ub)( GLubyte, GLubyte, GLubyte, GLubyte );
-   void (*Color4ubv)( const GLubyte * );
    void (*EdgeFlag)( GLboolean );
    void (*EdgeFlagv)( const GLboolean * );
    void (*EvalCoord1f)( GLfloat );          /* NOTE */
@@ -915,8 +911,8 @@ typedef struct {
    void (*EvalPoint2)( GLint, GLint );      /* NOTE */
    void (*FogCoordfEXT)( GLfloat );
    void (*FogCoordfvEXT)( const GLfloat * );
-   void (*Indexi)( GLint );
-   void (*Indexiv)( const GLint * );
+   void (*Indexf)( GLfloat );
+   void (*Indexfv)( const GLfloat * );
    void (*Materialfv)( GLenum face, GLenum pname, const GLfloat * ); /* NOTE */
    void (*MultiTexCoord1fARB)( GLenum, GLfloat );
    void (*MultiTexCoord1fvARB)( GLenum, const GLfloat * );
@@ -930,8 +926,6 @@ typedef struct {
    void (*Normal3fv)( const GLfloat * );
    void (*SecondaryColor3fEXT)( GLfloat, GLfloat, GLfloat );
    void (*SecondaryColor3fvEXT)( const GLfloat * );
-   void (*SecondaryColor3ubEXT)( GLubyte, GLubyte, GLubyte );
-   void (*SecondaryColor3ubvEXT)( const GLubyte * );
    void (*TexCoord1f)( GLfloat );
    void (*TexCoord1fv)( const GLfloat * );
    void (*TexCoord2f)( GLfloat, GLfloat );
@@ -949,6 +943,12 @@ typedef struct {
    void (*CallList)( GLuint );	/* NOTE */
    void (*Begin)( GLenum );
    void (*End)( void );
+   void (*VertexAttrib1fNV)( GLuint index, GLfloat x );
+   void (*VertexAttrib1fvNV)( GLuint index, const GLfloat *v );
+   void (*VertexAttrib2fNV)( GLuint index, GLfloat x, GLfloat y );
+   void (*VertexAttrib2fvNV)( GLuint index, const GLfloat *v );
+   void (*VertexAttrib3fNV)( GLuint index, GLfloat x, GLfloat y, GLfloat z );
+   void (*VertexAttrib3fvNV)( GLuint index, const GLfloat *v );
    void (*VertexAttrib4fNV)( GLuint index, GLfloat x, GLfloat y, GLfloat z, GLfloat w );
    void (*VertexAttrib4fvNV)( GLuint index, const GLfloat *v );
    /*@}*/
@@ -988,11 +988,6 @@ typedef struct {
    void (*EvalMesh2)( GLenum mode, GLint i1, GLint i2, GLint j1, GLint j2 );
    /*@}*/
 
-   /**
-    * Should core try to send colors to glColor4f or glColor4chan,
-    * where it has a choice?
-    */
-   GLboolean prefer_float_colors;
 } GLvertexformat;
 
 

@@ -295,7 +295,7 @@ _mesa_GetBooleanv( GLenum pname, GLboolean *params )
          break;
       case GL_CURRENT_INDEX:
 	 FLUSH_CURRENT(ctx, 0);
-         *params = INT_TO_BOOL(ctx->Current.Index);
+         *params = FLOAT_TO_BOOL(ctx->Current.Index);
          break;
       case GL_CURRENT_NORMAL:
 	 FLUSH_CURRENT(ctx, 0);

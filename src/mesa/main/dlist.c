@@ -6288,7 +6288,7 @@ _mesa_init_dlist_table( struct _glapi_table *table, GLuint tableSize )
 {
    _mesa_init_no_op_table(table, tableSize);
 
-   _mesa_loopback_init_api_table( table, GL_TRUE );
+   _mesa_loopback_init_api_table( table );
 
    /* GL 1.0 */
    table->Accum = save_Accum;

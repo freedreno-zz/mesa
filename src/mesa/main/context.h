@@ -49,6 +49,7 @@
 
 
 #include "glapi.h"
+#include "imports.h"
 #include "mtypes.h"
 
 

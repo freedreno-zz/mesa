@@ -446,7 +446,7 @@ struct gl_current_attrib {
    /*@{*/
    GLfloat Attrib[VERT_ATTRIB_MAX][4];		/**< Current vertex attributes
 						  *  indexed by VERT_ATTRIB_* */
-   GLuint Index;				/**< Current color index */
+   GLfloat Index;				/**< Current color index */
    GLboolean EdgeFlag;				/**< Current edge flag */
    /*@}*/
 

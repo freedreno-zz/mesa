@@ -48,18 +48,6 @@ static void TAG(Color3fv)( const GLfloat *v )
    _glapi_Dispatch->Color3fv( v );
 }
 
-static void TAG(Color3ub)( GLubyte r, GLubyte g, GLubyte b )
-{
-   PRE_LOOPBACK( Color3ub );
-   _glapi_Dispatch->Color3ub( r, g, b );
-}
-
-static void TAG(Color3ubv)( const GLubyte *v )
-{
-   PRE_LOOPBACK( Color3ubv );
-   _glapi_Dispatch->Color3ubv( v );
-}
-
 static void TAG(Color4f)( GLfloat r, GLfloat g, GLfloat b, GLfloat a )
 {
    PRE_LOOPBACK( Color4f );
@@ -70,18 +58,6 @@ static void TAG(Color4fv)( const GLfloat *v )
 {
    PRE_LOOPBACK( Color4fv );
    _glapi_Dispatch->Color4fv( v );
-}
-
-static void TAG(Color4ub)( GLubyte r, GLubyte g, GLubyte b, GLubyte a )
-{
-   PRE_LOOPBACK( Color4ub );
-   _glapi_Dispatch->Color4ub( r, g, b, a );
-}
-
-static void TAG(Color4ubv)( const GLubyte *v )
-{
-   PRE_LOOPBACK( Color4ubv );
-   _glapi_Dispatch->Color4ubv( v );
 }
 
 static void TAG(EdgeFlag)( GLboolean e )
@@ -144,16 +120,16 @@ static void TAG(FogCoordfvEXT)( const GLfloat *v )
    _glapi_Dispatch->FogCoordfvEXT( v );
 }
 
-static void TAG(Indexi)( GLint i )
+static void TAG(Indexf)( GLfloat f )
 {
-   PRE_LOOPBACK( Indexi );
-   _glapi_Dispatch->Indexi( i );
+   PRE_LOOPBACK( Indexf );
+   _glapi_Dispatch->Indexi( f );
 }
 
-static void TAG(Indexiv)( const GLint *v )
+static void TAG(Indexfv)( const GLfloat *v )
 {
-   PRE_LOOPBACK( Indexiv );
-   _glapi_Dispatch->Indexiv( v );
+   PRE_LOOPBACK( Indexfv );
+   _glapi_Dispatch->Indexfv( v );
 }
 
 static void TAG(Materialfv)( GLenum face, GLenum pname, const GLfloat *v )
@@ -234,18 +210,6 @@ static void TAG(SecondaryColor3fvEXT)( const GLfloat *v )
 {
    PRE_LOOPBACK( SecondaryColor3fvEXT );
    _glapi_Dispatch->SecondaryColor3fvEXT( v );
-}
-
-static void TAG(SecondaryColor3ubEXT)( GLubyte r, GLubyte g, GLubyte b )
-{
-   PRE_LOOPBACK( SecondaryColor3ubEXT );
-   _glapi_Dispatch->SecondaryColor3ubEXT( r, g, b );
-}
-
-static void TAG(SecondaryColor3ubvEXT)( const GLubyte *v )
-{
-   PRE_LOOPBACK( SecondaryColor3ubvEXT );
-   _glapi_Dispatch->SecondaryColor3ubvEXT( v );
 }
 
 static void TAG(TexCoord1f)( GLfloat s )
@@ -390,6 +354,42 @@ static void TAG(EvalMesh2)( GLenum mode, GLint i1, GLint i2,
    _glapi_Dispatch->EvalMesh2( mode, i1, i2, j1, j2 );
 }
 
+static void TAG(VertexAttrib1fNV)( GLuint index, GLfloat x )
+{
+   PRE_LOOPBACK( VertexAttrib1fNV );
+   _glapi_Dispatch->VertexAttrib1fNV( index, x );
+}
+
+static void TAG(VertexAttrib1fvNV)( GLuint index, const GLfloat *v )
+{
+   PRE_LOOPBACK( VertexAttrib1fvNV );
+   _glapi_Dispatch->VertexAttrib1fvNV( index, v );
+}
+
+static void TAG(VertexAttrib2fNV)( GLuint index, GLfloat x, GLfloat y )
+{
+   PRE_LOOPBACK( VertexAttrib2fNV );
+   _glapi_Dispatch->VertexAttrib2fNV( index, x, y );
+}
+
+static void TAG(VertexAttrib2fvNV)( GLuint index, const GLfloat *v )
+{
+   PRE_LOOPBACK( VertexAttrib2fvNV );
+   _glapi_Dispatch->VertexAttrib4fvNV( index, v );
+}
+
+static void TAG(VertexAttrib3fNV)( GLuint index, GLfloat x, GLfloat y, GLfloat z )
+{
+   PRE_LOOPBACK( VertexAttrib3fNV );
+   _glapi_Dispatch->VertexAttrib3fNV( index, x, y, z );
+}
+
+static void TAG(VertexAttrib3fvNV)( GLuint index, const GLfloat *v )
+{
+   PRE_LOOPBACK( VertexAttrib3fvNV );
+   _glapi_Dispatch->VertexAttrib3fvNV( index, v );
+}
+
 static void TAG(VertexAttrib4fNV)( GLuint index, GLfloat x, GLfloat y, GLfloat z, GLfloat w )
 {
    PRE_LOOPBACK( VertexAttrib4fNV );
@@ -398,7 +398,7 @@ static void TAG(VertexAttrib4fNV)( GLuint index, GLfloat x, GLfloat y, GLfloat z
 
 static void TAG(VertexAttrib4fvNV)( GLuint index, const GLfloat *v )
 {
-   PRE_LOOPBACK( VertexAttrib4fvNV );
+   PRE_LOOPBACK( VertexAttrib4fNV );
    _glapi_Dispatch->VertexAttrib4fvNV( index, v );
 }
 
@@ -407,12 +407,8 @@ static GLvertexformat TAG(vtxfmt) = {
    TAG(ArrayElement),
    TAG(Color3f),
    TAG(Color3fv),
-   TAG(Color3ub),
-   TAG(Color3ubv),
    TAG(Color4f),
    TAG(Color4fv),
-   TAG(Color4ub),
-   TAG(Color4ubv),
    TAG(EdgeFlag),
    TAG(EdgeFlagv),
    TAG(EvalCoord1f),
@@ -423,8 +419,8 @@ static GLvertexformat TAG(vtxfmt) = {
    TAG(EvalPoint2),
    TAG(FogCoordfEXT),
    TAG(FogCoordfvEXT),
-   TAG(Indexi),
-   TAG(Indexiv),
+   TAG(Indexf),
+   TAG(Indexfv),
    TAG(Materialfv),
    TAG(MultiTexCoord1fARB),
    TAG(MultiTexCoord1fvARB),
@@ -438,8 +434,6 @@ static GLvertexformat TAG(vtxfmt) = {
    TAG(Normal3fv),
    TAG(SecondaryColor3fEXT),
    TAG(SecondaryColor3fvEXT),
-   TAG(SecondaryColor3ubEXT),
-   TAG(SecondaryColor3ubvEXT),
    TAG(TexCoord1f),
    TAG(TexCoord1fv),
    TAG(TexCoord2f),
@@ -457,6 +451,12 @@ static GLvertexformat TAG(vtxfmt) = {
    TAG(CallList),
    TAG(Begin),
    TAG(End),
+   TAG(VertexAttrib1fNV),
+   TAG(VertexAttrib1fvNV),
+   TAG(VertexAttrib2fNV),
+   TAG(VertexAttrib2fvNV),
+   TAG(VertexAttrib3fNV),
+   TAG(VertexAttrib3fvNV),
    TAG(VertexAttrib4fNV),
    TAG(VertexAttrib4fvNV),
    TAG(Rectf),

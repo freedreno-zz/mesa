@@ -726,6 +726,8 @@ _mesa_fetch_state(GLcontext *ctx, const enum state_index state[],
             case STATE_LOCAL:
                COPY_4V(value, ctx->FragmentProgram.Current->Base.LocalParams[idx]);
                break;				
+	 default:
+	    break;
          }				  
       }			
       return;
@@ -744,6 +746,8 @@ _mesa_fetch_state(GLcontext *ctx, const enum state_index state[],
             case STATE_LOCAL:
                COPY_4V(value, ctx->VertexProgram.Current->Base.LocalParams[idx]);
                break;				
+	 default:
+	    break;
          }				  
       }			
       return;
