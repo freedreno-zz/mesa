@@ -1,4 +1,4 @@
-/* $Id: isosurf.c,v 1.15 2002/10/18 17:47:35 kschultz Exp $ */
+/* $Id: isosurf.c,v 1.15.4.1 2003/02/23 21:04:25 keithw Exp $ */
 
 /*
  * Display an isosurface of 3-D wind speed volume.
@@ -484,7 +484,7 @@ static void draw_surface( unsigned int with_state )
 	    glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, col[j]);
 	    glBegin( GL_TRIANGLES );
 	    for (k = 0 ; k < nr ; k++) {
-	       glNormal3fv( &compressed_data[tri_indices[i+k]][3] );
+	       glColor3fv( &compressed_data[tri_indices[i+k]][3] );
 	       glVertex3fv( &compressed_data[tri_indices[i+k]][0] );
 	    }
 	    glEnd();
@@ -492,7 +492,7 @@ static void draw_surface( unsigned int with_state )
       } else {
 	 glBegin( GL_TRIANGLES );
 	 for (i = 0 ; i < num_tri_verts ; i++) {
-	    glNormal3fv( &compressed_data[tri_indices[i]][3] );
+	    glColor3fv( &compressed_data[tri_indices[i]][3] );
 	    glVertex3fv( &compressed_data[tri_indices[i]][0] );
 	 }
 	 glEnd();
@@ -506,7 +506,7 @@ static void draw_surface( unsigned int with_state )
        */
       glBegin( GL_POINTS );
       for ( i = 0 ; i < numuniq ; i++ ) {
-         glNormal3fv( &compressed_data[i][3] );
+         glColor3fv( &compressed_data[i][3] );
          glVertex3fv( &compressed_data[i][0] );
       }
       glEnd();
@@ -515,7 +515,7 @@ static void draw_surface( unsigned int with_state )
    case (GLVERTEX|STRIPS):
       glBegin( GL_TRIANGLE_STRIP );
       for (i=0;i<numverts;i++) {
-         glNormal3fv( &data[i][3] );
+         glColor3fv( &data[i][0] );
          glVertex3fv( &data[i][0] );
       }
       glEnd();
@@ -595,24 +595,24 @@ static void InitMaterials(void)
     static float lmodel_ambient[] = {1.0, 1.0, 1.0, 1.0};
     static float lmodel_twoside[] = {GL_FALSE};
 
-    glLightfv(GL_LIGHT0, GL_AMBIENT, ambient);
-    glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse);
-    glLightfv(GL_LIGHT0, GL_POSITION, position0);
-    glEnable(GL_LIGHT0);
+/*     glLightfv(GL_LIGHT0, GL_AMBIENT, ambient); */
+/*     glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse); */
+/*     glLightfv(GL_LIGHT0, GL_POSITION, position0); */
+/*     glEnable(GL_LIGHT0); */
 
-    glLightfv(GL_LIGHT1, GL_AMBIENT, ambient);
-    glLightfv(GL_LIGHT1, GL_DIFFUSE, diffuse);
-    glLightfv(GL_LIGHT1, GL_POSITION, position1);
-    glEnable(GL_LIGHT1);
+/*     glLightfv(GL_LIGHT1, GL_AMBIENT, ambient); */
+/*     glLightfv(GL_LIGHT1, GL_DIFFUSE, diffuse); */
+/*     glLightfv(GL_LIGHT1, GL_POSITION, position1); */
+/*     glEnable(GL_LIGHT1); */
 
-    glLightModelfv(GL_LIGHT_MODEL_AMBIENT, lmodel_ambient);
-    glLightModelfv(GL_LIGHT_MODEL_TWO_SIDE, lmodel_twoside);
+/*     glLightModelfv(GL_LIGHT_MODEL_AMBIENT, lmodel_ambient); */
+/*     glLightModelfv(GL_LIGHT_MODEL_TWO_SIDE, lmodel_twoside); */
 
-    glMaterialfv(GL_FRONT_AND_BACK, GL_SHININESS, front_mat_shininess);
-    glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, front_mat_specular);
-    glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, front_mat_diffuse);
+/*     glMaterialfv(GL_FRONT_AND_BACK, GL_SHININESS, front_mat_shininess); */
+/*     glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, front_mat_specular); */
+/*     glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, front_mat_diffuse); */
 
-    glPolygonStipple (halftone);
+/*     glPolygonStipple (halftone); */
 }
 
 
@@ -736,65 +736,6 @@ static void ModeMenu(int m)
       print_flags("primitive", state & PRIMITIVE_MASK);
       print_flags("render style", state & RENDER_STYLE_MASK);
 
-      if ((state & PRIMITIVE_MASK) != STRIPS &&
-	  ((state & RENDER_STYLE_MASK) == DRAW_ELTS ||
-	   (state & RENDER_STYLE_MASK) == ARRAY_ELT || 
-	   (state & PRIMITIVE_MASK) == POINTS))
-      {
-	 fprintf(stderr, "enabling small arrays\n");
-	 /* Rendering any primitive with draw-element/array-element
-	  *  --> Can't do strips here as ordering has been lost in
-	  *  compaction process...
-	  */
-	 glVertexPointerEXT( 3, GL_FLOAT, sizeof(data[0]), numuniq,
-			     compressed_data );
-	 glNormalPointerEXT( GL_FLOAT, sizeof(data[0]), numuniq,
-			     &compressed_data[0][3]);
-#ifdef GL_EXT_compiled_vertex_array
-	 if (allowed & LOCKED) {
-	    if (state & LOCKED) {
-	       glLockArraysEXT( 0, numuniq );
-	    } else {
-	       glUnlockArraysEXT();
-	    }
-	 }
-#endif
-      }
-      else if ((state & PRIMITIVE_MASK) == TRIANGLES &&
-	       (state & RENDER_STYLE_MASK) == DRAW_ARRAYS) {
-	 fprintf(stderr, "enabling big arrays\n");
-	 /* Only get here for TRIANGLES and drawarrays
-	  */
-	 glVertexPointerEXT( 3, GL_FLOAT, sizeof(data[0]), (numverts-2) * 3,
-			     expanded_data );
-	 glNormalPointerEXT( GL_FLOAT, sizeof(data[0]), (numverts-2) * 3,
-			     &expanded_data[0][3]);
-
-#ifdef GL_EXT_compiled_vertex_array
-	 if (allowed & LOCKED) {
-	    if (state & LOCKED) {
-	       glLockArraysEXT( 0, (numverts-2)*3 );
-	    } else {
-	       glUnlockArraysEXT();
-	    }
-	 }
-#endif
-      }
-      else {
-	 fprintf(stderr, "enabling normal arrays\n");
-	 glVertexPointerEXT( 3, GL_FLOAT, sizeof(data[0]), numverts, data );
-	 glNormalPointerEXT( GL_FLOAT, sizeof(data[0]), numverts, &data[0][3]);
-#ifdef GL_EXT_compiled_vertex_array
-	 if (allowed & LOCKED) {
-	    if (state & LOCKED) {
-	       glLockArraysEXT( 0, numverts );
-	    } else {
-	       glUnlockArraysEXT();
-	    }
-	 }
-#endif
-      }
-
    }
 #endif
 
@@ -827,9 +768,9 @@ static void Init(int argc, char *argv[])
    plane[3] = 0.0;
 
    glClearColor(0.0, 0.0, 1.0, 0.0);
-   glEnable( GL_DEPTH_TEST );
-   glEnable( GL_VERTEX_ARRAY_EXT );
-   glEnable( GL_NORMAL_ARRAY_EXT );
+/*    glEnable( GL_DEPTH_TEST ); */
+/*    glEnable( GL_VERTEX_ARRAY_EXT ); */
+/*    glEnable( GL_NORMAL_ARRAY_EXT ); */
 
    glMatrixMode(GL_PROJECTION);
    glLoadIdentity();
@@ -837,24 +778,24 @@ static void Init(int argc, char *argv[])
 
    glMatrixMode(GL_MODELVIEW);
    glLoadIdentity();
-   glClipPlane(GL_CLIP_PLANE0, plane);
+/*    glClipPlane(GL_CLIP_PLANE0, plane); */
 
    InitMaterials();
 
    set_matrix();
 
    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-   glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
+/*    glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST); */
 
-   glTexGeni(GL_S, GL_TEXTURE_GEN_MODE, GL_SPHERE_MAP);
-   glTexGeni(GL_T, GL_TEXTURE_GEN_MODE, GL_SPHERE_MAP);
+/*    glTexGeni(GL_S, GL_TEXTURE_GEN_MODE, GL_SPHERE_MAP); */
+/*    glTexGeni(GL_T, GL_TEXTURE_GEN_MODE, GL_SPHERE_MAP); */
 
 
    /* Green fog is easy to see */
-   glFogi(GL_FOG_MODE,GL_EXP2);
-   glFogfv(GL_FOG_COLOR,fogColor);
-   glFogf(GL_FOG_DENSITY,0.15);
-   glHint(GL_FOG_HINT,GL_DONT_CARE);
+/*    glFogi(GL_FOG_MODE,GL_EXP2); */
+/*    glFogfv(GL_FOG_COLOR,fogColor); */
+/*    glFogf(GL_FOG_DENSITY,0.15); */
+/*    glHint(GL_FOG_HINT,GL_DONT_CARE); */
 
    {
       static int firsttime = 1;
@@ -872,7 +813,7 @@ static void Init(int argc, char *argv[])
    }
 
    ModeMenu(SHADE_SMOOTH|
-	    LIT|
+	    UNLIT|
 	    POINT_FILTER|
 	    NO_USER_CLIP|
 	    NO_MATERIALS|
@@ -1121,6 +1062,9 @@ int main(int argc, char **argv)
    glutSpecialFunc(SpecialKey);
    glutDisplayFunc(Display);
 
+/*    Benchmark(5,0); */
+/*    Benchmark(5,0); */
+/*    Benchmark(5,0); */
    glutMainLoop();
    return 0;
 }
