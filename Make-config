@@ -1,4 +1,4 @@
-# $Id: Make-config,v 1.50.2.1 2001/10/30 16:00:20 keithw Exp $
+# $Id: Make-config,v 1.50.2.2 2001/11/30 20:18:41 kschultz Exp $
 
 MESA_MAJOR=4
 MESA_MINOR=0
@@ -177,6 +177,25 @@ cygnus-linux:
 		-malign-loops=2 -malign-jumps=2 -malign-functions=2" \
 	"MAKELIB = ../bin/mklib.cygnus-linux" \
 	"WLIBS = ../lib/wing32.a -lkernel32 -luser32 -lgdi32"
+
+darwin:
+	$(MAKE) $(MFLAGS) -f Makefile.X11 targets \
+	"GL_LIB = libGL.dylib" \
+	"GLU_LIB = libGLU.dylib" \
+	"GLUT_LIB = libglut.dylib" \
+	"GLW_LIB = libGLw.dylib" \
+	"OSMESA_LIB = libOSMesa.dylib" \
+	"CC = cc" \
+	"CPLUSPLUS = cc" \
+	"CFLAGS = -I/usr/X11R6/include -O3 -fPIC -fno-common -ffast-math \
+                -funroll-loops -fexpensive-optimizations -no-cpp-precomp \
+                -dynamic -Ddarwin" \
+	"CCFLAGS = $(CFLAGS)" \
+	"MAKELIB = ../bin/mklib.darwin" \
+	"GL_LIB_DEPS = -L/usr/X11R6/lib -lX11 -lXext -lm -lpthread" \
+	"GLU_LIB_DEPS = -L../lib -lGL -lm" \
+	"GLUT_LIB_DEPS = -L../lib -lGLU -lGL \
+                       -L/usr/X11R6/lib -lX11 -lXmu -lXt -lXi -lm" 
 
 dgux:
 	$(MAKE) $(MFLAGS) -f Makefile.X11 targets \
