@@ -1,4 +1,4 @@
-/* $Id: osmesa.c,v 1.71.2.6 2002/06/14 03:49:10 brianp Exp $ */
+/* $Id: osmesa.c,v 1.71.2.7 2002/06/25 08:41:06 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -1782,6 +1782,7 @@ osmesa_choose_line_function( GLcontext *ctx )
        osmesa->format != OSMESA_BGRA &&
        osmesa->format != OSMESA_ARGB)     return NULL;
 
+
    if (swrast->_RasterMask==DEPTH_BIT
        && ctx->Depth.Func==GL_LESS
        && ctx->Depth.Mask==GL_TRUE
@@ -1931,6 +1932,9 @@ osmesa_choose_triangle_function( GLcontext *ctx )
    if (osmesa->format != OSMESA_RGBA &&
        osmesa->format != OSMESA_BGRA &&
        osmesa->format != OSMESA_ARGB)   return (swrast_tri_func) NULL;
+   if (ctx->Polygon.CullFlag && 
+       ctx->Polygon.CullFaceMode == GL_FRONT_AND_BACK))
+                                        return (swrast_tri_func) NULL;
 
    if (swrast->_RasterMask == DEPTH_BIT &&
        ctx->Depth.Func == GL_LESS &&
