@@ -1,4 +1,4 @@
-/* $Id: context.c,v 1.18.2.2 1999/11/15 22:21:18 brianp Exp $ */
+/* $Id: context.c,v 1.18.2.3 1999/11/25 16:51:24 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -1977,21 +1977,17 @@ static void update_pixel_masking( GLcontext *ctx )
 static void update_fog_mode( GLcontext *ctx )
 {
    int old_mode = ctx->FogMode;
+   ctx->FogMode = FOG_NONE;
 
    if (ctx->Fog.Enabled) {
-      if (ctx->Texture.Enabled)
-         ctx->FogMode = FOG_FRAGMENT;
-      else if (ctx->Hint.Fog == GL_NICEST)
-         ctx->FogMode = FOG_FRAGMENT;
-      else
-         ctx->FogMode = FOG_VERTEX;
+      ctx->FogMode = FOG_VERTEX;
 
-      if (ctx->Driver.GetParameteri)
-         if ((ctx->Driver.GetParameteri)( ctx, DD_HAVE_HARDWARE_FOG ))
-            ctx->FogMode = FOG_FRAGMENT;
-   }
-   else {
-      ctx->FogMode = FOG_NONE;
+      if (ctx->Texture.Enabled || ctx->Hint.Fog == GL_NICEST)
+	 ctx->FogMode = FOG_FRAGMENT;
+
+      if ( ctx->Driver.GetParameteri && 
+	   ctx->Driver.GetParameteri( ctx, DD_HAVE_HARDWARE_FOG ) )
+	 ctx->FogMode = FOG_FRAGMENT;
    }
    
    if (old_mode != ctx->FogMode)
@@ -2412,7 +2408,7 @@ void gl_update_state( GLcontext *ctx )
       oldnorm = ctx->NeedEyeNormals;
 
       ctx->NeedNormals = (ctx->Light.Enabled || ctx->Texture.NeedNormals);
-      ctx->NeedEyeCoords = ((ctx->Fog.Enabled && ctx->Hint.Fog != GL_NICEST) ||
+      ctx->NeedEyeCoords = (ctx->FogMode == FOG_VERTEX ||
 			    ctx->Point.Attenuated);
       ctx->NeedEyeNormals = GL_FALSE;
 
