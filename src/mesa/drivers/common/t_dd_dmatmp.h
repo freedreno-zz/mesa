@@ -1,4 +1,4 @@
-/* $Id: t_dd_dmatmp.h,v 1.10.2.1 2001/11/22 13:56:25 keithw Exp $ */
+/* $Id: t_dd_dmatmp.h,v 1.10.2.2 2001/12/11 15:12:57 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -311,7 +311,7 @@ static void TAG(render_tri_strip_verts)( GLcontext *ctx,
 	 currentsz = dmasz;
       }
 
-      if (flags & PRIM_PARITY) {
+      if ((flags & PRIM_PARITY) && count - start > 2) {
 	 if (HAVE_TRI_STRIP_1 && 0) {
 	 } else {
 	    EMIT_VERTS( ctx, start, 1 );
@@ -432,11 +432,6 @@ static void TAG(render_quad_strip_verts)( GLcontext *ctx,
       if (currentsz < 8) {
 	 FIRE_VERTICES();
 	 currentsz = dmasz;
-      }
-
-      if (flags & PRIM_PARITY) {
-	    EMIT_VERTS( ctx, start, 1 );
-	    currentsz--;
       }
 
       dmasz -= (dmasz & 2);
@@ -867,7 +862,7 @@ static void TAG(render_tri_strip_elts)( GLcontext *ctx,
 	 currentsz = dmasz;
       }
 
-      if (flags & PRIM_PARITY) {
+      if ((flags & PRIM_PARITY) && count - start > 2) {
 	 TAG(emit_elts)( ctx, elts+start, 1 );
       }
 
