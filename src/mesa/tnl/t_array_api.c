@@ -1,4 +1,4 @@
-/* $Id: t_array_api.c,v 1.28 2002/10/24 23:57:25 brianp Exp $ */
+/* $Id: t_array_api.c,v 1.28.2.1 2002/11/25 15:53:16 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -168,10 +168,12 @@ _tnl_DrawArrays(GLenum mode, GLint start, GLsizei count)
 	 minimum = 0;
 	 modulo = 1;
 	 skip = 0;
+	 break;
       case GL_LINES:
 	 minimum = 1;
 	 modulo = 2;
 	 skip = 1;
+	 break;
       case GL_LINE_STRIP:
 	 minimum = 1;
 	 modulo = 1;
