@@ -1,4 +1,4 @@
-/* $Id: t_imm_api.c,v 1.17.2.3 2002/04/09 13:33:34 brianp Exp $ */
+/* $Id: t_imm_api.c,v 1.17.2.4 2002/06/14 03:49:10 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -85,7 +85,9 @@ void _tnl_flush_vertices( GLcontext *ctx, GLuint flags )
 	       IM->Flag[IM->Start]);
 
    if (IM->Flag[IM->Start])
-      if ((flags & FLUSH_UPDATE_CURRENT) || IM->Count > IM->Start)
+      if ((flags & FLUSH_UPDATE_CURRENT) || 
+	  IM->Count > IM->Start ||
+	  (IM->Flag[IM->Start] & (VERT_BEGIN|VERT_END)))
 	 _tnl_flush_immediate( IM );
 }
 
@@ -145,16 +147,9 @@ _tnl_save_Begin( GLenum mode )
    ctx->Driver.NeedFlush |= FLUSH_STORED_VERTICES;
    IM->BeginState = state;
 
-   if (ctx->ExecuteFlag) {
-      if (ctx->Driver.CurrentExecPrimitive != PRIM_OUTSIDE_BEGIN_END) {
-	 _mesa_error( ctx, GL_INVALID_OPERATION, "_tnl_Begin" );
-      }
-      else 
-	 ctx->Driver.CurrentExecPrimitive = mode;
-   }
-
-
-   /* Update save_primitive now.
+   /* Update save_primitive now.  Don't touch ExecPrimitive as this is
+    * updated in the replay of this cassette if we are in
+    * COMPILE_AND_EXECUTE mode.
     */
    if (ctx->Driver.CurrentSavePrimitive == PRIM_UNKNOWN)
       ctx->Driver.CurrentSavePrimitive = PRIM_INSIDE_UNKNOWN_PRIM;
@@ -190,8 +185,9 @@ _tnl_Begin( GLenum mode )
 
       if (IM->Start == IM->Count &&
 	  tnl->Driver.NotifyBegin &&
-	  tnl->Driver.NotifyBegin( ctx, mode )) 
+	  tnl->Driver.NotifyBegin( ctx, mode )) {
 	 return;
+      }
 
       assert( IM->SavedBeginState == 0 );
       assert( IM->BeginState == 0 );
@@ -209,8 +205,6 @@ _tnl_Begin( GLenum mode )
       IM->PrimitiveLength[last] = count - last;
       IM->LastPrimitive = count;
       IM->BeginState = (VERT_BEGIN_0|VERT_BEGIN_1);
-
-/*        fprintf(stderr, "%s: %x\n", __FUNCTION__, IM->BeginState);  */
 
       ctx->Driver.NeedFlush |= FLUSH_STORED_VERTICES;
       ctx->Driver.CurrentExecPrimitive = mode;
@@ -345,7 +339,11 @@ _tnl_end( GLcontext *ctx )
 
    IM->BeginState = state;
 
-   if (ctx->ExecuteFlag) {
+   /* Only update CurrentExecPrimitive if not compiling.  If we are in
+    * COMPILE_AND_EXECUTE mode, it will be done on replay of this
+    * cassette.
+    */
+   if (!ctx->CompileFlag) {
       if (ctx->Driver.CurrentExecPrimitive == PRIM_OUTSIDE_BEGIN_END) 
 	 _mesa_error( ctx, GL_INVALID_OPERATION, "_tnl_End" );
       else
@@ -355,7 +353,7 @@ _tnl_end( GLcontext *ctx )
    /* You can set this flag to get the old 'flush_vb on glEnd()'
     * behaviour.
     */
-   if ((MESA_DEBUG_FLAGS&DEBUG_ALWAYS_FLUSH))
+   if (MESA_DEBUG_FLAGS & DEBUG_ALWAYS_FLUSH)
       _tnl_flush_immediate( IM );
 }
 

@@ -1,10 +1,10 @@
-/* $Id: xm_tri.c,v 1.20 2001/05/14 16:23:04 brianp Exp $ */
+/* $Id: xm_tri.c,v 1.20.2.1 2002/06/14 03:49:10 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.5
+ * Version:  4.0.3
  *
- * Copyright (C) 1999-2000  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -1505,7 +1505,6 @@ static const char *triFuncName = NULL;
 #define USE(triFunc)                   \
 do {                                   \
     triFuncName = #triFunc;            \
-    /*printf("%s\n", triFuncName);*/   \
     return triFunc;                    \
 } while (0)
 
@@ -1531,6 +1530,7 @@ static swrast_tri_func get_triangle_func( GLcontext *ctx )
    if (ctx->RenderMode != GL_RENDER)  return (swrast_tri_func) NULL;
    if (ctx->Polygon.SmoothFlag)       return (swrast_tri_func) NULL;
    if (ctx->Texture._ReallyEnabled)   return (swrast_tri_func) NULL;
+   if (swrast->_RasterMask & MULTI_DRAW_BIT) return (swrast_tri_func) NULL;
 
    if (xmesa->xm_buffer->buffer==XIMAGE) {
       if (   ctx->Light.ShadeModel==GL_SMOOTH

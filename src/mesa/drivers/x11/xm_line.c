@@ -1,10 +1,10 @@
-/* $Id: xm_line.c,v 1.18 2001/09/12 03:32:29 brianp Exp $ */
+/* $Id: xm_line.c,v 1.18.2.1 2002/06/14 03:49:10 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.5
+ * Version:  4.0.3
  *
- * Copyright (C) 1999-2000  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -560,6 +560,7 @@ static swrast_line_func get_line_func( GLcontext *ctx )
    if (ctx->Texture._ReallyEnabled)       return (swrast_line_func) NULL;
    if (ctx->Light.ShadeModel != GL_FLAT)  return (swrast_line_func) NULL;
    if (ctx->Line.StippleFlag)             return (swrast_line_func) NULL;
+   if (swrast->_RasterMask & MULTI_DRAW_BIT) return (swrast_line_func) NULL;
 
    if (xmesa->xm_buffer->buffer==XIMAGE
        && swrast->_RasterMask==DEPTH_BIT

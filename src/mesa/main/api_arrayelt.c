@@ -1,4 +1,4 @@
-/* $Id: api_arrayelt.c,v 1.3.2.4 2002/04/19 01:10:48 brianp Exp $ */
+/* $Id: api_arrayelt.c,v 1.3.2.5 2002/06/14 03:49:09 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -347,7 +347,7 @@ void _ae_loopback_array_elt( GLint elt )
       _ae_update_state( ctx );
 
    for (ta = actx->texarrays ; ta->func ; ta++) {
-      ta->func( ta->unit, (char *)ta->array->Ptr + elt * ta->array->StrideB );
+      ta->func( ta->unit + GL_TEXTURE0_ARB, (char *)ta->array->Ptr + elt * ta->array->StrideB );
    }
 
    /* Must be last

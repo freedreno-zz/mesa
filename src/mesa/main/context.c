@@ -1,8 +1,8 @@
-/* $Id: context.c,v 1.148.2.4 2002/04/09 12:13:07 keithw Exp $ */
+/* $Id: context.c,v 1.148.2.5 2002/06/14 03:49:09 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  4.0.2
+ * Version:  4.0.3
  *
  * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
  *
@@ -814,7 +814,6 @@ init_attrib_groups( GLcontext *ctx )
    ctx->Color.ColorLogicOpEnabled = GL_FALSE;
    ctx->Color.LogicOp = GL_COPY;
    ctx->Color.DitherFlag = GL_TRUE;
-   ctx->Color.MultiDrawBuffer = GL_FALSE;
 
    /* Current group */
    ASSIGN_4V( ctx->Current.Color, 1.0, 1.0, 1.0, 1.0 );

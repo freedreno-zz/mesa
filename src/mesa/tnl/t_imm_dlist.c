@@ -1,4 +1,4 @@
-/* $Id: t_imm_dlist.c,v 1.29.2.11 2002/04/19 01:10:49 brianp Exp $ */
+/* $Id: t_imm_dlist.c,v 1.29.2.12 2002/06/14 03:49:10 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -367,6 +367,12 @@ execute_compiled_cassette( GLcontext *ctx, void *data )
 	 ctx->Driver.CurrentExecPrimitive =
 	    IM->Primitive[IM->LastPrimitive] & PRIM_MODE_MASK;
       }
+
+/*        fprintf(stderr, "%s: IM->Primitive[%d]: %x, CurrExecPrim: %x\n", */
+/*  	      __FUNCTION__, */
+/*  	      IM->LastPrimitive, */
+/*  	      IM->Primitive[IM->LastPrimitive],  */
+/*  	      ctx->Driver.CurrentExecPrimitive); */
 
       _tnl_get_exec_copy_verts( ctx, IM );
 

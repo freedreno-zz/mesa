@@ -1,4 +1,4 @@
-/* $Id: mtypes.h,v 1.51.2.5 2002/06/06 16:25:07 brianp Exp $ */
+/* $Id: mtypes.h,v 1.51.2.6 2002/06/14 03:49:09 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -269,7 +269,6 @@ struct gl_colorbuffer_attrib {
 
    GLenum DrawBuffer;			/* Which buffer to draw into */
    GLenum DriverDrawBuffer;		/* Current device driver dest buffer */
-   GLboolean MultiDrawBuffer;		/* Drawing to mutliple buffers? */
    GLubyte DrawDestMask;		/* bitwise-OR of bitflags above */
 
    /* alpha testing */

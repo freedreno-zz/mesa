@@ -1,4 +1,4 @@
-/* $Id: attrib.c,v 1.57.2.2 2002/03/28 22:42:34 brianp Exp $ */
+/* $Id: attrib.c,v 1.57.2.3 2002/06/14 03:49:09 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -1039,7 +1039,7 @@ _mesa_PopAttrib(void)
                      _mesa_set_enable(ctx, GL_CLIP_PLANE0 + i, GL_FALSE );
                   }
                   if (ctx->Driver.ClipPlane)
-                     ctx->Driver.ClipPlane( ctx, i, eyePlane );
+                     ctx->Driver.ClipPlane( ctx, GL_CLIP_PLANE0 + i, eyePlane );
                }
 
                /* normalize/rescale */
