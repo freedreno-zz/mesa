@@ -1,4 +1,4 @@
-/* $Id: fakeglx.c,v 1.13 1999/11/11 01:29:28 brianp Exp $ */
+/* $Id: fakeglx.c,v 1.12.2.1 1999/11/18 15:16:03 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -45,7 +45,16 @@
 
 
 
-#include "glxheader.h"
+#ifdef HAVE_CONFIG_H
+#include "conf.h"
+#endif
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <X11/Xlib.h>
+#include <X11/Xutil.h>
+#include "GL/gl.h"
 #include "GL/xmesa.h"
 #include "context.h"
 #include "config.h"
@@ -258,7 +267,7 @@ save_glx_visual( Display *dpy, XVisualInfo *vinfo,
           && (v->gl_visual->StencilBits >= stencil_size || stencil_size == 0)
           && (v->gl_visual->AccumBits >= accum_size || accum_size == 0)) {
          /* now either compare XVisualInfo pointers or visual IDs */
-         if ((!comparePointers && v->vishandle->visualid == vinfo->visualid)
+         if ((!comparePointers && v->visinfo->visualid == vinfo->visualid)
              || (comparePointers && v->vishandle == vinfo)) {
             return v;
          }
@@ -1047,7 +1056,6 @@ Bool Fake_glXMakeCurrent( Display *dpy, GLXDrawable drawable, GLXContext ctx )
 {
    if (ctx && drawable) {
       XMesaBuffer buffer;
-      XMesaContext xmctx = (XMesaContext) ctx;
 
       if (drawable==MakeCurrent_PrevDrawable && ctx==MakeCurrent_PrevContext) {
          buffer = MakeCurrent_PrevBuffer;
@@ -1057,7 +1065,7 @@ Bool Fake_glXMakeCurrent( Display *dpy, GLXDrawable drawable, GLXContext ctx )
       }
       if (!buffer) {
          /* drawable must be a new window! */
-         buffer = XMesaCreateWindowBuffer2( xmctx->xm_visual, drawable, ctx );
+         buffer = XMesaCreateWindowBuffer2( ctx->xm_visual, drawable, ctx );
          if (!buffer) {
             /* Out of memory, or context/drawable depth mismatch */
             return False;
