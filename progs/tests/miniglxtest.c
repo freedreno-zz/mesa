@@ -1,4 +1,4 @@
-/* $Id: miniglxtest.c,v 1.1.4.4 2002/12/09 22:34:40 brianp Exp $ */
+/* $Id: miniglxtest.c,v 1.1.4.5 2003/01/02 18:44:41 keithw Exp $ */
 
 /*
  * Test the mini GLX interface.
@@ -13,24 +13,39 @@
 #include <GL/miniglx.h>
 #else
 #include <GL/glx.h>
-#define WRAP(x) x    /* temporary! */
 #endif
 
+#define FRONTBUFFER 1
+#define NR          10
+#define DO_SLEEPS   0
 
 static void redraw( Display *dpy, Window w, int rot )
 {
    printf("Redraw event\n");
 
+#if FRONTBUFFER
+   glDrawBuffer( GL_FRONT );
+#endif
+   glClearColor( 0, 1, 0, 1 );
    glClear( GL_COLOR_BUFFER_BIT );
 
-   glColor3f( 1.0, 1.0, 0.0 );
+#if 1
+   glColor3f( rand()/(float)RAND_MAX, 
+	      rand()/(float)RAND_MAX, 
+	      rand()/(float)RAND_MAX );
    glPushMatrix();
    glRotatef(rot, 0, 0, 1);
    glScalef(.5, .5, .5);
    glRectf( -1, -1, 1, 1 );
    glPopMatrix();
+#endif
 
-   WRAP(glXSwapBuffers)( dpy, w );
+#if FRONTBUFFER
+   glFlush();
+#else
+   glXSwapBuffers( dpy, w ); 
+#endif
+   glFinish();
 }
 
 
@@ -41,7 +56,7 @@ static Window make_rgb_db_window( Display *dpy,
 		    GLX_RED_SIZE, 1,
 		    GLX_GREEN_SIZE, 1,
 		    GLX_BLUE_SIZE, 1,
-		    GLX_DOUBLEBUFFER,
+ 		    GLX_DOUBLEBUFFER, 
 		    None };
    int scrnum;
    XSetWindowAttributes attr;
@@ -52,9 +67,9 @@ static Window make_rgb_db_window( Display *dpy,
    XVisualInfo *visinfo;
 
    scrnum = 0;
-   root = WRAP(RootWindow)( dpy, scrnum );
+   root = RootWindow( dpy, scrnum );
 
-   visinfo = WRAP(glXChooseVisual)( dpy, scrnum, attrib );
+   visinfo = glXChooseVisual( dpy, scrnum, attrib );
    if (!visinfo) {
       printf("Error: couldn't get an RGB, Double-buffered visual\n");
       exit(1);
@@ -63,21 +78,25 @@ static Window make_rgb_db_window( Display *dpy,
    /* window attributes */
    attr.background_pixel = 0;
    attr.border_pixel = 0;
-   attr.colormap = WRAP(XCreateColormap)( dpy, root, visinfo->visual, AllocNone);
+   attr.colormap = XCreateColormap( dpy, root, visinfo->visual, AllocNone);
    attr.event_mask = StructureNotifyMask | ExposureMask;
    mask = CWBackPixel | CWBorderPixel | CWColormap | CWEventMask;
 
-   win = WRAP(XCreateWindow)( dpy, root, 0, 0, width, height,
+   win = XCreateWindow( dpy, root, 0, 0, width, height,
 		        0, visinfo->depth, InputOutput,
 		        visinfo->visual, mask, &attr );
+   if (!win) {
+      printf("Error: XCreateWindow failed\n");
+      exit(1);
+   }
 
-   ctx = WRAP(glXCreateContext)( dpy, visinfo, NULL, True );
+   ctx = glXCreateContext( dpy, visinfo, NULL, True );
    if (!ctx) {
       printf("Error: glXCreateContext failed\n");
       exit(1);
    }
 
-   WRAP(glXMakeCurrent)( dpy, win, ctx );
+   glXMakeCurrent( dpy, win, ctx );
 
    return win;
 }
@@ -87,9 +106,13 @@ static void event_loop( Display *dpy, Window win )
 {
    int i;
 
-   printf("Hang on... drawing 5 frames\n");
-   for (i = 0; i < 5; i++) {
+   printf("Hang on... drawing %d frames\n", NR);
+   for (i = 0; i < NR; i++) {
       redraw( dpy, win, i*10 );
+      if (DO_SLEEPS) {
+	 printf("sleep(1)\n");   
+	 sleep(1);  
+      }
    }
 }
 
@@ -99,7 +122,7 @@ int main( int argc, char *argv[] )
    Display *dpy;
    Window win;
 
-   dpy = WRAP(XOpenDisplay)(NULL);
+   dpy = XOpenDisplay(NULL);
    if (!dpy) {
       printf("Error: XOpenDisplay failed\n");
       return 1;
@@ -107,16 +130,18 @@ int main( int argc, char *argv[] )
 
    win = make_rgb_db_window( dpy, 800, 600);
 
+   srand(getpid());
+
    glShadeModel( GL_FLAT );
    glClearColor( 0.5, 0.5, 0.5, 1.0 );
 
-   WRAP(XMapWindow)( dpy, win );
+   XMapWindow( dpy, win );
 
    event_loop( dpy, win );
 
-   WRAP(XDestroyWindow)( dpy, win );
+   XDestroyWindow( dpy, win );
 
-   WRAP(XCloseDisplay)( dpy );
+   XCloseDisplay( dpy );
 
    return 0;
 }
