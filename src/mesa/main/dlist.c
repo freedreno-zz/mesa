@@ -4843,6 +4843,7 @@ static void save_End( void )
 {
    GET_CURRENT_CONTEXT(ctx);
    ALLOC_INSTRUCTION( ctx, OPCODE_END, 0 );
+   ctx->Driver.CurrentSavePrimitive = PRIM_OUTSIDE_BEGIN_END;
    if (ctx->ExecuteFlag) {
       (*ctx->Exec->End)( );
    }
@@ -7650,21 +7651,6 @@ void mesa_print_display_list( GLuint list )
 /*****                      Initialization                        *****/
 /**********************************************************************/
 
-void _mesa_init_display_list( GLcontext * ctx )
-{
-   /* Display list */
-   ctx->CallDepth = 0;
-   ctx->ExecuteFlag = GL_TRUE;
-   ctx->CompileFlag = GL_FALSE;
-   ctx->CurrentListPtr = NULL;
-   ctx->CurrentBlock = NULL;
-   ctx->CurrentListNum = 0;
-   ctx->CurrentPos = 0;
-
-   /* Display List group */
-   ctx->List.ListBase = 0;
-}
-
 
 void _mesa_save_vtxfmt_init( GLvertexformat *vfmt )
 {
@@ -7732,7 +7718,26 @@ void _mesa_save_vtxfmt_init( GLvertexformat *vfmt )
     * runtime outside-begin-end checks.  As these functions aren't
     * actually needed at this point, I'll punt on that for now:
     */
-   vfmt->DrawArrays = 0;
-   vfmt->DrawElements = 0;
-   vfmt->DrawRangeElements = 0;
+   vfmt->DrawArrays = 1;
+   vfmt->DrawElements = 1;
+   vfmt->DrawRangeElements = 1;
+}
+
+
+
+void _mesa_init_display_list( GLcontext * ctx )
+{
+   /* Display list */
+   ctx->CallDepth = 0;
+   ctx->ExecuteFlag = GL_TRUE;
+   ctx->CompileFlag = GL_FALSE;
+   ctx->CurrentListPtr = NULL;
+   ctx->CurrentBlock = NULL;
+   ctx->CurrentListNum = 0;
+   ctx->CurrentPos = 0;
+
+   /* Display List group */
+   ctx->List.ListBase = 0;
+
+   _mesa_save_vtxfmt_init( &ctx->ListVtxfmt );
 }

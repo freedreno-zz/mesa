@@ -1422,15 +1422,13 @@ _mesa_initialize_context( GLcontext *ctx,
 
 #if _HAVE_FULL_GL
    _mesa_init_dlist_table(ctx->Save, dispatchSize);
+   _mesa_install_save_vtxfmt( ctx, &ctx->ListVtxfmt );
 
-   ctx->ExecPrefersFloat = GL_FALSE;
-   ctx->SavePrefersFloat = GL_FALSE;
 
    /* Neutral tnl module stuff */
    _mesa_init_exec_vtxfmt( ctx ); 
    ctx->TnlModule.Current = NULL;
    ctx->TnlModule.SwapCount = 0;
-
 #endif
 
    return GL_TRUE;

@@ -2089,6 +2089,7 @@ struct __GLcontextRec {
    GLuint CurrentListNum;	/**< Number of the list being compiled */
    Node *CurrentBlock;		/**< Pointer to current block of nodes */
    GLuint CurrentPos;		/**< Index into current block of nodes */
+   GLvertexformat ListVtxfmt;
    /*@}*/
 
    /** Extensions */

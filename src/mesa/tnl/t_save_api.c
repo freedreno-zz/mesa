@@ -1029,6 +1029,8 @@ static void _save_NotifyBegin( GLenum mode )
    tnl->save.prim[i].mode = mode | PRIM_BEGIN;
    tnl->save.prim[i].start = tnl->save.initial_counter - tnl->save.counter;
    tnl->save.prim[i].count = 0;   
+
+   ctx->Driver.SaveNeedFlush = 1;
 }
 
 
@@ -1226,6 +1228,8 @@ void _tnl_SaveFlushVertices( GLcontext *ctx )
       tnl->save.attrsz[i] = 0;
 
    tnl->save.vertex_size = 0;
+
+   ctx->Driver.SaveNeedFlush = 0;
 }
 
 static void
