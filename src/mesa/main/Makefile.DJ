@@ -33,18 +33,18 @@
 #    Environment variables:
 #	CFLAGS
 #
-#	GLIDE		absolute path to Glide SDK; used with FX.
+#	GLIDE		path to Glide3 SDK include files; used with FX.
 #			default = $(TOP)/include/glide3
-#	FX=1		build for 3dfx Glide3; use it if you have the glide
-#			SDK (designed for your platform), and, of course, a
-#			3dfx card... Note that this disables compilation of
-#			actual DMesa code, as Glide does all the stuff!
+#	FX=1		build for 3dfx Glide3. Note that this disables
+#			compilation of most DMesa code and requires fxMesa.
+#			As a consequence, you'll need the DJGPP Glide3
+#			library to build any application.
 #			default = no
 #	HAVE_X86=1	optimize for i386.
 #			default = no
-#	HAVE_MMX=1	MMX instructions; use only if you assembler/compiler
-#			supports MMX instruction set; backwards compatibility
-#			with older processors is still preserved.
+#	HAVE_MMX=1	allow MMX specializations, provided your assembler
+#			supports MMX instruction set. However, the true CPU
+#			capabilities are checked at run-time to avoid crashes.
 #			default = no
 #	HAVE_SSE=1	(see HAVE_MMX)
 #			default = no
@@ -296,9 +296,9 @@ ifeq ($(DXE3GEN),)
 	$(warning somewhere in PATH, and DXE3.LD in DJGPP/LIB directory.)
 else
 ifdef FX
-	-dxe3gen -o $(LIBDIR)/$(GL_DXE) -I $(LIBDIR)/$(GL_IMP) -D "MesaGL/FX DJGPP" -E gl -E DMesa -X -P glid3.dxe -U $(OBJECTS)
+	-dxe3gen -o $(LIBDIR)/$(GL_DXE) -I $(LIBDIR)/$(GL_IMP) -D "MesaGL/FX DJGPP" -E _gl -E _DMesa -P glid3.dxe -U $(OBJECTS)
 else
-	-dxe3gen -o $(LIBDIR)/$(GL_DXE) -I $(LIBDIR)/$(GL_IMP) -D "MesaGL DJGPP" -E gl -E DMesa -X -U $(OBJECTS)
+	-dxe3gen -o $(LIBDIR)/$(GL_DXE) -I $(LIBDIR)/$(GL_IMP) -D "MesaGL DJGPP" -E _gl -E _DMesa -U $(OBJECTS)
 endif
 endif
 

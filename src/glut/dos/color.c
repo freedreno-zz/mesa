@@ -27,9 +27,8 @@
  */
 
 
-#include "GL/glut.h"
+#include "glutint.h"
 #include "GL/dmesa.h"
-#include "internal.h"
 
 
 
@@ -40,7 +39,9 @@
 void APIENTRY glutSetColor (int ndx, GLfloat red, GLfloat green, GLfloat blue)
 {
  if (g_display_mode & GLUT_INDEX) {
-    DMesaSetCI(ndx, CLAMP(red), CLAMP(green), CLAMP(blue));
+    if ((ndx >= 0) && (ndx < (256 - RESERVED_COLORS))) {
+       DMesaSetCI(ndx, CLAMP(red), CLAMP(green), CLAMP(blue));
+    }
  }
 }
 
