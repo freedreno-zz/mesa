@@ -1,4 +1,4 @@
-/* $Id: texobj.c,v 1.23.4.9 2000/12/14 23:10:39 brianp Exp $ */
+/* $Id: texobj.c,v 1.23.4.10 2001/03/23 02:00:33 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -493,6 +493,7 @@ _mesa_DeleteTextures( GLsizei n, const GLuint *texName)
 		     ctx->Shared->DefaultD[d]->RefCount++;
 		     t->RefCount--;
 		     ASSERT( t->RefCount >= 0 );
+                     ctx->NewState |= NEW_TEXTURING;
 		  }
 	       }
             }
