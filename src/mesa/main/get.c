@@ -1,4 +1,4 @@
-/* $Id: get.c,v 1.30.2.1 2000/08/08 16:02:10 brianp Exp $ */
+/* $Id: get.c,v 1.30.2.2 2000/11/26 21:10:26 brianp Exp $*/
 
 /*
  * Mesa 3-D graphics library
@@ -875,79 +875,159 @@ _mesa_GetBooleanv( GLenum pname, GLboolean *params )
 	 *params = FLOAT_TO_BOOL(ctx->Pixel.ZoomY);
 	 break;
       case GL_VERTEX_ARRAY:
+#ifdef VAO
+         *params = ctx->Array.Current->Vertex.Enabled;
+#else
          *params = ctx->Array.Vertex.Enabled;
+#endif
          break;
       case GL_VERTEX_ARRAY_SIZE:
+#ifdef VAO
+         *params = INT_TO_BOOL(ctx->Array.Current->Vertex.Size);
+#else
          *params = INT_TO_BOOL(ctx->Array.Vertex.Size);
+#endif
          break;
       case GL_VERTEX_ARRAY_TYPE:
+#ifdef VAO
+         *params = ENUM_TO_BOOL(ctx->Array.Current->Vertex.Type);
+#else
          *params = ENUM_TO_BOOL(ctx->Array.Vertex.Type);
+#endif
          break;
       case GL_VERTEX_ARRAY_STRIDE:
+#ifdef VAO
+         *params = INT_TO_BOOL(ctx->Array.Current->Vertex.Stride);
+#else
          *params = INT_TO_BOOL(ctx->Array.Vertex.Stride);
+#endif
          break;
       case GL_VERTEX_ARRAY_COUNT_EXT:
          *params = INT_TO_BOOL(0);
          break;
       case GL_NORMAL_ARRAY:
+#ifdef VAO
+         *params = ctx->Array.Current->Normal.Enabled;
+#else
          *params = ctx->Array.Normal.Enabled;
+#endif
          break;
       case GL_NORMAL_ARRAY_TYPE:
+#ifdef VAO
+         *params = ENUM_TO_BOOL(ctx->Array.Current->Normal.Type);
+#else
          *params = ENUM_TO_BOOL(ctx->Array.Normal.Type);
+#endif
          break;
       case GL_NORMAL_ARRAY_STRIDE:
+#ifdef VAO
+         *params = INT_TO_BOOL(ctx->Array.Current->Normal.Stride);
+#else
          *params = INT_TO_BOOL(ctx->Array.Normal.Stride);
+#endif
          break;
       case GL_NORMAL_ARRAY_COUNT_EXT:
          *params = INT_TO_BOOL(0);
          break;
       case GL_COLOR_ARRAY:
+#ifdef VAO
+         *params = ctx->Array.Current->Color.Enabled;
+#else
          *params = ctx->Array.Color.Enabled;
+#endif
          break;
       case GL_COLOR_ARRAY_SIZE:
+#ifdef VAO
+         *params = INT_TO_BOOL(ctx->Array.Current->Color.Size);
+#else
          *params = INT_TO_BOOL(ctx->Array.Color.Size);
+#endif
          break;
       case GL_COLOR_ARRAY_TYPE:
+#ifdef VAO
+         *params = ENUM_TO_BOOL(ctx->Array.Current->Color.Type);
+#else
          *params = ENUM_TO_BOOL(ctx->Array.Color.Type);
+#endif
          break;
       case GL_COLOR_ARRAY_STRIDE:
+#ifdef VAO
+         *params = INT_TO_BOOL(ctx->Array.Current->Color.Stride);
+#else
          *params = INT_TO_BOOL(ctx->Array.Color.Stride);
+#endif
          break;
       case GL_COLOR_ARRAY_COUNT_EXT:
          *params = INT_TO_BOOL(0);
          break;
       case GL_INDEX_ARRAY:
+#ifdef VAO
+         *params = ctx->Array.Current->Index.Enabled;
+#else
          *params = ctx->Array.Index.Enabled;
+#endif
          break;
       case GL_INDEX_ARRAY_TYPE:
+#ifdef VAO
+         *params = ENUM_TO_BOOL(ctx->Array.Current->Index.Type);
+#else
          *params = ENUM_TO_BOOL(ctx->Array.Index.Type);
+#endif
          break;
       case GL_INDEX_ARRAY_STRIDE:
+#ifdef VAO
+         *params = INT_TO_BOOL(ctx->Array.Current->Index.Stride);
+#else
          *params = INT_TO_BOOL(ctx->Array.Index.Stride);
+#endif
          break;
       case GL_INDEX_ARRAY_COUNT_EXT:
          *params = INT_TO_BOOL(0);
          break;
       case GL_TEXTURE_COORD_ARRAY:
+#ifdef VAO
+         *params = ctx->Array.Current->TexCoord[texUnit].Enabled;
+#else
          *params = ctx->Array.TexCoord[texUnit].Enabled;
+#endif
          break;
       case GL_TEXTURE_COORD_ARRAY_SIZE:
+#ifdef VAO
+         *params = INT_TO_BOOL(ctx->Array.Current->TexCoord[texUnit].Size);
+#else
          *params = INT_TO_BOOL(ctx->Array.TexCoord[texUnit].Size);
+#endif
          break;
       case GL_TEXTURE_COORD_ARRAY_TYPE:
+#ifdef VAO
+         *params = ENUM_TO_BOOL(ctx->Array.Current->TexCoord[texUnit].Type);
+#else
          *params = ENUM_TO_BOOL(ctx->Array.TexCoord[texUnit].Type);
+#endif
          break;
       case GL_TEXTURE_COORD_ARRAY_STRIDE:
+#ifdef VAO
+         *params = INT_TO_BOOL(ctx->Array.Current->TexCoord[texUnit].Stride);
+#else
          *params = INT_TO_BOOL(ctx->Array.TexCoord[texUnit].Stride);
+#endif
          break;
       case GL_TEXTURE_COORD_ARRAY_COUNT_EXT:
          *params = INT_TO_BOOL(0);
          break;
       case GL_EDGE_FLAG_ARRAY:
+#ifdef VAO
+         *params = ctx->Array.Current->EdgeFlag.Enabled;
+#else
          *params = ctx->Array.EdgeFlag.Enabled;
+#endif
          break;
       case GL_EDGE_FLAG_ARRAY_STRIDE:
+#ifdef VAO
+         *params = INT_TO_BOOL(ctx->Array.Current->EdgeFlag.Stride);
+#else
          *params = INT_TO_BOOL(ctx->Array.EdgeFlag.Stride);
+#endif
          break;
 
       /* GL_ARB_multitexture */
@@ -1058,10 +1138,18 @@ _mesa_GetBooleanv( GLenum pname, GLboolean *params )
 
       /* GL_EXT_compiled_vertex_array */
       case GL_ARRAY_ELEMENT_LOCK_FIRST_EXT:
+#ifdef VAO
+	 *params = ctx->Array.Current->LockFirst ? GL_TRUE : GL_FALSE;
+#else
 	 *params = ctx->Array.LockFirst ? GL_TRUE : GL_FALSE;
+#endif
 	 break;
       case GL_ARRAY_ELEMENT_LOCK_COUNT_EXT:
+#ifdef VAO
+	 *params = ctx->Array.Current->LockCount ? GL_TRUE : GL_FALSE;
+#else
 	 *params = ctx->Array.LockCount ? GL_TRUE : GL_FALSE;
+#endif
 	 break;
 
       /* GL_ARB_transpose_matrix */
@@ -2021,79 +2109,159 @@ _mesa_GetDoublev( GLenum pname, GLdouble *params )
 	 *params = (GLdouble) ctx->Pixel.ZoomY;
 	 break;
       case GL_VERTEX_ARRAY:
+#ifdef VAO
+         *params = (GLdouble) ctx->Array.Current->Vertex.Enabled;
+#else
          *params = (GLdouble) ctx->Array.Vertex.Enabled;
+#endif
          break;
       case GL_VERTEX_ARRAY_SIZE:
+#ifdef VAO
+         *params = (GLdouble) ctx->Array.Current->Vertex.Size;
+#else
          *params = (GLdouble) ctx->Array.Vertex.Size;
+#endif
          break;
       case GL_VERTEX_ARRAY_TYPE:
+#ifdef VAO
+         *params = ENUM_TO_DOUBLE(ctx->Array.Current->Vertex.Type);
+#else
          *params = ENUM_TO_DOUBLE(ctx->Array.Vertex.Type);
+#endif
          break;
       case GL_VERTEX_ARRAY_STRIDE:
+#ifdef VAO
+         *params = (GLdouble) ctx->Array.Current->Vertex.Stride;
+#else
          *params = (GLdouble) ctx->Array.Vertex.Stride;
+#endif
          break;
       case GL_VERTEX_ARRAY_COUNT_EXT:
          *params = 0.0;
          break;
       case GL_NORMAL_ARRAY:
+#ifdef VAO
+         *params = (GLdouble) ctx->Array.Current->Normal.Enabled;
+#else
          *params = (GLdouble) ctx->Array.Normal.Enabled;
+#endif
          break;
       case GL_NORMAL_ARRAY_TYPE:
+#ifdef VAO
+         *params = ENUM_TO_DOUBLE(ctx->Array.Current->Normal.Type);
+#else
          *params = ENUM_TO_DOUBLE(ctx->Array.Normal.Type);
+#endif
          break;
       case GL_NORMAL_ARRAY_STRIDE:
+#ifdef VAO
+         *params = (GLdouble) ctx->Array.Current->Normal.Stride;
+#else
          *params = (GLdouble) ctx->Array.Normal.Stride;
+#endif
          break;
       case GL_NORMAL_ARRAY_COUNT_EXT:
          *params = 0.0;
          break;
       case GL_COLOR_ARRAY:
+#ifdef VAO
+         *params = (GLdouble) ctx->Array.Current->Color.Enabled;
+#else
          *params = (GLdouble) ctx->Array.Color.Enabled;
+#endif
          break;
       case GL_COLOR_ARRAY_SIZE:
+#ifdef VAO
+         *params = (GLdouble) ctx->Array.Current->Color.Size;
+#else
          *params = (GLdouble) ctx->Array.Color.Size;
+#endif
          break;
       case GL_COLOR_ARRAY_TYPE:
+#ifdef VAO
+         *params = ENUM_TO_DOUBLE(ctx->Array.Current->Color.Type);
+#else
          *params = ENUM_TO_DOUBLE(ctx->Array.Color.Type);
+#endif
          break;
       case GL_COLOR_ARRAY_STRIDE:
+#ifdef VAO
+         *params = (GLdouble) ctx->Array.Current->Color.Stride;
+#else
          *params = (GLdouble) ctx->Array.Color.Stride;
+#endif
          break;
       case GL_COLOR_ARRAY_COUNT_EXT:
          *params = 0.0;
          break;
       case GL_INDEX_ARRAY:
+#ifdef VAO
+         *params = (GLdouble) ctx->Array.Current->Index.Enabled;
+#else
          *params = (GLdouble) ctx->Array.Index.Enabled;
+#endif
          break;
       case GL_INDEX_ARRAY_TYPE:
+#ifdef VAO
+         *params = ENUM_TO_DOUBLE(ctx->Array.Current->Index.Type);
+#else
          *params = ENUM_TO_DOUBLE(ctx->Array.Index.Type);
+#endif
          break;
       case GL_INDEX_ARRAY_STRIDE:
+#ifdef VAO
+         *params = (GLdouble) ctx->Array.Current->Index.Stride;
+#else
          *params = (GLdouble) ctx->Array.Index.Stride;
+#endif
          break;
       case GL_INDEX_ARRAY_COUNT_EXT:
          *params = 0.0;
          break;
       case GL_TEXTURE_COORD_ARRAY:
+#ifdef VAO
+         *params = (GLdouble) ctx->Array.Current->TexCoord[texUnit].Enabled;
+#else
          *params = (GLdouble) ctx->Array.TexCoord[texUnit].Enabled;
+#endif
          break;
       case GL_TEXTURE_COORD_ARRAY_SIZE:
+#ifdef VAO
+         *params = (GLdouble) ctx->Array.Current->TexCoord[texUnit].Size;
+#else
          *params = (GLdouble) ctx->Array.TexCoord[texUnit].Size;
+#endif
          break;
       case GL_TEXTURE_COORD_ARRAY_TYPE:
+#ifdef VAO
+         *params = ENUM_TO_DOUBLE(ctx->Array.Current->TexCoord[texUnit].Type);
+#else
          *params = ENUM_TO_DOUBLE(ctx->Array.TexCoord[texUnit].Type);
+#endif
          break;
       case GL_TEXTURE_COORD_ARRAY_STRIDE:
+#ifdef VAO
+         *params = (GLdouble) ctx->Array.Current->TexCoord[texUnit].Stride;
+#else
          *params = (GLdouble) ctx->Array.TexCoord[texUnit].Stride;
+#endif
          break;
       case GL_TEXTURE_COORD_ARRAY_COUNT_EXT:
          *params = 0.0;
          break;
       case GL_EDGE_FLAG_ARRAY:
+#ifdef VAO
+         *params = (GLdouble) ctx->Array.Current->EdgeFlag.Enabled;
+#else
          *params = (GLdouble) ctx->Array.EdgeFlag.Enabled;
+#endif
          break;
       case GL_EDGE_FLAG_ARRAY_STRIDE:
+#ifdef VAO
+         *params = (GLdouble) ctx->Array.Current->EdgeFlag.Stride;
+#else
          *params = (GLdouble) ctx->Array.EdgeFlag.Stride;
+#endif
          break;
       case GL_EDGE_FLAG_ARRAY_COUNT_EXT:
          *params = 0.0;
@@ -2207,10 +2375,18 @@ _mesa_GetDoublev( GLenum pname, GLdouble *params )
 
       /* GL_EXT_compiled_vertex_array */
       case GL_ARRAY_ELEMENT_LOCK_FIRST_EXT:
+#ifdef VAO
+	 *params = (GLdouble) ctx->Array.Current->LockFirst;
+#else
 	 *params = (GLdouble) ctx->Array.LockFirst;
+#endif
 	 break;
       case GL_ARRAY_ELEMENT_LOCK_COUNT_EXT:
+#ifdef VAO
+	 *params = (GLdouble) ctx->Array.Current->LockCount;
+#else
 	 *params = (GLdouble) ctx->Array.LockCount;
+#endif
 	 break;
 
       /* GL_ARB_transpose_matrix */
@@ -3169,79 +3345,159 @@ _mesa_GetFloatv( GLenum pname, GLfloat *params )
 	 *params = (GLfloat) ctx->Pixel.ZoomY;
 	 break;
       case GL_VERTEX_ARRAY:
+#ifdef VAO
+         *params = (GLfloat) ctx->Array.Current->Vertex.Enabled;
+#else
          *params = (GLfloat) ctx->Array.Vertex.Enabled;
+#endif
          break;
       case GL_VERTEX_ARRAY_SIZE:
+#ifdef VAO
+         *params = (GLfloat) ctx->Array.Current->Vertex.Size;
+#else
          *params = (GLfloat) ctx->Array.Vertex.Size;
+#endif
          break;
       case GL_VERTEX_ARRAY_TYPE:
+#ifdef VAO
+         *params = ENUM_TO_FLOAT(ctx->Array.Current->Vertex.Type);
+#else
          *params = ENUM_TO_FLOAT(ctx->Array.Vertex.Type);
+#endif
          break;
       case GL_VERTEX_ARRAY_STRIDE:
+#ifdef VAO
+         *params = (GLfloat) ctx->Array.Current->Vertex.Stride;
+#else
          *params = (GLfloat) ctx->Array.Vertex.Stride;
+#endif
          break;
       case GL_VERTEX_ARRAY_COUNT_EXT:
          *params = 0.0;
          break;
       case GL_NORMAL_ARRAY:
+#ifdef VAO
+         *params = (GLfloat) ctx->Array.Current->Normal.Enabled;
+#else
          *params = (GLfloat) ctx->Array.Normal.Enabled;
+#endif
          break;
       case GL_NORMAL_ARRAY_TYPE:
+#ifdef VAO
+         *params = ENUM_TO_FLOAT(ctx->Array.Current->Normal.Type);
+#else
          *params = ENUM_TO_FLOAT(ctx->Array.Normal.Type);
+#endif
          break;
       case GL_NORMAL_ARRAY_STRIDE:
+#ifdef VAO
+         *params = (GLfloat) ctx->Array.Current->Normal.Stride;
+#else
          *params = (GLfloat) ctx->Array.Normal.Stride;
+#endif
          break;
       case GL_NORMAL_ARRAY_COUNT_EXT:
          *params = 0.0;
          break;
       case GL_COLOR_ARRAY:
+#ifdef VAO
+         *params = (GLfloat) ctx->Array.Current->Color.Enabled;
+#else
          *params = (GLfloat) ctx->Array.Color.Enabled;
+#endif
          break;
       case GL_COLOR_ARRAY_SIZE:
+#ifdef VAO
+         *params = (GLfloat) ctx->Array.Current->Color.Size;
+#else
          *params = (GLfloat) ctx->Array.Color.Size;
+#endif
          break;
       case GL_COLOR_ARRAY_TYPE:
+#ifdef VAO
+         *params = ENUM_TO_FLOAT(ctx->Array.Current->Color.Type);
+#else
          *params = ENUM_TO_FLOAT(ctx->Array.Color.Type);
+#endif
          break;
       case GL_COLOR_ARRAY_STRIDE:
+#ifdef VAO
+         *params = (GLfloat) ctx->Array.Current->Color.Stride;
+#else
          *params = (GLfloat) ctx->Array.Color.Stride;
+#endif
          break;
       case GL_COLOR_ARRAY_COUNT_EXT:
          *params = 0.0;
          break;
       case GL_INDEX_ARRAY:
+#ifdef VAO
+         *params = (GLfloat) ctx->Array.Current->Index.Enabled;
+#else
          *params = (GLfloat) ctx->Array.Index.Enabled;
+#endif
          break;
       case GL_INDEX_ARRAY_TYPE:
+#ifdef VAO
+         *params = ENUM_TO_FLOAT(ctx->Array.Current->Index.Type);
+#else
          *params = ENUM_TO_FLOAT(ctx->Array.Index.Type);
+#endif
          break;
       case GL_INDEX_ARRAY_STRIDE:
+#ifdef VAO
+         *params = (GLfloat) ctx->Array.Current->Index.Stride;
+#else
          *params = (GLfloat) ctx->Array.Index.Stride;
+#endif
          break;
       case GL_INDEX_ARRAY_COUNT_EXT:
          *params = 0.0;
          break;
       case GL_TEXTURE_COORD_ARRAY:
+#ifdef VAO
+         *params = (GLfloat) ctx->Array.Current->TexCoord[texUnit].Enabled;
+#else
          *params = (GLfloat) ctx->Array.TexCoord[texUnit].Enabled;
+#endif
          break;
       case GL_TEXTURE_COORD_ARRAY_SIZE:
+#ifdef VAO
+         *params = (GLfloat) ctx->Array.Current->TexCoord[texUnit].Size;
+#else
          *params = (GLfloat) ctx->Array.TexCoord[texUnit].Size;
+#endif
          break;
       case GL_TEXTURE_COORD_ARRAY_TYPE:
+#ifdef VAO
+         *params = ENUM_TO_FLOAT(ctx->Array.Current->TexCoord[texUnit].Type);
+#else
          *params = ENUM_TO_FLOAT(ctx->Array.TexCoord[texUnit].Type);
+#endif
          break;
       case GL_TEXTURE_COORD_ARRAY_STRIDE:
+#ifdef VAO
+         *params = (GLfloat) ctx->Array.Current->TexCoord[texUnit].Stride;
+#else
          *params = (GLfloat) ctx->Array.TexCoord[texUnit].Stride;
+#endif
          break;
       case GL_TEXTURE_COORD_ARRAY_COUNT_EXT:
          *params = 0.0;
          break;
       case GL_EDGE_FLAG_ARRAY:
+#ifdef VAO
+         *params = (GLfloat) ctx->Array.Current->EdgeFlag.Enabled;
+#else
          *params = (GLfloat) ctx->Array.EdgeFlag.Enabled;
+#endif
          break;
       case GL_EDGE_FLAG_ARRAY_STRIDE:
+#ifdef VAO
+         *params = (GLfloat) ctx->Array.Current->EdgeFlag.Stride;
+#else
          *params = (GLfloat) ctx->Array.EdgeFlag.Stride;
+#endif
          break;
       case GL_EDGE_FLAG_ARRAY_COUNT_EXT:
          *params = 0.0;
@@ -3355,10 +3611,18 @@ _mesa_GetFloatv( GLenum pname, GLfloat *params )
 
       /* GL_EXT_compiled_vertex_array */
       case GL_ARRAY_ELEMENT_LOCK_FIRST_EXT:
+#ifdef VAO
+	 *params = (GLfloat) ctx->Array.Current->LockFirst;
+#else
 	 *params = (GLfloat) ctx->Array.LockFirst;
+#endif
 	 break;
       case GL_ARRAY_ELEMENT_LOCK_COUNT_EXT:
+#ifdef VAO
+	 *params = (GLfloat) ctx->Array.Current->LockCount;
+#else
 	 *params = (GLfloat) ctx->Array.LockCount;
+#endif
 	 break;
 
       /* GL_ARB_transpose_matrix */
@@ -4292,79 +4556,159 @@ _mesa_GetIntegerv( GLenum pname, GLint *params )
 	 *params = (GLint) ctx->Pixel.ZoomY;
 	 break;
       case GL_VERTEX_ARRAY:
+#ifdef VAO
+         *params = (GLint) ctx->Array.Current->Vertex.Enabled;
+#else
          *params = (GLint) ctx->Array.Vertex.Enabled;
+#endif
          break;
       case GL_VERTEX_ARRAY_SIZE:
+#ifdef VAO
+         *params = ctx->Array.Current->Vertex.Size;
+#else
          *params = ctx->Array.Vertex.Size;
+#endif
          break;
       case GL_VERTEX_ARRAY_TYPE:
+#ifdef VAO
+         *params = ctx->Array.Current->Vertex.Type;
+#else
          *params = ctx->Array.Vertex.Type;
+#endif
          break;
       case GL_VERTEX_ARRAY_STRIDE:
+#ifdef VAO
+         *params = ctx->Array.Current->Vertex.Stride;
+#else
          *params = ctx->Array.Vertex.Stride;
+#endif
          break;
       case GL_VERTEX_ARRAY_COUNT_EXT:
          *params = 0;
          break;
       case GL_NORMAL_ARRAY:
+#ifdef VAO
+         *params = (GLint) ctx->Array.Current->Normal.Enabled;
+#else
          *params = (GLint) ctx->Array.Normal.Enabled;
+#endif
          break;
       case GL_NORMAL_ARRAY_TYPE:
+#ifdef VAO
+         *params = ctx->Array.Current->Normal.Type;
+#else
          *params = ctx->Array.Normal.Type;
+#endif
          break;
       case GL_NORMAL_ARRAY_STRIDE:
+#ifdef VAO
+         *params = ctx->Array.Current->Normal.Stride;
+#else
          *params = ctx->Array.Normal.Stride;
+#endif
          break;
       case GL_NORMAL_ARRAY_COUNT_EXT:
          *params = 0;
          break;
       case GL_COLOR_ARRAY:
+#ifdef VAO
+         *params = (GLint) ctx->Array.Current->Color.Enabled;
+#else
          *params = (GLint) ctx->Array.Color.Enabled;
+#endif
          break;
       case GL_COLOR_ARRAY_SIZE:
+#ifdef VAO
+         *params = ctx->Array.Current->Color.Size;
+#else
          *params = ctx->Array.Color.Size;
+#endif
          break;
       case GL_COLOR_ARRAY_TYPE:
+#ifdef VAO
+         *params = ctx->Array.Current->Color.Type;
+#else
          *params = ctx->Array.Color.Type;
+#endif
          break;
       case GL_COLOR_ARRAY_STRIDE:
+#ifdef VAO
+         *params = ctx->Array.Current->Color.Stride;
+#else
          *params = ctx->Array.Color.Stride;
+#endif
          break;
       case GL_COLOR_ARRAY_COUNT_EXT:
          *params = 0;
          break;
       case GL_INDEX_ARRAY:
+#ifdef VAO
+         *params = (GLint) ctx->Array.Current->Index.Enabled;
+#else
          *params = (GLint) ctx->Array.Index.Enabled;
+#endif
          break;
       case GL_INDEX_ARRAY_TYPE:
+#ifdef VAO
+         *params = ctx->Array.Current->Index.Type;
+#else
          *params = ctx->Array.Index.Type;
+#endif
          break;
       case GL_INDEX_ARRAY_STRIDE:
+#ifdef VAO
+         *params = ctx->Array.Current->Index.Stride;
+#else
          *params = ctx->Array.Index.Stride;
+#endif
          break;
       case GL_INDEX_ARRAY_COUNT_EXT:
          *params = 0;
          break;
       case GL_TEXTURE_COORD_ARRAY:
+#ifdef VAO
+         *params = (GLint) ctx->Array.Current->TexCoord[texUnit].Enabled;
+#else
          *params = (GLint) ctx->Array.TexCoord[texUnit].Enabled;
+#endif
          break;
       case GL_TEXTURE_COORD_ARRAY_SIZE:
+#ifdef VAO
+         *params = ctx->Array.Current->TexCoord[texUnit].Size;
+#else
          *params = ctx->Array.TexCoord[texUnit].Size;
+#endif
          break;
       case GL_TEXTURE_COORD_ARRAY_TYPE:
+#ifdef VAO
+         *params = ctx->Array.Current->TexCoord[texUnit].Type;
+#else
          *params = ctx->Array.TexCoord[texUnit].Type;
+#endif
          break;
       case GL_TEXTURE_COORD_ARRAY_STRIDE:
+#ifdef VAO
+         *params = ctx->Array.Current->TexCoord[texUnit].Stride;
+#else
          *params = ctx->Array.TexCoord[texUnit].Stride;
+#endif
          break;
       case GL_TEXTURE_COORD_ARRAY_COUNT_EXT:
          *params = 0;
          break;
       case GL_EDGE_FLAG_ARRAY:
+#ifdef VAO
+         *params = (GLint) ctx->Array.Current->EdgeFlag.Enabled;
+#else
          *params = (GLint) ctx->Array.EdgeFlag.Enabled;
+#endif
          break;
       case GL_EDGE_FLAG_ARRAY_STRIDE:
+#ifdef VAO
+         *params = ctx->Array.Current->EdgeFlag.Stride;
+#else
          *params = ctx->Array.EdgeFlag.Stride;
+#endif
          break;
       case GL_EDGE_FLAG_ARRAY_COUNT_EXT:
          *params = 0;
@@ -4478,10 +4822,18 @@ _mesa_GetIntegerv( GLenum pname, GLint *params )
 
       /* GL_EXT_compiled_vertex_array */
       case GL_ARRAY_ELEMENT_LOCK_FIRST_EXT:
+#ifdef VAO
+	 *params = ctx->Array.Current->LockFirst;
+#else
 	 *params = ctx->Array.LockFirst;
+#endif
 	 break;
       case GL_ARRAY_ELEMENT_LOCK_COUNT_EXT:
+#ifdef VAO
+	 *params = ctx->Array.Current->LockCount;
+#else
 	 *params = ctx->Array.LockCount;
+#endif
 	 break;
 	 
       /* GL_ARB_transpose_matrix */
@@ -4670,22 +5022,46 @@ _mesa_GetPointerv( GLenum pname, GLvoid **params )
 
    switch (pname) {
       case GL_VERTEX_ARRAY_POINTER:
+#ifdef VAO
+         *params = ctx->Array.Current->Vertex.Ptr;
+#else
          *params = ctx->Array.Vertex.Ptr;
+#endif
          break;
       case GL_NORMAL_ARRAY_POINTER:
+#ifdef VAO
+         *params = ctx->Array.Current->Normal.Ptr;
+#else
          *params = ctx->Array.Normal.Ptr;
+#endif
          break;
       case GL_COLOR_ARRAY_POINTER:
+#ifdef VAO
+         *params = ctx->Array.Current->Color.Ptr;
+#else
          *params = ctx->Array.Color.Ptr;
+#endif
          break;
       case GL_INDEX_ARRAY_POINTER:
+#ifdef VAO
+         *params = ctx->Array.Current->Index.Ptr;
+#else
          *params = ctx->Array.Index.Ptr;
+#endif
          break;
       case GL_TEXTURE_COORD_ARRAY_POINTER:
+#ifdef VAO
+         *params = ctx->Array.Current->TexCoord[texUnit].Ptr;
+#else
          *params = ctx->Array.TexCoord[texUnit].Ptr;
+#endif
          break;
       case GL_EDGE_FLAG_ARRAY_POINTER:
+#ifdef VAO
+         *params = ctx->Array.Current->EdgeFlag.Ptr;
+#else
          *params = ctx->Array.EdgeFlag.Ptr;
+#endif
          break;
       case GL_FEEDBACK_BUFFER_POINTER:
          *params = ctx->Feedback.Buffer;

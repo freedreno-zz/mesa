@@ -1,4 +1,4 @@
-/* $Id: enable.c,v 1.21.4.2 2000/10/21 01:22:13 brianp Exp $ */
+/* $Id: enable.c,v 1.21.4.3 2000/11/26 21:10:26 brianp Exp $*/
 
 /*
  * Mesa 3-D graphics library
@@ -433,22 +433,46 @@ void _mesa_set_enable( GLcontext *ctx, GLenum cap, GLboolean state )
        * CLIENT STATE!!!
        */
       case GL_VERTEX_ARRAY:
+#ifdef VAO
+         ctx->Array.Current->Vertex.Enabled = state;
+#else
          ctx->Array.Vertex.Enabled = state;
+#endif
          break;
       case GL_NORMAL_ARRAY:
+#ifdef VAO
+         ctx->Array.Current->Normal.Enabled = state;
+#else
          ctx->Array.Normal.Enabled = state;
+#endif
          break;
       case GL_COLOR_ARRAY:
+#ifdef VAO
+         ctx->Array.Current->Color.Enabled = state;
+#else
          ctx->Array.Color.Enabled = state;
+#endif
          break;
       case GL_INDEX_ARRAY:
+#ifdef VAO
+         ctx->Array.Current->Index.Enabled = state;
+#else
          ctx->Array.Index.Enabled = state;
+#endif
          break;
       case GL_TEXTURE_COORD_ARRAY:
+#ifdef VAO
+         ctx->Array.Current->TexCoord[ctx->Array.ActiveTexture].Enabled = state;
+#else
          ctx->Array.TexCoord[ctx->Array.ActiveTexture].Enabled = state;
+#endif
          break;
       case GL_EDGE_FLAG_ARRAY:
+#ifdef VAO
+         ctx->Array.Current->EdgeFlag.Enabled = state;
+#else
          ctx->Array.EdgeFlag.Enabled = state;
+#endif
          break;
 
       /* GL_HP_occlusion_test */
@@ -701,17 +725,41 @@ _mesa_IsEnabled( GLenum cap )
        * CLIENT STATE!!!
        */
       case GL_VERTEX_ARRAY:
+#ifdef VAO
+         return ctx->Array.Current->Vertex.Enabled;
+#else
          return ctx->Array.Vertex.Enabled;
+#endif
       case GL_NORMAL_ARRAY:
+#ifdef VAO
+         return ctx->Array.Current->Normal.Enabled;
+#else
          return ctx->Array.Normal.Enabled;
+#endif
       case GL_COLOR_ARRAY:
+#ifdef VAO
+         return ctx->Array.Current->Color.Enabled;
+#else
          return ctx->Array.Color.Enabled;
+#endif
       case GL_INDEX_ARRAY:
+#ifdef VAO
+         return ctx->Array.Current->Index.Enabled;
+#else
          return ctx->Array.Index.Enabled;
+#endif
       case GL_TEXTURE_COORD_ARRAY:
+#ifdef VAO
+         return ctx->Array.Current->TexCoord[ctx->Array.ActiveTexture].Enabled;
+#else
          return ctx->Array.TexCoord[ctx->Array.ActiveTexture].Enabled;
+#endif
       case GL_EDGE_FLAG_ARRAY:
+#ifdef VAO
+         return ctx->Array.Current->EdgeFlag.Enabled;
+#else
          return ctx->Array.EdgeFlag.Enabled;
+#endif
 
       /* GL_HP_occlusion_test */
       case GL_OCCLUSION_TEST_HP:
@@ -777,22 +825,46 @@ client_state( GLcontext *ctx, GLenum cap, GLboolean state )
 
    switch (cap) {
       case GL_VERTEX_ARRAY:
+#ifdef VAO
+         ctx->Array.Current->Vertex.Enabled = state;
+#else
          ctx->Array.Vertex.Enabled = state;
+#endif
          break;
       case GL_NORMAL_ARRAY:
+#ifdef VAO
+         ctx->Array.Current->Normal.Enabled = state;
+#else
          ctx->Array.Normal.Enabled = state;
+#endif
          break;
       case GL_COLOR_ARRAY:
+#ifdef VAO
+         ctx->Array.Current->Color.Enabled = state;
+#else
          ctx->Array.Color.Enabled = state;
+#endif
          break;
       case GL_INDEX_ARRAY:
+#ifdef VAO
+         ctx->Array.Current->Index.Enabled = state;
+#else
          ctx->Array.Index.Enabled = state;
+#endif
          break;
       case GL_TEXTURE_COORD_ARRAY:
+#ifdef VAO
+         ctx->Array.Current->TexCoord[ctx->Array.ActiveTexture].Enabled = state;
+#else
          ctx->Array.TexCoord[ctx->Array.ActiveTexture].Enabled = state;
+#endif
          break;
       case GL_EDGE_FLAG_ARRAY:
+#ifdef VAO
+         ctx->Array.Current->EdgeFlag.Enabled = state;
+#else
          ctx->Array.EdgeFlag.Enabled = state;
+#endif
          break;
       default:
          gl_error( ctx, GL_INVALID_ENUM, "glEnable/DisableClientState" );

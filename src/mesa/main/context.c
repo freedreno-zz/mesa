@@ -1,4 +1,3 @@
-/* $Id: context.c,v 1.79.2.5 2000/10/17 00:24:11 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -457,6 +456,9 @@ alloc_shared_state( void )
 
    ss->DisplayList = _mesa_NewHashTable();
    ss->TexObjects = _mesa_NewHashTable();
+#ifdef VAO
+   ss->ArrayObjects = _mesa_NewHashTable();
+#endif
 
    /* Default Texture objects */
    outOfMemory = GL_FALSE;
@@ -1189,6 +1191,13 @@ init_attrib_groups( GLcontext *ctx )
    ctx->Viewport.WindowMap.type = MATRIX_3D_NO_ROT;
 
    /* Vertex arrays */
+#ifdef VAO
+   {
+      struct gl_array_object *arrayObj;
+      arrayObj = _mesa_alloc_vertex_array_object(ctx, 0);
+      ctx->Array.Current = arrayObj;
+   }
+#else
    ctx->Array.Vertex.Size = 4;
    ctx->Array.Vertex.Type = GL_FLOAT;
    ctx->Array.Vertex.Stride = 0;
@@ -1224,6 +1233,7 @@ init_attrib_groups( GLcontext *ctx )
    ctx->Array.EdgeFlag.StrideB = 0;
    ctx->Array.EdgeFlag.Ptr = NULL;
    ctx->Array.EdgeFlag.Enabled = GL_FALSE;
+#endif
    ctx->Array.ActiveTexture = 0;   /* GL_ARB_multitexture */
 
    /* Pixel transfer */

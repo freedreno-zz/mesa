@@ -1,4 +1,4 @@
-/* $Id: varray.c,v 1.22.4.2 2000/11/10 17:17:22 brianp Exp $ */
+/* $Id: varray.c,v 1.22.4.3 2000/11/26 21:10:26 brianp Exp $*/
 
 /*
  * Mesa 3-D graphics library
@@ -30,11 +30,13 @@
 #include "glheader.h"
 #include "context.h"
 #include "cva.h"
+#include "dlist.h"
 #include "enable.h"
 #include "enums.h"
-#include "dlist.h"
+#include "hash.h"
 #include "light.h"
 #include "macros.h"
+#include "mem.h"
 #include "mmath.h"
 #include "pipeline.h"
 #include "state.h"
@@ -71,26 +73,55 @@ _mesa_VertexPointer(GLint size, GLenum type, GLsizei stride, const GLvoid *ptr)
 	      gl_lookup_enum_by_nr( type ),
 	      stride);
 
+#ifdef VAO
+   ctx->Array.Current->Vertex.StrideB = stride;
+#else
    ctx->Array.Vertex.StrideB = stride;
+#endif
    if (!stride) {
       switch (type) {
       case GL_SHORT:
+#ifdef VAO
+         ctx->Array.Current->Vertex.StrideB =  size*sizeof(GLshort);
+#else
          ctx->Array.Vertex.StrideB =  size*sizeof(GLshort);
+#endif
          break;
       case GL_INT:
+#ifdef VAO
+         ctx->Array.Current->Vertex.StrideB =  size*sizeof(GLint);
+#else
          ctx->Array.Vertex.StrideB =  size*sizeof(GLint);
+#endif
          break;
       case GL_FLOAT:
+#ifdef VAO
+         ctx->Array.Current->Vertex.StrideB =  size*sizeof(GLfloat);
+#else
          ctx->Array.Vertex.StrideB =  size*sizeof(GLfloat);
+#endif
          break;
       case GL_DOUBLE:
+#ifdef VAO
+         ctx->Array.Current->Vertex.StrideB =  size*sizeof(GLdouble);
+#else
          ctx->Array.Vertex.StrideB =  size*sizeof(GLdouble);
+#endif
          break;
       default:
          gl_error( ctx, GL_INVALID_ENUM, "glVertexPointer(type)" );
          return;
       }
    }
+#ifdef VAO
+   ctx->Array.Current->Vertex.Size = size;
+   ctx->Array.Current->Vertex.Type = type;
+   ctx->Array.Current->Vertex.Stride = stride;
+   ctx->Array.Current->Vertex.Ptr = (void *) ptr;
+   ctx->Array.Current->VertexFunc = gl_trans_4f_tab[size][TYPE_IDX(type)];
+   ctx->Array.Current->VertexEltFunc = gl_trans_elt_4f_tab[size][TYPE_IDX(type)];
+   ctx->Array.NewArrayState |= VERT_OBJ_ANY;
+#else
    ctx->Array.Vertex.Size = size;
    ctx->Array.Vertex.Type = type;
    ctx->Array.Vertex.Stride = stride;
@@ -98,6 +129,7 @@ _mesa_VertexPointer(GLint size, GLenum type, GLsizei stride, const GLvoid *ptr)
    ctx->Array.VertexFunc = gl_trans_4f_tab[size][TYPE_IDX(type)];
    ctx->Array.VertexEltFunc = gl_trans_elt_4f_tab[size][TYPE_IDX(type)];
    ctx->Array.NewArrayState |= VERT_OBJ_ANY;
+#endif
    ctx->NewState |= NEW_CLIENT_STATE;
 }
 
@@ -119,34 +151,66 @@ _mesa_NormalPointer(GLenum type, GLsizei stride, const GLvoid *ptr )
 	      gl_lookup_enum_by_nr( type ),
 	      stride);
 
+#ifdef VAO
+   ctx->Array.Current->Normal.StrideB = stride;
+#else
    ctx->Array.Normal.StrideB = stride;
+#endif
    if (!stride) {
       switch (type) {
       case GL_BYTE:
+#ifdef VAO
+         ctx->Array.Current->Normal.StrideB =  3*sizeof(GLbyte);
+#else
          ctx->Array.Normal.StrideB =  3*sizeof(GLbyte);
+#endif
          break;
       case GL_SHORT:
+#ifdef VAO
+         ctx->Array.Current->Normal.StrideB =  3*sizeof(GLshort);
+#else
          ctx->Array.Normal.StrideB =  3*sizeof(GLshort);
+#endif
          break;
       case GL_INT:
+#ifdef VAO
+         ctx->Array.Current->Normal.StrideB =  3*sizeof(GLint);
+#else
          ctx->Array.Normal.StrideB =  3*sizeof(GLint);
+#endif
          break;
       case GL_FLOAT:
+#ifdef VAO
+         ctx->Array.Current->Normal.StrideB =  3*sizeof(GLfloat);
+#else
          ctx->Array.Normal.StrideB =  3*sizeof(GLfloat);
+#endif
          break;
       case GL_DOUBLE:
+#ifdef VAO
+         ctx->Array.Current->Normal.StrideB =  3*sizeof(GLdouble);
+#else
          ctx->Array.Normal.StrideB =  3*sizeof(GLdouble);
+#endif
          break;
       default:
          gl_error( ctx, GL_INVALID_ENUM, "glNormalPointer(type)" );
          return;
       }
    }
+#ifdef VAO
+   ctx->Array.Current->Normal.Type = type;
+   ctx->Array.Current->Normal.Stride = stride;
+   ctx->Array.Current->Normal.Ptr = (void *) ptr;
+   ctx->Array.Current->NormalFunc = gl_trans_3f_tab[TYPE_IDX(type)];
+   ctx->Array.Current->NormalEltFunc = gl_trans_elt_3f_tab[TYPE_IDX(type)];
+#else
    ctx->Array.Normal.Type = type;
    ctx->Array.Normal.Stride = stride;
    ctx->Array.Normal.Ptr = (void *) ptr;
    ctx->Array.NormalFunc = gl_trans_3f_tab[TYPE_IDX(type)];
    ctx->Array.NormalEltFunc = gl_trans_elt_3f_tab[TYPE_IDX(type)];
+#endif
    ctx->Array.NewArrayState |= VERT_NORM;
    ctx->NewState |= NEW_CLIENT_STATE;
 }
@@ -172,44 +236,89 @@ _mesa_ColorPointer(GLint size, GLenum type, GLsizei stride, const GLvoid *ptr)
 	  gl_lookup_enum_by_nr( type ),
 	  stride);
 
+#ifdef VAO
+   ctx->Array.Current->Color.StrideB = stride;
+#else
    ctx->Array.Color.StrideB = stride;
+#endif
    if (!stride) {
       switch (type) {
       case GL_BYTE:
+#ifdef VAO
+         ctx->Array.Current->Color.StrideB =  size*sizeof(GLbyte);
+#else
          ctx->Array.Color.StrideB =  size*sizeof(GLbyte);
+#endif
          break;
       case GL_UNSIGNED_BYTE:
+#ifdef VAO
+         ctx->Array.Current->Color.StrideB =  size*sizeof(GLubyte);
+#else
          ctx->Array.Color.StrideB =  size*sizeof(GLubyte);
+#endif
          break;
       case GL_SHORT:
+#ifdef VAO
+         ctx->Array.Current->Color.StrideB =  size*sizeof(GLshort);
+#else
          ctx->Array.Color.StrideB =  size*sizeof(GLshort);
+#endif
          break;
       case GL_UNSIGNED_SHORT:
+#ifdef VAO
+         ctx->Array.Current->Color.StrideB =  size*sizeof(GLushort);
+#else
          ctx->Array.Color.StrideB =  size*sizeof(GLushort);
+#endif
          break;
       case GL_INT:
+#ifdef VAO
+         ctx->Array.Current->Color.StrideB =  size*sizeof(GLint);
+#else
          ctx->Array.Color.StrideB =  size*sizeof(GLint);
+#endif
          break;
       case GL_UNSIGNED_INT:
+#ifdef VAO
+         ctx->Array.Current->Color.StrideB =  size*sizeof(GLuint);
+#else
          ctx->Array.Color.StrideB =  size*sizeof(GLuint);
+#endif
          break;
       case GL_FLOAT:
+#ifdef VAO
+         ctx->Array.Current->Color.StrideB =  size*sizeof(GLfloat);
+#else
          ctx->Array.Color.StrideB =  size*sizeof(GLfloat);
+#endif
          break;
       case GL_DOUBLE:
+#ifdef VAO
+         ctx->Array.Current->Color.StrideB =  size*sizeof(GLdouble);
+#else
          ctx->Array.Color.StrideB =  size*sizeof(GLdouble);
+#endif
          break;
       default:
          gl_error( ctx, GL_INVALID_ENUM, "glColorPointer(type)" );
          return;
       }
    }
+#ifdef VAO
+   ctx->Array.Current->Color.Size = size;
+   ctx->Array.Current->Color.Type = type;
+   ctx->Array.Current->Color.Stride = stride;
+   ctx->Array.Current->Color.Ptr = (void *) ptr;
+   ctx->Array.Current->ColorFunc = gl_trans_4ub_tab[size][TYPE_IDX(type)];
+   ctx->Array.Current->ColorEltFunc = gl_trans_elt_4ub_tab[size][TYPE_IDX(type)];
+#else
    ctx->Array.Color.Size = size;
    ctx->Array.Color.Type = type;
    ctx->Array.Color.Stride = stride;
    ctx->Array.Color.Ptr = (void *) ptr;
    ctx->Array.ColorFunc = gl_trans_4ub_tab[size][TYPE_IDX(type)];
    ctx->Array.ColorEltFunc = gl_trans_elt_4ub_tab[size][TYPE_IDX(type)];
+#endif
    ctx->Array.NewArrayState |= VERT_RGBA;
    ctx->NewState |= NEW_CLIENT_STATE;
 }
@@ -226,34 +335,66 @@ _mesa_IndexPointer(GLenum type, GLsizei stride, const GLvoid *ptr)
       return;
    }
 
+#ifdef VAO
+   ctx->Array.Current->Index.StrideB = stride;
+#else
    ctx->Array.Index.StrideB = stride;
+#endif
    if (!stride) {
       switch (type) {
       case GL_UNSIGNED_BYTE:
+#ifdef VAO
+         ctx->Array.Current->Index.StrideB =  sizeof(GLubyte);
+#else
          ctx->Array.Index.StrideB =  sizeof(GLubyte);
+#endif
          break;
       case GL_SHORT:
+#ifdef VAO
+         ctx->Array.Current->Index.StrideB =  sizeof(GLshort);
+#else
          ctx->Array.Index.StrideB =  sizeof(GLshort);
+#endif
          break;
       case GL_INT:
+#ifdef VAO
+         ctx->Array.Current->Index.StrideB =  sizeof(GLint);
+#else
          ctx->Array.Index.StrideB =  sizeof(GLint);
+#endif
          break;
       case GL_FLOAT:
+#ifdef VAO
+         ctx->Array.Current->Index.StrideB =  sizeof(GLfloat);
+#else
          ctx->Array.Index.StrideB =  sizeof(GLfloat);
+#endif
          break;
       case GL_DOUBLE:
+#ifdef VAO
+         ctx->Array.Current->Index.StrideB =  sizeof(GLdouble);
+#else
          ctx->Array.Index.StrideB =  sizeof(GLdouble);
+#endif
          break;
       default:
          gl_error( ctx, GL_INVALID_ENUM, "glIndexPointer(type)" );
          return;
       }
    }
+#ifdef VAO
+   ctx->Array.Current->Index.Type = type;
+   ctx->Array.Current->Index.Stride = stride;
+   ctx->Array.Current->Index.Ptr = (void *) ptr;
+   ctx->Array.Current->IndexFunc = gl_trans_1ui_tab[TYPE_IDX(type)];
+   ctx->Array.Current->IndexEltFunc = gl_trans_elt_1ui_tab[TYPE_IDX(type)];
+#else
    ctx->Array.Index.Type = type;
    ctx->Array.Index.Stride = stride;
    ctx->Array.Index.Ptr = (void *) ptr;
    ctx->Array.IndexFunc = gl_trans_1ui_tab[TYPE_IDX(type)];
    ctx->Array.IndexEltFunc = gl_trans_elt_1ui_tab[TYPE_IDX(type)];
+#endif
    ctx->Array.NewArrayState |= VERT_INDEX;
    ctx->NewState |= NEW_CLIENT_STATE;
 }
@@ -284,26 +425,55 @@ _mesa_TexCoordPointer(GLint size, GLenum type, GLsizei stride, const GLvoid *ptr
 	  gl_lookup_enum_by_nr( type ),
 	  stride);
 
+#ifdef VAO
+   ctx->Array.Current->TexCoord[texUnit].StrideB = stride;
+#else
    ctx->Array.TexCoord[texUnit].StrideB = stride;
+#endif
    if (!stride) {
       switch (type) {
       case GL_SHORT:
+#ifdef VAO
+         ctx->Array.Current->TexCoord[texUnit].StrideB =  size*sizeof(GLshort);
+#else
          ctx->Array.TexCoord[texUnit].StrideB =  size*sizeof(GLshort);
+#endif
          break;
       case GL_INT:
+#ifdef VAO
+         ctx->Array.Current->TexCoord[texUnit].StrideB =  size*sizeof(GLint);
+#else
          ctx->Array.TexCoord[texUnit].StrideB =  size*sizeof(GLint);
+#endif
          break;
       case GL_FLOAT:
+#ifdef VAO
+         ctx->Array.Current->TexCoord[texUnit].StrideB =  size*sizeof(GLfloat);
+#else
          ctx->Array.TexCoord[texUnit].StrideB =  size*sizeof(GLfloat);
+#endif
          break;
       case GL_DOUBLE:
+#ifdef VAO
+         ctx->Array.Current->TexCoord[texUnit].StrideB =  size*sizeof(GLdouble);
+#else
          ctx->Array.TexCoord[texUnit].StrideB =  size*sizeof(GLdouble);
+#endif
          break;
       default:
          gl_error( ctx, GL_INVALID_ENUM, "glTexCoordPointer(type)" );
          return;
       }
    }
+#ifdef VAO
+   ctx->Array.Current->TexCoord[texUnit].Size = size;
+   ctx->Array.Current->TexCoord[texUnit].Type = type;
+   ctx->Array.Current->TexCoord[texUnit].Stride = stride;
+   ctx->Array.Current->TexCoord[texUnit].Ptr = (void *) ptr;
+
+   ctx->Array.Current->TexCoordFunc[texUnit] = gl_trans_4f_tab[size][TYPE_IDX(type)];
+   ctx->Array.Current->TexCoordEltFunc[texUnit] = gl_trans_elt_4f_tab[size][TYPE_IDX(type)];
+#else
    ctx->Array.TexCoord[texUnit].Size = size;
    ctx->Array.TexCoord[texUnit].Type = type;
    ctx->Array.TexCoord[texUnit].Stride = stride;
@@ -311,6 +481,7 @@ _mesa_TexCoordPointer(GLint size, GLenum type, GLsizei stride, const GLvoid *ptr
 
    ctx->Array.TexCoordFunc[texUnit] = gl_trans_4f_tab[size][TYPE_IDX(type)];
    ctx->Array.TexCoordEltFunc[texUnit] = gl_trans_elt_4f_tab[size][TYPE_IDX(type)];
+#endif
    ctx->Array.NewArrayState |= PIPE_TEX(texUnit);
    ctx->NewState |= NEW_CLIENT_STATE;
 }
@@ -328,6 +499,17 @@ _mesa_EdgeFlagPointer(GLsizei stride, const void *vptr)
       gl_error( ctx, GL_INVALID_VALUE, "glEdgeFlagPointer(stride)" );
       return;
    }
+#ifdef VAO
+   ctx->Array.Current->EdgeFlag.Stride = stride;
+   ctx->Array.Current->EdgeFlag.StrideB = stride ? stride : sizeof(GLboolean);
+   ctx->Array.Current->EdgeFlag.Ptr = (GLboolean *) ptr;
+   if (stride != sizeof(GLboolean)) {
+      ctx->Array.Current->EdgeFlagFunc = gl_trans_1ub_tab[TYPE_IDX(GL_UNSIGNED_BYTE)];
+   } else {
+      ctx->Array.Current->EdgeFlagFunc = 0;
+   }
+   ctx->Array.Current->EdgeFlagEltFunc = gl_trans_elt_1ub_tab[TYPE_IDX(GL_UNSIGNED_BYTE)];
+#else
    ctx->Array.EdgeFlag.Stride = stride;
    ctx->Array.EdgeFlag.StrideB = stride ? stride : sizeof(GLboolean);
    ctx->Array.EdgeFlag.Ptr = (GLboolean *) ptr;
@@ -337,6 +519,7 @@ _mesa_EdgeFlagPointer(GLsizei stride, const void *vptr)
       ctx->Array.EdgeFlagFunc = 0;
    }
    ctx->Array.EdgeFlagEltFunc = gl_trans_elt_1ub_tab[TYPE_IDX(GL_UNSIGNED_BYTE)];
+#endif
    ctx->Array.NewArrayState |= VERT_EDGE;
    ctx->NewState |= NEW_CLIENT_STATE;
 }
@@ -440,12 +623,59 @@ void gl_exec_array_elements( GLcontext *ctx, struct immediate *IM,
 {
    GLuint *flags = IM->Flag;
    GLuint *elts = IM->Elt;
+#ifdef VAO
+   GLuint translate = ctx->Array.Current->Flags;
+#else
    GLuint translate = ctx->Array.Flags;
+#endif
    GLuint i;
 
    if (MESA_VERBOSE&VERBOSE_IMMEDIATE)
       fprintf(stderr, "exec_array_elements %d .. %d\n", start, count);
    
+#ifdef VAO
+   if (translate & VERT_OBJ_ANY) 
+      (ctx->Array.Current->VertexEltFunc)( IM->Obj, 
+				  &ctx->Array.Current->Vertex, 
+				  flags, elts, (VERT_ELT|VERT_OBJ_ANY),
+				  start, count);
+   
+   if (translate & VERT_NORM) 
+      (ctx->Array.Current->NormalEltFunc)( IM->Normal, 
+				  &ctx->Array.Current->Normal, 
+				  flags, elts, (VERT_ELT|VERT_NORM),
+				  start, count);
+
+   if (translate & VERT_EDGE) 
+      (ctx->Array.Current->EdgeFlagEltFunc)( IM->EdgeFlag, 
+				    &ctx->Array.Current->EdgeFlag, 
+				    flags, elts, (VERT_ELT|VERT_EDGE),
+				    start, count);
+   
+   if (translate & VERT_RGBA)
+      (ctx->Array.Current->ColorEltFunc)( IM->Color, 
+				 &ctx->Array.Current->Color, 
+				 flags, elts, (VERT_ELT|VERT_RGBA),
+				 start, count);
+
+   if (translate & VERT_INDEX)
+      (ctx->Array.Current->IndexEltFunc)( IM->Index, 
+				 &ctx->Array.Current->Index, 
+				 flags, elts, (VERT_ELT|VERT_INDEX),
+				 start, count);
+
+   if (translate & VERT_TEX0_ANY)
+      (ctx->Array.Current->TexCoordEltFunc[0])( IM->TexCoord[0], 
+				       &ctx->Array.Current->TexCoord[0], 
+				       flags, elts, (VERT_ELT|VERT_TEX0_ANY),
+				       start, count);
+
+   if (translate & VERT_TEX1_ANY)
+      (ctx->Array.Current->TexCoordEltFunc[1])( IM->TexCoord[1], 
+				       &ctx->Array.Current->TexCoord[1], 
+				       flags, elts, (VERT_ELT|VERT_TEX1_ANY),
+				       start, count);
+#else
    if (translate & VERT_OBJ_ANY) 
       (ctx->Array.VertexEltFunc)( IM->Obj, 
 				  &ctx->Array.Vertex, 
@@ -487,7 +717,7 @@ void gl_exec_array_elements( GLcontext *ctx, struct immediate *IM,
 				       &ctx->Array.TexCoord[1], 
 				       flags, elts, (VERT_ELT|VERT_TEX1_ANY),
 				       start, count);
-
+#endif
 
    for (i = start ; i < count ; i++) 
       if (flags[i] & VERT_ELT) 
@@ -544,15 +774,18 @@ _mesa_DrawArrays(GLenum mode, GLint start, GLsizei count)
       return;
    }
 
-   if (!ctx->CompileFlag && ctx->Array.Vertex.Enabled)
-   {
+#ifdef VAO
+   if (!ctx->CompileFlag && ctx->Array.Current->Vertex.Enabled) {
+#else
+   if (!ctx->CompileFlag && ctx->Array.Vertex.Enabled) {
+#endif
       GLint remaining = count;
       GLint i;
-      struct gl_client_array *Normal = 0;
-      struct gl_client_array *Color = 0;
-      struct gl_client_array *Index = 0;
+      struct gl_client_array *Normal;
+      struct gl_client_array *Color;
+      struct gl_client_array *Index;
       struct gl_client_array *TexCoord[MAX_TEXTURE_UNITS];
-      struct gl_client_array *EdgeFlag = 0;
+      struct gl_client_array *EdgeFlag;
       struct immediate *IM = VB->IM;
       struct gl_pipeline *elt = &ctx->CVA.elt;
       GLboolean relock;
@@ -575,11 +808,86 @@ _mesa_DrawArrays(GLenum mode, GLint start, GLsizei count)
 	 gl_build_immediate_pipeline( ctx );
 
       required = elt->inputs;
+#ifdef VAO
+      fallback = (elt->inputs & ~ctx->Array.Current->Summary);
+#else
       fallback = (elt->inputs & ~ctx->Array.Summary);
+#endif
 
       /* The translate function doesn't do anything about size.  It
        * just ensures that type and stride come out right.
        */
+#ifdef VAO
+      IM->v.Obj.size = ctx->Array.Current->Vertex.Size;
+
+      if (required & VERT_RGBA) 
+      {
+	 Color = &ctx->Array.Current->Color;
+	 if (fallback & VERT_RGBA) {
+	    Color = &ctx->Fallback.Color;
+	    ctx->Array.Current->ColorFunc = 
+	       gl_trans_4ub_tab[4][TYPE_IDX(GL_UNSIGNED_BYTE)];
+	 }
+      }
+   
+      if (required & VERT_INDEX) 
+      {
+	 Index = &ctx->Array.Current->Index;
+	 if (fallback & VERT_INDEX) {
+	    Index = &ctx->Fallback.Index;
+	    ctx->Array.Current->IndexFunc = gl_trans_1ui_tab[TYPE_IDX(GL_UNSIGNED_INT)];
+	 }
+      }
+
+      for (i = 0 ; i < MAX_TEXTURE_UNITS ; i++) 
+      {
+	 GLuint flag = VERT_TEX_ANY(i);
+
+	 if (required & flag) {
+	    TexCoord[i] = &ctx->Array.Current->TexCoord[i];
+
+	    if (fallback & flag) 
+	    {
+	       TexCoord[i] = &ctx->Fallback.TexCoord[i];
+	       TexCoord[i]->Size = gl_texcoord_size( ctx->Current.Flag, i );
+
+	       ctx->Array.Current->TexCoordFunc[i] = 
+		  gl_trans_4f_tab[TexCoord[i]->Size][TYPE_IDX(GL_FLOAT)];
+	    }
+	 }
+      }
+
+      if (ctx->Array.Current->Flags != ctx->Array.Current->Flag[0])
+ 	 for (i = 0 ; i < VB_MAX ; i++) 
+	    ctx->Array.Current->Flag[i] = ctx->Array.Current->Flags;
+
+
+      if (required & VERT_NORM) 
+      {
+	 Normal = &ctx->Array.Current->Normal;
+	 if (fallback & VERT_NORM) {
+	    Normal = &ctx->Fallback.Normal;
+	    ctx->Array.Current->NormalFunc = gl_trans_3f_tab[TYPE_IDX(GL_FLOAT)];
+	 }
+      }
+
+      if ( required & VERT_EDGE )
+      {
+	 if (mode == GL_TRIANGLES || 
+	     mode == GL_QUADS || 
+	     mode == GL_POLYGON)
+	 {
+	    EdgeFlag = &ctx->Array.Current->EdgeFlag;
+	    if (fallback & VERT_EDGE) {
+	       EdgeFlag = &ctx->Fallback.EdgeFlag;
+	       ctx->Array.Current->EdgeFlagFunc = 
+		  gl_trans_1ub_tab[TYPE_IDX(GL_UNSIGNED_BYTE)];
+	    }
+	 }
+	 else
+	    required &= ~VERT_EDGE;
+      }
+#else
       IM->v.Obj.size = ctx->Array.Vertex.Size;
 
       if (required & VERT_RGBA) 
@@ -649,6 +957,7 @@ _mesa_DrawArrays(GLenum mode, GLint start, GLsizei count)
 	 else
 	    required &= ~VERT_EDGE;
       }
+#endif
 
       VB->Primitive = IM->Primitive; 
       VB->NextPrimitive = IM->NextPrimitive; 
@@ -670,6 +979,42 @@ _mesa_DrawArrays(GLenum mode, GLint start, GLsizei count)
 	 
 	 VB->CullMode = 0;
 	 
+#ifdef VAO
+	 ctx->Array.Current->VertexFunc( IM->Obj + VB_START, 
+				&ctx->Array.Current->Vertex, start, n );
+	 
+	 if (required & VERT_NORM) {
+	    ctx->Array.Current->NormalFunc( IM->Normal + VB_START, 
+				   Normal, start, n );
+	 }
+	 
+	 if (required & VERT_EDGE) {
+	    ctx->Array.Current->EdgeFlagFunc( IM->EdgeFlag + VB_START, 
+				     EdgeFlag, start, n );
+	 }
+	 
+	 if (required & VERT_RGBA) {
+	    ctx->Array.Current->ColorFunc( IM->Color + VB_START, 
+				  Color, start, n );
+	 }
+	 
+	 if (required & VERT_INDEX) {
+	    ctx->Array.Current->IndexFunc( IM->Index + VB_START, 
+				  Index, start, n );
+	 }
+	 
+	 if (required & VERT_TEX0_ANY) {
+	    IM->v.TexCoord[0].size = TexCoord[0]->Size;
+	    ctx->Array.Current->TexCoordFunc[0]( IM->TexCoord[0] + VB_START, 
+					TexCoord[0], start, n );
+	 }
+	 
+	 if (required & VERT_TEX1_ANY) {
+	    IM->v.TexCoord[1].size = TexCoord[1]->Size;
+	    ctx->Array.Current->TexCoordFunc[1]( IM->TexCoord[1] + VB_START, 
+					TexCoord[1], start, n );
+	 }
+#else
 	 ctx->Array.VertexFunc( IM->Obj + VB_START, 
 				&ctx->Array.Vertex, start, n );
 	 
@@ -704,7 +1049,7 @@ _mesa_DrawArrays(GLenum mode, GLint start, GLsizei count)
 	    ctx->Array.TexCoordFunc[1]( IM->TexCoord[1] + VB_START, 
 					TexCoord[1], start, n );
 	 }
-
+#endif
 	 VB->ObjPtr = &IM->v.Obj;
 	 VB->NormalPtr = &IM->v.Normal;
 	 VB->ColorPtr = &IM->v.Color;
@@ -714,8 +1059,13 @@ _mesa_DrawArrays(GLenum mode, GLint start, GLsizei count)
 	 VB->TexCoordPtr[0] = &IM->v.TexCoord[0];
 	 VB->TexCoordPtr[1] = &IM->v.TexCoord[1];
 
+#ifdef VAO
+	 VB->Flag = ctx->Array.Current->Flag;
+	 VB->OrFlag = ctx->Array.Current->Flags;
+#else
 	 VB->Flag = ctx->Array.Flag;
 	 VB->OrFlag = ctx->Array.Flags;
+#endif
 
 	 VB->Start = IM->Start = VB_START;
 	 count = VB->Count = IM->Count = VB_START + n;
@@ -738,15 +1088,24 @@ _mesa_DrawArrays(GLenum mode, GLint start, GLsizei count)
 
 	 VB->NextPrimitive[VB->CopyStart] = VB->Count;
 	 VB->Primitive[VB->CopyStart] = mode;
+#ifdef VAO
+	 ctx->Array.Current->Flag[count] |= VERT_END_VB;
+#else
 	 ctx->Array.Flag[count] |= VERT_END_VB;
+#endif
 
          /* Transform and render.
 	  */
          gl_run_pipeline( VB );
 	 gl_reset_vb( VB );
 
+#ifdef VAO
+	 ctx->Array.Current->Flag[count] = ctx->Array.Current->Flags;
+	 ctx->Array.Current->Flag[VB_START] = ctx->Array.Current->Flags;
+#else
 	 ctx->Array.Flag[count] = ctx->Array.Flags;
 	 ctx->Array.Flag[VB_START] = ctx->Array.Flags;
+#endif
 
          start += n;
          remaining -= n;
@@ -759,7 +1118,11 @@ _mesa_DrawArrays(GLenum mode, GLint start, GLsizei count)
 	 elt->pipeline_valid = 0;
       }
    }
-   else if (ctx->Array.Vertex.Enabled) 
+#ifdef VAO
+   else if (ctx->Array.Current->Vertex.Enabled)
+#else
+   else if (ctx->Array.Vertex.Enabled)
+#endif
    {
       /* The GL_COMPILE and GL_COMPILE_AND_EXECUTE cases.  These
        * could be handled by the above code, but it gets a little
@@ -897,8 +1260,13 @@ _mesa_DrawElements(GLenum mode, GLsizei count, GLenum type, const GLvoid *indice
       /* Treat VERT_ELT like a special client array.
        */
       ctx->Array.NewArrayState |= VERT_ELT;
+#ifdef VAO
+      ctx->Array.Current->Summary |= VERT_ELT;
+      ctx->Array.Current->Flags |= VERT_ELT;
+#else
       ctx->Array.Summary |= VERT_ELT;
       ctx->Array.Flags |= VERT_ELT;
+#endif
 
       cva->elt_mode = mode;
       cva->elt_count = count;
@@ -918,8 +1286,13 @@ _mesa_DrawElements(GLenum mode, GLsizei count, GLenum type, const GLvoid *indice
        */
       if (ctx->CVA.pre.ops & PIPE_OP_RENDER) {
 	 ctx->Array.NewArrayState |= VERT_ELT;
+#ifdef VAO
+	 ctx->Array.Current->Summary &= ~VERT_ELT;
+	 ctx->Array.Current->Flags &= ~VERT_ELT;
+#else
 	 ctx->Array.Summary &= ~VERT_ELT;
 	 ctx->Array.Flags &= ~VERT_ELT;
+#endif
 	 return;
       } 
 
@@ -934,7 +1307,11 @@ _mesa_DrawElements(GLenum mode, GLsizei count, GLenum type, const GLvoid *indice
    case GL_UNSIGNED_BYTE:
    {
       GLubyte *ub_indices = (GLubyte *) indices;
+#ifdef VAO
+      if (ctx->Array.Current->Summary & VERT_OBJ_ANY) {
+#else
       if (ctx->Array.Summary & VERT_OBJ_ANY) {
+#endif
 	 draw_elt_ubyte( ctx, mode, ub_indices, count );
       } else {
 	 gl_ArrayElement( ctx, (GLuint) ub_indices[count-1] );
@@ -944,7 +1321,11 @@ _mesa_DrawElements(GLenum mode, GLsizei count, GLenum type, const GLvoid *indice
    case GL_UNSIGNED_SHORT:
    {
       GLushort *us_indices = (GLushort *) indices;
+#ifdef VAO
+      if (ctx->Array.Current->Summary & VERT_OBJ_ANY) {
+#else
       if (ctx->Array.Summary & VERT_OBJ_ANY) {
+#endif
 	 draw_elt_ushort( ctx, mode, us_indices, count );
       } else {
 	 gl_ArrayElement( ctx, (GLuint) us_indices[count-1] );
@@ -954,7 +1335,11 @@ _mesa_DrawElements(GLenum mode, GLsizei count, GLenum type, const GLvoid *indice
    case GL_UNSIGNED_INT:
    {
       GLuint *ui_indices = (GLuint *) indices;
+#ifdef VAO
+      if (ctx->Array.Current->Summary & VERT_OBJ_ANY) {
+#else
       if (ctx->Array.Summary & VERT_OBJ_ANY) {
+#endif
 	 draw_elt_uint( ctx, mode, ui_indices, count );
       } else {
 	 gl_ArrayElement( ctx, ui_indices[count-1] );
@@ -968,7 +1353,11 @@ _mesa_DrawElements(GLenum mode, GLsizei count, GLenum type, const GLvoid *indice
 
    if (ctx->CompileCVAFlag) {
       ctx->Array.NewArrayState |= VERT_ELT;
+#ifdef VAO
+      ctx->Array.Current->Summary &= ~VERT_ELT;
+#else
       ctx->Array.Summary &= ~VERT_ELT;
+#endif
    }
 }
 
@@ -978,12 +1367,12 @@ void
 _mesa_InterleavedArrays(GLenum format, GLsizei stride, const GLvoid *pointer)
 {
    GET_CURRENT_CONTEXT(ctx);
-   GLboolean tflag, cflag, nflag;              /* enable/disable flags */
-   GLint tcomps, ccomps, vcomps;               /* components per texcoord, color, vertex */
+   GLboolean tflag, cflag, nflag;  /* enable/disable flags */
+   GLint tcomps, ccomps, vcomps;   /* components per texcoord, color, vertex */
 
-   GLenum ctype = 0;                           /* color type */
-   GLint coffset = 0, noffset = 0, voffset = 0;/* color, normal, vertex offsets */
-   GLint defstride;                            /* default stride */
+   GLenum ctype;                   /* color type */
+   GLint coffset, noffset, voffset;/* color, normal, vertex offsets */
+   GLint defstride;                /* default stride */
    GLint c, f;
    GLint coordUnitSave;
    
@@ -1117,7 +1506,11 @@ _mesa_InterleavedArrays(GLenum format, GLsizei stride, const GLvoid *pointer)
    coordUnitSave = ctx->Array.ActiveTexture;
    if (tflag) {
       GLint i;
+#ifdef VAO
+      GLint factor = ctx->Array.Current->TexCoordInterleaveFactor;
+#else
       GLint factor = ctx->Array.TexCoordInterleaveFactor;
+#endif
       for (i = 0; i < factor; i++) {
          _mesa_ClientActiveTextureARB( (GLenum) (GL_TEXTURE0_ARB + i) );
          _mesa_EnableClientState( GL_TEXTURE_COORD_ARRAY );
@@ -1215,10 +1608,31 @@ void gl_update_client_state( GLcontext *ctx )
 				 VERT_TEX0_123, 
 				 VERT_TEX0_1234 };
 
+#ifdef VAO
+   ctx->Array.Current->Flags = 0;
+   ctx->Array.Current->Summary = 0;
+#else
    ctx->Array.Flags = 0;
    ctx->Array.Summary = 0;
+#endif
    ctx->input->ArrayIncr = 0;
    
+#ifdef VAO
+   if (ctx->Array.Current->Normal.Enabled)      ctx->Array.Current->Flags |= VERT_NORM;
+   if (ctx->Array.Current->Color.Enabled)       ctx->Array.Current->Flags |= VERT_RGBA;
+   if (ctx->Array.Current->Index.Enabled)       ctx->Array.Current->Flags |= VERT_INDEX;
+   if (ctx->Array.Current->EdgeFlag.Enabled)    ctx->Array.Current->Flags |= VERT_EDGE;
+   if (ctx->Array.Current->Vertex.Enabled) {
+      ctx->Array.Current->Flags |= sz_flags[ctx->Array.Current->Vertex.Size];
+      ctx->input->ArrayIncr = 1;
+   }
+   if (ctx->Array.Current->TexCoord[0].Enabled) {
+      ctx->Array.Current->Flags |= tc_flags[ctx->Array.Current->TexCoord[0].Size];
+   }
+   if (ctx->Array.Current->TexCoord[1].Enabled) {
+      ctx->Array.Current->Flags |= (tc_flags[ctx->Array.Current->TexCoord[1].Size] << NR_TEXSIZE_BITS);
+   }
+#else
    if (ctx->Array.Normal.Enabled)      ctx->Array.Flags |= VERT_NORM;
    if (ctx->Array.Color.Enabled)       ctx->Array.Flags |= VERT_RGBA;
    if (ctx->Array.Index.Enabled)       ctx->Array.Flags |= VERT_INDEX;
@@ -1233,11 +1647,219 @@ void gl_update_client_state( GLcontext *ctx )
    if (ctx->Array.TexCoord[1].Enabled) {
       ctx->Array.Flags |= (tc_flags[ctx->Array.TexCoord[1].Size] << NR_TEXSIZE_BITS);
    }
+#endif
 
    /* Not really important any more:
     */
+#ifdef VAO
+   ctx->Array.Current->Summary = ctx->Array.Current->Flags & VERT_DATA;
+   ctx->input->ArrayAndFlags = ~ctx->Array.Current->Flags;
+#else
    ctx->Array.Summary = ctx->Array.Flags & VERT_DATA;
    ctx->input->ArrayAndFlags = ~ctx->Array.Flags;
+#endif
    ctx->input->ArrayEltFlush = !(ctx->CompileCVAFlag);
 }
 
+
+
+/**********************************************************************/
+/* Vertex Array Objects extension                                     */
+/**********************************************************************/
+
+#ifdef VAO
+
+struct gl_array_object *
+_mesa_alloc_vertex_array_object(GLcontext *ctx, GLuint name)
+{
+   struct gl_array_object *arrayObj;
+
+   arrayObj = MALLOC_STRUCT(gl_array_object);
+   if (arrayObj) {
+      GLuint i;
+      arrayObj->Name = name;
+      arrayObj->RefCount = 1;
+      arrayObj->Vertex.Size = 4;
+      arrayObj->Vertex.Type = GL_FLOAT;
+      arrayObj->Vertex.Stride = 0;
+      arrayObj->Vertex.StrideB = 0;
+      arrayObj->Vertex.Ptr = NULL;
+      arrayObj->Vertex.Enabled = GL_FALSE;
+      arrayObj->Normal.Type = GL_FLOAT;
+      arrayObj->Normal.Stride = 0;
+      arrayObj->Normal.StrideB = 0;
+      arrayObj->Normal.Ptr = NULL;
+      arrayObj->Normal.Enabled = GL_FALSE;
+      arrayObj->Color.Size = 4;
+      arrayObj->Color.Type = GL_FLOAT;
+      arrayObj->Color.Stride = 0;
+      arrayObj->Color.StrideB = 0;
+      arrayObj->Color.Ptr = NULL;
+      arrayObj->Color.Enabled = GL_FALSE;
+      arrayObj->Index.Type = GL_FLOAT;
+      arrayObj->Index.Stride = 0;
+      arrayObj->Index.StrideB = 0;
+      arrayObj->Index.Ptr = NULL;
+      arrayObj->Index.Enabled = GL_FALSE;
+      for (i = 0; i < MAX_TEXTURE_UNITS; i++) {
+         arrayObj->TexCoord[i].Size = 4;
+         arrayObj->TexCoord[i].Type = GL_FLOAT;
+         arrayObj->TexCoord[i].Stride = 0;
+         arrayObj->TexCoord[i].StrideB = 0;
+         arrayObj->TexCoord[i].Ptr = NULL;
+         arrayObj->TexCoord[i].Enabled = GL_FALSE;
+      }
+      arrayObj->TexCoordInterleaveFactor = 1;
+      arrayObj->EdgeFlag.Stride = 0;
+      arrayObj->EdgeFlag.StrideB = 0;
+      arrayObj->EdgeFlag.Ptr = NULL;
+      arrayObj->EdgeFlag.Enabled = GL_FALSE;
+
+      /* Put into hash table */
+      _mesa_HashInsert(ctx->Shared->ArrayObjects, name, arrayObj);
+   }
+   return arrayObj;
+}
+
+
+void
+glGenArraySetsEXT(GLsizei n, GLuint *arrayset)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   GLuint first;
+   GLint i;
+
+   ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx, "glGenArraySetsEXT");
+
+   if (n < 0) {
+      gl_error(ctx, GL_INVALID_VALUE, "glGenArraySetsEXT");
+      return;
+   }
+
+   if (!arrayset)
+      return;
+
+   /*
+    * This must be atomic (generation and allocation of texture IDs)
+    */
+   /*XXX _glthread_LOCK_MUTEX(GenTexturesLock);*/
+
+   first = _mesa_HashFindFreeKeyBlock(ctx->Shared->ArrayObjects, n);
+
+   /* Return the object names */
+   for (i = 0; i < n; i++) {
+      arrayset[i] = first + i;
+   }
+
+   /* Allocate new array objects */
+   for (i = 0; i < n; i++) {
+      struct gl_array_object *arrayObj;
+      GLuint name = first + i;
+      arrayObj = _mesa_alloc_vertex_array_object(ctx, name);
+      if (!arrayObj) {
+         gl_error(ctx, GL_OUT_OF_MEMORY, "glGenArraySetsEXT");
+         break;
+      }
+   }
+
+   /*XXX _glthread_UNLOCK_MUTEX(GenTexturesLock);*/
+}
+
+
+void
+glBindArraySetEXT(GLuint arraySet)
+{
+   struct gl_array_object *arrayObj;
+   GET_CURRENT_CONTEXT(ctx);
+
+   ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx, "glBindArraySetEXT");
+
+   if (arraySet < 0) {
+      gl_error(ctx, GL_INVALID_OPERATION, "glBindArraySetEXT");
+      return;
+   }
+
+   ctx->Array.Current->RefCount--;
+   if (ctx->Array.Current->RefCount == 0) {
+      _mesa_HashRemove(ctx->Shared->ArrayObjects, arraySet);
+      FREE(ctx->Array.Current);
+   }
+
+   arrayObj = (struct gl_array_object *) _mesa_HashLookup(ctx->Shared->ArrayObjects, arraySet);
+   if (arrayObj) {
+      ctx->Array.Current = arrayObj;
+   }
+   else {
+      /* create the array object and insert into hash table */
+      arrayObj = _mesa_alloc_vertex_array_object(ctx, arraySet);
+      if (!arrayObj) {
+         gl_error(ctx, GL_OUT_OF_MEMORY, "glBindArraySetEXT");
+         return;
+      }
+      ctx->Array.Current = (struct gl_array_object *) _mesa_HashLookup(ctx->Shared->ArrayObjects, 0);
+   }
+
+   ctx->Array.Current->RefCount++;
+
+   /* Signal new state */
+   /*   ctx->Array.NewArrayState = ~0;*/
+   ctx->NewState |= NEW_CLIENT_STATE;
+
+#if 0
+   printf("Bind %d\n", ctx->Array.Current->Name);
+   printf("Vertex array size: %d\n", ctx->Array.Current->Vertex.Size);
+   printf("Vertex array enable: %d\n", ctx->Array.Current->Vertex.Enabled);
+
+   printf("Normal array size: %d\n", ctx->Array.Current->Normal.Size);
+   printf("Normal array enable: %d\n", ctx->Array.Current->Normal.Enabled);
+   printf("Lock first %d  count %d\n", ctx->Array.Current->LockFirst,
+          ctx->Array.Current->LockCount);
+#endif
+}
+
+
+void
+glDeleteArraySetsEXT(GLsizei n, const GLuint *arraySet)
+{
+   GLint i;
+   GET_CURRENT_CONTEXT(ctx);
+   
+   ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx, "glDeleteArraySetsEXT");
+
+   if (n < 0) {
+      gl_error(ctx, GL_INVALID_OPERATION, "glDeleteArraySetEXT");
+      return;
+   }
+
+   for (i = 0; i < n; i++) {
+      if (arraySet[i] > 0) {
+         struct gl_array_object *arrayObj;
+         arrayObj = (struct gl_array_object *) _mesa_HashLookup(ctx->Shared->ArrayObjects, arraySet[i]);
+         if (arrayObj) {
+            arrayObj->RefCount--;
+            if (arrayObj->RefCount == 0) {
+               _mesa_HashRemove(ctx->Shared->ArrayObjects, arraySet[i]);
+               FREE(arrayObj);
+            }
+         }
+      }
+   }
+}
+
+
+GLboolean
+glIsArraySetEXT(GLuint arraySet)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH_WITH_RETVAL(ctx, "glIsArraySetEXT",
+						  GL_FALSE);
+
+   if (arraySet > 0 && _mesa_HashLookup(ctx->Shared->ArrayObjects, arraySet)) {
+      return GL_TRUE;
+   }
+   else {
+      return GL_FALSE;
+   }
+}
+
+#endif
