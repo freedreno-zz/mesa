@@ -1,58 +1,59 @@
 
-CLIENT-SIDE CODE (LIBGL.SO)
----------------------------
 
-dispatch.c
-	
-	- The libGL.so dispatch table.
+Getting MiniGLX up and running
+------------------------------
 
-dri_util.c
-dri_util.h
+It's necessary to do a bit of work to set up an environment to run miniglx. 
 
-	- Previously part of the driver.so file.
-	- Contains a lot of window-system specific code, but has only
-	  a single entrypoint.  By moving this to live in libGL.so,
-	  these details are made more "private" to libGL.so.  We'd
-	  probably have to reproduce an unfeasible amount of X's
-	  clientside internals to keep this in the driver.so file.
+For the radeon driver, it's necessary to get the right set of kernel
+modules installed before attempting to run any programs:
 
+    rmmod radeon agpgart;
+    insmod agpgart.o;
+    insmod $(MESA)/src/kernel/radeonfb/radeonfb.o;
+    insmod $(MESA)/src/kernel/radeon/radeon.o;
 
-miniglx.c
+For all drivers, its necessary to reach the compiled libraries, and
+tell MiniGLX where to find it's configuration file:
 
-	- Miniglx bindings.  Includes things like XOpenDisplay as well
-          as more standard GLX fare.
-
-miniglxP.h 
-	
-	- Cut down version of glxclient.h
-
-drm.h
-sarea.h
-	- kernel interfaces.  Note that not all drivers will talk to a
-	  kernel module
-
-xf86drm.c
-
-	- The drm* commands.  These are also currently present in the
-	  loadable driver.  Some of these are called by dri_util.c.
-	  May be possible to load the driver.so module before calling
-	  any of these, or else to remove them from the driver.so
-	  module and have them live here (** compatibility concerns).
-
-xf86drm.h
-	- Interfaces for xf86drm.c.
-
-
-These build a libGL.so which can load binary modules for an fbdev
-environment.  Those binary modules *could* work with X11, but
-currently are incompatible with the X11 modules due to the movement of
-shared code into libGL.so -- in particular dri_util.c and xf86drm.c
-which were previously part of the loadable driver.  
+    export LD_LIBRARY_PATH=$(MESA)/lib;
+    export MINIGLX_CONF=$(MESA)/lib/miniglx.conf
 
 ------------------------------------------------------------
 
+MiniGLX Example Programs
+------------------------
 
+The following programs will work with miniglx:
+	
+	$(MESA)/tests/miniglx
+	$(MESA)/xdemos/glxgears  
 
+Thanks to the miniglut stub library, most of the mesa glut demos will
+work.  In particular, the following have been tested.  (Note there is
+no keyboard or mouse interaction with these demos).
+
+	$(MESA)/demos/gears
+	$(MESA)/demos/geartrain
+	$(MESA)/demos/morph3d
+	$(MESA)/demos/isosurf
+	$(MESA)/demos/texobj
+	$(MESA)/demos/texcyl
+	$(MESA)/demos/gloss
+	$(MESA)/demos/fire
+	$(MESA)/demos/tunnel
+	$(MESA)/demos/teapot
+	$(MESA)/samples/prim
+	$(MESA)/samples/olympic
+	$(MESA)/samples/star
+	$(MESA)/samples/wave
+	...etc
+
+In fact most of the glut demos seem to work within the constraints of
+having no keyboard/mouse interactivity.  Furthermore, the use of the
+glut wrapper means that these programs don't require recompilation to
+run under MiniGLX -- the same binary works with both regular GLX and
+MiniGLX.
 
 
 ------------------------------------------------------------
@@ -99,7 +100,9 @@ non-supported entrypoints.
 Bugs in radeonfb.o -- the radeon framebuffer driver.
 ----------------------------------------------------
 
-Several bugs have been found in the radeonfb.o framebuffer driver.  
+Several bugs have been found in the radeonfb.o framebuffer driver.
+Most of these are resolved in the version included in the MiniGLX
+sources, but some remain:
 
 1) Occasionally, after entering graphics mode, colors appear 'shifted'
 or 'translated', particularly in higher resolution modes.  This is
@@ -108,9 +111,5 @@ the software dri driver (fb_dri.so).  Importance: High.  Workaround:
 Use 800x600 as it seems to be less frequent at this resolution,
 otherwise, restart the application.
 
-2) Modes with virtual resolutions different to displayed resolutions
-do not work.  Importance: medium.  Workaround: Avoid these situations
-by always setting the visible resolution to the virtual resolution
-specified in the configuration file.
 
 
