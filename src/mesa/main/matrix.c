@@ -1,4 +1,12 @@
-/* $Id: matrix.c,v 1.45.4.2 2003/03/20 09:20:58 keithw Exp $ */
+/**
+ * \file matrix.c
+ * \brief Matrix operations.
+ *
+ * \note
+ * -# 4x4 transformation matrices are stored in memory in column major order.
+ * -# Points/vertices are to be thought of as column vectors.
+ * -# Transformation of a point p by a matrix M is: p' = M * p
+ */
 
 /*
  * Mesa 3-D graphics library
@@ -24,15 +32,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-
-/*
- * Matrix operations
- *
- * NOTES:
- * 1. 4x4 transformation matrices are stored in memory in column major order.
- * 2. Points/vertices are to be thought of as column vectors.
- * 3. Transformation of a point p by a matrix M is: p' = M * p
- */
+/* $Id: matrix.c,v 1.45.4.3 2003/03/20 19:38:41 jrfonseca Exp $ */
 
 
 #include "glheader.h"

@@ -1,4 +1,7 @@
-/* $Id: points.h,v 1.7.6.1 2003/03/20 09:21:05 keithw Exp $ */
+/**
+ * \file points.h
+ * \brief Point operations.
+ */
 
 /*
  * Mesa 3-D graphics library
@@ -23,6 +26,8 @@
  * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
+/* $Id: points.h,v 1.7.6.2 2003/03/20 19:38:46 jrfonseca Exp $ */
 
 
 #ifndef POINTS_H

@@ -29,7 +29,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: mtypes.h,v 1.97.4.4 2003/03/20 12:56:58 jrfonseca Exp $ */
+/* $Id: mtypes.h,v 1.97.4.5 2003/03/20 19:38:42 jrfonseca Exp $ */
 
 
 #ifndef TYPES_H
@@ -317,10 +317,7 @@ struct gl_material
 
 
 /**
- * \brief Attribute structures.
- * 
- * We define a struct for each attribute group to make pushing and popping
- * attributes easy.  Also it's a good organization.
+ * \brief Accumulation buffer attributes.
  */
 struct gl_accum_attrib {
    GLfloat ClearColor[4];	/**< \brief Accumulation buffer clear color */
@@ -651,12 +648,12 @@ struct gl_light_attrib {
  * \brief Line attributes.
  */
 struct gl_line_attrib {
-   GLboolean SmoothFlag;	/* GL_LINE_SMOOTH enabled? */
-   GLboolean StippleFlag;	/* GL_LINE_STIPPLE enabled? */
-   GLushort StipplePattern;	/* Stipple pattern */
-   GLint StippleFactor;		/* Stipple repeat factor */
-   GLfloat Width;		/* Line width */
-   GLfloat _Width;		/* Clamped Line width */
+   GLboolean SmoothFlag;	/**< \brief GL_LINE_SMOOTH enabled? */
+   GLboolean StippleFlag;	/**< \brief GL_LINE_STIPPLE enabled? */
+   GLushort StipplePattern;	/**< \brief Stipple pattern */
+   GLint StippleFactor;		/**< \brief Stipple repeat factor */
+   GLfloat Width;		/**< \brief Line width */
+   GLfloat _Width;		/**< \brief Clamped Line width */
 };
 
 
@@ -1104,7 +1101,7 @@ struct gl_texture_unit {
 
 
 /**
- * \brief The texture attribute group
+ * \brief Texture attributes
  */
 struct gl_texture_attrib {
    /**
@@ -1920,28 +1917,32 @@ struct __GLcontextRec {
    struct gl_attrib_node *AttribStack[MAX_ATTRIB_STACK_DEPTH];
    /*@}*/
 
-   /** \name Renderer attribute groups */
+   /** \name Renderer attribute groups
+    * 
+    * We define a struct for each attribute group to make pushing and popping
+    * attributes easy.  Also it's a good organization.
+    */
    /*@{*/
-   struct gl_accum_attrib	Accum;
-   struct gl_colorbuffer_attrib	Color;
-   struct gl_current_attrib	Current;
-   struct gl_depthbuffer_attrib	Depth;
-   struct gl_eval_attrib	Eval;
-   struct gl_fog_attrib		Fog;
-   struct gl_hint_attrib	Hint;
-   struct gl_light_attrib	Light;
-   struct gl_line_attrib	Line;
-   struct gl_list_attrib	List;
+   struct gl_accum_attrib	Accum;		/**< \brief Accumulation buffer attributes */
+   struct gl_colorbuffer_attrib	Color;		/**< \brief Color buffers attributes */
+   struct gl_current_attrib	Current;	/**< \brief Current attributes */
+   struct gl_depthbuffer_attrib	Depth;		/**< \brief Depth buffer attributes */
+   struct gl_eval_attrib	Eval;		/**< \brief Eval attributes */
+   struct gl_fog_attrib		Fog;		/**< \brief Fog attributes */
+   struct gl_hint_attrib	Hint;		/**< \brief Hint attributes */
+   struct gl_light_attrib	Light;		/**< \brief Light attributes */
+   struct gl_line_attrib	Line;		/**< \brief Line attributes */
+   struct gl_list_attrib	List;		/**< \brief List attributes */
    struct gl_multisample_attrib Multisample;
-   struct gl_pixel_attrib	Pixel;
-   struct gl_point_attrib	Point;
-   struct gl_polygon_attrib	Polygon;
-   GLuint PolygonStipple[32];
-   struct gl_scissor_attrib	Scissor;
-   struct gl_stencil_attrib	Stencil;
-   struct gl_texture_attrib	Texture;
-   struct gl_transform_attrib	Transform;
-   struct gl_viewport_attrib	Viewport;
+   struct gl_pixel_attrib	Pixel;		/**< \brief Pixel attributes */
+   struct gl_point_attrib	Point;		/**< \brief Point attributes */
+   struct gl_polygon_attrib	Polygon;	/**< \brief Polygon attributes */
+   GLuint PolygonStipple[32];			/**< \brief Polygon stipple */
+   struct gl_scissor_attrib	Scissor;	/**< \brief Scissor attributes */
+   struct gl_stencil_attrib	Stencil;	/**< \brief Stencil buffer attributes */
+   struct gl_texture_attrib	Texture;	/**< \brief Texture attributes */
+   struct gl_transform_attrib	Transform;	/**< \brief Transformation attributes */
+   struct gl_viewport_attrib	Viewport;	/**< \brief Viewport attributes */
    /*@}*/
 
    /** \name Other attribute groups */

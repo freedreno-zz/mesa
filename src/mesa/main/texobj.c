@@ -1,6 +1,6 @@
 /**
  * \file texobj.c
- * \brief Texture object functions.
+ * \brief Texture object managment.
  */
 
 /*
@@ -27,7 +27,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: texobj.c,v 1.62.4.3 2003/03/16 00:27:13 jrfonseca Exp $ */
+/* $Id: texobj.c,v 1.62.4.4 2003/03/20 19:38:48 jrfonseca Exp $ */
 
 #include "glheader.h"
 #include "colortab.h"
@@ -41,6 +41,10 @@
 #include "texobj.h"
 #include "mtypes.h"
 
+
+/**********************************************************************/
+/** \name Internal functions */
+/*@{*/
 
 /**
  * \brief Allocate a new texture object and add it to the linked list of
@@ -523,6 +527,13 @@ _mesa_test_texobj_completeness( const GLcontext *ctx,
    }
 }
 
+/*@}*/
+
+
+/***********************************************************************/
+/** \name API functions */
+/*@{*/
+
 /**
  * \brief Texture name generation lock.
  *
@@ -952,3 +963,5 @@ _mesa_IsTexture( GLuint texture )
    ASSERT_OUTSIDE_BEGIN_END_WITH_RETVAL(ctx, GL_FALSE);
    return texture > 0 && _mesa_HashLookup(ctx->Shared->TexObjects, texture);
 }
+
+/*@}*/

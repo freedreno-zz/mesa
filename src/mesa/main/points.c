@@ -1,4 +1,7 @@
-/* $Id: points.c,v 1.34.4.2 2003/03/20 09:21:03 keithw Exp $ */
+/**
+ * \file points.c
+ * \brief Point operations.
+ */
 
 /*
  * Mesa 3-D graphics library
@@ -24,6 +27,8 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+/* $Id: points.c,v 1.34.4.3 2003/03/20 19:38:43 jrfonseca Exp $ */
+
 
 #include "glheader.h"
 #include "context.h"
@@ -34,7 +39,19 @@
 #include "mtypes.h"
 
 
-
+/**
+ * \brief Set the point size.
+ *
+ * \param size pointer diameter.
+ *
+ * \sa glPointSize().
+ *
+ * Verifies the parameter and updates gl_point_attrib::Size. On a change,
+ * flushes the vertices, updates the clamped point size and marks the
+ * DD_POINT_SIZE flag in __GLcontextRec::_TriangleCaps for the drivers if the
+ * size is different from one. Notifies the driver via
+ * dd_function_table::PointSize.
+ */
 void
 _mesa_PointSize( GLfloat size )
 {
@@ -223,10 +240,14 @@ _mesa_PointParameterfvEXT( GLenum pname, const GLfloat *params)
 #endif
 
 
-/**********************************************************************/
-/*****                      Initialization                        *****/
-/**********************************************************************/
-
+/**
+ * \brief Initialize the context point state.
+ *
+ * \param ctx GL context.
+ *
+ * Initializes __GLcontextRec::Point and point related constants in
+ * __GLcontextRec::Const.
+ */
 void _mesa_init_point( GLcontext * ctx )
 {
    int i;

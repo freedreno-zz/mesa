@@ -1,4 +1,7 @@
-/* $Id: polygon.c,v 1.25.4.3 2003/03/20 09:21:05 keithw Exp $ */
+/**
+ * \file polygon.c
+ * \brief Polygon operations.
+ */
 
 /*
  * Mesa 3-D graphics library
@@ -24,6 +27,8 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+/* $Id: polygon.c,v 1.25.4.4 2003/03/20 19:38:46 jrfonseca Exp $ */
+
 
 #include "glheader.h"
 #include "imports.h"
@@ -35,6 +40,17 @@
 #include "mtypes.h"
 
 
+/**
+ * \brief Specify whether to cull front- or back-facing facets.
+ *
+ * \param mode culling mode.
+ *
+ * \sa glCullFace().
+ *
+ * Verifies the parameter and updates gl_polygon_attrib::CullFaceMode. On
+ * change, flushes the vertices and notifies the driver via
+ * dd_function_table::CullFace.
+ */
 void
 _mesa_CullFace( GLenum mode )
 {
@@ -60,7 +76,17 @@ _mesa_CullFace( GLenum mode )
 }
 
 
-
+/**
+ * \brief Define front- and back-facing 
+ *
+ * \param mode orientation of front-facing polygons.
+ *
+ * \sa glFrontFace().
+ *
+ * Verifies the parameter and updates gl_polygon_attrib::FrontFace. On change
+ * flushes the vertices and notifies the driver via
+ * dd_function_table::FrontFace.
+ */
 void
 _mesa_FrontFace( GLenum mode )
 {
@@ -88,9 +114,17 @@ _mesa_FrontFace( GLenum mode )
 }
 
 
-
 /**
- * Execute glPolygonMode (error checking, update state, set dirty flags).
+ * \brief Set the polygon rasterization mode.
+ *
+ * \param face the polygons which \p mode applies to.
+ * \param mode how polygons should be rasterized.
+ *
+ * \sa glPolygonMode(). 
+ * 
+ * Verifies the parameters and updates gl_polygon_attrib::FrontMode and
+ * gl_polygon_attrib::BackMode. On change flushes the vertices and notifies the
+ * driver via dd_function_table::PolygonMode.
  */
 void
 _mesa_PolygonMode( GLenum face, GLenum mode )
@@ -209,11 +243,9 @@ _mesa_PolygonOffsetEXT( GLfloat factor, GLfloat bias )
 #endif
 
 
-
-
 /**********************************************************************/
-/*****                    State Management                        *****/
-/**********************************************************************/
+/** \name State Management */
+/*@{*/
 
 /*
  * Check polygon state and set DD_TRI_CULL_FRONT_BACK and/or DD_TRI_OFFSET
@@ -234,11 +266,21 @@ void _mesa_update_polygon( GLcontext *ctx )
    }
 }
 
+/*@}*/
+
 
 /**********************************************************************/
-/*****                      Initialization                        *****/
-/**********************************************************************/
+/** \name Initialization */
+/*@{*/
 
+/**
+ * \brief Initalize the context polygon state.
+ *
+ * \param ctx GL context.
+ *
+ * Initializes __GLcontextRec::Polygon and __GLcontextRec::PolygonStipple
+ * attribute groups.
+ */
 void _mesa_init_polygon( GLcontext * ctx )
 {
    /* Polygon group */
@@ -260,3 +302,5 @@ void _mesa_init_polygon( GLcontext * ctx )
    /* Polygon Stipple group */
    MEMSET( ctx->PolygonStipple, 0xff, 32*sizeof(GLuint) );
 }
+
+/*@}*/

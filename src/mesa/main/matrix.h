@@ -1,4 +1,7 @@
-/* $Id: matrix.h,v 1.12.8.1 2003/03/20 09:21:00 keithw Exp $ */
+/**
+ * \file matrix.h
+ * \brief Matrix operations.
+ */
 
 /*
  * Mesa 3-D graphics library
@@ -23,6 +26,8 @@
  * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
+/* $Id: matrix.h,v 1.12.8.2 2003/03/20 19:38:42 jrfonseca Exp $ */
 
 
 #ifndef MATRIX_H

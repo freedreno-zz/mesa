@@ -1,4 +1,7 @@
-/* $Id: polygon.h,v 1.4.8.1 2003/03/20 09:21:06 keithw Exp $ */
+/**
+ * \file polygon.h
+ * \brief Polygon operations.
+ */
 
 /*
  * Mesa 3-D graphics library
@@ -23,6 +26,8 @@
  * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
+/* $Id: polygon.h,v 1.4.8.2 2003/03/20 19:38:46 jrfonseca Exp $ */
 
 
 #ifndef POLYGON_H

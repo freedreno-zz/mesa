@@ -1,4 +1,7 @@
-/* $Id: lines.h,v 1.5.8.1 2003/03/20 09:20:57 keithw Exp $ */
+/**
+ * \file lines.h
+ * \brief Line operations.
+ */
 
 /*
  * Mesa 3-D graphics library
@@ -23,6 +26,8 @@
  * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
+/* $Id: lines.h,v 1.5.8.2 2003/03/20 19:38:41 jrfonseca Exp $ */
 
 
 #ifndef LINES_H

@@ -1,4 +1,7 @@
-/* $Id: light.h,v 1.15.4.2 2003/03/20 09:20:56 keithw Exp $ */
+/**
+ * \file light.h
+ * \brief Lighting.
+ */
 
 /*
  * Mesa 3-D graphics library
@@ -23,6 +26,8 @@
  * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
+/* $Id: light.h,v 1.15.4.3 2003/03/20 19:38:40 jrfonseca Exp $ */
 
 
 #ifndef LIGHT_H

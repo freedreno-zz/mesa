@@ -1,4 +1,7 @@
-/* $Id: lines.c,v 1.30.4.1 2003/03/20 09:20:56 keithw Exp $ */
+/**
+ * \file lines.c
+ * \brief Line operations.
+ */
 
 /*
  * Mesa 3-D graphics library
@@ -24,6 +27,8 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+/* $Id: lines.c,v 1.30.4.2 2003/03/20 19:38:40 jrfonseca Exp $ */
+
 
 #include "glheader.h"
 #include "context.h"
@@ -35,6 +40,19 @@
 #include "mtypes.h"
 
 
+/**
+ * \brief Set the line width.
+ *
+ * \param width line width in pixels.
+ *
+ * \sa glLineWidth().
+ *
+ * Verifies the parameter and updates gl_line_attrib::Width. On a change,
+ * flushes the vertices, updates the clamped line width and marks the
+ * DD_LINE_WIDTH flag in __GLcontextRec::_TriangleCaps for the drivers if the
+ * width is different from one . Notifies the driver via
+ * dd_function_table::LineWidth.
+ */
 void
 _mesa_LineWidth( GLfloat width )
 {
@@ -66,7 +84,18 @@ _mesa_LineWidth( GLfloat width )
 }
 
 
-
+/**
+ * \brief Set the line stipple pattern.
+ *
+ * \param factor pattern scale factor.
+ * \param pattern bit pattern.
+ * 
+ * \sa glLineStipple().
+ *
+ * Updates gl_line_attrib::StippleFactor and gl_line_attrib::StipplePattern. On
+ * change flushes the vertices and notifies the driver via
+ * dd_function_table::LineStipple.
+ */
 void
 _mesa_LineStipple( GLint factor, GLushort pattern )
 {
@@ -88,10 +117,14 @@ _mesa_LineStipple( GLint factor, GLushort pattern )
 }
 
 
-/**********************************************************************/
-/*****                      Initialization                        *****/
-/**********************************************************************/
-
+/**
+ * \brief Initialize the context line state.
+ *
+ * \param ctx GL context.
+ *
+ * Initializes __GLcontextRec::Line and line related constants in
+ * __GLcontextRec::Const.
+ */
 void _mesa_init_line( GLcontext * ctx )
 {
    /* Line group */

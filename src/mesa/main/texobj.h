@@ -1,4 +1,7 @@
-/* $Id: texobj.h,v 1.8 2002/06/17 23:36:31 brianp Exp $ */
+/**
+ * \file texobj.h
+ * \brief Texture object management.
+ */
 
 /*
  * Mesa 3-D graphics library
@@ -24,6 +27,8 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+/* $Id: texobj.h,v 1.8.6.1 2003/03/20 19:38:48 jrfonseca Exp $ */
+
 
 #ifndef TEXTOBJ_H
 #define TEXTOBJ_H
@@ -32,10 +37,10 @@
 #include "mtypes.h"
 
 
-
-/*
- * Internal functions
+/**
+ * \name Internal functions
  */
+/*@{*/
 
 extern struct gl_texture_object *
 _mesa_alloc_texture_object( struct gl_shared_state *shared, GLuint name,
@@ -56,10 +61,13 @@ extern void
 _mesa_test_texobj_completeness( const GLcontext *ctx,
                                 struct gl_texture_object *t );
 
+/*@}*/
 
-/*
- * API functions
+
+/**
+ * \name API functions
  */
+/*@{*/
 
 extern void
 _mesa_GenTextures( GLsizei n, GLuint *textures );
@@ -82,9 +90,9 @@ extern GLboolean
 _mesa_AreTexturesResident( GLsizei n, const GLuint *textures,
                            GLboolean *residences );
 
-
 extern GLboolean
 _mesa_IsTexture( GLuint texture );
 
+/*@}*/
 
 #endif

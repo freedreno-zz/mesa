@@ -1,6 +1,6 @@
 /**
  * \file enable.c
- * \brief GL capabilities enabling.
+ * \brief Enable/disable/query GL capabilities.
  */
 
 /*
@@ -27,7 +27,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: enable.c,v 1.71.4.2 2003/03/19 15:43:15 jrfonseca Exp $ */
+/* $Id: enable.c,v 1.71.4.3 2003/03/20 19:38:39 jrfonseca Exp $ */
 
 
 #include "glheader.h"
@@ -191,15 +191,16 @@ _mesa_DisableClientState( GLenum cap )
 
 
 /**
- * \brief Perform glEnable and glDisable calls.
+ * \brief Perform glEnable() and glDisable() calls.
  *
- * \param ctx GL contex.
+ * \param ctx GL context.
  * \param cap capability.
  * \param state whether to enable or disable the specified capability.
  *
  * Updates the current context and flushes the vertices as needed. For
  * capabilities associated with extensions it verifies that those extensions
- * are effectivly present before updating.
+ * are effectivly present before updating. Notifies the driver via
+ * dd_function_table::Enable.
  */
 void _mesa_set_enable( GLcontext *ctx, GLenum cap, GLboolean state )
 {

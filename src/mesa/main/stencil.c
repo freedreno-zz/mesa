@@ -1,4 +1,7 @@
-/* $Id: stencil.c,v 1.29.4.2 2003/03/20 09:21:11 keithw Exp $ */
+/**
+ * \file stencil.c
+ * \brief Stencil operations.
+ */
 
 /*
  * Mesa 3-D graphics library
@@ -24,6 +27,8 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+/* $Id: stencil.c,v 1.29.4.3 2003/03/20 19:38:47 jrfonseca Exp $ */
+
 
 #include "glheader.h"
 #include "imports.h"
@@ -35,6 +40,17 @@
 #include "enable.h"
 
 
+/**
+ * \brief Set the clear value for the stencil buffer.
+ *
+ * \param s clear value.
+ *
+ * \sa glClearStencil().
+ *
+ * Updates gl_stencil_attrib::Clear. On change
+ * flushes the vertices and notifies the driver via
+ * dd_function_table::ClearStencil.
+ */
 void
 _mesa_ClearStencil( GLint s )
 {
@@ -53,7 +69,19 @@ _mesa_ClearStencil( GLint s )
 }
 
 
-
+/**
+ * \brief Set the function and reference value for stencil testing.
+ *
+ * \param func test function.
+ * \param ref reference value.
+ * \param mask bitmask.
+ *
+ * \sa glStencilFunc().
+ *
+ * Verifies the parameters and updates the respective values in
+ * __GLcontextRec::Stencil. On change flushes the vertices and notifies the
+ * driver via dd_function_table::StencilFunc.
+ */
 void
 _mesa_StencilFunc( GLenum func, GLint ref, GLuint mask )
 {
@@ -96,7 +124,17 @@ _mesa_StencilFunc( GLenum func, GLint ref, GLuint mask )
 }
 
 
-
+/**
+ * \brief Set the stencil writing mask.
+ *
+ * \param mask bit-mask to enable/disbale writing of individual bits in the
+ * stencil planes.
+ *
+ * \sa glStencilMask().
+ *
+ * Updates gl_stencil_attrib::WriteMask. On change flushes the vertices and
+ * notifies the driver via dd_function_table::StencilMask.
+ */
 void
 _mesa_StencilMask( GLuint mask )
 {
@@ -116,7 +154,20 @@ _mesa_StencilMask( GLuint mask )
 }
 
 
-
+/**
+ * \brief Set the stencil test actions.
+ *
+ * \param fail action to take when stencil test fails.
+ * \param zfail action to take when stencil test passes, but the depth test fails.
+ * \param zpass action to take when stencil test passes and the depth test
+ * passes (or depth testing is not enabled).
+ * 
+ * \sa glStencilOp().
+ * 
+ * Verifies the parameters and updates the respective fields in
+ * __GLcontextRec::Stencil. On change flushes the vertices and notifies the
+ * driver via dd_function_table::StencilOp.
+ */
 void
 _mesa_StencilOp(GLenum fail, GLenum zfail, GLenum zpass)
 {
@@ -215,10 +266,13 @@ _mesa_ActiveStencilFaceEXT(GLenum face)
 #endif
 
 
-/**********************************************************************/
-/*****                      Initialization                        *****/
-/**********************************************************************/
-
+/**
+ * \brief Initialize the context stipple state.
+ *
+ * \param ctx GL context.
+ *
+ * Initializes __GLcontextRec::Stipple attribute group.
+ */
 void _mesa_init_stencil( GLcontext * ctx )
 {
 
