@@ -1,4 +1,4 @@
-/* $Id: xm_dd.c,v 1.26 2001/09/12 03:32:29 brianp Exp $ */
+/* $Id: xm_dd.c,v 1.26.2.1 2001/11/28 11:54:45 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -854,7 +854,7 @@ get_string( GLcontext *ctx, GLenum name )
 #endif
       case GL_VENDOR:
 #ifdef XFree86Server
-         return (const GLubyte *) "VA Linux Systems, Inc.";
+         return (const GLubyte *) "Mesa project: www.mesa3d.org";
 #else
          return NULL;
 #endif
