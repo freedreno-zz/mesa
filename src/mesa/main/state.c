@@ -1,7 +1,8 @@
+/* $Id: state.c,v 1.21.4.3 2000/10/21 01:22:13 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.3
+ * Version:  3.4
  *
  * Copyright (C) 1999-2000  Brian Paul   All Rights Reserved.
  *
@@ -974,9 +975,11 @@ void gl_update_state( GLcontext *ctx )
 	       }
 	    }
 	 }
+         else {
+            ctx->Texture.Unit[i].ReallyEnabled = 0;
+         }
       }
-
-      ctx->Texture.ReallyEnabled = ctx->Enabled & ENABLE_TEX_ANY;
+      ctx->Enabled = (ctx->Enabled & ~ENABLE_TEX_ANY) | ctx->Texture.ReallyEnabled;
       ctx->NeedNormals = (ctx->Light.Enabled || ctx->Texture.NeedNormals);
    }
 
