@@ -1,4 +1,4 @@
-/* $Id: feedback.c,v 1.27.4.1 2003/02/21 21:14:15 keithw Exp $ */
+/* $Id: feedback.c,v 1.27.4.2 2003/03/17 17:03:49 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -34,6 +34,8 @@
 #include "mmath.h"
 #include "mtypes.h"
 
+
+#if _HAVE_FULL_GL
 
 
 #define FB_3D		0x01
@@ -146,6 +148,8 @@ void _mesa_feedback_vertex( GLcontext *ctx,
       FEEDBACK_TOKEN( ctx, texcoord[3] );
    }
 }
+
+#endif
 
 
 /**********************************************************************/
@@ -362,6 +366,7 @@ _mesa_RenderMode( GLenum mode )
 	 ctx->Select.Hits = 0;
 	 ctx->Select.NameStackDepth = 0;
 	 break;
+#if _HAVE_FULL_GL
       case GL_FEEDBACK:
 	 if (ctx->Feedback.Count > ctx->Feedback.BufferSize) {
 	    /* overflow */
@@ -372,6 +377,7 @@ _mesa_RenderMode( GLenum mode )
 	 }
 	 ctx->Feedback.Count = 0;
 	 break;
+#endif
       default:
 	 _mesa_error( ctx, GL_INVALID_ENUM, "glRenderMode" );
 	 return 0;
@@ -386,12 +392,14 @@ _mesa_RenderMode( GLenum mode )
 	    _mesa_error( ctx, GL_INVALID_OPERATION, "glRenderMode" );
 	 }
 	 break;
+#if _HAVE_FULL_GL
       case GL_FEEDBACK:
 	 if (ctx->Feedback.BufferSize==0) {
 	    /* haven't called glFeedbackBuffer yet */
 	    _mesa_error( ctx, GL_INVALID_OPERATION, "glRenderMode" );
 	 }
 	 break;
+#endif
       default:
 	 _mesa_error( ctx, GL_INVALID_ENUM, "glRenderMode" );
 	 return 0;

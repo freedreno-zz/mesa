@@ -1,4 +1,4 @@
-/* $Id: blend.c,v 1.38 2002/10/24 23:57:19 brianp Exp $ */
+/* $Id: blend.c,v 1.38.4.1 2003/03/17 17:03:46 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -113,6 +113,8 @@ _mesa_BlendFunc( GLenum sfactor, GLenum dfactor )
       ctx->Driver.BlendFunc( ctx, sfactor, dfactor );
 }
 
+
+#if _HAVE_FULL_GL
 
 /* GL_EXT_blend_func_separate */
 void
@@ -313,6 +315,8 @@ _mesa_BlendEquation( GLenum mode )
       (*ctx->Driver.BlendEquation)( ctx, mode );
 }
 
+#endif
+
 
 
 void
@@ -412,7 +416,7 @@ _mesa_LogicOp( GLenum opcode )
       ctx->Driver.LogicOpcode( ctx, opcode );
 }
 
-
+#if _HAVE_FULL_GL
 void
 _mesa_IndexMask( GLuint mask )
 {
@@ -428,6 +432,7 @@ _mesa_IndexMask( GLuint mask )
    if (ctx->Driver.IndexMask)
       ctx->Driver.IndexMask( ctx, mask );
 }
+#endif
 
 
 void

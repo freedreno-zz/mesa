@@ -1,4 +1,4 @@
-/* $Id: buffers.c,v 1.42 2002/10/24 23:57:19 brianp Exp $ */
+/* $Id: buffers.c,v 1.42.4.1 2003/03/17 17:03:48 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -39,7 +39,7 @@
 #include "mtypes.h"
 
 
-
+#if _HAVE_FULL_GL
 void
 _mesa_ClearIndex( GLfloat c )
 {
@@ -57,7 +57,7 @@ _mesa_ClearIndex( GLfloat c )
       (*ctx->Driver.ClearIndex)( ctx, ctx->Color.ClearIndex );
    }
 }
-
+#endif
 
 
 void
@@ -147,6 +147,28 @@ _mesa_DrawBuffer( GLenum mode )
     * Do error checking and compute the _DrawDestMask bitfield.
     */
    switch (mode) {
+      case GL_FRONT:
+         /* never an error */
+         if (ctx->Visual.stereoMode)
+            ctx->Color._DrawDestMask = FRONT_LEFT_BIT | FRONT_RIGHT_BIT;
+         else
+            ctx->Color._DrawDestMask = FRONT_LEFT_BIT;
+         break;
+      case GL_BACK:
+         if (!ctx->Visual.doubleBufferMode) {
+            _mesa_error( ctx, GL_INVALID_OPERATION, "glDrawBuffer" );
+            return;
+         }
+         if (ctx->Visual.stereoMode)
+            ctx->Color._DrawDestMask = BACK_LEFT_BIT | BACK_RIGHT_BIT;
+         else
+            ctx->Color._DrawDestMask = BACK_LEFT_BIT;
+         break;
+      case GL_NONE:
+         /* never an error */
+         ctx->Color._DrawDestMask = 0;
+         break;
+#if _HAVE_FULL_GL
       case GL_RIGHT:
          if (!ctx->Visual.stereoMode) {
             _mesa_error( ctx, GL_INVALID_OPERATION, "glDrawBuffer" );
@@ -188,16 +210,6 @@ _mesa_DrawBuffer( GLenum mode )
          else
             ctx->Color._DrawDestMask = FRONT_LEFT_BIT | BACK_LEFT_BIT;
          break;
-      case GL_BACK:
-         if (!ctx->Visual.doubleBufferMode) {
-            _mesa_error( ctx, GL_INVALID_OPERATION, "glDrawBuffer" );
-            return;
-         }
-         if (ctx->Visual.stereoMode)
-            ctx->Color._DrawDestMask = BACK_LEFT_BIT | BACK_RIGHT_BIT;
-         else
-            ctx->Color._DrawDestMask = BACK_LEFT_BIT;
-         break;
       case GL_LEFT:
          /* never an error */
          if (ctx->Visual.doubleBufferMode)
@@ -208,17 +220,6 @@ _mesa_DrawBuffer( GLenum mode )
       case GL_FRONT_LEFT:
          /* never an error */
          ctx->Color._DrawDestMask = FRONT_LEFT_BIT;
-         break;
-      case GL_FRONT:
-         /* never an error */
-         if (ctx->Visual.stereoMode)
-            ctx->Color._DrawDestMask = FRONT_LEFT_BIT | FRONT_RIGHT_BIT;
-         else
-            ctx->Color._DrawDestMask = FRONT_LEFT_BIT;
-         break;
-      case GL_NONE:
-         /* never an error */
-         ctx->Color._DrawDestMask = 0;
          break;
       case GL_AUX0:
          if (ctx->Const.NumAuxBuffers >= 1) {
@@ -256,6 +257,7 @@ _mesa_DrawBuffer( GLenum mode )
             return;
          }
          break;
+#endif
       default:
          _mesa_error( ctx, GL_INVALID_ENUM, "glDrawBuffer" );
          return;
@@ -301,6 +303,7 @@ _mesa_ReadBuffer( GLenum mode )
          }
          ctx->Pixel._ReadSrcMask = BACK_LEFT_BIT;
          break;
+#if _HAVE_FULL_GL
       case GL_FRONT_RIGHT:
       case GL_RIGHT:
          if (!ctx->Visual.stereoMode) {
@@ -352,6 +355,7 @@ _mesa_ReadBuffer( GLenum mode )
             return;
          }
          break;
+#endif
       default:
          _mesa_error( ctx, GL_INVALID_ENUM, "glReadBuffer" );
          return;
@@ -367,7 +371,7 @@ _mesa_ReadBuffer( GLenum mode )
       (*ctx->Driver.ReadBuffer)(ctx, mode);
 }
 
-
+#if _HAVE_FULL_GL
 /*
  * GL_MESA_resize_buffers extension
  * When this function is called, we'll ask the window system how large
@@ -423,6 +427,26 @@ _mesa_ResizeBuffersMESA( void )
    }
 }
 
+/*
+ * XXX move somewhere else someday?
+ */
+void
+_mesa_SampleCoverageARB(GLclampf value, GLboolean invert)
+{
+   GLcontext *ctx = _mesa_get_current_context();
+
+   if (!ctx->Extensions.ARB_multisample) {
+      _mesa_error(ctx, GL_INVALID_OPERATION, "glSampleCoverageARB");
+      return;
+   }
+
+   ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH( ctx );
+   ctx->Multisample.SampleCoverageValue = (GLfloat) CLAMP(value, 0.0, 1.0);
+   ctx->Multisample.SampleCoverageInvert = invert;
+   ctx->NewState |= _NEW_MULTISAMPLE;
+}
+
+#endif
 
 void
 _mesa_Scissor( GLint x, GLint y, GLsizei width, GLsizei height )
@@ -454,23 +478,4 @@ _mesa_Scissor( GLint x, GLint y, GLsizei width, GLsizei height )
       ctx->Driver.Scissor( ctx, x, y, width, height );
 }
 
-
-/*
- * XXX move somewhere else someday?
- */
-void
-_mesa_SampleCoverageARB(GLclampf value, GLboolean invert)
-{
-   GLcontext *ctx = _mesa_get_current_context();
-
-   if (!ctx->Extensions.ARB_multisample) {
-      _mesa_error(ctx, GL_INVALID_OPERATION, "glSampleCoverageARB");
-      return;
-   }
-
-   ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH( ctx );
-   ctx->Multisample.SampleCoverageValue = (GLfloat) CLAMP(value, 0.0, 1.0);
-   ctx->Multisample.SampleCoverageInvert = invert;
-   ctx->NewState |= _NEW_MULTISAMPLE;
-}
 			   

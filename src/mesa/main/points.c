@@ -1,4 +1,4 @@
-/* $Id: points.c,v 1.34 2002/10/24 23:57:21 brianp Exp $ */
+/* $Id: points.c,v 1.34.4.1 2003/03/17 17:03:50 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -65,6 +65,7 @@ _mesa_PointSize( GLfloat size )
 }
 
 
+#if _HAVE_FULL_GL
 
 /*
  * Added by GL_NV_point_sprite
@@ -220,3 +221,4 @@ _mesa_PointParameterfvEXT( GLenum pname, const GLfloat *params)
    if (ctx->Driver.PointParameterfv)
       (*ctx->Driver.PointParameterfv)(ctx, pname, params);
 }
+#endif

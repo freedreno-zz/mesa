@@ -1,4 +1,4 @@
-/* $Id: drawpix.c,v 1.63 2002/10/24 23:57:20 brianp Exp $ */
+/* $Id: drawpix.c,v 1.63.4.1 2003/03/17 17:03:49 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -35,6 +35,7 @@
 #include "state.h"
 #include "mtypes.h"
 
+#if _HAVE_FULL_GL
 
 /*
  * Execute glDrawPixels
@@ -88,35 +89,6 @@ _mesa_DrawPixels( GLsizei width, GLsizei height,
    }
 }
 
-
-
-void
-_mesa_ReadPixels( GLint x, GLint y, GLsizei width, GLsizei height,
-		  GLenum format, GLenum type, GLvoid *pixels )
-{
-   GET_CURRENT_CONTEXT(ctx);
-   ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx);
-
-   if (width < 0 || height < 0) {
-      _mesa_error( ctx, GL_INVALID_VALUE,
-                   "glReadPixels(width=%d height=%d)", width, height );
-      return;
-   }
-
-   if (!pixels) {
-      _mesa_error( ctx, GL_INVALID_VALUE, "glReadPixels(pixels)" );
-      return;
-   }
-
-   if (ctx->NewState)
-      _mesa_update_state(ctx);
-
-   ctx->Driver.ReadPixels(ctx, x, y, width, height,
-			  format, type, &ctx->Pack, pixels);
-}
-
-
-
 void
 _mesa_CopyPixels( GLint srcx, GLint srcy, GLsizei width, GLsizei height,
                   GLenum type )
@@ -164,6 +136,37 @@ _mesa_CopyPixels( GLint srcx, GLint srcy, GLsizei width, GLsizei height,
       _mesa_update_hitflag( ctx, ctx->Current.RasterPos[2] );
    }
 }
+
+#endif
+
+
+
+void
+_mesa_ReadPixels( GLint x, GLint y, GLsizei width, GLsizei height,
+		  GLenum format, GLenum type, GLvoid *pixels )
+{
+   GET_CURRENT_CONTEXT(ctx);
+   ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx);
+
+   if (width < 0 || height < 0) {
+      _mesa_error( ctx, GL_INVALID_VALUE,
+                   "glReadPixels(width=%d height=%d)", width, height );
+      return;
+   }
+
+   if (!pixels) {
+      _mesa_error( ctx, GL_INVALID_VALUE, "glReadPixels(pixels)" );
+      return;
+   }
+
+   if (ctx->NewState)
+      _mesa_update_state(ctx);
+
+   ctx->Driver.ReadPixels(ctx, x, y, width, height,
+			  format, type, &ctx->Pack, pixels);
+}
+
+
 
 
 
