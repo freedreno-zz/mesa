@@ -65,9 +65,6 @@ static void _tnl_bind_vertex_list( GLcontext *ctx,
    VB->PrimitiveCount = node->prim_count;
    VB->Elts = NULL;
    VB->NormalLengthPtr = NULL;
-   VB->ColorPtr[1] = NULL;
-   VB->SecondaryColorPtr[1] = NULL;
-   VB->IndexPtr[1] = NULL;
 
    for (attr = 0; attr <= _TNL_ATTRIB_INDEX; attr++) {
       if (node->attrsz[attr]) {
@@ -108,8 +105,11 @@ static void _tnl_bind_vertex_list( GLcontext *ctx,
    VB->ObjPtr = VB->AttribPtr[_TNL_ATTRIB_POS];
    VB->NormalPtr = VB->AttribPtr[_TNL_ATTRIB_NORMAL];
    VB->ColorPtr[0] = VB->AttribPtr[_TNL_ATTRIB_COLOR0];
+   VB->ColorPtr[1] = 0;
    VB->IndexPtr[0] = VB->AttribPtr[_TNL_ATTRIB_INDEX];
+   VB->IndexPtr[1] = 0;
    VB->SecondaryColorPtr[0] = VB->AttribPtr[_TNL_ATTRIB_COLOR1];
+   VB->SecondaryColorPtr[1] = 0;
 
    for (i = 0; i < ctx->Const.MaxTextureCoordUnits; i++) {
       VB->TexCoordPtr[i] = VB->AttribPtr[_TNL_ATTRIB_TEX0 + i];
@@ -179,8 +179,7 @@ void _tnl_playback_vertex_list( GLcontext *ctx, void *data )
 	  * includes operations such as glBegin or glDrawArrays.
 	  */
 	 _mesa_error( ctx, GL_INVALID_OPERATION, "displaylist recursive begin");
-	 if (!(node->prim[0].mode & PRIM_WEAK))
-	    _tnl_loopback_vertex_list( ctx, data );
+	 _tnl_loopback_vertex_list( ctx, data );
 	 return;
       }
       else if (node->dangling_attr_ref) {
