@@ -204,6 +204,14 @@ extern void radeonPointsBitmap( GLcontext *ctx, GLint px, GLint py,
 				const struct gl_pixelstore_attrib *unpack,
 				const GLubyte *bitmap );
 
+
+extern void radeonReadPixels( GLcontext *ctx,
+			      GLint x, GLint y,
+			      GLsizei width, GLsizei height,
+			      GLenum format, GLenum type,
+			      const struct gl_pixelstore_attrib *packing,
+			      GLvoid *pixels );
+
 /* Initialize the driver's misc functions.
  */
 static void radeonInitDriverFuncs( GLcontext *ctx )
@@ -214,6 +222,7 @@ static void radeonInitDriverFuncs( GLcontext *ctx )
     ctx->Driver.Error			= NULL;
     ctx->Driver.DrawPixels		= NULL;
     ctx->Driver.Bitmap			= radeonPointsBitmap;
+    ctx->Driver.ReadPixels		= radeonReadPixels;
 }
 
 

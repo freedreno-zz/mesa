@@ -618,7 +618,7 @@ do {									\
 									\
       radeonEmitVertexAOS( rmesa,					\
 			   rmesa->swtcl.vertex_size,			\
-			   (rmesa->radeonScreen->agp_buffer_offset +		\
+			   (rmesa->radeonScreen->agp_buffer_offset +	\
 			    rmesa->swtcl.indexed_verts.buf->buf->idx * 	\
 			    RADEON_BUFFER_SIZE +			\
 			    rmesa->swtcl.indexed_verts.start));		\
@@ -1273,7 +1273,6 @@ void radeonInitSwtcl( GLcontext *ctx )
 
    ctx->Driver.PolygonMode		= radeonPolygonMode
    ctx->Driver.LightingSpaceChange      = radeonLightingSpaceChange;
-
 }
 
 

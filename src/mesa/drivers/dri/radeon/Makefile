@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.1.2.17 2003/01/24 15:50:52 keithw Exp $
+# $Id: Makefile,v 1.1.2.18 2003/01/24 17:11:10 keithw Exp $
 
 # Mesa 3-D graphics library
 # Version:  5.0
@@ -50,11 +50,14 @@ DRIVER_SOURCES = server/radeon_dri.c \
 
 SUBSET_DRIVER_SOURCES = \
 		radeon_subset_bitmap.c \
+		radeon_subset_readpix.c \
 		radeon_subset_tcl.c \
 		radeon_subset_vtx.c 
 
 FULL_DRIVER_SOURCES = 	\
-		 radeon_light_state.c \
+		 radeon_lighting.c \
+		 radeon_userclip.c \
+		 radeon_texgen.c \
 		 radeon_tcl.c \
 		 radeon_swtcl.c \
 		 radeon_span.c \
