@@ -1,0 +1,635 @@
+# $Id: MINIGLXspec,v 1.1.2.1 2003/03/21 11:20:22 keithw Exp $
+
+# This file describes all the OpenGL functions.
+# We use a number of Python scripts to parse this file and
+# generate some source files.  We used to use the SGI gl.spec
+# file but that got to be a PITA.
+
+# Every entry _must_ either have an 'offset' or 'alias' line.
+# The offset may be ? to indicate an unallocated dispatch offset.
+
+
+# OpenGL 1.0
+
+name		Begin
+return		void
+param		mode		GLenum
+category	1.0
+offset		7
+
+name		Bitmap
+return		void
+param		width		GLsizei
+param		height		GLsizei
+param		xorig		GLfloat
+param		yorig		GLfloat
+param		xmove		GLfloat
+param		ymove		GLfloat
+param		bitmap		const GLubyte *
+category	1.0
+offset		8
+
+name		Color3f
+return		void
+param		red		GLfloat
+param		green		GLfloat
+param		blue		GLfloat
+category	1.0
+offset		13
+
+name		Color3fv
+return		void
+param		v		const GLfloat *
+category	1.0
+offset		14
+
+name		Color4f
+return		void
+param		red		GLfloat
+param		green		GLfloat
+param		blue		GLfloat
+param		alpha		GLfloat
+category	1.0
+offset		29
+
+name		Color4fv
+return		void
+param		v		const GLfloat *
+category	1.0
+offset		30
+
+name		End
+return		void
+category	1.0
+offset		43
+
+name		RasterPos2f
+return		void
+param		x		GLfloat
+param		y		GLfloat
+category	1.0
+offset		64
+
+name		RasterPos2fv
+return		void
+param		v		const GLfloat *
+category	1.0
+offset		65
+
+name		RasterPos2i
+return		void
+param		x		GLint
+param		y		GLint
+category	1.0
+offset		66
+
+name		RasterPos2iv
+return		void
+param		v		const GLint *
+category	1.0
+offset		67
+
+name		TexCoord2f
+return		void
+param		s		GLfloat
+param		t		GLfloat
+category	1.0
+offset		104
+
+name		TexCoord2fv
+return		void
+param		v		const GLfloat *
+category	1.0
+offset		105
+
+name		Vertex2f
+return		void
+param		x		GLfloat
+param		y		GLfloat
+category	1.0
+offset		128
+
+name		Vertex2fv
+return		void
+param		v		const GLfloat *
+category	1.0
+offset		129
+
+name		Vertex3f
+return		void
+param		x		GLfloat
+param		y		GLfloat
+param		z		GLfloat
+category	1.0
+offset		136
+
+name		Vertex3fv
+return		void
+param		v		const GLfloat *
+category	1.0
+offset		137
+
+name		CullFace
+return		void
+param		mode		GLenum
+category	1.0
+offset		152
+
+name		FrontFace
+return		void
+param		mode		GLenum
+category	1.0
+offset		157
+
+name		LineStipple
+return		void
+param		factor		GLint
+param		pattern		GLushort
+category	1.0
+offset		167
+
+name		LineWidth
+return		void
+param		width		GLfloat
+category	1.0
+offset		168
+
+name		PointSize
+return		void
+param		size		GLfloat
+category	1.0
+offset		173
+
+name		PolygonMode
+return		void
+param		face		GLenum
+param		mode		GLenum
+category	1.0
+offset		174
+
+name		Scissor
+return		void
+param		x		GLint
+param		y		GLint
+param		width		GLsizei
+param		height		GLsizei
+category	1.0
+offset		176
+
+name		ShadeModel
+return		void
+param		mode		GLenum
+category	1.0
+offset		177
+
+name		TexParameteri
+return		void
+param		target		GLenum
+param		pname		GLenum
+param		param		GLint
+category	1.0
+offset		180
+
+name		TexImage2D
+return		void
+param		target		GLenum
+param		level		GLint
+param		internalformat	GLint
+param		width		GLsizei
+param		height		GLsizei
+param		border		GLint
+param		format		GLenum
+param		type		GLenum
+param		pixels		const GLvoid *
+category	1.0
+offset		183
+
+name		TexEnvfv
+return		void
+param		target		GLenum
+param		pname		GLenum
+param		params		const GLfloat *
+category	1.0
+offset		185
+
+name		TexEnvi
+return		void
+param		target		GLenum
+param		pname		GLenum
+param		param		GLint
+category	1.0
+offset		186
+
+
+name		SelectBuffer
+return		void
+param		size		GLsizei
+param		buffer		GLuint *
+category	1.0
+offset		195
+
+name		RenderMode
+return		GLint
+param		mode		GLenum
+category	1.0
+offset		196
+
+name		InitNames
+return		void
+category	1.0
+offset		197
+
+name		LoadName
+return		void
+param		name		GLuint
+category	1.0
+offset		198
+
+
+name		PopName
+return		void
+category	1.0
+offset		200
+
+name		PushName
+return		void
+param		name		GLuint
+category	1.0
+offset		201
+
+
+name		DrawBuffer
+return		void
+param		mode		GLenum
+category	1.0
+offset		202
+
+name		Clear
+return		void
+param		mask		GLbitfield
+category	1.0
+offset		203
+
+name		ClearColor
+return		void
+param		red		GLclampf
+param		green		GLclampf
+param		blue		GLclampf
+param		alpha		GLclampf
+category	1.0
+offset		206
+
+name		ClearStencil
+return		void
+param		s		GLint
+category	1.0
+offset		207
+
+name		StencilMask
+return		void
+param		mask		GLuint
+category	1.0
+offset		209
+
+name		ColorMask
+return		void
+param		red		GLboolean
+param		green		GLboolean
+param		blue		GLboolean
+param		alpha		GLboolean
+category	1.0
+offset		210
+
+
+name		Disable
+return		void
+param		cap		GLenum
+category	1.0
+offset		214
+
+name		Enable
+return		void
+param		cap		GLenum
+category	1.0
+offset		215
+
+name		Finish
+return		void
+category	1.0
+offset		216
+
+name		Flush
+return		void
+category	1.0
+offset		217
+
+name		AlphaFunc
+return		void
+param		func		GLenum
+param		ref		GLclampf
+category	1.0
+offset		240
+
+name		BlendFunc
+return		void
+param		sfactor		GLenum
+param		dfactor		GLenum
+category	1.0
+offset		241
+
+name		LogicOp
+return		void
+param		opcode		GLenum
+category	1.0
+offset		242
+
+
+name		StencilFunc
+return		void
+param		func		GLenum
+param		ref		GLint
+param		mask		GLuint
+category	1.0
+offset		243
+
+name		StencilOp
+return		void
+param		fail		GLenum
+param		zfail		GLenum
+param		zpass		GLenum
+category	1.0
+offset		244
+
+name		DepthFunc
+return		void
+param		func		GLenum
+category	1.0
+offset		245
+
+name		PixelZoom
+return		void
+param		xfactor		GLfloat
+param		yfactor		GLfloat
+category	1.0
+offset		246
+
+
+name		PixelStorei
+return		void
+param		pname		GLenum
+param		param		GLint
+category	1.0
+offset		250
+
+
+name		ReadBuffer
+return		void
+param		mode		GLenum
+category	1.0
+offset		254
+
+
+name		ReadPixels
+return		void
+param		x		GLint
+param		y		GLint
+param		width		GLsizei
+param		height		GLsizei
+param		format		GLenum
+param		type		GLenum
+param		pixels		GLvoid *
+category	1.0
+offset		256
+
+name		GetBooleanv
+return		void
+param		pname		GLenum
+param		params		GLboolean *
+category	1.0
+offset		258
+
+name		GetError
+return		GLenum
+category	1.0
+offset		261
+
+name		GetFloatv
+return		void
+param		pname		GLenum
+param		params		GLfloat *
+category	1.0
+offset		262
+
+name		GetIntegerv
+return		void
+param		pname		GLenum
+param		params		GLint *
+category	1.0
+offset		263
+
+
+
+name		GetString
+return		const GLubyte *
+param		name		GLenum
+category	1.0
+offset		275
+
+name		GetTexEnvfv
+return		void
+param		target		GLenum
+param		pname		GLenum
+param		params		GLfloat *
+category	1.0
+offset		276
+
+name		GetTexEnviv
+return		void
+param		target		GLenum
+param		pname		GLenum
+param		params		GLint *
+category	1.0
+offset		277
+
+
+name		GetTexParameterfv
+return		void
+param		target		GLenum
+param		pname		GLenum
+param		params		GLfloat *
+category	1.0
+offset		282
+
+name		GetTexParameteriv
+return		void
+param		target		GLenum
+param		pname		GLenum
+param		params		GLint *
+category	1.0
+offset		283
+
+name		GetTexLevelParameterfv
+return		void
+param		target		GLenum
+param		level		GLint
+param		pname		GLenum
+param		params		GLfloat *
+category	1.0
+offset		284
+
+name		GetTexLevelParameteriv
+return		void
+param		target		GLenum
+param		level		GLint
+param		pname		GLenum
+param		params		GLint *
+category	1.0
+offset		285
+
+name		IsEnabled
+return		GLboolean
+param		cap		GLenum
+category	1.0
+offset		286
+
+
+name		Frustum
+return		void
+param		left		GLdouble
+param		right		GLdouble
+param		bottom		GLdouble
+param		top		GLdouble
+param		zNear		GLdouble
+param		zFar		GLdouble
+category	1.0
+offset		289
+
+name		LoadIdentity
+return		void
+category	1.0
+offset		290
+
+name		LoadMatrixf
+return		void
+param		m		const GLfloat *
+category	1.0
+offset		291
+
+name		MatrixMode
+return		void
+param		mode		GLenum
+category	1.0
+offset		293
+
+name		MultMatrixf
+return		void
+param		m		const GLfloat *
+category	1.0
+offset		294
+
+
+name		Ortho
+return		void
+param		left		GLdouble
+param		right		GLdouble
+param		bottom		GLdouble
+param		top		GLdouble
+param		zNear		GLdouble
+param		zFar		GLdouble
+category	1.0
+offset		296
+
+name		PopMatrix
+return		void
+category	1.0
+offset		297
+
+name		PushMatrix
+return		void
+category	1.0
+offset		298
+
+
+name		Rotatef
+return		void
+param		angle		GLfloat
+param		x		GLfloat
+param		y		GLfloat
+param		z		GLfloat
+category	1.0
+offset		300
+
+
+name		Scalef
+return		void
+param		x		GLfloat
+param		y		GLfloat
+param		z		GLfloat
+category	1.0
+offset		302
+
+
+name		Translatef
+return		void
+param		x		GLfloat
+param		y		GLfloat
+param		z		GLfloat
+category	1.0
+offset		304
+
+name		Viewport
+return		void
+param		x		GLint
+param		y		GLint
+param		width		GLsizei
+param		height		GLsizei
+category	1.0
+offset		305
+
+
+name		BindTexture
+return		void
+param		target		GLenum
+param		texture		GLuint
+category	1.1
+offset		307
+
+name		DeleteTextures
+return		void
+param		n		GLsizei
+param		textures	const GLuint *
+category	1.1
+offset		327
+
+name		GenTextures
+return		void
+param		n		GLsizei
+param		textures	GLuint *
+category	1.1
+offset		328
+
+
+# OpenGL 1.2
+
+name		BlendColor
+return		void
+param		red		GLclampf
+param		green		GLclampf
+param		blue		GLclampf
+param		alpha		GLclampf
+category	1.2
+offset		336
+
+name		BlendEquation
+return		void
+param		mode		GLenum
+category	1.2
+offset		337
+
+
+
+
+# end of file sentinal
+
+name		dummy
+alias		dummyEXT
