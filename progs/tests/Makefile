@@ -8,7 +8,7 @@ CC = gcc
 CFLAGS = -g -I../include
 LIBS = -L../lib -lGL -lGLU -lglut -lm
 
-PROGS = miniglxtest miniglxsample manytex texline
+PROGS = miniglxtest miniglxsample sample_server sample_server2 manytex texline
 
 
 ##### RULES #####

@@ -1,4 +1,4 @@
-/* $Id: sample_server.c,v 1.1.2.1 2003/04/16 09:34:56 keithw Exp $ */
+/* $Id: sample_server.c,v 1.1.2.2 2003/04/17 15:47:46 keithw Exp $ */
 
 /*
  * Sample server that just keeps first available window mapped.
@@ -40,9 +40,6 @@ int main( int argc, char *argv[] )
       fprintf(stderr, "Error: __miniglx_StartServer failed\n");
       return 1;
    }
-
-   /* How is vt switching communicated through the XNextEvent interface?
-    */
 
    while (XNextEvent( dpy, &ev )) {
       struct client *c;
