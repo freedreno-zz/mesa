@@ -32,7 +32,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: matrix.c,v 1.45.4.7 2003/03/23 23:22:48 jrfonseca Exp $ */
+/* $Id: matrix.c,v 1.45.4.8 2003/03/24 18:23:32 keithw Exp $ */
 
 
 #include "glheader.h"
@@ -555,8 +555,24 @@ _mesa_set_viewport( GLcontext *ctx, GLint x, GLint y,
    ctx->Viewport.Y = y;
    ctx->Viewport.Height = height;
 
+   /* Check if window/buffer has been resized and if so, reallocate the
+    * ancillary buffers.
+    */
+/*    _mesa_ResizeBuffersMESA(); */
+
+   if (ctx->Driver.Viewport) {
+      (*ctx->Driver.Viewport)( ctx, x, y, width, height );
+   }
+
+   if (ctx->_RotateMode) {
+      GLint tmp, tmps;
+      tmp = x; x = y; y = tmp;
+      tmps = width; width = height; height = tmps;
+   }
+
    /* compute scale and bias values :: This is really driver-specific
-    * and should be maintained elsewhere if at all.
+    * and should be maintained elsewhere if at all.  NOTE: RasterPos
+    * uses this.
     */
    ctx->Viewport._WindowMap.m[MAT_SX] = (GLfloat) width / 2.0F;
    ctx->Viewport._WindowMap.m[MAT_TX] = ctx->Viewport._WindowMap.m[MAT_SX] + x;
@@ -568,14 +584,6 @@ _mesa_set_viewport( GLcontext *ctx, GLint x, GLint y,
    ctx->Viewport._WindowMap.type = MATRIX_3D_NO_ROT;
    ctx->NewState |= _NEW_VIEWPORT;
 
-   /* Check if window/buffer has been resized and if so, reallocate the
-    * ancillary buffers.
-    */
-/*    _mesa_ResizeBuffersMESA(); */
-
-   if (ctx->Driver.Viewport) {
-      (*ctx->Driver.Viewport)( ctx, x, y, width, height );
-   }
 }
 
 
