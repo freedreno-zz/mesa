@@ -1,4 +1,4 @@
-$Id: VERSIONS,v 1.13.2.8 2000/01/11 17:27:32 brianp Exp $
+$Id: VERSIONS,v 1.13.2.9 2000/01/17 15:36:47 brianp Exp $
 
 
 Mesa Version History
@@ -678,3 +678,5 @@ Mesa Version History
 	- added missing glHintPGI() function
 	- fixed a polygon culling bug
 	- fixed bugs in gluPartialDisk()
+	- Z values in selection mode were wrong
+
