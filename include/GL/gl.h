@@ -1,8 +1,8 @@
-/* $Id: gl.h,v 1.59.2.3 2002/04/26 13:53:09 brianp Exp $ */
+/* $Id: gl.h,v 1.59.2.4 2002/08/29 14:45:31 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  4.0.3
+ * Version:  4.0.4
  *
  * Copyright (C) 1999-2003  Brian Paul   All Rights Reserved.
  *
@@ -1913,6 +1913,9 @@ GLAPI void GLAPIENTRY glMultTransposeMatrixf( const GLfloat m[16] );
 GLAPI void GLAPIENTRY glSampleCoverage( GLclampf value, GLboolean invert );
 
 
+#if defined(GL_GLEXT_LEGACY)
+
+
 /*
  * GL_ARB_multitexture (ARB extension 1 and OpenGL 1.2.1)
  */
@@ -1990,12 +1993,43 @@ GLAPI void GLAPIENTRY glMultiTexCoord4ivARB(GLenum target, const GLint *v);
 GLAPI void GLAPIENTRY glMultiTexCoord4sARB(GLenum target, GLshort s, GLshort t, GLshort r, GLshort q);
 GLAPI void GLAPIENTRY glMultiTexCoord4svARB(GLenum target, const GLshort *v);
 
+typedef void (APIENTRY * PFNGLACTIVETEXTUREARBPROC) (GLenum texture);
+typedef void (APIENTRY * PFNGLCLIENTACTIVETEXTUREARBPROC) (GLenum texture);
+typedef void (APIENTRY * PFNGLMULTITEXCOORD1DARBPROC) (GLenum target, GLdouble s);
+typedef void (APIENTRY * PFNGLMULTITEXCOORD1DVARBPROC) (GLenum target, const GLdouble *v);
+typedef void (APIENTRY * PFNGLMULTITEXCOORD1FARBPROC) (GLenum target, GLfloat s);
+typedef void (APIENTRY * PFNGLMULTITEXCOORD1FVARBPROC) (GLenum target, const GLfloat *v);
+typedef void (APIENTRY * PFNGLMULTITEXCOORD1IARBPROC) (GLenum target, GLint s);
+typedef void (APIENTRY * PFNGLMULTITEXCOORD1IVARBPROC) (GLenum target, const GLint *v);
+typedef void (APIENTRY * PFNGLMULTITEXCOORD1SARBPROC) (GLenum target, GLshort s);
+typedef void (APIENTRY * PFNGLMULTITEXCOORD1SVARBPROC) (GLenum target, const GLshort *v);
+typedef void (APIENTRY * PFNGLMULTITEXCOORD2DARBPROC) (GLenum target, GLdouble s, GLdouble t);
+typedef void (APIENTRY * PFNGLMULTITEXCOORD2DVARBPROC) (GLenum target, const GLdouble *v);
+typedef void (APIENTRY * PFNGLMULTITEXCOORD2FARBPROC) (GLenum target, GLfloat s, GLfloat t);
+typedef void (APIENTRY * PFNGLMULTITEXCOORD2FVARBPROC) (GLenum target, const GLfloat *v);
+typedef void (APIENTRY * PFNGLMULTITEXCOORD2IARBPROC) (GLenum target, GLint s, GLint t);
+typedef void (APIENTRY * PFNGLMULTITEXCOORD2IVARBPROC) (GLenum target, const GLint *v);
+typedef void (APIENTRY * PFNGLMULTITEXCOORD2SARBPROC) (GLenum target, GLshort s, GLshort t);
+typedef void (APIENTRY * PFNGLMULTITEXCOORD2SVARBPROC) (GLenum target, const GLshort *v);
+typedef void (APIENTRY * PFNGLMULTITEXCOORD3DARBPROC) (GLenum target, GLdouble s, GLdouble t, GLdouble r);
+typedef void (APIENTRY * PFNGLMULTITEXCOORD3DVARBPROC) (GLenum target, const GLdouble *v);
+typedef void (APIENTRY * PFNGLMULTITEXCOORD3FARBPROC) (GLenum target, GLfloat s, GLfloat t, GLfloat r);
+typedef void (APIENTRY * PFNGLMULTITEXCOORD3FVARBPROC) (GLenum target, const GLfloat *v);
+typedef void (APIENTRY * PFNGLMULTITEXCOORD3IARBPROC) (GLenum target, GLint s, GLint t, GLint r);
+typedef void (APIENTRY * PFNGLMULTITEXCOORD3IVARBPROC) (GLenum target, const GLint *v);
+typedef void (APIENTRY * PFNGLMULTITEXCOORD3SARBPROC) (GLenum target, GLshort s, GLshort t, GLshort r);
+typedef void (APIENTRY * PFNGLMULTITEXCOORD3SVARBPROC) (GLenum target, const GLshort *v);
+typedef void (APIENTRY * PFNGLMULTITEXCOORD4DARBPROC) (GLenum target, GLdouble s, GLdouble t, GLdouble r, GLdouble q);
+typedef void (APIENTRY * PFNGLMULTITEXCOORD4DVARBPROC) (GLenum target, const GLdouble *v);
+typedef void (APIENTRY * PFNGLMULTITEXCOORD4FARBPROC) (GLenum target, GLfloat s, GLfloat t, GLfloat r, GLfloat q);
+typedef void (APIENTRY * PFNGLMULTITEXCOORD4FVARBPROC) (GLenum target, const GLfloat *v);
+typedef void (APIENTRY * PFNGLMULTITEXCOORD4IARBPROC) (GLenum target, GLint s, GLint t, GLint r, GLint q);
+typedef void (APIENTRY * PFNGLMULTITEXCOORD4IVARBPROC) (GLenum target, const GLint *v);
+typedef void (APIENTRY * PFNGLMULTITEXCOORD4SARBPROC) (GLenum target, GLshort s, GLshort t, GLshort r, GLshort q);
+typedef void (APIENTRY * PFNGLMULTITEXCOORD4SVARBPROC) (GLenum target, const GLshort *v);
+
 #endif /* GL_ARB_multitexture */
 
-
-
-
-#if defined(GL_GLEXT_LEGACY)
 
 
 /*
@@ -2370,8 +2404,6 @@ GLAPI void GLAPIENTRY glUnlockArraysEXT( void );
 
 
 
-
-
 /*
  * 197. GL_MESA_window_pos
  */
@@ -2434,6 +2466,20 @@ GLAPI void GLAPIENTRY glResizeBuffersMESA( void );
 #else  /* GL_GLEXT_LEGACY */
 
 #include <GL/glext.h>
+
+/* fix-up known errors in glext.h */
+#ifndef GL_TEXTURE_BINDING_3D
+#define GL_TEXTURE_BINDING_3D		   0x806A
+#endif
+#ifdef GL_IGNORE_BORDER
+#undef GL_IGNORE_BORDER /* invalid! */
+#endif
+#ifdef GL_WRAP_BORDER
+#undef GL_WRAP_BORDER /* invalid! */
+#endif
+#ifndef GL_POST_COLOR_MATRIX_ALPHA_BIAS
+#define GL_POST_COLOR_MATRIX_ALPHA_BIAS    0x80BB
+#endif
 
 #endif  /* GL_GLEXT_LEGACY */
 
