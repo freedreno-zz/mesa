@@ -1,4 +1,4 @@
-/* $Id: context.c,v 1.18.2.9 2000/05/26 18:21:10 brianp Exp $ */
+/* $Id: context.c,v 1.18.2.10 2000/06/23 20:29:15 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -2059,7 +2059,7 @@ static void update_rasterflags( GLcontext *ctx )
       ctx->RasterMask |= MULTI_DRAW_BIT;
       ctx->TriangleCaps |= DD_MULTIDRAW;
    }
-   else if (ctx->Visual->RGBAflag && ctx->Color.ColorMask==0) {
+   else if (ctx->Visual->RGBAflag && *((GLuint *) ctx->Color.ColorMask) == 0) {
       /* all RGBA channels disabled */
       ctx->RasterMask |= MULTI_DRAW_BIT;
       ctx->TriangleCaps |= DD_MULTIDRAW;
