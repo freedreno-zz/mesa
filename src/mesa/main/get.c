@@ -1,4 +1,4 @@
-/* $Id: get.c,v 1.69.2.8 2002/09/05 21:16:17 brianp Exp $ */
+/* $Id: get.c,v 1.69.2.9 2002/09/06 13:01:00 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -1216,12 +1216,6 @@ _mesa_GetBooleanv( GLenum pname, GLboolean *params )
             _mesa_error(ctx, GL_INVALID_ENUM, "glGetBooleanv");
             return;
          }
-         break;
-      case GL_MAX_CONVOLUTION_WIDTH:
-         *params = INT_TO_BOOL(ctx->Const.MaxConvolutionWidth);
-         break;
-      case GL_MAX_CONVOLUTION_HEIGHT:
-         *params = INT_TO_BOOL(ctx->Const.MaxConvolutionHeight);
          break;
       case GL_POST_CONVOLUTION_RED_SCALE_EXT:
          *params = FLOAT_TO_BOOL(ctx->Pixel.PostConvolutionScale[0]);
@@ -2535,12 +2529,6 @@ _mesa_GetDoublev( GLenum pname, GLdouble *params )
             return;
          }
          break;
-      case GL_MAX_CONVOLUTION_WIDTH:
-         *params = (GLdouble) ctx->Const.MaxConvolutionWidth;
-         break;
-      case GL_MAX_CONVOLUTION_HEIGHT:
-         *params = (GLdouble) ctx->Const.MaxConvolutionHeight;
-         break;
       case GL_POST_CONVOLUTION_RED_SCALE_EXT:
          *params = (GLdouble) ctx->Pixel.PostConvolutionScale[0];
          break;
@@ -3833,12 +3821,6 @@ _mesa_GetFloatv( GLenum pname, GLfloat *params )
             GET_FLOAT_ERROR;
             return;
          }
-         break;
-      case GL_MAX_CONVOLUTION_WIDTH:
-         *params = (GLfloat) ctx->Const.MaxConvolutionWidth;
-         break;
-      case GL_MAX_CONVOLUTION_HEIGHT:
-         *params = (GLfloat) ctx->Const.MaxConvolutionHeight;
          break;
       case GL_POST_CONVOLUTION_RED_SCALE_EXT:
          *params = ctx->Pixel.PostConvolutionScale[0];
@@ -5153,12 +5135,6 @@ _mesa_GetIntegerv( GLenum pname, GLint *params )
             _mesa_error(ctx, GL_INVALID_ENUM, "glGetIntegerv");
             return;
          }
-         break;
-      case GL_MAX_CONVOLUTION_WIDTH:
-         *params = ctx->Const.MaxConvolutionWidth;
-         break;
-      case GL_MAX_CONVOLUTION_HEIGHT:
-         *params = ctx->Const.MaxConvolutionHeight;
          break;
       case GL_POST_CONVOLUTION_RED_SCALE_EXT:
          *params = (GLint) ctx->Pixel.PostConvolutionScale[0];
