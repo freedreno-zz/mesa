@@ -254,7 +254,6 @@ static int RADEONDRIAgpInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info)
    /* Initialize the CP ring buffer data */
    info->ringStart       = info->agpOffset;
    info->ringMapSize     = info->ringSize*1024*1024 + DRM_PAGE_SIZE;
-   info->ringSizeLog2QW  = RADEONMinBits(info->ringSize*1024*1024/8)-1;
 
    info->ringReadOffset  = info->ringStart + info->ringMapSize;
    info->ringReadMapSize = DRM_PAGE_SIZE;
@@ -891,22 +890,37 @@ static int __driInitScreenConfigs( struct MiniGLXDisplayRec *dpy,
 
 static int __driValidateMode( struct MiniGLXDisplayRec *dpy )
 {
-#if 0
-   /* Work around radeonfb.o bug: virtual resolution must equal real
-    * resolution -- not necessary with our 'fixed' version of
-    * radeonfb.o...
+   unsigned char *RADEONMMIO = dpy->MMIOAddress;
+   RADEONInfoPtr info = dpy->driverInfo;
+
+   /* Save some regs here:
     */
-   dpy->VarInfo.xres = dpy->VarInfo.xres_virtual;
-   dpy->VarInfo.yres = dpy->VarInfo.yres_virtual;
-#endif
+   info->gen_int_cntl = INREG(RADEON_GEN_INT_CNTL);
+   info->crtc_offset_cntl = INREG(RADEON_CRTC_OFFSET_CNTL);
+
+   fprintf(stderr, "saved: %x, %x\n", 
+	   info->gen_int_cntl,
+	   info->crtc_offset_cntl);
+
    return 1;
 }
 
 
 static int __driPostValidateMode( struct MiniGLXDisplayRec *dpy )
 {
-   /* Need to restore registers here that fbdev has clobbered.
+   unsigned char *RADEONMMIO = dpy->MMIOAddress;
+   RADEONInfoPtr info = dpy->driverInfo;
+
+
+   fprintf(stderr, "modied: %x, %x\n", 
+	   INREG(RADEON_GEN_INT_CNTL),
+	   INREG(RADEON_CRTC_OFFSET_CNTL));
+
+   /* Restore registers that fbdev has clobbered.
     */
+   OUTREG(RADEON_GEN_INT_CNTL, info->gen_int_cntl);
+   OUTREG(RADEON_CRTC_OFFSET_CNTL, info->crtc_offset_cntl);
+
    return 1;
 }
 
