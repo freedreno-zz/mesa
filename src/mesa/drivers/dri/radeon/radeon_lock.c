@@ -37,7 +37,6 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "glheader.h"
 #include "radeon_context.h"
 #include "radeon_lock.h"
-#include "radeon_tex.h"
 #include "radeon_state.h"
 #include "radeon_ioctl.h"
 

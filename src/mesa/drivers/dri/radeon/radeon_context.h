@@ -439,8 +439,12 @@ struct radeon_hw_state {
    struct radeon_state_atom zbs;
    struct radeon_state_atom mtl; 
    struct radeon_state_atom mat[5];	/**< \brief matrix transformations */
+#if _HAVE_LIGHTING
    struct radeon_state_atom lit[8];	/**< \brief includes vec, scl commands */
+#endif
+#if _HAVE_USERCLIP
    struct radeon_state_atom ucp[6];
+#endif
    struct radeon_state_atom eye;	/**< \brief eye pos */
    struct radeon_state_atom grd;	/**< \brief guard band clipping */
    struct radeon_state_atom fog;	/**< \brief fog */

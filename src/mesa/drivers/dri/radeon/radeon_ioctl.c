@@ -41,7 +41,6 @@
 #include "radeon_context.h"
 #include "radeon_state.h"
 #include "radeon_ioctl.h"
-#include "radeon_tcl.h"
 #include "radeon_macros.h"  /* for INREG() */
 #include <unistd.h>  /* for usleep() */
 #include <errno.h>

@@ -46,10 +46,14 @@
 #include "radeon_context.h"
 #include "radeon_ioctl.h"
 #include "radeon_state.h"
-#include "radeon_subset.h"
-#include "radeon_tex.h"
+
+#if _HAVE_FULL_GL
 #include "radeon_tcl.h"
 #include "radeon_vtxfmt.h"
+#include "radeon_tex.h"
+#else
+#include "radeon_subset.h"
+#endif
 
 #if defined(USE_X86_ASM)
 #include "X86/common_x86_asm.h"
@@ -109,57 +113,6 @@ static const GLubyte *radeonGetString( GLcontext *ctx, GLenum name )
 
    case GL_RENDERER:
       sprintf( buffer, "Mesa DRI Radeon SUBSET " RADEON_DATE);
-
-      /* Append any chipset-specific information.  None yet.
-       */
-
-      /* Append any AGP-specific information.
-       */
-      switch ( rmesa->radeonScreen->AGPMode ) {
-      case 1:
-	 strncat( buffer, " AGP 1x", 7 );
-	 break;
-      case 2:
-	 strncat( buffer, " AGP 2x", 7 );
-	 break;
-      case 4:
-	 strncat( buffer, " AGP 4x", 7 );
-	 break;
-      }
-
-      /* Append any CPU-specific information.
-       */
-#ifdef USE_X86_ASM
-      if ( _mesa_x86_cpu_features ) {
-	 strncat( buffer, " x86", 4 );
-      }
-#ifdef USE_MMX_ASM
-      if ( cpu_has_mmx ) {
-	 strncat( buffer, "/MMX", 4 );
-      }
-#endif
-#ifdef USE_3DNOW_ASM
-      if ( cpu_has_3dnow ) {
-	 strncat( buffer, "/3DNow!", 7 );
-      }
-#endif
-#ifdef USE_SSE_ASM
-      if ( cpu_has_xmm ) {
-	 strncat( buffer, "/SSE", 4 );
-      }
-#endif
-#endif
-
-      if ( rmesa->dri.drmMinor < 3 ) {
-	 strncat( buffer, " DRM-COMPAT", 11 );
-      }
-	 
-      if ( !(rmesa->TclFallback & RADEON_TCL_FALLBACK_TCL_DISABLE) ) {
-	 strncat( buffer, " TCL", 4 );
-      }
-      else {
-	 strncat( buffer, " NO-TCL", 7 );
-      }
 
       return (GLubyte *)buffer;
 
