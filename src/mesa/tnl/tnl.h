@@ -1,10 +1,10 @@
-/* $Id: tnl.h,v 1.10.4.1 2002/12/30 15:20:38 keithw Exp $ */
+/* $Id: tnl.h,v 1.10.4.2 2003/01/10 21:57:43 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.5
+ * Version:  5.0.1
  *
- * Copyright (C) 1999-2001  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2003  Brian Paul   All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -26,6 +26,21 @@
  * Authors:
  *    Keith Whitwell <keith@tungstengraphics.com>
  */
+
+
+/**
+ * \mainpage Mesa Transform and Lighting (TnL) Module
+ *
+ * This module is responsible for the following:
+ *   - building vertex buffers from glVertex, glColor, etc calls
+ *   - transforming vertices by the modelview and projection matrices
+ *   - view volume and user-defined clipping
+ *   - lighting
+ *   - texgen
+ *   - fog
+ *   - vertex program execution
+ */
+
 
 #ifndef _TNL_H
 #define _TNL_H

@@ -1,4 +1,4 @@
-/* $Id: context.c,v 1.188.2.1.2.1 2002/12/12 14:22:02 keithw Exp $ */
+/* $Id: context.c,v 1.188.2.1.2.2 2003/01/10 21:57:41 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -22,6 +22,56 @@
  * BRIAN PAUL BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
  * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+
+
+/**
+ * \mainpage Mesa Core Module
+ *
+ * \section CoreIntroduction Introduction
+ *
+ * The Mesa core module consists of all the top-level files in the src
+ * directory.  The core module basically takes care of API dispatch,
+ * and OpenGL state management.
+ *
+ * For example, calls to glPolygonMode are routed to _mesa_PolygonMode()
+ * which updates the state related to polygonmode.  Furthermore, dirty
+ * state flags related to polygon mode are set and if the device driver
+ * implements a special routine for PolygonMode, it will be called.
+ *
+ *
+ * \section AboutDoxygen About Doxygen
+ *
+ * If you're viewing this information as Doxygen-generated HTML you'll
+ * see the documentation index at the top of this page.
+ *
+ * The first line lists the Mesa source code modules.
+ * The second line lists the indexes available for viewing the documentation
+ * for each module.
+ *
+ * Selecting the <b>Main page</b> link will display a summary of the module
+ * (this page).
+ *
+ * Selecting <b>Compound List</b> will list all C structures.
+ *
+ * Selecting the <b>File List</b> link will list all the source files in
+ * the module.
+ * Selecting a filename will show a list of all functions defined in that file.
+ *
+ * Selecting the <b>Compound Members</b> link will display a list of all
+ * documented structure members.
+ *
+ * Selecting the <b>File Members</b> link will display a list
+ * of all functions, structures, global variables and macros in the module.
+ *
+ */
+
+
+/**
+ * \file context.c
+ * \brief Mesa context/visual/framebuffer management functions.
+ * \author Brian Paul
  */
 
 
@@ -1872,7 +1922,7 @@ _mesa_initialize_context( GLcontext *ctx,
 
 
 
-/*
+/**
  * Allocate and initialize a GLcontext structure.
  * Input:  visual - a GLvisual pointer (we copy the struct contents)
  *         sharelist - another context to share display lists with or NULL
@@ -1907,7 +1957,7 @@ _mesa_create_context( const GLvisual *visual,
 
 
 
-/*
+/**
  * Free the data associated with the given context.
  * But don't free() the GLcontext struct itself!
  */
@@ -2025,7 +2075,7 @@ _mesa_free_context_data( GLcontext *ctx )
 
 
 
-/*
+/**
  * Destroy a GLcontext structure.
  */
 void

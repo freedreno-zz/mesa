@@ -1,4 +1,4 @@
-/* $Id: mathmod.h,v 1.3 2001/03/12 00:48:41 gareth Exp $ */
+/* $Id: mathmod.h,v 1.3.8.1 2003/01/10 21:57:42 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -23,6 +23,16 @@
  * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
+
+/**
+ * \mainpage Mesa Math Module
+ *
+ * This module contains math-related utility functions for transforming
+ * vertices, translating arrays of numbers from one datatype to another,
+ * evaluating curved surfaces, etc.
+ */
+
 
 #ifndef _MESA_MATH_H_
 #define _MESA_MATH_H_

@@ -1,4 +1,4 @@
-/* $Id: swrast.h,v 1.32.4.1 2002/12/30 15:20:37 keithw Exp $ */
+/* $Id: swrast.h,v 1.32.4.2 2003/01/10 21:57:42 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -24,6 +24,19 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  *
  */
+
+/**
+ * \mainpage Mesa Software Rasterization (swrast) Module
+ *
+ * This module is responsible for the following:
+ *   - rendering points (wide, smoothed, textured, etc)
+ *   - rendering lines (wide, stippled, smoothed, etc)
+ *   - renering triangles (stippled, smoothed, textured, etc)
+ *
+ * Hardware drivers won't typically use these facilities, except for
+ * fallback cases such as when the hardware can't do antialiasing.
+ */
+
 
 /**
  * \file swrast/swrast.h

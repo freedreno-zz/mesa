@@ -1,4 +1,4 @@
-/* $Id: s_context.h,v 1.22 2002/10/29 20:29:00 brianp Exp $ */
+/* $Id: s_context.h,v 1.22.4.1 2003/01/10 21:57:42 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -70,7 +70,7 @@ typedef void (*swrast_tri_func)( GLcontext *ctx, const SWvertex *,
                                  const SWvertex *, const SWvertex *);
 
 
-/** \defgroup Bitmasks
+/** \defgroup rasterBits RasterMask Bits
  * Bitmasks to indicate which rasterization options are enabled
  * (RasterMask)
  */

@@ -1,4 +1,4 @@
-/* $Id: swrast_setup.h,v 1.10 2002/10/29 20:29:01 brianp Exp $ */
+/* $Id: swrast_setup.h,v 1.10.4.1 2003/01/10 21:57:43 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -27,7 +27,14 @@
  *    Keith Whitwell <keith@tungstengraphics.com>
  */
 
-/* Public interface to the swrast_setup module.  This module provides
+
+/**
+ * \mainpage Mesa Software Rasterization Setup (swrast_setup) Module
+ *
+ * This module lies between the tnl and swrast stages.  It basically converts
+ * vertex buffers into vertices suitable for use by swrast.
+ *
+ * Public interface to the swrast_setup module.  This module provides
  * an implementation of the driver interface to t_vb_render.c, and uses
  * the software rasterizer (swrast) to perform actual rasterization.
  *

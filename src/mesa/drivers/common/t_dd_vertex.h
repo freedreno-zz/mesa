@@ -1,4 +1,4 @@
-/* $Id: t_dd_vertex.h,v 1.13 2002/10/29 20:29:05 brianp Exp $ */
+/* $Id: t_dd_vertex.h,v 1.13.4.1 2003/01/10 21:57:43 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -26,6 +26,16 @@
  * Authors:
  *    Keith Whitwell <keith@tungstengraphics.com>
  */
+
+
+
+/**
+ * \mainpage Mesa TNL Device Driver Module
+ *
+ * This module contains functions useful for hardware device drivers.
+ * For example, building D3D-style vertex buffers.
+ */
+
 
 typedef struct {
    GLfloat x, y, z, w;

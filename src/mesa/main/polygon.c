@@ -1,4 +1,4 @@
-/* $Id: polygon.c,v 1.25 2002/10/24 23:57:21 brianp Exp $ */
+/* $Id: polygon.c,v 1.25.4.1 2003/01/10 21:57:41 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -89,6 +89,9 @@ _mesa_FrontFace( GLenum mode )
 
 
 
+/**
+ * Execute glPolygonMode (error checking, update state, set dirty flags).
+ */
 void
 _mesa_PolygonMode( GLenum face, GLenum mode )
 {

@@ -1,8 +1,8 @@
-/* $Id: acache.h,v 1.4 2002/10/29 20:28:58 brianp Exp $ */
+/* $Id: acache.h,v 1.4.4.1 2003/01/10 21:57:42 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  4.1
+ * Version:  5.0
  *
  * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
  *
@@ -23,9 +23,22 @@
  * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  *
- * Authors:
- *    Keith Whitwell <keith@tungstengraphics.com>
  */
+
+
+/**
+ * \mainpage Mesa array_cache Module
+ *
+ * The array cache module is used for caching vertex arrays.
+ */
+
+
+/**
+ * \file array_cache/acache.h
+ * \brief Array cache functions (for vertex arrays).
+ * \author Keith Whitwell
+ */
+
 
 #ifndef _ARRAYCACHE_H
 #define _ARRAYCACHE_H
