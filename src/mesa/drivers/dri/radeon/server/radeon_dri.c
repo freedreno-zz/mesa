@@ -186,7 +186,7 @@ static void RADEONEngineRestore( struct MiniGLXDisplayRec *dpy,
       ((datatype << RADEON_GMC_DST_DATATYPE_SHIFT)
        | RADEON_GMC_CLR_CMP_CNTL_DIS);
 
-   pitch64 = ((dpy->virtualWidth * (dpy->bpp / 8) + 0x3f)) >> 6;
+   pitch64 = ((dpy->shared.virtualWidth * (dpy->bpp / 8) + 0x3f)) >> 6;
 
    RADEONWaitForFifo(dpy, 1);
    OUTREG(RADEON_DEFAULT_OFFSET, ((INREG(RADEON_DEFAULT_OFFSET) & 0xC0000000)
@@ -562,18 +562,18 @@ static int RADEONCheckDRMVersion( struct MiniGLXDisplayRec *dpy,
 
 static int RADEONMemoryInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
 {
-   int        width_bytes = dpy->virtualWidth * dpy->cpp;
+   int        width_bytes = dpy->shared.virtualWidth * dpy->cpp;
    int        cpp         = dpy->cpp;
-   int        bufferSize  = ((dpy->virtualHeight * width_bytes
+   int        bufferSize  = ((dpy->shared.virtualHeight * width_bytes
 			      + RADEON_BUFFER_ALIGN)
 			     & ~RADEON_BUFFER_ALIGN);
-   int        depthSize   = ((((dpy->virtualHeight+15) & ~15) * width_bytes
+   int        depthSize   = ((((dpy->shared.virtualHeight+15) & ~15) * width_bytes
 			      + RADEON_BUFFER_ALIGN)
 			     & ~RADEON_BUFFER_ALIGN);
    int        l;
 
    info->frontOffset = 0;
-   info->frontPitch = dpy->virtualWidth;
+   info->frontPitch = dpy->shared.virtualWidth;
 
    fprintf(stderr, 
 	   "Using %d MB AGP aperture\n", info->agpSize);
@@ -586,7 +586,7 @@ static int RADEONMemoryInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
 
    /* Front, back and depth buffers - everything else texture??
     */
-   info->textureSize = dpy->FrameBufferSize - 2 * bufferSize - depthSize;
+   info->textureSize = dpy->shared.fbSize - 2 * bufferSize - depthSize;
 
    if (info->textureSize < 0) 
       return 0;
@@ -610,7 +610,7 @@ static int RADEONMemoryInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
    }
 
    /* Reserve space for textures */
-   info->textureOffset = ((dpy->FrameBufferSize - info->textureSize +
+   info->textureOffset = ((dpy->shared.fbSize - info->textureSize +
 			   RADEON_BUFFER_ALIGN) &
 			  ~RADEON_BUFFER_ALIGN);
 
@@ -620,12 +620,12 @@ static int RADEONMemoryInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
    info->depthOffset = ((info->textureOffset - depthSize +
 			 RADEON_BUFFER_ALIGN) &
 			~RADEON_BUFFER_ALIGN);
-   info->depthPitch = dpy->virtualWidth;
+   info->depthPitch = dpy->shared.virtualWidth;
 
    info->backOffset = ((info->depthOffset - bufferSize +
 			RADEON_BUFFER_ALIGN) &
 		       ~RADEON_BUFFER_ALIGN);
-   info->backPitch = dpy->virtualWidth;
+   info->backPitch = dpy->shared.virtualWidth;
 
 
    fprintf(stderr, 
@@ -649,19 +649,6 @@ static int RADEONMemoryInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
 
    return 1;
 } 
-
-static int RADEONGetParam( int fd, int param, int *value )
-{
-   drmRadeonGetParam p;
-   int ret;
-
-   p.param = param;
-   p.value = value;
-
-   ret = drmCommandWriteRead(fd, DRM_RADEON_GETPARAM, &p, sizeof(p));
-
-   return ret == 0;
-}
 
 static void print_client_msg(   RADEONDRIPtr   pRADEONDRI )
 {
@@ -693,111 +680,6 @@ static void print_client_msg(   RADEONDRIPtr   pRADEONDRI )
 }
 
 
-static int RADEONScreenJoin( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
-{
-   int            s, l;
-   RADEONDRIPtr   pRADEONDRI;
-
-   /* Check the radeon DRM version */
-   if (!RADEONCheckDRMVersion(dpy, info)) {
-      return 0;
-   }
-
-   /* Memory manager setup */
-   if (!RADEONMemoryInit(dpy, info)) {
-      return 0;
-   }
-
-   /* Query the kernel for the various map handles (a handle is an
-    * offset into the mmap of dpy->drmFD).
-    */
-   if (!RADEONGetParam(dpy->drmFD, RADEON_PARAM_REGISTER_HANDLE, 
-		       (int *)&info->registerHandle) ||
-       !RADEONGetParam(dpy->drmFD, RADEON_PARAM_STATUS_HANDLE, 
-		       (int *)&info->ringReadPtrHandle)||
-       !RADEONGetParam(dpy->drmFD, RADEON_PARAM_SAREA_HANDLE, 
-		       (int *)&dpy->hSAREA)||
-       !RADEONGetParam(dpy->drmFD, RADEON_PARAM_AGP_TEX_HANDLE, 
-		       (int *)&info->agpTexHandle)) {
-      fprintf(stderr, "[drm] kernel parameter query failed\n");
-      return 0;
-   }
-
-   dpy->SAREASize = DRM_PAGE_SIZE;
-
-   /* Need to map this one here:
-    */
-   if (drmMap( dpy->drmFD,
-	       dpy->hSAREA,
-	       dpy->SAREASize,
-	       (drmAddressPtr)(&dpy->pSAREA)) < 0)
-   {
-      fprintf(stderr, "[drm] drmMap failed\n");
-      return 0;
-   }
-
-
-   /* These assume that the default values set in __driInitFBDev are
-    * actually the ones in use by the kernel.  These include:
-    *
-    *   info->agpSize       = RADEON_DEFAULT_AGP_SIZE;
-    *   info->agpTexSize    = RADEON_DEFAULT_AGP_TEX_SIZE;
-    *   info->bufSize       = RADEON_DEFAULT_BUFFER_SIZE;
-    *   info->ringSize      = RADEON_DEFAULT_RING_SIZE;
-    *
-    * Probably this should all be queried/deduced here.
-    */
-   info->agpOffset       = 0;
-   info->ringStart       = info->agpOffset;
-   info->ringMapSize     = info->ringSize*1024*1024 + DRM_PAGE_SIZE;
-   info->ringReadOffset  = info->ringStart + info->ringMapSize;
-   info->ringReadMapSize = DRM_PAGE_SIZE;
-   info->bufStart        = info->ringReadOffset + info->ringReadMapSize;
-   info->bufMapSize      = info->bufSize*1024*1024;
-   info->agpTexStart     = info->bufStart + info->bufMapSize;
-   s = (info->agpSize*1024*1024 - info->agpTexStart);
-   l = RADEONMinBits((s-1) / RADEON_NR_TEX_REGIONS);
-   if (l < RADEON_LOG_TEX_GRANULARITY) l = RADEON_LOG_TEX_GRANULARITY;
-   info->agpTexMapSize   = (s >> l) << l;
-   info->log2AGPTexGran  = l;
-
-   info->registerSize = dpy->FixedInfo.mmio_len;
-
-   /* This is the struct passed to radeon_dri.so for its initialization */
-   dpy->driverClientMsg = malloc(sizeof(RADEONDRIRec));
-   dpy->driverClientMsgSize = sizeof(RADEONDRIRec);
-   pRADEONDRI                    = (RADEONDRIPtr)dpy->driverClientMsg;
-   pRADEONDRI->deviceID          = info->Chipset;
-   pRADEONDRI->width             = dpy->virtualWidth;
-   pRADEONDRI->height            = dpy->virtualHeight;
-   pRADEONDRI->depth             = dpy->bpp; /* XXX: depth */
-   pRADEONDRI->bpp               = dpy->bpp;
-   pRADEONDRI->IsPCI             = 0;
-   pRADEONDRI->AGPMode           = info->agpMode; /* query */
-   pRADEONDRI->frontOffset       = info->frontOffset;
-   pRADEONDRI->frontPitch        = info->frontPitch;
-   pRADEONDRI->backOffset        = info->backOffset;
-   pRADEONDRI->backPitch         = info->backPitch;
-   pRADEONDRI->depthOffset       = info->depthOffset;
-   pRADEONDRI->depthPitch        = info->depthPitch;
-   pRADEONDRI->textureOffset     = info->textureOffset;
-   pRADEONDRI->textureSize       = info->textureSize;
-   pRADEONDRI->log2TexGran       = info->log2TexGran;
-   pRADEONDRI->registerHandle    = info->registerHandle; /* param? */
-   pRADEONDRI->registerSize      = info->registerSize; 
-   pRADEONDRI->statusHandle      = info->ringReadPtrHandle; /* param? */
-   pRADEONDRI->statusSize        = info->ringReadMapSize;
-   pRADEONDRI->agpTexHandle      = info->agpTexHandle; /* param? */
-   pRADEONDRI->agpTexMapSize     = info->agpTexMapSize;
-   pRADEONDRI->log2AGPTexGran    = info->log2AGPTexGran;
-   pRADEONDRI->agpTexOffset      = info->agpTexStart; 
-   pRADEONDRI->sarea_priv_offset = sizeof(XF86DRISAREARec);
-
-
-   print_client_msg( pRADEONDRI );
-   
-   return 1;
-}
 
 
 /**
@@ -824,19 +706,20 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
    unsigned int serverContext;	
 
    usleep(100);
+   assert(!dpy->IsClient);
 
    {
-      int  width_bytes = (dpy->virtualWidth * dpy->cpp);
-      int  maxy        = dpy->FrameBufferSize / width_bytes;
+      int  width_bytes = (dpy->shared.virtualWidth * dpy->cpp);
+      int  maxy        = dpy->shared.fbSize / width_bytes;
 
 
-      if (maxy <= dpy->virtualHeight * 3) {
+      if (maxy <= dpy->shared.virtualHeight * 3) {
 	 fprintf(stderr, 
 		 "Static buffer allocation failed -- "
 		 "need at least %d kB video memory (have %d kB)\n",
-		 (dpy->virtualWidth * dpy->virtualHeight *
+		 (dpy->shared.virtualWidth * dpy->shared.virtualHeight *
 		  dpy->cpp * 3 + 1023) / 1024,
-		 dpy->FrameBufferSize / 1024);
+		 dpy->shared.fbSize / 1024);
 	 return 0;
       } 
    }
@@ -850,20 +733,13 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
    }
 
    info->registerSize = dpy->FixedInfo.mmio_len;
-   dpy->SAREASize = DRM_PAGE_SIZE;
+   dpy->shared.SAREASize = DRM_PAGE_SIZE;
 
    /* Note that drmOpen will try to load the kernel module, if needed. */
    dpy->drmFD = drmOpen("radeon", NULL );
    if (dpy->drmFD < 0) {
-      /* failed to open DRM */
-      fprintf(stderr, "[drm] drmOpen failed, trying open by BusID\n");
-
-      dpy->drmFD = drmOpen( NULL, dpy->pciBusID );
-      if (dpy->drmFD >= 0) {
-	 fprintf(stderr, "[drm] drmOpen by BusID succeeds...\n");
-	 fprintf(stderr, "[drm] ...joining existing session\n");
-	 return RADEONScreenJoin( dpy, info );
-      }
+      fprintf(stderr, "[drm] drmOpen failed\n");
+      return 0;
    }
 
    if ((err = drmSetBusid(dpy->drmFD, dpy->pciBusID)) < 0) {
@@ -875,28 +751,28 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
      
    if (drmAddMap( dpy->drmFD,
 		  0,
-		  dpy->SAREASize,
+		  dpy->shared.SAREASize,
 		  DRM_SHM,
 		  DRM_CONTAINS_LOCK,
-		  &dpy->hSAREA) < 0)
+		  &dpy->shared.hSAREA) < 0)
    {
       fprintf(stderr, "[drm] drmAddMap failed\n");
       return 0;
    }
    fprintf(stderr, "[drm] added %d byte SAREA at 0x%08lx\n",
-	   dpy->SAREASize, dpy->hSAREA);
+	   dpy->shared.SAREASize, dpy->shared.hSAREA);
 
    if (drmMap( dpy->drmFD,
-	       dpy->hSAREA,
-	       dpy->SAREASize,
+	       dpy->shared.hSAREA,
+	       dpy->shared.SAREASize,
 	       (drmAddressPtr)(&dpy->pSAREA)) < 0)
    {
       fprintf(stderr, "[drm] drmMap failed\n");
       return 0;
    }
-   memset(dpy->pSAREA, 0, dpy->SAREASize);
+   memset(dpy->pSAREA, 0, dpy->shared.SAREASize);
    fprintf(stderr, "[drm] mapped SAREA 0x%08lx to %p, size %d\n",
-	   dpy->hSAREA, dpy->pSAREA, dpy->SAREASize);
+	   dpy->shared.hSAREA, dpy->pSAREA, dpy->shared.SAREASize);
    
    /* Need to AddMap the framebuffer and mmio regions here:
     */
@@ -905,13 +781,13 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
 		  dpy->FixedInfo.smem_len,
 		  DRM_FRAME_BUFFER,
 		  0,
-		  &dpy->hFrameBuffer) < 0)
+		  &dpy->shared.hFrameBuffer) < 0)
    {
       fprintf(stderr, "[drm] drmAddMap framebuffer failed\n");
       return 0;
    }
    fprintf(stderr, "[drm] framebuffer handle = 0x%08lx\n",
-	   dpy->hFrameBuffer);
+	   dpy->shared.hFrameBuffer);
 
 
 
@@ -998,11 +874,11 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
     */
    memset(dpy->FrameBuffer + info->frontOffset,
 	  0,
-	  info->frontPitch * dpy->cpp * dpy->virtualHeight );
+	  info->frontPitch * dpy->cpp * dpy->shared.virtualHeight );
 
    memset(dpy->FrameBuffer + info->backOffset,
 	  0,
-	  info->backPitch * dpy->cpp * dpy->virtualHeight );
+	  info->backPitch * dpy->cpp * dpy->shared.virtualHeight );
 
 
    /* Can release the lock now */
@@ -1013,8 +889,8 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
    dpy->driverClientMsgSize = sizeof(RADEONDRIRec);
    pRADEONDRI                    = (RADEONDRIPtr)dpy->driverClientMsg;
    pRADEONDRI->deviceID          = info->Chipset;
-   pRADEONDRI->width             = dpy->virtualWidth;
-   pRADEONDRI->height            = dpy->virtualHeight;
+   pRADEONDRI->width             = dpy->shared.virtualWidth;
+   pRADEONDRI->height            = dpy->shared.virtualHeight;
    pRADEONDRI->depth             = dpy->bpp; /* XXX: depth */
    pRADEONDRI->bpp               = dpy->bpp;
    pRADEONDRI->IsPCI             = 0;
@@ -1051,7 +927,7 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
  *
  * \return non-zero on sucess, or zero on failure.
  *
- * Called by __driInitFBDev() to set RADEONInfoRec::ChipFamily
+ * Called by radeonInitFBDev() to set RADEONInfoRec::ChipFamily
  * according to the value of RADEONInfoRec::Chipset.  Fails if the
  * chipset is unrecognized or not appropriate for this driver (ie. not
  * an r100 style radeon)
@@ -1132,7 +1008,7 @@ static int get_chipfamily_from_chipset( RADEONInfoPtr info )
  * display bit depth. Supports only 16 and 32 bpp bit depths, aborting
  * otherwise.
  */
-static int __driInitScreenConfigs( struct MiniGLXDisplayRec *dpy,
+static int radeonInitScreenConfigs( struct MiniGLXDisplayRec *dpy,
 				   int *numConfigs, __GLXvisualConfig **configs)
 {
    int i;
@@ -1210,9 +1086,9 @@ static int __driInitScreenConfigs( struct MiniGLXDisplayRec *dpy,
  *
  * Saves some registers and returns 1.
  *
- * \sa __driValidateMode().
+ * \sa radeonValidateMode().
  */
-static int __driValidateMode( struct MiniGLXDisplayRec *dpy )
+static int radeonValidateMode( struct MiniGLXDisplayRec *dpy )
 {
    unsigned char *RADEONMMIO = dpy->MMIOAddress;
    RADEONInfoPtr info = dpy->driverInfo;
@@ -1233,9 +1109,9 @@ static int __driValidateMode( struct MiniGLXDisplayRec *dpy )
  *
  * Restores registers that fbdev has clobbered and returns 1.
  *
- * \sa __driValidateMode().
+ * \sa radeonValidateMode().
  */
-static int __driPostValidateMode( struct MiniGLXDisplayRec *dpy )
+static int radeonPostValidateMode( struct MiniGLXDisplayRec *dpy )
 {
    unsigned char *RADEONMMIO = dpy->MMIOAddress;
    RADEONInfoPtr info = dpy->driverInfo;
@@ -1259,21 +1135,21 @@ static int __driPostValidateMode( struct MiniGLXDisplayRec *dpy )
  * 
  * Before exiting clears the framebuffer memomry accessing it directly.
  */
-static int __driInitFBDev( struct MiniGLXDisplayRec *dpy )
+static int radeonInitFBDev( struct MiniGLXDisplayRec *dpy )
 {
    RADEONInfoPtr info = calloc(1, sizeof(*info));
 
    {
-      int  dummy = dpy->virtualWidth;
+      int  dummy = dpy->shared.virtualWidth;
 
       switch (dpy->bpp / 8) {
-      case 1: dummy = (dpy->virtualWidth + 127) & ~127; break;
-      case 2: dummy = (dpy->virtualWidth +  31) &  ~31; break;
+      case 1: dummy = (dpy->shared.virtualWidth + 127) & ~127; break;
+      case 2: dummy = (dpy->shared.virtualWidth +  31) &  ~31; break;
       case 3:
-      case 4: dummy = (dpy->virtualWidth +  15) &  ~15; break;
+      case 4: dummy = (dpy->shared.virtualWidth +  15) &  ~15; break;
       }
 
-      dpy->virtualWidth = dummy;
+      dpy->shared.virtualWidth = dummy;
    }
 
    dpy->driverInfo = (void *)info;
@@ -1293,7 +1169,7 @@ static int __driInitFBDev( struct MiniGLXDisplayRec *dpy )
       return 0;
    }
 
-   info->frontPitch = dpy->virtualWidth;
+   info->frontPitch = dpy->shared.virtualWidth;
    info->LinearAddr = dpy->FixedInfo.smem_start & 0xfc000000;
     
 
@@ -1314,9 +1190,9 @@ static int __driInitFBDev( struct MiniGLXDisplayRec *dpy )
  * Unmaps the SAREA, closes the DRM device file descriptor and frees the driver
  * private data.
  */
-static void __driHaltFBDev( struct MiniGLXDisplayRec *dpy )
+static void radeonHaltFBDev( struct MiniGLXDisplayRec *dpy )
 {
-    drmUnmap( dpy->pSAREA, dpy->SAREASize );
+    drmUnmap( dpy->pSAREA, dpy->shared.SAREASize );
     drmClose(dpy->drmFD);
 
     if (dpy->driverInfo) {
@@ -1331,7 +1207,7 @@ static void __driHaltFBDev( struct MiniGLXDisplayRec *dpy )
  * requires some action.  We deal with loosing the VT by setting the
  * cliprects to zero and emitting an event to the application.  
  */
-static int __driVTSwitchHandler( struct MiniGLXDisplayRec *dpy, int have_vt )
+static int radeonVTSwitchHandler( struct MiniGLXDisplayRec *dpy, int have_vt )
 {
    int *lock = (int *)dpy->pSAREA;
    int old, new;
@@ -1353,7 +1229,7 @@ static int __driVTSwitchHandler( struct MiniGLXDisplayRec *dpy, int have_vt )
 
    /* Mark the lock contended.
     */
-   if (!dpy->pSAREA) return;
+   if (!dpy->pSAREA) return 0;
    do {
       old = *(int *)dpy->pSAREA;
       new = old | _DRM_LOCK_CONT;
@@ -1373,10 +1249,10 @@ static int __driVTSwitchHandler( struct MiniGLXDisplayRec *dpy, int have_vt )
  * \sa MiniGLXDriverRec.
  */
 struct MiniGLXDriverRec __driMiniGLXDriver = {
-   __driInitScreenConfigs,
-   __driValidateMode,
-   __driPostValidateMode,
-   __driInitFBDev,
-   __driHaltFBDev,
-   __driVTSwitchHandler
+   radeonInitScreenConfigs,
+   radeonValidateMode,
+   radeonPostValidateMode,
+   radeonInitFBDev,
+   radeonHaltFBDev,
+   radeonVTSwitchHandler
 };

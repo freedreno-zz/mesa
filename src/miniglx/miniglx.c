@@ -22,7 +22,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: miniglx.c,v 1.1.4.50 2003/04/15 13:46:28 alanh Exp $ */
+/* $Id: miniglx.c,v 1.1.4.51 2003/04/17 15:46:42 keithw Exp $ */
 
 
 /**
@@ -114,11 +114,6 @@
 
 #include "glapi.h"
 
-#define MALLOC(N) malloc(N)
-#define CALLOC(N) calloc(1, N)
-#define CALLOC_STRUCT(T) ((struct T *) calloc(1, sizeof(struct T)))
-#define FREE(P)   free(P)
-#define STRCMP(A, B)  strcmp(A, B)
 
 extern void
 __driUtilInitScreen( Display *dpy, int scrn, __DRIscreen *psc );
@@ -198,84 +193,6 @@ void __miniglx_release_vt( void )
    queue_event( SignalDisplay, 0 );
 }
 
-
-int XNextEvent(Display *display, XEvent *event_return)
-{
-   /* This works because our events are really signals, which will
-    * terminate the sleep early.  If keypress, mousemove, etc. events
-    * are ever added to miniglx, this would have to change.
-    */
-   while (!XCheckWindowEvent( display, display->TheWindow, ~0, event_return ))
-      sleep(1);
-
-   return True;
-}
-
-
-Bool XCheckWindowEvent(Display *display, Window w, long event_mask, 
-		       XEvent *er)
-{
-   if (!w || w != display->TheWindow) 
-      return False;
-
-   /* Note: there is no actual queue for these events, so multiple
-    * cycles of aquire & release vt that occur between calls to
-    * XCheckWindowEvent will be lost, with only the current state
-    * being reported.  However this should be safe with respect to the
-    * asynchronous arrival of signals, and avoids the issue of what to
-    * do if an event queue were to fill up.
-    */
-   if (display->haveVT) {
-      if (display->mapNotifyCount != display->aquireVTCount) {
-	 er->xmap.type = MapNotify;
-	 er->xmap.serial = 0;
-	 er->xmap.send_event = False;
-	 er->xmap.display = display;
-	 er->xmap.event = w;
-	 er->xmap.window = w;
-	 er->xmap.override_redirect = False;
-	 display->mapNotifyCount = display->aquireVTCount;
-	 return True;
-      }
-      if (display->exposeNotifyCount != display->aquireVTCount) {
-	 er->xexpose.type = Expose;
-	 er->xexpose.serial = 0;
-	 er->xexpose.send_event = False;
-	 er->xexpose.display = display;
-	 er->xexpose.window = w;
-	 if (display->rotateMode) {
-	    er->xexpose.x = w->y;
-	    er->xexpose.y = w->x;
-	    er->xexpose.width = w->h;
-	    er->xexpose.height = w->w;
-	 }
-	 else {
-	    er->xexpose.x = w->x;
-	    er->xexpose.y = w->y;
-	    er->xexpose.width = w->w;
-	    er->xexpose.height = w->h;
-	 }
-	 er->xexpose.count = 0;
-	 display->exposeNotifyCount = display->aquireVTCount;
-	 return True;
-      }
-   }
-   else {
-      if (display->unmapNotifyCount != display->releaseVTCount) {
-	 er->xunmap.type = UnmapNotify;
-	 er->xunmap.serial = 0;
-	 er->xunmap.send_event = False;
-	 er->xunmap.display = display;
-	 er->xunmap.event = w;
-	 er->xunmap.window = w;
-	 er->xunmap.from_configure = False;
-	 display->unmapNotifyCount = display->releaseVTCount;
-	 return True;
-      }
-   }
-   
-   return False;
-}
 
 /**********************************************************************/
 /** \name Framebuffer device functions                                */
@@ -438,9 +355,9 @@ OpenFBDev( Display *dpy )
 
 
    /* mmap the framebuffer into our address space */
-   dpy->FrameBufferSize = dpy->FixedInfo.smem_len;
+   dpy->shared.fbSize = dpy->FixedInfo.smem_len;
    dpy->FrameBuffer = (caddr_t) mmap(0, /* start */
-                                     dpy->FrameBufferSize, /* bytes */
+                                     dpy->shared.fbSize, /* bytes */
                                      PROT_READ | PROT_WRITE, /* prot */
                                      MAP_SHARED, /* flags */
                                      dpy->FrameBufferFD, /* fd */
@@ -465,8 +382,13 @@ OpenFBDev( Display *dpy )
       return GL_FALSE;
    }
 
+   fprintf(stderr, "got MMIOAddress %p offset %d\n", dpy->MMIOAddress,
+	   dpy->FixedInfo.smem_len);
+
    return GL_TRUE;
 }
+
+
 
 
 /**
@@ -496,15 +418,14 @@ OpenFBDev( Display *dpy )
  * \todo Timings are hard-coded in the source for a set of supported modes.
  */
 static GLboolean
-SetupFBDev( Display *dpy, Window win )
+SetupFBDev( Display *dpy )
 {
-   int width = win->w;
-   int height = win->h;
+   int width, height;
 
    assert(dpy);
 
-   width = dpy->virtualWidth;
-   height = dpy->virtualHeight;
+   width = dpy->shared.virtualWidth;
+   height = dpy->shared.virtualHeight;
    
    /* Bump size up to next supported mode.
     */
@@ -521,21 +442,15 @@ SetupFBDev( Display *dpy, Window win )
       width = 1280; height = 1024; 
    } 
 
-   if (width > dpy->virtualWidth ||
-       height > dpy->virtualHeight ||
-       win->visual->visInfo->bits_per_rgb != dpy->bpp) {
-      fprintf(stderr, 
-	      "width/height/bpp (%d/%d/%d) exceed display limits (%d/%d/%d)\n",
-	      width, height, win->visual->visInfo->bits_per_rgb,
-	      dpy->virtualWidth, dpy->virtualHeight, dpy->bpp);
-      return GL_FALSE;
-   }
+
+   dpy->shared.virtualHeight = height;
+   dpy->shared.virtualWidth = width;
    
    /* set the depth, resolution, etc */
    dpy->VarInfo = dpy->OrigVarInfo;
    dpy->VarInfo.bits_per_pixel = dpy->bpp;
-   dpy->VarInfo.xres_virtual = dpy->virtualWidth;
-   dpy->VarInfo.yres_virtual = dpy->virtualHeight;
+   dpy->VarInfo.xres_virtual = dpy->shared.virtualWidth;
+   dpy->VarInfo.yres_virtual = dpy->shared.virtualHeight;
    dpy->VarInfo.xres = width;
    dpy->VarInfo.yres = height;
    dpy->VarInfo.xoffset = 0;
@@ -544,7 +459,6 @@ SetupFBDev( Display *dpy, Window win )
    dpy->VarInfo.vmode &= ~FB_VMODE_YWRAP; /* turn off scrolling */
 
    if (dpy->VarInfo.bits_per_pixel == 32) {
-      assert(win->visual->pixelFormat == PF_B8G8R8A8);
       dpy->VarInfo.red.offset = 16;
       dpy->VarInfo.green.offset = 8;
       dpy->VarInfo.blue.offset = 0;
@@ -555,7 +469,6 @@ SetupFBDev( Display *dpy, Window win )
       dpy->VarInfo.transp.length = 8;
    }
    else if (dpy->VarInfo.bits_per_pixel == 16) {
-      assert(win->visual->pixelFormat == PF_B5G6R5);
       dpy->VarInfo.red.offset = 11;
       dpy->VarInfo.green.offset = 5;
       dpy->VarInfo.blue.offset = 0;
@@ -565,11 +478,9 @@ SetupFBDev( Display *dpy, Window win )
       dpy->VarInfo.transp.offset = 0;
       dpy->VarInfo.transp.length = 0;
    }
-   else if (dpy->VarInfo.bits_per_pixel == 8) {
-      assert(win->visual->pixelFormat == PF_CI8);
-   }
    else {
-      assert(0);
+      fprintf(stderr, "Only 32bpp and 16bpp modes supported at the moment\n");
+      return 0;
    }
 
    if (!dpy->driver->validateMode( dpy )) {
@@ -752,7 +663,7 @@ CloseFBDev( Display *dpy )
 {
    struct vt_mode VT;
 
-   munmap(dpy->FrameBuffer, dpy->FrameBufferSize);
+   munmap(dpy->FrameBuffer, dpy->shared.fbSize);
    munmap(dpy->MMIOAddress, dpy->MMIOSize);
 
    /* restore text mode */
@@ -912,8 +823,8 @@ static int __read_config_file( Display *dpy )
    dpy->pciFunc = 0;
    dpy->chipset = 0;   
    dpy->pciBusID = 0;
-   dpy->virtualWidth = 1280;
-   dpy->virtualHeight = 1024;
+   dpy->shared.virtualWidth = 1280;
+   dpy->shared.virtualHeight = 1024;
    dpy->bpp = 32;
    dpy->cpp = 4;
    dpy->rotateMode = 0;
@@ -968,11 +879,11 @@ static int __read_config_file( Display *dpy )
 	    fprintf(stderr, "malformed chipset: %s\n", opt);
       }
       else if (strcmp(opt, "virtualWidth") == 0) {
-	 if (sscanf(val, "%d", &dpy->virtualWidth) != 1)
+	 if (sscanf(val, "%d", &dpy->shared.virtualWidth) != 1)
 	    fprintf(stderr, "malformed virtualWidth: %s\n", opt);
       }
       else if (strcmp(opt, "virtualHeight") == 0) {
-	 if (sscanf(val, "%d", &dpy->virtualHeight) != 1)
+	 if (sscanf(val, "%d", &dpy->shared.virtualHeight) != 1)
 	    fprintf(stderr, "malformed virutalHeight: %s\n", opt);
       }
       else if (strcmp(opt, "bpp") == 0) {
@@ -988,6 +899,45 @@ static int __read_config_file( Display *dpy )
       dpy->chipset = get_chipset_from_busid( dpy );
 
    return 1;
+}
+
+static int InitDriver( Display *dpy )
+{
+   /*
+    * Begin DRI setup.
+    * We're kind of combining the per-display and per-screen information
+    * which was kept separate in XFree86/DRI's libGL.
+    */
+   dpy->dlHandle = dlopen(dpy->clientDriverName, RTLD_NOW | RTLD_GLOBAL);
+   if (!dpy->dlHandle) {
+      fprintf(stderr, "Unable to open %s: %s\n", dpy->clientDriverName,
+	      dlerror());
+      return GL_FALSE;
+   }
+
+   /* Pull in Mini GLX specific hooks:
+    */
+   dpy->driver = (struct MiniGLXDriverRec *) dlsym(dpy->dlHandle,
+						   "__driMiniGLXDriver");
+   if (!dpy->driver) {
+      fprintf(stderr, "Couldn't find __driMiniGLXDriver in %s\n",
+              dpy->clientDriverName);
+      dlclose(dpy->dlHandle);
+      return GL_FALSE;
+   }
+
+   /* Pull in standard DRI client-side driver hooks:
+    */
+   dpy->createScreen = (CreateScreenFunc) dlsym(dpy->dlHandle,
+                                                "__driCreateScreen");
+   if (!dpy->createScreen) {
+      fprintf(stderr, "Couldn't find __driCreateScreen in %s\n",
+              dpy->clientDriverName);
+      dlclose(dpy->dlHandle);
+      return GL_FALSE;
+   }
+
+   return GL_TRUE;
 }
 
 
@@ -1017,13 +967,15 @@ static int __read_config_file( Display *dpy )
  * information.
  */
 Display *
-XOpenDisplay( const char *display_name )
+__miniglx_StartServer( const char *display_name )
 {
    Display *dpy;
 
    dpy = (Display *) CALLOC(sizeof(Display));
    if (!dpy)
       return NULL;
+
+   dpy->IsClient = False;
 
    if (!__read_config_file( dpy )) {
       fprintf(stderr, "Couldn't get configuration details\n");
@@ -1039,41 +991,87 @@ XOpenDisplay( const char *display_name )
       return NULL;
    }
 
-
-   /*
-    * Begin DRI setup.
-    * We're kind of combining the per-display and per-screen information
-    * which was kept separate in XFree86/DRI's libGL.
-    */
-   dpy->dlHandle = dlopen(dpy->clientDriverName, RTLD_NOW | RTLD_GLOBAL);
-   if (!dpy->dlHandle) {
-      fprintf(stderr, "Unable to open %s: %s\n", dpy->clientDriverName,
-	      dlerror());
-      CloseFBDev(dpy);
+   if (!InitDriver(dpy)) {
+      fprintf(stderr, "InitDriver failed\n");
       FREE(dpy);
       return NULL;
    }
 
-   /* Pull in Mini GLX specific hooks:
+
+   /* Ask the driver for a list of supported configs:
     */
-   dpy->driver = (struct MiniGLXDriverRec *) dlsym(dpy->dlHandle,
-						   "__driMiniGLXDriver");
-   if (!dpy->driver) {
-      fprintf(stderr, "Couldn't find __driMiniGLXDriver in %s\n",
-              dpy->clientDriverName);
+   dpy->driver->initScreenConfigs( dpy, &dpy->numConfigs, &dpy->configs );
+
+   /* Perform the initialization normally done in the X server 
+    */
+   if (!dpy->driver->initFBDev( dpy )) {
+      fprintf(stderr, "%s: __driInitFBDev failed\n", __FUNCTION__);
       dlclose(dpy->dlHandle);
+      return GL_FALSE;
+   }
+
+   /* Setup some callbacks in the screen private.
+    */
+   __driUtilInitScreen( dpy, 0, &(dpy->driScreen) );
+  
+   /* do fbdev setup
+    */
+   if (!SetupFBDev(dpy)) {
+      fprintf(stderr, "SetupFBDev failed\n");
       FREE(dpy);
       return NULL;
    }
 
-   /* Pull in standard DRI client-side driver hooks:
+
+   /* Ready for clients:
     */
-   dpy->createScreen = (CreateScreenFunc) dlsym(dpy->dlHandle,
-                                                "__driCreateScreen");
-   if (!dpy->createScreen) {
-      fprintf(stderr, "Couldn't find __driCreateScreen in %s\n",
-              dpy->clientDriverName);
-      dlclose(dpy->dlHandle);
+   if (!__miniglx_open_connections(dpy)) {
+      FREE(dpy);
+      return NULL;
+   }
+      
+   return dpy;
+}
+
+
+   /* Need to:
+    *   - read config file (get driver name)
+    *      - but what about virtualWidth, etc?
+    *   - load driver module
+    *   - determine dpy->driverClientMsgSize,
+    *   - allocate dpy->driverClientMsg
+    */
+
+Display *
+XOpenDisplay( const char *display_name )
+{
+   Display *dpy;
+
+   dpy = (Display *) CALLOC(sizeof(Display));
+   if (!dpy)
+      return NULL;
+
+   dpy->IsClient = True;
+
+   /* read config file 
+    */
+   if (!__read_config_file( dpy )) {
+      fprintf(stderr, "Couldn't get configuration details\n");
+      FREE(dpy);
+      return NULL;
+   }
+
+   /* Connect to the server and receive driverClientMsg
+    */
+   if (!__miniglx_open_connections(dpy)) {
+      FREE(dpy);
+      return NULL;
+   }
+
+   /* dlopen the driver .so file
+    */
+   if (!InitDriver(dpy)) {
+      fprintf(stderr, "InitDriver failed\n");
       FREE(dpy);
       return NULL;
    }
@@ -1081,15 +1079,7 @@ XOpenDisplay( const char *display_name )
    /* Ask the driver for a list of supported configs:
     */
    dpy->driver->initScreenConfigs( dpy, &dpy->numConfigs, &dpy->configs );
-
-
-   /* Perform the initialization normally done in the X server */
-   if (!dpy->driver->initFBDev( dpy )) {
-      fprintf(stderr, "%s: __driInitFBDev failed\n", __FUNCTION__);
-      dlclose(dpy->dlHandle);
-      FREE(dpy);
-      return NULL;
-   }
+   
 
    /* Perform the client-side initialization.  
     *
@@ -1110,11 +1100,14 @@ XOpenDisplay( const char *display_name )
    }
 
 
-
    /* Setup some callbacks in the screen private.
     */
    __driUtilInitScreen( dpy, 0, &(dpy->driScreen) );
+  
 
+   
+   /* Anything more to do?
+    */
    return dpy;
 }
 
@@ -1125,7 +1118,7 @@ XOpenDisplay( const char *display_name )
  * When the application is about to exit, the resources associated with the
  * graphics system can be released by calling this function.
  * 
- * \param display display handle. It becomes invalid at this point.
+ * \param dpy display handle. It becomes invalid at this point.
  * 
  * If there is a window open calls XDestroyWindow().
  *
@@ -1134,27 +1127,30 @@ XOpenDisplay( const char *display_name )
  * device. Finally frees the display structure.
  */
 void
-XCloseDisplay( Display *display )
+XCloseDisplay( Display *dpy )
 {
-   glXMakeCurrent( display, NULL, NULL);
+   glXMakeCurrent( dpy, NULL, NULL);
 
-   if (display->NumWindows) 
-      XDestroyWindow( display, display->TheWindow );
+   if (dpy->NumWindows) 
+      XDestroyWindow( dpy, dpy->TheWindow );
 
    /* As this is done in XOpenDisplay, need to undo it here:
     */
-   if (display->driScreen.private) 
-      (*display->driScreen.destroyScreen)(display, 0, 
-					  display->driScreen.private);
+   if (dpy->driScreen.private) 
+      (*dpy->driScreen.destroyScreen)(dpy, 0, dpy->driScreen.private);
 
-   /* As this is done in CreateWindow, need to undo it here:
-    */
-   (*display->driver->haltFBDev)( display );
+   __miniglx_close_connections( dpy );
 
+   if (!dpy->IsClient) {
+      /* put framebuffer back to initial state 
+       */
+      (*dpy->driver->haltFBDev)( dpy );
+      RestoreFBDev(dpy);
+      CloseFBDev(dpy);
+   }
 
-   dlclose(display->dlHandle);
-   CloseFBDev(display);
-   FREE(display);
+   dlclose(dpy->dlHandle);
+   FREE(dpy);
 }
 
 
@@ -1192,8 +1188,7 @@ XCloseDisplay( Display *display )
  * cannot be created until the first one is destroyed.
  *
  * This function creates and initializes a ::MiniGLXWindowRec structure after
- * ensuring that there is no other window created. Calls SetupFBDev() to setup
- * the framebuffer device mode and get its geometry. Performs the per-drawable
+ * ensuring that there is no other window created.  Performs the per-drawable
  * client-side initialization calling the __DRIscreenRec::createDrawable
  * method.
  * 
@@ -1215,6 +1210,11 @@ XCreateWindow( Display *display, Window parent, int x, int y,
    (void) class;
    (void) valuemask;
    (void) attributes;
+
+   if (!display->IsClient) {
+      fprintf(stderr, "Server process may not create windows (currently)\n");
+      return NULL;
+   }
 
    if (display->NumWindows > 0)
       return NULL;  /* only allow one window */
@@ -1241,14 +1241,6 @@ XCreateWindow( Display *display, Window parent, int x, int y,
    win->h = height;
    win->visual = visual;  /* ptr assignment */
 
-   /* do fbdev setup
-    */
-   if (!SetupFBDev(display, win)) {
-      FREE(win);
-      return NULL;
-   }
-
-
    win->bytesPerPixel = display->bpp / 8;
    win->rowStride = display->VarInfo.xres_virtual * win->bytesPerPixel;
    win->size = win->rowStride * height; 
@@ -1273,17 +1265,14 @@ XCreateWindow( Display *display, Window parent, int x, int y,
       win->curBottom = win->frontBottom;
    }
 
+   win->driDrawable.private = display->driScreen.createDrawable(
+      display, 0, win, visual->visInfo->visualid, &(win->driDrawable));
 
-
-   win->driDrawable.private = display->driScreen.createDrawable(display, 0, win,
-								visual->visInfo->visualid, &(win->driDrawable));
    if (!win->driDrawable.private) {
       fprintf(stderr, "%s: dri.createDrawable failed\n", __FUNCTION__);
-      RestoreFBDev(display);
       FREE(win);
       return NULL;
    }
-
 
    display->NumWindows++;
    display->TheWindow = win;
@@ -1298,9 +1287,7 @@ XCreateWindow( Display *display, Window parent, int x, int y,
  * \param display display handle.
  * \param w window handle.
  *
- * This function frees window \p w after calling
- * __DRIdrawableRec::destroyDrawable to destroy the
- * private data and restoring the framebuffer via RestoreFBDev().
+ * This function frees window \p w.
  * 
  * In case of destroying the current buffer first unbinds the GLX context
  * by calling glXMakeCurrent() with no drawable.
@@ -1308,21 +1295,19 @@ XCreateWindow( Display *display, Window parent, int x, int y,
 void
 XDestroyWindow( Display *display, Window w )
 {
-   assert(display);
-   if (w) {
+   if (display && display->IsClient && w) {
       /* check if destroying the current buffer */
       Window curDraw = glXGetCurrentDrawable();
       if (w == curDraw) {
          glXMakeCurrent( display, NULL, NULL);
       }
 
+      XUnmapWindow( display, w );
+
       /* Destroy the drawable.
        */
       if (w->driDrawable.private)
 	 (*w->driDrawable.destroyDrawable)(display, w->driDrawable.private);
-
-      /* put framebuffer back to initial state */
-      RestoreFBDev(display);
 
       FREE(w);
       /* unlink window from display */
@@ -1333,23 +1318,6 @@ XDestroyWindow( Display *display, Window w )
 }
 
 
-/**
- * \brief Map Window.
- *
- * \param display the display handle as returned by XOpenDisplay().
- * \param w the window handle.
- * 
- * This function does nothing in Mini GLX but is required for Xlib/GLX
- * compatibility.
- * 
- * This function is only provided to ease porting.  no-op
- */
-void
-XMapWindow( Display *display, Window w )
-{
-   (void) display;
-   (void) w;
-}
 
 
 /**

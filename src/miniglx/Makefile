@@ -9,6 +9,7 @@ SOURCES = dispatch.c \
 	  dri_util.c \
 	  glapi.c \
 	  miniglx.c \
+	  miniglx_events.c \
 	  xf86drm.c 
 
 OBJS = $(SOURCES:.c=.o)

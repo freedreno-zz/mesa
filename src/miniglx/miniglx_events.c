@@ -22,11 +22,11 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: miniglx_events.c,v 1.1.2.1 2003/04/15 11:01:27 keithw Exp $ */
+/* $Id: miniglx_events.c,v 1.1.2.2 2003/04/17 15:46:42 keithw Exp $ */
 
 
 /**
- * \file miniglx_fifo.c
+ * \file miniglx_events.c
  * \brief Mini GLX client/server communication functions.
  * \author Keith Whitwell
  *
@@ -34,6 +34,11 @@
  * minimal set of Xlib functions.  This file adds interfaces to
  * arbitrate a single cliprect between multiple direct rendering
  * clients.
+ *
+ * A fairly complete client/server non-blocking communication
+ * mechanism.  Probably overkill given that none of our messages
+ * currently exceed 1 byte in length and take place over the
+ * relatively benign channel provided by a unix domain socket.
  */
 
 #include <assert.h>
@@ -59,19 +64,17 @@
 
 #include "glapi.h"
 
-static int handle_fifo_read( Display *dpy, int i );
-
 #define MINIGLX_FIFO_NAME "/tmp/miniglx.fifo"
 
 
 enum msgs {
-   _CanIHaveFocus = 0,
-   _IDontWantFocus = 1,
-   _YouveGotFocus = 2,
-   _YouveLostFocus = 3,
-   _RepaintPlease = 4,
-   _MaxMsg
+   _CanIHaveFocus,
+   _IDontWantFocus,
+   _YouveGotFocus,
+   _YouveLostFocus,
+   _RepaintPlease,
 };
+
 
 static XEvent *queue_event( Display *dpy )
 {
@@ -79,7 +82,6 @@ static XEvent *queue_event( Display *dpy )
    if (incr == dpy->eventqueue.head)
       return 0;
    else {
-      dpy->eventqueue.nr++;
       dpy->eventqueue.tail = incr;
       return &dpy->eventqueue.queue[incr];
    }
@@ -93,16 +95,11 @@ static int dequeue_event( Display *dpy, XEvent *ev )
       ev = &dpy->eventqueue.queue[dpy->eventqueue.head];
       dpy->eventqueue.head += 1;
       dpy->eventqueue.head &= MINIGLX_EVENT_QUEUE_MASK;
-      dpy->eventqueue.nr--;
       return True;
    }
 }
 
 
-/* A fairly complete client/server non-blocking communication
- * mechanism.  Probably overkill given that none of our messages
- * currently exceed 1 byte in length.
- */
 static void shut_fd( Display *dpy, int i )
 {
    XEvent *er;
@@ -129,224 +126,123 @@ static void shut_fd( Display *dpy, int i )
    er->xdestroywindow.serial = 0;
    er->xdestroywindow.send_event = 0;
    er->xdestroywindow.display = dpy;
-   er->xdestroywindow.window = i;	
+   er->xdestroywindow.window = (Window)i;	
+}
+
+static int send_msg( Display *dpy, int i,
+		     const void *msg, size_t sz )
+{
+   int cnt = dpy->fd[i].writebuf_count;
+   if (MINIGLX_BUF_SIZE - cnt < sz) {
+      fprintf(stderr, "client %d: writebuf overflow\n", i);
+      return False;
+   }
+   
+   memcpy( dpy->fd[i].writebuf + cnt, msg, sz ); cnt += sz;
+   dpy->fd[i].writebuf_count = cnt;
+   return True;
+}
+
+static int send_char_msg( Display *dpy, int i, char msg )
+{
+   return send_msg( dpy, i, &msg, sizeof(char));
+}
+
+static int blocking_read( Display *dpy, int connection, 
+			  char *msg, size_t msg_size )
+{
+   int i, r;
+
+   for (i = 0 ; i < msg_size ; i += r) {
+      r = read(dpy->fd[connection].fd, msg + i, msg_size - i);
+      if (r < 1) {
+	 shut_fd(dpy,connection);
+	 return False;
+      }
+   }
+
+   return True;
 }
 
 
-int __miniglx_OpenClientServerConnection( Display *dpy )
+
+static int welcome_message_part( Display *dpy, int i, void **msg, int sz )
 {
-   struct sockaddr_un sa;
-   int i;
-
-   memset(&dpy, 0, sizeof(dpy));
-   for (i = 0 ; i < MINIGLX_MAX_FDS ; i++)
-      dpy->fd[i].fd = -1;
-
-   if (!dpy->IsClient) {
-      if (unlink(MINIGLX_FIFO_NAME) != 0 && errno != ENOENT) { 
-	 perror("unlink " MINIGLX_FIFO_NAME);
- 	 return GL_FALSE; 
-      } 
-   } 
-
-   /* Create a unix socket -- Note this is *not* a network connection!
-    */
-   dpy->fd[0].fd = socket(PF_UNIX, SOCK_STREAM, 0);
-   if (dpy->fd[0].fd < 0) {
-      perror("socket " MINIGLX_FIFO_NAME);
-      return GL_FALSE;
-   }
-
-   memset(&sa, 0, sizeof(sa));
-   sa.sun_family = AF_UNIX;
-   strcpy(sa.sun_path, MINIGLX_FIFO_NAME);
-
    if (dpy->IsClient) {
-      /* Connect to server
-       */
-      if (connect(dpy->fd[0].fd, (struct sockaddr *)&sa, sizeof(sa)) != 0) {
-	 perror("connect");
-	 shut_fd(dpy,0);
-	 return GL_FALSE;
-      }
+      int sz;
+      if (!blocking_read( dpy, i, (char *)&sz, sizeof(sz))) return False;
+      if (!*msg) *msg = malloc(sz);
+      if (!*msg) return False;
+      if (!blocking_read( dpy, i, *msg, sz )) return False;
    }
    else {
-      /* Bind it to our filename
-       */
-      if (bind(dpy->fd[0].fd, (struct sockaddr *)&sa, sizeof(sa)) != 0) {
-	 perror("bind");
-	 shut_fd(dpy,0);
-	 return GL_FALSE;
-      }
-      
-      /* Listen for connections
-       */
-      if (listen(dpy->fd[0].fd, 5) != 0) {
-	 perror("listen");
-	 shut_fd(dpy,0);
-	 return GL_FALSE;
-      }
+      if (!send_msg( dpy, i, &sz, sizeof(sz))) return False;
+      if (!send_msg( dpy, i, *msg, sz )) return False;
    }
 
-   return GL_TRUE;
+   return True;
 }
+
+static int welcome_message( Display *dpy, int i )
+{
+   void *tmp = &dpy->shared;
+
+   if (!welcome_message_part( dpy, i, &tmp, sizeof(dpy->shared)))
+      return False;
+      
+   if (!welcome_message_part( dpy, i, (void **)&dpy->driverClientMsg, 
+			      dpy->driverClientMsgSize ))
+      return False;
+
+   return True;
+}
+
+
 
 static int handle_new_client( Display *dpy )
 {
-   XEvent *er;
-   unsigned int l;
    struct sockaddr_un client_address;
+   unsigned int l = sizeof(client_address);
    int r, i;
 
    r = accept(dpy->fd[0].fd, (struct sockaddr *) &client_address, &l);
    if (r < 0) {
       perror ("accept()");
       shut_fd(dpy,0);
-      return GL_FALSE;
+      return False;
    } 
 
-   er = queue_event(dpy);
-   if (!er) {
-      close(r);
-      return GL_FALSE;
-   }
 
-   for (i = 0 ; er && i < MINIGLX_MAX_FDS ; i++) {
+   /* Some rough & ready adaption of the XEvent semantics.
+    */ 
+   for (i = 1 ; i < dpy->nrFds ; i++) {
       if (dpy->fd[i].fd < 0) {
+	 XEvent *er = queue_event(dpy);
+	 if (!er) {
+	    close(r);
+	    return False;
+	 }
+
 	 dpy->fd[i].fd = r;
 	 er->xcreatewindow.type = CreateNotify;
 	 er->xcreatewindow.serial = 0;
 	 er->xcreatewindow.send_event = 0;
 	 er->xcreatewindow.display = dpy;
-	 er->xcreatewindow.window = i;	/* fd slot == window, now? */
-	 return GL_TRUE;
+	 er->xcreatewindow.window = (Window)i;	/* fd slot == window, now? */
+
+	 /* Send the driver client message - this is expected as the
+	  * first message on a new connection.  The recpient already
+	  * knows the size of the message.
+	  */
+	 welcome_message( dpy, i );
+	 return True;
       }	    
    }
 
    fprintf(stderr, "[miniglx] %s: Max nr clients exceeded\n", __FUNCTION__);
    close(r);
-   return GL_FALSE;
+   return False;
 }
-
-
-#undef max
-#define max(x,y) ((x) > (y) ? (x) : (y))
-
-/* This all looks pretty complex, but is necessary especially on the
- * server side to prevent a poorly-behaved client from causing the
- * server to block in a read or write and hence not service the other
- * clients.
- *
- * See select_tut in the linux manual pages for more discussion.
- */
-static int 
-handle_fd_events( Display *dpy, int nonblock )
-{
-   int i;
-   int retval = GL_FALSE;
-
-   assert( dpy->eventqueue.head == dpy->eventqueue.tail );
-
-   do { 
-      fd_set rfds, wfds;
-      struct timeval tv;
-      int n = 0, r;
-      
-      FD_ZERO(&rfds);
-      FD_ZERO(&wfds);
-      tv.tv_sec = 0;
-      tv.tv_usec = 0;
-
-      for (i = 0 ; i < MINIGLX_MAX_FDS; i++) {
-	 if (dpy->fd[i].fd < 0)
-	    continue;
-
-	 if (dpy->fd[i].writebuf_count)
-	    FD_SET(dpy->fd[i].fd, &wfds);
-	 
-	 if (dpy->fd[i].readbuf_count < MINIGLX_BUF_SIZE) 
-	    FD_SET(dpy->fd[i].fd, &rfds);
-
-	 n = max(n, dpy->fd[i].fd);
-      }
-
-
-      r = select(n+1, &rfds, &wfds, NULL, nonblock ? &tv : NULL);
-      if (r < 0) {
-	 if (errno == EINTR || errno == EAGAIN)
-	    continue;
-	 perror ("select()");
-	 exit (1);
-      }
-
-      /* Handle server fd[0] specially:
-       */
-      if (!dpy->IsClient) {
-	 if (FD_ISSET(dpy->fd[0].fd, &rfds)) {
-	    FD_CLR(dpy->fd[0].fd, &rfds);
-	    if (handle_new_client( dpy )) {
-	       retval = GL_TRUE;     /* new events for application */
-	       nonblock = 1;         /* exit with new events after this loop */
-	    }	     
-	 }
-      }
-
-      /* Otherwise, try and fill readbuffer and drain writebuffer:
-       */
-      for (i = 0 ; i < MINIGLX_MAX_FDS ; i++) {
-	 if (dpy->fd[i].fd < 0) 
-	    continue;
-
-	 /* If there aren't any event slots left, don't examine
-	  * any more file events.  This will prevent lost events.
-	  */
-	 if (dpy->eventqueue.nr >= MINIGLX_EVENT_QUEUE_SZ - 2) {
-	    fprintf(stderr, "leaving event loop as event queue is full\n");
-	    return retval;
-	 }
-
-	 if (FD_ISSET(dpy->fd[i].fd, &wfds)) {
-	    r = write(dpy->fd[i].fd,
-		      dpy->fd[i].writebuf,
-		      dpy->fd[i].writebuf_count);
-
-	    if (r < 1) 
-	       shut_fd(dpy,i);
-	    else {
-	       dpy->fd[i].writebuf_count -= r;
-	       /* This probably never happens, but just in case: */
-	       if (dpy->fd[i].writebuf_count) {
-		  memmove(dpy->fd[i].writebuf + r,
-			  dpy->fd[i].writebuf,
-			  dpy->fd[i].writebuf_count);
-	       }
-	    }
-	 }
-
-	 if (FD_ISSET(dpy->fd[i].fd, &rfds)) {
-	    r = read(dpy->fd[i].fd, 
-		     dpy->fd[i].readbuf + dpy->fd[i].readbuf_count,
-		     MINIGLX_BUF_SIZE - dpy->fd[i].readbuf_count);
-
-	    if (r < 1) 
-	       shut_fd(dpy,i);
-	    else
-	       dpy->fd[i].readbuf_count += r;
-	    
-	    if (handle_fifo_read( dpy, i )) {
-	       retval = GL_TRUE;     /* new events for application */
-	       nonblock = 1;         /* exit with new events after this loop */
-	    }	     
-	 }
-      }
-   } while (!nonblock);
-
-   return retval;
-}
-
-
-
-
 
 /* This routine "puffs out" the very basic communciations between
  * client & server to full-sized X Events that can be handled by the
@@ -357,6 +253,7 @@ handle_fifo_read( Display *dpy, int i )
 {
    char id = dpy->fd[i].readbuf[0];
    XEvent *er;
+   int count = 1;
 
    /* read message id */
    /* read remainder of message (if any) */
@@ -366,7 +263,7 @@ handle_fifo_read( Display *dpy, int i )
 	 /* The server has called 'XMapWindow' on a client window */
       case _YouveGotFocus:
 	 er = queue_event(dpy);
-	 if (!er) return GL_FALSE;
+	 if (!er) return False;
 	 er->xmap.type = MapNotify;
 	 er->xmap.serial = 0;
 	 er->xmap.send_event = False;
@@ -380,7 +277,7 @@ handle_fifo_read( Display *dpy, int i )
 	  * window */
       case _RepaintPlease:
 	 er = queue_event(dpy);
-	 if (!er) return GL_FALSE;
+	 if (!er) return False;
 	 er->xexpose.type = Expose;
 	 er->xexpose.serial = 0;
 	 er->xexpose.send_event = False;
@@ -404,7 +301,7 @@ handle_fifo_read( Display *dpy, int i )
 	 /* The server has called 'XUnmapWindow' on a client window */
       case _YouveLostFocus:
 	 er = queue_event(dpy);
-	 if (!er) return GL_FALSE;
+	 if (!er) return False;
 	 er->xunmap.type = UnmapNotify;
 	 er->xunmap.serial = 0;
 	 er->xunmap.send_event = False;
@@ -413,11 +310,11 @@ handle_fifo_read( Display *dpy, int i )
 	 er->xunmap.window = dpy->TheWindow;
 	 er->xunmap.from_configure = False;
 	 break;
-
+	 
       default:
 	 fprintf(stderr, "Client received unhandled message type %d\n", id);
 	 shut_fd(dpy, i);		/* Actually shuts down the client */
-	 break;
+	 return False;
       }
    }
    else {
@@ -427,13 +324,13 @@ handle_fifo_read( Display *dpy, int i )
 	  */
       case _CanIHaveFocus:	 
 	 er = queue_event(dpy);
-	 if (!er) return GL_FALSE;
+	 if (!er) return False;
 	 er->xmaprequest.type = MapRequest;
 	 er->xmaprequest.serial = 0;
 	 er->xmaprequest.send_event = False;
 	 er->xmaprequest.display = dpy;
 	 er->xmaprequest.parent = 0;
-	 er->xmaprequest.window = i;
+	 er->xmaprequest.window = (Window)i;
 	 break;
 
 	 /* Both _YouveLostFocus and _IDontWantFocus generate unmap
@@ -444,24 +341,281 @@ handle_fifo_read( Display *dpy, int i )
 	  */
       case _IDontWantFocus:
 	 er = queue_event(dpy);
-	 if (!er) return GL_FALSE;
+	 if (!er) return False;
 	 er->xunmap.type = UnmapNotify;
 	 er->xunmap.serial = 0;
 	 er->xunmap.send_event = False;
 	 er->xunmap.display = dpy;
-	 er->xunmap.event = i;
-	 er->xunmap.window = i;
+	 er->xunmap.event = (Window)i;
+	 er->xunmap.window = (Window)i;
 	 er->xunmap.from_configure = False;
 	 break;
+
       default:
 	 fprintf(stderr, "Server received unhandled message type %d\n", id);
 	 shut_fd(dpy, i);		/* Generates DestroyNotify event */
-	 break;
+	 return False;
       }
    }
 
-   return GL_TRUE;
+   dpy->fd[i].readbuf_count -= count;
+
+   /* This probably never happens, but just in case: */
+   if (dpy->fd[i].readbuf_count) {
+      fprintf(stderr, "count: %d memmove %p %p %d\n", count,
+	      dpy->fd[i].readbuf + count,
+	      dpy->fd[i].readbuf,
+	      dpy->fd[i].readbuf_count);
+
+      memmove(dpy->fd[i].readbuf + count,
+	      dpy->fd[i].readbuf,
+	      dpy->fd[i].readbuf_count);
+   }
+
+   return True;
 }
+
+#undef max
+#define max(x,y) ((x) > (y) ? (x) : (y))
+
+/* This all looks pretty complex, but is necessary especially on the
+ * server side to prevent a poorly-behaved client from causing the
+ * server to block in a read or write and hence not service the other
+ * clients.
+ *
+ * See select_tut in the linux manual pages for more discussion.
+ */
+int 
+__miniglx_Select( Display *dpy, int n, fd_set *rfds, fd_set *wfds, fd_set *xfds,
+		  struct timeval *tv )
+{
+   int i;
+   int retval;
+   fd_set my_rfds, my_wfds;
+
+   if (!rfds) {
+      rfds = &my_rfds;
+      FD_ZERO(rfds);
+   }
+
+   if (!wfds) {
+      wfds = &my_wfds;
+      FD_ZERO(wfds);
+   }
+
+   assert( dpy->eventqueue.head == dpy->eventqueue.tail );
+
+   for (i = 0 ; i < dpy->nrFds; i++) {
+      if (dpy->fd[i].fd < 0)
+	 continue;
+      
+      if (dpy->fd[i].writebuf_count)
+	 FD_SET(dpy->fd[i].fd, wfds);
+	 
+      if (dpy->fd[i].readbuf_count < MINIGLX_BUF_SIZE) 
+	 FD_SET(dpy->fd[i].fd, rfds);
+      
+      n = max(n, dpy->fd[i].fd + 1);
+   }
+
+
+   retval = select( n, rfds, wfds, xfds, tv );
+   if (retval < 0) 
+      return retval;
+   
+   /* Handle server fd[0] specially:
+    */
+   if (!dpy->IsClient) {
+      if (FD_ISSET(dpy->fd[0].fd, rfds)) {
+	 FD_CLR(dpy->fd[0].fd, rfds);
+	 handle_new_client( dpy );
+      }
+   }
+
+   /* Otherwise, try and fill readbuffer and drain writebuffer:
+    */
+   for (i = 0 ; i < dpy->nrFds ; i++) {
+      if (dpy->fd[i].fd < 0) 
+	 continue;
+
+      /* If there aren't any event slots left, don't examine
+       * any more file events.  This will prevent lost events.
+       */
+      if (dpy->eventqueue.head == 
+	  ((dpy->eventqueue.tail + 1) & MINIGLX_EVENT_QUEUE_MASK)) {
+	 fprintf(stderr, "leaving event loop as event queue is full\n");
+	 return retval;
+      }
+
+      if (FD_ISSET(dpy->fd[i].fd, wfds)) {
+	 int r = write(dpy->fd[i].fd,
+		       dpy->fd[i].writebuf,
+		       dpy->fd[i].writebuf_count);
+	 
+	 if (r < 1) 
+	    shut_fd(dpy,i);
+	 else {
+	    dpy->fd[i].writebuf_count -= r;
+	    if (dpy->fd[i].writebuf_count) {
+	       memmove(dpy->fd[i].writebuf + r,
+		       dpy->fd[i].writebuf,
+		       dpy->fd[i].writebuf_count);
+	    }
+	 }
+      }
+
+      if (FD_ISSET(dpy->fd[i].fd, rfds)) {
+	 int r = read(dpy->fd[i].fd, 
+		      dpy->fd[i].readbuf + dpy->fd[i].readbuf_count,
+		      MINIGLX_BUF_SIZE - dpy->fd[i].readbuf_count);
+	 
+	 if (r < 1) 
+	    shut_fd(dpy,i);
+	 else {
+	    dpy->fd[i].readbuf_count += r;
+	 
+	    fprintf(stderr, "Read %d bytes from fd[%d]\n", r, i);
+	    handle_fifo_read( dpy, i );
+	 }
+      }
+   }
+
+   return retval;
+}
+
+static int handle_fd_events( Display *dpy, int nonblock )
+{
+   while (1) {
+      struct timeval tv = {0, 0};
+      int r = __miniglx_Select( dpy, 0, 0, 0, 0, nonblock ? &tv : 0 );
+      if (r >= 0) 
+	 return True;
+      if (errno == EINTR || errno == EAGAIN)
+	 continue;
+      perror ("select()");
+      exit (1);
+   }
+}
+
+
+
+int __miniglx_open_connections( Display *dpy )
+{
+   struct sockaddr_un sa;
+   int i;
+
+   dpy->nrFds = dpy->IsClient ? 1 : MINIGLX_MAX_SERVER_FDS;
+   dpy->fd = CALLOC( dpy->nrFds * sizeof(struct MiniGLXConnection));
+   if (!dpy->fd)
+      return False;
+
+   for (i = 0 ; i < dpy->nrFds ; i++)
+      dpy->fd[i].fd = -1;
+
+   if (!dpy->IsClient) {
+      if (unlink(MINIGLX_FIFO_NAME) != 0 && errno != ENOENT) { 
+	 perror("unlink " MINIGLX_FIFO_NAME);
+ 	 return False; 
+      } 
+   } 
+
+   /* Create a unix socket -- Note this is *not* a network connection!
+    */
+   dpy->fd[0].fd = socket(PF_UNIX, SOCK_STREAM, 0);
+   if (dpy->fd[0].fd < 0) {
+      perror("socket " MINIGLX_FIFO_NAME);
+      return False;
+   }
+
+   memset(&sa, 0, sizeof(sa));
+   sa.sun_family = AF_UNIX;
+   strcpy(sa.sun_path, MINIGLX_FIFO_NAME);
+
+   if (dpy->IsClient) {
+      /* Connect to server
+       */
+      if (connect(dpy->fd[0].fd, (struct sockaddr *)&sa, sizeof(sa)) != 0) {
+	 perror("connect");
+	 shut_fd(dpy,0);
+	 return False;
+      }
+
+      /* Wait for confirmation from the server, in the form of a _DriverInfo 
+       * message.
+       */
+      welcome_message( dpy, 0 );
+   }
+   else {
+      /* Bind socket to our filename
+       */
+      if (bind(dpy->fd[0].fd, (struct sockaddr *)&sa, sizeof(sa)) != 0) {
+	 perror("bind");
+	 shut_fd(dpy,0);
+	 return False;
+      }
+      
+      /* Listen for connections
+       */
+      if (listen(dpy->fd[0].fd, 5) != 0) {
+	 perror("listen");
+	 shut_fd(dpy,0);
+	 return False;
+      }
+   }
+
+   return True;
+}
+
+
+void __miniglx_close_connections( Display *dpy )
+{
+   int i;
+   for (i = 0 ; i < dpy->nrFds ; i++)
+      shut_fd( dpy, i );
+
+   dpy->nrFds = 0;
+   FREE(dpy->fd);
+}
+
+/**
+ * \brief Map Window.
+ *
+ * \param display the display handle as returned by XOpenDisplay().
+ * \param w the window handle.
+ * 
+ * If called by a client, sends a request for focus to the server.  If
+ * called by the server, will generate a MapNotify and Expose event at
+ * the client.
+ * 
+ */
+void
+XMapWindow( Display *dpy, Window w )
+{
+   if (dpy->IsClient) 
+      send_char_msg( dpy, 0, _CanIHaveFocus );
+   else {
+      send_char_msg( dpy, (int)w, _YouveGotFocus );
+      send_char_msg( dpy, (int)w, _RepaintPlease );
+   }
+}
+
+/**
+ * \brief Unmap Window.
+ *
+ * \param display the display handle as returned by XOpenDisplay().
+ * \param w the window handle.
+ * 
+ * Should clients be allowed to unmap their own windows?  Probably, as
+ * it is impossible to force them to keep updating their contents & at
+ * least this way there is notification that they've stopped.
+ * 
+ */
+void
+XUnmapWindow( Display *dpy, Window window )
+{
+   send_char_msg( dpy, 0,  dpy->IsClient ? _IDontWantFocus : _YouveLostFocus );
+}
+
 
 int XNextEvent(Display *dpy, XEvent *event_return)
 {
@@ -473,13 +627,8 @@ int XNextEvent(Display *dpy, XEvent *event_return)
    }
 }
 
-
-Bool XCheckWindowEvent(Display *dpy, Window w, long event_mask, 
-		       XEvent *event_return)
+Bool XCheckMaskEvent(Display *dpy, long event_mask, XEvent *event_return)
 {
-   if (!w || w != dpy->TheWindow) 
-      return False;
-
    if ( dpy->eventqueue.head != dpy->eventqueue.tail )
       return dequeue_event( dpy, event_return ); 
 
@@ -487,6 +636,17 @@ Bool XCheckWindowEvent(Display *dpy, Window w, long event_mask,
  
    return dequeue_event( dpy, event_return ); 
 }
+
+
+Bool XCheckWindowEvent(Display *dpy, Window w, long event_mask, 
+		       XEvent *event_return)
+{
+   if (!w || w != dpy->TheWindow) 
+      return False;
+
+   return XCheckMaskEvent( dpy, event_mask, event_return );
+}
+
 
 
 

@@ -104,17 +104,6 @@ drmMsg(const char *format, ...)
     }
 }
 
-/*
- * Not used.
- */
-static unsigned long drmGetKeyFromFd(int fd)
-{
-    struct stat     st;
-
-    st.st_rdev = 0;
-    fstat(fd, &st);
-    return st.st_rdev;
-}
 
 
 /**

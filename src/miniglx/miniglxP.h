@@ -247,7 +247,6 @@ struct MiniGLXVisualRec {
 };
 
 
-#define MINIGLX_EVENT_QUEUE_SIZE 5
 
 /**
  * \brief X Window type.
@@ -270,8 +269,6 @@ struct MiniGLXWindowRec {
    GLubyte *curBottom;             /**<  = frontBottom or backBottom */
    __DRIdrawable driDrawable;
    GLuint ismapped;
-   GLuint event_queue[MINIGLX_EVENT_QUEUE_SIZE];
-   GLuint event_queue_len;
 };
 
 
@@ -286,6 +283,21 @@ struct MiniGLXContextRec {
    VisualID vid;            /**< \brief visual ID */
    __DRIcontext driContext; /**< \brief context dependent methods */
 };
+
+#define MINIGLX_BUF_SIZE 512
+#define MINIGLX_MAX_SERVER_FDS 10
+#define MINIGLX_MAX_CLIENT_FDS 1
+#define MINIGLX_EVENT_QUEUE_SZ 16
+#define MINIGLX_EVENT_QUEUE_MASK (MINIGLX_EVENT_QUEUE_SZ-1)
+
+struct MiniGLXConnection {
+   int fd;
+   char readbuf[MINIGLX_BUF_SIZE];
+   char writebuf[MINIGLX_BUF_SIZE];
+   int readbuf_count;
+   int writebuf_count;
+};
+
 
 
 /**
@@ -304,13 +316,12 @@ struct MiniGLXDisplayRec {
    int ConsoleFD;        /**< \brief console TTY device file descriptor */
    int FrameBufferFD;    /**< \brief framebuffer device file descriptor */
    caddr_t FrameBuffer;  /**< \brief start of the mmap'd framebuffer */
-   int FrameBufferSize;  /**< \brief size of the mmap'd framebuffer in bytes */
+/*   int FrameBufferSize; */  /**< \brief size of the mmap'd framebuffer in bytes */
    caddr_t MMIOAddress;  /**< \brief start of the mmap'd MMIO region */
    int MMIOSize;         /**< \brief size of the mmap'd MMIO region in bytes */
    int NumWindows;       /**< \brief number of open windows */
    Window TheWindow;     /**< \brief open window - only allow one window for now */
    int rotateMode;
-
 
    int haveVT;
    int aquireVTCount;
@@ -320,6 +331,15 @@ struct MiniGLXDisplayRec {
    int unmapNotifyCount;
 
 
+   int IsClient;
+   int nrFds;
+   struct MiniGLXConnection *fd;
+
+   struct {
+      int nr, head, tail;
+      XEvent queue[MINIGLX_EVENT_QUEUE_SZ];
+   } eventqueue;
+   
 
    /**
     * \name Visual configurations
@@ -359,20 +379,28 @@ struct MiniGLXDisplayRec {
    int pciDevice;
    int pciFunc;
    int chipset;
-   int virtualWidth;
-   int virtualHeight;
-   int bpp;
-   int cpp; 
+   int bpp; 
+   int cpp;  
    /*@}*/
+
+
+   struct {
+      unsigned long hSAREA;
+      int SAREASize;
+      unsigned long hFrameBuffer;
+      int fbOrigin;
+      int fbSize;
+      int fbStride;
+      int virtualWidth;
+      int virtualHeight;
+   } shared;
+      
 
    /**
     * \name From DRIInfoRec
     */
    /*@{*/
    int drmFD;  /**< \brief DRM device file descriptor */
-   unsigned long hSAREA;
-   unsigned long hFrameBuffer;
-   int SAREASize;
    void *pSAREA;
    /*@}*/
 
@@ -390,8 +418,6 @@ struct MiniGLXDisplayRec {
 
 /**
  * \brief Clip rectangle definition.
- *
- * \warning Do not change without changing the kernel structure!
  */
 typedef struct _XF86DRIClipRect {
     unsigned short	x1; /**< \brief Upper: inclusive */
@@ -406,5 +432,13 @@ extern __DRIscreen *__glXFindDRIScreen(Display *dpy, int scrn);
 extern Bool __glXWindowExists(Display *dpy, GLXDrawable draw);
 
 extern void __miniglx_release_vt( void );
+extern int __miniglx_open_connections( Display *dpy );
+extern void __miniglx_close_connections( Display *dpy );
+
+#define MALLOC(N) malloc(N)
+#define CALLOC(N) calloc(1, N)
+#define CALLOC_STRUCT(T) ((struct T *) calloc(1, sizeof(struct T)))
+#define FREE(P)   free(P)
+#define STRCMP(A, B)  strcmp(A, B)
 
 #endif /* !_mini_GLX_client_h_ */

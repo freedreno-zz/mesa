@@ -653,16 +653,44 @@ __driUtilCreateScreen(Display *dpy, int scrn, __DRIscreen *psc,
     * that has information about the screen size, depth, pitch,
     * ancilliary buffers, DRM mmap handles, etc.
     */
-   psp->pFB = dpy->FrameBuffer;
    psp->fbOrigin = 0;  
-   psp->fbSize = dpy->FrameBufferSize; 
-   psp->fbStride = dpy->VarInfo.xres_virtual * dpy->cpp; 
+   psp->fbSize = dpy->shared.fbSize; 
+   psp->fbStride = dpy->shared.fbStride;
    psp->devPrivSize = dpy->driverClientMsgSize;
    psp->pDevPriv = dpy->driverClientMsg;
-   psp->fbWidth = dpy->VarInfo.xres;
-   psp->fbHeight = dpy->VarInfo.yres;
-   psp->fbBPP = dpy->VarInfo.bits_per_pixel;
-   psp->pSAREA = dpy->pSAREA;
+   psp->fbWidth = dpy->shared.virtualWidth;
+   psp->fbHeight = dpy->shared.virtualHeight;
+   psp->fbBPP = dpy->bpp;
+
+   if (dpy->IsClient) {
+      /*
+       * Map the framebuffer region.
+       */
+      if (drmMap(psp->fd, dpy->shared.hFrameBuffer, psp->fbSize, 
+		 (drmAddressPtr)&psp->pFB)) {
+	 fprintf(stderr, "libGL error: drmMap of framebuffer failed\n");
+	 (void)drmClose(psp->fd);
+	 free(psp);
+	 return NULL;
+      }
+
+      /*
+       * Map the SAREA region.  Further mmap regions may be setup in
+       * each DRI driver's "createScreen" function.
+       */
+      if (drmMap(psp->fd, dpy->shared.hSAREA, dpy->shared.SAREASize, 
+		 (drmAddressPtr)&psp->pSAREA)) {
+	 fprintf(stderr, "libGL error: drmMap of sarea failed\n");
+	 (void)drmUnmap((drmAddress)psp->pFB, psp->fbSize);
+	 (void)drmClose(psp->fd);
+	 free(psp);
+	 return NULL;
+      }
+   } else {
+      psp->pFB = dpy->FrameBuffer;
+      psp->pSAREA = dpy->pSAREA;
+   }
+
 
    /* Initialize the screen specific GLX driver */
    if (psp->DriverAPI.InitDriver) {
@@ -712,14 +740,16 @@ __driUtilCreateScreenNoDRM(Display *dpy, int scrn, __DRIscreen *psc,
     psp->myNum = scrn;
     psp->fd = 0;
     psp->fbOrigin = 0; 
-    psp->fbSize = dpy->FrameBufferSize; 
-    psp->fbStride = dpy->VarInfo.xres_virtual;
-    psp->fbWidth = dpy->VarInfo.xres;
-    psp->fbHeight = dpy->VarInfo.yres;
-    psp->fbBPP = dpy->VarInfo.bits_per_pixel;
+
+    psp->fbSize = dpy->shared.fbSize; 
+    psp->fbStride = dpy->shared.fbStride;
+    psp->devPrivSize = dpy->driverClientMsgSize;
+    psp->pDevPriv = dpy->driverClientMsg;
+    psp->fbWidth = dpy->shared.virtualWidth;
+    psp->fbHeight = dpy->shared.virtualHeight;
+    psp->fbBPP = dpy->bpp;
+
     psp->pFB = dpy->FrameBuffer;
-    psp->devPrivSize = 0;
-    psp->pDevPriv = 0;
 
     /* install driver's callback functions */
     memcpy(&psp->DriverAPI, driverAPI, sizeof(struct __DriverAPIRec));
