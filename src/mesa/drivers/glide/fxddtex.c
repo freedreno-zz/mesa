@@ -1327,7 +1327,7 @@ void fxDDTexSubImg(GLcontext *ctx, GLenum target,
                           width,height,mml->data);
 
   if(ti->validated && ti->isInTM)
-    fxTMReloadSubMipMapLevel(fxMesa,tObj,level,yoffset,height);
+    fxTMReloadMipMapLevel(fxMesa,tObj,level);
   else
     fxTexInvalidate(ctx,tObj);
 }
