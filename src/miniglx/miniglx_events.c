@@ -22,7 +22,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: miniglx_events.c,v 1.1.2.8 2003/04/27 14:20:00 keithw Exp $ */
+/* $Id: miniglx_events.c,v 1.1.2.9 2003/04/27 17:02:20 keithw Exp $ */
 
 
 /**
@@ -162,6 +162,7 @@ static int blocking_read( Display *dpy, int connection,
    for (i = 0 ; i < msg_size ; i += r) {
       r = read(dpy->fd[connection].fd, msg + i, msg_size - i);
       if (r < 1) {
+	 fprintf(stderr, "blocking_read: %d %s\n", r, strerror(errno));
 	 shut_fd(dpy,connection);
 	 return False;
       }
@@ -223,6 +224,12 @@ static int handle_new_client( Display *dpy )
       return False;
    } 
 
+   if (fcntl(r, F_SETFL, O_NONBLOCK) != 0) {
+      perror("fcntl");
+      close(r);
+      return False;
+   }
+
 
    /* Some rough & ready adaption of the XEvent semantics.
     */ 
@@ -249,6 +256,7 @@ static int handle_new_client( Display *dpy )
 	 return True;
       }	    
    }
+
 
    fprintf(stderr, "[miniglx] %s: Max nr clients exceeded\n", __FUNCTION__);
    close(r);
@@ -622,6 +630,13 @@ int __miniglx_open_connections( Display *dpy )
       }
    }
 
+   if (fcntl(dpy->fd[0].fd, F_SETFL, O_NONBLOCK) != 0) {
+      perror("fcntl");
+      shut_fd(dpy,0);
+      return False;
+   }
+
+
    return True;
 }
 
@@ -640,16 +655,18 @@ void __miniglx_close_connections( Display *dpy )
 static void set_drawable_flag( Display *dpy, int w, int flag )
 {
    if (dpy->driverContext.pSAREA) {
-      DRM_LIGHT_LOCK( dpy->driverContext.drmFD,
-                      dpy->driverContext.pSAREA,
-                      dpy->driverContext.serverContext ); 
+      if (dpy->hwActive) 
+	 DRM_LIGHT_LOCK( dpy->driverContext.drmFD,
+			 dpy->driverContext.pSAREA,
+			 dpy->driverContext.serverContext ); 
 
       dpy->driverContext.pSAREA->drawableTable[w].stamp++;
       dpy->driverContext.pSAREA->drawableTable[w].flags = flag;
 
-      DRM_UNLOCK( dpy->driverContext.drmFD,
-                  dpy->driverContext.pSAREA,
-                  dpy->driverContext.serverContext ); 
+      if (dpy->hwActive) 
+	 DRM_UNLOCK( dpy->driverContext.drmFD,
+		     dpy->driverContext.pSAREA,
+		     dpy->driverContext.serverContext ); 
    }
 }
 
@@ -676,6 +693,7 @@ XMapWindow( Display *dpy, Window w )
       set_drawable_flag( dpy, (int)w, 1 );
       send_char_msg( dpy, (int)w, _YouveGotFocus );
       send_char_msg( dpy, (int)w, _RepaintPlease );
+      dpy->TheWindow = w;
    }
    handle_fd_events( dpy, 0 );	/* flush write queue */
 }
@@ -699,6 +717,7 @@ XUnmapWindow( Display *dpy, Window w )
       send_char_msg( dpy, 0, _IDontWantFocus );
    } 
    else {
+      dpy->TheWindow = 0;
       set_drawable_flag( dpy, (int)w, 0 );
       send_char_msg( dpy, (int)w, _YouveLostFocus );
    }
