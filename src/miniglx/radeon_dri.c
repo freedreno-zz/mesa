@@ -6,6 +6,18 @@
  * server infrastructure.
  */
 
+
+/* Compute log base 2 of val */
+static int RADEONMinBits(int val)
+{
+    int  bits;
+
+    if (!val) return 1;
+    for (bits = 0; val; val >>= 1, ++bits);
+    return bits;
+}
+
+
 /* Memory map the MMIO region.  Used during pre-init and by RADEONMapMem,
  * below
  */
@@ -80,12 +92,6 @@ static Bool RADEONDRIAgpInit(RADEONInfoPtr info)
     }
     else if (info->agpFastWrite) 
        mode |= RADEON_AGP_FW_MODE;
-
-    fprintf(stderr,
-	    "[agp] Mode 0x%08lx [AGP 0x%04x/0x%04x; Card 0x%04x/0x%04x]\n",
-	    mode, vendor, device,
-	    info->PciInfo->vendor,
-	    info->PciInfo->chipType);
 
     if (drmAgpEnable(info->drmFD, mode) < 0) {
 	fprintf(stderr, "[agp] AGP not enabled\n");
@@ -247,8 +253,8 @@ static int RADEONDRIKernelInit(RADEONInfoPtr info)
     memset(&drmInfo, 0, sizeof(drmRadeonInit));
 
     if ( (info->ChipFamily == CHIP_FAMILY_R200) ||
-		 (info->ChipFamily == CHIP_FAMILY_RV250) ||
-		 (info->ChipFamily == CHIP_FAMILY_M9) )
+	 (info->ChipFamily == CHIP_FAMILY_RV250) ||
+	 (info->ChipFamily == CHIP_FAMILY_M9) )
        drmInfo.func             = DRM_RADEON_INIT_R200_CP;
     else
        drmInfo.func             = DRM_RADEON_INIT_CP;
@@ -372,9 +378,6 @@ static void RADEONDRIIrqInit(RADEONInfoPtr info)
 }
 
 
-#define RADEONCP_START(pScrn, info)					\
-do {									\
-} while (0)
 
 
 /* Initialize the CP state, and start the CP (if used by the X server) */
@@ -397,7 +400,7 @@ static void RADEONDRICPInit(RADEONInfoPtr info)
  * initialization code.  It calls device-independent DRI functions to
  * create the DRI data structures and initialize the DRI state.
  */
-Bool RADEONDRIScreenInit(RADEONInfoPtr info)
+static Bool RADEONDRIScreenInit(RADEONInfoPtr info)
 {
     DRIInfoPtr     pDRIInfo;
     RADEONDRIPtr   pRADEONDRI;
@@ -447,14 +450,14 @@ Bool RADEONDRIScreenInit(RADEONInfoPtr info)
     }
     pDRIInfo->SAREASize = SAREA_MAX;
 
-    if (!(pRADEONDRI = (RADEONDRIPtr)xcalloc(sizeof(RADEONDRIRec),1))) {
+    if (!(pRADEONDRI = (RADEONDRIPtr)calloc(sizeof(RADEONDRIRec),1))) {
 	DRIDestroyInfoRec(info->pDRIInfo);
 	info->pDRIInfo = NULL;
 	return FALSE;
     }
     pDRIInfo->devPrivate     = pRADEONDRI;
     pDRIInfo->devPrivateSize = sizeof(RADEONDRIRec);
-    pDRIInfo->contextSize    = sizeof(RADEONDRIContextRec);
+    pDRIInfo->contextSize    = 0;
 
     pDRIInfo->CreateContext  = RADEONCreateContext;
     pDRIInfo->DestroyContext = RADEONDestroyContext;
@@ -462,20 +465,14 @@ Bool RADEONDRIScreenInit(RADEONInfoPtr info)
     pDRIInfo->InitBuffers    = RADEONDRIInitBuffers;
     pDRIInfo->MoveBuffers    = RADEONDRIMoveBuffers;
     pDRIInfo->bufferRequests = DRI_ALL_WINDOWS;
-    pDRIInfo->OpenFullScreen = RADEONDRIOpenFullScreen;
-    pDRIInfo->CloseFullScreen = RADEONDRICloseFullScreen;
-    pDRIInfo->TransitionTo2d = RADEONDRITransitionTo2d;
-    pDRIInfo->TransitionTo3d = RADEONDRITransitionTo3d;
-    pDRIInfo->TransitionSingleToMulti3D = RADEONDRITransitionSingleToMulti3d;
-    pDRIInfo->TransitionMultiToSingle3D = RADEONDRITransitionMultiToSingle3d;
 
     pDRIInfo->createDummyCtx     = TRUE;
     pDRIInfo->createDummyCtxPriv = FALSE;
 
-    if (!DRIScreenInit(pScreen, pDRIInfo, &info->drmFD)) {
+    if (!DRIScreenInit(pDRIInfo, &info->drmFD)) {
        fprintf(stderr,
 	       "[dri] DRIScreenInit failed.  Disabling DRI.\n");
-       xfree(pDRIInfo->devPrivate);
+       free(pDRIInfo->devPrivate);
        pDRIInfo->devPrivate = NULL;
        DRIDestroyInfoRec(pDRIInfo);
 	pDRIInfo = NULL;
@@ -605,7 +602,7 @@ Bool RADEONDRIScreenInit(RADEONInfoPtr info)
  * DRIFinishScreenInit() to complete the device-independent DRI
  * initialization.
  */
-Bool RADEONDRIFinishScreenInit(RADEONInfoPtr info)
+static Bool RADEONDRIFinishScreenInit(RADEONInfoPtr info)
 {
     RADEONSAREAPrivPtr  pSAREAPriv;
     RADEONDRIPtr        pRADEONDRI;
@@ -618,34 +615,34 @@ Bool RADEONDRIFinishScreenInit(RADEONInfoPtr info)
      * the X server, and the first time the hardware lock is grabbed is
      * in DRIFinishScreenInit.
      */
-    if (!DRIFinishScreenInit(pScreen)) {
-	RADEONDRICloseScreen(pScreen);
+    if (!DRIFinishScreenInit()) {
+	RADEONDRICloseScreen(info);
 	return FALSE;
     }
 
     /* Initialize the kernel data structures */
-    if (!RADEONDRIKernelInit(info, pScreen)) {
-	RADEONDRICloseScreen(pScreen);
+    if (!RADEONDRIKernelInit(info)) {
+	RADEONDRICloseScreen(info);
 	return FALSE;
     }
 
     /* Initialize the vertex buffers list */
-    if (!RADEONDRIBufInit(info, pScreen)) {
-	RADEONDRICloseScreen(pScreen);
+    if (!RADEONDRIBufInit(info)) {
+	RADEONDRICloseScreen(info);
 	return FALSE;
     }
 
     /* Initialize IRQ */
-    RADEONDRIIrqInit(info, pScreen);
+    RADEONDRIIrqInit(info);
 
     /* Initialize kernel agp memory manager */
-    RADEONDRIAgpHeapInit(info, pScreen);
+    RADEONDRIAgpHeapInit(info);
 
     /* Initialize and start the CP if required */
-    RADEONDRICPInit(pScrn);
+    RADEONDRICPInit();
 
     /* Initialize the SAREA private data structure */
-    pSAREAPriv = (RADEONSAREAPrivPtr)DRIGetSAREAPrivate(pScreen);
+    pSAREAPriv = (RADEONSAREAPrivPtr)DRIGetSAREAPrivate();
     memset(pSAREAPriv, 0, sizeof(*pSAREAPriv));
 
     pRADEONDRI                    = (RADEONDRIPtr)info->pDRIInfo->devPrivate;
@@ -682,18 +679,16 @@ Bool RADEONDRIFinishScreenInit(RADEONInfoPtr info)
 
     pRADEONDRI->sarea_priv_offset = sizeof(XF86DRISAREARec);
 
+
     return TRUE;
 }
 
 /* The screen is being closed, so clean up any state and free any
  * resources used by the DRI.
  */
-void RADEONDRICloseScreen(ScreenPtr pScreen)
+STATIC void RADEONDRICloseScreen( RADEONInfoPtr info )
 {
-    ScrnInfoPtr    pScrn = xf86Screens[pScreen->myNum];
-    RADEONInfoPtr  info  = RADEONPTR(pScrn);
     drmRadeonInit  drmInfo;
-    RING_LOCALS;
 
 				/* Stop the CP */
     if (info->directRenderingEnabled) {
@@ -746,26 +741,322 @@ void RADEONDRICloseScreen(ScreenPtr pScreen)
     }
 
 				/* De-allocate all DRI resources */
-    DRICloseScreen(pScreen);
+    DRICloseScreen();
 
 				/* De-allocate all DRI data structures */
     if (info->pDRIInfo) {
 	if (info->pDRIInfo->devPrivate) {
-	    xfree(info->pDRIInfo->devPrivate);
+	    free(info->pDRIInfo->devPrivate);
 	    info->pDRIInfo->devPrivate = NULL;
 	}
 	DRIDestroyInfoRec(info->pDRIInfo);
 	info->pDRIInfo = NULL;
     }
-    if (info->pVisualConfigs) {
-	xfree(info->pVisualConfigs);
-	info->pVisualConfigs = NULL;
+}
+
+
+
+/* Will fbdev set a pitch appropriate for 3d?
+ */
+static void RADEONSetPitch (ScrnInfoPtr pScrn)
+{
+    int  dummy = pScrn->virtualX;
+
+    /* FIXME: May need to validate line pitch here */
+    switch (pScrn->depth / 8) {
+    case 1: dummy = (pScrn->virtualX + 127) & ~127; break;
+    case 2: dummy = (pScrn->virtualX +  31) &  ~31; break;
+    case 3:
+    case 4: dummy = (pScrn->virtualX +  15) &  ~15; break;
     }
-    if (info->pVisualConfigsPriv) {
-	xfree(info->pVisualConfigsPriv);
-	info->pVisualConfigsPriv = NULL;
+    pScrn->displayWidth = dummy;
+}
+
+/* Called at the start of each server generation. */
+static Bool RADEONScreenInit( ScrnInfoPtr info, RADEONInfoPtr info )
+{
+
+    RADEONTRACE(("RADEONScreenInit %x %d\n",
+		 pScrn->memPhysBase, pScrn->fbOffset));
+
+    info->FBDev        = TRUE;
+    info->CPInUse      = FALSE;
+    info->CPStarted    = FALSE;
+    info->directRenderingEnabled = FALSE;
+    pScrn->fbOffset    = 0;
+    if (!RADEONMapMem(pScrn)) return FALSE;
+
+
+    /* KW:  Here FBDev is asked to initialize a display mode -- Do we
+     *      need to do this?  If so we need to pull this function in.
+     */
+#if 0
+    if (info->FBDev) {
+	unsigned char *RADEONMMIO = info->MMIO;
+
+	if (!fbdevHWModeInit(pScrn, pScrn->currentMode)) return FALSE;
+	info->ModeReg.surface_cntl = INREG(RADEON_SURFACE_CNTL);
+    }
+#endif
+
+    
+
+    {
+	int  width_bytes = (pScrn->displayWidth *
+			    info->CurrentLayout.pixel_bytes);
+	int  maxy        = info->FbMapSize / width_bytes;
+
+
+	if (maxy <= pScrn->virtualY * 3) {
+	    xf86DrvMsg(scrnIndex, X_WARNING,
+		       "Static buffer allocation failed -- "
+		       "need at least %d kB video memory\n",
+		       (pScrn->displayWidth * pScrn->virtualY *
+			info->CurrentLayout.pixel_bytes * 3 + 1023) / 1024);
+	    info->directRenderingEnabled = FALSE;
+	} else if (info->ChipFamily >= CHIP_FAMILY_R300) {
+	    info->directRenderingEnabled = FALSE;
+	    xf86DrvMsg(scrnIndex, X_WARNING,
+		       "Direct rendering not yet supported on "
+		       "Radeon 9700 and newer cards\n");
+	    return FALSE;
+	} else {
+	   if (!RADEONDRIScreenInit(pScreen))
+	      return FALSE;
+	}
+    }
+
+    /* Memory manager setup */
+    if (info->directRenderingEnabled) {
+	FBAreaPtr  fbarea;
+	int        width_bytes = (pScrn->displayWidth *
+				  info->CurrentLayout.pixel_bytes);
+	int        cpp         = info->CurrentLayout.pixel_bytes;
+	int        bufferSize  = ((pScrn->virtualY * width_bytes
+				   + RADEON_BUFFER_ALIGN)
+				  & ~RADEON_BUFFER_ALIGN);
+	int        depthSize   = ((((pScrn->virtualY+15) & ~15) * width_bytes
+				   + RADEON_BUFFER_ALIGN)
+				  & ~RADEON_BUFFER_ALIGN);
+	int        l;
+	int        scanlines;
+
+	info->frontOffset = 0;
+	info->frontPitch = pScrn->displayWidth;
+
+	switch (info->CPMode) {
+	case RADEON_DEFAULT_CP_PIO_MODE:
+	    xf86DrvMsg(pScrn->scrnIndex, X_INFO, "CP in PIO mode\n");
+	    break;
+	case RADEON_DEFAULT_CP_BM_MODE:
+	    xf86DrvMsg(pScrn->scrnIndex, X_INFO, "CP in BM mode\n");
+	    break;
+	default:
+	    xf86DrvMsg(pScrn->scrnIndex, X_INFO, "CP in UNKNOWN mode\n");
+	    break;
+	}
+
+	xf86DrvMsg(pScrn->scrnIndex, X_INFO,
+		   "Using %d MB AGP aperture\n", info->agpSize);
+	xf86DrvMsg(pScrn->scrnIndex, X_INFO,
+		   "Using %d MB for the ring buffer\n", info->ringSize);
+	xf86DrvMsg(pScrn->scrnIndex, X_INFO,
+		   "Using %d MB for vertex/indirect buffers\n", info->bufSize);
+	xf86DrvMsg(pScrn->scrnIndex, X_INFO,
+		   "Using %d MB for AGP textures\n", info->agpTexSize);
+
+	/* Front, back and depth buffers - everything else texture??
+	 */
+	info->textureSize = info->FbMapSize - 2 * bufferSize - depthSize;
+
+	if (info->textureSize < 0) 
+	   return FALSE;
+
+	l = RADEONMinBits((info->textureSize-1) / RADEON_NR_TEX_REGIONS);
+	if (l < RADEON_LOG_TEX_GRANULARITY) l = RADEON_LOG_TEX_GRANULARITY;
+
+	/* Round the texture size up to the nearest whole number of
+	 * texture regions.  Again, be greedy about this, don't
+	 * round down.
+	 */
+	info->log2TexGran = l;
+	info->textureSize = (info->textureSize >> l) << l;
+
+	/* Set a minimum usable local texture heap size.  This will fit
+	 * two 256x256x32bpp textures.
+	 */
+	if (info->textureSize < 512 * 1024) {
+	    info->textureOffset = 0;
+	    info->textureSize = 0;
+	}
+
+				/* Reserve space for textures */
+	info->textureOffset = ((info->FbMapSize - info->textureSize +
+				RADEON_BUFFER_ALIGN) &
+			       ~(CARD32)RADEON_BUFFER_ALIGN);
+
+				/* Reserve space for the shared depth
+                                 * buffer.
+				 */
+	info->depthOffset = ((info->textureOffset - depthSize +
+			      RADEON_BUFFER_ALIGN) &
+			     ~(CARD32)RADEON_BUFFER_ALIGN);
+	info->depthPitch = pScrn->displayWidth;
+
+	info->backOffset = ((info->depthOffset - bufferSize +
+			     RADEON_BUFFER_ALIGN) &
+			    ~(CARD32)RADEON_BUFFER_ALIGN);
+	info->backPitch = pScrn->displayWidth;
+
+
+	xf86DrvMsg(scrnIndex, X_INFO,
+		   "Will use back buffer at offset 0x%x\n",
+		   info->backOffset);
+	xf86DrvMsg(scrnIndex, X_INFO,
+		   "Will use depth buffer at offset 0x%x\n",
+		   info->depthOffset);
+	xf86DrvMsg(scrnIndex, X_INFO,
+		   "Will use %d kb for textures at offset 0x%x\n",
+		   info->textureSize/1024, info->textureOffset);
+
+	info->frontPitchOffset = (((info->frontPitch * cpp / 64) << 22) |
+				  (info->frontOffset >> 10));
+
+	info->backPitchOffset = (((info->backPitch * cpp / 64) << 22) |
+				 (info->backOffset >> 10));
+
+	info->depthPitchOffset = (((info->depthPitch * cpp / 64) << 22) |
+				  (info->depthOffset >> 10));
+    } 
+
+    if (info->directRenderingEnabled) 
+       info->directRenderingEnabled = RADEONDRIFinishScreenInit(pScreen);
+
+    if (info->directRenderingEnabled) {
+	xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Direct rendering enabled\n");
+    } else {
+	xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Direct rendering disabled\n");
+    }
+
+    return TRUE;
+}
+
+
+static void get_chipfamily_from_chipset( RADEONInfoPtr info )
+{
+    switch (info->Chipset) {
+    case PCI_CHIP_RADEON_LY:
+    case PCI_CHIP_RADEON_LZ:
+	info->ChipFamily = CHIP_FAMILY_M6;
+	break;
+
+    case PCI_CHIP_RADEON_QY:
+    case PCI_CHIP_RADEON_QZ:
+	info->ChipFamily = CHIP_FAMILY_VE;
+	break;
+
+    case PCI_CHIP_R200_QL:
+    case PCI_CHIP_R200_QN:
+    case PCI_CHIP_R200_QO:
+    case PCI_CHIP_R200_Ql:
+    case PCI_CHIP_R200_BB:
+	info->ChipFamily = CHIP_FAMILY_R200;
+	break;
+
+    case PCI_CHIP_RV200_QW: /* RV200 desktop */
+    case PCI_CHIP_RV200_QX:
+	info->ChipFamily = CHIP_FAMILY_RV200;
+	break;
+
+    case PCI_CHIP_RADEON_LW:
+    case PCI_CHIP_RADEON_LX:
+	info->ChipFamily = CHIP_FAMILY_M7;
+	break;
+
+    case PCI_CHIP_RV250_Id:
+    case PCI_CHIP_RV250_Ie:
+    case PCI_CHIP_RV250_If:
+    case PCI_CHIP_RV250_Ig:
+	info->ChipFamily = CHIP_FAMILY_RV250;
+	break;
+
+    case PCI_CHIP_RV250_Ld:
+    case PCI_CHIP_RV250_Le:
+    case PCI_CHIP_RV250_Lf:
+    case PCI_CHIP_RV250_Lg:
+	info->ChipFamily = CHIP_FAMILY_M9;
+	break;
+
+    case PCI_CHIP_R300_ND:
+    case PCI_CHIP_R300_NE:
+    case PCI_CHIP_R300_NF:
+    case PCI_CHIP_R300_NG:
+	info->ChipFamily = CHIP_FAMILY_R300;
+        break;
+
+    default:
+	/* Original Radeon/7200 */
+	info->ChipFamily = CHIP_FAMILY_RADEON;
     }
 }
 
 
 
+void RADEON_ServerInit( void )
+{
+   RADEONInfoPtr info = calloc(sizeof(*info));
+
+
+   info->IsPCI = 0;
+   info->CPMode        = RADEON_DEFAULT_CP_BM_MODE;
+   info->CPusecTimeout = RADEON_DEFAULT_CP_TIMEOUT;
+   info->agpFastWrite  = RADEON_DEFAULT_AGP_FAST_WRITE;
+   info->agpMode       = RADEON_DEFAULT_AGP_MODE;
+   info->agpSize       = RADEON_DEFAULT_AGP_SIZE;
+   info->agpTexSize    = RADEON_DEFAULT_AGP_TEX_SIZE;
+   info->bufSize       = RADEON_DEFAULT_BUFFER_SIZE;
+   info->ringSize      = RADEON_DEFAULT_RING_SIZE;
+
+   /* Queries from fbdev environment:   Or instructions to it?
+    */
+   info->CurrentLayout.pixel_code = ??;
+   info->CurrentLayout.pixel_bytes = ??;
+   info->frontPitch = ??;
+   info->LinearAddr = ??;
+   info->FbMapSize = ??;
+   info->BusCntl = ??;
+   info->Chipset = ??;
+   get_chipfamily_from_chipset( info );
+
+   /* Need these to build busid string for kernel init:
+    */
+   info->PciInfo->bus = ??;
+   info->PciInfo->device = ??;
+   info->PciInfo->func = ??;
+
+
+   /* Need to be set up here somehow: Need to know total card memory,
+    * among other things:
+    */
+   pScrn->videoRam = fbdevHWGetVidmem(pScrn) / 1024;
+   if (pScrn->videoRam == 0) pScrn->videoRam = 8192;
+
+
+
+   pScrn->virtualX = ??;
+   pScrn->virtualY = ??;
+   pScrn->depth = ??;
+   pScrn->bitsPerPixel = ??;
+
+   /* Choose pScrn->displayWidth?? */
+   RADEONSetPitch( pScrn );
+
+   
+   /* Jump to cut down code from X driver */
+   RADEONScreenInit( pScrn, info );
+}
+
+void RADEON_ServerHalt( void )
+{
+   RADEONDRICloseScreen(info)
+}

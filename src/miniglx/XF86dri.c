@@ -41,12 +41,16 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
 
-#if 1
-#include <stdio.h>
-#define TRACE(msg)  fprintf(stderr,"XF86DRI%s\n", msg);
-#else
-#define TRACE(msg)
-#endif
+
+static void TRACE(const char *format, ...)
+{
+   if (1) {
+      va_list     ap;
+      va_start(ap, format);
+      vfprintf( stderr, format, ap );
+      va_end(ap);
+   }
+}
 
 
 Bool XF86DRIQueryVersion(dpy, majorVersion, minorVersion, patchVersion)
@@ -58,7 +62,7 @@ Bool XF86DRIQueryVersion(dpy, majorVersion, minorVersion, patchVersion)
     *majorVersion = XF86DRI_MAJOR_VERSION;
     *minorVersion = XF86DRI_MINOR_VERSION;
     *patchVersion = XF86DRI_PATCH_VERSION;
-    TRACE("QueryVersion");
+    TRACE("QueryVersion\n");
     return True;
 }
 
@@ -67,7 +71,7 @@ Bool XF86DRIQueryDirectRenderingCapable(dpy, screen, isCapable)
     int screen;
     Bool* isCapable;
 {
-    TRACE("QueryDirectRenderingCapable... return True");
+    TRACE("QueryDirectRenderingCapable... return True\n");
     *isCapable = True;
     return True;
 }
@@ -83,7 +87,7 @@ Bool XF86DRIOpenConnection(dpy, screen, hSAREA, busIdString)
     *hSAREA           = pDRIPriv->hSAREA;
     *busIdString      = strdup(pDRIPriv->pDriverInfo->busIdString);
 
-    TRACE("OpenConnection... return True");
+    TRACE("OpenConnection... return True\n");
     return True;
 }
 
@@ -240,7 +244,7 @@ Bool XF86DRICreateContext(dpy, screen, visual, context, hHWContext)
     xXF86DRICreateContextReply rep;
     xXF86DRICreateContextReq *req;
 
-    TRACE("CreateContext...");
+    TRACE("CreateContext...\n");
     XF86DRICheckExtension (dpy, info, False);
 
     LockDisplay(dpy);
@@ -254,13 +258,13 @@ Bool XF86DRICreateContext(dpy, screen, visual, context, hHWContext)
     if (!_XReply(dpy, (xReply *)&rep, 0, xFalse)) {
 	UnlockDisplay(dpy);
 	SyncHandle();
-        TRACE("CreateContext... return False");
+        TRACE("CreateContext... return False\n");
 	return False;
     }
     *hHWContext = rep.hHWContext;
     UnlockDisplay(dpy);
     SyncHandle();
-    TRACE("CreateContext... return True");
+    TRACE("CreateContext... return True\n");
     return True;
 }
 
@@ -303,7 +307,7 @@ Bool XF86DRIDestroyContext(dpy, screen, context)
 
     pDRIPriv = DRI_SCREEN_PRIV(pDRIContextPriv->pScreen);
 
-    TRACE("DestroyContext");
+    TRACE("DestroyContext\n");
     return DRIDestroyContextPriv(pDRIContextPriv);
 }
 
