@@ -1,4 +1,4 @@
-/* $Id: gl.h,v 1.44.4.2 2001/01/06 22:43:00 gareth Exp $ */
+/* $Id: gl.h,v 1.44.4.3 2001/03/21 15:59:49 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -44,11 +44,11 @@
 #define OPENSTEP
 #endif
 
-#if defined(_WIN32) && !defined(__WIN32__)
+#if defined(_WIN32) && !defined(__WIN32__) && !defined(__CYGWIN__)
 #define __WIN32__
 #endif
 
-#if !defined(OPENSTEP) && (defined(__WIN32__) || defined(__CYGWIN__))
+#if !defined(OPENSTEP) && (defined(__WIN32__) && !defined(__CYGWIN__))
 #  if defined(_MSC_VER) && defined(BUILD_GL32) /* tag specify we're building mesa as a DLL */
 #    define GLAPI __declspec(dllexport)
 #  elif defined(_MSC_VER) && defined(_DLL) /* tag specifying we're building for DLL runtime support */
@@ -63,7 +63,7 @@
 #  define GLAPIENTRY
 #endif /* WIN32 / CYGWIN bracket */
 
-#if defined(_WIN32) && !defined(_WINGDI_) && !defined(_GNU_H_WINDOWS32_DEFINES) && !defined(OPENSTEP)
+#if defined(_WIN32) && !defined(_WINGDI_) && !defined(_GNU_H_WINDOWS32_DEFINES) && !defined(OPENSTEP) && !defined(__CYGWIN__)
 #include <gl/mesa_wgl.h>
 #endif
 
