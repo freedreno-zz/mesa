@@ -255,6 +255,7 @@ static void Key(unsigned char key, int x, int y)
 
 void Draw(void)
 {
+   usleep(10000);
 
     MoveStars();
     ShowStars();

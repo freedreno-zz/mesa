@@ -62,7 +62,7 @@ static void Init(void)
     GLint i;
 
     glClearColor(0.0, 0.0, 0.0, 0.0);
-    glClearIndex(0.0);
+/*     glClearIndex(0.0); */
 
     if (!rgb) {
 	for (i = 0; i < 16; i++) {
@@ -71,7 +71,7 @@ static void Init(void)
 	}
     }
 
-    glPolygonStipple(stippleBits);
+/*     glPolygonStipple(stippleBits); */
 
     antiAlias = GL_FALSE;
     stipple = GL_FALSE;
@@ -135,11 +135,11 @@ static void Draw(void)
     }
 
     glBegin(GL_TRIANGLES);
-	(rgb) ? glColor3fv(RGBMap[COLOR_BLUE]) : glIndexi(ci1);
+        glColor3fv(RGBMap[COLOR_BLUE]);
 	glVertex3f( 0.9, -0.9, -30.0);
 	glVertex3f( 0.9,  0.9, -30.0);
 	glVertex3f(-0.9,  0.0, -30.0);
-	(rgb) ? glColor3fv(RGBMap[COLOR_GREEN]) : glIndexi(ci2);
+	glColor3fv(RGBMap[COLOR_GREEN]);
 	glVertex3f(-0.9, -0.9, -40.0);
 	glVertex3f(-0.9,  0.9, -40.0);
 	glVertex3f( 0.9,  0.0, -25.0);

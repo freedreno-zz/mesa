@@ -26,8 +26,8 @@ static void SetColor(int c)
 {
     if (glutGet(GLUT_WINDOW_RGBA))
         glColor3fv(RGBMap[c]);
-    else
-        glIndexf(c);
+/*     else */
+/*         glIndexf(c); */
 }
 
 static void InitMap(void)

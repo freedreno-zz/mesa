@@ -441,7 +441,8 @@ static void QuadStrip(void)
 
 static void Draw(void)
 {
-
+   fprintf(stderr, "%s\n", __FUNCTION__);
+   
     glViewport(0, 0, windW, windH);
     glDisable(GL_SCISSOR_TEST);
 

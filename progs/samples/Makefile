@@ -17,7 +17,7 @@ PROGS = prim \
 
 # make executable from .c file:
 .c: $(LIB_DEP)
-	gcc -I../include -g $< -L../lib -lglut -lGL -lm -o $@
+	gcc -I../include -g $< -L../lib -lglut -lGL -lGLU -lm -o $@
 
 
 default: $(PROGS)
