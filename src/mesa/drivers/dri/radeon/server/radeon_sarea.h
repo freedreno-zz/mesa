@@ -247,7 +247,7 @@ typedef struct {
  */
 typedef struct {
     unsigned char next; 	/**< \brief indices to form a circular LRU */
-    unsigned prev;		/**< \brief indices to form a circular LRU */
+    unsigned char prev;		/**< \brief indices to form a circular LRU */
     unsigned char in_use;	/**< \brief owned by a client, or free? */
     int age;			/**< \brief tracked by clients to update local LRU's */
 } radeon_tex_region_t;
