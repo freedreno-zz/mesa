@@ -1,4 +1,4 @@
-/* $Id: teximage.c,v 1.39.4.2 2000/08/29 23:10:23 brianp Exp $ */
+/* $Id: teximage.c,v 1.39.4.3 2000/08/30 18:23:51 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -1398,7 +1398,8 @@ get_specific_compressed_tex_format(GLcontext *ctx,
          internalFormat = GL_RGBA;
          break;
       default:
-         gl_problem(ctx, "unexpected format in get_specific_compressed_tex_format");
+         /* silence compiler warning */
+         ;
    }
    return internalFormat;
 }
