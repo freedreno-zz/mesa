@@ -1,4 +1,4 @@
-/* $Id: mtypes.h,v 1.51.2.8 2002/09/13 17:34:21 brianp Exp $ */
+/* $Id: mtypes.h,v 1.51.2.9 2002/09/13 19:34:39 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -1246,6 +1246,7 @@ struct gl_extensions {
    GLboolean INGR_blend_func_separate;
    GLboolean MESA_window_pos;
    GLboolean MESA_resize_buffers;
+   GLboolean MESA_ycbcr_texture;
    GLboolean NV_blend_square;
    GLboolean NV_texgen_reflection;
    GLboolean NV_texture_rectangle;

@@ -1,4 +1,4 @@
-/* $Id: texutil_tmp.h,v 1.8.2.1 2002/02/21 15:11:16 brianp Exp $ */
+/* $Id: texutil_tmp.h,v 1.8.2.2 2002/09/13 19:34:42 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -28,6 +28,12 @@
  */
 
 /*
+ * For 2D and 3D texture images, we generate functions for
+ *  - conversion without pixel unpacking and standard stride
+ *  - conversion without pixel unpacking and non-standard stride
+ *  - conversion with pixel unpacking and standard stride
+ *  - conversion with pixel unpacking and non-standard stride
+ *
  * NOTE: All 3D teximage code is untested and most definitely broken...
  */
 
@@ -43,7 +49,7 @@
  * PRE: No pixelstore attribs, width == dstImageWidth.
  */
 static GLboolean
-TAG(texsubimage2d)( struct gl_texture_convert *convert )
+TAG(texsubimage2d)( const struct convert_info *convert )
 {
    const GLubyte *src = (const GLubyte *)convert->srcImage;
    GLuint *dst = (GLuint *)((GLubyte *)convert->dstImage +
@@ -79,7 +85,7 @@ TAG(texsubimage2d)( struct gl_texture_convert *convert )
 /* PRE: As above, height == dstImageHeight also.
  */
 static GLboolean
-TAG(texsubimage3d)( struct gl_texture_convert *convert )
+TAG(texsubimage3d)( const struct convert_info *convert )
 {
    const GLubyte *src = (const GLubyte *)convert->srcImage;
    GLuint *dst = (GLuint *)((GLubyte *)convert->dstImage +
@@ -118,7 +124,7 @@ TAG(texsubimage3d)( struct gl_texture_convert *convert )
  * PRE: No pixelstore attribs, width != dstImageWidth.
  */
 static GLboolean
-TAG(texsubimage2d_stride)( struct gl_texture_convert *convert )
+TAG(texsubimage2d_stride)( const struct convert_info *convert )
 {
    const GLubyte *src = (const GLubyte *)convert->srcImage;
    DST_TYPE *dst = (DST_TYPE *)((GLubyte *)convert->dstImage +
@@ -151,7 +157,7 @@ TAG(texsubimage2d_stride)( struct gl_texture_convert *convert )
 /* PRE: As above, or height != dstImageHeight also.
  */
 static GLboolean
-TAG(texsubimage3d_stride)( struct gl_texture_convert *convert )
+TAG(texsubimage3d_stride)( const struct convert_info *convert )
 {
    const GLubyte *src = (const GLubyte *)convert->srcImage;
    DST_TYPE *dst = (DST_TYPE *)((GLubyte *)convert->dstImage +
@@ -191,7 +197,7 @@ TAG(texsubimage3d_stride)( struct gl_texture_convert *convert )
  * PRE: Require pixelstore attribs, width == dstImageWidth.
  */
 static GLboolean
-TAG(texsubimage2d_unpack)( struct gl_texture_convert *convert )
+TAG(texsubimage2d_unpack)( const struct convert_info *convert )
 {
    const GLubyte *src = (const GLubyte *)
       _mesa_image_address( convert->unpacking, convert->srcImage,
@@ -249,7 +255,7 @@ TAG(texsubimage2d_unpack)( struct gl_texture_convert *convert )
 /* PRE: as above, height == dstImageHeight also.
  */
 static GLboolean
-TAG(texsubimage3d_unpack)( struct gl_texture_convert *convert )
+TAG(texsubimage3d_unpack)( const struct convert_info *convert )
 {
    const GLubyte *src = (const GLubyte *)
       _mesa_image_address( convert->unpacking, convert->srcImage,
@@ -324,7 +330,7 @@ TAG(texsubimage3d_unpack)( struct gl_texture_convert *convert )
  * PRE: Require pixelstore attribs, width != dstImageWidth.
  */
 static GLboolean
-TAG(texsubimage2d_stride_unpack)( struct gl_texture_convert *convert )
+TAG(texsubimage2d_stride_unpack)( const struct convert_info *convert )
 {
    const GLubyte *src = (const GLubyte *)
       _mesa_image_address( convert->unpacking, convert->srcImage,
@@ -372,7 +378,7 @@ TAG(texsubimage2d_stride_unpack)( struct gl_texture_convert *convert )
 /* PRE: As above, or height != dstImageHeight also.
  */
 static GLboolean
-TAG(texsubimage3d_stride_unpack)( struct gl_texture_convert *convert )
+TAG(texsubimage3d_stride_unpack)( const struct convert_info *convert )
 {
    const GLubyte *src = (const GLubyte *)
       _mesa_image_address( convert->unpacking, convert->srcImage,

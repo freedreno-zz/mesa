@@ -1,4 +1,4 @@
-/* $Id: image.c,v 1.63.2.1 2002/03/19 16:42:41 brianp Exp $ */
+/* $Id: image.c,v 1.63.2.2 2002/09/13 19:34:39 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -393,6 +393,12 @@ _mesa_is_legal_format_and_type( GLenum format, GLenum type )
             default:
                return GL_FALSE;
          }
+      case GL_YCBCR_MESA:
+         if (type == GL_UNSIGNED_SHORT_8_8_APPLE ||
+             type == GL_UNSIGNED_SHORT_8_8_REV_APPLE)
+            return GL_TRUE;
+         else
+            return GL_FALSE;
       default:
          ; /* fall-through */
    }

@@ -1,10 +1,10 @@
-/* $Id: texformat.c,v 1.11 2001/06/15 14:18:46 brianp Exp $ */
+/* $Id: texformat.c,v 1.11.2.1 2002/09/13 19:34:40 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.5
+ * Version:  4.0.4
  *
- * Copyright (C) 1999-2001  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -23,8 +23,9 @@
  * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  *
- * Author:
+ * Authors:
  *    Gareth Hughes <gareth@valinux.com>
+ *    Brian Paul
  */
 
 #ifdef PC_HEADER
@@ -438,6 +439,45 @@ const struct gl_texture_format _mesa_texformat_ci8 = {
 };
 
 
+const struct gl_texture_format _mesa_texformat_ycbcr = {
+   MESA_FORMAT_YCBCR,			/* MesaFormat */
+   GL_YCBCR_MESA,			/* BaseFormat */
+   GL_UNSIGNED_SHORT_8_8_APPLE,		/* Type */
+   0,					/* RedBits */
+   0,					/* GreenBits */
+   0,					/* BlueBits */
+   0,					/* AlphaBits */
+   0,					/* LuminanceBits */
+   0,					/* IntensityBits */
+   0,					/* IndexBits */
+   0,					/* DepthBits */
+   2,					/* TexelBytes */
+   fetch_1d_texel_ycbcr,		/* FetchTexel1D */
+   fetch_2d_texel_ycbcr,		/* FetchTexel2D */
+   fetch_3d_texel_ycbcr,		/* FetchTexel3D */
+};
+
+
+const struct gl_texture_format _mesa_texformat_ycbcr_rev = {
+   MESA_FORMAT_YCBCR_REV,		/* MesaFormat */
+   GL_YCBCR_MESA,			/* BaseFormat */
+   GL_UNSIGNED_SHORT_8_8_REV_APPLE,	/* Type */
+   0,					/* RedBits */
+   0,					/* GreenBits */
+   0,					/* BlueBits */
+   0,					/* AlphaBits */
+   0,					/* LuminanceBits */
+   0,					/* IntensityBits */
+   0,					/* IndexBits */
+   0,					/* DepthBits */
+   2,					/* TexelBytes */
+   fetch_1d_texel_ycbcr_rev,		/* FetchTexel1D */
+   fetch_2d_texel_ycbcr_rev,		/* FetchTexel2D */
+   fetch_3d_texel_ycbcr_rev,		/* FetchTexel3D */
+};
+
+
+
 /* =============================================================
  * Null format:
  */
@@ -589,6 +629,12 @@ _mesa_choose_tex_format( GLcontext *ctx, GLint internalFormat,
       if (!ctx->Extensions.ARB_texture_compression)
 	 _mesa_problem(ctx, "texture compression extension not enabled");
       return &_mesa_texformat_rgba;
+
+   case GL_YCBCR_MESA:
+      if (type == GL_UNSIGNED_SHORT_8_8_APPLE)
+         return &_mesa_texformat_ycbcr;
+      else
+         return &_mesa_texformat_ycbcr_rev;
 
    default:
       _mesa_problem(ctx, "unexpected format in _mesa_choose_tex_format()");

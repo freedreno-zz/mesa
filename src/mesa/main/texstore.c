@@ -1,4 +1,4 @@
-/* $Id: texstore.c,v 1.34.2.3 2002/08/28 01:13:36 brianp Exp $ */
+/* $Id: texstore.c,v 1.34.2.4 2002/09/13 19:34:41 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -115,6 +115,8 @@ components_in_intformat( GLint format )
       case GL_DEPTH_COMPONENT24_SGIX:
       case GL_DEPTH_COMPONENT32_SGIX:
          return 1;
+      case GL_YCBCR_MESA:
+         return 1; /* XXX YUV ok? */
       default:
          return -1;  /* error */
    }
@@ -253,6 +255,27 @@ transfer_teximage(GLcontext *ctx, GLuint dimensions,
             destRow += (dstRowStride / sizeof(GLchan));
          }
          dest += dstImageStride;
+      }
+   }
+   else if (texDestFormat == GL_YCBCR_MESA) {
+      /* YCrCb texture */
+      GLint img, row;
+      GLushort *dest = (GLushort *) texDestAddr
+                     + dstZoffset * (dstImageStride / sizeof(GLushort))
+                     + dstYoffset * (dstRowStride / sizeof(GLushort))
+                     + dstXoffset * texComponents;
+      ASSERT(ctx->Extensions.MESA_ycbcr_texture);
+      printf("copy ycbcr\n");
+      for (img = 0; img < srcDepth; img++) {
+         GLushort *destRow = dest;
+         for (row = 0; row < srcHeight; row++) {
+            const GLvoid *srcRow = _mesa_image_address(srcPacking,
+                                          srcAddr, srcWidth, srcHeight,
+                                          srcFormat, srcType, img, row, 0);
+            MEMCPY(destRow, srcRow, srcWidth * sizeof(GLushort));
+            destRow += (dstRowStride / sizeof(GLushort));
+         }
+         dest += dstImageStride / sizeof(GLushort);
       }
    }
    else if (texDestFormat == GL_DEPTH_COMPONENT) {

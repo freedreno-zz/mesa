@@ -1,4 +1,4 @@
-/* $Id: texutil.c,v 1.25.2.5 2002/06/12 00:28:55 brianp Exp $ */
+/* $Id: texutil.c,v 1.25.2.6 2002/09/13 19:34:41 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -51,7 +51,7 @@
 #endif
 
 
-struct gl_texture_convert {
+struct convert_info {
    GLint xoffset, yoffset, zoffset;	/* Subimage offset */
    GLint width, height, depth;		/* Subimage region */
 
@@ -67,15 +67,16 @@ struct gl_texture_convert {
    GLint index;
 };
 
-typedef GLboolean (*convert_func)( struct gl_texture_convert *convert );
+typedef GLboolean (*convert_func)( const struct convert_info *convert );
 
+/* bitvalues for convert->index */
 #define CONVERT_STRIDE_BIT	0x1
 #define CONVERT_UNPACKING_BIT	0x2
 
 
 
 /* =============================================================
- * RGBA8888 textures:
+ * Convert to RGBA8888 textures:
  */
 
 #define DST_TYPE		GLuint
@@ -118,7 +119,7 @@ typedef GLboolean (*convert_func)( struct gl_texture_convert *convert );
 
 #define CONVERT_RGBA8888( name )					\
 static GLboolean							\
-convert_##name##_rgba8888( struct gl_texture_convert *convert )		\
+convert_##name##_rgba8888( const struct convert_info *convert )		\
 {									\
    convert_func *tab;							\
    GLint index = convert->index;					\
@@ -154,7 +155,7 @@ CONVERT_RGBA8888( texsubimage3d )
 
 
 /* =============================================================
- * ARGB8888 textures:
+ * Convert to ARGB8888 textures:
  */
 
 #define DST_TYPE		GLuint
@@ -197,7 +198,7 @@ CONVERT_RGBA8888( texsubimage3d )
 
 #define CONVERT_ARGB8888( name )					\
 static GLboolean							\
-convert_##name##_argb8888( struct gl_texture_convert *convert )		\
+convert_##name##_argb8888( const struct convert_info *convert )		\
 {									\
    convert_func *tab;							\
    GLint index = convert->index;					\
@@ -232,11 +233,11 @@ CONVERT_ARGB8888( texsubimage3d )
 
 
 /* =============================================================
- * RGB888 textures:
+ * Convert to RGB888 textures:
  */
 
 static GLboolean
-convert_texsubimage2d_rgb888( struct gl_texture_convert *convert )
+convert_texsubimage2d_rgb888( const struct convert_info *convert )
 {
    /* This is a placeholder for now...
     */
@@ -244,7 +245,7 @@ convert_texsubimage2d_rgb888( struct gl_texture_convert *convert )
 }
 
 static GLboolean
-convert_texsubimage3d_rgb888( struct gl_texture_convert *convert )
+convert_texsubimage3d_rgb888( const struct convert_info *convert )
 {
    /* This is a placeholder for now...
     */
@@ -254,7 +255,7 @@ convert_texsubimage3d_rgb888( struct gl_texture_convert *convert )
 
 
 /* =============================================================
- * RGB565 textures:
+ * Convert to RGB565 textures:
  */
 
 #define DST_TYPE		GLushort
@@ -301,7 +302,7 @@ convert_texsubimage3d_rgb888( struct gl_texture_convert *convert )
 
 #define CONVERT_RGB565( name )						\
 static GLboolean							\
-convert_##name##_rgb565( struct gl_texture_convert *convert )		\
+convert_##name##_rgb565( const struct convert_info *convert )		\
 {									\
    convert_func *tab;							\
    GLint index = convert->index;					\
@@ -336,7 +337,7 @@ CONVERT_RGB565( texsubimage3d )
 
 
 /* =============================================================
- * ARGB4444 textures:
+ * Convert to ARGB4444 textures:
  */
 
 #define DST_TYPE		GLushort
@@ -369,7 +370,7 @@ CONVERT_RGB565( texsubimage3d )
 
 #define CONVERT_ARGB4444( name )					\
 static GLboolean							\
-convert_##name##_argb4444( struct gl_texture_convert *convert )		\
+convert_##name##_argb4444( const struct convert_info *convert )		\
 {									\
    convert_func *tab;							\
    GLint index = convert->index;					\
@@ -399,7 +400,7 @@ CONVERT_ARGB4444( texsubimage3d )
 
 
 /* =============================================================
- * ARGB1555 textures:
+ * Convert to ARGB1555 textures:
  */
 
 #define DST_TYPE		GLushort
@@ -463,7 +464,7 @@ CONVERT_ARGB4444( texsubimage3d )
 
 #define CONVERT_ARGB1555( name )					\
 static GLboolean							\
-convert_##name##_argb1555( struct gl_texture_convert *convert )		\
+convert_##name##_argb1555( const struct convert_info *convert )		\
 {									\
    convert_func *tab;							\
    GLint index = convert->index;					\
@@ -498,7 +499,7 @@ CONVERT_ARGB1555( texsubimage3d )
 
 
 /* =============================================================
- * AL88 textures:
+ * Conver to AL88 textures:
  */
 
 #define DST_TYPE		GLushort
@@ -520,7 +521,7 @@ CONVERT_ARGB1555( texsubimage3d )
 	dst = PACK_COLOR_88_LE( src[0], 0x00 )
 
 #define CONVERT_TEXEL_DWORD( dst, src )					\
-	dst = APPEND16( PACK_COLOR_88_LE( src[0], 0x00 ),			\
+	dst = APPEND16( PACK_COLOR_88_LE( src[0], 0x00 ),		\
 			PACK_COLOR_88_LE( src[1], 0x00 ) )
 
 #define SRC_TEXEL_BYTES		1
@@ -559,7 +560,7 @@ CONVERT_ARGB1555( texsubimage3d )
 
 #define CONVERT_AL88( name )						\
 static GLboolean							\
-convert_##name##_al88( struct gl_texture_convert *convert )		\
+convert_##name##_al88( const struct convert_info *convert )		\
 {									\
    convert_func *tab;							\
    GLint index = convert->index;					\
@@ -599,11 +600,11 @@ CONVERT_AL88( texsubimage3d )
 
 
 /* =============================================================
- * RGB332 textures:
+ * Convert to RGB332 textures:
  */
 
 static GLboolean
-convert_texsubimage2d_rgb332( struct gl_texture_convert *convert )
+convert_texsubimage2d_rgb332( const struct convert_info *convert )
 {
    /* This is a placeholder for now...
     */
@@ -611,7 +612,7 @@ convert_texsubimage2d_rgb332( struct gl_texture_convert *convert )
 }
 
 static GLboolean
-convert_texsubimage3d_rgb332( struct gl_texture_convert *convert )
+convert_texsubimage3d_rgb332( const struct convert_info *convert )
 {
    /* This is a placeholder for now...
     */
@@ -621,7 +622,7 @@ convert_texsubimage3d_rgb332( struct gl_texture_convert *convert )
 
 
 /* =============================================================
- * CI8 (and all other single-byte texel) textures:
+ * Convert to CI8 (and all other single-byte texel) textures:
  */
 
 #define DST_TYPE		GLubyte
@@ -639,7 +640,7 @@ convert_texsubimage3d_rgb332( struct gl_texture_convert *convert )
 
 #define CONVERT_CI8( name )						\
 static GLboolean							\
-convert_##name##_ci8( struct gl_texture_convert *convert )		\
+convert_##name##_ci8( const struct convert_info *convert )		\
 {									\
    convert_func *tab;							\
    GLint index = convert->index;					\
@@ -665,12 +666,88 @@ CONVERT_CI8( texsubimage2d )
 CONVERT_CI8( texsubimage3d )
 
 
-
 /* =============================================================
- * Global entry points
+ * convert to YCBCR textures:
  */
 
-static convert_func gl_convert_texsubimage2d_tab[] = {
+#define DST_TYPE		GLushort
+#define DST_TEXELS_PER_DWORD	2
+
+#define CONVERT_TEXEL( dst, src ) \
+   dst = (src[0] << 8) | src[1];
+
+#define CONVERT_DIRECT
+
+#define SRC_TEXEL_BYTES		2
+
+#define TAG(x) x##_ycbcr_direct
+#include "texutil_tmp.h"
+
+
+#define CONVERT_YCBCR( name )						\
+static GLboolean							\
+convert_##name##_ycbcr( const struct convert_info *convert )		\
+{									\
+   convert_func *tab;							\
+   GLint index = convert->index;					\
+									\
+   if (convert->format != GL_YCBCR_MESA) {				\
+      /* Can't handle this source format/type combination */		\
+      return GL_FALSE;							\
+   }      								\
+   tab = name##_tab_ycbcr_direct;					\
+									\
+   return tab[index]( convert );					\
+}
+
+CONVERT_YCBCR( texsubimage2d )
+CONVERT_YCBCR( texsubimage3d )
+
+
+/* =============================================================
+ * convert to YCBCR_REV textures:
+ */
+
+#define DST_TYPE		GLushort
+#define DST_TEXELS_PER_DWORD	2
+
+#define CONVERT_TEXEL( dst, src ) \
+   dst = (src[1] << 8) | src[0];
+
+#define CONVERT_DIRECT
+
+#define SRC_TEXEL_BYTES		2
+
+#define TAG(x) x##_ycbcr_rev_direct
+#include "texutil_tmp.h"
+
+
+#define CONVERT_YCBCR_REV( name )					\
+static GLboolean							\
+convert_##name##_ycbcr_rev( const struct convert_info *convert )	\
+{									\
+   convert_func *tab;							\
+   GLint index = convert->index;					\
+									\
+   if (convert->format != GL_YCBCR_MESA) {				\
+      /* Can't handle this source format/type combination */		\
+      return GL_FALSE;							\
+   }      								\
+   tab = name##_tab_ycbcr_rev_direct;					\
+									\
+   return tab[index]( convert );					\
+}
+
+CONVERT_YCBCR_REV( texsubimage2d )
+CONVERT_YCBCR_REV( texsubimage3d )
+
+
+
+/* =============================================================
+ * Tables of texture conversion/packing functions.
+ */
+
+static convert_func convert_texsubimage2d_table[] = {
    convert_texsubimage2d_rgba8888,
    convert_texsubimage2d_argb8888,
    convert_texsubimage2d_rgb888,
@@ -683,9 +760,11 @@ static convert_func gl_convert_texsubimage2d_tab[] = {
    convert_texsubimage2d_ci8,
    convert_texsubimage2d_ci8,
    convert_texsubimage2d_ci8,
+   convert_texsubimage2d_ycbcr,
+   convert_texsubimage2d_ycbcr_rev,
 };
 
-static convert_func gl_convert_texsubimage3d_tab[] = {
+static convert_func convert_texsubimage3d_table[] = {
    convert_texsubimage3d_rgba8888,
    convert_texsubimage3d_argb8888,
    convert_texsubimage3d_rgb888,
@@ -698,6 +777,8 @@ static convert_func gl_convert_texsubimage3d_tab[] = {
    convert_texsubimage3d_ci8,
    convert_texsubimage3d_ci8,
    convert_texsubimage3d_ci8,
+   convert_texsubimage3d_ycbcr,
+   convert_texsubimage3d_ycbcr_rev,
 };
 
 
@@ -728,14 +809,14 @@ convert_needs_unpacking( const struct gl_pixelstore_attrib *unpacking,
 
 
 GLboolean
-_mesa_convert_texsubimage1d( GLint mesaFormat,
+_mesa_convert_texsubimage1d( GLint mesaFormat,  /* dest */
 			     GLint xoffset,
 			     GLint width,
-			     GLenum format, GLenum type,
+			     GLenum format, GLenum type,  /* source */
 			     const struct gl_pixelstore_attrib *unpacking,
 			     const GLvoid *srcImage, GLvoid *dstImage )
 {
-   struct gl_texture_convert convert;
+   struct convert_info convert;
 
    ASSERT( unpacking );
    ASSERT( srcImage );
@@ -761,7 +842,9 @@ _mesa_convert_texsubimage1d( GLint mesaFormat,
    if ( convert_needs_unpacking( unpacking, format, type ) )
       convert.index |= CONVERT_UNPACKING_BIT;
 
-   return gl_convert_texsubimage2d_tab[mesaFormat]( &convert );
+   ASSERT(convert.index < 4);
+
+   return convert_texsubimage2d_table[mesaFormat]( &convert );
 }
 
 
@@ -791,22 +874,22 @@ _mesa_convert_texsubimage1d( GLint mesaFormat,
  *   destImage - pointer to dest image
  */
 GLboolean
-_mesa_convert_texsubimage2d( GLint mesaFormat,
+_mesa_convert_texsubimage2d( GLint mesaFormat,  /* dest */
 			     GLint xoffset, GLint yoffset,
 			     GLint width, GLint height,
 			     GLint destImageWidth,
-			     GLenum format, GLenum type,
+			     GLenum format, GLenum type,  /* source */
 			     const struct gl_pixelstore_attrib *unpacking,
 			     const GLvoid *srcImage, GLvoid *dstImage )
 {
-   struct gl_texture_convert convert;
+   struct convert_info convert;
 
    ASSERT( unpacking );
    ASSERT( srcImage );
    ASSERT( dstImage );
 
    ASSERT( mesaFormat >= MESA_FORMAT_RGBA8888 );
-   ASSERT( mesaFormat <= MESA_FORMAT_CI8 );
+   ASSERT( mesaFormat <= MESA_FORMAT_YCBCR_REV );
 
    /* Make it easier to pass all the parameters around.
     */
@@ -815,8 +898,8 @@ _mesa_convert_texsubimage2d( GLint mesaFormat,
    convert.width = width;
    convert.height = height;
    convert.dstImageWidth = destImageWidth;
-   convert.format = format;
-   convert.type = type;
+   convert.format = format;  /* src */
+   convert.type = type;      /* src */
    convert.unpacking = unpacking;
    convert.srcImage = srcImage;
    convert.dstImage = dstImage;
@@ -829,19 +912,24 @@ _mesa_convert_texsubimage2d( GLint mesaFormat,
    if ( width != destImageWidth )
       convert.index |= CONVERT_STRIDE_BIT;
 
-   return gl_convert_texsubimage2d_tab[mesaFormat]( &convert );
+   ASSERT(convert.index < 4);
+
+   ASSERT(mesaFormat < sizeof(convert_texsubimage2d_table) /
+                       sizeof(convert_texsubimage2d_table[0]));
+
+   return convert_texsubimage2d_table[mesaFormat]( &convert );
 }
 
 GLboolean
-_mesa_convert_texsubimage3d( GLint mesaFormat,
+_mesa_convert_texsubimage3d( GLint mesaFormat,  /* dest */
 			     GLint xoffset, GLint yoffset, GLint zoffset,
 			     GLint width, GLint height, GLint depth,
 			     GLint dstImageWidth, GLint dstImageHeight,
-			     GLenum format, GLenum type,
+			     GLenum format, GLenum type,  /* source */
 			     const struct gl_pixelstore_attrib *unpacking,
 			     const GLvoid *srcImage, GLvoid *dstImage )
 {
-   struct gl_texture_convert convert;
+   struct convert_info convert;
 
    ASSERT( unpacking );
    ASSERT( srcImage );
@@ -874,7 +962,9 @@ _mesa_convert_texsubimage3d( GLint mesaFormat,
    if ( width != dstImageWidth || height != dstImageHeight )
       convert.index |= CONVERT_STRIDE_BIT;
 
-   return gl_convert_texsubimage3d_tab[mesaFormat]( &convert );
+   ASSERT(convert.index < 4);
+
+   return convert_texsubimage3d_table[mesaFormat]( &convert );
 }
 
 

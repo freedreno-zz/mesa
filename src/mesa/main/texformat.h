@@ -1,10 +1,10 @@
-/* $Id: texformat.h,v 1.7.2.1 2002/06/08 12:43:40 brianp Exp $ */
+/* $Id: texformat.h,v 1.7.2.2 2002/09/13 19:34:40 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.5
+ * Version:  4.0.4
  *
- * Copyright (C) 1999-2001  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -23,8 +23,9 @@
  * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  *
- * Author:
+ * Authors:
  *    Gareth Hughes <gareth@valinux.com>
+ *    Brian Paul
  */
 
 #ifndef TEXFORMAT_H
@@ -33,8 +34,7 @@
 #include "mtypes.h"
 
 
-/* The Mesa internal texture image types.  These will be set to their
- * default value, but may be changed by drivers as required.
+/* The Mesa internal texture image types.
  */
 enum _format {
    /* Hardware-friendly formats.  Drivers can override the default
@@ -61,6 +61,8 @@ enum _format {
    MESA_FORMAT_L8,		/*                               LLLL LLLL */
    MESA_FORMAT_I8,		/*                               IIII IIII */
    MESA_FORMAT_CI8,		/*                               CCCC CCCC */
+   MESA_FORMAT_YCBCR,           /*                     YYYY YYYY UorV UorV */
+   MESA_FORMAT_YCBCR_REV,       /*                     UorV UorV YYYY YYYY */
 
    /* Generic GLchan-based formats.  These are the default formats used
     * by the software rasterizer and, unless the driver overrides the
@@ -91,11 +93,11 @@ _mesa_choose_tex_format( GLcontext *ctx, GLint internalFormat,
                          GLenum format, GLenum type );
 
 extern GLint
-_mesa_base_compressed_texformat(GLcontext *ctx, GLint intFormat);
+_mesa_base_compressed_texformat( GLcontext *ctx, GLint intFormat );
 
 extern GLint
-_mesa_compressed_texture_size(GLcontext *ctx,
-                              const struct gl_texture_image *texImage);
+_mesa_compressed_texture_size( GLcontext *ctx,
+                               const struct gl_texture_image *texImage );
 
 
 /* The default formats, GLchan per component:
@@ -123,6 +125,8 @@ extern const struct gl_texture_format _mesa_texformat_a8;
 extern const struct gl_texture_format _mesa_texformat_l8;
 extern const struct gl_texture_format _mesa_texformat_i8;
 extern const struct gl_texture_format _mesa_texformat_ci8;
+extern const struct gl_texture_format _meas_texformat_ycbcr;
+extern const struct gl_texture_format _meas_texformat_ycbcr_rev;
 
 /* The null format:
  */
