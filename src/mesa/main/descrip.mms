@@ -13,7 +13,7 @@ VPATH = RCS
 
 INCDIR = [-.include]
 LIBDIR = [-.lib]
-CFLAGS = /include=($(INCDIR),[])/define=(FBIND=1)
+CFLAGS = /include=($(INCDIR),[])/define=(FBIND=1)/name=(as_is,short)
 
 CORE_SOURCES = aatriangle.c accum.c alpha.c alphabuf.c attrib.c \
 bitmap.c blend.c buffers.c clip.c colortab.c context.c copypix.c depth.c \

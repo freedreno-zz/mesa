@@ -1,4 +1,4 @@
-/* $Id: xfonts.h,v 1.1 2000/04/19 01:44:02 brianp Exp $ */
+/* $Id: xfonts.h,v 1.1.4.1 2001/02/09 08:25:18 joukj Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -27,6 +27,10 @@
 
 #ifndef XFONTS_H
 #define XFONTS_H
+
+#ifdef VMS
+#include <vms_x_fix.h>
+#endif
 
 
 #include <X11/Xlib.h>
