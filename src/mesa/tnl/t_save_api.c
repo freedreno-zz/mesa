@@ -259,11 +259,9 @@ static void _save_compile_vertex_list( GLcontext *ctx )
 
    /* Deal with GL_COMPILE_AND_EXECUTE:
     */
-#if 0
    if (ctx->ExecuteFlag) {
-      execute_vertex_list( ctx, (void *)node );
+      _tnl_playback_vertex_list( ctx, (void *)node );
    }
-#endif
 }
 
 
