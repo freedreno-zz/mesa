@@ -61,28 +61,28 @@
  * probably no worse than the replay using opcodes.
  */
 
-typedef void (*attr_func)( GLint target, const GLfloat * );
+typedef void (*attr_func)( GLcontext *ctx, GLint target, const GLfloat * );
 
 
 /* Wrapper functions in case glVertexAttrib*fvNV doesn't exist */
-static void VertexAttrib1fvNV(GLint target, const GLfloat *v)
+static void VertexAttrib1fvNV(GLcontext *ctx, GLint target, const GLfloat *v)
 {
-   _glapi_Dispatch->VertexAttrib1fvNV(target, v);
+   ctx->Exec->VertexAttrib1fvNV(target, v);
 }
 
-static void VertexAttrib2fvNV(GLint target, const GLfloat *v)
+static void VertexAttrib2fvNV(GLcontext *ctx, GLint target, const GLfloat *v)
 {
-   _glapi_Dispatch->VertexAttrib2fvNV(target, v);
+   ctx->Exec->VertexAttrib2fvNV(target, v);
 }
 
-static void VertexAttrib3fvNV(GLint target, const GLfloat *v)
+static void VertexAttrib3fvNV(GLcontext *ctx, GLint target, const GLfloat *v)
 {
-   _glapi_Dispatch->VertexAttrib3fvNV(target, v);
+   ctx->Exec->VertexAttrib3fvNV(target, v);
 }
 
-static void VertexAttrib4fvNV(GLint target, const GLfloat *v)
+static void VertexAttrib4fvNV(GLcontext *ctx, GLint target, const GLfloat *v)
 {
-   _glapi_Dispatch->VertexAttrib4fvNV(target, v);
+   ctx->Exec->VertexAttrib4fvNV(target, v);
 }
 
 static attr_func vert_attrfunc[4] = {
@@ -93,58 +93,58 @@ static attr_func vert_attrfunc[4] = {
 };
 
 
-static void mat_attr1fv( GLint target, const GLfloat *v )
+static void mat_attr1fv( GLcontext *ctx, GLint target, const GLfloat *v )
 {
    switch (target) {
    case _TNL_ATTRIB_MAT_FRONT_SHININESS:
-      glMaterialfv( GL_FRONT, GL_SHININESS, v );
+      ctx->Exec->Materialfv( GL_FRONT, GL_SHININESS, v );
       break;
    case _TNL_ATTRIB_MAT_BACK_SHININESS:
-      glMaterialfv( GL_BACK, GL_SHININESS, v );
+      ctx->Exec->Materialfv( GL_BACK, GL_SHININESS, v );
       break;
    }
 }
 
 
-static void mat_attr3fv( GLint target, const GLfloat *v )
+static void mat_attr3fv( GLcontext *ctx, GLint target, const GLfloat *v )
 {
    switch (target) {
    case _TNL_ATTRIB_MAT_FRONT_INDEXES:
-      glMaterialfv( GL_FRONT, GL_COLOR_INDEXES, v );
+      ctx->Exec->Materialfv( GL_FRONT, GL_COLOR_INDEXES, v );
       break;
    case _TNL_ATTRIB_MAT_BACK_INDEXES:
-      glMaterialfv( GL_BACK, GL_COLOR_INDEXES, v );
+      ctx->Exec->Materialfv( GL_BACK, GL_COLOR_INDEXES, v );
       break;
    }
 }
 
 
-static void mat_attr4fv( GLint target, const GLfloat *v )
+static void mat_attr4fv( GLcontext *ctx, GLint target, const GLfloat *v )
 {
    switch (target) {
    case _TNL_ATTRIB_MAT_FRONT_EMISSION:
-      glMaterialfv( GL_FRONT, GL_EMISSION, v );
+      ctx->Exec->Materialfv( GL_FRONT, GL_EMISSION, v );
       break;
    case _TNL_ATTRIB_MAT_BACK_EMISSION:
-      glMaterialfv( GL_BACK, GL_EMISSION, v );
+      ctx->Exec->Materialfv( GL_BACK, GL_EMISSION, v );
       break;
    case _TNL_ATTRIB_MAT_FRONT_AMBIENT:
-      glMaterialfv( GL_FRONT, GL_AMBIENT, v );
+      ctx->Exec->Materialfv( GL_FRONT, GL_AMBIENT, v );
       break;
    case _TNL_ATTRIB_MAT_BACK_AMBIENT:
-      glMaterialfv( GL_BACK, GL_AMBIENT, v );
+      ctx->Exec->Materialfv( GL_BACK, GL_AMBIENT, v );
       break;
    case _TNL_ATTRIB_MAT_FRONT_DIFFUSE:
-      glMaterialfv( GL_FRONT, GL_DIFFUSE, v );
+      ctx->Exec->Materialfv( GL_FRONT, GL_DIFFUSE, v );
       break;
    case _TNL_ATTRIB_MAT_BACK_DIFFUSE:
-      glMaterialfv( GL_BACK, GL_DIFFUSE, v );
+      ctx->Exec->Materialfv( GL_BACK, GL_DIFFUSE, v );
       break;
    case _TNL_ATTRIB_MAT_FRONT_SPECULAR:
-      glMaterialfv( GL_FRONT, GL_SPECULAR, v );
+      ctx->Exec->Materialfv( GL_FRONT, GL_SPECULAR, v );
       break;
    case _TNL_ATTRIB_MAT_BACK_SPECULAR:
-      glMaterialfv( GL_BACK, GL_SPECULAR, v );
+      ctx->Exec->Materialfv( GL_BACK, GL_SPECULAR, v );
       break;
    }
 }
@@ -158,14 +158,14 @@ static attr_func mat_attrfunc[4] = {
 };
 
 
-static void index_attr1fv(GLint target, const GLfloat *v)
+static void index_attr1fv(GLcontext *ctx, GLint target, const GLfloat *v)
 {
-   glIndexf(v[0]);
+   ctx->Exec->Indexf(v[0]);
 }
 
-static void edgeflag_attr1fv(GLint target, const GLfloat *v)
+static void edgeflag_attr1fv(GLcontext *ctx, GLint target, const GLfloat *v)
 {
-   glEdgeFlag((v[0] == 1.0));
+   ctx->Exec->EdgeFlag((v[0] == 1.0));
 }
 
 struct loopback_attr {
@@ -238,13 +238,13 @@ void _tnl_loopback_vertex_list( GLcontext *ctx, struct tnl_vertex_list *list )
 	 GLfloat *tmp = data + la[0].sz;
 
 	 for (k = 1 ; k < nr ; k++) {
-	    la[k].func( la[k].target, tmp );
+	    la[k].func( ctx, la[k].target, tmp );
 	    tmp += la[k].sz;
 	 }
 	 
 	 /* Fire the vertex
 	  */
-	 la[0].func( VERT_ATTRIB_POS, data );
+	 la[0].func( ctx, VERT_ATTRIB_POS, data );
 	 data = tmp;
       }
 
