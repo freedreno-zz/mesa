@@ -1,4 +1,4 @@
-/* $Id: dd.h,v 1.4 1999/10/21 12:46:27 brianp Exp $ */
+/* $Id: dd.h,v 1.4.2.1 1999/12/12 18:30:47 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -659,6 +659,7 @@ struct dd_function_table {
    void (*Lightfv)(GLcontext *ctx, GLenum light,
 		   GLenum pname, const GLfloat *params, GLint nparams );
    void (*LightModelfv)(GLcontext *ctx, GLenum pname, const GLfloat *params);
+   void (*LogicOpcode)(GLcontext *ctx, GLenum opcode);
    void (*PolygonMode)(GLcontext *ctx, GLenum face, GLenum mode);
    void (*Scissor)(GLcontext *ctx, GLint x, GLint y, GLsizei w, GLsizei h);
    void (*ShadeModel)(GLcontext *ctx, GLenum mode);

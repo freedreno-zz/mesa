@@ -1,4 +1,4 @@
-/* $Id: extensions.c,v 1.10.2.2 1999/12/10 13:45:08 brianp Exp $ */
+/* $Id: extensions.c,v 1.10.2.3 1999/12/12 18:30:47 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -61,7 +61,7 @@ static struct { int enabled; const char *name; } default_extensions[] = {
    { DEFAULT_ON,     "GL_EXT_texture3D" },
    { ALWAYS_ENABLED, "GL_MESA_window_pos" },
    { ALWAYS_ENABLED, "GL_MESA_resize_buffers" },
-   { ALWAYS_ENABLED, "GL_EXT_shared_texture_palette" },
+   { DEFAULT_ON,     "GL_EXT_shared_texture_palette" },
    { ALWAYS_ENABLED, "GL_EXT_rescale_normal" },
    { ALWAYS_ENABLED, "GL_EXT_abgr" },
    { ALWAYS_ENABLED, "GL_SGIS_texture_edge_clamp" },
@@ -71,8 +71,13 @@ static struct { int enabled; const char *name; } default_extensions[] = {
    { ALWAYS_ENABLED, "GL_NV_texgen_reflection" },
    { DEFAULT_ON,     "GL_PGI_misc_hints" },
    { DEFAULT_ON,     "GL_EXT_compiled_vertex_array" },
-   { DEFAULT_OFF,    "GL_EXT_vertex_array_set" },
    { DEFAULT_ON,     "GL_EXT_clip_volume_hint" },
+   
+   /* These obviously won't make it before 3.3:
+    */
+   { DEFAULT_OFF,    "GL_EXT_vertex_array_set" },
+   { DEFAULT_OFF,    "GL_EXT_texture_env" },
+   { DEFAULT_OFF,    "GL_EXT_fog_coord" },
 };
 
 

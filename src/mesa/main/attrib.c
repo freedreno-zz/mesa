@@ -1,4 +1,4 @@
-/* $Id: attrib.c,v 1.10.2.2 1999/11/23 21:13:55 keithw Exp $ */
+/* $Id: attrib.c,v 1.10.2.3 1999/12/12 18:30:47 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -428,6 +428,7 @@ void gl_PopAttrib( GLcontext* ctx )
                GLubyte oldAlphaRef = ctx->Color.AlphaRef;
                GLenum oldBlendSrc = ctx->Color.BlendSrcRGB;
                GLenum oldBlendDst = ctx->Color.BlendDstRGB;
+	       GLenum oldLogicOp = ctx->Color.LogicOp;
                MEMCPY( &ctx->Color, attr->data,
                        sizeof(struct gl_colorbuffer_attrib) );
                if (ctx->Color.DrawBuffer != oldDrawBuffer) {
@@ -443,6 +444,9 @@ void gl_PopAttrib( GLcontext* ctx )
                    ctx->Driver.BlendFunc)
                   (*ctx->Driver.BlendFunc)( ctx, ctx->Color.BlendSrcRGB,
                                             ctx->Color.BlendDstRGB);
+	       if (ctx->Color.LogicOp != oldLogicOp &&
+		   ctx->Driver.LogicOpcode)
+		  ctx->Driver.LogicOpcode( ctx, ctx->Color.LogicOp );
             }
             break;
          case GL_CURRENT_BIT:
