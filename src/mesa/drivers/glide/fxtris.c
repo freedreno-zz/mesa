@@ -1,4 +1,4 @@
-/* $Id: fxtris.c,v 1.17.2.1 2001/11/06 16:00:58 brianp Exp $ */
+/* $Id: fxtris.c,v 1.17.2.2 2002/08/21 02:56:31 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -331,7 +331,7 @@ do {						\
 do {						\
    color[idx][0] = v[idx]->r;			\
    color[idx][1] = v[idx]->g;			\
-   color[idx][1] = v[idx]->b;			\
+   color[idx][2] = v[idx]->b;			\
    color[idx][3] = v[idx]->a;			\
 } while (0)
 
@@ -630,6 +630,7 @@ static void fxFastRenderClippedPoly( GLcontext *ctx, const GLuint *elts,
    GrVertex *vertptr = fxMesa->verts;			
    const GrVertex *start = VERT(elts[0]);
    int i;
+
    for (i = 2 ; i < n ; i++) {
       grDrawTriangle( start, VERT(elts[i-1]), VERT(elts[i]) );
    }
