@@ -1,4 +1,4 @@
-/* $Id: gl.h,v 1.17.2.2 2000/01/17 18:04:33 brianp Exp $ */
+/* $Id: gl.h,v 1.17.2.3 2000/02/05 01:52:37 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -1028,8 +1028,8 @@ typedef enum {
 	GL_NATIVE_GRAPHICS_HANDLE_PGI		= 107010,
 
 	/* GL_EXT_compiled_vertex_array */
-	GL_ARRAY_ELEMENT_LOCK_FIRST_SGI		= 0x81A8,
-	GL_ARRAY_ELEMENT_LOCK_COUNT_SGI		= 0x81A9,
+	GL_ARRAY_ELEMENT_LOCK_FIRST_EXT		= 0x81A8,
+	GL_ARRAY_ELEMENT_LOCK_COUNT_EXT		= 0x81A9,
 
 	/* GL_EXT_clip_volume_hint */
 	GL_CLIP_VOLUME_CLIPPING_HINT_EXT	= 0x80F0

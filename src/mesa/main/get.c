@@ -1,4 +1,4 @@
-/* $Id: get.c,v 1.5.2.2 2000/01/17 18:04:49 brianp Exp $ */
+/* $Id: get.c,v 1.5.2.3 2000/02/05 01:52:23 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -3717,11 +3717,11 @@ void gl_GetIntegerv( GLcontext *ctx, GLenum pname, GLint *params )
 
       /* GL_EXT_compiled_vertex_array
        */
-      case GL_ARRAY_ELEMENT_LOCK_FIRST_SGI:
+      case GL_ARRAY_ELEMENT_LOCK_FIRST_EXT:
 	 *params = ctx->Array.LockFirst;
 	 break;
 
-      case GL_ARRAY_ELEMENT_LOCK_COUNT_SGI:
+      case GL_ARRAY_ELEMENT_LOCK_COUNT_EXT:
 	 *params = ctx->Array.LockCount;
 	 break;
 	 

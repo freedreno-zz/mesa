@@ -1,8 +1,8 @@
-/* $Id: enums.c,v 1.5 1999/11/11 01:22:26 brianp Exp $ */
+/* $Id: enums.c,v 1.4.2.1 2000/02/05 01:52:23 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.3
+ * Version:  3.1
  * 
  * Copyright (C) 1999  Brian Paul   All Rights Reserved.
  * 
@@ -24,14 +24,16 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-
-#ifdef PC_HEADER
-#include "all.h"
+#ifndef XFree86Server
+#include <stdlib.h>
+#include <string.h>
 #else
-#include "glheader.h"
-#include "enums.h"
-#include "mem.h"
+#include "GL/xf86glx.h"
 #endif
+
+#include "GL/gl.h"
+#include "enums.h"
+#include "macros.h"
 
 
 typedef struct { 
@@ -795,8 +797,8 @@ enum_elt all_enums[] =
    { "GL_NATIVE_GRAPHICS_HANDLE_PGI", 107010 },
 
    /* GL_EXT_compiled_vertex_array */
-   { "GL_ARRAY_ELEMENT_LOCK_FIRST_SGI", 0x81A8},
-   { "GL_ARRAY_ELEMENT_LOCK_COUNT_SGI", 0x81A9},
+   { "GL_ARRAY_ELEMENT_LOCK_FIRST_EXT", 0x81A8},
+   { "GL_ARRAY_ELEMENT_LOCK_COUNT_EXT", 0x81A9},
 
    /* GL_EXT_clip_volume_hint */
    { "GL_CLIP_VOLUME_CLIPPING_HINT_EXT", 0x80F0}
