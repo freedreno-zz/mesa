@@ -1,4 +1,4 @@
-/* $Id: glfbdevtest.c,v 1.1.4.4 2002/11/26 21:20:45 brianp Exp $ */
+/* $Id: glfbdevtest.c,v 1.1.4.5 2002/11/27 00:26:59 brianp Exp $ */
 
 /*
  * Test the GLFBDev interface.   Only tested with radeonfb driver!!!!
@@ -333,6 +333,25 @@ initialize_fbdev( void )
               strerror(errno));
    }
    printf("MMIOAddress = %p\n", MMIOAddress);
+
+   /* try out some simple MMIO register reads */
+   if (1)
+   {
+      typedef unsigned int CARD32;
+      typedef unsigned char CARD8;
+#define RADEON_CONFIG_MEMSIZE               0x00f8
+#define RADEON_MEM_SDRAM_MODE_REG           0x0158
+#define MMIO_IN32(base, offset) \
+	*(volatile CARD32 *)(void *)(((CARD8*)(base)) + (offset))
+#define INREG(addr)         MMIO_IN32(MMIOAddress, addr)
+      int sz, type;
+      const char *typeStr[] = {"SDR", "DDR", "64-bit SDR"};
+      sz = INREG(RADEON_CONFIG_MEMSIZE);
+      type = INREG(RADEON_MEM_SDRAM_MODE_REG);
+      printf("RADEON_CONFIG_MEMSIZE = %d (%d MB)\n", sz, sz / 1024 / 1024);
+      printf("RADEON_MEM_SDRAM_MODE_REG >> 30 = %d (%s)\n",
+             type >> 30, typeStr[type>>30]);
+   }
 #endif
 
 }
