@@ -1,4 +1,4 @@
-/* $Id: texobj.c,v 1.23.4.2 2000/08/02 20:16:06 brianp Exp $ */
+/* $Id: texobj.c,v 1.23.4.3 2000/08/03 13:59:28 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -393,11 +393,13 @@ _mesa_GenTextures( GLsizei n, GLuint *texName )
    GLint i;
 
    ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx, "glGenTextures");
-   if (n<0) {
+   if (n < 0) {
       gl_error( ctx, GL_INVALID_VALUE, "glGenTextures" );
       return;
    }
 
+   if (!texName)
+      return;
 
    /*
     * This must be atomic (generation and allocation of texture IDs)
@@ -433,6 +435,9 @@ _mesa_DeleteTextures( GLsizei n, const GLuint *texName)
    GLint i;
 
    ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx, "glDeleteTextures");
+
+   if (!texName)
+      return;
 
    for (i=0;i<n;i++) {
       struct gl_texture_object *t;
@@ -617,6 +622,9 @@ _mesa_PrioritizeTextures( GLsizei n, const GLuint *texName,
       return;
    }
 
+   if (!priorities)
+      return;
+
    for (i = 0; i < n; i++) {
       if (texName[i] > 0) {
          struct gl_texture_object *t = (struct gl_texture_object *)
@@ -636,8 +644,8 @@ _mesa_PrioritizeTextures( GLsizei n, const GLuint *texName,
  * Execute glAreTexturesResident 
  */
 GLboolean
-_mesa_AreTexturesResident( GLsizei n, const GLuint *texName,
-                           GLboolean *residences )
+_mesa_AreTexturesResident(GLsizei n, const GLuint *texName,
+                          GLboolean *residences)
 {
    GET_CURRENT_CONTEXT(ctx);
    GLboolean allResident = GL_TRUE;
@@ -649,6 +657,9 @@ _mesa_AreTexturesResident( GLsizei n, const GLuint *texName,
       gl_error(ctx, GL_INVALID_VALUE, "glAreTexturesResident(n)");
       return GL_FALSE;
    }
+
+   if (!texName || !residences)
+      return GL_FALSE;
 
    for (i = 0; i < n; i++) {
       struct gl_texture_object *t;
