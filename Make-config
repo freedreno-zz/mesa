@@ -1,4 +1,4 @@
-# $Id: Make-config,v 1.10.2.3 2000/03/23 00:12:13 brianp Exp $
+# $Id: Make-config,v 1.10.2.4 2000/05/03 15:03:17 brianp Exp $
 
 MESA_MAJOR=3
 MESA_MINOR=2
@@ -1088,7 +1088,7 @@ sunos5-pthread:
 	"GLU_LIB = libGLU.a" \
 	"GLUT_LIB = libglut.a" \
 	"CC = cc" \
-	"CFLAGS = -mt -Xa -fast -xO4 -native -I/usr/openwin/include -I/usr/dt/include -DSHM -DSOLARIS_2_4\_BUG -DTHREADS -DPTHREADS" \
+	"CFLAGS = -mt -Xa -fast -xO4 -native -I/usr/openwin/include -I/usr/dt/include -DSHM -DSOLARIS_2_4_BUG -DTHREADS -DPTHREADS" \
 	"MAKELIB = ../bin/mklib.ar-ruv" \
 	"XLIBS = -L/usr/openwin/lib -L/usr/dt/lib -R/usr/openwin/lib -lX11 -lXext -lXmu -lXi -lpthread -lm"
 
@@ -1099,7 +1099,7 @@ sunos5-thread:
 	"GLU_LIB = libGLU.a" \
 	"GLUT_LIB = libglut.a" \
 	"CC = cc" \
-	"CFLAGS = -mt -Xa -fast -xO4 -native -I/usr/openwin/include -I/usr/dt/include -DSHM -DSOLARIS_2_4\_BUG -DTHREADS -DSOLARIS_THREADS" \
+	"CFLAGS = -mt -Xa -fast -xO4 -native -I/usr/openwin/include -I/usr/dt/include -DSHM -DSOLARIS_2_4_BUG -DTHREADS -DSOLARIS_THREADS" \
 	"MAKELIB = ../bin/mklib.ar-ruv" \
 	"XLIBS = -L/usr/openwin/lib -L/usr/dt/lib -R/usr/openwin/lib -lX11 -lXext -lXmu -lXi -lthread -lm"
 
