@@ -1,4 +1,4 @@
-/* $Id: light.c,v 1.8.2.3 2000/06/27 15:04:20 brianp Exp $ */
+/* $Id: light.c,v 1.8.2.4 2000/06/29 04:57:45 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -1124,9 +1124,8 @@ void gl_update_lighting( GLcontext *ctx )
       foreach (light, &ctx->Light.EnabledList) {	 
 	 for (side=0; side< sides; side++) {
 	    struct gl_material *mat = &ctx->Light.Material[side];
-	    SCALE_3V( light->MatDiffuse[side],  light->Diffuse, mat->Diffuse );
-	    SCALE_3V( light->MatAmbient[side],  light->Ambient, mat->Ambient );
-	    ACC_3V( ctx->Light.BaseColor[side], light->MatAmbient[side] ); 
+	    SCALE_3V( light->MatDiffuse[side], light->Diffuse, mat->Diffuse );
+	    SCALE_3V( light->MatAmbient[side], light->Ambient, mat->Ambient );
 	    if (light->Flags & LIGHT_SPECULAR)
 	    {
 	       SCALE_3V( light->MatSpecular[side], light->Specular,
