@@ -1,4 +1,4 @@
-/* $Id: get.c,v 1.5.2.3 2000/02/05 01:52:23 brianp Exp $ */
+/* $Id: get.c,v 1.5.2.4 2000/02/06 03:10:45 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -971,6 +971,15 @@ void gl_GetBooleanv( GLcontext *ctx, GLenum pname, GLboolean *params )
       case GL_NATIVE_GRAPHICS_HANDLE_PGI:
 	 *params = 0;
 	 break;
+
+      /* GL_EXT_compiled_vertex_array */
+      case GL_ARRAY_ELEMENT_LOCK_FIRST_EXT:
+	 *params = ctx->Array.LockFirst ? GL_TRUE : GL_FALSE;
+	 break;
+      case GL_ARRAY_ELEMENT_LOCK_COUNT_EXT:
+	 *params = ctx->Array.LockCount ? GL_TRUE : GL_FALSE;
+	 break;
+
       default:
 	 printf("invalid enum: %x\n", pname);
          gl_error( ctx, GL_INVALID_ENUM, "glGetBooleanv" );
@@ -1886,7 +1895,13 @@ void gl_GetDoublev( GLcontext *ctx, GLenum pname, GLdouble *params )
 	 *params = 0;
 	 break;
 
-
+      /* GL_EXT_compiled_vertex_array */
+      case GL_ARRAY_ELEMENT_LOCK_FIRST_EXT:
+	 *params = (GLdouble) ctx->Array.LockFirst;
+	 break;
+      case GL_ARRAY_ELEMENT_LOCK_COUNT_EXT:
+	 *params = (GLdouble) ctx->Array.LockCount;
+	 break;
 
       default:
 	 printf("invalid enum: %x\n", pname);
@@ -2797,6 +2812,14 @@ void gl_GetFloatv( GLcontext *ctx, GLenum pname, GLfloat *params )
 	 break;
       case GL_NATIVE_GRAPHICS_HANDLE_PGI:
 	 *params = 0;
+	 break;
+
+      /* GL_EXT_compiled_vertex_array */
+      case GL_ARRAY_ELEMENT_LOCK_FIRST_EXT:
+	 *params = (GLfloat) ctx->Array.LockFirst;
+	 break;
+      case GL_ARRAY_ELEMENT_LOCK_COUNT_EXT:
+	 *params = (GLfloat) ctx->Array.LockCount;
 	 break;
 
       default:
@@ -3715,12 +3738,10 @@ void gl_GetIntegerv( GLcontext *ctx, GLenum pname, GLint *params )
 	 *params = 0;
 	 break;
 
-      /* GL_EXT_compiled_vertex_array
-       */
+      /* GL_EXT_compiled_vertex_array */
       case GL_ARRAY_ELEMENT_LOCK_FIRST_EXT:
 	 *params = ctx->Array.LockFirst;
 	 break;
-
       case GL_ARRAY_ELEMENT_LOCK_COUNT_EXT:
 	 *params = ctx->Array.LockCount;
 	 break;
