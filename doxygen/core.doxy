@@ -148,8 +148,7 @@ TAGFILES		= tnl_dd.tag=../tnl_dd \
                          math.tag=../math \
                          swrast.tag=../swrast \
                          swrast_setup.tag=../swrast_setup \
-                         tnl.tag=../tnl \
-			 miniglx.tag=../miniglx
+                         tnl.tag=../tnl
 GENERATE_TAGFILE       = core.tag
 ALLEXTERNALS           = NO
 PERL_PATH              = 

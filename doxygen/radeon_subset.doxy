@@ -103,7 +103,7 @@ IGNORE_PREFIX          =
 #---------------------------------------------------------------------------
 GENERATE_HTML          = YES
 HTML_OUTPUT            = radeon_subset
-HTML_HEADER            = header.html
+HTML_HEADER            = header_subset.html
 HTML_FOOTER            = 
 HTML_STYLESHEET        = 
 HTML_ALIGN_MEMBERS     = YES
@@ -166,15 +166,10 @@ SKIP_FUNCTION_MACROS   = YES
 #---------------------------------------------------------------------------
 # Configuration::addtions related to external references   
 #---------------------------------------------------------------------------
-TAGFILES		= core.tag=../core \
-			 tnl_dd.tag=../tnl_dd \
-			 array_cache.tag=../array_cache \
-                         math.tag=../math \
-                         swrast.tag=../swrast \
-                         swrast_setup.tag=../swrast_setup \
-                         tnl.tag=../tnl \
-                         miniglx.tag=../miniglx \
-                         array_cache.tag=array_cache
+TAGFILES		= \
+			 core_subset.tag=../core_subset \
+                         math_subset.tag=../math_subset \
+                         miniglx.tag=../miniglx
 GENERATE_TAGFILE       = radeon_subset.tag
 ALLEXTERNALS           = NO
 PERL_PATH              = 
