@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.1.2.10 2003/01/09 15:12:04 keithw Exp $
+# $Id: Makefile,v 1.1.2.11 2003/01/18 12:25:56 keithw Exp $
 
 # Mesa 3-D graphics library
 # Version:  5.0
@@ -85,7 +85,7 @@ tags:
 
 ##### DEPENDENCIES #####
 
-include $(C_SOURCES:.c=.d)
+-include $(C_SOURCES:.c=.d)
 
 .SUFFIXES: .c .d
 

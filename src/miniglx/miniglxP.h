@@ -187,6 +187,7 @@ struct MiniGLXDriverRec {
    int (*initScreenConfigs)( struct MiniGLXDisplayRec *dpy,
 			     int *numConfigs, __GLXvisualConfig **configs );
    int (*validateMode)( struct MiniGLXDisplayRec *dpy );
+   int (*postValidateMode)( struct MiniGLXDisplayRec *dpy );
    int (*initFBDev)( struct MiniGLXDisplayRec *dpy );
    void (*haltFBDev)( struct MiniGLXDisplayRec *dpy );
 };

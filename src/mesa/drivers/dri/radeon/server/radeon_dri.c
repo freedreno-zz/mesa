@@ -39,7 +39,7 @@ static void RADEONWaitForFifo( struct MiniGLXDisplayRec *dpy,
    unsigned char *RADEONMMIO = dpy->MMIOAddress;
    int i;
 
-   for (i = 0; i < 512; i++) {
+   for (i = 0; i < 3000; i++) {
       int fifo_slots =
 	 INREG(RADEON_RBBM_STATUS) & RADEON_RBBM_FIFOCNT_MASK;
       if (fifo_slots >= entries) return;
@@ -891,11 +891,22 @@ static int __driInitScreenConfigs( struct MiniGLXDisplayRec *dpy,
 
 static int __driValidateMode( struct MiniGLXDisplayRec *dpy )
 {
+#if 0
    /* Work around radeonfb.o bug: virtual resolution must equal real
-    * resolution.
+    * resolution -- not necessary with our 'fixed' version of
+    * radeonfb.o...
     */
    dpy->VarInfo.xres = dpy->VarInfo.xres_virtual;
    dpy->VarInfo.yres = dpy->VarInfo.yres_virtual;
+#endif
+   return 1;
+}
+
+
+static int __driPostValidateMode( struct MiniGLXDisplayRec *dpy )
+{
+   /* Need to restore registers here that fbdev has clobbered.
+    */
    return 1;
 }
 
@@ -974,6 +985,7 @@ static void __driHaltFBDev( struct MiniGLXDisplayRec *dpy )
 struct MiniGLXDriverRec __driMiniGLXDriver = {
    __driInitScreenConfigs,
    __driValidateMode,
+   __driPostValidateMode,
    __driInitFBDev,
    __driHaltFBDev
 };

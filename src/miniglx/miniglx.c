@@ -22,7 +22,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: miniglx.c,v 1.1.4.37 2003/01/18 12:16:16 keithw Exp $ */
+/* $Id: miniglx.c,v 1.1.4.38 2003/01/18 12:25:57 keithw Exp $ */
 
 
 /**
@@ -493,6 +493,13 @@ SetupFBDev( Display *dpy, Window win )
       }
    }
 
+   /* May need to restore regs fbdev has clobbered:
+    */
+   if (!dpy->driver->postValidateMode( dpy )) {
+      fprintf(stderr, "Driver postValidateMode() failed\n");
+      return 0;
+   }
+
    return GL_TRUE;
 }
 
@@ -620,9 +627,9 @@ static int get_chipset_from_busid( Display *dpy )
    fclose(file);
 
    if (retval)
-      fprintf(stderr, "[miniglx]: probed chipset 0x%x\n", retval);
+      fprintf(stderr, "[miniglx] probed chipset 0x%x\n", retval);
    else
-      fprintf(stderr, "[miniglx]: failed to probe chipset\n");
+      fprintf(stderr, "[miniglx] failed to probe chipset\n");
 
    return retval;
 }
