@@ -1,4 +1,4 @@
-$Id: VERSIONS,v 1.13.2.20 2000/02/27 16:17:12 brianp Exp $
+$Id: VERSIONS,v 1.13.2.21 2000/02/29 23:01:44 brianp Exp $
 
 
 Mesa Version History
@@ -697,3 +697,6 @@ Mesa Version History
     New:
 	- updated SVGA Linux driver
 	- added the MESA_FX_NO_SIGNALS env var, see docs/README.3DFX
+    Changes:
+        - glXCopyContext's mask parameter is now unsigned long, per the GLX spec
+
