@@ -479,8 +479,8 @@ Lines are rendered with the command sequence <span
  style="font-weight: bold;">glVertex</span>, ... <span
  style="font-weight: bold;">glEnd</span> where <span
  style="font-style: italic;">mode</span> is one of GL_LINES,
-GL_LINE_STRIP or GL_LINE_LOOP. &nbsp;Lines are rasterized as
-described in the OpenGL specification. &nbsp;Note that OpenGL uses the <span
+GL_LINE_STRIP or GL_LINE_LOOP. &nbsp;Lines are rasterized as described
+in the OpenGL specification. &nbsp;Note that OpenGL uses the <span
  style="font-style: italic;">half-open</span> convention for drawing
 lines: the last fragment in a line segment is omitted so that endpoint
 pixels shared by two line segments will only be drawn once instead of
@@ -547,8 +547,8 @@ of three - extra vertices will be ignored. &nbsp;For GL_TRIANGLE_STRIP
 and GL_TRIANGLE_FAN, at least three vertices should be specified.
 &nbsp;If less than three are specified, nothing is drawn. &nbsp;<br>
 <br>
-Quadrilaterals are <span style="font-weight: bold;"></span>rendered
-by the command sequence <span style="font-weight: bold;">glBegin</span>(<span
+Quadrilaterals are <span style="font-weight: bold;"></span>rendered by
+the command sequence <span style="font-weight: bold;">glBegin</span>(<span
  style="font-style: italic;"><span style="font-style: italic;">mode</span></span>),<span
  style="font-weight: bold;">glVertex</span>, <span
  style="font-weight: bold;">glVertex</span>, ... <span
@@ -637,7 +637,8 @@ is GL_LINE then the polygon will be rendered as if it were specified by <span
 will be rendered as if it were specified with <span
  style="font-weight: bold;">glBegin</span>(GL_POINTS). &nbsp;Any other
 values for <span style="font-style: italic;">face</span> or <span
- style="font-style: italic;">mode</span> will raise the error GL_INVALID_ENUM.<br>
+ style="font-style: italic;">mode</span> will raise the error
+GL_INVALID_ENUM.<br>
 <br>
 <h3>4.3.4 Polygon Antialiasing</h3>
 Polygons may be antialiased in order to smooth their edges.
@@ -3513,8 +3514,8 @@ Should the subset support texture priorities via <span
  style="font-weight: bold;">glPrioritizeTextures</span> and the <span
  style="font-weight: bold;">glAreTexturesResident</span> command?<br>
 <br>
-RECOMMENDATION: &nbsp;Few applications use these features and functions.
-&nbsp;We propose omitting them to simplify the driver.<br>
+RECOMMENDATION: &nbsp;Few applications use these features and
+functions. &nbsp;We propose omitting them to simplify the driver.<br>
 <br>
 RESOLUTION: open<br>
 <br>
@@ -3573,7 +3574,12 @@ be subjected to the per-fragment operations?<br>
 If bitmaps are implemented with points it will be easy to implement the
 per-fragment operations. &nbsp;Otherwise, it could be difficult.<br>
 <br>
-RESOLUTION: &nbsp;Open:<br>
+RECOMMENDATION: &nbsp;Implement glBitmap by drawing points/pixels with
+the hardware. &nbsp;This will make supporting the per-fragments
+trivially easy. &nbsp;Also, it makes portrait-mode display relatively
+easy.<br>
+<br>
+RESOLUTION: &nbsp;open<br>
 <br>
 <p> </p>
 </body>
