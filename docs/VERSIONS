@@ -1,4 +1,4 @@
-$Id: VERSIONS,v 1.13.2.40 2000/06/27 15:04:39 brianp Exp $
+$Id: VERSIONS,v 1.13.2.41 2000/06/28 04:42:27 brianp Exp $
 
 
 Mesa Version History
@@ -735,5 +735,6 @@ Mesa Version History
 	  didn't always work right
 	- Specular highlights weren't always in the right place
 	- clipped GL_LINE mode polygons had interior lines appear
+	- several OpenGL conformace test fixes
     Changes:
 	- glColorMask(false, false, false, false) handled better/faster
