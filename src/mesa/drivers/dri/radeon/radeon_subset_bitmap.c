@@ -39,6 +39,7 @@
 #include "colormac.h"
 #include "enums.h"
 #include "imports.h"
+#include "image.h"
 #include "mmath.h"
 #include "macros.h"
 

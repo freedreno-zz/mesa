@@ -40,6 +40,12 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "radeon_state.h"
 #include "radeon_ioctl.h"
 
+#if _HAVE_FULL_GL
+#include "radeon_tex.h"
+#else
+#include "radeon_subset.h"
+#endif
+
 #if DEBUG_LOCKING
 char *prevLockFile = NULL;
 int prevLockLine = 0;

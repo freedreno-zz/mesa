@@ -54,6 +54,15 @@
 #include "radeon_ioctl.h"
 #include "radeon_state.h"
 
+#if _HAVE_FULL_GL
+#include "radeon_tex.h"
+#include "radeon_vtxfmt.h"
+#else
+#include "radeon_subset.h"
+#endif
+
+
+
 
 #define MODEL_PROJ 0
 #define MODEL      1

@@ -81,6 +81,7 @@ extern void radeonUploadMatrixTranspose( radeonContextPtr rmesa, GLfloat *src,
 					 int idx );
 extern void radeonUploadMatrix( radeonContextPtr rmesa, GLfloat *src, int idx );
 
+extern void radeonUpdateScissor( GLcontext *ctx );
 
 
 #endif

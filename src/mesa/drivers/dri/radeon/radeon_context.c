@@ -104,7 +104,6 @@ static void radeonGetBufferSize( GLframebuffer *buffer,
  */
 static const GLubyte *radeonGetString( GLcontext *ctx, GLenum name )
 {
-   radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
    static char buffer[128];
 
    switch ( name ) {
