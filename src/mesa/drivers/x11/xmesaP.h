@@ -1,4 +1,4 @@
-/* $Id: xmesaP.h,v 1.2 1999/10/08 09:27:12 keithw Exp $ */
+/* $Id: xmesaP.h,v 1.2.2.1 2000/02/22 17:22:42 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -193,7 +193,7 @@ struct xmesa_buffer {
    GLint ximage_width1;
    GLushort *ximage_origin2;	/* used for PIXELADDR2 macro */
    GLint ximage_width2;
-   bgr_t *ximage_origin3;	/* used for PIXELADDR3 macro */
+   GLubyte *ximage_origin3;	/* used for PIXELADDR3 macro */
    GLint ximage_width3;
    GLuint *ximage_origin4;	/* used for PIXELADDR4 macro */
    GLint ximage_width4;
@@ -492,7 +492,7 @@ static int const kernel1[16] = {
       ( xmesa->xm_buffer->ximage_origin2 - (Y) * xmesa->xm_buffer->ximage_width2 + (X) )
 
 #define PIXELADDR3( X, Y )  \
-      ( xmesa->xm_buffer->ximage_origin3 - (Y) * xmesa->xm_buffer->ximage_width3 + (X) )
+      ((bgr_t *) ( xmesa->xm_buffer->ximage_origin3 - (Y) * xmesa->xm_buffer->ximage_width3 + 3 * (X) ))
 
 #define PIXELADDR4( X, Y )  \
       ( xmesa->xm_buffer->ximage_origin4 - (Y) * xmesa->xm_buffer->ximage_width4 + (X) )
