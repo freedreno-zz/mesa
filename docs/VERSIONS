@@ -1,4 +1,4 @@
-$Id: VERSIONS,v 1.13.2.42 2000/07/05 16:06:45 brianp Exp $
+$Id: VERSIONS,v 1.13.2.43 2000/07/05 19:07:24 brianp Exp $
 
 
 Mesa Version History
@@ -723,7 +723,7 @@ Mesa Version History
 	- use bcopy() optimizations on FreeBSD
 	- re-enabled the optimized persp_textured_triangle() function
 
-3.2.1  June ??, 2000
+3.2.1  July ??, 2000
     Bug fixes:
 	- gluBuild2DMipmaps() didn't accept GL_BGRA
 	- Fixed compile/makefile problems on IRIX
@@ -737,5 +737,6 @@ Mesa Version History
 	- clipped GL_LINE mode polygons had interior lines appear
 	- several OpenGL conformace test fixes
 	- blend term GL_ONE_MINUS_CONSTANT_ALPHA was broken
+	- GL_NICEST fog didn't always work with flat shading
     Changes:
 	- glColorMask(false, false, false, false) handled better/faster
