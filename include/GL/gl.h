@@ -1,4 +1,4 @@
-/* $Id: gl.h,v 1.44.4.1 2000/09/06 17:47:47 brianp Exp $ */
+/* $Id: gl.h,v 1.44.4.2 2001/01/06 22:43:00 gareth Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -2226,6 +2226,19 @@ GLAPI void GLAPIENTRY glWindowPos4dvMESA( const GLdouble *p );
 GLAPI void GLAPIENTRY glResizeBuffersMESA( void );
 
 #endif /* GL_MESA_resize_bufffers */
+
+
+
+/*
+ * 220. GL_EXT_texture_env_dot3
+ */
+#ifndef GL_EXT_texture_env_dot3
+#define GL_EXT_texture_env_dot3 1
+
+#define GL_DOT3_RGB_EXT				0x8740
+#define GL_DOT3_RGBA_EXT			0x8741
+
+#endif /* GL_EXT_texture_env_dot3 */
 
 
 #else  /* GL_GLEXT_LEGACY */

@@ -1,21 +1,21 @@
-/* $Id: texstate.c,v 1.15.4.2 2000/11/05 21:24:01 brianp Exp $ */
+/* $Id: texstate.c,v 1.15.4.3 2001/01/06 22:43:00 gareth Exp $ */
 
 /*
  * Mesa 3-D graphics library
  * Version:  3.4
- * 
+ *
  * Copyright (C) 1999-2000  Brian Paul   All Rights Reserved.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation
  * the rights to use, copy, modify, merge, publish, distribute, sublicense,
  * and/or sell copies of the Software, and to permit persons to whom the
  * Software is furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included
  * in all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
@@ -118,6 +118,14 @@ _mesa_TexEnvfv( GLenum target, GLenum pname, const GLfloat *param )
                   case GL_ADD:
                   case GL_ADD_SIGNED_EXT:
                   case GL_INTERPOLATE_EXT:
+	          case GL_DOT3_RGB_EXT:
+	          case GL_DOT3_RGBA_EXT:
+                     if ((mode == GL_DOT3_RGB_EXT ||
+			  mode == GL_DOT3_RGBA_EXT) &&
+                         !ctx->Extensions.HaveTextureEnvDot3) {
+                        gl_error(ctx, GL_INVALID_ENUM, "glTexEnv(param)");
+                        return;
+                     }
                      if (texUnit->CombineModeRGB == mode)
                         return;  /* no change */
                      texUnit->CombineModeRGB = mode;
@@ -356,7 +364,7 @@ _mesa_TexEnvfv( GLenum target, GLenum pname, const GLfloat *param )
    }
 
    if (MESA_VERBOSE&(VERBOSE_API|VERBOSE_TEXTURE))
-      fprintf(stderr, "glTexEnv %s %s %.1f(%s) ...\n",  
+      fprintf(stderr, "glTexEnv %s %s %.1f(%s) ...\n",
 	      gl_lookup_enum_by_nr(target),
 	      gl_lookup_enum_by_nr(pname),
 	      *param,
@@ -620,7 +628,7 @@ _mesa_TexParameterfv( GLenum target, GLenum pname, const GLfloat *params )
    ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx, "glTexParameterfv");
 
    if (MESA_VERBOSE&(VERBOSE_API|VERBOSE_TEXTURE))
-      fprintf(stderr, "texPARAM %s %s %d...\n", 
+      fprintf(stderr, "texPARAM %s %s %d...\n",
 	      gl_lookup_enum_by_nr(target),
 	      gl_lookup_enum_by_nr(pname),
 	      eparam);
@@ -1092,7 +1100,7 @@ _mesa_TexGenfv( GLenum coord, GLenum pname, const GLfloat *params )
    ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx, "glTexGenfv");
 
    if (MESA_VERBOSE&(VERBOSE_API|VERBOSE_TEXTURE))
-      fprintf(stderr, "texGEN %s %s %x...\n", 
+      fprintf(stderr, "texGEN %s %s %x...\n",
 	      gl_lookup_enum_by_nr(coord),
 	      gl_lookup_enum_by_nr(pname),
 	      *(int *)params);
@@ -1242,7 +1250,7 @@ _mesa_TexGenfv( GLenum coord, GLenum pname, const GLfloat *params )
          if (pname==GL_TEXTURE_GEN_MODE) {
 	    GLenum mode = (GLenum) (GLint) *params;
 	    switch (mode) {
-	    case GL_OBJECT_LINEAR: 
+	    case GL_OBJECT_LINEAR:
 	       texUnit->GenModeQ = GL_OBJECT_LINEAR;
 	       texUnit->GenBitQ = TEXGEN_OBJ_LINEAR;
 	       break;
@@ -1597,7 +1605,7 @@ _mesa_ActiveTextureARB( GLenum target )
    ASSERT_OUTSIDE_BEGIN_END( ctx, "glActiveTextureARB" );
 
    if (MESA_VERBOSE & (VERBOSE_API|VERBOSE_TEXTURE))
-      fprintf(stderr, "glActiveTexture %s\n", 
+      fprintf(stderr, "glActiveTexture %s\n",
 	      gl_lookup_enum_by_nr(target));
 
    if (target >= GL_TEXTURE0_ARB && target < GL_TEXTURE0_ARB + maxUnits) {
