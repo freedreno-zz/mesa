@@ -1,4 +1,4 @@
-/* $Id: t_imm_dlist.c,v 1.29 2001/09/14 21:30:31 brianp Exp $ */
+/* $Id: t_imm_dlist.c,v 1.29.2.1 2001/12/03 17:44:02 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -293,7 +293,7 @@ execute_compiled_cassette( GLcontext *ctx, void *data )
    TNLvertexcassette *node = (TNLvertexcassette *)data;
    struct immediate *IM = node->IM;
 
-/*     fprintf(stderr, "%s\n", __FUNCTION__); */
+   fprintf(stderr, "%s IM: %d\n", __FUNCTION__, IM->id); 
 
    IM->Start = node->Start;
    IM->CopyStart = node->Start;
@@ -308,6 +308,7 @@ execute_compiled_cassette( GLcontext *ctx, void *data )
    IM->LastMaterial = node->LastMaterial;
    IM->MaterialOrMask = node->MaterialOrMask;
    IM->MaterialAndMask = node->MaterialAndMask;
+
 
    if ((MESA_VERBOSE & VERBOSE_DISPLAY_LIST) &&
        (MESA_VERBOSE & VERBOSE_IMMEDIATE))
@@ -421,16 +422,22 @@ _tnl_BeginCallList( GLcontext *ctx, GLuint list )
 {
    (void) ctx;
    (void) list;
-   FLUSH_CURRENT(ctx, 0);
+   FLUSH_CURRENT(ctx, 0);	/* Current immediate is emptied on CallList */
 }
 
 
-/* Called at the tail of a CallList.  Nothing to do.
+/* Called at the tail of a CallList.  Make current immediate aware of
+ * any new to-be-copied vertices.
  */
 void
 _tnl_EndCallList( GLcontext *ctx )
 {
-   (void) ctx;
+   GLuint beginstate = 0;
+
+   if (ctx->Driver.CurrentExecPrimitive != PRIM_OUTSIDE_BEGIN_END)
+      beginstate = VERT_BEGIN_0|VERT_BEGIN_1;
+
+   _tnl_reset_exec_input( ctx, IMM_MAX_COPIED_VERTS, beginstate, 0 );
 }
 
 
@@ -591,7 +598,6 @@ static void loopback_compiled_cassette( GLcontext *ctx, struct immediate *IM )
       ASSERT((prim & PRIM_MODE_MASK) <= GL_POLYGON+1);
 
       if (prim & PRIM_BEGIN) {
-/*  	 fprintf(stderr, "begin %s\n", _mesa_prim_name[prim&PRIM_MODE_MASK]); */
 	 glBegin(prim & PRIM_MODE_MASK);
       }
 
@@ -606,14 +612,10 @@ static void loopback_compiled_cassette( GLcontext *ctx, struct immediate *IM )
 	 }
 
 	 if (flags[i] & VERT_NORM) {
-/*  	       fprintf(stderr, "normal %d: %f %f %f\n", i, */
-/*  		       IM->Normal[i][0], IM->Normal[i][1], IM->Normal[i][2]);  */
 	    glNormal3fv(IM->Normal[i]);
 	 }
 
 	 if (flags[i] & VERT_RGBA) {
-/*  	       fprintf(stderr, "color %d: %f %f %f\n", i, */
-/*  		       IM->Color[i][0], IM->Color[i][1], IM->Color[i][2]);  */
 	    glColor4fv( IM->Color[i] );
 	 }
 
@@ -633,8 +635,6 @@ static void loopback_compiled_cassette( GLcontext *ctx, struct immediate *IM )
 	    emit_material( IM->Material[i], IM->MaterialMask[i] );
 
 	 if (flags[i]&VERT_OBJ_234) {
-/*  	       fprintf(stderr, "vertex %d: %f %f %f\n", i, */
-/*  		       IM->Obj[i][0], IM->Obj[i][1], IM->Obj[i][2]); */
 	    vertex( IM->Obj[i] );
 	 }
 	 else if (flags[i] & VERT_EVAL_C1)
@@ -648,7 +648,6 @@ static void loopback_compiled_cassette( GLcontext *ctx, struct immediate *IM )
       }
 
       if (prim & PRIM_END) {
-/*  	 fprintf(stderr, "end\n"); */
 	 glEnd();
       }
    }
