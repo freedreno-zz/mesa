@@ -370,24 +370,18 @@ static void RADEONDRIAgpHeapInit(struct MiniGLXDisplayRec *dpy,
    drmRadeonMemInitHeap drmHeap;
 
    /* Start up the simple memory manager for agp space */
-   if (info->drmMinor >= 6) {
-      drmHeap.region = RADEON_MEM_REGION_AGP;
-      drmHeap.start  = 0;
-      drmHeap.size   = info->agpTexMapSize;
+   drmHeap.region = RADEON_MEM_REGION_AGP;
+   drmHeap.start  = 0;
+   drmHeap.size   = info->agpTexMapSize;
     
-      if (drmCommandWrite(dpy->drmFD, DRM_RADEON_INIT_HEAP,
-			  &drmHeap, sizeof(drmHeap))) {
-	 fprintf(stderr,
-		 "[drm] Failed to initialized agp heap manager\n");
-      } else {
-	 fprintf(stderr,
-		 "[drm] Initialized kernel agp heap manager, %d\n",
-		 info->agpTexMapSize);
-      }
+   if (drmCommandWrite(dpy->drmFD, DRM_RADEON_INIT_HEAP,
+		       &drmHeap, sizeof(drmHeap))) {
+      fprintf(stderr,
+	      "[drm] Failed to initialized agp heap manager\n");
    } else {
       fprintf(stderr,
-	      "[drm] Kernel module too old (1.%d) for agp heap manager\n",
-	      info->drmMinor);
+	      "[drm] Initialized kernel agp heap manager, %d\n",
+	      info->agpTexMapSize);
    }
 }
 
@@ -419,11 +413,10 @@ static void RADEONDRIIrqInit(struct MiniGLXDisplayRec *dpy,
 			     RADEONInfoPtr info)
 {
    if (!info->irq) {
-      info->irq = drmGetInterruptFromBusID(
-	 dpy->drmFD,
-	 dpy->pciBus,
-	 dpy->pciDevice,
-	 dpy->pciFunc);
+      info->irq = drmGetInterruptFromBusID(dpy->drmFD,
+					   dpy->pciBus,
+					   dpy->pciDevice,
+					   dpy->pciFunc);
 
       if ((drmCtlInstHandler(dpy->drmFD, info->irq)) != 0) {
 	 fprintf(stderr,
@@ -431,9 +424,6 @@ static void RADEONDRIIrqInit(struct MiniGLXDisplayRec *dpy,
 		 "there is a device already using that irq\n"
 		 "[drm] falling back to irq-free operation\n");
 	 info->irq = 0;
-      } else {
-	 unsigned char *RADEONMMIO = dpy->MMIOAddress;
-	 info->gen_int_cntl = INREG( RADEON_GEN_INT_CNTL );
       }
    }
 
@@ -446,15 +436,6 @@ static void RADEONDRIIrqInit(struct MiniGLXDisplayRec *dpy,
 
 
 
-/* Initialize the CP state, and start the CP (if used by the X server) */
-static void RADEONDRICPInit(struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info)
-{
-   /* Make sure the CP is on for the X server */
-   int _ret = drmCommandNone(dpy->drmFD, DRM_RADEON_CP_START);
-   if (_ret) {
-      fprintf(stderr, "%s: CP start %d\n", __FUNCTION__, _ret);
-   }
-}
 
 
 
@@ -755,7 +736,11 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
    RADEONEngineRestore( dpy, info );
 
    /* Initialize and start the CP if required */
-   RADEONDRICPInit( dpy, info );
+   if ((err = drmCommandNone(dpy->drmFD, DRM_RADEON_CP_START)) != 0) {
+      fprintf(stderr, "%s: CP start %d\n", __FUNCTION__, err);
+      DRM_UNLOCK(dpy->drmFD, dpy->pSAREA, dpy->serverContext);
+      return 0;
+   }
 
    /* Initialize the SAREA private data structure */
    {
@@ -776,7 +761,7 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
    pRADEONDRI->deviceID          = info->Chipset;
    pRADEONDRI->width             = dpy->VarInfo.xres_virtual;
    pRADEONDRI->height            = dpy->VarInfo.yres_virtual;
-   pRADEONDRI->depth             = dpy->VarInfo.bits_per_pixel; /* XXX: was depth */
+   pRADEONDRI->depth             = dpy->VarInfo.bits_per_pixel; /* XXX: depth */
    pRADEONDRI->bpp               = dpy->VarInfo.bits_per_pixel;
    pRADEONDRI->IsPCI             = 0;
    pRADEONDRI->AGPMode           = info->agpMode;
@@ -789,8 +774,8 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
    pRADEONDRI->textureOffset     = info->textureOffset;
    pRADEONDRI->textureSize       = info->textureSize;
    pRADEONDRI->log2TexGran       = info->log2TexGran;
-   pRADEONDRI->registerHandle    = info->registerHandle; /* uninit */
-   pRADEONDRI->registerSize      = info->registerSize; /*  */
+   pRADEONDRI->registerHandle    = info->registerHandle;
+   pRADEONDRI->registerSize      = info->registerSize; 
    pRADEONDRI->statusHandle      = info->ringReadPtrHandle;
    pRADEONDRI->statusSize        = info->ringReadMapSize;
    pRADEONDRI->agpTexHandle      = info->agpTexHandle;
