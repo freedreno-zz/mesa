@@ -1,21 +1,21 @@
-/* $Id: common_x86.c,v 1.6 2000/01/25 17:04:47 brianp Exp $ */
+/* $Id: common_x86.c,v 1.6.4.1 2000/10/20 04:29:15 gareth Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.3
- * 
+ * Version:  3.4
+ *
  * Copyright (C) 1999-2000  Brian Paul   All Rights Reserved.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation
  * the rights to use, copy, modify, merge, publish, distribute, sublicense,
  * and/or sell copies of the Software, and to permit persons to whom the
  * Software is furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included
  * in all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
@@ -67,10 +67,10 @@ void gl_init_all_x86_asm (void)
 #ifdef USE_MMX_ASM
    if (gl_x86_cpu_features & GL_CPU_MMX) {
       char *s = getenv( "MESA_NO_MMX" );
-      if (s == NULL) { 
+      if (s == NULL) {
          message("MMX cpu detected.");
       } else {
-         gl_x86_cpu_features &= (~GL_CPU_MMX); 
+         gl_x86_cpu_features &= (~GL_CPU_MMX);
       }
    }
 #endif
@@ -83,7 +83,7 @@ void gl_init_all_x86_asm (void)
          message("3Dnow cpu detected.");
          gl_init_3dnow_asm_transforms ();
       } else {
-         gl_x86_cpu_features &= (~GL_CPU_3Dnow); 
+         gl_x86_cpu_features &= (~GL_CPU_3Dnow);
       }
    }
 #endif
@@ -96,11 +96,10 @@ void gl_init_all_x86_asm (void)
          message("Katmai cpu detected.");
          gl_init_katmai_asm_transforms ();
       } else {
-         gl_x86_cpu_features &= (~GL_CPU_Katmai); 
+         gl_x86_cpu_features &= (~GL_CPU_Katmai);
       }
    }
 #endif
 
 #endif
 }
-

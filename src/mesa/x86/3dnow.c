@@ -1,8 +1,8 @@
-/* $Id: 3dnow.c,v 1.5.4.1 2000/09/17 21:23:11 gareth Exp $ */
+/* $Id: 3dnow.c,v 1.5.4.2 2000/10/20 04:29:15 gareth Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.5
+ * Version:  3.4
  *
  * Copyright (C) 1999-2000  Brian Paul   All Rights Reserved.
  *
