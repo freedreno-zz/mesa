@@ -392,7 +392,6 @@ FX_GrContext_t FX_grSstWinOpen( FxU32                hWnd,
                      nColBuffers,
                      nAuxBuffers );
    
-#if 0
    fprintf(stderr, 
            "grSstWinOpen( win %d res %d ref %d fmt %d\n"
            "              org %d ncol %d naux %d )\n"
@@ -405,7 +404,6 @@ FX_GrContext_t FX_grSstWinOpen( FxU32                hWnd,
            nColBuffers,
            nAuxBuffers,
            i);
-#endif
    END_BOARD_LOCK();
    return i;
 }

@@ -70,9 +70,11 @@ GLubyte FX_PixelToB[0x10000];
  * Initialize the FX_PixelTo{RGB} arrays.
  * Input: bgrOrder - if TRUE, pixels are in BGR order, else RGB order.
  */
-void fxInitPixelTables(GLboolean bgrOrder)
+void fxInitPixelTables(fxMesaContext fxMesa, GLboolean bgrOrder)
 {
   GLuint pixel;
+
+  fxMesa->bgrOrder=bgrOrder;
   for (pixel = 0; pixel <= 0xffff; pixel++) {
     GLuint r, g, b;
     if (bgrOrder) {
@@ -374,10 +376,16 @@ static GLboolean fxDDDrawBitMap(GLcontext *ctx, GLint px, GLint py,
   g=(GLint)(ctx->Current.RasterColor[1]*255.0f);
   b=(GLint)(ctx->Current.RasterColor[2]*255.0f);
   a=(GLint)(ctx->Current.RasterColor[3]*255.0f);
-  color=(FxU16)
-    ( ((FxU16)0xf8 & b) <<(11-3))  |
-    ( ((FxU16)0xfc & g) <<(5-3+1)) |
-    ( ((FxU16)0xf8 & r) >> 3);
+  if (fxMesa->bgrOrder)
+    color=(FxU16)
+      ( ((FxU16)0xf8 & b) <<(11-3))  |
+      ( ((FxU16)0xfc & g) <<(5-3+1)) |
+      ( ((FxU16)0xf8 & r) >> 3);
+  else
+    color=(FxU16)
+      ( ((FxU16)0xf8 & r) <<(11-3))  |
+      ( ((FxU16)0xfc & g) <<(5-3+1)) |
+      ( ((FxU16)0xf8 & b) >> 3);
 
   stride=info.strideInBytes>>1;
 
