@@ -1,4 +1,4 @@
-$Id: VERSIONS,v 1.73.2.34 2002/09/06 14:42:40 brianp Exp $
+$Id: VERSIONS,v 1.73.2.35 2002/09/13 14:10:32 brianp Exp $
 
 
 Mesa Version History
@@ -1000,5 +1000,6 @@ Mesa Version History
 	- when testing for OpenGL 1.2 vs 1.3, check for GL_ARB_texture_cube_map
 	- removed GL_MAX_CONVOLUTION_WIDTH/HEIGHT from glGetInteger/Float/etc()
 	- error checking in compressed tex image functions had some glitches
+	- fixed AIX compile problem in src/config.c
     Changes:
 	- max texture units reduced to six to accomodate texture rectangles
