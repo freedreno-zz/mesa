@@ -3,7 +3,7 @@
  * \brief Extension handling.
  * 
  * \if subset
- * \brief (No-op.)
+ * \brief (No-op)
  *
  * \endif
  */
@@ -32,7 +32,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: extensions.h,v 1.15.6.2 2003/03/23 03:51:34 jrfonseca Exp $ */
+/* $Id: extensions.h,v 1.15.6.3 2003/03/23 23:22:47 jrfonseca Exp $ */
 
 
 #ifndef _EXTENSIONS_H_

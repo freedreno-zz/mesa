@@ -27,7 +27,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: colormac.h,v 1.11.6.1 2003/03/23 03:51:34 jrfonseca Exp $ */
+/* $Id: colormac.h,v 1.11.6.2 2003/03/23 23:22:47 jrfonseca Exp $ */
 
 
 #ifndef COLORMAC_H
@@ -144,7 +144,7 @@
 
 
 /**
- * Convert 3 channels at once.
+ * \brief Convert 3 channels at once.
  *
  * \param dst pointer to destination GLchan[3] array.
  * \param f pointer to source GLfloat[3] array.

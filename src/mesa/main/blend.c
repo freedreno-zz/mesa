@@ -27,7 +27,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: blend.c,v 1.38.4.4 2003/03/22 16:49:58 jrfonseca Exp $ */
+/* $Id: blend.c,v 1.38.4.5 2003/03/23 23:22:47 jrfonseca Exp $ */
 
 
 #include "glheader.h"
@@ -40,16 +40,16 @@
 
 
 /**
- * \brief Specify blending operation.
+ * \brief Specify the blending operation.
  *
  * \param sfactor source factor operator.
  * \param dfactor destination factor operator.
  *
  * \sa glBlendFunc().
  * 
- * Verifies the parameters and updates gl_colorbuffer_attrib.
- * On a change, flush the vertices and notify the driver via
- * dd_function_table::BlendFunc.
+ * Verifies the parameters and updates gl_colorbuffer_attrib.  On a change,
+ * flushes the vertices and notifies the driver via
+ * dd_function_table::BlendFunc callback.
  */
 void
 _mesa_BlendFunc( GLenum sfactor, GLenum dfactor )
@@ -346,18 +346,18 @@ _mesa_BlendEquation( GLenum mode )
 
 
 /**
- * \brief Set the blend color.
+ * \brief Set the blending color.
  *
- * \param red red component.
- * \param green green component.
- * \param blue blue component.
- * \param alpha alpha component.
+ * \param red red color component.
+ * \param green green color component.
+ * \param blue blue color component.
+ * \param alpha alpha color component.
  *
  * \sa glBlendColor().
  *
- * Clamps the parameters and updates gl_colorbuffer_attrib::BlendColor.
- * On a change, flush the vertices and notify the driver via
- * dd_function_table::BlendColor.
+ * Clamps the parameters and updates gl_colorbuffer_attrib::BlendColor.  On a
+ * change, flushes the vertices and notifies the driver via
+ * dd_function_table::BlendColor callback.
  */
 void
 _mesa_BlendColor( GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha )
@@ -383,14 +383,14 @@ _mesa_BlendColor( GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha )
 
 
 /**
- * \brief Specify alpha test function.
+ * \brief Specify the alpha test function.
  *
  * \param func alpha comparision function.
  * \param ref reference value.
  *
  * Verifies the parameters and updates gl_colorbuffer_attrib. 
- * On a change, flush the vertices and notify the driver via
- * dd_function_table::AlphaFunc.
+ * On a change, flushes the vertices and notifies the driver via
+ * dd_function_table::AlphaFunc callback.
  */
 void
 _mesa_AlphaFunc( GLenum func, GLclampf ref )
@@ -432,10 +432,10 @@ _mesa_AlphaFunc( GLenum func, GLclampf ref )
  *
  * \param opcode operation.
  *
- * Verifies \p opcode is a valid enum and updates
+ * Verifies that \p opcode is a valid enum and updates
 gl_colorbuffer_attrib::LogicOp.
- * Flushes the vertices and notifies the driver via
- * dd_function_table::LogicOp if it has changed.
+ * On a change, flushes the vertices and notifies the driver via the
+ * dd_function_table::LogicOpcode callback.
  */
 void
 _mesa_LogicOp( GLenum opcode )
@@ -498,16 +498,16 @@ _mesa_IndexMask( GLuint mask )
 /**
  * \brief Enable or disable writing of frame buffer color components.
  *
- * \param red red color component.
- * \param green green color component.
- * \param blue blue color component.
- * \param alpha alpha component.
+ * \param red whether to mask writing of the red color component.
+ * \param green whether to mask writing of the green color component.
+ * \param blue whether to mask writing of the blue color component.
+ * \param alpha whether to mask writing of the alpha color component.
  *
  * \sa glColorMask().
  *
- * Sets the appropriate value of gl_colorbuffer_attrib::ColorMask.  Flushes
- * the vertices and notifies the driver via dd_function_table::ColorMask if
- * it has changed.
+ * Sets the appropriate value of gl_colorbuffer_attrib::ColorMask.  On a
+ * change, flushes the vertices and notifies the driver via the
+ * dd_function_table::ColorMask callback.
  */
 void
 _mesa_ColorMask( GLboolean red, GLboolean green,
@@ -539,9 +539,17 @@ _mesa_ColorMask( GLboolean red, GLboolean green,
 }
 
 /**********************************************************************/
-/*****                      Initialization                        *****/
-/**********************************************************************/
+/** \name Initialization */
+/*@{*/
 
+/**
+ * \brief Initialization of the context color data.
+ *
+ * \param ctx GL context.
+ *
+ * Initializes the related fields in the context color attribute group,
+ * __GLcontextRec::Color.
+ */
 void _mesa_init_color( GLcontext * ctx )
 {
    /* Color buffer group */
@@ -577,3 +585,5 @@ void _mesa_init_color( GLcontext * ctx )
       ctx->Color._DrawDestMask = FRONT_LEFT_BIT;
    }
 }
+
+/*@}*/

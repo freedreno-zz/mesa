@@ -27,7 +27,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: dd.h,v 1.74.6.5 2003/03/23 03:51:34 jrfonseca Exp $ */
+/* $Id: dd.h,v 1.74.6.6 2003/03/23 23:22:47 jrfonseca Exp $ */
 
 
 #ifndef DD_INCLUDED
@@ -128,8 +128,9 @@ struct dd_function_table {
    void (*Flush)( GLcontext *ctx );
 
    /**
-    * \brief Called whenever an error is generated.  ctx->ErrorValue contains
-    * the error value.
+    * \brief Called whenever an error is generated.  
+    *
+    * __GLcontextRec::ErrorValue contains the error value.
     */
    void (*Error)( GLcontext *ctx );
 
@@ -406,7 +407,7 @@ struct dd_function_table {
    /**
     * \brief Called by glCompressedTexImage2D().
     *
-    * \sa dd_function_table::glCompressedTexImage1D.
+    * \sa dd_function_table::CompressedTexImage1D.
     */
    void (*CompressedTexImage2D)( GLcontext *ctx, GLenum target,
                                  GLint level, GLint internalFormat,
@@ -417,7 +418,7 @@ struct dd_function_table {
    /**
     * \brief Called by glCompressedTexImage3D().
     *
-    * \sa dd_function_table::glCompressedTexImage3D.
+    * \sa dd_function_table::CompressedTexImage3D.
     */
    void (*CompressedTexImage3D)( GLcontext *ctx, GLenum target,
                                  GLint level, GLint internalFormat,
@@ -453,7 +454,7 @@ struct dd_function_table {
    /**
     * \brief Called by glCompressedTexSubImage2D().
     *
-    * \sa dd_function_table::glCompressedTexImage3D.
+    * \sa dd_function_table::CompressedTexImage3D.
     */
    void (*CompressedTexSubImage2D)(GLcontext *ctx, GLenum target, GLint level,
                                    GLint xoffset, GLint yoffset,
@@ -465,7 +466,7 @@ struct dd_function_table {
    /**
     * \brief Called by glCompressedTexSubImage3D().
     *
-    * \sa dd_function_table::glCompressedTexImage3D.
+    * \sa dd_function_table::CompressedTexImage3D.
     */
    void (*CompressedTexSubImage3D)(GLcontext *ctx, GLenum target, GLint level,
                                    GLint xoffset, GLint yoffset, GLint zoffset,
@@ -519,8 +520,8 @@ struct dd_function_table {
    /**
     * \brief Called when the texture's color lookup table is changed.
     * 
-    * If \p tObj is NULL then the shared texture palette ctx->Texture.Palette
-    * is to be updated.
+    * If \p tObj is NULL then the shared texture palette
+    * gl_texture_object::Palette is to be updated.
     */
    void (*UpdateTexturePalette)( GLcontext *ctx,
                                  struct gl_texture_object *tObj );
@@ -557,61 +558,100 @@ struct dd_function_table {
     * \note drawing functions are above.
     *
     * These functions are called by their corresponding OpenGL API functions.
-    * They're \e also called by the gl_PopAttrib() function!!!
+    * They are \e also called by the gl_PopAttrib() function!!!
     * May add more functions like these to the device driver in the future.
     */
    /*@{*/
+   /** \brief Specify the alpha test function */
    void (*AlphaFunc)(GLcontext *ctx, GLenum func, GLfloat ref);
+   /** \brief Set the blend color */
    void (*BlendColor)(GLcontext *ctx, const GLfloat color[4]);
+   /** \brief Set the blend equation */
    void (*BlendEquation)(GLcontext *ctx, GLenum mode);
+   /** \brief Specify pixel arithmetic */
    void (*BlendFunc)(GLcontext *ctx, GLenum sfactor, GLenum dfactor);
    void (*BlendFuncSeparate)(GLcontext *ctx,
                              GLenum sfactorRGB, GLenum dfactorRGB,
                              GLenum sfactorA, GLenum dfactorA);
+   /** \brief Specify clear values for the color buffers */
    void (*ClearColor)(GLcontext *ctx, const GLfloat color[4]);
+   /** \brief Specify the clear value for the depth buffer */
    void (*ClearDepth)(GLcontext *ctx, GLclampd d);
+   /** \brief Specify the clear value for the color index buffers */
    void (*ClearIndex)(GLcontext *ctx, GLuint index);
+   /** \brief Specify the clear value for the stencil buffer */
    void (*ClearStencil)(GLcontext *ctx, GLint s);
+   /** \brief Specify a plane against which all geometry is clipped */
    void (*ClipPlane)(GLcontext *ctx, GLenum plane, const GLfloat *equation );
+   /** \brief Enable and disable writing of frame buffer color components */
    void (*ColorMask)(GLcontext *ctx, GLboolean rmask, GLboolean gmask,
                      GLboolean bmask, GLboolean amask );
+   /** \brief Cause a material color to track the current color */
    void (*ColorMaterial)(GLcontext *ctx, GLenum face, GLenum mode);
+   /** \brief Specify whether front- or back-facing facets can be culled */
    void (*CullFace)(GLcontext *ctx, GLenum mode);
+   /** \brief Define front- and back-facing polygons */
    void (*FrontFace)(GLcontext *ctx, GLenum mode);
+   /** \brief Specify the value used for depth buffer comparisons */
    void (*DepthFunc)(GLcontext *ctx, GLenum func);
+   /** \brief Enable or disable writing into the depth buffer */
    void (*DepthMask)(GLcontext *ctx, GLboolean flag);
+   /** \brief Specify mapping of depth values from normalized device coordinates to window coordinates */
    void (*DepthRange)(GLcontext *ctx, GLclampd nearval, GLclampd farval);
+   /** \brief Enable or disable server-side gl capabilities */
    void (*Enable)(GLcontext *ctx, GLenum cap, GLboolean state);
+   /** \brief Specify fog parameters */
    void (*Fogfv)(GLcontext *ctx, GLenum pname, const GLfloat *params);
+   /** \brief Specify implementation-specific hints */
    void (*Hint)(GLcontext *ctx, GLenum target, GLenum mode);
+   /** \brief Control the writing of individual bits in the color index buffers */
    void (*IndexMask)(GLcontext *ctx, GLuint mask);
+   /** \brief Set light source parameters */
    void (*Lightfv)(GLcontext *ctx, GLenum light,
 		   GLenum pname, const GLfloat *params );
+   /** \brief Set the lighting model parameters */
    void (*LightModelfv)(GLcontext *ctx, GLenum pname, const GLfloat *params);
+   /** \brief Specify the line stipple pattern */
    void (*LineStipple)(GLcontext *ctx, GLint factor, GLushort pattern );
+   /** \brief Specify the width of rasterized lines */
    void (*LineWidth)(GLcontext *ctx, GLfloat width);
+   /** \brief Specify a logical pixel operation for color index rendering */
    void (*LogicOpcode)(GLcontext *ctx, GLenum opcode);
    void (*PointParameterfv)(GLcontext *ctx, GLenum pname,
                             const GLfloat *params);
+   /** \brief Specify the diameter of rasterized points */
    void (*PointSize)(GLcontext *ctx, GLfloat size);
+   /** \brief Select a polygon rasterization mode */
    void (*PolygonMode)(GLcontext *ctx, GLenum face, GLenum mode);
+   /** \brief Set the scale and units used to calculate depth values */
    void (*PolygonOffset)(GLcontext *ctx, GLfloat factor, GLfloat units);
+   /** \brief Set the polygon stippling pattern */
    void (*PolygonStipple)(GLcontext *ctx, const GLubyte *mask );
+   /** \brief Set rasterization mode */
    void (*RenderMode)(GLcontext *ctx, GLenum mode );
+   /** \brief Define the scissor box */
    void (*Scissor)(GLcontext *ctx, GLint x, GLint y, GLsizei w, GLsizei h);
+   /** \brief Select flat or smooth shading */
    void (*ShadeModel)(GLcontext *ctx, GLenum mode);
+   /** \brief Set function and reference value for stencil testing */
    void (*StencilFunc)(GLcontext *ctx, GLenum func, GLint ref, GLuint mask);
+   /** \brief Control the writing of individual bits in the stencil planes */
    void (*StencilMask)(GLcontext *ctx, GLuint mask);
+   /** \brief Set stencil test actions */
    void (*StencilOp)(GLcontext *ctx, GLenum fail, GLenum zfail, GLenum zpass);
    void (*ActiveStencilFace)(GLcontext *ctx, GLuint face);
+   /** \brief Control the generation of texture coordinates */
    void (*TexGen)(GLcontext *ctx, GLenum coord, GLenum pname,
 		  const GLfloat *params);
+   /** \brief Set texture environment parameters */
    void (*TexEnv)(GLcontext *ctx, GLenum target, GLenum pname,
                   const GLfloat *param);
+   /** \brief Set texture parameters */
    void (*TexParameter)(GLcontext *ctx, GLenum target,
                         struct gl_texture_object *texObj,
                         GLenum pname, const GLfloat *params);
    void (*TextureMatrix)(GLcontext *ctx, GLuint unit, const GLmatrix *mat);
+   /** \brief Set the viewport */
    void (*Viewport)(GLcontext *ctx, GLint x, GLint y, GLsizei w, GLsizei h);
    /*@}*/
 
@@ -648,10 +688,15 @@ struct dd_function_table {
     * Return GL_TRUE if query was completed, GL_FALSE otherwise.
     */
    /*@{*/
+   /** \brief Return the value or values of a selected parameter */
    GLboolean (*GetBooleanv)(GLcontext *ctx, GLenum pname, GLboolean *result);
+   /** \brief Return the value or values of a selected parameter */
    GLboolean (*GetDoublev)(GLcontext *ctx, GLenum pname, GLdouble *result);
+   /** \brief Return the value or values of a selected parameter */
    GLboolean (*GetFloatv)(GLcontext *ctx, GLenum pname, GLfloat *result);
+   /** \brief Return the value or values of a selected parameter */
    GLboolean (*GetIntegerv)(GLcontext *ctx, GLenum pname, GLint *result);
+   /** \brief Return the value or values of a selected parameter */
    GLboolean (*GetPointerv)(GLcontext *ctx, GLenum pname, GLvoid **result);
    /*@}*/
    
@@ -704,8 +749,9 @@ struct dd_function_table {
 #define FLUSH_STORED_VERTICES 0x1
 #define FLUSH_UPDATE_CURRENT  0x2
    /**
-    * Set by the driver-supplied T&L engine whenever vertices are
-    * buffered between glBegin()/glEnd() objects or ctx->Current is not uptodate.
+    * Set by the driver-supplied T&L engine whenever vertices are buffered
+    * between glBegin()/glEnd() objects or __GLcontextRec::Current is not
+    * uptodate.
     *
     * The dd_function_table::FlushVertices call below may be used to resolve
     * these conditions.
@@ -715,8 +761,8 @@ struct dd_function_table {
    /**
     * If inside glBegin()/glEnd(), it should ASSERT(0).  Otherwise, if
     * FLUSH_STORED_VERTICES bit in \p flags is set flushes any buffered
-    * vertices, if FLUSH_UPDATE_CURRENT bit is set updates ctx->Current and
-    * ctx->Light.Material
+    * vertices, if FLUSH_UPDATE_CURRENT bit is set updates
+    * __GLcontextRec::Current and gl_light_attrib::Material
     *
     * Note that the default T&L engine never clears the
     * FLUSH_UPDATE_CURRENT bit, even after performing the update.

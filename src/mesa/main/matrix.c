@@ -32,7 +32,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: matrix.c,v 1.45.4.6 2003/03/23 14:58:08 jrfonseca Exp $ */
+/* $Id: matrix.c,v 1.45.4.7 2003/03/23 23:22:48 jrfonseca Exp $ */
 
 
 #include "glheader.h"
@@ -141,7 +141,7 @@ _mesa_Ortho( GLdouble left, GLdouble right,
  * \sa glMatrixMode().
  *
  * Flushes the vertices, validates the parameter and updates
- * __GLcontextRec::CurrentStack and __GLcontextRec::MatrixMode with the
+ * __GLcontextRec::CurrentStack and gl_transform_attrib::MatrixMode with the
  * specified matrix stack.
  */
 void
@@ -196,7 +196,7 @@ _mesa_MatrixMode( GLenum mode )
  * \sa glPushMatrix().
  * 
  * Verifies the current matrix stack is not full, and duplicates the top-most
- * matrix in the stack. Marks __GLcontexRec::NewState with the stack dirty
+ * matrix in the stack. Marks __GLcontextRec::NewState with the stack dirty
  * flag.
  */
 void
@@ -228,8 +228,8 @@ _mesa_PushMatrix( void )
  * \sa glPopMatrix().
  * 
  * Flushes the vertices, verifies the current matrix stack is not empty, and
- * moves the stack head down. Marks __GLcontexRec::NewState with the stack
- * dirty flag.
+ * moves the stack head down. Marks __GLcontextRec::NewState with the dirty
+ * stack flag.
  */
 void
 _mesa_PopMatrix( void )
@@ -258,7 +258,7 @@ _mesa_PopMatrix( void )
  * \sa glLoadIdentity().
  *
  * Flushes the vertices and calls _math_matrix_set_identity() with the top-most
- * matrix in the current stack. Marks __GLcontexRec::NewState with the stack
+ * matrix in the current stack. Marks __GLcontextRec::NewState with the stack
  * dirty flag.
  */
 void
@@ -283,8 +283,8 @@ _mesa_LoadIdentity( void )
  * \sa glLoadMatrixf().
  *
  * Flushes the vertices and calls _math_matrix_loadf() with the top-most matrix
- * in the current stack and the given matrix. Marks __GLcontexRec::NewState
- * with the stack dirty flag.
+ * in the current stack and the given matrix. Marks __GLcontextRec::NewState
+ * with the dirty stack flag.
  */
 void
 _mesa_LoadMatrixf( const GLfloat *m )
@@ -314,7 +314,7 @@ _mesa_LoadMatrixf( const GLfloat *m )
  *
  * Flushes the vertices and calls _math_matrix_mul_floats() with the top-most
  * matrix in the current stack and the given matrix. Marks
- * __GLcontexRec::NewState with the stack dirty flag.
+ * __GLcontextRec::NewState with the dirty stack flag.
  */
 void
 _mesa_MultMatrixf( const GLfloat *m )
@@ -346,7 +346,7 @@ _mesa_MultMatrixf( const GLfloat *m )
  *
  * Flushes the vertices and calls _math_matrix_rotate() with the top-most
  * matrix in the current stack and the given parameters. Marks
- * __GLcontexRec::NewState with the stack dirty flag.
+ * __GLcontextRec::NewState with the dirty stack flag.
  */
 void
 _mesa_Rotatef( GLfloat angle, GLfloat x, GLfloat y, GLfloat z )
@@ -371,7 +371,7 @@ _mesa_Rotatef( GLfloat angle, GLfloat x, GLfloat y, GLfloat z )
  *
  * Flushes the vertices and calls _math_matrix_scale() with the top-most
  * matrix in the current stack and the given parameters. Marks
- * __GLcontexRec::NewState with the stack dirty flag.
+ * __GLcontextRec::NewState with the dirty stack flag.
  */
 void
 _mesa_Scalef( GLfloat x, GLfloat y, GLfloat z )
@@ -394,7 +394,7 @@ _mesa_Scalef( GLfloat x, GLfloat y, GLfloat z )
  *
  * Flushes the vertices and calls _math_matrix_translate() with the top-most
  * matrix in the current stack and the given parameters. Marks
- * __GLcontexRec::NewState with the stack dirty flag.
+ * __GLcontextRec::NewState with the dirty stack flag.
  */
 void
 _mesa_Translatef( GLfloat x, GLfloat y, GLfloat z )
@@ -526,7 +526,8 @@ _mesa_Viewport( GLint x, GLint y, GLsizei width, GLsizei height )
  *
  * Verifies the parameters, clamps them to the implementation dependent range
  * and updates __GLcontextRec::Viewport. Computes the scale and bias values for
- * the drivers and notifies the driver via dd_function_table::Viewport.
+ * the drivers and notifies the driver via the dd_function_table::Viewport
+ * callback.
  */
 void
 _mesa_set_viewport( GLcontext *ctx, GLint x, GLint y,

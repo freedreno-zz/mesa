@@ -27,7 +27,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: image.c,v 1.69.4.4 2003/03/20 12:56:57 jrfonseca Exp $ */
+/* $Id: image.c,v 1.69.4.5 2003/03/23 23:22:48 jrfonseca Exp $ */
 
 
 #include "glheader.h"
@@ -441,7 +441,7 @@ _mesa_is_legal_format_and_type( GLenum format, GLenum type )
 /**
  * \brief Get the address of a pixel in an image (actually a volume).
  *
- * Pixel unpacking/packing parameters are observed according to 'packing'.
+ * Pixel unpacking/packing parameters are observed according to \p packing.
  *
  * \param image start of image data.
  * \param width image width.

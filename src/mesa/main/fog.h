@@ -3,7 +3,7 @@
  * \brief Fog operations.
  * 
  * \if subset
- * \brief (No-op.)
+ * \brief (No-op)
  *
  * \endif
  */
@@ -32,7 +32,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: fog.h,v 1.12.8.2 2003/03/23 03:51:34 jrfonseca Exp $ */
+/* $Id: fog.h,v 1.12.8.3 2003/03/23 23:22:47 jrfonseca Exp $ */
 
 
 #ifndef FOG_H

@@ -27,7 +27,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: texobj.c,v 1.62.4.6 2003/03/23 03:51:34 jrfonseca Exp $ */
+/* $Id: texobj.c,v 1.62.4.7 2003/03/23 23:22:48 jrfonseca Exp $ */
 
 #include "glheader.h"
 #include "colortab.h"
@@ -604,9 +604,9 @@ _mesa_GenTextures( GLsizei n, GLuint *texName )
  *
  * \sa glDeleteTextures().
  *
- * For each texture checks if its bound to any of the texture units, unbind it
- * and decrementing the reference count if so. If the texture reference count
- * is zero, delete its object.
+ * For each texture checks if its bound to any of the texture units, unbinding
+ * it and decrementing the reference count if so. If the texture reference
+ * count is zero, delete its object.
  */
 void
 _mesa_DeleteTextures( GLsizei n, const GLuint *texName)

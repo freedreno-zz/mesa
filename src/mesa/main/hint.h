@@ -3,7 +3,7 @@
  * \brief Hints operations.
  * 
  * \if subset
- * \brief (No-op.)
+ * \brief (No-op)
  *
  * \endif
  */
@@ -32,7 +32,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: hint.h,v 1.4.6.2 2003/03/23 03:51:34 jrfonseca Exp $ */
+/* $Id: hint.h,v 1.4.6.3 2003/03/23 23:22:48 jrfonseca Exp $ */
 
 
 #ifndef HINT_H

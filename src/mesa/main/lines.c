@@ -27,7 +27,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: lines.c,v 1.30.4.2 2003/03/20 19:38:40 jrfonseca Exp $ */
+/* $Id: lines.c,v 1.30.4.3 2003/03/23 23:22:48 jrfonseca Exp $ */
 
 
 #include "glheader.h"
@@ -50,8 +50,8 @@
  * Verifies the parameter and updates gl_line_attrib::Width. On a change,
  * flushes the vertices, updates the clamped line width and marks the
  * DD_LINE_WIDTH flag in __GLcontextRec::_TriangleCaps for the drivers if the
- * width is different from one . Notifies the driver via
- * dd_function_table::LineWidth.
+ * width is different from one. Notifies the driver via the
+ * dd_function_table::LineWidth callback.
  */
 void
 _mesa_LineWidth( GLfloat width )
@@ -94,7 +94,7 @@ _mesa_LineWidth( GLfloat width )
  *
  * Updates gl_line_attrib::StippleFactor and gl_line_attrib::StipplePattern. On
  * change flushes the vertices and notifies the driver via
- * dd_function_table::LineStipple.
+ * the dd_function_table::LineStipple callback.
  */
 void
 _mesa_LineStipple( GLint factor, GLushort pattern )

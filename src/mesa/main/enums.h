@@ -3,7 +3,7 @@
  * \brief Enumeration name/number lookup functions.
  * 
  * \if subset
- * \brief (No-op.)
+ * \brief (No-op)
  *
  * \endif
  */
@@ -32,7 +32,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: enums.h,v 1.3.8.3 2003/03/23 03:51:34 jrfonseca Exp $ */
+/* $Id: enums.h,v 1.3.8.4 2003/03/23 23:22:47 jrfonseca Exp $ */
 
 
 #ifndef _ENUMS_H_

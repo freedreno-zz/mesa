@@ -27,7 +27,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: depth.h,v 1.11.8.3 2003/03/22 16:49:58 jrfonseca Exp $ */
+/* $Id: depth.h,v 1.11.8.4 2003/03/23 23:22:47 jrfonseca Exp $ */
 
 
 #ifndef DEPTH_H
@@ -53,7 +53,7 @@ _mesa_init_depth( GLcontext * ctx );
 
 #else
 
-/** \brief No-op. */
+/** \brief No-op */
 #define _mesa_init_depth( c ) ((void)0)
 
 #endif

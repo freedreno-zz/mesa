@@ -34,7 +34,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: hash.c,v 1.14.4.1 2003/03/16 00:27:12 jrfonseca Exp $ */
+/* $Id: hash.c,v 1.14.4.2 2003/03/23 23:22:48 jrfonseca Exp $ */
 
 #include "glheader.h"
 #include "imports.h"
@@ -149,7 +149,7 @@ void *_mesa_HashLookup(const struct _mesa_HashTable *table, GLuint key)
  * \param key the key (not zero).
  * \param data pointer to user data.
  *
- * While holding the hash table's lock, walk trhough the hash entry list replacing the data if a
+ * While holding the hash table's lock, walk through the hash entry list replacing the data if a
  * matching key is found, or inserts a new table entry otherwise.
  */
 void _mesa_HashInsert(struct _mesa_HashTable *table, GLuint key, void *data)
@@ -243,7 +243,7 @@ void _mesa_HashRemove(struct _mesa_HashTable *table, GLuint key)
  * 
  * \return key for the "first" entry in the hash table.
  *
- * While holding the lock, walks trhough all table positions until returning
+ * While holding the lock, walks through all table positions until finding
  * the first entry of the first non-empty one.
  */
 GLuint _mesa_HashFirstEntry(struct _mesa_HashTable *table)
@@ -291,7 +291,10 @@ void _mesa_HashPrint(const struct _mesa_HashTable *table)
  * 
  * \return Starting key of free block or 0 if failure.
  *
- * If there are enough free keys between the maximum key existing in the table (_mesa_HashTable::MaxKey) and the maximum key possible, then simply return the adjacent key. Otherwise do a full search for a free key block in the existing key range.
+ * If there are enough free keys between the maximum key existing in the table
+ * (_mesa_HashTable::MaxKey) and the maximum key possible, then simply return
+ * the adjacent key. Otherwise do a full search for a free key block in the
+ * allowable key range.
  */
 GLuint _mesa_HashFindFreeKeyBlock(struct _mesa_HashTable *table, GLuint numKeys)
 {

@@ -3,7 +3,7 @@
  * \brief Debugging functions.
  * 
  * \if subset
- * \brief (No-op.)
+ * \brief (No-op)
  *
  * \endif
  */
@@ -32,7 +32,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: debug.h,v 1.3.8.3 2003/03/23 03:51:34 jrfonseca Exp $ */
+/* $Id: debug.h,v 1.3.8.4 2003/03/23 23:22:47 jrfonseca Exp $ */
 
 
 #ifndef _DEBUG_H
@@ -49,16 +49,16 @@ extern void _mesa_check_driver_hooks( GLcontext *ctx );
 
 #else
 
-/** \brief No-op. */
+/** \brief No-op */
 #define _mesa_print_state( m, s ) ((void)0)
 
-/** \brief No-op. */
+/** \brief No-op */
 #define _mesa_print_info() ((void)0)
 
-/** \brief No-op. */
+/** \brief No-op */
 #define _mesa_init_debug( c ) ((void)0)
 
-/** \brief No-op. */
+/** \brief No-op */
 #define _mesa_check_driver_hooks( c ) ((void)0)
 
 #endif

@@ -28,7 +28,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: context.c,v 1.188.2.1.2.15 2003/03/23 03:51:34 jrfonseca Exp $ */
+/* $Id: context.c,v 1.188.2.1.2.16 2003/03/23 23:22:47 jrfonseca Exp $ */
 
 /**
  * \mainpage Mesa Core Module
@@ -145,8 +145,12 @@ free_shared_state( GLcontext *ctx, struct gl_shared_state *ss );
 
 
 /**********************************************************************/
-/** \name OpenGL SI-style interface (new in Mesa 3.5)                 */
-/**********************************************************************/
+/** \name OpenGL SI-style interface (new in Mesa 3.5)
+ *
+ * \if subset
+ * \note Most of these functions are never called in the Mesa subset.
+ * \endif
+ */
 /*@{*/
 
 /**
@@ -155,8 +159,10 @@ free_shared_state( GLcontext *ctx, struct gl_shared_state *ss );
  * \param gc context.
  * \return GL_TRUE on success, or GL_FALSE on failure.
  * 
+ * \ifnot subset
  * Called by window system/device driver (via __GLexports::destroyCurrent) when
  * the rendering context is to be destroyed.
+ * \endif
  *
  * Frees the context data and the context structure.
  */
@@ -176,10 +182,12 @@ _mesa_destroyContext(__GLcontext *gc)
  * \param gc context.
  * \return GL_TRUE on success, or GL_FALSE on failure.
  *
+ * \ifnot subset
  * Called by window system/device driver (via __GLexports::loseCurrent)
  * when the rendering context is made non-current.
+ * \endif
  *
- * No-op.
+ * No-op
  */
 GLboolean
 _mesa_loseCurrent(__GLcontext *gc)
@@ -194,10 +202,12 @@ _mesa_loseCurrent(__GLcontext *gc)
  * \param gc context.
  * \return GL_TRUE on success, or GL_FALSE on failure.
  *
+ * \ifnot subset
  * Called by window system/device driver (via __GLexports::makeCurrent)
  * when the rendering context is made current.
+ * \endif
  *
- * No-op.
+ * No-op
  */
 GLboolean
 _mesa_makeCurrent(__GLcontext *gc)
@@ -212,7 +222,11 @@ _mesa_makeCurrent(__GLcontext *gc)
  * \param gc context.
  * \return GL_TRUE on success, or GL_FALSE on failure.
  *
+ * \ifnot subset
  * Called by window system/device driver (via __GLexports::shareContext)
+ * \endif
+ *
+ * Update the shared context reference count, gl_shared_state::RefCount.
  */
 GLboolean
 _mesa_shareContext(__GLcontext *gc, __GLcontext *gcShare)
@@ -249,7 +263,7 @@ _mesa_copyContext(__GLcontext *dst, const __GLcontext *src, GLuint mask)
 }
 #endif
 
-/** No-op. */
+/** \brief No-op */
 GLboolean
 _mesa_forceCurrent(__GLcontext *gc)
 {
@@ -282,7 +296,7 @@ _mesa_notifyResize(__GLcontext *gc)
  * 
  * Called when the context's window/buffer is going to be destroyed. 
  *
- * No-op.
+ * No-op
  */
 void
 _mesa_notifyDestroy(__GLcontext *gc)
@@ -304,26 +318,27 @@ _mesa_notifySwapBuffers(__GLcontext *gc)
    FLUSH_VERTICES( gc, 0 );
 }
 
-/** \brief No-op. */
+/** \brief No-op */
 struct __GLdispatchStateRec *
 _mesa_dispatchExec(__GLcontext *gc)
 {
    return NULL;
 }
 
-/** \brief No-op. */
+/** \brief No-op */
 void
 _mesa_beginDispatchOverride(__GLcontext *gc)
 {
 }
 
-/** \brief No-op. */
+/** \brief No-op */
 void
 _mesa_endDispatchOverride(__GLcontext *gc)
 {
 }
 
 /**
+ * \ifnot subset
  * \brief Setup the exports.  
  *
  * The window system will call these functions when it needs Mesa to do
@@ -334,6 +349,12 @@ _mesa_endDispatchOverride(__GLcontext *gc)
  * structure.  The XMesa-style functions should then call the _mesa_*
  * version of these functions.  This is an approximation to OO design
  * (inheritance and virtual functions).
+ * \endif
+ *
+ * \if subset
+ * \brief No-op.
+ * 
+ * \endif
  */
 static void
 _mesa_init_default_exports(__GLexports *exports)
@@ -561,8 +582,8 @@ _mesa_destroy_visual( GLvisual *vis )
 /**
  * \brief Create a new framebuffer.  
  *
- * A GLframebuffer is a struct which encapsulates the depth, stencil and accum
- * buffers and related parameters.
+ * A GLframebuffer is a structure which encapsulates the depth, stencil and
+ * accum buffers and related parameters.
  * 
  * \param visual a GLvisual pointer (we copy the struct contents)
  * \param softwareDepth create/use a software depth buffer?
@@ -699,12 +720,12 @@ _mesa_free_framebuffer_data( GLframebuffer *buffer )
 
 
 /**********************************************************************/
-/** \name Context allocation, initialization, destroying              */
-/**********************************************************************/
-/**
+/** \name Context allocation, initialization, destroying
+ *
  * The purpose of the most initalization functions here is to provide the
  * default state values according to the OpenGL specification.
  */
+/**********************************************************************/
 /*@{*/
 
 /**
@@ -717,7 +738,7 @@ _glthread_DECLARE_STATIC_MUTEX(OneTimeLock);
 /**
  * \brief Calls all the various one-time-init functions in Mesa.
  *
- * While holding the OneTimeLock lock, calls several initialization functions,
+ * While holding a global mutex lock, calls several initialization functions,
  * and sets the glapi callbacks if the \c MESA_DEBUG environment variable is
  * defined.
  *
@@ -1448,7 +1469,7 @@ _mesa_make_current2( GLcontext *newCtx, GLframebuffer *drawBuffer,
  * \return pointer to the current GL context.
  * 
  * Calls _glapi_get_context(). This isn't the fastest way to get the current
- * context.  If you need speed, see the GET_CURRENT_CONTEXT macro in context.h.
+ * context.  If you need speed, see the #GET_CURRENT_CONTEXT macro in context.h.
  */
 GLcontext *
 _mesa_get_current_context( void )
@@ -1478,7 +1499,7 @@ _mesa_get_dispatch(GLcontext *ctx)
 
 
 /**********************************************************************/
-/** \name Miscellaneous functions                     *****/
+/** \name Miscellaneous functions                                     */
 /**********************************************************************/
 /*@{*/
 
@@ -1513,7 +1534,7 @@ _mesa_record_error( GLcontext *ctx, GLenum error )
 /**
  * \brief Execute glFinish().
  *
- * Calls the ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH macro and the
+ * Calls the #ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH macro and the
  * dd_function_table::Finish driver callback, if not NULL.
  */
 void
@@ -1529,7 +1550,7 @@ _mesa_Finish( void )
 /**
  * \brief Execute glFlush().
  *
- * Calls the ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH macro and the
+ * Calls the #ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH macro and the
  * dd_function_table::Flush driver callback, if not NULL.
  */
 void

@@ -27,7 +27,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: stencil.c,v 1.29.4.3 2003/03/20 19:38:47 jrfonseca Exp $ */
+/* $Id: stencil.c,v 1.29.4.4 2003/03/23 23:22:48 jrfonseca Exp $ */
 
 
 #include "glheader.h"
@@ -49,7 +49,7 @@
  *
  * Updates gl_stencil_attrib::Clear. On change
  * flushes the vertices and notifies the driver via
- * dd_function_table::ClearStencil.
+ * the dd_function_table::ClearStencil callback.
  */
 void
 _mesa_ClearStencil( GLint s )
@@ -80,7 +80,7 @@ _mesa_ClearStencil( GLint s )
  *
  * Verifies the parameters and updates the respective values in
  * __GLcontextRec::Stencil. On change flushes the vertices and notifies the
- * driver via dd_function_table::StencilFunc.
+ * driver via the dd_function_table::StencilFunc callback.
  */
 void
 _mesa_StencilFunc( GLenum func, GLint ref, GLuint mask )
@@ -133,7 +133,7 @@ _mesa_StencilFunc( GLenum func, GLint ref, GLuint mask )
  * \sa glStencilMask().
  *
  * Updates gl_stencil_attrib::WriteMask. On change flushes the vertices and
- * notifies the driver via dd_function_table::StencilMask.
+ * notifies the driver via the dd_function_table::StencilMask callback.
  */
 void
 _mesa_StencilMask( GLuint mask )
@@ -166,7 +166,7 @@ _mesa_StencilMask( GLuint mask )
  * 
  * Verifies the parameters and updates the respective fields in
  * __GLcontextRec::Stencil. On change flushes the vertices and notifies the
- * driver via dd_function_table::StencilOp.
+ * driver via the dd_function_table::StencilOp callback.
  */
 void
 _mesa_StencilOp(GLenum fail, GLenum zfail, GLenum zpass)
@@ -271,7 +271,7 @@ _mesa_ActiveStencilFaceEXT(GLenum face)
  *
  * \param ctx GL context.
  *
- * Initializes __GLcontextRec::Stipple attribute group.
+ * Initializes __GLcontextRec::Stencil attribute group.
  */
 void _mesa_init_stencil( GLcontext * ctx )
 {

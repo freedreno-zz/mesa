@@ -27,7 +27,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: buffers.c,v 1.42.4.3 2003/03/20 09:19:59 keithw Exp $ */
+/* $Id: buffers.c,v 1.42.4.4 2003/03/23 23:22:47 jrfonseca Exp $ */
 
 
 #include "glheader.h"
@@ -74,9 +74,9 @@ _mesa_ClearIndex( GLfloat c )
  *
  * \sa glClearColor().
  *
- * Clamps the parameters and updates gl_colorbuffer_attrib::ClearColor.  On
- * a change, flush the vertices and notify the driver via
- * dd_function_table::ClearColor.
+ * Clamps the parameters and updates gl_colorbuffer_attrib::ClearColor.  On a
+ * change, flushes the vertices and notifies the driver via the
+ * dd_function_table::ClearColor callback.
  */
 void
 _mesa_ClearColor( GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha )
@@ -108,10 +108,10 @@ _mesa_ClearColor( GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha )
  * 
  * \param mask bit-mask indicating the buffers to be cleared.
  *
- * Verifies the parameter. If __GLcontextRec::NewState is set calls
- * _mesa_update_state() to update gl_frame_buffer::_Xmin, etc. If the
- * rasterization mode is set to GL_RENDER requests the driver to clean the
- * buffers, via dd_function_table::Clear.
+ * Flushes the vertices and verifies the parameter. If __GLcontextRec::NewState
+ * is set then calls _mesa_update_state() to update gl_frame_buffer::_Xmin,
+ * etc. If the rasterization mode is set to GL_RENDER then requests the driver
+ * to clear the buffers, via the dd_function_table::Clear callback.
  */ 
 void
 _mesa_Clear( GLbitfield mask )
@@ -168,10 +168,10 @@ _mesa_Clear( GLbitfield mask )
  *
  * \sa glDrawBuffer().
  *
- * Verifies the parameter and updates the
+ * Flushes the vertices and verifies the parameter and updates the
  * gl_colorbuffer_attrib::_DrawDestMask bitfield. Marks new color state in
- * __GLcontextRec::NewState and notifies the driver via
- * dd_function_table::DrawBuffer.
+ * __GLcontextRec::NewState and notifies the driver via the
+ * dd_function_table::DrawBuffer callback.
  */
 void
 _mesa_DrawBuffer( GLenum mode )
@@ -509,8 +509,8 @@ _mesa_SampleCoverageARB(GLclampf value, GLboolean invert)
  * \sa glScissor().
  *
  * Verifies the parameters and updates __GLcontextRec::Scissor. On a
- * change flush the vertices and notifies the driver via
- * dd_function_table::Scissor.
+ * change flushes the vertices and notifies the driver via
+ * the dd_function_table::Scissor callback.
  */
 void
 _mesa_Scissor( GLint x, GLint y, GLsizei width, GLsizei height )
@@ -543,10 +543,15 @@ _mesa_Scissor( GLint x, GLint y, GLsizei width, GLsizei height )
 }
 
 /**********************************************************************/
-/*****                    State management                        *****/
-/**********************************************************************/
+/** \name State management */
+/*@{*/
 
-/* Update screen bounds.
+/**
+ * \brief Update screen bounds.
+ *
+ * \param ctx GL context.
+ *
+ * Update gl_frame_buffer::_Xmin, and etc.
  */
 void _mesa_update_buffers( GLcontext *ctx )
 {
@@ -570,11 +575,21 @@ void _mesa_update_buffers( GLcontext *ctx )
    }
 }
 
+/*@}*/
+
 			   
 /**********************************************************************/
-/*****                      Initialization                        *****/
-/**********************************************************************/
+/** \name Initialization */
+/*@{*/
 
+/**
+ * \brief Initialize the context scissor data.
+ *
+ * \param ctx GL context.
+ * 
+ * Initializes the __GLcontextRec::Scissor and __GLcontextRec::Multisample
+ * attribute groups, and related constants in __GLcontextRec::Const.
+ */
 void _mesa_init_buffers( GLcontext * ctx )
 {
    /* Scissor group */
@@ -597,4 +612,4 @@ void _mesa_init_buffers( GLcontext * ctx )
 
 }
 
-
+/*@}*/

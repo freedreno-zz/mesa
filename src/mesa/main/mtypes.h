@@ -29,7 +29,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: mtypes.h,v 1.97.4.8 2003/03/23 03:51:34 jrfonseca Exp $ */
+/* $Id: mtypes.h,v 1.97.4.9 2003/03/23 23:22:48 jrfonseca Exp $ */
 
 
 #ifndef TYPES_H
@@ -178,7 +178,7 @@ enum {
 
 
 /**
- * Maximum number of temporary vertices required for clipping.  
+ * \brief Maximum number of temporary vertices required for clipping.  
  *
  * Used in array_cache and tnl modules.
  */
@@ -203,9 +203,11 @@ struct gl_color_table {
 };
 
 
-/*
- * Bit flags used for updating material values.
+/**
+ * \name Bit flags used for updating material values.
+ * .
  */
+/*@{*/
 #define FRONT_AMBIENT_BIT     0x1
 #define BACK_AMBIENT_BIT      0x2
 #define FRONT_DIFFUSE_BIT     0x4
@@ -228,8 +230,7 @@ struct gl_color_table {
 				 BACK_SHININESS_BIT | BACK_INDEXES_BIT)
 
 #define ALL_MATERIAL_BITS	(FRONT_MATERIAL_BITS | BACK_MATERIAL_BITS)
-
-
+/*@}*/
 
 
 #define EXP_TABLE_SIZE 512	/**< \brief Specular exponent lookup table sizes */
@@ -324,9 +325,13 @@ struct gl_accum_attrib {
 };
 
 
-/*
- * Used in _DrawDestMask and _ReadSrcMask below to identify color buffers.
+/**
+ * \name Clipping planes bits
+ * 
+ * Used in gl_colorbuffer_attrib::_DrawDestMask and
+ * gl_colorbuffer_attrib::_ReadSrcMask below to identify color buffers.
  */
+/*@{*/
 #define FRONT_LEFT_BIT  0x1
 #define FRONT_RIGHT_BIT 0x2
 #define BACK_LEFT_BIT   0x4
@@ -335,6 +340,7 @@ struct gl_accum_attrib {
 #define AUX1_BIT        0x20
 #define AUX2_BIT        0x40
 #define AUX3_BIT        0x80
+/*@}*/
 
 
 /**
@@ -347,8 +353,8 @@ struct gl_colorbuffer_attrib {
    GLuint IndexMask;			/**< \brief Color index write mask */
    GLubyte ColorMask[4];		/**< \brief Each flag is 0xff or 0x0 */
 
-   GLenum DrawBuffer;		/**< \brief Which buffer to draw into */
-   GLubyte _DrawDestMask;	/**< \brief bitwise-OR of FRONT/BACK_LEFT/RIGHT_BITs */
+   GLenum DrawBuffer;			/**< \brief Which buffer to draw into */
+   GLubyte _DrawDestMask;		/**< \brief bitwise-OR of FRONT/BACK_LEFT/RIGHT_BITs */
 
    /** 
     * \name alpha testing
@@ -356,11 +362,11 @@ struct gl_colorbuffer_attrib {
    /*@{*/
    GLboolean AlphaEnabled;		/**< \brief Alpha test enabled flag */
    GLenum AlphaFunc;			/**< \brief Alpha test function */
-   GLclampf AlphaRef;
+   GLclampf AlphaRef;			/**< \brief Alpha reference value */
    /*@}*/
 
    /** 
-    * \name blending
+    * \name Blending
     */
    /*@{*/
    GLboolean BlendEnabled;		/**< \brief Blending enabled flag */
@@ -368,12 +374,12 @@ struct gl_colorbuffer_attrib {
    GLenum BlendDstRGB;			/**< \brief Blending destination operator */
    GLenum BlendSrcA;			/**< \brief GL_INGR_blend_func_separate */
    GLenum BlendDstA;			/**< \brief GL_INGR_blend_func_separate */
-   GLenum BlendEquation;
-   GLfloat BlendColor[4];
+   GLenum BlendEquation;		/**< \brief Blending equation */
+   GLfloat BlendColor[4];		/**< \brief Bleding color */
    /*@}*/
 
    /** 
-    * \name logic op
+    * \name Logic op
     */
    /*@{*/
    GLenum LogicOp;			/**< \brief Logic operator */
@@ -613,6 +619,9 @@ struct gl_convolution_attrib {
 #define LIGHT_POSITIONAL   0x4
 #define LIGHT_NEED_VERTICES (LIGHT_POSITIONAL|LIGHT_LOCAL_VIEWER)
 
+/**
+ * \brief Lighting attributes.
+ */
 struct gl_light_attrib {
    struct gl_light Light[MAX_LIGHTS];	/**< \brief Array of lights */
    struct gl_lightmodel Model;		/**< \brief Lighting model */
@@ -691,8 +700,9 @@ struct gl_multisample_attrib {
  * \brief Pixel attributes.
  */
 struct gl_pixel_attrib {
-   GLenum ReadBuffer;		/**< \brief src buffer for glRead/CopyPixels */
+   GLenum ReadBuffer;		/**< \brief source buffer for glReadPixels()/glCopyPixels() */
    GLubyte _ReadSrcMask;	/**< \brief Not really a mask, but like _DrawDestMask
+				  *
 				  * May be: FRONT_LEFT_BIT, BACK_LEFT_BIT,
 				  * FRONT_RIGHT_BIT or BACK_RIGHT_BIT. */
    GLfloat RedBias, RedScale;
@@ -1039,7 +1049,9 @@ struct gl_texture_object {
 };
 
 
-/* Texture unit record */
+/**
+ * \brief Texture unit record 
+ */
 struct gl_texture_unit {
    GLuint Enabled;              /**< \brief bitmask of TEXTURE_*_BIT flags */
    GLuint _ReallyEnabled;       /**< \brief 0 or exactly one of TEXTURE_*_BIT flags */
@@ -1136,7 +1148,7 @@ struct gl_texture_attrib {
  */
 struct gl_transform_attrib {
    GLenum MatrixMode;				/**< \brief Matrix mode */
-   GLfloat EyeUserPlane[MAX_CLIP_PLANES][4];
+   GLfloat EyeUserPlane[MAX_CLIP_PLANES][4];	/**< \brief User clip planes */
    GLfloat _ClipUserPlane[MAX_CLIP_PLANES][4];	/**< \brief derived */
    GLuint ClipPlanesEnabled;                    /**< \brief on/off bitmask */
    GLboolean Normalize;				/**< \brief Normalize all normals? */
@@ -1413,14 +1425,14 @@ struct vp_instruction
  */
 struct vp_program
 {
-   GLubyte *String;                      /**< \brief Original user code */
-   struct vp_instruction *Instructions;  /**< \brief Compiled instructions */
-   GLenum Target;      /**< \brief GL_VERTEX_PROGRAM_NV or GL_VERTEX_STATE_PROGRAM_NV */
-   GLint RefCount;            /**< \brief Since programs can be shared among contexts */
-   GLboolean IsPositionInvariant;  /**< \brief GL_NV_vertex_program1_1 */
+   GLubyte *String;                     /**< \brief Original user code */
+   struct vp_instruction *Instructions;	/**< \brief Compiled instructions */
+   GLenum Target;      			/**< \brief GL_VERTEX_PROGRAM_NV or GL_VERTEX_STATE_PROGRAM_NV */
+   GLint RefCount;            		/**< \brief Since programs can be shared among contexts */
+   GLboolean IsPositionInvariant;	/**< \brief GL_NV_vertex_program1_1 */
    GLboolean Resident;
-   GLuint InputsRead;     /**< \brief Bitmask of which input regs are read */
-   GLuint OutputsWritten; /**< \brief Bitmask of which output regs are written to */
+   GLuint InputsRead;			/**< \brief Bitmask of which input regs are read */
+   GLuint OutputsWritten;		/**< \brief Bitmask of which output regs are written to */
 };
 
 
@@ -1654,9 +1666,12 @@ struct matrix_stack
 };
 
 
-/*
- * Bits for image transfer operations (ctx->ImageTransferState).
+/**
+ * \name Bits for image transfer operations 
+ *
+ * \sa __GLcontextRec::ImageTransferState.
  */
+/*@{*/
 #define IMAGE_SCALE_BIAS_BIT                      0x1
 #define IMAGE_SHIFT_OFFSET_BIT                    0x2
 #define IMAGE_MAP_COLOR_BIT                       0x4
@@ -1669,58 +1684,66 @@ struct matrix_stack
 #define IMAGE_HISTOGRAM_BIT                       0x200
 #define IMAGE_MIN_MAX_BIT                         0x400
 
-/** transfer ops up to convolution: */
+/** \brief Transfer ops up to convolution */
 #define IMAGE_PRE_CONVOLUTION_BITS (IMAGE_SCALE_BIAS_BIT |     \
                                     IMAGE_SHIFT_OFFSET_BIT |   \
                                     IMAGE_MAP_COLOR_BIT |      \
                                     IMAGE_COLOR_TABLE_BIT)
 
-/** transfer ops after convolution: */
+/** \brief Ttransfer ops after convolution */
 #define IMAGE_POST_CONVOLUTION_BITS (IMAGE_POST_CONVOLUTION_SCALE_BIAS |      \
                                      IMAGE_POST_CONVOLUTION_COLOR_TABLE_BIT | \
                                      IMAGE_COLOR_MATRIX_BIT |                 \
                                      IMAGE_POST_COLOR_MATRIX_COLOR_TABLE_BIT |\
                                      IMAGE_HISTOGRAM_BIT |                    \
                                      IMAGE_MIN_MAX_BIT)
+/*@}*/
 
 
-/*
- * Bits to indicate what state has changed.  6 unused flags.
+/**
+ * \name Bits to indicate what state has changed.  
+ *
+ * 6 unused flags.
  */
-#define _NEW_MODELVIEW		0x1        /**< \brief ctx->ModelView */
-#define _NEW_PROJECTION		0x2        /**< \brief ctx->Projection */
-#define _NEW_TEXTURE_MATRIX	0x4        /**< \brief ctx->TextureMatrix */
-#define _NEW_COLOR_MATRIX	0x8        /**< \brief ctx->ColorMatrix */
-#define _NEW_ACCUM		0x10       /**< \brief ctx->Accum */
-#define _NEW_COLOR		0x20       /**< \brief ctx->Color */
-#define _NEW_DEPTH		0x40       /**< \brief ctx->Depth */
-#define _NEW_EVAL		0x80       /**< \brief ctx->Eval, ctx->EvalMap */
-#define _NEW_FOG		0x100      /**< \brief ctx->Fog */
-#define _NEW_HINT		0x200      /**< \brief ctx->Hint */
-#define _NEW_LIGHT		0x400      /**< \brief ctx->Light */
-#define _NEW_LINE		0x800      /**< \brief ctx->Line */
-#define _NEW_PIXEL		0x1000     /**< \brief ctx->Pixel */
-#define _NEW_POINT		0x2000     /**< \brief ctx->Point */
-#define _NEW_POLYGON		0x4000     /**< \brief ctx->Polygon */
-#define _NEW_POLYGONSTIPPLE	0x8000     /**< \brief ctx->PolygonStipple */
-#define _NEW_SCISSOR		0x10000    /**< \brief ctx->Scissor */
-#define _NEW_STENCIL		0x20000    /**< \brief ctx->Stencil */
-#define _NEW_TEXTURE		0x40000    /**< \brief ctx->Texture */
-#define _NEW_TRANSFORM		0x80000    /**< \brief ctx->Transform */
-#define _NEW_VIEWPORT		0x100000   /**< \brief ctx->Viewport */
-#define _NEW_PACKUNPACK		0x200000   /**< \brief ctx->Pack, ctx->Unpack */
-#define _NEW_ARRAY	        0x400000   /**< \brief ctx->Array */
-#define _NEW_RENDERMODE		0x800000   /**< \brief RenderMode, Feedback, Select */
-#define _NEW_BUFFERS            0x1000000  /**< \brief ctx->Visual, ctx->DrawBuffer, */
-#define _NEW_MULTISAMPLE        0x2000000  /**< \brief ctx->Multisample */
-#define _NEW_TRACK_MATRIX       0x4000000  /**< \brief ctx->VertexProgram */
-#define _NEW_PROGRAM            0x8000000  /**< \brief ctx->VertexProgram */
+/*@{*/
+#define _NEW_MODELVIEW		0x1        /**< \brief __GLcontextRec::ModelView */
+#define _NEW_PROJECTION		0x2        /**< \brief __GLcontextRec::Projection */
+#define _NEW_TEXTURE_MATRIX	0x4        /**< \brief __GLcontextRec::TextureMatrix */
+#define _NEW_COLOR_MATRIX	0x8        /**< \brief __GLcontextRec::ColorMatrix */
+#define _NEW_ACCUM		0x10       /**< \brief __GLcontextRec::Accum */
+#define _NEW_COLOR		0x20       /**< \brief __GLcontextRec::Color */
+#define _NEW_DEPTH		0x40       /**< \brief __GLcontextRec::Depth */
+#define _NEW_EVAL		0x80       /**< \brief __GLcontextRec::Eval, __GLcontextRec::EvalMap */
+#define _NEW_FOG		0x100      /**< \brief __GLcontextRec::Fog */
+#define _NEW_HINT		0x200      /**< \brief __GLcontextRec::Hint */
+#define _NEW_LIGHT		0x400      /**< \brief __GLcontextRec::Light */
+#define _NEW_LINE		0x800      /**< \brief __GLcontextRec::Line */
+#define _NEW_PIXEL		0x1000     /**< \brief __GLcontextRec::Pixel */
+#define _NEW_POINT		0x2000     /**< \brief __GLcontextRec::Point */
+#define _NEW_POLYGON		0x4000     /**< \brief __GLcontextRec::Polygon */
+#define _NEW_POLYGONSTIPPLE	0x8000     /**< \brief __GLcontextRec::PolygonStipple */
+#define _NEW_SCISSOR		0x10000    /**< \brief __GLcontextRec::Scissor */
+#define _NEW_STENCIL		0x20000    /**< \brief __GLcontextRec::Stencil */
+#define _NEW_TEXTURE		0x40000    /**< \brief __GLcontextRec::Texture */
+#define _NEW_TRANSFORM		0x80000    /**< \brief __GLcontextRec::Transform */
+#define _NEW_VIEWPORT		0x100000   /**< \brief __GLcontextRec::Viewport */
+#define _NEW_PACKUNPACK		0x200000   /**< \brief __GLcontextRec::Pack, __GLcontextRec::Unpack */
+#define _NEW_ARRAY	        0x400000   /**< \brief __GLcontextRec::Array */
+#define _NEW_RENDERMODE		0x800000   /**< \brief __GLcontextRec::RenderMode, __GLcontextRec::Feedback, __GLcontextRec::Select */
+#define _NEW_BUFFERS            0x1000000  /**< \brief __GLcontextRec::Visual, __GLcontextRec::DrawBuffer, */
+#define _NEW_MULTISAMPLE        0x2000000  /**< \brief __GLcontextRec::Multisample */
+#define _NEW_TRACK_MATRIX       0x4000000  /**< \brief __GLcontextRec::VertexProgram */
+#define _NEW_PROGRAM            0x8000000  /**< \brief __GLcontextRec::VertexProgram */
 #define _NEW_ALL ~0
+/*@}*/
 
 
-
-/* Bits to track array state changes (also used to summarize array enabled)
+/**
+ * \name Bits to track array state changes 
+ *
+ * Also used to summarize array enabled.
  */
+/*@{*/
 #define _NEW_ARRAY_VERTEX           VERT_BIT_POS
 #define _NEW_ARRAY_WEIGHT           VERT_BIT_WEIGHT
 #define _NEW_ARRAY_NORMAL           VERT_BIT_NORMAL
@@ -1743,11 +1766,15 @@ struct matrix_stack
 
 #define _NEW_ARRAY_TEXCOORD(i) (_NEW_ARRAY_TEXCOORD_0 << (i))
 #define _NEW_ARRAY_ATTRIB(i) (_NEW_ARRAY_ATTRIB_0 << (i))
+/*@}*/
 
 
-/* A bunch of flags that we think might be useful to drivers.
- * Set in the ctx->_TriangleCaps bitfield.
+/**
+ * \name A bunch of flags that we think might be useful to drivers.
+ * 
+ * Set in the __GLcontextRec::_TriangleCaps bitfield.
  */
+/*@{*/
 #define DD_FLATSHADE                0x1
 #define DD_SEPARATE_SPECULAR        0x2
 #define DD_TRI_CULL_FRONT_BACK      0x4 /* special case on some hw */
@@ -1762,10 +1789,13 @@ struct matrix_stack
 #define DD_POINT_SMOOTH             0x800
 #define DD_POINT_SIZE               0x1000
 #define DD_POINT_ATTEN              0x2000
+/*@}*/
 
 
-/* Define the state changes under which each of these bits might change
+/**
+ * \name Define the state changes under which each of these bits might change
  */
+/*@{*/
 #define _DD_NEW_FLATSHADE                _NEW_LIGHT
 #define _DD_NEW_SEPARATE_SPECULAR        (_NEW_LIGHT | _NEW_FOG)
 #define _DD_NEW_TRI_CULL_FRONT_BACK      _NEW_POLYGON
@@ -1780,6 +1810,8 @@ struct matrix_stack
 #define _DD_NEW_POINT_SMOOTH             _NEW_POINT
 #define _DD_NEW_POINT_SIZE               _NEW_POINT
 #define _DD_NEW_POINT_ATTEN              _NEW_POINT
+/*@}*/
+
 
 #define _MESA_NEW_NEED_EYE_COORDS         (_NEW_LIGHT |		\
                                            _NEW_TEXTURE |	\
@@ -1792,12 +1824,17 @@ struct matrix_stack
 #define _IMAGE_NEW_TRANSFER_STATE         (_NEW_PIXEL | _NEW_COLOR_MATRIX)
 
 
-/* Bits for ctx->_NeedEyeCoords */
+/**
+ * \name Bits for __GLcontextRec::_NeedEyeCoords.
+ * .
+ */
+/*@{*/
 #define NEED_EYE_TEXGEN          0x1
 #define NEED_EYE_LIGHT           0x2
 #define NEED_EYE_LIGHT_MODELVIEW 0x4
 #define NEED_EYE_POINT_ATTEN     0x8
 #define NEED_EYE_DRIVER          0x10
+/*@}*/
 
 
 /*
@@ -2097,7 +2134,17 @@ enum _debug {
 #define Elements(x) sizeof(x)/sizeof(*(x))
 
 
-/* Eventually let the driver specify what statechanges require a flush:
+/**
+ * \brief Flush vertices.
+ *
+ * \param ctx GL context.
+ * \param newstate new state.
+ *
+ * Checks if dd_function_table::NeedFlush is marked to flush stored vertices,
+ * and calls dd_function_table::FlushVertices if so. Marks
+ * __GLcontextRec::NewState with \p newstate.
+ * 
+ * \todo Eventually let the driver specify what statechanges require a flush:
  */
 #define FLUSH_VERTICES(ctx, newstate)				\
 do {								\
@@ -2108,6 +2155,16 @@ do {								\
    ctx->NewState |= newstate;					\
 } while (0)
 
+/**
+ * \brief Flush current state.
+ *
+ * \param ctx GL context.
+ * \param newstate new state.
+ *
+ * Checks if dd_function_table::NeedFlush is marked to flush current state,
+ * and calls dd_function_table::FlushVertices if so. Marks
+ * __GLcontextRec::NewState with \p newstate.
+ */
 #define FLUSH_CURRENT(ctx, newstate)				\
 do {								\
    if (MESA_VERBOSE & VERBOSE_STATE)				\
@@ -2117,6 +2174,13 @@ do {								\
    ctx->NewState |= newstate;					\
 } while (0)
 
+/**
+ * \brief Macro to assert that the API call was made outside the
+ * glBegin()/glEnd() pair, with return value.
+ * 
+ * \param ctx GL context.
+ * \param retval value to return value in case the assertation fails.
+ */
 #define ASSERT_OUTSIDE_BEGIN_END_WITH_RETVAL(ctx, retval)		\
 do {									\
    if (ctx->Driver.CurrentExecPrimitive != PRIM_OUTSIDE_BEGIN_END) {	\
@@ -2125,6 +2189,12 @@ do {									\
    }									\
 } while (0)
 
+/**
+ * \brief Macro to assert that the API call was made outside the
+ * glBegin()/glEnd() pair.
+ * 
+ * \param ctx GL context.
+ */
 #define ASSERT_OUTSIDE_BEGIN_END(ctx)					\
 do {									\
    if (ctx->Driver.CurrentExecPrimitive != PRIM_OUTSIDE_BEGIN_END) {	\
@@ -2133,19 +2203,31 @@ do {									\
    }									\
 } while (0)
 
+/**
+ * \brief Macro to assert that the API call was made outside the
+ * glBegin()/glEnd() pair and flush the vertices.
+ * 
+ * \param ctx GL context.
+ * \param retval value to return value in case the assertation fails.
+ */
 #define ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx)				\
 do {									\
    ASSERT_OUTSIDE_BEGIN_END(ctx);					\
    FLUSH_VERTICES(ctx, 0);						\
 } while (0)
 
+/**
+ * \brief Macro to assert that the API call was made outside the
+ * glBegin()/glEnd() pair and flush the vertices, with return value.
+ * 
+ * \param ctx GL context.
+ * \param retval value to return value in case the assertation fails.
+ */
 #define ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH_WITH_RETVAL(ctx, retval)	\
 do {									\
    ASSERT_OUTSIDE_BEGIN_END_WITH_RETVAL(ctx, retval);			\
    FLUSH_VERTICES(ctx, 0);						\
 } while (0)
-
-
 
 
 #endif /* TYPES_H */

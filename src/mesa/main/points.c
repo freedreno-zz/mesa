@@ -27,7 +27,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: points.c,v 1.34.4.3 2003/03/20 19:38:43 jrfonseca Exp $ */
+/* $Id: points.c,v 1.34.4.4 2003/03/23 23:22:48 jrfonseca Exp $ */
 
 
 #include "glheader.h"
@@ -50,7 +50,7 @@
  * flushes the vertices, updates the clamped point size and marks the
  * DD_POINT_SIZE flag in __GLcontextRec::_TriangleCaps for the drivers if the
  * size is different from one. Notifies the driver via
- * dd_function_table::PointSize.
+ * the dd_function_table::PointSize callback.
  */
 void
 _mesa_PointSize( GLfloat size )

@@ -43,7 +43,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: context.h,v 1.35.4.2 2003/03/22 16:49:58 jrfonseca Exp $ */
+/* $Id: context.h,v 1.35.4.3 2003/03/23 23:22:47 jrfonseca Exp $ */
 
 #ifndef CONTEXT_H
 #define CONTEXT_H
@@ -170,9 +170,17 @@ _mesa_get_current_context(void);
 
 
 /**
- * \brief Macro for fetching the current context.
+ * \brief Macro for declaration and fetching the current context.
  *
- * It should be used in the variable declaration area of a function.
+ * \param C local variable which will hold the current context.
+ *
+ * It should be used in the variable declaration area of a function:
+ * \code
+ * ...
+ * {
+ *   GET_CURRENT_CONTEXT(ctx);
+ *   ...
+ * \endcode
  */
 #ifdef THREADS
 

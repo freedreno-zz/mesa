@@ -3,7 +3,7 @@
  * \brief Thread support for GL dispatch.
  * 
  * \if subset
- * \brief (No-op.)
+ * \brief (No-op)
  *
  * \endif
  *
@@ -42,7 +42,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: glthread.h,v 1.11.6.3 2003/03/23 03:51:34 jrfonseca Exp $ */
+/* $Id: glthread.h,v 1.11.6.4 2003/03/23 23:22:48 jrfonseca Exp $ */
 
 
 #ifndef GLTHREAD_H
@@ -254,28 +254,28 @@ typedef GLuint _glthread_Mutex;
 /** 
  * \brief Declare a non-local mutex.
  *
- * No-op.
+ * No-op
  */
 #define _glthread_DECLARE_STATIC_MUTEX(name)  static _glthread_Mutex name = 0
 
 /** 
  * \brief Initialize a mutex.
  *
- * No-op.
+ * No-op
  */
 #define _glthread_INIT_MUTEX(name)  (void) name
 
 /** 
  * \brief Lock a mutex.
  *
- * No-op.
+ * No-op
  */
 #define _glthread_LOCK_MUTEX(name)  (void) name
 
 /** 
  * \brief Unlock a mutex.
  *
- * No-op.
+ * No-op
  */
 #define _glthread_UNLOCK_MUTEX(name)  (void) name
 

@@ -27,7 +27,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: feedback.c,v 1.27.4.4 2003/03/20 12:56:57 jrfonseca Exp $ */
+/* $Id: feedback.c,v 1.27.4.5 2003/03/23 23:22:47 jrfonseca Exp $ */
 
 
 #include "glheader.h"
@@ -171,8 +171,8 @@ void _mesa_feedback_vertex( GLcontext *ctx,
  * 
  * \note this function can't be put in a display list.
  * 
- * Verifies we're not in GL_SELECT render mode, flushes the vertices and
- * initialize the fields in __GLcontextRec::Select with the given buffer.
+ * Verifies we're not in selection mode, flushes the vertices and initialize
+ * the fields in __GLcontextRec::Select with the given buffer.
  */
 void
 _mesa_SelectBuffer( GLsizei size, GLuint *buffer )
@@ -237,7 +237,7 @@ void _mesa_update_hitflag( GLcontext *ctx, GLfloat z )
  *
  * \param ctx GL context.
  *
- * Write the hit record, i.e., number of names in the stack, the minimum and
+ * Write the hit record, i.e., the number of names in the stack, the minimum and
  * maximum depth values and the number of names in the name stack at the time
  * of the event. Resets the hit flag. 
  *
@@ -417,8 +417,8 @@ _mesa_PopName( void )
  * Flushes the vertices and do the necessary cleanup according to the previous
  * rasterization mode, such as writing the hit record or resent the select
  * buffer index when exiting the select mode. Updates
- * __GLcontextRec::RenderMode and notifies the driver via
- * dd_function_table::RenderMode.
+ * __GLcontextRec::RenderMode and notifies the driver via the
+ * dd_function_table::RenderMode callback.
  */
 GLint
 _mesa_RenderMode( GLenum mode )

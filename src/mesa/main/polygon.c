@@ -27,7 +27,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: polygon.c,v 1.25.4.4 2003/03/20 19:38:46 jrfonseca Exp $ */
+/* $Id: polygon.c,v 1.25.4.5 2003/03/23 23:22:48 jrfonseca Exp $ */
 
 
 #include "glheader.h"
@@ -49,7 +49,7 @@
  *
  * Verifies the parameter and updates gl_polygon_attrib::CullFaceMode. On
  * change, flushes the vertices and notifies the driver via
- * dd_function_table::CullFace.
+ * the dd_function_table::CullFace callback.
  */
 void
 _mesa_CullFace( GLenum mode )
@@ -85,7 +85,7 @@ _mesa_CullFace( GLenum mode )
  *
  * Verifies the parameter and updates gl_polygon_attrib::FrontFace. On change
  * flushes the vertices and notifies the driver via
- * dd_function_table::FrontFace.
+ * the dd_function_table::FrontFace callback.
  */
 void
 _mesa_FrontFace( GLenum mode )
@@ -124,7 +124,7 @@ _mesa_FrontFace( GLenum mode )
  * 
  * Verifies the parameters and updates gl_polygon_attrib::FrontMode and
  * gl_polygon_attrib::BackMode. On change flushes the vertices and notifies the
- * driver via dd_function_table::PolygonMode.
+ * driver via the dd_function_table::PolygonMode callback.
  */
 void
 _mesa_PolygonMode( GLenum face, GLenum mode )

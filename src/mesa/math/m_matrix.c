@@ -32,7 +32,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: m_matrix.c,v 1.14.4.3 2003/03/23 14:58:08 jrfonseca Exp $ */
+/* $Id: m_matrix.c,v 1.14.4.4 2003/03/23 23:22:49 jrfonseca Exp $ */
 
 
 #include "glheader.h"
@@ -139,7 +139,7 @@ static void matmul34( GLfloat *product, const GLfloat *a, const GLfloat *b )
  * \param m right multiplication matrix array.
  * \param flags flags of the matrix \p m.
  * 
- * Joins both flags and marks the type and inverse as drity.  Calls matmul34()
+ * Joins both flags and marks the type and inverse as dirty.  Calls matmul34()
  * if both matrices are 3D, or matmul4() otherwise.
  */
 static void matrix_multf( GLmatrix *mat, const GLfloat *m, GLuint flags )
@@ -155,6 +155,12 @@ static void matrix_multf( GLmatrix *mat, const GLfloat *m, GLuint flags )
 /**
  * \brief Matrix multiplication.
  *
+ * \param dest destination matrix.
+ * \param a left matrix.
+ * \param b right matrix.
+ * 
+ * Joins both flags and marks the type and inverse as dirty.  Calls matmul34()
+ * if both matrices are 3D, or matmul4() otherwise.
  */
 void
 _math_matrix_mul_matrix( GLmatrix *dest, const GLmatrix *a, const GLmatrix *b )
@@ -170,7 +176,15 @@ _math_matrix_mul_matrix( GLmatrix *dest, const GLmatrix *a, const GLmatrix *b )
       matmul4( dest->m, a->m, b->m );
 }
 
-
+/**
+ * \brief Matrix multiplication.
+ *
+ * \param dest left and destination matrix.
+ * \param m right matrix array.
+ * 
+ * Marks the matrix flags with general flag, and type and inverse dirty flags.
+ * Calls matmul4() for the multiplication.
+ */
 void
 _math_matrix_mul_floats( GLmatrix *dest, const GLfloat *m )
 {
@@ -1253,7 +1267,7 @@ static void analyse_from_flags( GLmatrix *mat )
  * If the matrix type is dirty then calls either analyse_from_scratch() or
  * analyse_from_flags() to determine its type, according to whether the flags
  * are dirty or not, respectively. If the matrix has an inverse and it's dirty
- * then calls matrix inverse. Finally clears the firty flags.
+ * then calls matrix_invert(). Finally clears the firty flags.
  */
 void
 _math_matrix_analyse( GLmatrix *mat )
