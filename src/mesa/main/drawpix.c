@@ -1,4 +1,4 @@
-/* $Id: drawpix.c,v 1.26.4.4 2000/09/12 21:09:48 brianp Exp $ */
+/* $Id: drawpix.c,v 1.26.4.5 2000/10/05 16:47:23 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -126,7 +126,6 @@ simple_DrawPixels( GLcontext *ctx, GLint x, GLint y,
        && !ctx->Pixel.MinMaxEnabled
        && !ctx->Pixel.HistogramEnabled
        && ctx->Pixel.IndexShift==0 && ctx->Pixel.IndexOffset==0
-       && ctx->Pixel.MapColorFlag==0
        && ctx->Texture.ReallyEnabled == 0
        && unpack->Alignment==1
        && !unpack->SwapBytes
@@ -219,7 +218,8 @@ simple_DrawPixels( GLcontext *ctx, GLint x, GLint y,
        * skip "skipRows" rows and skip "skipPixels" pixels/row.
        */
 
-      if (format==GL_RGBA && type==GL_UNSIGNED_BYTE) {
+      if (format==GL_RGBA && type==GL_UNSIGNED_BYTE
+          && ctx->Pixel.MapColorFlag==0) {
          if (ctx->Visual->RGBAflag) {
             GLubyte *src = (GLubyte *) pixels
                + (skipRows * rowLength + skipPixels) * 4;
@@ -256,7 +256,8 @@ simple_DrawPixels( GLcontext *ctx, GLint x, GLint y,
          }
          return GL_TRUE;
       }
-      else if (format==GL_RGB && type==GL_UNSIGNED_BYTE) {
+      else if (format==GL_RGB && type==GL_UNSIGNED_BYTE
+               && ctx->Pixel.MapColorFlag==0) {
          if (ctx->Visual->RGBAflag) {
             GLubyte *src = (GLubyte *) pixels
                + (skipRows * rowLength + skipPixels) * 3;
@@ -292,7 +293,8 @@ simple_DrawPixels( GLcontext *ctx, GLint x, GLint y,
          }
          return GL_TRUE;
       }
-      else if (format==GL_LUMINANCE && type==GL_UNSIGNED_BYTE) {
+      else if (format==GL_LUMINANCE && type==GL_UNSIGNED_BYTE
+               && ctx->Pixel.MapColorFlag==0) {
          if (ctx->Visual->RGBAflag) {
             GLubyte *src = (GLubyte *) pixels
                + (skipRows * rowLength + skipPixels);
@@ -350,7 +352,8 @@ simple_DrawPixels( GLcontext *ctx, GLint x, GLint y,
          }
          return GL_TRUE;
       }
-      else if (format==GL_LUMINANCE_ALPHA && type==GL_UNSIGNED_BYTE) {
+      else if (format==GL_LUMINANCE_ALPHA && type==GL_UNSIGNED_BYTE
+               && ctx->Pixel.MapColorFlag==0) {
          if (ctx->Visual->RGBAflag) {
             GLubyte *src = (GLubyte *) pixels
                + (skipRows * rowLength + skipPixels)*2;
