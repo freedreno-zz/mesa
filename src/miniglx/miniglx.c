@@ -22,7 +22,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: miniglx.c,v 1.1.4.49 2003/03/24 15:49:15 keithw Exp $ */
+/* $Id: miniglx.c,v 1.1.4.50 2003/04/15 13:46:28 alanh Exp $ */
 
 
 /**
@@ -514,6 +514,9 @@ SetupFBDev( Display *dpy, Window win )
    else if (width <= 1024 && height <= 768) { 
       width = 1024; height = 768; 
    } 
+   else if (width <= 768 && height <= 1024) {
+      width = 768; height = 1024; 
+   }  
    else if (width <= 1280 && height <= 1024) { 
       width = 1280; height = 1024; 
    } 
@@ -603,6 +606,17 @@ SetupFBDev( Display *dpy, Window win )
       dpy->VarInfo.left_margin = 160;
       dpy->VarInfo.right_margin = 16;
       dpy->VarInfo.upper_margin = 21;
+      dpy->VarInfo.lower_margin = 1;
+      dpy->VarInfo.hsync_len = 80;
+      dpy->VarInfo.vsync_len = 3;
+   }
+   else if (dpy->VarInfo.xres == 768 &&
+	    dpy->VarInfo.yres == 1024) {
+      /* timing values for 768x1024 @ 75Hz */
+      dpy->VarInfo.pixclock = 11993;
+      dpy->VarInfo.left_margin = 136;
+      dpy->VarInfo.right_margin = 32;
+      dpy->VarInfo.upper_margin = 41;
       dpy->VarInfo.lower_margin = 1;
       dpy->VarInfo.hsync_len = 80;
       dpy->VarInfo.vsync_len = 3;
