@@ -190,6 +190,10 @@ struct MiniGLXDriverRec {
     */
    int (*validateMode)( struct MiniGLXDisplayRec *dpy );
 
+   /**
+    * \brief Examine mode returned by fbdev (may differ from the one
+    * requested), restore any hw regs clobbered by fbdev.
+    */
    int (*postValidateMode)( struct MiniGLXDisplayRec *dpy );
 
    /**
@@ -328,7 +332,6 @@ struct MiniGLXDisplayRec {
    /*@{*/
    const char *fbdevDevice;
    const char *clientDriverName;
-   const char *drmModuleName;
    const char *pciBusID;
    int pciBus;
    int pciDevice;

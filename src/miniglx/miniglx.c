@@ -22,7 +22,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: miniglx.c,v 1.1.4.43 2003/01/19 23:48:32 brianp Exp $ */
+/* $Id: miniglx.c,v 1.1.4.44 2003/01/20 10:53:35 keithw Exp $ */
 
 
 /**
@@ -737,7 +737,6 @@ static int __read_config_file( Display *dpy )
     */
    dpy->fbdevDevice = "/dev/fb0";
    dpy->clientDriverName = "fb_dri.so";
-   dpy->drmModuleName = 0;
    dpy->pciBus = 0;
    dpy->pciDevice = 0;
    dpy->pciFunc = 0;
@@ -753,7 +752,7 @@ static int __read_config_file( Display *dpy )
 
    file = fopen(fname, "r");
    if (!file) {
-      fprintf(stderr, "couldn't open config file %s\n", fname);
+      fprintf(stderr, "couldn't open config file %s: %s\n", fname, strerror(errno));
       return 0;
    }
 
@@ -783,8 +782,6 @@ static int __read_config_file( Display *dpy )
 	 dpy->fbdevDevice = strdup(val);
       else if (strcmp(opt, "clientDriverName") == 0)
 	 dpy->clientDriverName = strdup(val);
-      else if (strcmp(opt, "drmModuleName") == 0)
-	 dpy->drmModuleName = strdup(val);
       else if (strcmp(opt, "pciBusID") == 0) {
 	 if (sscanf(val, "PCI:%d:%d:%d",
 		    &dpy->pciBus, &dpy->pciDevice, &dpy->pciFunc) != 3) {

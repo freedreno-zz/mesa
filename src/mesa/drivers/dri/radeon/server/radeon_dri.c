@@ -470,7 +470,7 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
 
 
    /* Note that drmOpen will try to load the kernel module, if needed. */
-   dpy->drmFD = drmOpen(dpy->drmModuleName, NULL );
+   dpy->drmFD = drmOpen("radeon", NULL );
    if (dpy->drmFD < 0) {
       /* failed to open DRM */
       fprintf(stderr, "[drm] drmOpen failed\n");

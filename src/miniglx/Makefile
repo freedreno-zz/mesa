@@ -26,10 +26,12 @@ libGL.so.1.2: $(OBJS) Makefile
 	gcc -shared -Wl,-soname,libGL.so -Wl,-Bsymbolic $(OBJS) $(LIBS) -o $@ 
 
 install:
-	rm -f $(MESA)/lib/libGL.so*
+	rm -f $(MESA)/lib/libGL.so* 
+	rm -f $(MESA)/lib/miniglx.conf
 	install -D libGL.so.1.2 $(MESA)/lib/libGL.so.1.2
 	ln -s libGL.so.1.2 $(MESA)/lib/libGL.so.1
 	ln -s libGL.so.1 $(MESA)/lib/libGL.so
+	install example.miniglx.conf $(MESA)/lib/miniglx.conf
 
 #miniglx.a: $(OBJECTS) Makefile
 #	rm -f $@ && ar rcv $@ $(OBJECTS) && ranlib $@
