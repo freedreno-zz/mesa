@@ -1,4 +1,4 @@
-/* $Id: glu.c,v 1.21.2.1 2000/11/02 17:59:43 brianp Exp $ */
+/* $Id: glu.c,v 1.21.2.2 2001/01/24 04:49:27 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -302,7 +302,7 @@ const GLubyte *GLAPIENTRY
 gluGetString(GLenum name)
 {
    static char *extensions = "GL_EXT_abgr";
-   static char *version = "1.1 Mesa 3.4";
+   static char *version = "1.1 Mesa 3.4.1";
 
    switch (name) {
    case GLU_EXTENSIONS:
