@@ -1,10 +1,10 @@
-/* $Id: points.c,v 1.5 1999/11/11 01:22:27 brianp Exp $ */
+/* $Id: points.c,v 1.4.2.1 2000/07/18 03:50:49 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.3
+ * Version:  3.2.1
  * 
- * Copyright (C) 1999  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2000  Brian Paul   All Rights Reserved.
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -23,12 +23,18 @@
  * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+/* $XFree86: xc/lib/GL/mesa/src/points.c,v 1.4 1999/04/04 00:20:29 dawes Exp $ */
+
 
 
 #ifdef PC_HEADER
 #include "all.h"
 #else
-#include "glheader.h"
+#ifndef XFree86Server
+#include <math.h>
+#else
+#include "GL/xf86glx.h"
+#endif
 #include "context.h"
 #include "feedback.h"
 #include "macros.h"
@@ -39,20 +45,18 @@
 #include "texstate.h"
 #include "types.h"
 #include "vb.h"
+#include "mmath.h"
 #endif
 
 
 
-void
-_mesa_PointSize( GLfloat size )
+void gl_PointSize( GLcontext *ctx, GLfloat size )
 {
-   GET_CURRENT_CONTEXT(ctx);
-   ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx, "glPointSize");
-
-   if (size <= 0.0) {
+   if (size<=0.0) {
       gl_error( ctx, GL_INVALID_VALUE, "glPointSize" );
       return;
    }
+   ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx, "glPointSize");
 
    if (ctx->Point.Size != size) {
       ctx->Point.Size = size;
@@ -64,20 +68,11 @@ _mesa_PointSize( GLfloat size )
 
 
 
-void
-_mesa_PointParameterfEXT( GLenum pname, GLfloat param)
+void gl_PointParameterfvEXT( GLcontext *ctx, GLenum pname,
+                                    const GLfloat *params)
 {
-   _mesa_PointParameterfvEXT(pname, &param);
-}
-
-
-void
-_mesa_PointParameterfvEXT( GLenum pname, const GLfloat *params)
-{
-   GET_CURRENT_CONTEXT(ctx);
    ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx, "glPointParameterfvEXT");
-
-   if (pname == GL_DISTANCE_ATTENUATION_EXT) {
+   if(pname==GL_DISTANCE_ATTENUATION_EXT) {
       GLboolean tmp = ctx->Point.Attenuated;
       COPY_3V(ctx->Point.Params,params);
       ctx->Point.Attenuated = (params[0] != 1.0 ||
@@ -89,26 +84,25 @@ _mesa_PointParameterfvEXT( GLenum pname, const GLfloat *params)
 	 ctx->TriangleCaps ^= DD_POINT_ATTEN;
 	 ctx->NewState |= NEW_RASTER_OPS;
       }
-   }
-   else {
-      if (*params<0.0 ) {
-         gl_error( ctx, GL_INVALID_VALUE, "glPointParameterfvEXT" );
-         return;
-      }
-      switch (pname) {
-         case GL_POINT_SIZE_MIN_EXT:
-            ctx->Point.MinSize=*params;
-            break;
-         case GL_POINT_SIZE_MAX_EXT:
-            ctx->Point.MaxSize=*params;
-            break;
-         case GL_POINT_FADE_THRESHOLD_SIZE_EXT:
-            ctx->Point.Threshold=*params;
-            break;
-         default:
-            gl_error( ctx, GL_INVALID_ENUM, "glPointParameterfvEXT" );
+   } else {
+        if (*params<0.0 ) {
+            gl_error( ctx, GL_INVALID_VALUE, "glPointParameterfvEXT" );
             return;
-      }
+        }
+        switch (pname) {
+            case GL_POINT_SIZE_MIN_EXT:
+                ctx->Point.MinSize=*params;
+                break;
+            case GL_POINT_SIZE_MAX_EXT:
+                ctx->Point.MaxSize=*params;
+                break;
+            case GL_POINT_FADE_THRESHOLD_SIZE_EXT:
+                ctx->Point.Threshold=*params;
+                break;
+            default:
+                gl_error( ctx, GL_INVALID_ENUM, "glPointParameterfvEXT" );
+                return;
+        }
    }
    ctx->NewState |= NEW_RASTER_OPS;
 }
@@ -611,8 +605,8 @@ static void antialiased_rgba_points( GLcontext *ctx,
 
             for (y=ymin;y<=ymax;y++) {
                for (x=xmin;x<=xmax;x++) {
-                  GLfloat dx = x/*+0.5F*/ - VB->Win.data[i][0];
-                  GLfloat dy = y/*+0.5F*/ - VB->Win.data[i][1];
+                  GLfloat dx = x + 0.5F - VB->Win.data[i][0];
+                  GLfloat dy = y + 0.5F - VB->Win.data[i][1];
                   GLfloat dist2 = dx*dx + dy*dy;
                   if (dist2<rmax2) {
                      alpha = VB->ColorPtr->data[i][3];
@@ -656,8 +650,8 @@ static void antialiased_rgba_points( GLcontext *ctx,
 
             for (y=ymin;y<=ymax;y++) {
                for (x=xmin;x<=xmax;x++) {
-                  GLfloat dx = x/*+0.5F*/ - VB->Win.data[i][0];
-                  GLfloat dy = y/*+0.5F*/ - VB->Win.data[i][1];
+                  GLfloat dx = x + 0.5F - VB->Win.data[i][0];
+                  GLfloat dy = y + 0.5F - VB->Win.data[i][1];
                   GLfloat dist2 = dx*dx + dy*dy;
                   if (dist2<rmax2) {
                      alpha = VB->ColorPtr->data[i][3];
@@ -1174,8 +1168,8 @@ static void dist_atten_antialiased_rgba_points( GLcontext *ctx,
 
             for (y=ymin;y<=ymax;y++) {
                for (x=xmin;x<=xmax;x++) {
-                  GLfloat dx = x/*+0.5F*/ - VB->Win.data[i][0];
-                  GLfloat dy = y/*+0.5F*/ - VB->Win.data[i][1];
+                  GLfloat dx = x + 0.5F - VB->Win.data[i][0];
+                  GLfloat dy = y + 0.5F - VB->Win.data[i][1];
                   GLfloat dist2 = dx*dx + dy*dy;
                   if (dist2<rmax2) {
                      alpha = VB->ColorPtr->data[i][3];
@@ -1232,8 +1226,8 @@ static void dist_atten_antialiased_rgba_points( GLcontext *ctx,
 
             for (y=ymin;y<=ymax;y++) {
                for (x=xmin;x<=xmax;x++) {
-                  GLfloat dx = x/*+0.5F*/ - VB->Win.data[i][0];
-                  GLfloat dy = y/*+0.5F*/ - VB->Win.data[i][1];
+                  GLfloat dx = x + 0.5F - VB->Win.data[i][0];
+                  GLfloat dy = y + 0.5F - VB->Win.data[i][1];
                   GLfloat dist2 = dx*dx + dy*dy;
                   if (dist2<rmax2) {
 		     alpha = VB->ColorPtr->data[i][3];
