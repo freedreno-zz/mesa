@@ -1,4 +1,4 @@
-/* $Id: light.h,v 1.1.1.1.2.2 2000/07/12 12:02:33 keithw Exp $ */
+/* $Id: light.h,v 1.1.1.1.2.3 2000/07/13 12:54:07 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -36,7 +36,7 @@
 
 struct gl_shine_tab {
    struct gl_shine_tab *next, *prev;
-   GLfloat tab[SHINE_TABLE_SIZE];
+   GLfloat tab[SHINE_TABLE_SIZE*2];
    GLfloat shininess;
    GLuint refcount;
 };

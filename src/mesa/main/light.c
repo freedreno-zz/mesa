@@ -1,4 +1,4 @@
-/* $Id: light.c,v 1.8.2.7 2000/07/12 12:02:33 keithw Exp $ */
+/* $Id: light.c,v 1.8.2.8 2000/07/13 12:54:07 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -1003,11 +1003,17 @@ static void compute_shine_table( struct gl_shine_tab *tab, GLfloat shininess )
    int i;
    GLfloat *m = tab->tab;
 
-   m[0] = pow(0, shininess);	/* special case for [0,1) -- sample at zero */
-   for (i = 1 ; i < SHINE_TABLE_SIZE ; i++) {
-      double t = pow( (i+.5)/(GLfloat)(SHINE_TABLE_SIZE-1), shininess );
+   for (i = 0 ; i < SHINE_TABLE_SIZE ; i++) {
+      double dp = i/(GLfloat)(SHINE_TABLE_SIZE-1);
+      double t = pow( dp, shininess );
       if (t < 1e-20) t = 0;
-      m[i] = (GLfloat) t;
+      m[i*2] = (GLfloat) t;
+
+      /* Also calculate the derivative of dp^shininess at this point,
+	 scaling for table lookup. (Actually, given f'(x0), it's easy
+	 to calculate f(x0), so maybe we only need this)
+      */
+      m[i*2+1] = shininess * t / (dp * (SHINE_TABLE_SIZE-1)); 
    }      
 
    tab->shininess = shininess;
@@ -1036,10 +1042,10 @@ void gl_compute_shine_table( GLcontext *ctx, GLuint i, GLfloat shininess )
       foreach(s, list) 
 	 if (s->refcount == 0) break;
 
-/*        compute_shine_table( s, shininess ); */
+      compute_shine_table( s, shininess );
    }
 
-   reset_shine_table( s, shininess );
+/*     reset_shine_table( s, shininess ); */
    ctx->ShineTable[i]->refcount--;
    ctx->ShineTable[i] = s;
    move_to_tail( list, s );
