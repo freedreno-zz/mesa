@@ -1,4 +1,4 @@
-/* $Id: miniglx.c,v 1.1.4.2 2002/11/27 17:02:39 brianp Exp $ */
+/* $Id: miniglx.c,v 1.1.4.3 2002/11/27 21:03:33 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -50,6 +50,7 @@
 #include "context.h"
 #include "extensions.h"
 #include "imports.h"
+#include "matrix.h"
 #include "texformat.h"
 #include "texstore.h"
 #include "array_cache/acache.h"
@@ -101,9 +102,7 @@ struct MiniGLXWindowRec {
  */
 struct MiniGLXContextRec {
    GLcontext glcontext;            /* base class */
-   Visual visual;
    Window drawBuffer;
-   Window readBuffer;
    Window curBuffer;
 };
 
@@ -164,7 +163,7 @@ update_state( GLcontext *ctx, GLuint new_state )
 static void
 get_buffer_size( GLframebuffer *buffer, GLuint *width, GLuint *height )
 {
-   Window win = (Window) buffer;  /* yes, this works */
+   Window win = MINIGLX_BUFFER(buffer);
    *width = win->w;
    *height = win->h;
 }
@@ -492,6 +491,7 @@ SetupFBDev( Display *dpy, Window win )
    }
 
    if (width == 1280 && height == 1024) {
+      /* timing values taken from /etc/fb.modes (1280x1024 @ 75Hz) */
       dpy->VarInfo.pixclock = 7408;
       dpy->VarInfo.left_margin = 248;
       dpy->VarInfo.right_margin = 16;
@@ -500,10 +500,31 @@ SetupFBDev( Display *dpy, Window win )
       dpy->VarInfo.hsync_len = 144;
       dpy->VarInfo.vsync_len = 3;
    }
+   else if (width == 1024 && height == 768) {
+      /* timing values taken from /etc/fb.modes (1024x768 @ 75Hz) */
+      dpy->VarInfo.pixclock = 12699;
+      dpy->VarInfo.left_margin = 176;
+      dpy->VarInfo.right_margin = 16;
+      dpy->VarInfo.upper_margin = 28;
+      dpy->VarInfo.lower_margin = 1;
+      dpy->VarInfo.hsync_len = 96;
+      dpy->VarInfo.vsync_len = 3;
+   }
+   else if (width == 800 && height == 600) {
+      /* timing values taken from /etc/fb.modes (800x600 @ 75Hz) */
+      dpy->VarInfo.pixclock = 20203;
+      dpy->VarInfo.left_margin = 160;
+      dpy->VarInfo.right_margin = 16;
+      dpy->VarInfo.upper_margin = 21;
+      dpy->VarInfo.lower_margin = 1;
+      dpy->VarInfo.hsync_len = 80;
+      dpy->VarInfo.vsync_len = 3;
+   }
    else {
       /* XXX need timings for other screen sizes */
-      printf("XXXX only 1280 x 1024 windows are supported at this time!\n");
-      assert(0);
+      fprintf(stderr, "XXXX screen size %d x %d not supported at this time!\n",
+             width, height);
+      abort();
    }
 
    /* set variable screen info */
@@ -760,8 +781,7 @@ WRAP(XDestroyWindow)( Display *dpy, Window win )
    if (win) {
       /* check if destroying the current buffer */
       Window curDraw = WRAP(glXGetCurrentDrawable)();
-      Window curRead = WRAP(glXGetCurrentReadDrawable)();
-      if (win == curDraw || win == curRead) {
+      if (win == curDraw) {
          WRAP(glXMakeCurrent)( dpy, NULL, NULL);
       }
       /* free the software depth, stencil, accum buffers */
@@ -776,24 +796,31 @@ WRAP(XDestroyWindow)( Display *dpy, Window win )
 
 
 void
-WRAP(XMapWindow)( Display *display, Window w )
+WRAP(XMapWindow)( Display *dpy, Window w )
 {
-   /* no-op */
-   (void) display;
+   /* Only provided to ease porting.  no-op */
+   (void) dpy;
    (void) w;
 }
 
 
 Colormap
-WRAP(XCreateColormap)( Display *display, Window w, Visual *visual, int alloc )
+WRAP(XCreateColormap)( Display *dpy, Window w, Visual *visual, int alloc )
 {
-   return (Colormap) _mesa_malloc(1); /* dummy */
+   /* We only provide this function to ease porting.  Practically a no-op. */
+   (void) dpy;
+   (void) w;
+   (void) visual;
+   (void) alloc;
+   return (Colormap) _mesa_malloc(1);
 }
 
 
 void
-WRAP(XFreeColormap)( Display *display, Colormap cmap )
+WRAP(XFreeColormap)( Display *dpy, Colormap cmap )
 {
+   (void) dpy;
+   (void) cmap;
    _mesa_free(cmap);
 }
 
@@ -811,6 +838,9 @@ WRAP(glXChooseVisual)( Display *display, int screen, int *attribs )
    GLint accumBlueBits = 0, accumAlphaBits = 0;
    GLint numSamples = 0;
 
+   /*
+    * XXX in the future, <screen> might be interpreted as a VT
+    */
    ASSERT(display);
 
    vis = (Visual *) _mesa_calloc(sizeof(Visual));
@@ -873,6 +903,7 @@ WRAP(glXChooseVisual)( Display *display, int screen, int *attribs )
          break;
       default:
          /* unexpected token */
+         fprintf(stderr, "unexpected token in glXChooseVisual attrib list\n");
          _mesa_free(vis);
          return NULL;
       }
@@ -919,7 +950,7 @@ WRAP(glXChooseVisual)( Display *display, int screen, int *attribs )
 
 GLXContext
 WRAP(glXCreateContext)( Display *dpy, XVisualInfo *vis,
-                  GLXContext shareList, Bool direct )
+                        GLXContext shareList, Bool direct )
 {
    GLXContext ctx;
    GLcontext *glctx;
@@ -936,10 +967,6 @@ WRAP(glXCreateContext)( Display *dpy, XVisualInfo *vis,
       _mesa_free(ctx);
       return NULL;
    }
-
-#if 0
-   ctx->visual = visual;
-#endif
 
    /* Create module contexts */
    glctx = (GLcontext *) &ctx->glcontext;
@@ -1042,8 +1069,10 @@ WRAP(glXMakeCurrent)( Display *dpy, GLXDrawable drawable, GLXContext ctx)
                            &drawable->glframebuffer,
                            &drawable->glframebuffer );
       ctx->drawBuffer = drawable;
-      ctx->readBuffer = drawable;
       ctx->curBuffer = drawable;
+      if (ctx->glcontext.Viewport.Width == 0) {
+         _mesa_Viewport(0, 0, drawable->w, drawable->h);
+      }
    }
    else {
       /* unbind */
@@ -1092,17 +1121,6 @@ WRAP(glXGetCurrentDrawable)( void )
 }
 
 
-GLXDrawable
-WRAP(glXGetCurrentReadDrawable)( void )
-{
-   GLXContext glxctx = WRAP(glXGetCurrentContext)();
-   if (glxctx)
-      return glxctx->readBuffer;
-   else
-      return NULL;
-}
-
-
 const void *
 WRAP(glXGetProcAddress)( const GLubyte *procName )
 {
@@ -1111,24 +1129,14 @@ WRAP(glXGetProcAddress)( const GLubyte *procName )
       const void *func;
    };
    static const struct name_address functions[] = {
-#if 0
-      { "glFBDevGetString", (void *) glFBDevGetString },
-      { "glFBDevGetProcAddress", (void *) glFBDevGetProcAddress },
-      { "glFBDevCreateVisual", (void *) glFBDevCreateVisual },
-      { "glFBDevDestroyVisual", (void *) glFBDevDestroyVisual },
-      { "glFBDevGetVisualAttrib", (void *) glFBDevGetVisualAttrib },
-      { "glFBDevCreateBuffer", (void *) glFBDevCreateBuffer },
-      { "glFBDevDestroyBuffer", (void *) glFBDevDestroyBuffer },
-      { "glFBDevGetBufferAttrib", (void *) glFBDevGetBufferAttrib },
-      { "glFBDevGetCurrentDrawBuffer", (void *) glFBDevGetCurrentDrawBuffer },
-      { "glFBDevGetCurrentReadBuffer", (void *) glFBDevGetCurrentReadBuffer },
-      { "glFBDevSwapBuffers", (void *) glFBDevSwapBuffers },
-      { "glFBDevCreateContext", (void *) glFBDevCreateContext },
-      { "glFBDevDestroyContext", (void *) glFBDevDestroyContext },
-      { "glFBDevGetContextAttrib", (void *) glFBDevGetContextAttrib },
-      { "glFBDevGetCurrentContext", (void *) glFBDevGetCurrentContext },
-      { "glFBDevMakeCurrent", (void *) glFBDevMakeCurrent },
-#endif
+      { "glXChooseVisual", (void *) WRAP(glXChooseVisual) },
+      { "glXCreateContext", (void *) WRAP(glXCreateContext) },
+      { "glXDestroyContext", (void *) WRAP(glXDestroyContext) },
+      { "glXMakeCurrent", (void *) WRAP(glXMakeCurrent) },
+      { "glXSwapBuffers", (void *) WRAP(glXSwapBuffers) },
+      { "glXGetCurrentContext", (void *) WRAP(glXGetCurrentContext) },
+      { "glXGetCurrentDrawable", (void *) WRAP(glXGetCurrentDrawable) },
+      { "glXGetProcAddress", (void *) WRAP(glXGetProcAddress) },
       { NULL, NULL }
    };
    const struct name_address *entry;
