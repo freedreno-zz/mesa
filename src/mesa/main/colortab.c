@@ -1,4 +1,4 @@
-/* $Id: colortab.c,v 1.20.4.2 2000/11/21 17:50:23 brianp Exp $ */
+/* $Id: colortab.c,v 1.20.4.3 2000/11/21 23:00:22 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -626,7 +626,9 @@ _mesa_CopyColorTable(GLenum target, GLenum internalformat,
       width = MAX_WIDTH;
 
    /* read the data from framebuffer */
+   RENDER_START(ctx);
    gl_read_rgba_span( ctx, ctx->ReadBuffer, width, x, y, data );
+   RENDER_FINISH(ctx);
 
    /* Restore reading from draw buffer (the default) */
    (*ctx->Driver.SetReadBuffer)( ctx, ctx->DrawBuffer,
@@ -655,7 +657,9 @@ _mesa_CopyColorSubTable(GLenum target, GLsizei start,
       width = MAX_WIDTH;
 
    /* read the data from framebuffer */
+   RENDER_START(ctx);
    gl_read_rgba_span( ctx, ctx->ReadBuffer, width, x, y, data );
+   RENDER_FINISH(ctx);
 
    /* Restore reading from draw buffer (the default) */
    (*ctx->Driver.SetReadBuffer)( ctx, ctx->DrawBuffer,
