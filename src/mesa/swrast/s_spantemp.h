@@ -1,4 +1,4 @@
-/* $Id: s_spantemp.h,v 1.1 2002/11/13 16:54:01 brianp Exp $ */
+/* $Id: s_spantemp.h,v 1.1.2.1 2002/11/21 16:00:27 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
