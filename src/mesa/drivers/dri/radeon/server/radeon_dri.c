@@ -1243,5 +1243,9 @@ struct DRIDriverRec __driDriver = {
    radeonHaltFBDev,
    RADEONEngineShutdown,
    RADEONEngineRestore,  
+#if _HAVE_FULL_GL
+   0,
+#else
    radeonVtxfmtNotifyFocus, 
+#endif
 };
