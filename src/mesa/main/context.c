@@ -28,7 +28,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: context.c,v 1.188.2.1.2.4 2003/03/02 00:27:31 jrfonseca Exp $ */
+/* $Id: context.c,v 1.188.2.1.2.5 2003/03/04 17:23:34 keithw Exp $ */
 
 /**
  * \mainpage Mesa Core Module
@@ -1894,7 +1894,9 @@ _mesa_initialize_context( GLcontext *ctx,
    ctx->SavePrefersFloat = GL_FALSE;
 
    /* Neutral tnl module stuff */
-/*    _mesa_init_exec_vtxfmt( ctx ); */
+#if _HAVE_FULL_GL
+   _mesa_init_exec_vtxfmt( ctx ); 
+#endif
    ctx->TnlModule.Current = NULL;
    ctx->TnlModule.SwapCount = 0;
 
