@@ -1,8 +1,8 @@
-/* $Id: t_vb_render.c,v 1.22.2.2 2001/12/03 17:49:01 keithw Exp $ */
+/* $Id: t_vb_render.c,v 1.22.2.3 2001/12/17 01:46:38 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.5
+ * Version:  4.0.1
  *
  * Copyright (C) 1999-2001  Brian Paul   All Rights Reserved.
  *
@@ -142,7 +142,7 @@ do {							\
 
 #define TAG(x) clip_##x##_verts
 #define INIT(x) tnl->Driver.Render.PrimitiveNotify( ctx, x )
-#define RESET_STIPPLE if (stipple) tnl->Driver.Render.ResetLineStipple( ctx )
+#define RESET_STIPPLE tnl->Driver.Render.ResetLineStipple( ctx )
 #define RESET_OCCLUSION ctx->OcclusionResult = GL_TRUE
 #define PRESERVE_VB_DEFS
 #include "t_vb_rendertmp.h"
@@ -229,7 +229,7 @@ static void clip_elt_triangles( GLcontext *ctx,
    (void) (LineFunc && TriangleFunc && QuadFunc);		\
    (void) elt; (void) stipple;
 
-#define RESET_STIPPLE if (stipple) tnl->Driver.Render.ResetLineStipple( ctx )
+#define RESET_STIPPLE tnl->Driver.Render.ResetLineStipple( ctx )
 #define RESET_OCCLUSION ctx->OcclusionResult = GL_TRUE
 #define INIT(x) tnl->Driver.Render.PrimitiveNotify( ctx, x )
 #define RENDER_TAB_QUALIFIER
