@@ -976,6 +976,7 @@ void gl_update_state( GLcontext *ctx )
 	 }
       }
 
+      ctx->Texture.ReallyEnabled = ctx->Enabled & ENABLE_TEX_ANY;
       ctx->NeedNormals = (ctx->Light.Enabled || ctx->Texture.NeedNormals);
    }
 

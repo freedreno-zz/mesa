@@ -1,4 +1,4 @@
-/* $Id: drawpix.c,v 1.26.4.5 2000/10/05 16:47:23 brianp Exp $ */
+/* $Id: drawpix.c,v 1.26.4.6 2000/10/17 00:24:11 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -823,6 +823,7 @@ _mesa_DrawPixels( GLsizei width, GLsizei height,
          return;
       }
 
+      RENDER_START(ctx);
       switch (format) {
 	 case GL_STENCIL_INDEX:
 	    draw_stencil_pixels( ctx, x, y, width, height, type, pixels );
@@ -851,8 +852,8 @@ _mesa_DrawPixels( GLsizei width, GLsizei height,
 	    break;
 	 default:
 	    gl_error( ctx, GL_INVALID_ENUM, "glDrawPixels(format)" );
-            return;
       }
+      RENDER_FINISH(ctx);
    }
    else if (ctx->RenderMode==GL_FEEDBACK) {
       if (ctx->Current.RasterPosValid) {

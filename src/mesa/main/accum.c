@@ -1,8 +1,8 @@
-/* $Id: accum.c,v 1.23 2000/07/15 03:14:25 brianp Exp $ */
+/* $Id: accum.c,v 1.23.2.1 2000/10/17 00:24:11 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.3
+ * Version:  3.4
  * 
  * Copyright (C) 1999-2000  Brian Paul   All Rights Reserved.
  * 
@@ -235,6 +235,8 @@ _mesa_Accum( GLenum op, GLfloat value )
          if (ctx->IntegerAccumMode && value != ctx->IntegerAccumScaler)
             rescale_accum(ctx);
             
+         RENDER_START(ctx);
+
          if (ctx->IntegerAccumMode) {
             /* simply add integer color values into accum buffer */
             GLuint j;
@@ -278,6 +280,7 @@ _mesa_Accum( GLenum op, GLfloat value )
          /* restore read buffer = draw buffer (the default) */
          (*ctx->Driver.SetReadBuffer)( ctx, ctx->DrawBuffer,
                                        ctx->Color.DriverDrawBuffer );
+         RENDER_FINISH(ctx);
 	 break;
 
       case GL_LOAD:
@@ -298,6 +301,7 @@ _mesa_Accum( GLenum op, GLfloat value )
             ctx->IntegerAccumScaler = 0.0;
          }
 
+         RENDER_START(ctx);
          if (ctx->IntegerAccumMode) {
             /* just copy values into accum buffer */
             GLuint j;
@@ -341,6 +345,7 @@ _mesa_Accum( GLenum op, GLfloat value )
          /* restore read buffer = draw buffer (the default) */
          (*ctx->Driver.SetReadBuffer)( ctx, ctx->DrawBuffer,
                                        ctx->Color.DriverDrawBuffer );
+         RENDER_FINISH(ctx);
 	 break;
 
       case GL_RETURN:
@@ -348,6 +353,7 @@ _mesa_Accum( GLenum op, GLfloat value )
          if (ctx->IntegerAccumMode && value != 1.0)
             rescale_accum(ctx);
 
+         RENDER_START(ctx);
          if (ctx->IntegerAccumMode && ctx->IntegerAccumScaler > 0) {
             /* build lookup table to avoid many floating point multiplies */
             const GLfloat mult = ctx->IntegerAccumScaler;
@@ -411,6 +417,7 @@ _mesa_Accum( GLenum op, GLfloat value )
                ypos++;
             }
 	 }
+         RENDER_FINISH(ctx);
 	 break;
 
       default:

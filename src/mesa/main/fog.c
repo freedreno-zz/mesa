@@ -1,8 +1,8 @@
-/* $Id: fog.c,v 1.19 2000/07/07 15:10:35 keithw Exp $ */
+/* $Id: fog.c,v 1.19.4.1 2000/10/17 00:24:11 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.3
+ * Version:  3.4
  * 
  * Copyright (C) 1999-2000  Brian Paul   All Rights Reserved.
  * 
@@ -331,7 +331,7 @@ _mesa_fog_rgba_pixels( const GLcontext *ctx,
                GLfloat eyez = d / (c+ndcz);
                GLfloat f, g;
                GLfloat tmp = negDensitySquared * eyez * eyez;
-#ifdef __alpha__
+#if defined(__alpha__) || defined(__alpha)
                /* XXX this underflow check may be needed for other systems */
                if (tmp < FLT_MIN_10_EXP)
                   f = exp( FLT_MIN_10_EXP );
@@ -410,7 +410,7 @@ _mesa_fog_ci_pixels( const GLcontext *ctx,
                if (eyez < 0.0)
                   eyez = -eyez;
                tmp = negDensitySquared * eyez * eyez;
-#ifdef __alpha__
+#if defined(__alpha__) || defined(__alpha)
                /* XXX this underflow check may be needed for other systems */
                if (tmp < FLT_MIN_10_EXP)
                   f = exp( FLT_MIN_10_EXP );
