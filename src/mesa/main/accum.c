@@ -1,4 +1,4 @@
-/* $Id: accum.c,v 1.10.2.2 2000/02/02 21:53:59 brianp Exp $ */
+/* $Id: accum.c,v 1.10.2.3 2000/06/19 00:45:17 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -188,7 +188,7 @@ void gl_Accum( GLcontext *ctx, GLenum op, GLfloat value )
 
    switch (op) {
       case GL_ADD:
-         {
+         if (value != 0.0F) {
 	    const GLaccum intVal = (GLaccum) (value * acc_scale);
 	    GLuint j;
             /* Leave optimized accum buffer mode */
@@ -206,7 +206,7 @@ void gl_Accum( GLcontext *ctx, GLenum op, GLfloat value )
 	 break;
 
       case GL_MULT:
-	 {
+         if (value != 1.0F) {
 	    GLuint j;
             /* Leave optimized accum buffer mode */
             if (ctx->IntegerAccumMode)
@@ -223,6 +223,9 @@ void gl_Accum( GLcontext *ctx, GLenum op, GLfloat value )
 	 break;
 
       case GL_ACCUM:
+         if (value == 0.0F)
+            return;
+
          (void) (*ctx->Driver.SetBuffer)( ctx, ctx->Pixel.DriverReadBuffer );
 
          /* May have to leave optimized accum buffer mode */
