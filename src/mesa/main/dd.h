@@ -1,4 +1,4 @@
-/* $Id: dd.h,v 1.26.4.3 2000/09/07 15:30:48 brianp Exp $ */
+/* $Id: dd.h,v 1.26.4.4 2000/09/28 18:25:00 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -723,8 +723,15 @@ struct dd_function_table {
     */
 
    GLint (*SpecificCompressedTexFormat)(GLcontext *ctx,
-                                        GLint internalFormat,
-                                        GLint numDimensions);
+                                        GLint      internalFormat,
+                                        GLint      numDimensions,
+                                        GLint     *levelp,
+                                        GLsizei   *widthp,
+                                        GLsizei   *heightp,
+                                        GLsizei   *depthp,
+                                        GLint     *borderp,
+                                        GLenum    *formatp,
+                                        GLenum    *typep);
    /* Called to turn a generic texture format into a specific
     * texture format.  For example, if a driver implements
     * GL_3DFX_texture_compression_FXT1, this would map
