@@ -808,6 +808,7 @@ struct dd_function_table {
     * these conditions.
     */
    GLuint NeedFlush;
+   GLuint SaveNeedFlush;
 
    /**
     * If inside glBegin()/glEnd(), it should ASSERT(0).  Otherwise, if
@@ -819,6 +820,7 @@ struct dd_function_table {
     * FLUSH_UPDATE_CURRENT bit, even after performing the update.
     */
    void (*FlushVertices)( GLcontext *ctx, GLuint flags );
+   void (*SaveFlushVertices)( GLcontext *ctx );
 
    /**
     * Notify driver that the special derived value _NeedEyeCoords has

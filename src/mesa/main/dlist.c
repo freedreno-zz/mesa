@@ -83,6 +83,21 @@
 #include "math/m_xform.h"
 
 
+/**
+ * Flush vertices.
+ *
+ * \param ctx GL context.
+ *
+ * Checks if dd_function_table::SaveNeedFlush is marked to flush
+ * stored (save) vertices, and calls
+ * dd_function_table::SaveFlushVertices if so.
+ */
+#define SAVE_FLUSH_VERTICES(ctx)		\
+do {						\
+   if (ctx->Driver.SaveNeedFlush)		\
+      ctx->Driver.SaveFlushVertices(ctx);	\
+} while (0)
+
 
 /**
  * Macro to assert that the API call was made outside the
@@ -124,7 +139,7 @@ do {									\
 #define ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx)			\
 do {									\
    ASSERT_OUTSIDE_SAVE_BEGIN_END(ctx);					\
-   FLUSH_VERTICES(ctx, 0);						\
+   SAVE_FLUSH_VERTICES(ctx);						\
 } while (0)
 
 /**
@@ -137,7 +152,7 @@ do {									\
 #define ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH_WITH_RETVAL(ctx, retval)\
 do {									\
    ASSERT_OUTSIDE_SAVE_BEGIN_END_WITH_RETVAL(ctx, retval);		\
-   FLUSH_VERTICES(ctx, 0);						\
+   SAVE_FLUSH_VERTICES(ctx);						\
 } while (0)
 
 
@@ -7710,14 +7725,14 @@ void _mesa_save_vtxfmt_init( GLvertexformat *vfmt )
    vfmt->VertexAttrib4fvNV = save_VertexAttrib4fvNV;
 
    vfmt->Rectf = save_Rectf;
+   vfmt->EvalMesh1 = _mesa_save_EvalMesh1;
+   vfmt->EvalMesh2 = _mesa_save_EvalMesh2;
 
-   /* TODO:  These all need outside-begin-end checks:
+   /* To implement as opcodes these would need new code for the
+    * runtime outside-begin-end checks.  As these functions aren't
+    * actually needed at this point, I'll punt on that for now:
     */
-#if 0
-   vfmt->DrawArrays = _mesa_noop_DrawArrays;
-   vfmt->DrawElements = _mesa_noop_DrawElements;
-   vfmt->DrawRangeElements = _mesa_noop_DrawRangeElements;
-   vfmt->EvalMesh1 = _mesa_noop_EvalMesh1;
-   vfmt->EvalMesh2 = _mesa_noop_EvalMesh2;
-#endif
+   vfmt->DrawArrays = 0;
+   vfmt->DrawElements = 0;
+   vfmt->DrawRangeElements = 0;
 }

@@ -33,6 +33,19 @@
 #include "t_vtx_api.h"
 #include "t_pipeline.h"
 
+GLboolean *_tnl_translate_edgeflag( GLcontext *ctx, const GLfloat *data,
+				    GLuint count, GLuint stride )
+{
+   GLboolean *ef = 0;
+   GLuint i;
+   
+   for (i = 0 ; i < count ; i++, data += stride)
+      ef[i] = (data[0] == 1.0);
+
+   return ef;
+}
+
+
 /* Some nasty stuff still hanging on here.  
  *
  * TODO - remove VB->ColorPtr, etc and just use the AttrPtr's.
@@ -201,25 +214,3 @@ void _tnl_flush_vtx( GLcontext *ctx )
 
 
 
-void _tnl_FlushVertices( GLcontext *ctx, GLuint flags )
-{
-   TNLcontext *tnl = TNL_CONTEXT(ctx);
-   GLuint i;
-
-   if (ctx->Driver.CurrentExecPrimitive != PRIM_OUTSIDE_BEGIN_END)
-      return;
-
-   if (tnl->vtx.counter != tnl->vtx.initial_counter)
-      _tnl_flush_vtx( ctx );
-
-   if (flags & FLUSH_UPDATE_CURRENT) {
-      _tnl_copy_to_current( ctx );
-      _tnl_reset_vtxfmt( ctx );
-
-      /* DO THIS IN _tnl_reset_vtxfmt:
-       */
-      tnl->vtx.vertex_size = 0;
-      for (i = 0 ; i < _TNL_ATTRIB_MAX ; i++) 
-	 tnl->vtx.attrsz[i] = 0;
-   }
-}

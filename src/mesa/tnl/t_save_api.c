@@ -73,6 +73,7 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "macros.h"
 #include "api_validate.h"
 #include "api_arrayelt.h"
+#include "vtxfmt.h"
 #include "t_save_api.h"
 
 /*
@@ -492,6 +493,17 @@ static void choose_##ATTR##_##N( const GLfloat *v )	\
 	     v );					\
 }
 
+#define INIT(ATTR)					\
+static void init_##ATTR( TNLcontext *tnl )		\
+{							\
+   tnl->save.tabfv[ATTR][0] = choose_##ATTR##_1;	\
+   tnl->save.tabfv[ATTR][1] = choose_##ATTR##_2;	\
+   tnl->save.tabfv[ATTR][2] = choose_##ATTR##_3;	\
+   tnl->save.tabfv[ATTR][3] = choose_##ATTR##_4;	\
+}
+   
+
+
 #define ATTRS( ATTRIB )				\
    ATTRFV( ATTRIB, 1 )				\
    ATTRFV( ATTRIB, 2 )				\
@@ -501,6 +513,7 @@ static void choose_##ATTR##_##N( const GLfloat *v )	\
    CHOOSE( ATTRIB, 2 )				\
    CHOOSE( ATTRIB, 3 )				\
    CHOOSE( ATTRIB, 4 )				\
+   INIT( ATTRIB )				\
 
 
 /* Generate a lot of functions.  These are the actual worker
@@ -523,6 +536,28 @@ ATTRS( 12 )
 ATTRS( 13 )
 ATTRS( 14 )
 ATTRS( 15 )
+
+
+static void init_attrfv( TNLcontext *tnl )
+{
+   init_0( tnl );
+   init_1( tnl );
+   init_2( tnl );
+   init_3( tnl );
+   init_4( tnl );
+   init_5( tnl );
+   init_6( tnl );
+   init_7( tnl );
+   init_8( tnl );
+   init_9( tnl );
+   init_10( tnl );
+   init_11( tnl );
+   init_12( tnl );
+   init_13( tnl );
+   init_14( tnl );
+   init_15( tnl );
+}
+
 
 /* Cope with aliasing of classic Vertex, Normal, etc. and the fan-out
  * of glMultTexCoord and glProgramParamterNV by routing all these
@@ -996,6 +1031,8 @@ static void _save_NotifyBegin( GLenum mode )
    tnl->save.prim[i].count = 0;   
 }
 
+
+
 static void _save_End( void )
 {
    GET_CURRENT_CONTEXT( ctx ); 
@@ -1017,7 +1054,7 @@ static void _save_End( void )
     *   -- Need to ensure that these vertices are flushed in that case.
     *   -- Just use the regular flush mechanism.
     */   
-   _save_swapout_vtxfmt();
+   _mesa_install_save_vtxfmt( ctx, &tnl->save_vtxfmt );
 }
 
 
@@ -1156,10 +1193,14 @@ static void _save_vtxfmt_init( GLcontext *ctx )
 
 void _tnl_NewList( GLcontext *ctx, GLuint list, GLenum mode )
 {
+   TNLcontext *tnl = TNL_CONTEXT(ctx);
+   assert(tnl->save.vertex_size == 0);
 }
 
 void _tnl_EndList( GLcontext *ctx )
 {
+   TNLcontext *tnl = TNL_CONTEXT(ctx);
+   assert(tnl->save.vertex_size == 0);
 }
  
 void _tnl_BeginCallList( GLcontext *ctx, GLuint list )
@@ -1170,8 +1211,47 @@ void _tnl_EndCallList( GLcontext *ctx )
 {
 }
 
+/* Called when 
+ */
+void _tnl_SaveFlushVertices( GLcontext *ctx )
+{
+   TNLcontext *tnl = TNL_CONTEXT(ctx);
+   GLint i;
+
+   _save_compile_vertex_list( ctx );
+   
+   init_attrfv( tnl );
+
+   for (i = 0 ; i < _TNL_ATTRIB_MAX ; i++)
+      tnl->save.attrsz[i] = 0;
+
+   tnl->save.vertex_size = 0;
+}
+
+static void
+_tnl_destroy_vertex_list( GLcontext *ctx, void *data )
+{
+   struct tnl_vertex_list *node = (struct tnl_vertex_list *)data;
+
+   if ( --node->vertex_store->refcount == 0 )
+      ALIGN_FREE( node->vertex_store );
+
+   if ( --node->prim_store->refcount == 0 )
+      ALIGN_FREE( node->prim_store );
+
+   FREE( node );
+}
 
 
+static void
+_tnl_print_vertex_list( GLcontext *ctx, void *data )
+{
+   struct tnl_vertex_list *node = (struct tnl_vertex_list *)data;
+
+   _mesa_debug(ctx, "TNL-VERTEX-LIST, %u vertices %d primitives\n",
+               node->count,
+	       node->prim_count);
+}
 
 /**
  * Setup vector pointers that will be used to bind immediates to VB's.
@@ -1182,10 +1262,24 @@ void _tnl_save_init( GLcontext *ctx )
    struct tnl_vertex_arrays *tmp = &tnl->save_inputs;
    GLuint i;
 
+   init_attrfv( tnl );
+
+   for (i = 0 ; i < _TNL_ATTRIB_MAX ; i++)
+      tnl->save.attrsz[i] = 0;
+
+   tnl->save.vertex_size = 0;
+
    _save_vtxfmt_init( ctx );
 
    for (i = 0; i < _TNL_ATTRIB_MAX; i++)
       _mesa_vector4f_init( &tmp->Attribs[i], 0, 0);
+
+   tnl->save.opcode_vertex_list =
+      _mesa_alloc_opcode( ctx,
+			  sizeof(struct tnl_vertex_list),
+			  _tnl_playback_vertex_list,
+			  _tnl_destroy_vertex_list,
+			  _tnl_print_vertex_list );
 }
 
 

@@ -135,7 +135,6 @@ TNL_SOURCES = \
 	tnl/t_array_api.c \
 	tnl/t_array_import.c \
 	tnl/t_context.c \
-	tnl/t_eval_api.c \
 	tnl/t_pipeline.c \
 	tnl/t_save_api.c \
 	tnl/t_save_loopback.c \

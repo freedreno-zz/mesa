@@ -33,6 +33,7 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #include "context.h"
 #include "macros.h"
+#include "vtxfmt.h"
 #include "dlist.h"
 #include "api_arrayelt.h"
 #include "api_noop.h"
@@ -356,6 +357,16 @@ static void choose_##ATTR##_##N( const GLfloat *v )	\
 	     v );					\
 }
 
+#define INIT(ATTR)					\
+static void init_##ATTR( TNLcontext *tnl )		\
+{							\
+   tnl->vtx.tabfv[ATTR][0] = choose_##ATTR##_1;		\
+   tnl->vtx.tabfv[ATTR][1] = choose_##ATTR##_2;		\
+   tnl->vtx.tabfv[ATTR][2] = choose_##ATTR##_3; 	\
+   tnl->vtx.tabfv[ATTR][3] = choose_##ATTR##_4;		\
+}
+   
+
 #define ATTRS( ATTRIB )				\
    ATTRFV( ATTRIB, 1 )				\
    ATTRFV( ATTRIB, 2 )				\
@@ -365,6 +376,7 @@ static void choose_##ATTR##_##N( const GLfloat *v )	\
    CHOOSE( ATTRIB, 2 )				\
    CHOOSE( ATTRIB, 3 )				\
    CHOOSE( ATTRIB, 4 )				\
+   INIT( ATTRIB )				\
 
 
 /* Generate a lot of functions.  These are the actual worker
@@ -388,6 +400,32 @@ ATTRS( 13 )
 ATTRS( 14 )
 ATTRS( 15 )
 
+static void init_attrfv( TNLcontext *tnl )
+{
+   GLuint i;
+
+   init_0( tnl );
+   init_1( tnl );
+   init_2( tnl );
+   init_3( tnl );
+   init_4( tnl );
+   init_5( tnl );
+   init_6( tnl );
+   init_7( tnl );
+   init_8( tnl );
+   init_9( tnl );
+   init_10( tnl );
+   init_11( tnl );
+   init_12( tnl );
+   init_13( tnl );
+   init_14( tnl );
+   init_15( tnl );
+
+   for (i = 0 ; i < _TNL_ATTRIB_MAX ; i++) 
+      tnl->vtx.attrsz[i] = 0;
+
+   tnl->vtx.vertex_size = 0;
+}
 
 /* These can be made efficient with codegen.  Further, by adding more
  * logic to do_choose(), the double-dispatch for legacy entrypoints
@@ -1002,6 +1040,26 @@ static void _tnl_imm_vtxfmt_init( GLcontext *ctx )
 
 
 
+void _tnl_FlushVertices( GLcontext *ctx, GLuint flags )
+{
+   TNLcontext *tnl = TNL_CONTEXT(ctx);
+
+   if (ctx->Driver.CurrentExecPrimitive != PRIM_OUTSIDE_BEGIN_END)
+      return;
+
+   if (tnl->vtx.counter != tnl->vtx.initial_counter)
+      _tnl_flush_vtx( ctx );
+
+   if (flags & FLUSH_UPDATE_CURRENT) {
+      _tnl_copy_to_current( ctx );
+
+      _mesa_install_exec_vtxfmt( ctx, &tnl->exec_vtxfmt );
+
+      /* reset attrfv table
+       */
+      init_attrfv( tnl );
+   }
+}
 
 
 void _tnl_vtx_init( GLcontext *ctx )
@@ -1014,6 +1072,9 @@ void _tnl_vtx_init( GLcontext *ctx )
       _mesa_vector4f_init( &tmp->Attribs[i], 0, 0);
 
    _tnl_imm_vtxfmt_init( ctx );
+
+   _mesa_install_exec_vtxfmt( ctx, &tnl->exec_vtxfmt );
+   init_attrfv( tnl );
 }
 
 

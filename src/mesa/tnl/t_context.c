@@ -58,6 +58,7 @@ install_driver_callbacks( GLcontext *ctx )
    ctx->Driver.NewList = _tnl_NewList;
    ctx->Driver.EndList = _tnl_EndList;
    ctx->Driver.FlushVertices = _tnl_FlushVertices;
+   ctx->Driver.SaveFlushVertices = _tnl_SaveFlushVertices;
    ctx->Driver.MakeCurrent = _tnl_MakeCurrent;
    ctx->Driver.BeginCallList = _tnl_BeginCallList;
    ctx->Driver.EndCallList = _tnl_EndCallList;

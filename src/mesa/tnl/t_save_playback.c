@@ -55,7 +55,6 @@ static void _tnl_bind_vertex_list( GLcontext *ctx,
    VB->SecondaryColorPtr[1] = NULL;
    VB->IndexPtr[1] = NULL;
 
-
    for (attr = 0; attr <= _TNL_ATTRIB_INDEX; attr++) {
       if (node->attrsz[attr]) {
 	 tmp->Attribs[attr].count = node->count;
@@ -75,7 +74,8 @@ static void _tnl_bind_vertex_list( GLcontext *ctx,
    /* Copy edgeflag to a contiguous array
     */
    if (node->attrsz[_TNL_ATTRIB_EDGEFLAG]) {
-      VB->EdgeFlag = _tnl_translate_edgeflag( ctx, data, node->count,
+      VB->EdgeFlag = _tnl_translate_edgeflag( ctx, data, 
+					      node->count,
 					      node->vertex_size );
       data++;
    }
@@ -98,8 +98,9 @@ static void _tnl_bind_vertex_list( GLcontext *ctx,
 /**
  * Execute the buffer and save copied verts.
  */
-void _tnl_playback_vertex_list( GLcontext *ctx, struct tnl_vertex_list *node )
+void _tnl_playback_vertex_list( GLcontext *ctx, void *data )
 {
+   struct tnl_vertex_list *node = (struct tnl_vertex_list *)data;
    TNLcontext *tnl = TNL_CONTEXT(ctx);
 
    if (!node->prim_count) 

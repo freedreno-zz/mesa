@@ -45,13 +45,14 @@ extern void _tnl_NewList( GLcontext *ctx, GLuint list, GLenum mode );
 extern void _tnl_EndCallList( GLcontext *ctx );
 extern void _tnl_BeginCallList( GLcontext *ctx, GLuint list );
 
+extern void _tnl_SaveFlushVertices( GLcontext *ctx );
+
 extern void _tnl_save_init( GLcontext *ctx );
 extern void _tnl_save_destroy( GLcontext *ctx );
 
 extern void _tnl_loopback_vertex_list( GLcontext *ctx,
 				       struct tnl_vertex_list *list );
 
-extern void _tnl_playback_vertex_list( GLcontext *ctx, 
-				       struct tnl_vertex_list *list );
+extern void _tnl_playback_vertex_list( GLcontext *ctx, void *data );
 
 #endif
