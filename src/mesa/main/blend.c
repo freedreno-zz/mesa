@@ -1,10 +1,10 @@
-/* $Id: blend.c,v 1.8 1999/11/11 01:22:25 brianp Exp $ */
+/* $Id: blend.c,v 1.7.2.1 2000/02/21 14:59:41 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.1
+ * Version:  3.2
  * 
- * Copyright (C) 1999  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2000  Brian Paul   All Rights Reserved.
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -29,7 +29,13 @@
 #ifdef PC_HEADER
 #include "all.h"
 #else
-#include "glheader.h"
+#ifndef XFree86Server
+#include <stdio.h>
+#include <assert.h>
+#include <stdlib.h>
+#else
+#include "GL/xf86glx.h"
+#endif
 #include "alphabuf.h"
 #include "blend.h"
 #include "context.h"
@@ -41,9 +47,8 @@
 #endif
 
 
-void _mesa_BlendFunc( GLenum sfactor, GLenum dfactor )
+void gl_BlendFunc( GLcontext *ctx, GLenum sfactor, GLenum dfactor )
 {
-   GET_CURRENT_CONTEXT(ctx);
    ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx, "glBlendFunc");
 
    if (MESA_VERBOSE & (VERBOSE_API|VERBOSE_TEXTURE))
@@ -103,10 +108,9 @@ void _mesa_BlendFunc( GLenum sfactor, GLenum dfactor )
 
 /* GL_INGR_blend_func_separate */
 void
-_mesa_BlendFuncSeparateINGR( GLenum sfactorRGB, GLenum dfactorRGB,
-                             GLenum sfactorA, GLenum dfactorA )
+gl_BlendFuncSeparate( GLcontext *ctx, GLenum sfactorRGB, GLenum dfactorRGB,
+                      GLenum sfactorA, GLenum dfactorA )
 {
-   GET_CURRENT_CONTEXT(ctx);
    ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx, "glBlendFuncSeparate");
 
    if (MESA_VERBOSE & (VERBOSE_API|VERBOSE_TEXTURE))
@@ -210,10 +214,8 @@ _mesa_BlendFuncSeparateINGR( GLenum sfactorRGB, GLenum dfactorRGB,
 
 
 /* This is really an extension function! */
-void
-_mesa_BlendEquationEXT( GLenum mode )
+void gl_BlendEquation( GLcontext *ctx, GLenum mode )
 {
-   GET_CURRENT_CONTEXT(ctx);
    ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx, "glBlendEquation");
 
    if (MESA_VERBOSE & (VERBOSE_API|VERBOSE_TEXTURE))
@@ -254,10 +256,9 @@ _mesa_BlendEquationEXT( GLenum mode )
 
 
 
-void
-_mesa_BlendColorEXT( GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha )
+void gl_BlendColor( GLcontext *ctx, GLclampf red, GLclampf green,
+		    GLclampf blue, GLclampf alpha )
 {
-   GET_CURRENT_CONTEXT(ctx);
    ctx->Color.BlendColor[0] = CLAMP( red,   0.0F, 1.0F );
    ctx->Color.BlendColor[1] = CLAMP( green, 0.0F, 1.0F );
    ctx->Color.BlendColor[2] = CLAMP( blue,  0.0F, 1.0F );
@@ -475,7 +476,7 @@ static void blend_general( GLcontext *ctx, GLuint n, const GLubyte mask[],
                sR = sG = sB = 1.0F - (GLfloat) Ad * ascale;
                break;
             case GL_SRC_ALPHA_SATURATE:
-               if (As < 1.0F - (GLfloat) Ad * ascale) {
+               if (As * ascale < 1.0F - (GLfloat) Ad * ascale) {
                   sR = sG = sB = (GLfloat) As * ascale;
                }
                else {
