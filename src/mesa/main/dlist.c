@@ -1024,6 +1024,11 @@ void _mesa_save_CallList( GLuint list )
    if (n) {
       n[1].ui = list;
    }
+   
+   /* After this, we don't know what begin/end state we're in:
+    */
+   ctx->Driver.CurrentSavePrimitive = PRIM_UNKNOWN;
+
    if (ctx->ExecuteFlag) {
       (*ctx->Exec->CallList)( list );
    }
@@ -1064,6 +1069,11 @@ void _mesa_save_CallLists( GLsizei n, GLenum type, const GLvoid *lists )
          n[2].b = typeErrorFlag;
       }
    }
+
+   /* After this, we don't know what begin/end state we're in:
+    */
+   ctx->Driver.CurrentSavePrimitive = PRIM_UNKNOWN;
+
    if (ctx->ExecuteFlag) {
       (*ctx->Exec->CallLists)( n, type, lists );
    }
