@@ -23,7 +23,7 @@
  */
 
 /*
- * DOS/DJGPP device driver v1.0 for Mesa 4.0
+ * DOS/DJGPP device driver v1.1 for Mesa 4.0
  *
  *  Copyright (C) 2002 - Borca Daniel
  *  Email : dborca@yahoo.com
@@ -79,10 +79,9 @@ struct dmesa_buffer {
    GLframebuffer gl_buffer;     /* The depth, stencil, accum, etc buffers */
    void *the_window;            /* your window handle, etc */
 
-   int bypp;                    /* bytes per pixel */
    int xpos, ypos;              /* position */
    int width, height;           /* size in pixels */
-   int bwidth, len;             /* bytes in a line, then total */
+   int bypp, stride, bytes;     /* bytes per pixel, in a line, then total */
 };
 
 /*
@@ -493,7 +492,7 @@ static void clear (GLcontext *ctx, GLbitfield mask, GLboolean all,
  if (*colorMask==0xffffffff) {
     if (mask & DD_BACK_LEFT_BIT) {
        if (all) {
-          vl_clear(b->the_window, b->len, c->ClearColor);
+          vl_clear(b->the_window, b->bytes, c->ClearColor);
        } else {
           vl_rect(b->the_window, x, y, width, height, c->ClearColor);
        }
@@ -514,10 +513,9 @@ static void clear (GLcontext *ctx, GLbitfield mask, GLboolean all,
 static void set_read_buffer (GLcontext *ctx, GLframebuffer *buffer,
                              GLenum mode)
 {
-/*
- DMesaContext c = (DMesaContext)ctx->DriverCtx;
- dmesa_update_state(ctx);
-*/
+   /*
+     XXX this has to be fixed
+   */
 }
 
 
@@ -553,7 +551,7 @@ static const GLubyte* get_string (GLcontext *ctx, GLenum name)
 {
  switch (name) {
         case GL_RENDERER:
-             return (const GLubyte *)"Mesa DOS\0DJGPP port (c) Borca Daniel 31-mar-2002";
+             return (const GLubyte *)"Mesa DJGPP\0port (c) Borca Daniel 3-sep-2002";
         default:
              return NULL;
  }
@@ -729,6 +727,12 @@ DMesaVisual DMesaCreateVisual (GLint width, GLint height, GLint colDepth,
  DMesaVisual v;
  GLint redBits, greenBits, blueBits, alphaBits;
 
+ int refresh;
+ char *var = getenv("DMESA_REFRESH");
+ if ((var == NULL) || ((refresh=atoi(var)) == 0)) {
+    refresh = 60;
+ }
+
  if (!dbFlag) {
     return NULL;
  }
@@ -755,7 +759,7 @@ DMesaVisual DMesaCreateVisual (GLint width, GLint height, GLint colDepth,
              return NULL;
  }
 
- if (vl_video_init(width, height, colDepth)!=0) {
+ if (vl_video_init(width, height, colDepth, refresh) != 0) {
     return NULL;
  }
 
@@ -788,7 +792,7 @@ DMesaVisual DMesaCreateVisual (GLint width, GLint height, GLint colDepth,
 
 void DMesaDestroyVisual (DMesaVisual v)
 {
- vl_video_exit(!0);
+ vl_video_exit();
  _mesa_destroy_visual(v->gl_visual);
  free(v);
 }
@@ -884,8 +888,8 @@ GLboolean DMesaViewport (DMesaBuffer b,
     b->ypos = ypos;
     b->width = width;
     b->height = height;
-    b->bwidth = width * b->bypp;
-    b->len = b->bwidth * height;
+    b->stride = width * b->bypp;
+    b->bytes = b->stride * height;
     return GL_TRUE;
  }
 }
@@ -923,5 +927,7 @@ GLboolean DMesaMakeCurrent (DMesaContext c, DMesaBuffer b)
 void DMesaSwapBuffers (DMesaBuffer b)
 {
  /* copy/swap back buffer to front if applicable */
- vl_flip(b->the_window, b->bwidth, b->height);
+ GET_CURRENT_CONTEXT(ctx);
+ _mesa_swapbuffers(ctx);
+ vl_flip(b->the_window, b->stride, b->height);
 }
