@@ -1,8 +1,8 @@
-/* $Id: teximage.h,v 1.19 2001/05/21 16:41:03 brianp Exp $ */
+/* $Id: teximage.h,v 1.19.2.1 2002/08/28 01:13:35 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.5
+ * Version:  4.0.4
  *
  * Copyright (C) 1999-2001  Brian Paul   All Rights Reserved.
  *
@@ -48,7 +48,7 @@ _mesa_free_texture_image( struct gl_texture_image *teximage );
 
 
 extern void
-_mesa_init_teximage_fields(GLcontext *ctx,
+_mesa_init_teximage_fields(GLcontext *ctx, GLenum target,
                            struct gl_texture_image *img,
                            GLsizei width, GLsizei height, GLsizei depth,
                            GLint border, GLenum internalFormat);

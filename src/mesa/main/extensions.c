@@ -1,8 +1,8 @@
-/* $Id: extensions.c,v 1.65 2001/10/17 13:31:07 brianp Exp $ */
+/* $Id: extensions.c,v 1.65.2.1 2002/08/28 01:13:34 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.5.1
+ * Version:  4.0.4
  *
  * Copyright (C) 1999-2001  Brian Paul   All Rights Reserved.
  *
@@ -108,6 +108,7 @@ static struct {
    { ON,  "GL_MESA_window_pos",                F(MESA_window_pos) },
    { OFF, "GL_NV_blend_square",                F(NV_blend_square) },
    { ON,  "GL_NV_texgen_reflection",           F(NV_texgen_reflection) },
+   { ON,  "GL_NV_texture_rectangle",           F(NV_texture_rectangle) },
    { OFF, "GL_SGI_color_matrix",               F(SGI_color_matrix) },
    { OFF, "GL_SGI_color_table",                F(SGI_color_table) },
    { OFF, "GL_SGIS_generate_mipmap",           F(SGIS_generate_mipmap) },
@@ -163,6 +164,7 @@ _mesa_enable_sw_extensions(GLcontext *ctx)
       "GL_MESA_resize_buffers",
       "GL_NV_blend_square",
       "GL_NV_texgen_reflection",
+      "GL_NV_texture_rectangle",
       "GL_SGI_color_matrix",
       "GL_SGI_color_table",
       "GL_SGIS_generate_mipmap",

@@ -1,8 +1,8 @@
-/* $Id: enable.c,v 1.50.2.3 2002/04/19 08:37:10 alanh Exp $ */
+/* $Id: enable.c,v 1.50.2.4 2002/08/28 01:13:34 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  4.0.2
+ * Version:  4.0.4
  *
  * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
  *
@@ -817,9 +817,28 @@ void _mesa_set_enable( GLcontext *ctx, GLenum cap, GLboolean state )
       ctx->Point.SpriteMode = state;
       break;
 
-   default:
-      _mesa_error(ctx, GL_INVALID_ENUM, state ? "glEnable" : "glDisable");
-      return;
+      /* GL_NV_texture_rectangle */
+      case GL_TEXTURE_RECTANGLE_NV:
+         {
+            const GLuint curr = ctx->Texture.CurrentUnit;
+            struct gl_texture_unit *texUnit = &ctx->Texture.Unit[curr];
+            GLuint newenabled = texUnit->Enabled & ~TEXTURE0_RECT;
+            if (!ctx->Extensions.NV_texture_rectangle) {
+               _mesa_error(ctx, GL_INVALID_ENUM, state ? "glEnable" : "glDisable");
+               return;
+            }
+            if (state)
+               newenabled |= TEXTURE0_RECT;
+            if (!ctx->Visual.rgbMode || texUnit->Enabled == newenabled)
+               return;
+            FLUSH_VERTICES(ctx, _NEW_TEXTURE);
+            texUnit->Enabled = newenabled;
+         }
+         break;
+
+      default:
+         _mesa_error(ctx, GL_INVALID_ENUM, state ? "glEnable" : "glDisable");
+         return;
    }
 
    if (ctx->Driver.Enable) {
@@ -1120,6 +1139,18 @@ _mesa_IsEnabled( GLenum cap )
       /* GL_MESA_sprite_point */
       case GL_SPRITE_POINT_MESA:
          return ctx->Point.SpriteMode;
+
+      /* GL_NV_texture_rectangle */
+      case GL_TEXTURE_RECTANGLE_NV:
+         if (ctx->Extensions.NV_texture_rectangle) {
+            const struct gl_texture_unit *texUnit;
+            texUnit = &ctx->Texture.Unit[ctx->Texture.CurrentUnit];
+            return (texUnit->Enabled & TEXTURE0_RECT) ? GL_TRUE : GL_FALSE;
+         }
+         else {
+            _mesa_error(ctx, GL_INVALID_ENUM, "glIsEnabled");
+            return GL_FALSE;
+         }
 
       default:
 	 _mesa_error( ctx, GL_INVALID_ENUM, "glIsEnabled" );

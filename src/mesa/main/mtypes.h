@@ -1,10 +1,10 @@
-/* $Id: mtypes.h,v 1.51.2.6 2002/06/14 03:49:09 brianp Exp $ */
+/* $Id: mtypes.h,v 1.51.2.7 2002/08/28 01:13:35 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.5
+ * Version:  4.0.4
  *
- * Copyright (C) 1999-2001  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -669,49 +669,51 @@ struct gl_stencil_attrib {
 #define R_BIT 4
 #define Q_BIT 8
 
-#define NUM_TEXTURE_TARGETS 4 /* 1D, 2D, 3D and CUBE */
+#define NUM_TEXTURE_TARGETS 5 /* 1D, 2D, 3D, CUBE, and RECT */
 
 /* Texture Enabled flags */
 #define TEXTURE0_1D   0x1     /* Texture unit 0 (default) */
 #define TEXTURE0_2D   0x2
 #define TEXTURE0_3D   0x4
 #define TEXTURE0_CUBE 0x8
-#define TEXTURE0_ANY  (TEXTURE0_1D | TEXTURE0_2D | TEXTURE0_3D | TEXTURE0_CUBE)
-#define TEXTURE1_1D   (TEXTURE0_1D << 4)    /* Texture unit 1 */
-#define TEXTURE1_2D   (TEXTURE0_2D << 4)
-#define TEXTURE1_3D   (TEXTURE0_3D << 4)
-#define TEXTURE1_CUBE (TEXTURE0_CUBE << 4)
-#define TEXTURE1_ANY  (TEXTURE1_1D | TEXTURE1_2D | TEXTURE1_3D | TEXTURE1_CUBE)
-#define TEXTURE2_1D   (TEXTURE0_1D << 8)    /* Texture unit 2 */
-#define TEXTURE2_2D   (TEXTURE0_2D << 8)
-#define TEXTURE2_3D   (TEXTURE0_3D << 8)
-#define TEXTURE2_CUBE (TEXTURE0_CUBE << 8)
-#define TEXTURE2_ANY  (TEXTURE2_1D | TEXTURE2_2D | TEXTURE2_3D | TEXTURE2_CUBE)
-#define TEXTURE3_1D   (TEXTURE0_1D << 12)    /* Texture unit 3 */
-#define TEXTURE3_2D   (TEXTURE0_2D << 12)
-#define TEXTURE3_3D   (TEXTURE0_3D << 12)
-#define TEXTURE3_CUBE (TEXTURE0_CUBE << 12)
-#define TEXTURE3_ANY  (TEXTURE3_1D | TEXTURE3_2D | TEXTURE3_3D | TEXTURE3_CUBE)
-#define TEXTURE4_1D   (TEXTURE0_1D << 16)    /* Texture unit 4 */
-#define TEXTURE4_2D   (TEXTURE0_2D << 16)
-#define TEXTURE4_3D   (TEXTURE0_3D << 16)
-#define TEXTURE4_CUBE (TEXTURE0_CUBE << 16)
-#define TEXTURE5_ANY  (TEXTURE3_1D | TEXTURE3_2D | TEXTURE3_3D | TEXTURE3_CUBE)
-#define TEXTURE5_1D   (TEXTURE0_1D << 20)    /* Texture unit 5 */
-#define TEXTURE5_2D   (TEXTURE0_2D << 20)
-#define TEXTURE5_3D   (TEXTURE0_3D << 20)
-#define TEXTURE5_CUBE (TEXTURE0_CUBE << 20)
-#define TEXTURE5_ANY  (TEXTURE3_1D | TEXTURE3_2D | TEXTURE3_3D | TEXTURE3_CUBE)
-#define TEXTURE6_1D   (TEXTURE0_1D << 24)    /* Texture unit 6 */
-#define TEXTURE6_2D   (TEXTURE0_2D << 24)
-#define TEXTURE6_3D   (TEXTURE0_3D << 24)
-#define TEXTURE6_CUBE (TEXTURE0_CUBE << 24)
-#define TEXTURE6_ANY  (TEXTURE3_1D | TEXTURE3_2D | TEXTURE3_3D | TEXTURE3_CUBE)
-#define TEXTURE7_1D   (TEXTURE0_1D << 28)    /* Texture unit 7 */
-#define TEXTURE7_2D   (TEXTURE0_2D << 28)
-#define TEXTURE7_3D   (TEXTURE0_3D << 28)
-#define TEXTURE7_CUBE (TEXTURE0_CUBE << 28)
-#define TEXTURE7_ANY  (TEXTURE3_1D | TEXTURE3_2D | TEXTURE3_3D | TEXTURE3_CUBE)
+#define TEXTURE0_RECT 0x10
+#define TEXTURE0_ANY  (TEXTURE0_1D | TEXTURE0_2D | TEXTURE0_3D | TEXTURE0_CUBE | TEXTURE0_RECT)
+
+#define TEXTURE1_1D   (TEXTURE0_1D << 5)    /* Texture unit 1 */
+#define TEXTURE1_2D   (TEXTURE0_2D << 5)
+#define TEXTURE1_3D   (TEXTURE0_3D << 5)
+#define TEXTURE1_CUBE (TEXTURE0_CUBE << 5)
+#define TEXTURE1_RECT (TEXTURE0_RECT << 5)
+#define TEXTURE1_ANY  (TEXTURE1_1D | TEXTURE1_2D | TEXTURE1_3D | TEXTURE1_CUBE | TEXTURE1_RECT)
+
+#define TEXTURE2_1D   (TEXTURE0_1D << 10)    /* Texture unit 2 */
+#define TEXTURE2_2D   (TEXTURE0_2D << 10)
+#define TEXTURE2_3D   (TEXTURE0_3D << 10)
+#define TEXTURE2_CUBE (TEXTURE0_CUBE << 10)
+#define TEXTURE2_RECT (TEXTURE0_RECT << 10)
+#define TEXTURE2_ANY  (TEXTURE2_1D | TEXTURE2_2D | TEXTURE2_3D | TEXTURE2_CUBE | TEXTURE2_RECT)
+
+#define TEXTURE3_1D   (TEXTURE0_1D << 15)    /* Texture unit 3 */
+#define TEXTURE3_2D   (TEXTURE0_2D << 15)
+#define TEXTURE3_3D   (TEXTURE0_3D << 15)
+#define TEXTURE3_CUBE (TEXTURE0_CUBE << 15)
+#define TEXTURE3_RECT (TEXTURE0_RECT << 15)
+#define TEXTURE3_ANY  (TEXTURE3_1D | TEXTURE3_2D | TEXTURE3_3D | TEXTURE3_CUBE | TEXTURE3_RECT)
+
+#define TEXTURE4_1D   (TEXTURE0_1D << 20)    /* Texture unit 4 */
+#define TEXTURE4_2D   (TEXTURE0_2D << 20)
+#define TEXTURE4_3D   (TEXTURE0_3D << 20)
+#define TEXTURE4_CUBE (TEXTURE0_CUBE << 20)
+#define TEXTURE4_RECT (TEXTURE0_RECT << 20)
+#define TEXTURE4_ANY  (TEXTURE4_1D | TEXTURE4_2D | TEXTURE4_3D | TEXTURE4_CUBE | TEXTURE4_TECT)
+
+#define TEXTURE5_1D   (TEXTURE0_1D << 25)    /* Texture unit 5 */
+#define TEXTURE5_2D   (TEXTURE0_2D << 25)
+#define TEXTURE5_3D   (TEXTURE0_3D << 25)
+#define TEXTURE5_CUBE (TEXTURE0_CUBE << 25)
+#define TEXTURE5_RECT (TEXTURE0_CUBE << 25)
+#define TEXTURE5_ANY  (TEXTURE5_1D | TEXTURE5_2D | TEXTURE5_3D | TEXTURE5_CUBE | TEXTURE5_RECT)
+
 
 /* Bitmap versions of the GL_ constants.
  */
@@ -807,6 +809,9 @@ struct gl_texture_image {
    GLuint HeightLog2;		/* = log2(Height2) */
    GLuint DepthLog2;		/* = log2(Depth2) */
    GLuint MaxLog2;		/* = MAX(WidthLog2, HeightLog2) */
+   GLfloat WidthScale;		/* used for mipmap lod computation */
+   GLfloat HeightScale;		/* used for mipmap lod computation */
+   GLfloat DepthScale;		/* used for mipmap lod computation */
    GLvoid *Data;		/* Image data, accessed via FetchTexel() */
 
    const struct gl_texture_format *TexFormat;
@@ -826,7 +831,7 @@ struct gl_texture_object {
    _glthread_Mutex Mutex;	/* for thread safety */
    GLint RefCount;		/* reference count */
    GLuint Name;			/* an unsigned integer */
-   GLuint Dimensions;		/* 1 or 2 or 3 or 6 (cube map) */
+   GLenum Target;               /* GL_TEXTURE_1D, GL_TEXTURE_2D, etc. */
    GLfloat Priority;		/* in [0,1] */
    GLchan BorderColor[4];
    GLenum WrapS;		/* Wrap modes are: GL_CLAMP, REPEAT */
@@ -872,8 +877,8 @@ struct gl_texture_object {
  * Texture units are new with the multitexture extension.
  */
 struct gl_texture_unit {
-   GLuint Enabled;              /* bitmask of TEXTURE0_1D, _2D, _3D, _CUBE */
-   GLuint _ReallyEnabled;       /* 0 or one of TEXTURE0_1D, _2D, _3D, _CUBE */
+   GLuint Enabled;        /* bitmask of TEXTURE0_1D, _2D, _3D, _CUBE, _RECT */
+   GLuint _ReallyEnabled; /* 0 or one of TEXTURE0_1D, _2D, _3D, _CUBE, _RECT */
 
    GLenum EnvMode;              /* GL_MODULATE, GL_DECAL, GL_BLEND, etc. */
    GLfloat EnvColor[4];
@@ -911,13 +916,15 @@ struct gl_texture_unit {
    struct gl_texture_object *Current2D;
    struct gl_texture_object *Current3D;
    struct gl_texture_object *CurrentCubeMap; /* GL_ARB_texture_cube_map */
+   struct gl_texture_object *CurrentRect;    /* GL_NV_texture_rectangle */
 
    struct gl_texture_object *_Current; /* Points to really enabled tex obj */
 
    struct gl_texture_object Saved1D;  /* only used by glPush/PopAttrib */
    struct gl_texture_object Saved2D;
    struct gl_texture_object Saved3D;
-   struct gl_texture_object SavedCubeMap;
+   struct gl_texture_object SavedCubeMap; /* GL_ARB_texture_cube_map */
+   struct gl_texture_object SavedRect;    /* GL_NV_texture_rectangle */
 };
 
 
@@ -927,8 +934,8 @@ struct gl_texture_attrib {
 
    GLuint _ReallyEnabled;     /* enables for all texture units: */
                              /* = (Unit[0]._ReallyEnabled << 0) | */
-                             /*   (Unit[1]._ReallyEnabled << 4) | */
-	                     /*   (Unit[2]._ReallyEnabled << 8) | etc... */
+                             /*   (Unit[1]._ReallyEnabled << 5) | */
+	                     /*   (Unit[2]._ReallyEnabled << 10) | etc... */
 
    GLuint _GenFlags;  /* for texgen */
    GLuint _TexGenEnabled;	
@@ -939,7 +946,8 @@ struct gl_texture_attrib {
    struct gl_texture_object *Proxy1D;
    struct gl_texture_object *Proxy2D;
    struct gl_texture_object *Proxy3D;
-   struct gl_texture_object *ProxyCubeMap;
+   struct gl_texture_object *ProxyCubeMap; /* GL_ARB_texture_cube_map */
+   struct gl_texture_object *ProxyRect;    /* GL_NV_texture_rectangle */
 
    /* GL_EXT_shared_texture_palette */
    GLboolean SharedPalette;
@@ -1113,6 +1121,7 @@ struct gl_shared_state {
    struct gl_texture_object *Default2D;
    struct gl_texture_object *Default3D;
    struct gl_texture_object *DefaultCubeMap;
+   struct gl_texture_object *DefaultRect;
 
    void *DriverData;  /* Device driver shared state */
 };
@@ -1163,7 +1172,8 @@ struct gl_frame_buffer {
 struct gl_constants {
    GLint MaxTextureLevels;
    GLint Max3DTextureLevels;
-   GLint MaxCubeTextureLevels;
+   GLint MaxCubeTextureLevels;          /* GL_ARB_texture_cube_map */
+   GLint MaxTextureRectSize;            /* GL_NV_texture_rectangle */
    GLuint MaxTextureUnits;
    GLfloat MaxTextureMaxAnisotropy;	/* GL_EXT_texture_filter_anisotropic */
    GLfloat MaxTextureLodBias;           /* GL_EXT_texture_lod_bias */
@@ -1240,6 +1250,7 @@ struct gl_extensions {
    GLboolean MESA_sprite_point;
    GLboolean NV_blend_square;
    GLboolean NV_texgen_reflection;
+   GLboolean NV_texture_rectangle;
    GLboolean SGI_color_matrix;
    GLboolean SGI_color_table;
    GLboolean SGIS_generate_mipmap;

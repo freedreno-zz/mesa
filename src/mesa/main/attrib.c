@@ -1,8 +1,8 @@
-/* $Id: attrib.c,v 1.57.2.4 2002/06/16 03:19:57 brianp Exp $ */
+/* $Id: attrib.c,v 1.57.2.5 2002/08/28 01:13:34 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  4.0.3
+ * Version:  4.0.4
  *
  * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
  *
@@ -353,6 +353,8 @@ _mesa_PushAttrib(GLbitfield mask)
                                     attr->Unit[u].Current3D);
          _mesa_copy_texture_object(&attr->Unit[u].SavedCubeMap,
                                     attr->Unit[u].CurrentCubeMap);
+         _mesa_copy_texture_object(&attr->Unit[u].SavedRect,
+                                    attr->Unit[u].CurrentRect);
       }
       newnode = new_attrib_node( GL_TEXTURE_BIT );
       newnode->data = attr;
@@ -519,6 +521,12 @@ pop_enable_group(GLcontext *ctx, const struct gl_enable_attrib *enable)
                              (GLboolean) (enable->Texture[i] & TEXTURE0_2D) );
             (*ctx->Driver.Enable)( ctx, GL_TEXTURE_3D,
                              (GLboolean) (enable->Texture[i] & TEXTURE0_3D) );
+            if (ctx->Extensions.ARB_texture_cube_map)
+               (*ctx->Driver.Enable)( ctx, GL_TEXTURE_CUBE_MAP_ARB,
+                           (GLboolean) (enable->Texture[i] & TEXTURE0_CUBE) );
+            if (ctx->Extensions.NV_texture_rectangle)
+               (*ctx->Driver.Enable)( ctx, GL_TEXTURE_RECTANGLE_NV,
+                          (GLboolean) (enable->Texture[i] & TEXTURE0_RECT) );
          }
       }
 
@@ -561,7 +569,7 @@ pop_texture_group(GLcontext *ctx, const struct gl_texture_attrib *texAttrib)
 
    for (u = 0; u < ctx->Const.MaxTextureUnits; u++) {
       const struct gl_texture_unit *unit = &texAttrib->Unit[u];
-      GLuint numObjs, i;
+      GLuint i;
 
       _mesa_ActiveTextureARB(GL_TEXTURE0_ARB + u);
       _mesa_set_enable(ctx, GL_TEXTURE_1D,
@@ -573,6 +581,10 @@ pop_texture_group(GLcontext *ctx, const struct gl_texture_attrib *texAttrib)
       if (ctx->Extensions.ARB_texture_cube_map) {
          _mesa_set_enable(ctx, GL_TEXTURE_CUBE_MAP_ARB,
              (GLboolean) (unit->Enabled & TEXTURE0_CUBE ? GL_TRUE : GL_FALSE));
+      }
+      if (ctx->Extensions.NV_texture_rectangle) {
+         _mesa_set_enable(ctx, GL_TEXTURE_RECTANGLE_NV,
+             (GLboolean) (unit->Enabled & TEXTURE0_RECT ? GL_TRUE : GL_FALSE));
       }
       _mesa_TexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, unit->EnvMode);
       _mesa_TexEnvfv(GL_TEXTURE_ENV, GL_TEXTURE_ENV_COLOR, unit->EnvColor);
@@ -629,9 +641,7 @@ pop_texture_group(GLcontext *ctx, const struct gl_texture_attrib *texAttrib)
       }
 
       /* Restore texture object state */
-      numObjs = ctx->Extensions.ARB_texture_cube_map ? 4 : 3;
-
-      for (i = 0; i < numObjs; i++) {
+      for (i = 0; i < NUM_TEXTURE_TARGETS; i++) {
          GLenum target = 0;
          const struct gl_texture_object *obj = NULL;
          GLfloat bordColor[4];
@@ -650,8 +660,16 @@ pop_texture_group(GLcontext *ctx, const struct gl_texture_attrib *texAttrib)
             obj = &unit->Saved3D;
             break;
          case 3:
+            if (!ctx->Extensions.ARB_texture_cube_map)
+               continue;
             target = GL_TEXTURE_CUBE_MAP_ARB;
             obj = &unit->SavedCubeMap;
+            break;
+         case 4:
+            if (!ctx->Extensions.NV_texture_rectangle)
+               continue;
+            target = GL_TEXTURE_RECTANGLE_NV;
+            obj = &unit->SavedRect;
             break;
          default:
             ; /* silence warnings */
@@ -704,6 +722,7 @@ pop_texture_group(GLcontext *ctx, const struct gl_texture_attrib *texAttrib)
       ctx->Texture.Unit[u].Current2D->RefCount--;
       ctx->Texture.Unit[u].Current3D->RefCount--;
       ctx->Texture.Unit[u].CurrentCubeMap->RefCount--;
+      ctx->Texture.Unit[u].CurrentRect->RefCount--;
    }
 }
 

@@ -1,8 +1,8 @@
-/* $Id: get.c,v 1.69.2.6 2002/04/26 13:51:53 brianp Exp $ */
+/* $Id: get.c,v 1.69.2.7 2002/08/28 01:13:34 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  4.0.3
+ * Version:  4.0.4
  *
  * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
  *
@@ -57,6 +57,42 @@
 #define ENUM_TO_FLOAT(X) ((GLfloat)(X))
 #define ENUM_TO_DOUBLE(X) ((GLdouble)(X))
 #endif
+
+
+
+/* Check if named extension is enabled, if not generate error and return */
+
+#define CHECK_EXTENSION_B(EXTNAME, PNAME)			\
+   if (!ctx->Extensions.EXTNAME) {				\
+      char message[100];					\
+      sprintf(message, "glGetBooleanv(0x%x)", (int) PNAME);	\
+      _mesa_error(ctx, GL_INVALID_VALUE, message);		\
+      return;							\
+   }	
+
+#define CHECK_EXTENSION_I(EXTNAME, PNAME)			\
+   if (!ctx->Extensions.EXTNAME) {				\
+      char message[100];					\
+      sprintf(message, "glGetIntegerv(0x%x)", (int) PNAME);	\
+      _mesa_error(ctx, GL_INVALID_VALUE, message);		\
+      return;							\
+   }	
+
+#define CHECK_EXTENSION_F(EXTNAME, PNAME)			\
+   if (!ctx->Extensions.EXTNAME) {				\
+      char message[100];					\
+      sprintf(message, "glGetFloatv(0x%x)", (int) PNAME);	\
+      _mesa_error(ctx, GL_INVALID_VALUE, message);		\
+      return;							\
+   }	
+
+#define CHECK_EXTENSION_D(EXTNAME, PNAME)			\
+   if (!ctx->Extensions.EXTNAME) {				\
+      char message[100];					\
+      sprintf(message, "glGetDoublev(0x%x)", (int) PNAME);	\
+      _mesa_error(ctx, GL_INVALID_VALUE, message);		\
+      return;							\
+   }	
 
 
 
@@ -1384,6 +1420,20 @@ _mesa_GetBooleanv( GLenum pname, GLboolean *params )
          }
          break;
 
+      /* GL_NV_texture_rectangle */
+      case GL_TEXTURE_RECTANGLE_NV:
+         CHECK_EXTENSION_B(NV_texture_rectangle, pname);
+         *params = _mesa_IsEnabled(GL_TEXTURE_RECTANGLE_NV);
+         break;
+      case GL_TEXTURE_BINDING_RECTANGLE_NV:
+         CHECK_EXTENSION_B(NV_texture_rectangle, pname);
+         *params = INT_TO_BOOL(textureUnit->CurrentRect->Name);
+         break;
+      case GL_MAX_RECTANGLE_TEXTURE_SIZE_NV:
+         CHECK_EXTENSION_B(NV_texture_rectangle, pname);
+         *params = INT_TO_BOOL(ctx->Const.MaxTextureRectSize);
+         break;
+
       default:
          _mesa_error( ctx, GL_INVALID_ENUM, "glGetBooleanv" );
    }
@@ -2688,6 +2738,20 @@ _mesa_GetDoublev( GLenum pname, GLdouble *params )
          }
          break;
 
+      /* GL_NV_texture_rectangle */
+      case GL_TEXTURE_RECTANGLE_NV:
+         CHECK_EXTENSION_D(NV_texture_rectangle, pname);
+         *params = (GLdouble) _mesa_IsEnabled(GL_TEXTURE_RECTANGLE_NV);
+         break;
+      case GL_TEXTURE_BINDING_RECTANGLE_NV:
+         CHECK_EXTENSION_D(NV_texture_rectangle, pname);
+         *params = (GLdouble) textureUnit->CurrentRect->Name;
+         break;
+      case GL_MAX_RECTANGLE_TEXTURE_SIZE_NV:
+         CHECK_EXTENSION_D(NV_texture_rectangle, pname);
+         *params = (GLdouble) ctx->Const.MaxTextureRectSize;
+         break;
+
       default:
          _mesa_error( ctx, GL_INVALID_ENUM, "glGetDoublev" );
    }
@@ -3973,7 +4037,21 @@ _mesa_GetFloatv( GLenum pname, GLfloat *params )
          }
          break;
 
-      default:
+      /* GL_NV_texture_rectangle */
+      case GL_TEXTURE_RECTANGLE_NV:
+         CHECK_EXTENSION_F(NV_texture_rectangle, pname);
+         *params = (GLfloat) _mesa_IsEnabled(GL_TEXTURE_RECTANGLE_NV);
+         break;
+      case GL_TEXTURE_BINDING_RECTANGLE_NV:
+         CHECK_EXTENSION_F(NV_texture_rectangle, pname);
+         *params = (GLfloat) textureUnit->CurrentRect->Name;
+         break;
+      case GL_MAX_RECTANGLE_TEXTURE_SIZE_NV:
+         CHECK_EXTENSION_F(NV_texture_rectangle, pname);
+         *params = (GLfloat) ctx->Const.MaxTextureRectSize;
+         break;
+
+       default:
          GET_FLOAT_ERROR;
    }
 }
@@ -5300,6 +5378,20 @@ _mesa_GetIntegerv( GLenum pname, GLint *params )
          }
          break;
 
+      /* GL_NV_texture_rectangle */
+      case GL_TEXTURE_RECTANGLE_NV:
+         CHECK_EXTENSION_I(NV_texture_rectangle, pname);
+         *params = (GLint) _mesa_IsEnabled(GL_TEXTURE_RECTANGLE_NV);
+         break;
+      case GL_TEXTURE_BINDING_RECTANGLE_NV:
+         CHECK_EXTENSION_I(NV_texture_rectangle, pname);
+         *params = (GLint) textureUnit->CurrentRect->Name;
+         break;
+      case GL_MAX_RECTANGLE_TEXTURE_SIZE_NV:
+         CHECK_EXTENSION_I(NV_texture_rectangle, pname);
+         *params = (GLint) ctx->Const.MaxTextureRectSize;
+         break;
+
       default:
          _mesa_error( ctx, GL_INVALID_ENUM, "glGetIntegerv" );
    }
@@ -5369,8 +5461,8 @@ _mesa_GetString( GLenum name )
    GET_CURRENT_CONTEXT(ctx);
    static const char *vendor = "Brian Paul";
    static const char *renderer = "Mesa";
-   static const char *version_1_2 = "1.2 Mesa 4.0.3";
-   static const char *version_1_3 = "1.3 Mesa 4.0.3";
+   static const char *version_1_2 = "1.2 Mesa 4.0.4";
+   static const char *version_1_3 = "1.3 Mesa 4.0.4";
 
    ASSERT_OUTSIDE_BEGIN_END_WITH_RETVAL(ctx, 0);
 

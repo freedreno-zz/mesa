@@ -1,8 +1,8 @@
-/* $Id: state.c,v 1.69.2.4 2002/06/06 16:25:08 brianp Exp $ */
+/* $Id: state.c,v 1.69.2.5 2002/08/28 01:13:35 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.5
+ * Version:  4.0.4
  *
  * Copyright (C) 1999-2001  Brian Paul   All Rights Reserved.
  *
@@ -769,6 +769,17 @@ update_texture_state( GLcontext *ctx )
          }
          if (texObj->Complete) {
             texUnit->_ReallyEnabled = TEXTURE0_3D;
+            texUnit->_Current = texObj;
+         }
+      }
+
+      if (!texUnit->_ReallyEnabled && (texUnit->Enabled & TEXTURE0_RECT)) {
+         struct gl_texture_object *texObj = texUnit->CurrentRect;
+         if (!texObj->Complete) {
+            _mesa_test_texobj_completeness(ctx, texObj);
+         }
+         if (texObj->Complete) {
+            texUnit->_ReallyEnabled = TEXTURE0_RECT;
             texUnit->_Current = texObj;
          }
       }
