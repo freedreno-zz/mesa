@@ -1,4 +1,4 @@
-/* $Id: attrib.c,v 1.11 1999/11/11 01:22:25 brianp Exp $ */
+/* $Id: attrib.c,v 1.10.2.1 1999/11/22 18:26:51 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -25,16 +25,23 @@
  */
 
 
+
+#include <stdlib.h>
+
 #ifdef PC_HEADER
 #include "all.h"
 #else
-#include "glheader.h"
+#ifndef XFree86Server
+#include <stdio.h>
+#else
+#include "GL/xf86glx.h"
+#endif
 #include "attrib.h"
 #include "context.h"
 #include "glmisc.h"
 #include "enable.h"
 #include "enums.h"
-#include "mem.h"
+#include "macros.h"
 #include "simple_list.h"
 #include "texstate.h"
 #include "types.h"
@@ -85,7 +92,11 @@ static void copy_texobj_state( struct gl_texture_object *dest,
    dest->P = src->P;
    dest->M = src->M;
    dest->MinMagThresh = src->MinMagThresh;
-   dest->Palette = src->Palette;
+   memcpy( dest->Palette, src->Palette,
+           sizeof(GLubyte) * MAX_TEXTURE_PALETTE_SIZE * 4 );
+   dest->PaletteSize = src->PaletteSize;
+   dest->PaletteIntFormat = src->PaletteIntFormat;
+   dest->PaletteFormat = src->PaletteFormat;
    dest->Complete = src->Complete;
    dest->SampleFunc = src->SampleFunc;
 }
@@ -420,7 +431,7 @@ void gl_PopAttrib( GLcontext* ctx )
                MEMCPY( &ctx->Color, attr->data,
                        sizeof(struct gl_colorbuffer_attrib) );
                if (ctx->Color.DrawBuffer != oldDrawBuffer) {
-                  _mesa_DrawBuffer( ctx->Color.DrawBuffer);
+                  gl_DrawBuffer(ctx, ctx->Color.DrawBuffer);
                }
                if ((ctx->Color.AlphaFunc != oldAlphaFunc ||
                     ctx->Color.AlphaRef != oldAlphaRef) &&
@@ -460,7 +471,7 @@ void gl_PopAttrib( GLcontext* ctx )
 
 #define TEST_AND_UPDATE(VALUE, NEWVALUE, ENUM)		\
 	if ((VALUE) != (NEWVALUE)) {			\
-	   _mesa_set_enable( ctx, ENUM, (NEWVALUE) );	\
+	   gl_set_enable( ctx, ENUM, (NEWVALUE) );	\
 	}
 
                TEST_AND_UPDATE(ctx->Color.AlphaEnabled, enable->AlphaTest, GL_ALPHA_TEST);
@@ -470,7 +481,7 @@ void gl_PopAttrib( GLcontext* ctx )
                   GLuint i;
                   for (i=0;i<MAX_CLIP_PLANES;i++) {
                      if (ctx->Transform.ClipEnabled[i] != enable->ClipPlane[i])
-                        _mesa_set_enable( ctx, (GLenum) (GL_CLIP_PLANE0 + i), enable->ClipPlane[i] );
+                        gl_set_enable( ctx, (GLenum) (GL_CLIP_PLANE0 + i), enable->ClipPlane[i] );
                   }
                }
                TEST_AND_UPDATE(ctx->Light.ColorMaterialEnabled, enable->ColorMaterial, GL_COLOR_MATERIAL);
@@ -613,7 +624,13 @@ void gl_PopAttrib( GLcontext* ctx )
                }
                (*ctx->Driver.Enable)( ctx, GL_LIGHTING, ctx->Light.Enabled );
             }
-	    ctx->Enabled &= ENABLE_LIGHT;
+            if (ctx->Light.ShadeModel == GL_FLAT)
+               ctx->TriangleCaps |= DD_FLATSHADE;
+            else
+               ctx->TriangleCaps &= ~DD_FLATSHADE;
+            if (ctx->Driver.ShadeModel)
+               (*ctx->Driver.ShadeModel)(ctx, ctx->Light.ShadeModel);
+	    ctx->Enabled &= ~ENABLE_LIGHT;
 	    if (ctx->Light.Enabled && !is_empty_list(&ctx->Light.EnabledList))
 	       ctx->Enabled |= ENABLE_LIGHT;
             break;
@@ -731,8 +748,8 @@ void gl_PopAttrib( GLcontext* ctx )
 	    struct gl_viewport_attrib *v = 
 	       (struct gl_viewport_attrib *)attr->data;
 	    
-	    _mesa_Viewport( v->X, v->Y, v->Width, v->Height );
-	    _mesa_DepthRange( v->Near, v->Far );
+	    gl_Viewport( ctx, v->X, v->Y, v->Width, v->Height );
+	    gl_DepthRange( ctx, v->Near, v->Far );
 	    break;
 	 }
          default:
@@ -845,38 +862,4 @@ void gl_PopClientAttrib( GLcontext *ctx )
 
    ctx->NewState = NEW_ALL;
 }
-
-
-
-void
-_mesa_PushAttrib( GLbitfield mask )
-{
-   GET_CURRENT_CONTEXT(ctx);
-   gl_PushAttrib(ctx, mask);
-}
-
-
-void
-_mesa_PopAttrib( void )
-{
-   GET_CURRENT_CONTEXT(ctx);
-   gl_PopAttrib(ctx);
-}
-
-
-void
-_mesa_PushClientAttrib( GLbitfield mask )
-{
-   GET_CURRENT_CONTEXT(ctx);
-   gl_PushClientAttrib(ctx, mask);
-}
-
-
-void
-_mesa_PopClientAttrib( void )
-{
-   GET_CURRENT_CONTEXT(ctx);
-   gl_PopClientAttrib(ctx);
-}
-
 
