@@ -1,10 +1,10 @@
-/* $Id: s_copypix.c,v 1.24 2001/07/23 16:07:39 brianp Exp $ */
+/* $Id: s_copypix.c,v 1.24.2.1 2002/03/14 22:09:05 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.5
+ * Version:  4.0.2
  *
- * Copyright (C) 1999-2001  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -404,7 +404,7 @@ copy_rgba_pixels(GLcontext *ctx, GLint srcx, GLint srcy,
       for (j = 0; j < height; j++, ssy += stepy) {
          _mesa_read_rgba_span( ctx, ctx->ReadBuffer, width, srcx, ssy,
                             (GLchan (*)[4]) p );
-         p += (width * sizeof(GLchan) * 4);
+         p += width * 4;
       }
       p = tmpImage;
    }
@@ -418,7 +418,7 @@ copy_rgba_pixels(GLcontext *ctx, GLint srcx, GLint srcy,
       if (overlapping) {
          /* get from buffered image */
          MEMCPY(rgba, p, width * sizeof(GLchan) * 4);
-         p += (width * sizeof(GLchan) * 4);
+         p += width * 4;
       }
       else {
          /* get from framebuffer */
