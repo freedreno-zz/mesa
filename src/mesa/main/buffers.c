@@ -1,4 +1,4 @@
-/* $Id: buffers.c,v 1.9.4.3 2000/11/05 21:24:00 brianp Exp $ */
+/* $Id: buffers.c,v 1.9.4.4 2001/05/15 20:13:22 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -168,7 +168,7 @@ clear_color_buffer(GLcontext *ctx)
    }
    else {
       /* Color index mode */
-      ASSERT(ctx->Color.IndexMask == (GLuint) ~0);
+      ASSERT(ctx->Color.IndexMask == ((1 << ctx->Visual->IndexBits) - 1));
       if (ctx->Visual->IndexBits == 8) {
          /* 8-bit clear */
          GLubyte span[MAX_WIDTH];
