@@ -17,7 +17,7 @@
 # The PROJECT_NAME tag is a single word (or a sequence of words surrounded 
 # by quotes) that should identify the project.
 
-PROJECT_NAME           = "Radeon Framebuffer Module"
+PROJECT_NAME           = "AGPGART Module"
 
 # The PROJECT_NUMBER tag can be used to enter a project or revision number. 
 # This could be handy for archiving the generated documentation or 
@@ -345,7 +345,7 @@ WARN_LOGFILE           =
 # directories like "/usr/src/myproject". Separate the files or directories 
 # with spaces.
 
-INPUT                  = 
+INPUT                  = ../src/kernel/agpgart-2.5
 
 # If the value of the INPUT tag contains directories, you can use the 
 # FILE_PATTERNS tag to specify one or more wildcard pattern (like *.cpp 
@@ -377,7 +377,7 @@ EXCLUDE_SYMLINKS       = NO
 # EXCLUDE_PATTERNS tag to specify one or more wildcard patterns to exclude 
 # certain files from those directories.
 
-EXCLUDE_PATTERNS       = 
+EXCLUDE_PATTERNS       = i810_agp.c
 
 # The EXAMPLE_PATH tag can be used to specify one or more files or 
 # directories that contain example code fragments that are included (see 
@@ -488,7 +488,7 @@ GENERATE_HTML          = YES
 # If a relative path is entered the value of OUTPUT_DIRECTORY will be 
 # put in front of it. If left blank `html' will be used as the default path.
 
-HTML_OUTPUT            = html
+HTML_OUTPUT            = agpgart
 
 # The HTML_FILE_EXTENSION tag can be used to specify the file extension for 
 # each generated HTML page (for example: .htm,.php,.asp). If it is left blank 
@@ -843,7 +843,6 @@ INCLUDE_FILE_PATTERNS  =
 
 PREDEFINED             = \
 			__KERNEL__ \
-			"__attribute__(x)=" \
 			"__devinit=" \
 			"__init=" \
 			"__devinitdata=" \
@@ -851,7 +850,11 @@ PREDEFINED             = \
 			"MODULE_AUTHOR()=" \
 			"MODULE_LICENSE()=" \
 			"MODULE_DESCRIPTION()=" \
-			"MODULE_DEVICE_TABLE()="
+			"MODULE_DEVICE_TABLE()=" \
+			"MODULE_PARM()=" \
+			"module_init()=" \
+			"module_exit()=" \
+			"EXPORT_SYMBOL()="
 
 # If the MACRO_EXPANSION and EXPAND_ONLY_PREDEF tags are set to YES then 
 # this tag can be used to specify a list of macro names that should be expanded. 

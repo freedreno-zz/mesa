@@ -2,8 +2,13 @@
  * \file drm.h 
  * \brief Header for the Direct Rendering Manager
  * 
- * Created: Mon Jan  4 10:05:05 1999 by faith@precisioninsight.com
+ * \author Rickard E. (Rik) Faith <faith@valinux.com>
  *
+ * \par Acknowledgements:
+ * Dec 1999, Richard Henderson <rth@twiddle.net>, move to generic \c cmpxchg.
+ */
+
+/*
  * Copyright 1999 Precision Insight, Inc., Cedar Park, Texas.
  * Copyright 2000 VA Linux Systems, Inc., Sunnyvale, California.
  * All rights reserved.
@@ -26,13 +31,8 @@
  * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
- *
- * \author Rickard E. (Rik) Faith <faith@valinux.com>
- *
- * \par Acknowledgements:
- * Dec 1999, Richard Henderson <rth@twiddle.net>, move to generic \c cmpxchg.
- *
  */
+
 
 #ifndef _DRM_H_
 #define _DRM_H_
@@ -102,10 +102,13 @@ typedef unsigned int  drm_drawable_t;
 typedef unsigned int  drm_magic_t;
 
 
-/* Warning: If you change this structure, make sure you change
- * XF86DRIClipRectRec in the server as well */
-
-/* KW: Actually it's illegal to change either for
+/**
+ * Cliprect.
+ * 
+ * \warning: If you change this structure, make sure you change
+ * XF86DRIClipRectRec in the server as well
+ *
+ * \note KW: Actually it's illegal to change either for
  * backwards-compatibility reasons.
  */
 typedef struct drm_clip_rect {
@@ -116,6 +119,9 @@ typedef struct drm_clip_rect {
 } drm_clip_rect_t;
 
 
+/**
+ * Texture region,
+ */
 typedef struct drm_tex_region {
 	unsigned char	next;
 	unsigned char	prev;

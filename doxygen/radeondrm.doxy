@@ -17,7 +17,7 @@
 # The PROJECT_NAME tag is a single word (or a sequence of words surrounded 
 # by quotes) that should identify the project.
 
-PROJECT_NAME           = "AGPGART Module"
+PROJECT_NAME           = "Radeon Direct Rendering Module"
 
 # The PROJECT_NUMBER tag can be used to enter a project or revision number. 
 # This could be handy for archiving the generated documentation or 
@@ -345,7 +345,7 @@ WARN_LOGFILE           =
 # directories like "/usr/src/myproject". Separate the files or directories 
 # with spaces.
 
-INPUT                  = 
+INPUT                  = ../src/kernel/radeon
 
 # If the value of the INPUT tag contains directories, you can use the 
 # FILE_PATTERNS tag to specify one or more wildcard pattern (like *.cpp 
@@ -354,7 +354,7 @@ INPUT                  =
 # *.c *.cc *.cxx *.cpp *.c++ *.java *.ii *.ixx *.ipp *.i++ *.inl *.h *.hh *.hxx *.hpp 
 # *.h++ *.idl *.odl
 
-FILE_PATTERNS          = 
+FILE_PATTERNS          = drm.h drmP.h drm_*.h radeon_*.[ch]
 
 # The RECURSIVE tag can be used to turn specify whether or not subdirectories 
 # should be searched for input files as well. Possible values are YES and NO. 
@@ -377,7 +377,7 @@ EXCLUDE_SYMLINKS       = NO
 # EXCLUDE_PATTERNS tag to specify one or more wildcard patterns to exclude 
 # certain files from those directories.
 
-EXCLUDE_PATTERNS       = i810_agp.c
+EXCLUDE_PATTERNS       = drm_auth.h drm_drawable.h drm_proc.h drm_scatter.h
 
 # The EXAMPLE_PATH tag can be used to specify one or more files or 
 # directories that contain example code fragments that are included (see 
@@ -488,7 +488,7 @@ GENERATE_HTML          = YES
 # If a relative path is entered the value of OUTPUT_DIRECTORY will be 
 # put in front of it. If left blank `html' will be used as the default path.
 
-HTML_OUTPUT            = html
+HTML_OUTPUT            = radeondrm
 
 # The HTML_FILE_EXTENSION tag can be used to specify the file extension for 
 # each generated HTML page (for example: .htm,.php,.asp). If it is left blank 
@@ -843,25 +843,29 @@ INCLUDE_FILE_PATTERNS  =
 
 PREDEFINED             = \
 			__KERNEL__ \
-			"__devinit=" \
-			"__init=" \
-			"__devinitdata=" \
-			"__initdata=" \
-			"MODULE_AUTHOR()=" \
-			"MODULE_LICENSE()=" \
-			"MODULE_DESCRIPTION()=" \
-			"MODULE_DEVICE_TABLE()=" \
-			"MODULE_PARM()=" \
-			"module_init()=" \
-			"module_exit()=" \
-			"EXPORT_SYMBOL()="
+			"DRM(x)=x" \
+			__HAVE_AGP=1 \
+			__REALLY_HAVE_AGP=1 \
+			__MUST_HAVE_AGP=0 \
+			__HAVE_MTRR=1 \
+			__HAVE_CTX_BITMAP=1 \ 
+			__HAVE_SG=0 \
+			__HAVE_PCI_DMA=0 \
+			__HAVE_DMA=1 \
+			__HAVE_DMA_IRQ=1 \
+			__HAVE_VBL_IRQ=1 \
+			__HAVE_SHARED_IRQ=1
 
 # If the MACRO_EXPANSION and EXPAND_ONLY_PREDEF tags are set to YES then 
 # this tag can be used to specify a list of macro names that should be expanded. 
 # The macro definition that is found in the sources will be used. 
 # Use the PREDEFINED tag if you want to use a different macro definition.
 
-EXPAND_AS_DEFINED      =
+EXPAND_AS_DEFINED      = \
+			DRMFILE \
+			DRM_IOCTL_ARGS \
+			DRM_IRQ_ARGS \
+			DRM_TASKQUEUE_ARGS
 
 # If the SKIP_FUNCTION_MACROS tag is set to YES (the default) then 
 # doxygen's preprocessor will remove all function-like macros that are alone 

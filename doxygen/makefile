@@ -26,6 +26,9 @@ subset:
 	doxygen math_subset.doxy
 	doxygen miniglx.doxy
 	doxygen radeon_subset.doxy
+	doxygen radeonfb.doxy
+	doxygen radeondrm.doxy
+	doxygen agpgart.doxy
 
 clean:
 	rm -rf \
