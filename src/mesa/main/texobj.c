@@ -1,4 +1,4 @@
-/* $Id: texobj.c,v 1.23.4.8 2000/11/17 02:42:32 brianp Exp $ */
+/* $Id: texobj.c,v 1.23.4.9 2000/12/14 23:10:39 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -207,8 +207,12 @@ _mesa_test_texobj_completeness( const GLcontext *ctx,
       t->P = max;
    }
 
+   t->P += baseLevel;
+   t->P = MIN2(t->P, t->MaxLevel);
+   t->P = MIN2(t->P, ctx->Const.MaxTextureLevels - 1);
+
    /* Compute M (see the 1.2 spec) used during mipmapping */
-   t->M = (GLfloat) (MIN2(t->MaxLevel, t->P) - t->BaseLevel);
+   t->M = (GLfloat) (t->P - t->BaseLevel);
 
 
    if (t->Dimensions == 6) {
@@ -242,8 +246,7 @@ _mesa_test_texobj_completeness( const GLcontext *ctx,
        */
       GLint i;
       GLint minLevel = baseLevel;
-      GLint maxLevel = MIN2(t->P, ctx->Const.MaxTextureLevels-1);
-      maxLevel = MIN2(maxLevel, t->MaxLevel);
+      GLint maxLevel = t->P;
 
       if (minLevel > maxLevel) {
          t->Complete = GL_FALSE;
