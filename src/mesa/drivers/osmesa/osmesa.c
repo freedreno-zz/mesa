@@ -1,4 +1,4 @@
-/* $Id: osmesa.c,v 1.19.4.3 2001/01/06 22:43:01 gareth Exp $ */
+/* $Id: osmesa.c,v 1.19.4.4 2001/02/08 23:51:27 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -490,7 +490,10 @@ OSMesaGetDepthBuffer( OSMesaContext c, GLint *width, GLint *height,
    else {
       *width = c->gl_buffer->Width;
       *height = c->gl_buffer->Height;
-      *bytesPerValue = sizeof(GLdepth);
+      if (c->gl_visual->DepthBits <= 16)
+         *bytesPerValue = sizeof(GLushort);
+      else
+         *bytesPerValue = sizeof(GLuint);
       *buffer = c->gl_buffer->DepthBuffer;
       return GL_TRUE;
    }
