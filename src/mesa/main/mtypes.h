@@ -29,7 +29,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: mtypes.h,v 1.97.4.6 2003/03/21 11:35:19 keithw Exp $ */
+/* $Id: mtypes.h,v 1.97.4.7 2003/03/22 08:43:26 keithw Exp $ */
 
 
 #ifndef TYPES_H
@@ -1989,6 +1989,7 @@ struct __GLcontextRec {
    GLfloat _ModelViewInvScale;
    GLuint _NeedEyeCoords;
    GLuint _ForceEyeCoords; 
+   GLboolean _RotateMode;
 
    struct gl_shine_tab *_ShineTable[2]; /**< \brief Active shine tables */
    struct gl_shine_tab *_ShineTabList;  /**< \brief Mru list of inactive shine tables */

@@ -1,4 +1,4 @@
-/* $Id: rastpos.c,v 1.39.4.4 2003/03/21 11:35:20 keithw Exp $ */
+/* $Id: rastpos.c,v 1.39.4.5 2003/03/22 08:43:26 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -285,6 +285,14 @@ raster_pos4f(GLcontext *ctx, GLfloat x, GLfloat y, GLfloat z, GLfloat w)
 
    ASSIGN_4V( v, x, y, z, w );
    TRANSFORM_POINT( eye, ctx->ModelviewMatrixStack.Top->m, v );
+   TRANSFORM_POINT( clip, ctx->_ModelProjectMatrix.m, v );
+
+   if (ctx->_RotateMode) {
+      GLfloat tmp;
+      tmp = clip[1];
+      clip[1] = clip[0]; 
+      clip[0] = -tmp;
+   }
 
    /* raster color */
 #if FEATURE_lighting
@@ -329,8 +337,6 @@ raster_pos4f(GLcontext *ctx, GLfloat x, GLfloat y, GLfloat z, GLfloat w)
       ctx->Current.RasterDistance = (GLfloat)
                       GL_SQRT( eye[0]*eye[0] + eye[1]*eye[1] + eye[2]*eye[2] );
 
-   /* apply projection matrix:  clip = Proj * eye */
-   TRANSFORM_POINT( clip, ctx->ProjectionMatrixStack.Top->m, eye );
 
    /* clip to view volume */
    if (ctx->Transform.RasterPositionUnclipped) {
