@@ -1,4 +1,4 @@
-/* $Id: glfbdevtest.c,v 1.1.4.2 2002/11/22 15:26:56 brianp Exp $ */
+/* $Id: glfbdevtest.c,v 1.1.4.3 2002/11/22 16:13:49 brianp Exp $ */
 
 /*
  * Test the GLFBDev interface.
@@ -144,12 +144,32 @@ initialize_fbdev( void )
    }
 
    /* set the depth, resolution, etc */
+   /*   DesiredDepth = 32;*/
    if (DesiredDepth)
       VarInfo.bits_per_pixel = DesiredDepth;
-#if 0
    VarInfo.xres_virtual = VarInfo.xres = 1280;
    VarInfo.yres_virtual = VarInfo.yres = 1024;
-   VarInfo.bits_per_pixel = 32;
+#if 1
+   if (VarInfo.bits_per_pixel == 16) {
+      VarInfo.red.offset = 11;
+      VarInfo.green.offset = 5;
+      VarInfo.blue.offset = 0;
+      VarInfo.red.length = 5;
+      VarInfo.green.length = 6;
+      VarInfo.blue.length = 5;
+      VarInfo.transp.offset = 0;
+      VarInfo.transp.length = 0;
+   }
+   else if (VarInfo.bits_per_pixel == 32) {
+      VarInfo.red.offset = 16;
+      VarInfo.green.offset = 8;
+      VarInfo.blue.offset = 0;
+      VarInfo.transp.offset = 0;
+      VarInfo.red.length = 8;
+      VarInfo.green.length = 8;
+      VarInfo.blue.length = 8;
+      VarInfo.transp.length = 0;
+   }
 #endif
    printf("xres=%d yres=%d\n", VarInfo.xres, VarInfo.yres);
    printf("bits_per_pixel=%d\n", VarInfo.bits_per_pixel);
@@ -181,23 +201,22 @@ initialize_fbdev( void )
    /* initialize colormap */
    if (FixedInfo.visual == FB_VISUAL_DIRECTCOLOR) {
       struct fb_cmap cmap;
-      unsigned short red, green, blue;
-      int i, j;
+      unsigned short red[256], green[256], blue[256];
+      int i;
 
-      cmap.len = 1;
-      cmap.red = &red;
-      cmap.green = &green;
-      cmap.blue = &blue;
+      /* we're assuming 256 entries here */
+      printf("initializing directcolor colormap\n");
+      cmap.start = 0;
+      cmap.len = 256;
+      cmap.red   = red;
+      cmap.green = green;
+      cmap.blue  = blue;
       cmap.transp = NULL;
-      for (i = 0; i < 256; i++) {
-         cmap.start = i;
-         red = (i << 8) | i;
-         green = (i << 8) | i;
-         blue = (i << 8) | i;
-         j = ioctl(FrameBufferFD, FBIOPUTCMAP, (void *) &cmap);
-         if (j < 0) {
-            fprintf(stderr, "ioctl(FBIOPUTCMAP) failed [%d]\n", i);
-         }
+      for (i = 0; i < cmap.len; i++) {
+         red[i] = green[i] = blue[i] = (i << 8) | i;
+      }
+      if (ioctl(FrameBufferFD, FBIOPUTCMAP, (void *) &cmap) < 0) {
+         fprintf(stderr, "ioctl(FBIOPUTCMAP) failed [%d]\n", i);
       }
    }
 
@@ -262,7 +281,7 @@ gltest( void )
    printf("GLFBDEV_VERSION = %s\n", glFBDevGetString(GLFBDEV_VERSION));
 
    /* framebuffer size */
-   bytes = VarInfo.xres_virtual * VarInfo.yres_virtual * 4;
+   bytes = VarInfo.xres_virtual * VarInfo.yres_virtual * VarInfo.bits_per_pixel / 8;
 
    vis = glFBDevCreateVisual( &FixedInfo, &VarInfo, attribs );
    assert(vis);
