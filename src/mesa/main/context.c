@@ -1,8 +1,8 @@
-/* $Id: context.c,v 1.79.2.1 2000/08/29 19:01:18 brianp Exp $ */
+/* $Id: context.c,v 1.79.2.2 2000/09/12 21:08:11 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.3
+ * Version:  3.4
  *
  * Copyright (C) 1999-2000  Brian Paul   All Rights Reserved.
  *
@@ -452,8 +452,9 @@ alloc_shared_state( void )
    if (!ss)
       return NULL;
 
-   ss->DisplayList = _mesa_NewHashTable();
+   _glthread_INIT_MUTEX(ss->Mutex);
 
+   ss->DisplayList = _mesa_NewHashTable();
    ss->TexObjects = _mesa_NewHashTable();
 
    /* Default Texture objects */
