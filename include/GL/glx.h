@@ -1,4 +1,4 @@
-/* $Id: glx.h,v 1.33 2001/09/24 14:15:58 brianp Exp $ */
+/* $Id: glx.h,v 1.33.2.1 2001/12/14 03:20:57 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -172,8 +172,8 @@ extern "C" {
 /*
  * GLX 1.4 and later:
  */
-#define GLX_SAMPLE_BUFFERS_SGIS            100000
-#define GLX_SAMPLES_SGIS                   100001
+#define GLX_SAMPLE_BUFFERS              0x186a0 /*100000*/
+#define GLX_SAMPLES                     0x186a1 /*100001*/
 
 
 
