@@ -1,4 +1,4 @@
-$Id: VERSIONS,v 1.73.2.27 2002/06/16 03:33:33 brianp Exp $
+$Id: VERSIONS,v 1.73.2.28 2002/06/24 20:44:58 brianp Exp $
 
 
 Mesa Version History
@@ -955,7 +955,7 @@ Mesa Version History
 	- mipmap LOD computation
 
 
-4.0.3  June ??, 2002
+4.0.3  June 25, 2002
     New:
 	- updated GL/glext.h file (version 15)
 	- corrected MMX blend code (Jose Fonseca)
