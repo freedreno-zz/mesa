@@ -1,4 +1,4 @@
-/* $Id: s_zoom.c,v 1.18.2.1 2003/02/17 15:41:33 brianp Exp $ */
+/* $Id: s_zoom.c,v 1.18.2.2 2003/02/21 00:17:48 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -207,12 +207,15 @@ zoom_span( GLcontext *ctx, const struct sw_span *span,
    if (format == GL_RGBA || format == GL_RGB) {
       /* Writing the span may modify the colors, so make a backup now if we're
        * going to call _mesa_write_zoomed_span() more than once.
+       * Also, clipping may change the span end value, so store it as well.
        */
+      const GLint end = zoomed.end; /* save */
       if (r1 - r0 > 1) {
          MEMCPY(rgbaSave, zoomed.array->rgba, zoomed.end * 4 * sizeof(GLchan));
       }
       for (zoomed.y = r0; zoomed.y < r1; zoomed.y++) {
          _mesa_write_rgba_span(ctx, &zoomed);
+         zoomed.end = end;  /* restore */
          if (r1 - r0 > 1) {
             /* restore the colors */
             MEMCPY(zoomed.array->rgba, rgbaSave, zoomed.end*4 * sizeof(GLchan));
@@ -220,11 +223,13 @@ zoom_span( GLcontext *ctx, const struct sw_span *span,
       }
    }
    else if (format == GL_COLOR_INDEX) {
+      const GLint end = zoomed.end; /* save */
       if (r1 - r0 > 1) {
          MEMCPY(indexSave, zoomed.array->index, zoomed.end * sizeof(GLuint));
       }
       for (zoomed.y = r0; zoomed.y < r1; zoomed.y++) {
          _mesa_write_index_span(ctx, &zoomed);
+         zoomed.end = end;  /* restore */
          if (r1 - r0 > 1) {
             /* restore the colors */
             MEMCPY(zoomed.array->index, indexSave, zoomed.end * sizeof(GLuint));
