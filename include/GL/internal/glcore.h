@@ -58,12 +58,12 @@ typedef struct __GLinterfaceRec __GLinterface;
 ** and used by the "operating system".
 */
 
-/*
-** Mode and limit information for a context.  This information is
-** kept around in the context so that values can be used during
-** command execution, and for returning information about the
-** context to the application.
-*/
+/**
+ * Mode and limit information for a context.  This information is
+ * kept around in the context so that values can be used during
+ * command execution, and for returning information about the
+ * context to the application.
+ */
 typedef struct __GLcontextModesRec {
     GLboolean rgbMode;
     GLboolean colorIndexMode;
