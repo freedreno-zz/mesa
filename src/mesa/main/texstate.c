@@ -1,4 +1,4 @@
-/* $Id: texstate.c,v 1.15.4.4 2001/03/02 16:40:47 gareth Exp $ */
+/* $Id: texstate.c,v 1.15.4.5 2001/05/04 17:26:08 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -891,22 +891,46 @@ _mesa_GetTexLevelParameteriv( GLenum target, GLint level,
          *params = img->Border;
          return;
       case GL_TEXTURE_RED_SIZE:
-         *params = img->TexFormat->RedBits;
+         if (img->Format == GL_RGB || img->Format == GL_RGBA)
+            *params = img->TexFormat->RedBits;
+         else
+            *params = 0;
          return;
       case GL_TEXTURE_GREEN_SIZE:
-         *params = img->TexFormat->GreenBits;
+         if (img->Format == GL_RGB || img->Format == GL_RGBA)
+            *params = img->TexFormat->GreenBits;
+         else
+            *params = 0;
          return;
       case GL_TEXTURE_BLUE_SIZE:
-         *params = img->TexFormat->BlueBits;
+         if (img->Format == GL_RGB || img->Format == GL_RGBA)
+            *params = img->TexFormat->BlueBits;
+         else
+            *params = 0;
          return;
       case GL_TEXTURE_ALPHA_SIZE:
-         *params = img->TexFormat->AlphaBits;
+         if (img->Format == GL_ALPHA || img->Format == GL_LUMINANCE_ALPHA ||
+             img->Format == GL_RGBA)
+            *params = img->TexFormat->AlphaBits;
+         else
+            *params = 0;
          return;
       case GL_TEXTURE_INTENSITY_SIZE:
-         *params = img->TexFormat->IntensityBits;
+         if (img->Format != GL_INTENSITY)
+            *params = 0;
+         else if (img->TexFormat->IntensityBits > 0)
+            *params = img->TexFormat->IntensityBits;
+         else /* intensity probably stored as rgb texture */
+            *params = MIN2(img->TexFormat->RedBits, img->TexFormat->GreenBits);
          return;
       case GL_TEXTURE_LUMINANCE_SIZE:
-         *params = img->TexFormat->LuminanceBits;
+         if (img->Format != GL_LUMINANCE &&
+             img->Format != GL_LUMINANCE_ALPHA)
+            *params = 0;
+         else if (img->TexFormat->LuminanceBits)
+            *params = img->TexFormat->LuminanceBits;
+         else /* luminance probably stored as rgb texture */
+            *params = img->TexFormat->RedBits;
          return;
       case GL_TEXTURE_INDEX_SIZE_EXT:
          *params = img->TexFormat->IndexBits;
