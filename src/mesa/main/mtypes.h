@@ -1,4 +1,4 @@
-/* $Id: mtypes.h,v 1.51.2.4 2002/04/09 12:13:08 keithw Exp $ */
+/* $Id: mtypes.h,v 1.51.2.5 2002/06/06 16:25:07 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -669,6 +669,8 @@ struct gl_stencil_attrib {
 #define T_BIT 2
 #define R_BIT 4
 #define Q_BIT 8
+
+#define NUM_TEXTURE_TARGETS 4 /* 1D, 2D, 3D and CUBE */
 
 /* Texture Enabled flags */
 #define TEXTURE0_1D   0x1     /* Texture unit 0 (default) */

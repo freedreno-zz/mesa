@@ -1,4 +1,4 @@
-/* $Id: state.c,v 1.69.2.3 2002/04/09 12:13:08 keithw Exp $ */
+/* $Id: state.c,v 1.69.2.4 2002/06/06 16:25:08 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -801,7 +801,7 @@ update_texture_state( GLcontext *ctx )
       }
 
       {
-	 GLuint flag = texUnit->_ReallyEnabled << (i * 4);
+	 GLuint flag = texUnit->_ReallyEnabled << (i * NUM_TEXTURE_TARGETS);
 	 ctx->Texture._ReallyEnabled |= flag;
       }
 

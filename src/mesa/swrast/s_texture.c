@@ -1,4 +1,4 @@
-/* $Id: s_texture.c,v 1.41.2.3 2002/04/12 21:17:53 brianp Exp $ */
+/* $Id: s_texture.c,v 1.41.2.4 2002/06/06 16:25:08 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -2983,7 +2983,7 @@ _swrast_texture_fragments( GLcontext *ctx, GLuint texUnit, GLuint n,
                            const GLfloat r[], GLfloat lambda[],
                            CONST GLchan primary_rgba[][4], GLchan rgba[][4] )
 {
-   const GLuint mask = TEXTURE0_ANY << (texUnit * 4);
+   const GLuint mask = TEXTURE0_ANY << (texUnit * NUM_TEXTURE_TARGETS);
 
    if (ctx->Texture._ReallyEnabled & mask) {
       const struct gl_texture_unit *textureUnit = &ctx->Texture.Unit[texUnit];
