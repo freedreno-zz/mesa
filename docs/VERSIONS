@@ -1,4 +1,4 @@
-$Id: VERSIONS,v 1.38.2.6 2000/09/25 16:05:53 brianp Exp $
+$Id: VERSIONS,v 1.38.2.7 2000/09/28 22:45:55 brianp Exp $
 
 
 Mesa Version History
@@ -759,7 +759,8 @@ Mesa Version History
 	- glAreTexturesResident return value was wrong when using hardware
 	- glXUseXFont segfaulted when using 3dfx driver (via MESA_GLX_FX)
 	- glReadPixels with GLushort packed types was broken
-	- fixed a few bugs in GL_EXT_texture_env_combine texture code
+	- fixed a few bugs in the GL_EXT_texture_env_combine texture code
+	- glPush/PopAttrib(GL_ENABLE_BIT) mishandled multi-texture enables
     Changes:
 	- finished internal support for compressed textures for DRI
 
