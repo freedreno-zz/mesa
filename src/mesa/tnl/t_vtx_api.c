@@ -859,6 +859,8 @@ static void _tnl_EvalCoord1f( GLfloat u )
    GET_CURRENT_CONTEXT( ctx );
    TNLcontext *tnl = TNL_CONTEXT(ctx);
 
+   _mesa_debug(0, "%s\n", __FUNCTION__);
+
    /* TODO: use a CHOOSE() function for this: */
    {
       GLint i;
@@ -886,6 +888,8 @@ static void _tnl_EvalCoord2f( GLfloat u, GLfloat v )
 {
    GET_CURRENT_CONTEXT( ctx );
    TNLcontext *tnl = TNL_CONTEXT(ctx);
+
+   _mesa_debug(0, "%s\n", __FUNCTION__);
 
    /* TODO: use a CHOOSE() function for this: */
    {
@@ -960,8 +964,15 @@ static void _tnl_Begin( GLenum mode )
 
    if (ctx->Driver.CurrentExecPrimitive == GL_POLYGON+1) {
       TNLcontext *tnl = TNL_CONTEXT(ctx); 
-      int i = tnl->vtx.prim_count++;
+      int i;
 
+      if (ctx->NewState) {
+	 _mesa_update_state( ctx );
+	 ctx->Exec->Begin(mode);
+	 return;
+      }
+
+      i = tnl->vtx.prim_count++;
       tnl->vtx.prim[i].mode = mode | PRIM_BEGIN;
       tnl->vtx.prim[i].start = tnl->vtx.initial_counter - tnl->vtx.counter;
       tnl->vtx.prim[i].count = 0;

@@ -66,6 +66,8 @@ void _tnl_update_eval( GLcontext *ctx )
    TNLcontext *tnl = TNL_CONTEXT(ctx);
    GLuint attr;
 
+   _mesa_debug(0, "%s\n", __FUNCTION__);
+
    /* Vertex program maps have priority over conventional attribs */
 
    for (attr = 0; attr < VERT_ATTRIB_MAX; attr++) {
@@ -161,10 +163,10 @@ void _tnl_do_EvalCoord1f(GLcontext* ctx, GLfloat u)
       ASSIGN_4V(vertex, 0, 0, 0, 1);
 
       _math_horner_bezier_curve(map->Points, vertex, uu, 
-				tnl->vtx.eval.map1[attr].sz, 
+				tnl->vtx.eval.map1[0].sz, 
 				map->Order);
 
-      if (tnl->vtx.attrsz[0] == 4) 
+      if (tnl->vtx.eval.map1[0].sz == 4) 
 	 glVertex4fv( vertex );
       else
 	 glVertex3fv( vertex ); 
