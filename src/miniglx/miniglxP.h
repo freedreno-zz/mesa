@@ -181,7 +181,7 @@ struct __DRIdrawableRec {
 
 /**
  * \brief Supported pixel formats.
- * \union pixelFormat
+ * \enum pixelFormat
  */
 enum PixelFormat {
    PF_B8G8R8,    /**< 24-bit BGR */
