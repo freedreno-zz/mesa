@@ -1,4 +1,4 @@
-/* $Id: t_context.c,v 1.30.4.1 2002/12/12 14:22:04 keithw Exp $ */
+/* $Id: t_context.c,v 1.30.4.2 2003/01/13 15:31:50 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -56,7 +56,6 @@ _tnl_MakeCurrent( GLcontext *ctx,
 		  GLframebuffer *drawBuffer,
 		  GLframebuffer *readBuffer )
 {
-   fprintf(stderr, "%s\n", __FUNCTION__);
 #ifndef THREADS
    SET_IMMEDIATE( ctx, TNL_CURRENT_IM(ctx) );
 #endif

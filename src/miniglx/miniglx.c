@@ -22,7 +22,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: miniglx.c,v 1.1.4.30 2003/01/10 21:56:04 brianp Exp $ */
+/* $Id: miniglx.c,v 1.1.4.31 2003/01/13 15:31:43 keithw Exp $ */
 
 
 /**
@@ -320,6 +320,11 @@ SetupFBDev( Display *dpy, Window win )
       assert(0);
    }
 
+   if (!dpy->driver->validateMode( dpy )) {
+      fprintf(stderr, "Driver validateMode() failed\n");
+      return 0;
+   }
+
    if (width == 1280 && height == 1024) {
       /* timing values taken from /etc/fb.modes (1280x1024 @ 75Hz) */
       dpy->VarInfo.pixclock = 7408;
@@ -354,7 +359,7 @@ SetupFBDev( Display *dpy, Window win )
       /* XXX need timings for other screen sizes */
       fprintf(stderr, "XXXX screen size %d x %d not supported at this time!\n",
              width, height);
-      abort();
+      return GL_FALSE;
    }
 
    /* set variable screen info */
@@ -372,7 +377,7 @@ SetupFBDev( Display *dpy, Window win )
 
    if (dpy->FixedInfo.visual != FB_VISUAL_TRUECOLOR &&
        dpy->FixedInfo.visual != FB_VISUAL_DIRECTCOLOR) {
-      fprintf(stderr, "non-TRUECOLOR visuals not supported by this demo.\n");
+      fprintf(stderr, "non-TRUECOLOR visuals not supported.\n");
       return GL_FALSE;
    }
 
@@ -411,25 +416,7 @@ SetupFBDev( Display *dpy, Window win )
    }
 
    dpy->cpp = dpy->VarInfo.bits_per_pixel / 8;
-
-   if (1)
-   {
-      int x, y;
-      char *scrn = (char *)dpy->FrameBuffer;
-
-      fprintf(stderr, "scrn: %p bottom %p\n",
-	      scrn, scrn+800*599*4);
-
-      for (y = 100 ; y < 200 ; y++)
-	 for (x = 100 ; x < 200 ; x++) {
-	    scrn[(x+y*800)*4+0] = 255;
-	    scrn[(x+y*800)*4+1] = 0;
-	    scrn[(x+y*800)*4+2] = 255;
-	    scrn[(x+y*800)*4+3] = 255;
-	 }
-   }
 	    
-
    /* mmap the MMIO region into our address space */
    dpy->MMIOSize = dpy->FixedInfo.mmio_len;
    dpy->MMIOAddress = (caddr_t) mmap(0, /* start */
@@ -533,44 +520,6 @@ _glthread_GetID(void)
    return 0;
 }
 
-
-/**
- * The idea is to establish the set of visuals available for the display.
- * The DRI drivers (or dri_util.c) requires the ::__GLXvisualConfig data type.
- *
- * \todo XXX This code might be moved into the driver.
- */
-static void
-InitializeScreenConfigs(int *numConfigs, __GLXvisualConfig **configs)
-{
-   int i;
-
-   *numConfigs = 1;
-   *configs = (__GLXvisualConfig *)
-      CALLOC(*numConfigs * sizeof(__GLXvisualConfig));
-   for (i = 0; i < *numConfigs; i++) {
-      (*configs)[i].vid = 100 + i;
-      (*configs)[i].class = TrueColor;
-      (*configs)[i].rgba = True;
-      (*configs)[i].redSize = 8;
-      (*configs)[i].greenSize = 8;
-      (*configs)[i].blueSize = 8;
-      (*configs)[i].alphaSize = 8;
-      (*configs)[i].redMask = 0xff0000;
-      (*configs)[i].greenMask = 0xff00;
-      (*configs)[i].blueMask = 0xff;
-      (*configs)[i].alphaMask = 0xff000000;
-      (*configs)[i].doubleBuffer = True;
-      (*configs)[i].stereo = False;
-      (*configs)[i].bufferSize = 32;
-      (*configs)[i].depthSize = 24;
-      (*configs)[i].stencilSize = 8;
-      (*configs)[i].auxBuffers = 0;
-      (*configs)[i].level = 0;
-      /* leave remaining fields zero */
-   }
-}
-
 /*@}*/
 
 
@@ -585,42 +534,71 @@ InitializeScreenConfigs(int *numConfigs, __GLXvisualConfig **configs)
  */
 int __read_config_file( Display *dpy )
 {
-   const char *dev = getenv("MINIGLX_DRIVER");
-   if (dev && strcmp(dev, "es") == 0) {
-      dpy->fbdevDevice = "/dev/fb0";
-      dpy->clientDriverName = "radeon_es.so";
-      dpy->drmModuleName = "radeon";
-      dpy->pciBus = 1;
-      dpy->pciDevice = 0;
-      dpy->pciFunc = 0;
-      dpy->chipset = 0x5144;	/* radeon qd */
-      dpy->pciBusID = malloc(64);
-      sprintf((char *)dpy->pciBusID, "PCI:%d:%d:%d", 
-	      dpy->pciBus, dpy->pciDevice, dpy->pciFunc);
-   }
-   else if (dev && strcmp(dev, "radeon") == 0) {
-      dpy->fbdevDevice = "/dev/fb0";
-      dpy->clientDriverName = "radeon_dri.so";
-      dpy->drmModuleName = "radeon";
-      dpy->pciBus = 1;
-      dpy->pciDevice = 0;
-      dpy->pciFunc = 0;
-      dpy->chipset = 0x5144;	/* radeon qd */
-      dpy->pciBusID = malloc(64);
-      sprintf((char *)dpy->pciBusID, "PCI:%d:%d:%d", 
-	      dpy->pciBus, dpy->pciDevice, dpy->pciFunc);
-   }
-   else {
-      dpy->fbdevDevice = "/dev/fb0";
-      dpy->clientDriverName = "fb_dri.so";
-      dpy->drmModuleName = 0;
-      dpy->pciBus = 0;
-      dpy->pciDevice = 0;
-      dpy->pciFunc = 0;
-      dpy->chipset = 0;   
-      dpy->pciBusID = 0;
+   FILE *file;
+   const char *fname;
+
+   /* Fallback/defaults
+    */
+   dpy->fbdevDevice = "/dev/fb0";
+   dpy->clientDriverName = "fb_dri.so";
+   dpy->drmModuleName = 0;
+   dpy->pciBus = 0;
+   dpy->pciDevice = 0;
+   dpy->pciFunc = 0;
+   dpy->chipset = 0;   
+   dpy->pciBusID = 0;
+
+   fname = getenv("MINIGLX_CONF");
+   if (!fname) fname = "/etc/miniglx.conf";
+
+   file = fopen(fname, "r");
+   if (!file) {
+      fprintf(stderr, "couldn't open config file %s\n", fname);
+      return 0;
    }
 
+
+   while (!feof(file)) {
+      char buf[81], *opt = buf, *val, *tmp1, *tmp2;
+      fgets(buf, sizeof(buf), file); 
+
+      /* Parse 'opt = val' -- must be easier ways to do this.
+       */
+      while (isspace(*opt)) opt++;
+      val = opt;
+      while (!isspace(*val) && *val != '=' && *val) val++;
+      tmp1 = val;
+      while (isspace(*val)) val++;
+      if (*val != '=') continue;
+      *tmp1 = 0; 
+      val++;
+      while (isspace(*val)) val++;
+      tmp2 = val;
+      while (!isspace(*tmp2) && *tmp2 != '\n' && *tmp2) tmp2++;
+      *tmp2 = 0;
+
+
+      if (strcmp(opt, "fbdevDevice") == 0) 
+	 dpy->fbdevDevice = strdup(val);
+      else if (strcmp(opt, "clientDriverName") == 0)
+	 dpy->clientDriverName = strdup(val);
+      else if (strcmp(opt, "drmModuleName") == 0)
+	 dpy->drmModuleName = strdup(val);
+      else if (strcmp(opt, "pciBusID") == 0) {
+	 if (sscanf(val, "PCI:%d:%d:%d",
+		    &dpy->pciBus, &dpy->pciDevice, &dpy->pciFunc) != 3) {
+	    fprintf(stderr, "malformed bus id: %s\n", val);
+	    continue;
+	 }
+   	 dpy->pciBusID = strdup(val);
+      }
+      else if (strcmp(opt, "chipset") == 0) {
+	 if (sscanf(val, "0x%x", &dpy->chipset) != 1)
+	    fprintf(stderr, "malformed chipset: %x\n", dpy->chipset);
+      }
+   }
+
+   fclose(file);
    return 1;
 }
 
@@ -651,21 +629,20 @@ XOpenDisplay( const char *display_name )
    if (!dpy)
       return NULL;
 
-
    if (!__read_config_file( dpy )) {
       fprintf(stderr, "Couldn't get configuration details\n");
       FREE(dpy);
       return NULL;
    }
 
-
+   /* Open the fbdev device
+    */
    if (!OpenFBDev(dpy)) {
       fprintf(stderr, "OpenFBDev failed\n");
       FREE(dpy);
       return NULL;
    }
 
-   InitializeScreenConfigs(&dpy->numConfigs, &dpy->configs);
 
    /*
     * Begin DRI setup.
@@ -681,26 +658,20 @@ XOpenDisplay( const char *display_name )
       return NULL;
    }
 
-   dpy->driverInitFBDev = (InitFBDevFunc) dlsym(dpy->dlHandle, 
-						"__driInitFBDev");
-   if (!dpy->driverInitFBDev) {
-      fprintf(stderr, "Couldn't find __driInitFBDev in %s\n",
+   /* Pull in MiniGLX-specific hooks:
+    */
+   dpy->driver = (struct MiniGLXDriverRec *) dlsym(dpy->dlHandle,
+						   "__driMiniGLXDriver");
+   if (!dpy->driver) {
+      fprintf(stderr, "Couldn't find __driMiniGLXDriver in %s\n",
               dpy->clientDriverName);
       dlclose(dpy->dlHandle);
       FREE(dpy);
       return NULL;
    }
 
-   dpy->driverHaltFBDev = (HaltFBDevFunc) dlsym(dpy->dlHandle, 
-						"__driHaltFBDev");
-   if (!dpy->driverHaltFBDev) {
-      fprintf(stderr, "Couldn't find __driHaltFBDev in %s\n",
-              dpy->clientDriverName);
-      dlclose(dpy->dlHandle);
-      FREE(dpy);
-      return NULL;
-   }
-
+   /* Pull in standard DRI client-side driver hooks:
+    */
    dpy->createScreen = (CreateScreenFunc) dlsym(dpy->dlHandle,
                                                 "__driCreateScreen");
    if (!dpy->createScreen) {
@@ -710,6 +681,10 @@ XOpenDisplay( const char *display_name )
       FREE(dpy);
       return NULL;
    }
+
+   /* Ask the driver for a list of supported configs:
+    */
+   dpy->driver->initScreenConfigs( &dpy->numConfigs, &dpy->configs );
 
    return dpy;
 }
@@ -848,7 +823,7 @@ XCreateWindow( Display *display, Window parent, int x, int y,
 
 
    /* Perform the initialization normally done in the X server */
-   if (!display->driverInitFBDev( display )) {
+   if (!display->driver->initFBDev( display )) {
       fprintf(stderr, "%s: __driInitFBDev failed\n", __FUNCTION__);
       RestoreFBDev(display);
       FREE(win);
@@ -932,7 +907,7 @@ XDestroyWindow( Display *display, Window w )
 
       /* As this is done in CreateWindow, need to undo it here:
        */
-      (*display->driverHaltFBDev)( display );
+      (*display->driver->haltFBDev)( display );
 
       /* put framebuffer back to initial state */
       RestoreFBDev(display);
@@ -1391,7 +1366,7 @@ glXCreateContext( Display *dpy, XVisualInfo *vis,
       return NULL;
 
    ctx->vid = vis->visualid;
-
+ 
    if (shareList)
       sharePriv = shareList->driContext.private;
    else

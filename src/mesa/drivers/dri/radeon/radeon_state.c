@@ -1604,11 +1604,6 @@ static void radeonDrawBuffer( GLcontext *ctx, GLenum mode )
 	 rmesa->state.color.drawPitch  = rmesa->radeonScreen->frontPitch;
       }
 
-      fprintf(stderr, "use_back %d doubleBufferMode %d COLOROFFSET %x\n",
-	      use_back,
-	      ctx->Visual.doubleBufferMode,
-	      rmesa->state.color.drawOffset);
-
       rmesa->state.pixel.readOffset = rmesa->state.color.drawOffset;
       rmesa->state.pixel.readPitch  = rmesa->state.color.drawPitch;
    }

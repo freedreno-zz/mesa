@@ -92,3 +92,6 @@ Many, many Xlib and GLX entrypoints, structures and macros are not
 present in MiniGLX.  It will be necessary to find and eliminate all
 references to non-supported entrypoints.  
 
+6) Must create context *after* window.
+
+This is odd, and should probably be regarded as a bug in miniglx.

@@ -435,36 +435,6 @@ static void RADEONDRIIrqInit(struct MiniGLXDisplayRec *dpy,
 
 
 
-
-
-
-
-/* Will fbdev set a pitch appropriate for 3d?
- */
-static int RADEONSetPitch (struct MiniGLXDisplayRec *dpy)
-{
-    int  dummy = dpy->VarInfo.xres_virtual;
-
-    /* FIXME: May need to validate line pitch here */
-    switch (dpy->VarInfo.bits_per_pixel / 8) {
-    case 1: dummy = (dpy->VarInfo.xres_virtual + 127) & ~127; break;
-    case 2: dummy = (dpy->VarInfo.xres_virtual +  31) &  ~31; break;
-    case 3:
-    case 4: dummy = (dpy->VarInfo.xres_virtual +  15) &  ~15; break;
-    }
-
-    if (dpy->VarInfo.xres_virtual != dummy) {
-       fprintf(stderr, "Didn't set a good pitch for 3d (Need to move this earlier in fbdev init!?!\n");
-       return 0;
-    }
-
-    dpy->VarInfo.xres_virtual = dummy;
-    return 1;
-}
-
-
-
-
 /* Called at the start of each server generation. */
 static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
 {
@@ -849,10 +819,62 @@ static void get_chipfamily_from_chipset( RADEONInfoPtr info )
 
 
 
+/**
+ * Establish the set of visuals available for the display.
+ * Requires the ::__GLXvisualConfig data type.
+ */
+static int __driInitScreenConfigs(int *numConfigs, __GLXvisualConfig **configs)
+{
+   int i;
+
+   *numConfigs = 1;
+   *configs = (__GLXvisualConfig *) calloc(*numConfigs, 
+					   sizeof(__GLXvisualConfig));
+   for (i = 0; i < *numConfigs; i++) {
+      (*configs)[i].vid = 100 + i;
+      (*configs)[i].class = TrueColor;
+      (*configs)[i].rgba = True;
+      (*configs)[i].redSize = 8;
+      (*configs)[i].greenSize = 8;
+      (*configs)[i].blueSize = 8;
+      (*configs)[i].alphaSize = 8;
+      (*configs)[i].redMask = 0xff0000;
+      (*configs)[i].greenMask = 0xff00;
+      (*configs)[i].blueMask = 0xff;
+      (*configs)[i].alphaMask = 0xff000000;
+      (*configs)[i].doubleBuffer = True;
+      (*configs)[i].stereo = False;
+      (*configs)[i].bufferSize = 32;
+      (*configs)[i].depthSize = 24;
+      (*configs)[i].stencilSize = 8;
+      (*configs)[i].auxBuffers = 0;
+      (*configs)[i].level = 0;
+      /* leave remaining fields zero */
+   }
+   
+   return 1;
+}
+
+/* Will fbdev set a pitch appropriate for 3d?
+ */
+static int __driValidateMode( struct MiniGLXDisplayRec *dpy )
+{
+    int  dummy = dpy->VarInfo.xres_virtual;
+
+    switch (dpy->VarInfo.bits_per_pixel / 8) {
+    case 1: dummy = (dpy->VarInfo.xres_virtual + 127) & ~127; break;
+    case 2: dummy = (dpy->VarInfo.xres_virtual +  31) &  ~31; break;
+    case 3:
+    case 4: dummy = (dpy->VarInfo.xres_virtual +  15) &  ~15; break;
+    }
+
+    dpy->VarInfo.xres_virtual = dummy;
+    return 1;
+}
 
 /*
  */
-int __driInitFBDev( struct MiniGLXDisplayRec *dpy )
+static int __driInitFBDev( struct MiniGLXDisplayRec *dpy )
 {
    RADEONInfoPtr info = calloc(1, sizeof(*info));
 
@@ -872,14 +894,22 @@ int __driInitFBDev( struct MiniGLXDisplayRec *dpy )
    info->LinearAddr = dpy->FixedInfo.smem_start & 0xfc000000;
     
 
-   /* Choose dpy->VarInfo.xres_virtual?? */
-   if (!RADEONSetPitch( dpy ))
-      return 0;
-
-   
    if (!RADEONScreenInit( dpy, info ))
       return 0;
 
+
+   /* Quick hack to clear the front & back buffers.  Could also use
+    * the clear ioctl to do this, but would need to setup hw state
+    * first.
+    */
+   memset(dpy->FrameBuffer + info->frontOffset,
+	  0,
+	  info->frontPitch * dpy->cpp * dpy->VarInfo.yres_virtual );
+
+   memset(dpy->FrameBuffer + info->backOffset,
+	  0,
+	  info->backPitch * dpy->cpp * dpy->VarInfo.yres_virtual );
+   
    return 1;
 }
 
@@ -888,9 +918,19 @@ int __driInitFBDev( struct MiniGLXDisplayRec *dpy )
 /* The screen is being closed, so clean up any state and free any
  * resources used by the DRI.
  */
-void __driHaltFBDev( struct MiniGLXDisplayRec *dpy )
+static void __driHaltFBDev( struct MiniGLXDisplayRec *dpy )
 {
     drmClose(dpy->drmFD);
     free(dpy->driverInfo);
     dpy->driverInfo = 0;
 }
+
+
+
+struct MiniGLXDriverRec __driMiniGLXDriver = {
+   __driInitScreenConfigs,
+   __driValidateMode,
+   __driInitFBDev,
+   __driHaltFBDev
+};
+

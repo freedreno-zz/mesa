@@ -47,7 +47,7 @@ clean:
 tags:
 	etags *.[ch]
 
-include $(SOURCES:.c=.d)
+-include $(SOURCES:.c=.d)
 
 .SUFFIXES: .c .d
 

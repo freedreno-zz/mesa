@@ -36,9 +36,6 @@ int client()
    fprintf(stderr, "DRM_UNLOCK finished\n");
 
 
-/*    (void)drmUnmap((drmAddress)pSAREA, DRM_PAGE_SIZE);  */
-
-
    fprintf(stderr, "Closing client drm: %d\n", fd);
    ret = drmClose(fd);
    fprintf(stderr, "done %d\n", ret);

@@ -60,8 +60,6 @@ typedef struct __DRIdrawableRec __DRIdrawable;
 typedef void *(*CreateScreenFunc)(Display *dpy, int scrn, __DRIscreen *psc,
                                   int numConfigs, __GLXvisualConfig *config);
 
-typedef void *(*InitFBDevFunc)( Display *dpy );
-typedef void *(*HaltFBDevFunc)( Display *dpy );
 
 
 /**
@@ -177,6 +175,21 @@ struct __DRIdrawableRec {
     void *private;
 };
 
+/**
+ * \brief Interface to driver.
+ *
+ * \internal
+ * This structure is retrieved from the loadable driver by dlsym
+ * "__driMiniGLXDriver" to access the miniglx-specific hardware
+ * initalization and takedown routines.
+ */
+struct MiniGLXDriverRec { 
+   int (*initScreenConfigs)( int *numConfigs, __GLXvisualConfig **configs );
+   int (*validateMode)( struct MiniGLXDisplayRec *dpy );
+   int (*initFBDev)( struct MiniGLXDisplayRec *dpy );
+   void (*haltFBDev)( struct MiniGLXDisplayRec *dpy );
+};
+
 
 
 /**
@@ -288,8 +301,7 @@ struct MiniGLXDisplayRec {
     * \name New driver hooks
     */
    /*@{*/
-   InitFBDevFunc driverInitFBDev;
-   HaltFBDevFunc driverHaltFBDev;
+   struct MiniGLXDriverRec *driver;
    /*@}*/
 
    /**

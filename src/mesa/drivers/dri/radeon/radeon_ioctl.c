@@ -827,10 +827,6 @@ void radeonPageFlip( const __DRIdrawablePrivate *dPriv )
 	 rmesa->state.color.drawPitch  = rmesa->radeonScreen->backPitch;
    }
 
-   fprintf(stderr, "%s: pfCurrentPage %d COLOROFFSET %x\n", __FUNCTION__,
-	   rmesa->sarea->pfCurrentPage,
-	   rmesa->state.color.drawOffset);
-
    RADEON_STATECHANGE( rmesa, ctx );
    rmesa->hw.ctx.cmd[CTX_RB3D_COLOROFFSET] = rmesa->state.color.drawOffset;
    rmesa->hw.ctx.cmd[CTX_RB3D_COLORPITCH]  = rmesa->state.color.drawPitch;
