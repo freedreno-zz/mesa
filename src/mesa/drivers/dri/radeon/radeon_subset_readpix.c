@@ -98,19 +98,36 @@ static void ReadRGBASpan( const GLcontext *ctx,
    radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
    radeonScreenPtr radeonScreen = rmesa->radeonScreen;
    __DRIdrawablePrivate *dPriv = rmesa->dri.drawable;
-   GLuint pitch = radeonScreen->frontPitch * radeonScreen->cpp;
-   char *ptr = (char *)(rmesa->dri.screen->pFB +
-			rmesa->state.pixel.readOffset +
-			((dPriv->x + x) * radeonScreen->cpp) +
-			((dPriv->y + (dPriv->h - y - 1)) * pitch));
-   GLint i = 0;
+   GLuint cpp = radeonScreen->cpp;
+   GLuint pitch = radeonScreen->frontPitch * cpp;
+   GLint i;
 
-   if (radeonScreen->cpp == 4)
-      for (i = 0; i < n; i++, ptr += 4)
-	 READ_RGBA_32( rgba[i], ptr );
-   else
-      for (i = 0; i < n; i++, ptr += 2)
-	 READ_RGBA_16( rgba[i], ptr );
+   if (ctx->_RotateMode) {
+      char *ptr = (char *)(rmesa->dri.screen->pFB +
+			   rmesa->state.pixel.readOffset +
+			   ((dPriv->x + (dPriv->w - y - 1)) * cpp) +
+			   ((dPriv->y + (dPriv->h - x - 1)) * pitch));
+
+      if (cpp == 4)
+	 for (i = 0; i < n; i++, ptr -= pitch)
+	    READ_RGBA_32( rgba[i], ptr );
+      else
+	 for (i = 0; i < n; i++, ptr -= pitch)
+	    READ_RGBA_16( rgba[i], ptr );
+   }
+   else {
+      char *ptr = (char *)(rmesa->dri.screen->pFB +
+			   rmesa->state.pixel.readOffset +
+			   ((dPriv->x + x) * cpp) +
+			   ((dPriv->y + (dPriv->h - y - 1)) * pitch));
+
+      if (cpp == 4)
+	 for (i = 0; i < n; i++, ptr += cpp)
+	    READ_RGBA_32( rgba[i], ptr );
+      else
+	 for (i = 0; i < n; i++, ptr += cpp)
+	    READ_RGBA_16( rgba[i], ptr );
+   }
 }
 
 
