@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.1.2.18 2003/01/24 17:11:10 keithw Exp $
+# $Id: Makefile,v 1.1.2.19 2003/01/27 16:55:31 keithw Exp $
 
 # Mesa 3-D graphics library
 # Version:  5.0
@@ -13,15 +13,15 @@ INCLUDES = -I$(MESABUILDDIR) -I$(MESA)/include -I. -I../common \
 	   -I$(MESABUILDDIR)/miniglx -Iserver
 
 DEFINES = \
-	-D_HAVE_SWRAST=0 \
-	-D_HAVE_SWTNL=0 \
-	-D_HAVE_SANITY=0 \
-	-D_HAVE_CODEGEN=0 \
-	-D_HAVE_LIGHTING=0 \
-	-D_HAVE_TEXGEN=0 \
-	-D_HAVE_USERCLIP=0
+	-D_HAVE_SWRAST=1 \
+	-D_HAVE_SWTNL=1 \
+	-D_HAVE_SANITY=1 \
+	-D_HAVE_CODEGEN=1 \
+	-D_HAVE_LIGHTING=1 \
+	-D_HAVE_TEXGEN=1 \
+	-D_HAVE_USERCLIP=1
 
-CFLAGS = $(INCLUDES) $(DEFINES) -g -MD -DGLX_DIRECT_RENDERING
+CFLAGS = $(INCLUDES) $(DEFINES) -g -MD 
 
 # The .a files for each mesa module required by this driver:
 #
@@ -55,6 +55,8 @@ SUBSET_DRIVER_SOURCES = \
 		radeon_subset_vtx.c 
 
 FULL_DRIVER_SOURCES = 	\
+		radeon_subset_bitmap.c \
+		radeon_subset_readpix.c \
 		 radeon_lighting.c \
 		 radeon_userclip.c \
 		 radeon_texgen.c \
@@ -72,7 +74,7 @@ FULL_DRIVER_SOURCES = 	\
 
 
 C_SOURCES = $(DRIVER_SOURCES) \
-	    $(SUBSET_DRIVER_SOURCES) \
+	    $(FULL_DRIVER_SOURCES) \
 	    $(DRI_SOURCES) 
 
 ASM_SOURCES = 
@@ -94,8 +96,8 @@ OBJECTS = $(C_SOURCES:.c=.o) \
 
 default: radeon_dri.so install
 
-radeon_dri.so:  $(SUBSET_MESA) $(OBJECTS) Makefile
-	rm -f $@ && gcc -o $@ -shared $(OBJECTS) $(SUBSET_MESA) -L$(MESA)/src/miniglx -lGL -lc -lm
+radeon_dri.so:  $(FULL_MESA) $(OBJECTS) Makefile
+	rm -f $@ && gcc -o $@ -shared $(OBJECTS) $(FULL_MESA) -L$(MESA)/src/miniglx -lGL -lc -lm
 
 loc:
 	wc -l $(DRIVER_SOURCES)

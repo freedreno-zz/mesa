@@ -37,8 +37,6 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #ifndef __RADEON_STATE_H__
 #define __RADEON_STATE_H__
 
-#ifdef GLX_DIRECT_RENDERING
-
 #include "radeon_context.h"
 
 extern void radeonInitState( radeonContextPtr rmesa );
@@ -72,5 +70,8 @@ extern void radeonFallback( GLcontext *ctx, GLuint bit, GLboolean mode );
 #define TEXMAT_1   4
 #define TEXMAT_2   5
 
-#endif
+extern void radeonUpdateSpecular( GLcontext *ctx );
+extern void radeonClipPlane( GLcontext *ctx, GLenum plane, const GLfloat *eq );
+
+
 #endif

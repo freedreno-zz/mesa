@@ -36,8 +36,6 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #ifndef __RADEON_VTXFMT_H__
 #define __RADEON_VTXFMT_H__
 
-#ifdef GLX_DIRECT_RENDERING
-
 #include "radeon_context.h"
 
 
@@ -124,5 +122,4 @@ struct dynfn *radeon_makeX86MultiTexCoord1fARB( GLcontext *, int );
 struct dynfn *radeon_makeX86MultiTexCoord1fvARB( GLcontext *, int );
 
 
-#endif
 #endif

@@ -36,8 +36,6 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #ifndef __RADEON_TCL_H__
 #define __RADEON_TCL_H__
 
-#ifdef GLX_DIRECT_RENDERING
-
 #include "radeon_context.h"
 
 extern void radeonTclPrimitive( GLcontext *ctx, GLenum prim, int hw_prim );
@@ -75,5 +73,4 @@ typedef void (*render_func)( GLcontext *ctx, GLuint start, GLuint count,
 
 #endif
 
-#endif
 #endif

@@ -339,6 +339,9 @@ radeonCreateContext( const __GLcontextModes *glVisual,
    radeonCreateTnlContext( ctx );
 #endif
 
+   radeonInitState( rmesa );
+
+
 #if _HAVE_TEXGEN
    radeonInitTexTransform( ctx );
 #endif
@@ -353,7 +356,6 @@ radeonCreateContext( const __GLcontextModes *glVisual,
    radeonInitSpanFuncs( ctx );
 #endif
    radeonInitTextureFuncs( ctx );
-   radeonInitState( rmesa );
 #if _HAVE_SWTNL
    radeonInitSwtcl( ctx );
 #endif

@@ -514,11 +514,6 @@ void radeonInitState( radeonContextPtr rmesa )
        (RADEON_LM_SOURCE_STATE_PREMULT << RADEON_SPECULAR_SOURCE_SHIFT)); 
 
 
-#if _HAVE_SWTNL
-   TNL_CONTEXT(ctx)->Driver.NotifyMaterialChange( ctx );
-#endif
-
-
    rmesa->hw.grd.cmd[GRD_VERT_GUARD_CLIP_ADJ] = IEEE_ONE;
    rmesa->hw.grd.cmd[GRD_VERT_GUARD_DISCARD_ADJ] = IEEE_ONE;
    rmesa->hw.grd.cmd[GRD_HORZ_GUARD_CLIP_ADJ] = IEEE_ONE;

@@ -1271,8 +1271,9 @@ void radeonInitSwtcl( GLcontext *ctx )
    rmesa->swtcl.render_primitive = GL_TRIANGLES;
    rmesa->swtcl.hw_primitive = 0;
 
-   ctx->Driver.PolygonMode		= radeonPolygonMode
-   ctx->Driver.LightingSpaceChange      = radeonLightingSpaceChange;
+   ctx->Driver.PolygonMode		= radeonPolygonMode;
+
+   tnl->Driver.NotifyMaterialChange( ctx );
 }
 
 

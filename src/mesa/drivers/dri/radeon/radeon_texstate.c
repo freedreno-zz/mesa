@@ -1216,7 +1216,7 @@ static GLboolean radeonUpdateTextureUnit( GLcontext *ctx, int unit )
 
 #if _HAVE_TEXGEN      
       if (rmesa->recheck_texgen[unit]) {
-	 GLboolean fallback = !radeon_validate_texgen( ctx, unit );
+	 GLboolean fallback = !radeonUpdateTexgen( ctx, unit );
 	 TCL_FALLBACK( ctx, (RADEON_TCL_FALLBACK_TEXGEN_0<<unit), fallback);
 	 rmesa->recheck_texgen[unit] = 0;
 	 rmesa->NewGLState |= _NEW_TEXTURE_MATRIX;

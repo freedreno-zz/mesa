@@ -37,8 +37,6 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #ifndef __RADEON_CONTEXT_H__
 #define __RADEON_CONTEXT_H__
 
-#ifdef GLX_DIRECT_RENDERING
-
 struct radeon_context;
 typedef struct radeon_context radeonContextRec;
 typedef struct radeon_context *radeonContextPtr;
@@ -800,5 +798,4 @@ extern int RADEON_DEBUG;
 #define DEBUG_DMA       0x400
 #define DEBUG_SANITY    0x800
 
-#endif
 #endif /* __RADEON_CONTEXT_H__ */

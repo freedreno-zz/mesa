@@ -418,7 +418,7 @@ void radeonInitSpanFuncs( GLcontext *ctx )
    ctx->Driver.Bitmap                   = _swrast_Bitmap;
    ctx->Driver.CopyPixels               = _swrast_CopyPixels;
    ctx->Driver.DrawPixels               = _swrast_DrawPixels;
-   ctx->Driver.ReadPixels               = _swrast_ReadPixels;
+/*    ctx->Driver.ReadPixels               = _swrast_ReadPixels; */
 
    /* Swrast hooks for imaging extensions:
     */

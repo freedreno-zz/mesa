@@ -256,7 +256,7 @@ void radeonUpdateMaterial( GLcontext *ctx )
  * lighting space (model or eye), hence dependencies on _NEW_MODELVIEW
  * and _MESA_NEW_NEED_EYE_COORDS.  
  */
- void update_light( GLcontext *ctx )
+void radeonUpdateLighting( GLcontext *ctx )
 {
    radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
 
@@ -544,7 +544,7 @@ static void radeonFogfv( GLcontext *ctx, GLenum pname, const GLfloat *param )
 /* Examine lighting and texture state to determine if separate specular
  * should be enabled.
  */
- void radeonUpdateSpecular( GLcontext *ctx )
+void radeonUpdateSpecular( GLcontext *ctx )
 {
    radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
    GLuint p = rmesa->hw.ctx.cmd[CTX_PP_CNTL];
@@ -641,9 +641,13 @@ static void radeonLightingSpaceChange( GLcontext *ctx )
 
 void radeonInitLightStateFuncs( GLcontext *ctx )
 {
+   radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
+   int i;
+
    ctx->Driver.LightModelfv		= radeonLightModelfv; 
    ctx->Driver.Lightfv			= radeonLightfv; 
    ctx->Driver.Fogfv			= radeonFogfv;
+   ctx->Driver.LightingSpaceChange      = radeonLightingSpaceChange;
 
    for (i = 0 ; i < 8; i++) {
       struct gl_light *l = &ctx->Light.Light[i];

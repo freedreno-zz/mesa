@@ -1186,7 +1186,7 @@ static void radeonEnable( GLcontext *ctx, GLenum cap, GLboolean state )
       RADEON_STATECHANGE(rmesa, ctx );
       if ( state ) {
 	 rmesa->hw.ctx.cmd[CTX_PP_CNTL] |= RADEON_FOG_ENABLE;
-	 radeonFogfv( ctx, GL_FOG_MODE, 0 );
+	 ctx->Driver.Fogfv( ctx, GL_FOG_MODE, 0 );
       } else {
 	 rmesa->hw.ctx.cmd[CTX_PP_CNTL] &= ~RADEON_FOG_ENABLE;
 	 RADEON_STATECHANGE(rmesa, tcl);
@@ -1258,7 +1258,7 @@ static void radeonEnable( GLcontext *ctx, GLenum cap, GLboolean state )
 
 
 
-static void upload_matrix( radeonContextPtr rmesa, GLfloat *src, int idx )
+void radeonUploadMatrix( radeonContextPtr rmesa, GLfloat *src, int idx )
 {
    float *dest = ((float *)RADEON_DB_STATE( mat[idx] ))+MAT_ELT_0;
    int i;
@@ -1274,7 +1274,8 @@ static void upload_matrix( radeonContextPtr rmesa, GLfloat *src, int idx )
    RADEON_DB_STATECHANGE( rmesa, &rmesa->hw.mat[idx] );
 }
 
-static void upload_matrix_t( radeonContextPtr rmesa, GLfloat *src, int idx )
+void radeonUploadMatrixTranspose( radeonContextPtr rmesa, GLfloat *src, 
+				  int idx )
 {
    float *dest = ((float *)RADEON_DB_STATE( mat[idx] ))+MAT_ELT_0;
    memcpy(dest, src, 16*sizeof(float));
@@ -1298,13 +1299,14 @@ void radeonValidateState( GLcontext *ctx )
    /* Need an event driven matrix update?
     */
    if (new_state & (_NEW_MODELVIEW|_NEW_PROJECTION)) 
-      upload_matrix( rmesa, ctx->_ModelProjectMatrix.m, MODEL_PROJ );
+      radeonUploadMatrix( rmesa, ctx->_ModelProjectMatrix.m, MODEL_PROJ );
 
    /* Need these for lighting (shouldn't upload otherwise)
     */
    if (new_state & (_NEW_MODELVIEW)) {
-      upload_matrix( rmesa, ctx->ModelviewMatrixStack.Top->m, MODEL );
-      upload_matrix_t( rmesa, ctx->ModelviewMatrixStack.Top->inv, MODEL_IT );
+      radeonUploadMatrix( rmesa, ctx->ModelviewMatrixStack.Top->m, MODEL );
+      radeonUploadMatrixTranspose( rmesa, ctx->ModelviewMatrixStack.Top->inv, 
+				   MODEL_IT );
    }
 
    /* Does this need to be triggered on eg. modelview for
@@ -1312,13 +1314,13 @@ void radeonValidateState( GLcontext *ctx )
     */
 #if _HAVE_TEXGEN
    if (new_state & _NEW_TEXTURE_MATRIX) {
-      update_texturematrix( ctx );
+      radeonUpdateTextureMatrix( ctx );
    }      
 #endif
 
 #if _HAVE_LIGHTING
    if (new_state & (_NEW_LIGHT|_NEW_MODELVIEW|_MESA_NEW_NEED_EYE_COORDS)) {
-      update_light( ctx );
+      radeonUpdateLighting( ctx );
    }
 #endif
 

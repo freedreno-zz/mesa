@@ -107,6 +107,8 @@ void radeonReadPixels( GLcontext *ctx,
    GLint skipPixels = packing->SkipPixels;
    GLint rowLength;
 
+   fprintf(stderr, "%s\n", __FUNCTION__);
+
    /* can't do scale, bias, mapping, etc */
    assert(!ctx->_ImageTransferState);
 

@@ -37,8 +37,6 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #ifndef __RADEON_IOCTL_H__
 #define __RADEON_IOCTL_H__
 
-#ifdef GLX_DIRECT_RENDERING
-
 #include "simple_list.h"
 #include "radeon_lock.h"
 
@@ -174,5 +172,4 @@ static __inline char *radeonAllocCmdBuf( radeonContextPtr rmesa,
 
 
 
-#endif
 #endif /* __RADEON_IOCTL_H__ */
