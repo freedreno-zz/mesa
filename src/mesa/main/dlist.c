@@ -7771,17 +7771,21 @@ void _mesa_save_vtxfmt_init( GLvertexformat *vfmt )
    vfmt->VertexAttrib4fNV = save_VertexAttrib4fNV;
    vfmt->VertexAttrib4fvNV = save_VertexAttrib4fvNV;
 
-   vfmt->Rectf = save_Rectf;
    vfmt->EvalMesh1 = _mesa_save_EvalMesh1;
    vfmt->EvalMesh2 = _mesa_save_EvalMesh2;
+   vfmt->Rectf = save_Rectf;
 
-   /* To implement as opcodes these would need new code for the
-    * runtime outside-begin-end checks.  As these functions aren't
-    * actually needed at this point, I'll punt on that for now:
+   /* The driver is required to implement these as
+    * 1) They can probably do a better job.
+    * 2) A lot of new mechanisms would have to be added to this module
+    *     to support it.  That code would probably never get used,
+    *     because of (1).
     */
-   vfmt->DrawArrays = 1;
-   vfmt->DrawElements = 1;
-   vfmt->DrawRangeElements = 1;
+#if 0
+   vfmt->DrawArrays = 0;
+   vfmt->DrawElements = 0;
+   vfmt->DrawRangeElements = 0;
+#endif
 }
 
 
