@@ -313,7 +313,7 @@ struct _glapi_table
    void (*Translatef)(GLfloat x, GLfloat y, GLfloat z); /* 304 */
    void (*Viewport)(GLint x, GLint y, GLsizei width, GLsizei height); /* 305 */
    void (*ArrayElement)(GLint i); /* 306 */
-   void (*BindTexture)(GLenum target, GLenum texture); /* 307 */
+   void (*BindTexture)(GLenum target, GLuint texture); /* 307 */
    void (*ColorPointer)(GLint size, GLenum type, GLsizei stride, const GLvoid * pointer); /* 308 */
    void (*DisableClientState)(GLenum array); /* 309 */
    void (*DrawArrays)(GLenum mode, GLint first, GLsizei count); /* 310 */
@@ -328,16 +328,16 @@ struct _glapi_table
    void (*PolygonOffset)(GLfloat factor, GLfloat units); /* 319 */
    void (*TexCoordPointer)(GLint size, GLenum type, GLsizei stride, const GLvoid * pointer); /* 320 */
    void (*VertexPointer)(GLint size, GLenum type, GLsizei stride, const GLvoid * pointer); /* 321 */
-   GLboolean (*AreTexturesResident)(GLsizei n, const GLenum * textures, GLboolean * residences); /* 322 */
+   GLboolean (*AreTexturesResident)(GLsizei n, const GLuint * textures, GLboolean * residences); /* 322 */
    void (*CopyTexImage1D)(GLenum target, GLint level, GLenum internalformat, GLint x, GLint y, GLsizei width, GLint border); /* 323 */
    void (*CopyTexImage2D)(GLenum target, GLint level, GLenum internalformat, GLint x, GLint y, GLsizei width, GLsizei height, GLint border); /* 324 */
    void (*CopyTexSubImage1D)(GLenum target, GLint level, GLint xoffset, GLint x, GLint y, GLsizei width); /* 325 */
    void (*CopyTexSubImage2D)(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint x, GLint y, GLsizei width, GLsizei height); /* 326 */
-   void (*DeleteTextures)(GLsizei n, const GLenum * textures); /* 327 */
-   void (*GenTextures)(GLsizei n, GLenum * textures); /* 328 */
+   void (*DeleteTextures)(GLsizei n, const GLuint * textures); /* 327 */
+   void (*GenTextures)(GLsizei n, GLuint * textures); /* 328 */
    void (*GetPointerv)(GLenum pname, GLvoid * * params); /* 329 */
-   GLboolean (*IsTexture)(GLenum texture); /* 330 */
-   void (*PrioritizeTextures)(GLsizei n, const GLenum * textures, const GLclampf * priorities); /* 331 */
+   GLboolean (*IsTexture)(GLuint texture); /* 330 */
+   void (*PrioritizeTextures)(GLsizei n, const GLuint * textures, const GLclampf * priorities); /* 331 */
    void (*TexSubImage1D)(GLenum target, GLint level, GLint xoffset, GLsizei width, GLenum format, GLenum type, const GLvoid * pixels); /* 332 */
    void (*TexSubImage2D)(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid * pixels); /* 333 */
    void (*PopClientAttrib)(void); /* 334 */
@@ -445,9 +445,9 @@ struct _glapi_table
    void (*GetPixelTexGenParameterfvSGIS)(GLenum pname, GLfloat * params); /* 436 */
    void (*TexImage4DSGIS)(GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth, GLsizei size4d, GLint border, GLenum format, GLenum type, const GLvoid * pixels); /* 437 */
    void (*TexSubImage4DSGIS)(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLint woffset, GLsizei width, GLsizei height, GLsizei depth, GLsizei size4d, GLenum format, GLenum type, const GLvoid * pixels); /* 438 */
-   GLboolean (*AreTexturesResidentEXT)(GLsizei n, const GLenum * textures, GLboolean * residences); /* 439 */
-   void (*GenTexturesEXT)(GLsizei n, GLenum * textures); /* 440 */
-   GLboolean (*IsTextureEXT)(GLenum texture); /* 441 */
+   GLboolean (*AreTexturesResidentEXT)(GLsizei n, const GLuint * textures, GLboolean * residences); /* 439 */
+   void (*GenTexturesEXT)(GLsizei n, GLuint * textures); /* 440 */
+   GLboolean (*IsTextureEXT)(GLuint texture); /* 441 */
    void (*DetailTexFuncSGIS)(GLenum target, GLsizei n, const GLfloat * points); /* 442 */
    void (*GetDetailTexFuncSGIS)(GLenum target, GLfloat * points); /* 443 */
    void (*SharpenTexFuncSGIS)(GLenum target, GLsizei n, const GLfloat * points); /* 444 */
@@ -566,7 +566,7 @@ struct _glapi_table
    void (*CompressedTexSubImage3DARB)(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLsizei imageSize, const GLvoid * data); /* 557 */
    void (*CompressedTexSubImage2DARB)(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLsizei imageSize, const GLvoid * data); /* 558 */
    void (*CompressedTexSubImage1DARB)(GLenum target, GLint level, GLint xoffset, GLsizei width, GLenum format, GLsizei imageSize, const GLvoid * data); /* 559 */
-   void (*GetCompressedTexImageARB)(GLenum target, GLint level, void * img); /* 560 */
+   void (*GetCompressedTexImageARB)(GLenum target, GLint level, GLvoid * img); /* 560 */
    void (*SecondaryColor3bEXT)(GLbyte red, GLbyte green, GLbyte blue); /* 561 */
    void (*SecondaryColor3bvEXT)(const GLbyte * v); /* 562 */
    void (*SecondaryColor3dEXT)(GLdouble red, GLdouble green, GLdouble blue); /* 563 */
