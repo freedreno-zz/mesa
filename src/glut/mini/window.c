@@ -62,7 +62,7 @@ int APIENTRY glutCreateWindow (const char *title)
       dpy = XOpenDisplay(NULL);
       if (!dpy) {
 	 printf("Error: XOpenDisplay failed\n");
-	 return 1;
+	 exit(1);
       }
    }
 
@@ -79,7 +79,7 @@ int APIENTRY glutCreateWindow (const char *title)
       visinfo = glXChooseVisual( dpy, scrnum, attrib );
       if (!visinfo) {
 	 printf("Error: couldn't get an RGB, Double-buffered visual\n");
-	 return 0;
+	 exit(1);
       }
    }
 
@@ -95,18 +95,18 @@ int APIENTRY glutCreateWindow (const char *title)
 		        visinfo->visual, mask, &attr );
    if (!win) {
       printf("Error: XCreateWindow failed\n");
-      return 0;
+      exit(1);
    }
 
    ctx = glXCreateContext( dpy, visinfo, NULL, True );
    if (!ctx) {
       printf("Error: glXCreateContext failed\n");
-      return 0;
+      exit(1);
    }
 
    if (!glXMakeCurrent( dpy, win, ctx )) {
       printf("Error: glXMakeCurrent failed\n");
-      return 0;
+      exit(1);
    }
 
    XMapWindow( dpy, win );
