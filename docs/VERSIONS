@@ -1,4 +1,4 @@
-$Id: VERSIONS,v 1.13.2.44 2000/07/10 14:53:11 brianp Exp $
+$Id: VERSIONS,v 1.13.2.45 2000/07/11 14:15:30 brianp Exp $
 
 
 Mesa Version History
@@ -742,3 +742,4 @@ Mesa Version History
 	- Line Z offset didn't always work
     Changes:
 	- glColorMask(false, false, false, false) handled better/faster
+	- reverted to old GLU polygon tessellator, GLU 1.1
