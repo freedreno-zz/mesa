@@ -1,4 +1,14 @@
-/* $Id: hash.c,v 1.14 2002/10/24 23:57:21 brianp Exp $ */
+/**
+ * \file hash.c
+ * \brief Generic hash table. 
+ *
+ * Used for display lists and texture objects.  The hash functions are
+ * thread-safe.
+ * 
+ * \note key=0 is illegal.
+ *
+ * \author Brian Paul
+ */
 
 /*
  * Mesa 3-D graphics library
@@ -24,6 +34,8 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+/* $Id: hash.c,v 1.14.4.1 2003/03/16 00:27:12 jrfonseca Exp $ */
+
 #include "glheader.h"
 #include "imports.h"
 #include "glthread.h"
@@ -31,40 +43,35 @@
 #include "context.h"
 
 
-/**
- * \file hash.c
- * \brief Generic hash table.  Used for display lists and texture objects.
- * The hash functions are thread-safe.
- * \author Brian Paul
- * \note key=0 is illegal
- */
-
-
 #define TABLE_SIZE 1023  /**< Size of lookup table/array */
 
 /**
- * An entry in the hash table.  This struct is private to this file.
+ * \brief An entry in the hash table.  
+ *
+ * This struct is private to this file.
  */
 struct HashEntry {
-   GLuint Key;             /**< the entry's key */
-   void *Data;             /**< the entry's data */
-   struct HashEntry *Next; /**< pointer to next entry */
+   GLuint Key;             /**< \brief the entry's key */
+   void *Data;             /**< \brief the entry's data */
+   struct HashEntry *Next; /**< \brief pointer to next entry */
 };
 
 /**
- * The hashtable data structure.  This is an opaque types (it's not
- * defined in the .h file).
+ * \brief The hash table data structure.  
+ *
+ * This is an opaque types (it's not defined in hash.h file).
  */
 struct _mesa_HashTable {
-   struct HashEntry *Table[TABLE_SIZE];  /**< the lookup table */
-   GLuint MaxKey;                        /**< highest key inserted so far */
-   _glthread_Mutex Mutex;                /**< mutual exclusion lock */
+   struct HashEntry *Table[TABLE_SIZE];  /**< \brief the lookup table */
+   GLuint MaxKey;                        /**< \brief highest key inserted so far */
+   _glthread_Mutex Mutex;                /**< \brief mutual exclusion lock */
 };
 
 
 
 /**
- * Create a new hash table.
+ * \brief Create a new hash table.
+ * 
  * \return pointer to a new, empty hash table.
  */
 struct _mesa_HashTable *_mesa_NewHashTable(void)
@@ -79,8 +86,11 @@ struct _mesa_HashTable *_mesa_NewHashTable(void)
 
 
 /**
- * Delete a hash table.
- * \param table - the hash table to delete
+ * \brief Delete a hash table.
+ * 
+ * \param table the hash table to delete.
+ *
+ * Frees each entry on the hash table and then the hash table structure itself.
  */
 void _mesa_DeleteHashTable(struct _mesa_HashTable *table)
 {
@@ -100,10 +110,14 @@ void _mesa_DeleteHashTable(struct _mesa_HashTable *table)
 
 
 /**
- * Lookup an entry in the hash table.
- * \param table - the hash table
- * \param key - the key
+ * \brief Lookup an entry in the hash table.
+ * 
+ * \param table the hash table.
+ * \param key the key.
+ * 
  * \return pointer to user's data or NULL if key not in table
+ *
+ * Walks through the hash entry until finding the matching key.
  */
 void *_mesa_HashLookup(const struct _mesa_HashTable *table, GLuint key)
 {
@@ -127,11 +141,16 @@ void *_mesa_HashLookup(const struct _mesa_HashTable *table, GLuint key)
 
 
 /**
- * Insert into the hash table.  If an entry with this key already exists
- * we'll replace the existing entry.
- * \param table - the hash table
- * \param key - the key (not zero)
- * \param data - pointer to user data
+ * \brief Insert into the hash table.  
+ *
+ * If an entry with this key already exists we'll replace the existing entry.
+ * 
+ * \param table the hash table.
+ * \param key the key (not zero).
+ * \param data pointer to user data.
+ *
+ * While holding the hash table's lock, walk trhough the hash entry list replacing the data if a
+ * matching key is found, or inserts a new table entry otherwise.
  */
 void _mesa_HashInsert(struct _mesa_HashTable *table, GLuint key, void *data)
 {
@@ -172,9 +191,12 @@ void _mesa_HashInsert(struct _mesa_HashTable *table, GLuint key, void *data)
 
 
 /**
- * Remove an entry from the hash table.
- * \param table - the hash table
- * \param key - key of entry to remove
+ * \brief Remove an entry from the hash table.
+ * 
+ * \param table the hash table.
+ * \param key key of entry to remove.
+ *
+ * While holding the hash table's lock, searchs the entry with the matching key and unlinks it.
  */
 void _mesa_HashRemove(struct _mesa_HashTable *table, GLuint key)
 {
@@ -212,11 +234,17 @@ void _mesa_HashRemove(struct _mesa_HashTable *table, GLuint key)
 
 
 /**
- * Get the key of the "first" entry in the hash table.
+ * \param Get the key of the "first" entry in the hash table.
+ * 
  * This is used in the course of deleting all display lists when
  * a context is destroyed.
- * \param table - the hash table
+ * 
+ * \param table the hash table
+ * 
  * \return key for the "first" entry in the hash table.
+ *
+ * While holding the lock, walks trhough all table positions until returning
+ * the first entry of the first non-empty one.
  */
 GLuint _mesa_HashFirstEntry(struct _mesa_HashTable *table)
 {
@@ -236,8 +264,9 @@ GLuint _mesa_HashFirstEntry(struct _mesa_HashTable *table)
 
 
 /**
- * Dump contents of hash table for debugging.
- * \param table - the hash table
+ * \brief Dump contents of hash table for debugging.
+ * 
+ * \param table the hash table.
  */
 void _mesa_HashPrint(const struct _mesa_HashTable *table)
 {
@@ -255,10 +284,14 @@ void _mesa_HashPrint(const struct _mesa_HashTable *table)
 
 
 /**
- * Find a block of 'numKeys' adjacent unused hash keys.
- * \param table - the hash table
- * \param numKeys - number of keys needed
- * \return Starting key of free block or 0 if failure
+ * \param Find a block of adjacent unused hash keys.
+ * 
+ * \param table the hash table.
+ * \param numKeys number of keys needed.
+ * 
+ * \return Starting key of free block or 0 if failure.
+ *
+ * If there are enough free keys between the maximum key existing in the table (_mesa_HashTable::MaxKey) and the maximum key possible, then simply return the adjacent key. Otherwise do a full search for a free key block in the existing key range.
  */
 GLuint _mesa_HashFindFreeKeyBlock(struct _mesa_HashTable *table, GLuint numKeys)
 {

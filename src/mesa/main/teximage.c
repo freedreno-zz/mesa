@@ -1,4 +1,13 @@
-/* $Id: teximage.c,v 1.124.4.1 2003/03/09 10:52:21 jrfonseca Exp $ */
+/**
+ * \file teximage.c
+ * \brief Texture images manipulation functions.
+ *
+ * \note
+ * Mesa's native texture datatype is GLchan.  Native formats are GL_ALPHA,
+ * GL_LUMINANCE, GL_LUMANCE_ALPHA, GL_INTENSITY, GL_RGB, GL_RGBA, and
+ * GL_COLOR_INDEX.
+ * Device drivers are free to implement any internal format they want.
+ */
 
 /*
  * Mesa 3-D graphics library
@@ -24,6 +33,8 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+/* $Id: teximage.c,v 1.124.4.2 2003/03/16 00:27:13 jrfonseca Exp $ */
+
 #include "glheader.h"
 #include "context.h"
 #include "convolve.h"
@@ -38,16 +49,6 @@
 #include "texstate.h"
 #include "texstore.h"
 #include "mtypes.h"
-
-
-/*
- * NOTES:
- *
- * Mesa's native texture datatype is GLchan.  Native formats are
- * GL_ALPHA, GL_LUMINANCE, GL_LUMANCE_ALPHA, GL_INTENSITY, GL_RGB, GL_RGBA,
- * and GL_COLOR_INDEX.
- * Device drivers are free to implement any internal format they want.
- */
 
 
 #if 0
@@ -105,10 +106,10 @@ static void PrintTexture(GLcontext *ctx, const struct gl_texture_image *img)
 
 
 
-/*
- * Compute log base 2 of n.
- * If n isn't an exact power of two return -1.
- * If n < 0 return -1.
+/**
+ * \brief Compute log base 2 of \p n.
+ * 
+ * \return log base 2 of \n, or -1 if \p n isn't an exact power of two or \p n < 0.
  */
 static int
 logbase2( int n )
@@ -134,15 +135,17 @@ logbase2( int n )
 
 
 
-/*
- * Given an internal texture format enum or 1, 2, 3, 4 return the
- * corresponding _base_ internal format:  GL_ALPHA, GL_LUMINANCE,
- * GL_LUMANCE_ALPHA, GL_INTENSITY, GL_RGB, or GL_RGBA.
+/**
+ * \brief Get base internal format.
+ *
+ * \param ctx GL context.
+ * \param format internal texture format enum or 1, 2, 3, 4.
+ *
+ * \return the corresponding \u base internal format (GL_ALPHA, GL_LUMINANCE,
+ * GL_LUMANCE_ALPHA, GL_INTENSITY, GL_RGB, or GL_RGBA), or -1 if invalid enum.
  *
  * This is the format which is used during texture application (i.e. the
  * texture format and env mode determine the arithmetic used.
- *
- * Return -1 if invalid enum.
  */
 GLint
 _mesa_base_tex_format( GLcontext *ctx, GLint format )
@@ -274,9 +277,9 @@ _mesa_base_tex_format( GLcontext *ctx, GLint format )
 }
 
 
-/*
- * Test if the given image format is a color/rgba format.  That is,
- * not color index, depth, stencil, etc.
+/**
+ * \brief Test if the given image format is a color/RGBA format, i.e., not
+ * color index, depth, stencil, etc.
  */
 static GLboolean
 is_color_format(GLenum format)
@@ -332,6 +335,9 @@ is_color_format(GLenum format)
 }
 
 
+/**
+ * \brief Test if the given image format is a color index format.
+ */
 static GLboolean
 is_index_format(GLenum format)
 {
@@ -351,9 +357,15 @@ is_index_format(GLenum format)
 
 
 /**
- * Return GL_TRUE if internalFormat is a supported compressed format,
- * return GL_FALSE otherwise.
- * \param - internalFormat - the internal format token provided by the user
+ * \brief Test if it is a supported compressed format.
+ * 
+ * \param internalFormat the internal format token provided by the user.
+ * 
+ * \ret GL_TRUE if \p internalFormat is a supported compressed format, or
+ * GL_FALSE otherwise.
+ *
+ * Currently only GL_COMPRESSED_RGB_FXT1_3DFX and GL_COMPRESSED_RGBA_FXT1_3DFX
+ * are supported.
  */
 static GLboolean
 is_compressed_format(GLenum internalFormat)
@@ -368,9 +380,15 @@ is_compressed_format(GLenum internalFormat)
 }
 
 
-/*
- * Store a gl_texture_image pointer in a gl_texture_object structure
+/**
+ * \brief Store a gl_texture_image pointer in a gl_texture_object structure
  * according to the target and level parameters.
+ * 
+ * \param tObj texture object.
+ * \param target texture target.
+ * \param level image level.
+ * \param texImage texture image.
+ * 
  * This was basically prompted by the introduction of cube maps.
  */
 void
@@ -415,9 +433,11 @@ _mesa_set_tex_image(struct gl_texture_object *tObj,
 }
 
 
-
-/*
- * Return new gl_texture_image struct with all fields initialized to zero.
+/**
+ * \brief Allocate a texture image structure.
+ * 
+ * \return a pointer to gl_texture_image struct with all fields initialized to
+ * zero.
  */
 struct gl_texture_image *
 _mesa_alloc_texture_image( void )
@@ -426,7 +446,14 @@ _mesa_alloc_texture_image( void )
 }
 
 
-
+/**
+ * \brief Free texture image.
+ *
+ * \param teximage texture image.
+ *
+ * Free the texture image structure and the associated image data if it doesn't
+ * belong to the client.
+ */
 void
 _mesa_free_texture_image( struct gl_texture_image *teximage )
 {
@@ -438,8 +465,12 @@ _mesa_free_texture_image( struct gl_texture_image *teximage )
 }
 
 
-/*
- * Return GL_TRUE if the target is a proxy target.
+/**
+ * \brief Test if a target is a proxy target.
+ *
+ * \param target texture target.
+ *
+ * \return GL_TRUE if the target is a proxy target, GL_FALSE otherwise.
  */
 static GLboolean
 is_proxy_target(GLenum target)
@@ -451,9 +482,16 @@ is_proxy_target(GLenum target)
 }
 
 
-/*
- * Given a texture unit and a texture target, return the corresponding
- * texture object.
+/**
+ * \brief Get the texture object that corresponds to the target of the given texture unit.
+ *
+ * \param ctx GL context.
+ * \param texUnit texture unit.
+ * \param target texture target.
+ *
+ * \return pointer to the texture object on success, or NULL on failure.
+ * 
+ * \sa gl_texture_unit.
  */
 struct gl_texture_object *
 _mesa_select_tex_object(GLcontext *ctx, const struct gl_texture_unit *texUnit,
@@ -497,9 +535,18 @@ _mesa_select_tex_object(GLcontext *ctx, const struct gl_texture_unit *texUnit,
 }
 
 
-/*
- * Return the texture image struct which corresponds to target and level
- * for the given texture unit.
+/**
+ * \brief Get the texture image struct which corresponds to target and level
+ * of the given texture unit.
+ *
+ * \param ctx GL context.
+ * \param texUnit texture unit.
+ * \param target texture target.
+ * \param level image level.
+ *
+ * \return pointer to the texture image structure on success, or NULL on failure.
+ *
+ * \sa gl_texture_unit.
  */
 struct gl_texture_image *
 _mesa_select_tex_image(GLcontext *ctx, const struct gl_texture_unit *texUnit,
@@ -578,9 +625,16 @@ _mesa_select_tex_image(GLcontext *ctx, const struct gl_texture_unit *texUnit,
 }
 
 
-/*
- * Return the maximum number of allows mipmap levels for the given
- * texture target.
+/**
+ * \brief Get the maximum number of allowed mipmap levels.
+ *
+ * \param ctx GL context.
+ * \param target texture target.
+ * 
+ * \return the maximum number of allowed mipmap levels for the given
+ * texture target, or zero if passed a bad target.
+ *
+ * \sa gl_constants.
  */
 GLint
 _mesa_max_texture_levels(GLcontext *ctx, GLenum target)
@@ -668,8 +722,11 @@ make_null_texture(GLint width, GLint height, GLint depth, GLenum format)
 
 
 
-/*
- * Reset the fields of a gl_texture_image struct to zero.
+/**
+ * \brief Reset the fields of a gl_texture_image struct to zero.
+ * 
+ * \param img texture image structure.
+ *
  * This is called when a proxy texture test fails, we set all the
  * image members (except DriverData) to zero.
  * It's also used in glTexImage[123]D as a safeguard to be sure all
@@ -701,8 +758,19 @@ clear_teximage_fields(struct gl_texture_image *img)
 }
 
 
-/*
- * Initialize basic fields of the gl_texture_image struct.
+/**
+ * \brief Initialize basic fields of the gl_texture_image struct.
+ *
+ * \param ctx GL context.
+ * \param target texture target.
+ * \param img texture image structure to be initialized.
+ * \param width image width.
+ * \param height image height.
+ * \param depth image depth.
+ * \param border image border.
+ * \param internalFormat internal format.
+ *
+ * Fills in the fields of \p img with the given information.
  */
 void
 _mesa_init_teximage_fields(GLcontext *ctx, GLenum target,
@@ -754,12 +822,26 @@ _mesa_init_teximage_fields(GLcontext *ctx, GLenum target,
 }
 
 
-
-/*
- * Test glTexImage[123]D() parameters for errors.
- * \param
- *         dimensions - must be 1 or 2 or 3
- * \return GL_TRUE = an error was detected, GL_FALSE = no errors
+/**
+ * \brief Test the glTexImage[123]D() parameters for errors.
+ * 
+ * \param ctx GL context.
+ * \param target texture target given by the user.
+ * \param level image level given by the user.
+ * \param internalFormat internal format given by the user.
+ * \param format pixel data format given by the user.
+ * \param type pixel data type given by the user.
+ * \param dimensions texture image dimensions (must be 1, 2 or 3).
+ * \param width image width given by the user.
+ * \param height image height given by the user.
+ * \param depth image depth given by the user.
+ * \param border image border given by the user.
+ * 
+ * \return GL_TRUE if an error was detected, or GL_FALSE if no errors.
+ *
+ * Verifies each of the parameters against the constants specified in
+ * __GLcontextRec::Const and the supported extensions, and according to the
+ * OpenGL specification.
  */
 static GLboolean
 texture_error_check( GLcontext *ctx, GLenum target,
@@ -1043,12 +1125,27 @@ texture_error_check( GLcontext *ctx, GLenum target,
 }
 
 
-
-/*
- * Test glTexSubImage[123]D() parameters for errors.
- * \param
- *         dimensions - must be 1 or 2 or 3
- * \return GL_TRUE = an error was detected, GL_FALSE = no errors
+/**
+ * \brief Test glTexSubImage[123]D() parameters for errors.
+ * 
+ * \param ctx GL context.
+ * \param dimensions texture image dimensions (must be 1, 2 or 3).
+ * \param target texture target given by the user.
+ * \param level image level given by the user.
+ * \param xoffset sub-image x offset given by the user.
+ * \param yoffset sub-image y offset given by the user.
+ * \param zoffset sub-image z offset given by the user.
+ * \param format pixel data format given by the user.
+ * \param type pixel data type given by the user.
+ * \param width image width given by the user.
+ * \param height image height given by the user.
+ * \param depth image depth given by the user.
+ * 
+ * \return GL_TRUE if an error was detected, or GL_FALSE if no errors.
+ *
+ * Verifies each of the parameters against the constants specified in
+ * __GLcontextRec::Const and the supported extensions, and according to the
+ * OpenGL specification.
  */
 static GLboolean
 subtexture_error_check( GLcontext *ctx, GLuint dimensions,
@@ -1211,10 +1308,24 @@ subtexture_error_check( GLcontext *ctx, GLuint dimensions,
 }
 
 
-/*
- * Test glCopyTexImage[12]D() parameters for errors.
- * \param dimensions - must be 1 or 2 or 3
- * \return GL_TRUE = an error was detected, GL_FALSE = no errors
+/**
+ * \brief Test glCopyTexImage[12]D() parameters for errors.
+ * 
+ * \param ctx GL context.
+ * \param dimensions texture image dimensions (must be 1, 2 or 3).
+ * \param target texture target given by the user.
+ * \param level image level given by the user.
+ * \param internalFormat internal format given by the user.
+ * \param width image width given by the user.
+ * \param height image height given by the user.
+ * \param depth image depth given by the user.
+ * \param border texture border.
+ * 
+ * \return GL_TRUE if an error was detected, or GL_FALSE if no errors.
+ * 
+ * Verifies each of the parameters against the constants specified in
+ * __GLcontextRec::Const and the supported extensions, and according to the
+ * OpenGL specification.
  */
 static GLboolean
 copytexture_error_check( GLcontext *ctx, GLuint dimensions,
@@ -1324,6 +1435,25 @@ copytexture_error_check( GLcontext *ctx, GLuint dimensions,
 }
 
 
+/**
+ * \brief Test glCopyTexImage[12]D() parameters for errors.
+ * 
+ * \param ctx GL context.
+ * \param dimensions texture image dimensions (must be 1, 2 or 3).
+ * \param target texture target given by the user.
+ * \param level image level given by the user.
+ * \param xoffset sub-image x offset given by the user.
+ * \param yoffset sub-image y offset given by the user.
+ * \param zoffset sub-image z offset given by the user.
+ * \param width image width given by the user.
+ * \param height image height given by the user.
+ * 
+ * \return GL_TRUE if an error was detected, or GL_FALSE if no errors.
+ * 
+ * Verifies each of the parameters against the constants specified in
+ * __GLcontextRec::Const and the supported extensions, and according to the
+ * OpenGL specification.
+ */
 static GLboolean
 copytexsubimage_error_check( GLcontext *ctx, GLuint dimensions,
                              GLenum target, GLint level,
@@ -1466,7 +1596,15 @@ copytexsubimage_error_check( GLcontext *ctx, GLuint dimensions,
 }
 
 
-
+/**
+ * \brief Get texture image.
+ *
+ * \param target texture target.
+ * \param level image level.
+ * \param format pixel data format.
+ * \param type pixel data type.
+ * \param pixels pixel data.
+ */
 void
 _mesa_GetTexImage( GLenum target, GLint level, GLenum format,
                    GLenum type, GLvoid *pixels )

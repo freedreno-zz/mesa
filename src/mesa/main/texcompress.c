@@ -1,4 +1,7 @@
-/* $Id: texcompress.c,v 1.3 2002/10/24 23:57:21 brianp Exp $ */
+/**
+ * \file texcompress.c
+ * \brief Compressed textures functions.
+ */
 
 /*
  * Mesa 3-D graphics library
@@ -24,6 +27,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+/* $Id: texcompress.c,v 1.3.4.1 2003/03/16 00:27:13 jrfonseca Exp $ */
 
 #include "glheader.h"
 #include "imports.h"
@@ -34,9 +38,13 @@
 
 
 /**
- * Get the list of supported internal compression formats.
- * \param formats - the results list (may be NULL)
+ * \brief Get the list of supported internal compression formats.
+ * 
+ * \param ctx GL context.
+ * \param formats the resulting format list (may be NULL).
  * \return number of formats.
+ *
+ * 
  */
 GLuint
 _mesa_get_compressed_formats( GLcontext *ctx, GLint *formats )
@@ -57,13 +65,16 @@ _mesa_get_compressed_formats( GLcontext *ctx, GLint *formats )
 }
 
 
-
 /**
- * Return bytes of storage needed for the given texture size and compressed
- * format.
- * \param width, height, depth - texture size in texels
- * \param texFormat - one of the compressed format enums
- * \return size in bytes, or zero if bad texFormat
+ * \brief Return bytes of storage needed for the given texture size and
+ * compressed format.
+ * 
+ * \param width texture width in texels.
+ * \param height texture height in texels.
+ * \param depth texture depth in texels.
+ * \param texFormat one of the compressed format enums
+ * 
+ * \return size in bytes, or zero if bad \p texFormat.
  */
 GLuint
 _mesa_compressed_texture_size( GLcontext *ctx,
@@ -85,8 +96,8 @@ _mesa_compressed_texture_size( GLcontext *ctx,
 }
 
 
-/*
- * Compute the bytes per row in a compressed texture image.
+/**
+ * \brief Compute the bytes per row in a compressed texture image.
  */
 GLint
 _mesa_compressed_row_stride(GLenum format, GLsizei width)
@@ -103,14 +114,18 @@ _mesa_compressed_row_stride(GLenum format, GLsizei width)
 }
 
 
-/*
- * Return the address of the pixel at (col, row, img) in a
+/**
+ * \brief Return the address of the pixel at (col, row, img) in a
  * compressed texture image.
- * \param col, row, img - image position (3D)
- * \param format - compressed image format
- * \param width - image width
- * \param image - the image address
- * \return address of pixel at (row, col)
+ * 
+ * \param col image position.
+ * \param row image position.
+ * \param img image position.
+ * \param format compressed image format.
+ * \param width image width.
+ * \param image the image address.
+ * 
+ * \return address of pixel at (row, col).
  */
 GLubyte *
 _mesa_compressed_image_address(GLint col, GLint row, GLint img,
@@ -136,9 +151,8 @@ _mesa_compressed_image_address(GLint col, GLint row, GLint img,
 }
 
 
-
-/*
- * \param srcRowStride - source stride, in pixels
+/**
+ * \param srcRowStride source stride, in pixels
  */
 void
 _mesa_compress_teximage( GLcontext *ctx, GLsizei width, GLsizei height,

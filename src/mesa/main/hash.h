@@ -1,4 +1,4 @@
-/* $Id: hash.h,v 1.6 2002/09/16 17:55:36 brianp Exp $ */
+/* $Id: hash.h,v 1.6.6.1 2003/03/16 00:27:12 jrfonseca Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -33,7 +33,7 @@
 
 
 /**
- * Opaque hash table type.
+ * \brief Opaque hash table type.
  */
 struct HashTable;
 

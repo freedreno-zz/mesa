@@ -27,7 +27,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: texobj.c,v 1.62.4.2 2003/03/10 14:10:46 brianp Exp $ */
+/* $Id: texobj.c,v 1.62.4.3 2003/03/16 00:27:13 jrfonseca Exp $ */
 
 #include "glheader.h"
 #include "colortab.h"
@@ -679,7 +679,7 @@ _mesa_DeleteTextures( GLsizei n, const GLuint *texName)
  * the same texture.  Get the current texture which is either a default texture
  * if name is null, a named texture from the hash, or a new texture if the
  * given texture name is new. Increments its reference count, binds it, and
- * calls dd_driver_table::BindTexture. Decrements the old texture reference
+ * calls dd_function_table::BindTexture. Decrements the old texture reference
  * count and deletes it if it reaches zero.
  */
 void
@@ -837,7 +837,7 @@ _mesa_BindTexture( GLenum target, GLuint texName )
  * \sa glPrioritizeTextures().
  * 
  * Looksup each texture in the hash, clamps the corresponding priority between
- * 0.0 and 1.0, and calls dd_driver_table::PrioritizeTexture.
+ * 0.0 and 1.0, and calls dd_function_table::PrioritizeTexture.
  */
 void
 _mesa_PrioritizeTextures( GLsizei n, const GLuint *texName,
@@ -882,11 +882,7 @@ _mesa_PrioritizeTextures( GLsizei n, const GLuint *texName,
  * \sa glAreTexturesResident().
  *
  * Looksup each texture in the hash and calls
- * dd_driver_table::IsTextureResident.
- * 
- * \todo According to the OpenGL specification the \p residences contents
- * should be left unchanged when all textures are resident, which is not done in
- * this implementation.
+ * dd_function_table::IsTextureResident.
  */
 GLboolean
 _mesa_AreTexturesResident(GLsizei n, const GLuint *texName,

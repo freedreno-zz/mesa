@@ -28,7 +28,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: context.c,v 1.188.2.1.2.7 2003/03/09 10:52:20 jrfonseca Exp $ */
+/* $Id: context.c,v 1.188.2.1.2.8 2003/03/16 00:27:12 jrfonseca Exp $ */
 
 /**
  * \mainpage Mesa Core Module
@@ -2668,4 +2668,4 @@ const char *_mesa_prim_name[GL_POLYGON+4] = {
    "unknown state"
 };
 
-/*@{*/
+/*@}*/

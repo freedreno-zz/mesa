@@ -29,7 +29,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: mtypes.h,v 1.97.4.2 2003/03/05 14:22:24 keithw Exp $ */
+/* $Id: mtypes.h,v 1.97.4.3 2003/03/16 00:27:12 jrfonseca Exp $ */
 
 
 #ifndef TYPES_H
@@ -886,9 +886,15 @@ struct gl_stencil_attrib {
 #define ENABLE_TEXMAT(i) (ENABLE_TEXMAT0 << (i))
 
 /**
- * If teximage is color-index, texelOut returns GLchan[1].
- * If teximage is depth, texelOut returns GLfloat[1].
- * Otherwise, texelOut returns GLchan[4].
+ * \brief Texel fetch function prototype.
+ * 
+ * \param texImage texture image.
+ * \param col texel column.
+ * \param row texel row.
+ * \param img texel level.
+ * \param texelOut output texel. If \p texImage is color-index, \p texelOut
+ * returns <c>GLchan[1]</c>.  If \p texImage is depth, \p texelOut returns
+ * <c>GLfloat[1]</c>.  Otherwise, \p texelOut returns <c>GLchan[4]</c>.
  */
 typedef void (*FetchTexelFunc)( const struct gl_texture_image *texImage,
                                 GLint col, GLint row, GLint img,
@@ -915,9 +921,14 @@ struct gl_texture_format {
 
    GLint TexelBytes;		/**< \brief Bytes per texel (0 for compressed formats */
 
-   FetchTexelFunc FetchTexel1D;	/**< \brief Texel fetch function pointers */
+   /**
+    * \name Texel fetch function pointers
+    */
+   /*@{*/
+   FetchTexelFunc FetchTexel1D;
    FetchTexelFunc FetchTexel2D;
    FetchTexelFunc FetchTexel3D;
+   /*@}*/
 };
 
 
@@ -983,7 +994,7 @@ struct gl_texture_object {
    GLenum WrapS;
    GLenum WrapT;
    GLenum WrapR;
-   /*@{*/
+   /*@}*/
    GLenum MinFilter;		/**< \brief minification filter */
    GLenum MagFilter;		/**< \brief magnification filter */
    GLfloat MinLod;		/**< \brief min lambda, OpenGL 1.2 */
@@ -1522,9 +1533,9 @@ struct gl_frame_buffer {
  * but are never changed after that.
  */
 struct gl_constants {
-   GLint MaxTextureLevels;
-   GLint Max3DTextureLevels;
-   GLint MaxCubeTextureLevels;          /* GL_ARB_texture_cube_map */
+   GLint MaxTextureLevels;		/**< \brief Maximum number of allowed mipmap levels. */ 
+   GLint Max3DTextureLevels;		/**< \brief Maximum number of allowed mipmap levels for 3D texture targets. */
+   GLint MaxCubeTextureLevels;          /**< \brief Maximum number of allowed mipmap levels for GL_ARB_texture_cube_map */
    GLint MaxTextureRectSize;            /* GL_NV_texture_rectangle */
    GLuint MaxTextureUnits;
    GLfloat MaxTextureMaxAnisotropy;	/* GL_EXT_texture_filter_anisotropic */

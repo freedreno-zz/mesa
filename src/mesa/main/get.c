@@ -1,4 +1,6 @@
-/* $Id: get.c,v 1.99.2.1 2002/11/14 16:16:45 brianp Exp $ */
+/**
+ * \file get.c
+ */
 
 /*
  * Mesa 3-D graphics library
@@ -24,6 +26,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+/* $Id: get.c,v 1.99.2.1.2.1 2003/03/16 00:27:12 jrfonseca Exp $ */
 
 #include "glheader.h"
 #include "colormac.h"
@@ -5690,8 +5693,10 @@ _mesa_GetString( GLenum name )
 }
 
 
-/*
- * Execute a glGetError command
+/**
+ * \brief Execute a glGetError() command.
+ *
+ * \return error number.
  */
 GLenum
 _mesa_GetError( void )
