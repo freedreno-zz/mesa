@@ -16,11 +16,11 @@ Status
 
 Version
 
-    $Id: MESA_resize_buffers.spec,v 1.1 1999/07/20 00:30:41 brianp Exp $
+    $Id: MESA_resize_buffers.spec,v 1.1.2.1 2000/04/04 23:28:00 brianp Exp $
 
 Number
 
-    XXX none assigned
+    196
 
 Dependencies
 
