@@ -1,10 +1,9 @@
-/* $Id: gl.h,v 1.72 2002/10/17 19:39:31 kschultz Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  4.1
+ * Version:  5.0.1
  *
- * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2003  Brian Paul   All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -2645,6 +2644,13 @@ GLAPI void GLAPIENTRY glTracePointerRangeMESA( const GLvoid* first, const GLvoid
 
 #endif /* GL_APPLE_ycbcr_422 */
 
+
+#ifndef GL_ATI_texture_env_combine3
+#define GL_ATI_texture_env_combine3 1
+#define GL_MODULATE_ADD_ATI               0x8744
+#define GL_MODULATE_SIGNED_ADD_ATI        0x8745
+#define GL_MODULATE_SUBTRACT_ATI          0x8746
+#endif
 
 
 /**********************************************************************
