@@ -22,7 +22,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: miniglx.c,v 1.1.4.28 2003/01/09 15:16:35 keithw Exp $ */
+/* $Id: miniglx.c,v 1.1.4.29 2003/01/09 16:54:49 keithw Exp $ */
 
 
 /**
@@ -1132,6 +1132,9 @@ XGetVisualInfo( Display *dpy, long vinfo_mask, XVisualInfo *vinfo_template, int 
  * \arg GLX_STENCIL_SIZE \e n:
  * Must be followed by a non-negative integer indicating the minimum number of
  * bits per stencil value that is acceptable.
+ * \arg GLX_DEPTH_SIZE \e n:
+ * Must be followed by a non-negative integer indicating the minimum number of
+ * bits per depth component that is acceptable.
  * \arg None:
  * This token is used to terminate the attribute list.
  *
@@ -1139,7 +1142,7 @@ XGetVisualInfo( Display *dpy, long vinfo_mask, XVisualInfo *vinfo_template, int 
  * requirements of the attribute list. If there is no visual which matches the
  * request, \c NULL will be returned.
  *
- * \note Visuals with accumulation buffers and depth buffers are not available.
+ * \note Visuals with accumulation buffers are not available.
  *
  * \internal
  * This function searches the list of available visual configurations in
