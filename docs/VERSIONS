@@ -1,4 +1,4 @@
-$Id: VERSIONS,v 1.13.2.4 1999/12/12 17:55:45 brianp Exp $
+$Id: VERSIONS,v 1.13.2.5 1999/12/14 07:17:42 brianp Exp $
 
 
 Mesa Version History
@@ -665,8 +665,8 @@ Mesa Version History
     New:
 	- added demos/gloss.c
 	- added xdemos/glxdpyinfo.c
-	- added GLX_ARB_get_proc_address
+	- added GLX_ARB_get_proc_address extension
     Bug fixes:
 	- several vertex array bug fixes
-	- glCopyPixels with pixel zooming now works
+	- overlapping glCopyPixels with pixel zooming now works
 	- glXUseXFont() bitmaps were vertically shifted by one pixel
