@@ -1,4 +1,4 @@
-/* $Id: tess.c,v 1.20.2.7 1999/12/05 17:01:17 gareth Exp $ */
+/* $Id: tess.c,v 1.20.2.8 2000/01/19 04:57:27 gareth Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -558,8 +558,8 @@ GLUtesselator* GLAPIENTRY gluNewTess( void )
     GLUtesselator *tobj;
 
 #ifdef DEBUG
-    if ( getenv( "GLU_TESS_DBG_LEVEL" ) ) {
-	tess_dbg_level = atoi( getenv( "GLU_TESS_DBG_LEVEL" ) );
+    if ( getenv( "MESA_TESS_DBG_LEVEL" ) ) {
+	tess_dbg_level = atoi( getenv( "MESA_TESS_DBG_LEVEL" ) );
     } else {
 	tess_dbg_level = DBG_LEVEL_BASE;
     }
