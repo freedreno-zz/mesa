@@ -182,6 +182,12 @@ typedef struct _drmBuf {
     drmAddress       address;	  /**< Address */
 } drmBuf, *drmBufPtr;
 
+/**
+ * \brief Buffer mapping information.
+ *
+ * Used by drmMapBufs() and drmUnmapBufs() to store information about the
+ * mapped buffers.
+ */
 typedef struct _drmBufMap {
     int              count;	  /**< Number of buffers mapped */
     drmBufPtr        list;	  /**< Buffers */

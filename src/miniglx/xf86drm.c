@@ -88,7 +88,7 @@
  * \param format printf() like format string.
  *
  * \internal
- * Wrapper arround vfprintf().
+ * This function is a wrapper arround vfprintf().
  */
 static void
 drmMsg(const char *format, ...)
@@ -258,8 +258,8 @@ int drmAvailable(void)
  * \return a file descriptor on success, or a negative value on error.
  *
  * \internal
- * Attempts to open every possible minor (up to DRM_MAX_MINOR) and compares the
- * device bus ID with the one supplied.
+ * This function attempts to open every possible minor (up to DRM_MAX_MINOR),
+ * comparing the device bus ID with the one supplied.
  *
  * \sa drmOpenMinor() and drmGetBusid().
  */
@@ -297,8 +297,9 @@ static int drmOpenByBusid(const char *busid)
  * \return a file descriptor on success, or a negative value on error.
  * 
  * \internal
- * Opens the first minor number that matches the driver name and isn't already
- * in use.  If it's in use it then it will already have a bus ID assigned.
+ * This function opens the first minor number that matches the driver name and
+ * isn't already in use.  If it's in use it then it will already have a bus ID
+ * assigned.
  * 
  * \sa drmOpenMinor(), drmGetVersion() and drmGetBusid().
  */
@@ -362,7 +363,7 @@ static int drmOpenByName(const char *name)
  * \return a file descriptor on success, or a negative value on error.
  * 
  * \internal
- * Calls drmOpenByBusid() if \p busid is specified or drmOpenByName()
+ * It calls drmOpenByBusid() if \p busid is specified or drmOpenByName()
  * otherwise.
  */
 int drmOpen(const char *name, const char *busid)
@@ -379,8 +380,8 @@ int drmOpen(const char *name, const char *busid)
  * \param v pointer to the version information.
  *
  * \internal
- * Frees the memory pointed by \p %v as well as all the non-null strings
- * pointed by it.
+ * It frees the memory pointed by \p %v as well as all the non-null strings
+ * pointers in it.
  */
 void drmFreeVersion(drmVersionPtr v)
 {
@@ -398,10 +399,8 @@ void drmFreeVersion(drmVersionPtr v)
  * \param v pointer to the version information.
  *
  * \internal
- * Frees the memory pointed by \p %v as well as all the non-null strings
- * pointed by it.
- * 
- * \sa Used by drmGetVersion().
+ * Used by drmGetVersion() to free the memory pointed by \p %v as well as all
+ * the non-null strings pointers in it.
  */
 static void drmFreeKernelVersion(drm_version_t *v)
 {
@@ -448,9 +447,9 @@ static void drmCopyVersion(drmVersionPtr d, const drm_version_t *s)
  * \note Similar information is available via /proc/dri.
  * 
  * \internal
- * Get the version information via sucessives DRM_IOCTL_VERSION ioctls, first
- * with zeros to get the string lengths, and then the strings into the
- * allocated space and null-terminating them.
+ * It gets the version information via sucessives DRM_IOCTL_VERSION ioctls,
+ * first with zeros to get the string lengths, and then the actually strings.
+ * It also null-terminates them since they might not be already.
  */
 drmVersionPtr drmGetVersion(int fd)
 {
@@ -509,7 +508,8 @@ drmVersionPtr drmGetVersion(int fd)
  * \return version information.
  * 
  * \internal
- * Allocates and fills a drm_version_t structure.
+ * This function allocates and fills a drm_version structure with a hardcoded
+ * version number.
  */
 drmVersionPtr drmGetLibVersion(int fd)
 {
@@ -535,7 +535,7 @@ drmVersionPtr drmGetLibVersion(int fd)
  * \param busid bus ID information string as given by drmGetBusid().
  *
  * \internal
- * Alias for free().
+ * This function is just frees the memory pointed by \p busid.
  */
 void drmFreeBusid(const char *busid)
 {
@@ -551,9 +551,9 @@ void drmFreeBusid(const char *busid)
  * \return bus ID string.
  *
  * \internal
- * Get the bus ID via sucessive DRM_IOCTL_GET_UNIQUE ioctls to get the
- * string length and data, passing the arguments in a drm_unique_t
- * type.
+ * This function gets the bus ID via sucessive DRM_IOCTL_GET_UNIQUE ioctls to
+ * get the string length and data, passing the arguments in a drm_unique
+ * structure.
  */
 char *drmGetBusid(int fd)
 {
@@ -579,8 +579,8 @@ char *drmGetBusid(int fd)
  * \return zero on sucess, negative on failure.
  *
  * \internal
- * Wrapper around the DRM_IOCTL_SET_UNIQUE ioctl. Passes the arguments
- * in a drm_unique_t structure.
+ * This function is a wrapper around the DRM_IOCTL_SET_UNIQUE ioctl, passing
+ * the arguments in a drm_unique structure.
  */
 int drmSetBusid(int fd, const char *busid)
 {
@@ -643,8 +643,8 @@ int drmSetBusid(int fd, const char *busid)
  * \note May only be called by root.
  *
  * \internal
- * Passes the arguments into a drm_map_t structure to the DRM_IOCTL_ADD_MAP
- * ioctl.
+ * This function is a wrapper around the DRM_IOCTL_ADD_MAP ioctl, passing
+ * the arguments in a drm_map structure.
  */
 int drmAddMap(int fd,
 	      drmHandle offset,
@@ -678,7 +678,7 @@ int drmAddMap(int fd,
  * \return number of buffers allocated, negative on error.
  *
  * \internal
- * Wrapper around DRM_IOCTL_ADD_BUFS ioctl.
+ * This function is a wrapper around DRM_IOCTL_ADD_BUFS ioctl.
  *
  * \sa drm_buf_desc.
  */
@@ -711,7 +711,8 @@ int drmAddBufs(int fd, int count, int size, drmBufDescFlags flags,
  * \note This function is primarily used for debugging.
  * 
  * \internal
- * Wrapper around DRM_IOCTL_FREE_BUFS ioctl.
+ * This function is a wrapper around the DRM_IOCTL_FREE_BUFS ioctl, passing
+ * the arguments in a drm_buf_free structure.
  */
 int drmFreeBufs(int fd, int count, int *list)
 {
@@ -730,7 +731,7 @@ int drmFreeBufs(int fd, int count, int *list)
  * \param fd file descriptor.
  *
  * \internal
- * Close the file descriptor.
+ * This function closes the file descriptor.
  */
 int drmClose(int fd)
 {
@@ -751,7 +752,7 @@ int drmClose(int fd)
  * \return zero on success, or a negative value on failure.
  * 
  * \internal
- * Wrapper for mmap().
+ * This function is a wrapper for mmap().
  */
 int drmMap(int fd,
 	   drmHandle handle,
@@ -782,7 +783,7 @@ int drmMap(int fd,
  * \return zero on success, or a negative value on failure.
  *
  * \internal
- * Wrapper for unmap().
+ * This function is a wrapper for unmap().
  */
 int drmUnmap(drmAddress address, drmSize size)
 {
@@ -795,14 +796,15 @@ int drmUnmap(drmAddress address, drmSize size)
  *
  * \param fd file descriptor.
  *
- * \return a pointer to a drmBufMap structure.
+ * \return a pointer to a ::drmBufMap structure.
  *
  * \note The client may not use these buffers until obtaining buffer indices
  * with drmDMA().
  * 
  * \internal
- * Calls the DRM_IOCTL_MAP_BUFS ioctl and copy the returned information about
- * the buffers into the client-visible data structures...
+ * This function calls the DRM_IOCTL_MAP_BUFS ioctl and copies the returned
+ * information about the buffers in a drm_buf_map structure into the
+ * client-visible data structures.
  */ 
 drmBufMapPtr drmMapBufs(int fd)
 {
@@ -869,7 +871,7 @@ int drmUnmapBufs(drmBufMapPtr bufs)
  * \return zero on success, or a negative value on failure.
  *
  * \internal
- * Assemble the arguments into a drm_dma_t structure and keeps issuing the
+ * Assemble the arguments into a drm_dma structure and keeps issuing the
  * DRM_IOCTL_DMA ioctl until success or until maximum number of retries.
  */
 int drmDMA(int fd, drmDMAReqPtr request)
@@ -912,8 +914,8 @@ int drmDMA(int fd, drmDMAReqPtr request)
  * \return always zero.
  * 
  * \internal
- * Translate the flags and do the DRM_IOCTL_LOCK ioctl until the lock is
- * sucessfully acquired.
+ * This function translates the arguments into a drm_lock structure and issue
+ * the DRM_IOCTL_LOCK ioctl until the lock is sucessfully acquired.
  */
 int drmGetLock(int fd, drmContext context, drmLockFlags flags)
 {
@@ -943,7 +945,8 @@ int drmGetLock(int fd, drmContext context, drmLockFlags flags)
  * \return zero on sucess, or a negative value on failure.
  * 
  * \internal
- * Wrapper around the DRM_IOCTL_UNLOCK ioctl.
+ * This function is a wrapper around the DRM_IOCTL_UNLOCK ioctl, passing the
+ * argument in a drm_lock structure.
  */
 int drmUnlock(int fd, drmContext context)
 {
@@ -970,7 +973,8 @@ int drmUnlock(int fd, drmContext context)
  * \note May only be called by root.
  * 
  * \internal
- * Wrapper around the DRM_IOCTL_ADD_CTX ioctl.
+ * This function is a wrapper around the DRM_IOCTL_ADD_CTX ioctl, passing the
+ * argument in a drm_ctx structure.
  */
 int drmCreateContext(int fd, drmContextPtr handle)
 {
@@ -997,7 +1001,8 @@ int drmCreateContext(int fd, drmContextPtr handle)
  * \note May only be called by root.
  * 
  * \internal
- * Wrapper around the DRM_IOCTL_RM_CTX ioctl.
+ * This function is a wrapper around the DRM_IOCTL_RM_CTX ioctl, passing te
+ * argument in a drm_ctx structure.
  */
 int drmDestroyContext(int fd, drmContext handle)
 {
@@ -1018,7 +1023,7 @@ int drmDestroyContext(int fd, drmContext handle)
  * \return zero on sucess, or a negative value on failure.
  * 
  * \internal
- * Wrapper around the DRM_IOCTL_AGP_ACQUIRE ioctl.
+ * This function is a wrapper around the DRM_IOCTL_AGP_ACQUIRE ioctl.
  */
 int drmAgpAcquire(int fd)
 {
@@ -1035,7 +1040,7 @@ int drmAgpAcquire(int fd)
  * \return zero on sucess, or a negative value on failure.
  * 
  * \internal
- * Wrapper around the DRM_IOCTL_AGP_RELEASE ioctl.
+ * This function is a wrapper around the DRM_IOCTL_AGP_RELEASE ioctl.
  */
 int drmAgpRelease(int fd)
 {
@@ -1053,7 +1058,8 @@ int drmAgpRelease(int fd)
  * \return zero on sucess, or a negative value on failure.
  * 
  * \internal
- * Wrapper around the DRM_IOCTL_AGP_ENABLE ioctl.
+ * This function is a wrapper around the DRM_IOCTL_AGP_ENABLE ioctl, pasing the
+ * argument in a drm_agp_mode structure.
  */
 int drmAgpEnable(int fd, unsigned long mode)
 {
@@ -1078,9 +1084,8 @@ int drmAgpEnable(int fd, unsigned long mode)
  * \return zero on sucess, or a negative value on failure.
  * 
  * \internal
- * Wrapper around the DRM_IOCTL_AGP_ALLOC ioctl.
- *
- * \sa drm_agp_buffer_t;
+ * This function is a wrapper around the DRM_IOCTL_AGP_ALLOC ioctl, passing the
+ * arguments in a drm_agp_buffer structure.
  */
 int drmAgpAlloc(int fd, unsigned long size, unsigned long type,
 		unsigned long *address, unsigned long *handle)
@@ -1106,9 +1111,8 @@ int drmAgpAlloc(int fd, unsigned long size, unsigned long type,
  * \return zero on sucess, or a negative value on failure.
  * 
  * \internal
- * Wrapper around the DRM_IOCTL_AGP_FREE ioctl.
- *
- * \sa drm_agp_buffer.
+ * This function is a wrapper around the DRM_IOCTL_AGP_FREE ioctl, passing the
+ * argument in a drm_agp_buffer structure.
  */
 int drmAgpFree(int fd, unsigned long handle)
 {
@@ -1131,9 +1135,8 @@ int drmAgpFree(int fd, unsigned long handle)
  * \return zero on sucess, or a negative value on failure.
  * 
  * \internal
- * Wrapper around the DRM_IOCTL_AGP_BIND ioctl.
- * 
- * \sa drm_agp_binding.
+ * This function is a wrapper around the DRM_IOCTL_AGP_BIND ioctl, passing the
+ * argument in a drm_agp_binding structure.
  */
 int drmAgpBind(int fd, unsigned long handle, unsigned long offset)
 {
@@ -1155,9 +1158,8 @@ int drmAgpBind(int fd, unsigned long handle, unsigned long offset)
  * \return zero on sucess, or a negative value on failure.
  * 
  * \internal
- * Wrapper around the DRM_IOCTL_AGP_UNBIND ioctl.
- *
- * \sa drm_agp_binding.
+ * This function is a wrapper around the DRM_IOCTL_AGP_UNBIND ioctl, passing
+ * the argument in a drm_agp_binding structure.
  */
 int drmAgpUnbind(int fd, unsigned long handle)
 {
@@ -1178,7 +1180,8 @@ int drmAgpUnbind(int fd, unsigned long handle)
  * \return major version number on success, or a negative value on failure..
  * 
  * \internal
- * Wrapper around the DRM_IOCTL_AGP_INFO ioctl.
+ * This function is a wrapper around the DRM_IOCTL_AGP_INFO ioctl, getting the
+ * necessary information in a drm_agp_info structure.
  */
 int drmAgpVersionMajor(int fd)
 {
@@ -1197,7 +1200,8 @@ int drmAgpVersionMajor(int fd)
  * \return minor version number on sucess, or a negative value on failure.
  * 
  * \internal
- * Wrapper around the DRM_IOCTL_AGP_INFO ioctl.
+ * This function is a wrapper around the DRM_IOCTL_AGP_INFO ioctl, getting the
+ * necessary information in a drm_agp_info structure.
  */
 int drmAgpVersionMinor(int fd)
 {
@@ -1216,7 +1220,8 @@ int drmAgpVersionMinor(int fd)
  * \return mode on sucess, or zero on failure.
  * 
  * \internal
- * Wrapper around the DRM_IOCTL_AGP_INFO ioctl.
+ * This function is a wrapper around the DRM_IOCTL_AGP_INFO ioctl, getting the
+ * necessary information in a drm_agp_info structure.
  */
 unsigned long drmAgpGetMode(int fd)
 {
@@ -1235,7 +1240,8 @@ unsigned long drmAgpGetMode(int fd)
  * \return aperture base on sucess, zero on failure.
  * 
  * \internal
- * Wrapper around the DRM_IOCTL_AGP_INFO ioctl.
+ * This function is a wrapper around the DRM_IOCTL_AGP_INFO ioctl, getting the
+ * necessary information in a drm_agp_info structure.
  */
 unsigned long drmAgpBase(int fd)
 {
@@ -1254,7 +1260,8 @@ unsigned long drmAgpBase(int fd)
  * \return aperture size on sucess, zero on failure.
  * 
  * \internal
- * Wrapper around the DRM_IOCTL_AGP_INFO ioctl.
+ * This function is a wrapper around the DRM_IOCTL_AGP_INFO ioctl, getting the
+ * necessary information in a drm_agp_info structure.
  */
 unsigned long drmAgpSize(int fd)
 {
@@ -1273,7 +1280,8 @@ unsigned long drmAgpSize(int fd)
  * \return memory used on sucess, or zero on failure.
  * 
  * \internal
- * Wrapper around the DRM_IOCTL_AGP_INFO ioctl.
+ * This function is a wrapper around the DRM_IOCTL_AGP_INFO ioctl, getting the
+ * necessary information in a drm_agp_info structure.
  */
 unsigned long drmAgpMemoryUsed(int fd)
 {
@@ -1292,7 +1300,8 @@ unsigned long drmAgpMemoryUsed(int fd)
  * \return memory available on sucess, or zero on failure.
  * 
  * \internal
- * Wrapper around the DRM_IOCTL_AGP_INFO ioctl.
+ * This function is a wrapper around the DRM_IOCTL_AGP_INFO ioctl, getting the
+ * necessary information in a drm_agp_info structure.
  */
 unsigned long drmAgpMemoryAvail(int fd)
 {
@@ -1311,7 +1320,8 @@ unsigned long drmAgpMemoryAvail(int fd)
  * \return vendor ID on sucess, or zero on failure.
  * 
  * \internal
- * Wrapper around the DRM_IOCTL_AGP_INFO ioctl.
+ * This function is a wrapper around the DRM_IOCTL_AGP_INFO ioctl, getting the
+ * necessary information in a drm_agp_info structure.
  */
 unsigned int drmAgpVendorId(int fd)
 {
@@ -1330,7 +1340,8 @@ unsigned int drmAgpVendorId(int fd)
  * \return zero on sucess, or zero on failure.
  * 
  * \internal
- * Wrapper around the DRM_IOCTL_AGP_INFO ioctl.
+ * This function is a wrapper around the DRM_IOCTL_AGP_INFO ioctl, getting the
+ * necessary information in a drm_agp_info structure.
  */
 unsigned int drmAgpDeviceId(int fd)
 {
@@ -1350,7 +1361,7 @@ unsigned int drmAgpDeviceId(int fd)
  * \return zero on sucess, or a negative value on failure.
  * 
  * \internal
- * Wrapper around the DRM_IOCTL_WAIT_VBLANK ioctl.
+ * This function is a wrapper around the DRM_IOCTL_WAIT_VBLANK ioctl.
  */
 int drmWaitVBlank(int fd, drmVBlankPtr vbl)
 {
@@ -1373,7 +1384,8 @@ int drmWaitVBlank(int fd, drmVBlankPtr vbl)
  * \return zero on sucess, or a negative value on failure.
  * 
  * \internal
- * Wrapper around the DRM_IOCTL_CONTROL ioctl.
+ * This function is a wrapper around the DRM_IOCTL_CONTROL ioctl, passing the
+ * argument in a drm_control structure.
  */
 int drmCtlInstHandler(int fd, int irq)
 {
@@ -1394,7 +1406,8 @@ int drmCtlInstHandler(int fd, int irq)
  * \return zero on sucess, or a negative value on failure.
  * 
  * \internal
- * Wrapper around the DRM_IOCTL_CONTROL ioctl.
+ * This function is a wrapper around the DRM_IOCTL_CONTROL ioctl, passing the
+ * argument in a drm_control structure.
  */
 int drmCtlUninstHandler(int fd)
 {
@@ -1418,7 +1431,8 @@ int drmCtlUninstHandler(int fd)
  * \return IRQ number on sucess, or a negative value on failure.
  * 
  * \internal
- * Wrapper around the DRM_IOCTL_IRQ_BUSID ioctl.
+ * This function is a wrapper around the DRM_IOCTL_IRQ_BUSID ioctl, passing the
+ * arguments in a drm_irq_busid structure.
  */
 int drmGetInterruptFromBusID(int fd, int busnum, int devnum, int funcnum)
 {
@@ -1441,7 +1455,7 @@ int drmGetInterruptFromBusID(int fd, int busnum, int devnum, int funcnum)
  * \return zero on sucess, or a negative value on failure.
  * 
  * \internal
- * Issues a ioctl given by 
+ * It issues a ioctl given by 
  * \code DRM_COMMAND_BASE + drmCommandIndex \endcode.
  */
 int drmCommandNone(int fd, unsigned long drmCommandIndex)
@@ -1469,7 +1483,7 @@ int drmCommandNone(int fd, unsigned long drmCommandIndex)
  * \return zero on sucess, or a negative value on failure.
  *
  * \internal
- * Issues a read ioctl given by 
+ * It issues a read ioctl given by 
  * \code DRM_COMMAND_BASE + drmCommandIndex \endcode.
  */
 int drmCommandRead(int fd, unsigned long drmCommandIndex,
@@ -1498,7 +1512,7 @@ int drmCommandRead(int fd, unsigned long drmCommandIndex,
  * \return zero on sucess, or a negative value on failure.
  * 
  * \internal
- * Issues a write ioctl given by 
+ * It issues a write ioctl given by 
  * \code DRM_COMMAND_BASE + drmCommandIndex \endcode.
  */
 int drmCommandWrite(int fd, unsigned long drmCommandIndex,
@@ -1527,7 +1541,7 @@ int drmCommandWrite(int fd, unsigned long drmCommandIndex,
  * \return zero on sucess, or a negative value on failure.
  * 
  * \internal
- * Issues a read-write ioctl given by 
+ * It issues a read-write ioctl given by 
  * \code DRM_COMMAND_BASE + drmCommandIndex \endcode.
  */
 int drmCommandWriteRead(int fd, unsigned long drmCommandIndex,

@@ -22,7 +22,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: miniglx.c,v 1.1.4.39 2003/01/19 12:18:08 jrfonseca Exp $ */
+/* $Id: miniglx.c,v 1.1.4.40 2003/01/19 14:08:20 jrfonseca Exp $ */
 
 
 /**
@@ -832,14 +832,15 @@ static int __read_config_file( Display *dpy )
  * Allocates a MiniGLXDisplayRec structure and fills in with information from a
  * configuration file. 
  *
- * Opens and initializes the fbdev device.
+ * Calls OpenFBDev() to open the framebuffer device and calls
+ * MiniGLXDriverRec::initFBDev to do the client-side initialization on it.
  *
  * Loads the DRI driver and pulls in MiniGLX-specific hooks into a
  * MiniGLXDriverRec structure, and the standard DRI \e __driCreateScreen hook.
- * Asks the driver for a list of supported visuals.  Performs the client-side
- * initialization - has to be done this here as it depends on the chosen
- * display resolution, which in this window system depends on the size of the
- * \e window created. Also setups the callbacks in the screen private
+ * Asks the driver for a list of supported visuals.  Performs the per-screen
+ * client-side initialization - has to be done this here as it depends on the
+ * chosen display resolution, which in this window system depends on the size
+ * of the \e window created. Also setups the callbacks in the screen private
  * information.
  */
 Display *
@@ -956,13 +957,11 @@ XOpenDisplay( const char *display_name )
  * \param display display handle. It becomes invalid at this point.
  * 
  * \internal 
- * This function frees the \p display structure, after calling the
- * __DRIscreenRec::destroyScreen method pointed by
- * MiniGLXDisplayRec::driScreen attribute of \p display, closing the dynamic
- * library handle MiniGLXDisplayRec::dlHandle and calling CloseFBDev() to
- * close the fbdev.
+ * If there is a window open calls XDestroyWindow().
  *
- * Also destroy the window and halt the framebuffer device.
+ * Destroys the per-screen driver private information and asks the driver to
+ * halt the framebuffer device before unloading it. Closes the framebuffer
+ * device. Finally frees the display structure.
  */
 void
 XCloseDisplay( Display *display )
@@ -1026,10 +1025,10 @@ XCloseDisplay( Display *display )
  *
  * \internal 
  * This function creates and initializes a ::MiniGLXWindowRec structure after
- * ensuring that there is no other window created, and calls SetupFBDev() to
- * setup the framebuffer device mode and get its geometry. It performs the
- * client-side initialization calling MiniGLXDisplayRec::createScreen and
- * __DRIscreenRec::createDrawable methods.
+ * ensuring that there is no other window created. Calls SetupFBDev() to setup
+ * the framebuffer device mode and get its geometry. Performs the per-drawable
+ * client-side initialization calling the __DRIscreenRec::createDrawable
+ * method.
  * 
  */
 Window
@@ -1218,7 +1217,8 @@ XCreateColormap( Display *dpy, Window w, Visual *visual, int alloc )
  *
  * \internal
  * This function is only provided to ease porting.  Practically a no-op. 
- * Frees the chunk of memory pointed by \p colormap with #FREE.
+ *
+ * Frees the memory pointed by \p colormap.
  */
 void
 XFreeColormap( Display *display, Colormap colormap )
@@ -1235,7 +1235,7 @@ XFreeColormap( Display *display, Colormap colormap )
  * \param data the data that is to be freed.
  *
  * \internal
- * This function frees the memory pointed by \p data with #FREE.
+ * Frees the memory pointed by \p data.
  */
 void
 XFree( void *data )
@@ -1253,7 +1253,7 @@ XFree( void *data )
  * \param vinfo_template a template whose fields indicate which visual
  * attributes must be matched by the results.  The XVisualInfo::screen field of
  * this structure must be zero.
- * \param nitens_return Returns the number of visuals returned.
+ * \param nitens_return will hold the number of visuals returned.
  *
  * \return the address of an array of all available visuals.
  * 
@@ -1268,7 +1268,7 @@ XFree( void *data )
  * \endcode
  * 
  * \internal
- * Returns the list of all ::XVisualInfos available, one per
+ * Returns the list of all ::XVisualInfo available, one per
  * ::__GLXvisualConfig stored in MiniGLXDisplayRec::configs.
  */
 XVisualInfo *
@@ -1659,7 +1659,7 @@ glXDestroyContext( Display *dpy, GLXContext ctx )
 
 
 /**
- * \brief Bind a GLX context to a window or a GLX.
+ * \brief Bind a GLX context to a window or a pixmap.
  *
  * \param dpy the display handle, as returned by XOpenDisplay().
  * \param drawable the window or drawable to bind to the rendering context.
@@ -1765,7 +1765,7 @@ glXGetCurrentContext( void )
  *
  * \internal
  * This function gets the current context via glXGetCurrentContext() and
- * returns the MiniGLXContextRec::drawbuffer attribute.
+ * returns the MiniGLXContextRec::drawBuffer attribute.
  */
 GLXDrawable
 glXGetCurrentDrawable( void )
@@ -1797,7 +1797,7 @@ glXGetCurrentDrawable( void )
  * 
  * \internal
  * Returns the function address by looking up its name in a static (name, func)
- * pair structure list.
+ * pair list.
  */
 const void *
 glXGetProcAddress( const GLubyte *procName )

@@ -37,7 +37,7 @@
  * \param f \e printf like format.
  * 
  * \internal
- * Wrapper around vfprintf().
+ * This function is a wrapper around vfprintf().
  */
 void
 __driUtilMessage(const char *f, ...)
@@ -70,8 +70,8 @@ __driUtilMessage(const char *f, ...)
  * \return pointer to the wanted __GLXvisualConfigRec if found, or NULL otherwise.
  * 
  * \internal
- * Walks through the list of visuals in MiniGLXDisplayRec::configs until find
- * one with a matching visual ID.
+ * This functions walks through the list of visuals in
+ * MiniGLXDisplayRec::configs until finding one with a matching visual ID.
  */
 static __GLXvisualConfig *
 __driFindGlxConfig(Display *dpy, int scrn, VisualID vid)
@@ -98,10 +98,10 @@ __driFindGlxConfig(Display *dpy, int scrn, VisualID vid)
  * \param modes pointer to the destination __GLcontextModesRec structure.
  * \param config pointer to the source __GLXvisualConfigRec structure.
  * 
- * This function comes from programs/Xserver/GL/glx/glxcmds.c
- *
  * \internal
- * Translates the necessary data bits from \p config to \p modes.
+ * This function comes from xc/programs/Xserver/GL/glx/glxcmds.c
+ *
+ * It translates the necessary data bits from \p config to \p modes.
  */
 static void
 __glXFormatGLModes(__GLcontextModes *modes, const __GLXvisualConfig *config)
@@ -164,13 +164,12 @@ __glXFormatGLModes(__GLcontextModes *modes, const __GLXvisualConfig *config)
  * \return GL_TRUE on success, or GL_FALSE on failure.
  * 
  * \internal
- * Casts the opaque private pointers associated with the parameters into their
- * respective real types while assuring they are not null. 
- *
- * Calls __DriverAPIRec::UnbindContext.  Decrements
+ * This function calls __DriverAPIRec::UnbindContext, and then decrements
  * __DRIdrawablePrivateRec::refcount which must be non-zero for a successful
  * return.
  * 
+ * While casting the opaque private pointers associated with the parameters into their
+ * respective real types it also assures they are not null. 
  */
 static Bool driUnbindContext(Display *dpy, int scrn,
                              GLXDrawable draw, GLXContext gc,
@@ -218,12 +217,11 @@ static Bool driUnbindContext(Display *dpy, int scrn,
  * \param gc context.
  *
  * \internal
- * Casts the opaque private pointers associated with the parameters into their
- * respective real types while assuring they are not null. 
- *
- * Binds the drawable to the context and increments
- * __DRIdrawablePrivateRec::refcount and calls __DriverAPIRec::MakeCurrent.
+ * This function and increments __DRIdrawablePrivateRec::refcount and calls
+ * __DriverAPIRec::MakeCurrent to binds the drawable.
  * 
+ * While casting the opaque private pointers into their
+ * respective real types it also assures they are not null. 
  */
 static Bool driBindContext(Display *dpy, int scrn,
                             GLXDrawable draw,
@@ -279,8 +277,8 @@ static Bool driBindContext(Display *dpy, int scrn,
  * \param pdp pointer to the private drawable information to update.
  * 
  * \internal
- * no-op. Should never be called, but is referenced as an external symbol from
- * client drivers.
+ * This function is a no-op. Should never be called but is referenced as an
+ * external symbol from client drivers.
  */
 void __driUtilUpdateDrawableInfo(__DRIdrawablePrivate *pdp)
 {
@@ -295,9 +293,9 @@ void __driUtilUpdateDrawableInfo(__DRIdrawablePrivate *pdp)
  * \param drawablePrivate opaque pointer to the per-drawable private info.
  * 
  * \internal
- * Called directly from glXSwapBuffers().
- *
- * Calls __DRIdrawablePrivate::swapBuffers.
+ * This function calls __DRIdrawablePrivate::swapBuffers.
+ * 
+ * Is called directly from glXSwapBuffers().
  */
 static void driSwapBuffers( Display *dpy, void *drawablePrivate )
 {
@@ -314,8 +312,8 @@ static void driSwapBuffers( Display *dpy, void *drawablePrivate )
  * \param drawablePrivate opaque pointer to the per-drawable private info.
  *
  * \internal
- * Calls __DriverAPIRec::DestroyBuffer on \p drawablePrivate, frees the clip
- * rects if any, and finally frees \p drawablePrivate.
+ * This function calls __DriverAPIRec::DestroyBuffer on \p drawablePrivate,
+ * frees the clip rects if any, and finally frees \p drawablePrivate itself.
  */
 static void driDestroyDrawable(Display *dpy, void *drawablePrivate)
 {
@@ -344,11 +342,10 @@ static void driDestroyDrawable(Display *dpy, void *drawablePrivate)
  * on failure.
  * 
  * \internal
- * Allocates and fills a __DRIdrawablePrivateRec structure, initializing the
- * invariant window dimensions and cliprects.  Gets the visual config and
- * converts it into a __GLcontextModesRec and passes it to
+ * This function allocates and fills a __DRIdrawablePrivateRec structure,
+ * initializing the invariant window dimensions and cliprects.  It obtains the
+ * visual config, converts it into a __GLcontextModesRec and passes it to
  * __DriverAPIRec::CreateBuffer to create a buffer.
- * 
  */
 static void *driCreateDrawable(Display *dpy, int scrn,
                                      GLXDrawable draw,
@@ -426,7 +423,7 @@ static void *driCreateDrawable(Display *dpy, int scrn,
  * \return pointer to a __DRIdrawableRec structure.
  *
  * \internal
- * Returns MiniGLXwindowRec::driDrawable.
+ * This function returns the MiniGLXwindowRec::driDrawable attribute.
  */
 static __DRIdrawable *driGetDrawable(Display *dpy, GLXDrawable draw,
 					 void *screenPrivate)
@@ -451,7 +448,7 @@ static __DRIdrawable *driGetDrawable(Display *dpy, GLXDrawable draw,
  * \param contextPrivate opaque pointer to the per-drawable private info.
  *
  * \internal
- * Calls __DriverAPIRec::DestroyContext on \p contextPrivate, calls
+ * This function calls __DriverAPIRec::DestroyContext on \p contextPrivate, calls
  * drmDestroyContext(), and finally frees \p contextPrivate.
  */
 static void driDestroyContext(Display *dpy, int scrn, void *contextPrivate)
@@ -484,10 +481,9 @@ static void driDestroyContext(Display *dpy, int scrn, void *contextPrivate)
  * on failure.
  * 
  * \internal
- * Allocates and fills a __DRIcontextPrivateRec structure.  Gets the visual config and
- * converts it into a __GLcontextModesRec, passes it to
- * __DriverAPIRec::CreateContext to create the context.
- * 
+ * This function allocates and fills a __DRIcontextPrivateRec structure.  It
+ * gets the visual config, converts it into a __GLcontextModesRec and passes it
+ * to __DriverAPIRec::CreateContext to create the context.
  */
 static void *driCreateContext(Display *dpy, XVisualInfo *vis,
                               void *sharedPrivate,
@@ -565,7 +561,7 @@ static void *driCreateContext(Display *dpy, XVisualInfo *vis,
  * \param screenPrivate opaque pointer to the per-screen private information.
  *
  * \internal
- * Calls __DriverAPIRec::DestroyScreen on \p screenPrivate, calls
+ * This function calls __DriverAPIRec::DestroyScreen on \p screenPrivate, calls
  * drmClose(), and finally frees \p screenPrivate.
  */
 static void driDestroyScreen(Display *dpy, int scrn, void *screenPrivate)
@@ -595,10 +591,10 @@ static void driDestroyScreen(Display *dpy, int scrn, void *screenPrivate)
  * \return a pointer to the per-screen private information.
  * 
  * \internal
- * Allocates and fills a __DRIscreenPrivateRec structure. Opens the DRM device
- * verifies that the exported version matches the expected.
- *
- * Installs the driver callback functions and calls __DriverAPIRec::InitDriver.
+ * This function allocates and fills a __DRIscreenPrivateRec structure. It
+ * opens the DRM device verifying that the exported version matches the
+ * expected.  It copies the driver callback functions and calls
+ * __DriverAPIRec::InitDriver.
  */
 __DRIscreenPrivate *
 __driUtilCreateScreen(Display *dpy, int scrn, __DRIscreen *psc,
@@ -688,7 +684,7 @@ __driUtilCreateScreen(Display *dpy, int scrn, __DRIscreen *psc,
 
 
 /**
- * \brief 
+ * \brief Create the per-screen private information.
  *
  * Version for drivers without a DRM module.
  * 
@@ -754,8 +750,6 @@ __driUtilCreateScreenNoDRM(Display *dpy, int scrn, __DRIscreen *psc,
  * \param psc pointer to the screen dependent methods structure.
  *
  * \internal
- * 
- * 
  * These can be put in place and safely used prior to __driUtilCreateScreen()
  * being called.  This allows glXCreateContext() to be called prior to
  * XCreateWindow(), but still allows XCreateWindow() to deterimine the virtual

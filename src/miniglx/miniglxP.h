@@ -173,7 +173,7 @@ struct __DRIdrawableRec {
 };
 
 /**
- * \brief Interface to driver.
+ * \brief Interface to the DRI driver.
  *
  * This structure is retrieved from the loadable driver by the \e
  * __driMiniGLXDriver symbol to access the MiniGLX-specific hardware
@@ -224,10 +224,17 @@ enum PixelFormat {
  * \sa ::Visual, \ref datatypes.
  */
 struct MiniGLXVisualRec {
+   /** \brief GLX visual information */
    const __GLXvisualConfig *glxConfig;
-   XVisualInfo *visInfo;     /**< \brief pointer back to corresponding ::XVisualInfo */
+
+   /** \brief pointer back to corresponding ::XVisualInfo */
+   XVisualInfo *visInfo;               
+
+   /** \brief display handle */
    Display *dpy;
-   enum PixelFormat pixelFormat;
+
+   /** \brief pixel format */
+   enum PixelFormat pixelFormat;       
 };
 
 
@@ -260,10 +267,10 @@ struct MiniGLXWindowRec {
  * \sa ::GLXContext, \ref datatypes.
  */
 struct MiniGLXContextRec {
-   Window drawBuffer;
-   Window curBuffer;
-   VisualID vid;
-   __DRIcontext driContext;
+   Window drawBuffer;       /**< \brief drawing buffer */
+   Window curBuffer;        /**< \brief current buffer */
+   VisualID vid;            /**< \brief visual ID */
+   __DRIcontext driContext; /**< \brief context dependent methods */
 };
 
 
@@ -273,18 +280,20 @@ struct MiniGLXContextRec {
  * \sa ::Display, \ref datatypes.
  */
 struct MiniGLXDisplayRec {
-   struct fb_fix_screeninfo FixedInfo;
+   /** \brief fixed framebuffer screen info */
+   struct fb_fix_screeninfo FixedInfo; 
+   /** \brief original and current variable frambuffer screen info */
    struct fb_var_screeninfo OrigVarInfo, VarInfo;
    struct sigaction OrigSigUsr1;
    int OriginalVT;
-   int ConsoleFD;
-   int FrameBufferFD;
-   caddr_t FrameBuffer;  /**< \brief start of mmap'd framebuffer */
-   int FrameBufferSize;  /**< in bytes */
-   caddr_t MMIOAddress;  /**< \brief start of mmap'd MMIO region */
-   int MMIOSize;         /**< in bytes */
-   int NumWindows;
-   Window TheWindow;     /**< only allow one window for now */
+   int ConsoleFD;        /**< \brief console TTY device file descriptor */
+   int FrameBufferFD;    /**< \brief framebuffer device file descriptor */
+   caddr_t FrameBuffer;  /**< \brief start of the mmap'd framebuffer */
+   int FrameBufferSize;  /**< \brief size of the mmap'd framebuffer in bytes */
+   caddr_t MMIOAddress;  /**< \brief start of the mmap'd MMIO region */
+   int MMIOSize;         /**< \brief size of the mmap'd MMIO region in bytes */
+   int NumWindows;       /**< \brief number of open windows */
+   Window TheWindow;     /**< \brief open windo - only allow one window for now */
 
    /**
     * \name Visual configurations
@@ -307,11 +316,9 @@ struct MiniGLXDisplayRec {
    /*@}*/
 
    /**
-    * \name New driver hooks
+    * \brief Mini GLX specific driver hooks
     */
-   /*@{*/
    struct MiniGLXDriverRec *driver;
-   /*@}*/
 
    /**
     * \name Configuration details
@@ -337,7 +344,7 @@ struct MiniGLXDisplayRec {
     * \name From DRIInfoRec
     */
    /*@{*/
-   int drmFD;
+   int drmFD;  /**< \brief DRM device file descriptor */
    unsigned long hSAREA;
    unsigned long hFrameBuffer;
    unsigned int serverContext;	/* temporary drm context -- make an auto var? */
@@ -358,8 +365,9 @@ struct MiniGLXDisplayRec {
 };
 
 /**
- * \warning Do not change ::_XF86DRIClipRect without changing the kernel
- * structure!
+ * \brief Clip rectangle definition.
+ *
+ * \warning Do not change without changing the kernel structure!
  */
 typedef struct _XF86DRIClipRect {
     unsigned short	x1; /**< \brief Upper: inclusive */
