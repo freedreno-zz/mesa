@@ -22,7 +22,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: miniglx.c,v 1.1.4.33 2003/01/16 23:39:30 keithw Exp $ */
+/* $Id: miniglx.c,v 1.1.4.34 2003/01/17 00:56:14 keithw Exp $ */
 
 
 /**
@@ -412,6 +412,11 @@ SetupFBDev( Display *dpy, Window win )
 	      dpy->VarInfo.xres, dpy->VarInfo.yres);
       return GL_FALSE;
    }
+
+   fprintf(stderr, "[miniglx] Setting mode: visible %dx%d virtual %dx%dx%d\n",
+	   dpy->VarInfo.xres, dpy->VarInfo.yres,
+	   dpy->VarInfo.xres_virtual, dpy->VarInfo.yres_virtual,
+	   dpy->VarInfo.bits_per_pixel);
 
    /* set variable screen info */
    if (ioctl(dpy->FrameBufferFD, FBIOPUT_VSCREENINFO, &dpy->VarInfo)) {
@@ -891,16 +896,16 @@ XCreateWindow( Display *display, Window parent, int x, int y,
 
 
    win->bytesPerPixel = display->bpp / 8;
-   win->rowStride = width * win->bytesPerPixel;
-   win->size = win->rowStride * height * win->bytesPerPixel; /* XXX stride? */
+   win->rowStride = display->VarInfo.xres_virtual * win->bytesPerPixel;
+   win->size = win->rowStride * height; /* XXX stride? */
    win->frontStart = display->FrameBuffer;
-   win->frontBottom = (GLubyte *) win->frontStart
-                    + (height - 1) * win->rowStride;
+   win->frontBottom = (GLubyte *) win->frontStart + (height-1) * win->rowStride;
 
    if (visual->glxConfig->doubleBuffer) {
-      win->backStart = (GLubyte *) win->frontStart + win->size;
+      win->backStart = (GLubyte *) win->frontStart +
+	 win->rowStride * display->VarInfo.yres_virtual;
       win->backBottom = (GLubyte *) win->backStart
-                      + (height - 1) * win->rowStride;
+	 + (height - 1) * win->rowStride;
       win->curBottom = win->backBottom;
    }
    else {
@@ -913,7 +918,7 @@ XCreateWindow( Display *display, Window parent, int x, int y,
 
 
    win->driDrawable.private = display->driScreen.createDrawable(display, 0, win,
-                             visual->visInfo->visualid, &(win->driDrawable));
+								visual->visInfo->visualid, &(win->driDrawable));
    if (!win->driDrawable.private) {
       fprintf(stderr, "%s: dri.createDrawable failed\n", __FUNCTION__);
       RestoreFBDev(display);
