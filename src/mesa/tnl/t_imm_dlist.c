@@ -1,4 +1,4 @@
-/* $Id: t_imm_dlist.c,v 1.29.2.1 2001/12/03 17:44:02 keithw Exp $ */
+/* $Id: t_imm_dlist.c,v 1.29.2.2 2001/12/03 17:59:36 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -293,7 +293,7 @@ execute_compiled_cassette( GLcontext *ctx, void *data )
    TNLvertexcassette *node = (TNLvertexcassette *)data;
    struct immediate *IM = node->IM;
 
-   fprintf(stderr, "%s IM: %d\n", __FUNCTION__, IM->id); 
+/*     fprintf(stderr, "%s IM: %d\n", __FUNCTION__, IM->id);  */
 
    IM->Start = node->Start;
    IM->CopyStart = node->Start;
