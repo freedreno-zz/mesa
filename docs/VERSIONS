@@ -1,4 +1,4 @@
-$Id: VERSIONS,v 1.38.2.4 2000/09/06 17:48:31 brianp Exp $
+$Id: VERSIONS,v 1.38.2.5 2000/09/12 21:11:25 brianp Exp $
 
 
 Mesa Version History
@@ -758,6 +758,7 @@ Mesa Version History
 	- texture object priorities weren't getting initialized to 1.0
 	- glAreTexturesResident return value was wrong when using hardware
 	- glXUseXFont segfaulted when using 3dfx driver (via MESA_GLX_FX)
+	- glReadPixels with GLushort packed types was broken
     Changes:
 	- finished internal support for compressed textures for DRI
 
