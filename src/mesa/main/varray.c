@@ -1,4 +1,4 @@
-/* $Id: varray.c,v 1.13.2.2 1999/11/19 00:00:09 keithw Exp $ */
+/* $Id: varray.c,v 1.13.2.3 1999/12/01 12:18:47 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -676,6 +676,7 @@ void gl_DrawArrays( GLcontext *ctx, GLenum mode, GLint start, GLsizei count )
 
 	 VB->NextPrimitive[VB->CopyStart] = VB->Count;
 	 VB->Primitive[VB->CopyStart] = mode;
+	 ctx->Array.Flag[count] |= VERT_END_VB;
 
          /* Transform and render.
 	  */
