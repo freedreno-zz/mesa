@@ -1,4 +1,10 @@
-/* $XFree86: xc/lib/GL/mesa/src/drv/radeon/radeon_ioctl.h,v 1.4 2002/09/16 18:05:20 eich Exp $ */
+/**
+ * \file radeon_ioctl.h
+ *
+ * \author Kevin E. Martin <martin@valinux.com>
+ * \author Gareth Hughes <gareth@valinux.com>
+ */
+
 /**************************************************************************
 
 Copyright 2000, 2001 ATI Technologies Inc., Ontario, Canada, and
@@ -27,12 +33,7 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 **************************************************************************/
 
-/*
- * Authors:
- *   Kevin E. Martin <martin@valinux.com>
- *   Gareth Hughes <gareth@valinux.com>
- *
- */
+/* $XFree86: xc/lib/GL/mesa/src/drv/radeon/radeon_ioctl.h,v 1.4 2002/09/16 18:05:20 eich Exp $ */
 
 #ifndef __RADEON_IOCTL_H__
 #define __RADEON_IOCTL_H__
@@ -104,7 +105,8 @@ extern void radeonCompatEmitPrimitive( radeonContextPtr rmesa,
  * Helper macros:
  */
 
-/* Close off the last primitive, if it exists.
+/**
+ * \brief Close off the last primitive, if it exists.
  */
 #define RADEON_NEWPRIM( rmesa )			\
 do {						\
@@ -112,7 +114,8 @@ do {						\
       rmesa->dma.flush( rmesa );	\
 } while (0)
 
-/* Can accomodate several state changes and primitive changes without
+/**
+ * Can accomodate several state changes and primitive changes without
  * actually firing the buffer.
  */
 #define RADEON_STATECHANGE( rmesa, ATOM )			\
@@ -143,7 +146,8 @@ static __inline int RADEON_DB_STATECHANGE(
 }
 
 
-/* Fire the buffered vertices no matter what.
+/**
+ * \brief Fire the buffered vertices no matter what.
  */
 #define RADEON_FIREVERTICES( rmesa )			\
 do {							\
@@ -152,7 +156,8 @@ do {							\
    }							\
 } while (0)
 
-/* Alloc space in the command buffer
+/**
+ * \brief Allocate space in the command buffer
  */
 static __inline char *radeonAllocCmdBuf( radeonContextPtr rmesa,
 					 int bytes, const char *where )
@@ -168,8 +173,6 @@ static __inline char *radeonAllocCmdBuf( radeonContextPtr rmesa,
       return head;
    }
 }
-
-
 
 
 #endif /* __RADEON_IOCTL_H__ */

@@ -1,4 +1,10 @@
-/* $XFree86: xc/lib/GL/mesa/src/drv/radeon/radeon_state.c,v 1.5 2002/09/16 18:05:20 eich Exp $ */
+/**
+ * \file radeon_state.c
+ * 
+ * \author Gareth Hughes <gareth@valinux.com>
+ * \author Keith Whitwell <keith@tungstengraphics.com>
+ */
+
 /*
  * Copyright 2000, 2001 VA Linux Systems Inc., Fremont, California.
  *
@@ -22,11 +28,9 @@
  * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
- *
- * Authors:
- *    Gareth Hughes <gareth@valinux.com>
- *    Keith Whitwell <keith@tungstengraphics.com>
  */
+
+/* $XFree86: xc/lib/GL/mesa/src/drv/radeon/radeon_state.c,v 1.5 2002/09/16 18:05:20 eich Exp $ */
 
 #include "glheader.h"
 #include "imports.h"
@@ -61,10 +65,23 @@
 #define TEXMAT_2   5
 
 
-/* =============================================================
- * Alpha blending
+/***************************************************************
+ * \name Alpha blending
  */
+/*@{*/
 
+/**
+ * \brief Specify the alpha test function
+ *
+ * \param ctx GL context.
+ * \param func alpha comparison function.
+ * \param ref reference alpha value.
+ *
+ * \sa glAlphaFunc().
+ *
+ * Calculates the appropriate new value of the RADEON_PP_MISC register and
+ * informs the state change.
+ */
 static void radeonAlphaFunc( GLcontext *ctx, GLenum func, GLfloat ref )
 {
    radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
@@ -143,6 +160,18 @@ static void radeonBlendEquation( GLcontext *ctx, GLenum mode )
 }
 #endif
 
+/**
+ * \brief Specify the blending factors.
+ * 
+ * \param ctx GL context.
+ * \param sfactor source factor.
+ * \param dfactor destination factor.
+ * 
+ * Calculates the appropriate new value of the RADEON_RB3D_BLENDCNTL register and informs of the state change.
+ *
+ * If the final state not supported by the hardward it fallbacks to software
+ * rendering.
+ */
 static void radeonBlendFunc( GLcontext *ctx, GLenum sfactor, GLenum dfactor )
 {
    radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
@@ -245,6 +274,10 @@ static void radeonBlendFunc( GLcontext *ctx, GLenum sfactor, GLenum dfactor )
    }
 }
 
+
+/**
+ * Alias for radeonBlendFunc()
+ */
 static void radeonBlendFuncSeparate( GLcontext *ctx,
 				     GLenum sfactorRGB, GLenum dfactorRGB,
 				     GLenum sfactorA, GLenum dfactorA )
@@ -252,11 +285,26 @@ static void radeonBlendFuncSeparate( GLcontext *ctx,
    radeonBlendFunc( ctx, sfactorRGB, dfactorRGB );
 }
 
+/*@}*/
 
-/* =============================================================
- * Depth testing
+
+/***************************************************************
+ * \name Depth testing
  */
+/*@{*/
+
 #if _HAVE_FULL_GL
+/**
+ * \brief Specify the function for depth comparisons.
+ *
+ * \param ctx GL context.
+ * \param func depth comparison function.
+ *
+ * \sa glDepthFunc().
+ *
+ * Calculates the appropriate new value of the RADEON_RB3D_ZSTENCILCNTL
+ * register and informs of the state change.
+ */
 static void radeonDepthFunc( GLcontext *ctx, GLenum func )
 {
    radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
@@ -292,7 +340,17 @@ static void radeonDepthFunc( GLcontext *ctx, GLenum func )
    }
 }
 
-
+/**
+ * \brief Enable or disable depth buffering.
+ *
+ * \param ctx GL context
+ * \param flag whether depth buferring is enabled or not.
+ *
+ * \sa glDepthBuffer().
+ *
+ * Calculates the appropriate new value of the RADEON_RB3D_ZSTENCILCNTL
+ * register and informs of the state change.
+ */
 static void radeonDepthMask( GLcontext *ctx, GLboolean flag )
 {
    radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
@@ -305,6 +363,16 @@ static void radeonDepthMask( GLcontext *ctx, GLboolean flag )
    }
 }
 
+/**
+ * \brief Specify the clear value for the depth buffer.
+ *
+ * \param d depth value to be used when clering the depth buffer.
+ *
+ * \sa glClearDepth().
+ * 
+ * Calculates the new value of RADEON_RB3D_ZSTENCILCNTL register. It's not
+ * necessary to inform of the sate change.
+ */
 static void radeonClearDepth( GLcontext *ctx, GLclampd d )
 {
    radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
@@ -322,12 +390,23 @@ static void radeonClearDepth( GLcontext *ctx, GLclampd d )
 }
 #endif
 
+/*@}*/
 
-/* =============================================================
- * Scissoring
+
+/***************************************************************
+ * \name Scissoring
  */
+/*@{*/
 
-
+/**
+ * \brief Intersection of two cliprects.
+ *
+ * \param out resulting clirect.
+ * \param a fist cliprect.
+ * \param b second cliprect.
+ * 
+ * \return GL_TRUE if the cliprects intersect, or GL_FALSE otherwise.
+ */
 static GLboolean intersect_rect( XF86DRIClipRectPtr out,
 				 XF86DRIClipRectPtr a,
 				 XF86DRIClipRectPtr b )
@@ -417,11 +496,28 @@ static void radeonScissor( GLcontext *ctx,
 
 }
 
+/*@}*/
 
-/* =============================================================
- * Culling
+
+/***************************************************************
+ * \name Culling
  */
+/*@{*/
 
+/**
+ * \brief Specify whether culling should be made.
+ *
+ * \param ctx GL context.
+ * \param unused not used.
+ *
+ * \note the Cull mode is already stored in the GL context.
+ *
+ * \sa glCullFace().
+ *
+ * Calculates the new values of the RADEON_SET_SE_CNTL and
+ * RADEON_TCL_UCP_VERT_BLEND_CTL registers and informs of the state change if
+ * they are different.
+ */
 static void radeonCullFace( GLcontext *ctx, GLenum unused )
 {
    radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
@@ -459,6 +555,17 @@ static void radeonCullFace( GLcontext *ctx, GLenum unused )
    }
 }
 
+/**
+ * \brief Specify orientation of front-facing polygons.
+ *
+ * \param ctx GL context.
+ * \param mode orientation.
+ * 
+ * \sa glFrontFace().
+ *
+ * Calculates the new values of the RADEON_SET_SE_CNTL and
+ * RADEON_TCL_UCP_VERT_BLEND_CTL registers and informs of the state change.
+ */
 static void radeonFrontFace( GLcontext *ctx, GLenum mode )
 {
    radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
@@ -480,9 +587,24 @@ static void radeonFrontFace( GLcontext *ctx, GLenum mode )
    }
 }
 
+/*@}*/
 
-/* =============================================================
- * Line state
+
+/***************************************************************
+ * \name Line state
+ */
+/*@{*/
+
+/**
+ * \brief Specify the line width.
+ *
+ * \param ctx GL context.
+ * \param widthf width of rasterized lines.
+ *
+ * \sa glLineWidth().
+ * 
+ * Calculates the new values of the RADEON_LIN_SE_LINE_WIDTH and
+ * RADEON_SET_SE_CNTL registers and informs of the state change.
  */
 static void radeonLineWidth( GLcontext *ctx, GLfloat widthf )
 {
@@ -501,6 +623,18 @@ static void radeonLineWidth( GLcontext *ctx, GLfloat widthf )
    }
 }
 
+/**
+ * \brief Specify the line stipple pattern.
+ *
+ * \param ctx GL context.
+ * \param factor scale factor.
+ * \param pattern bit pattern.
+ *
+ * \sa glLineStipple().
+ *
+ * Calculates the new values of the RADEON_LIN_RE_LINE_PATTERN register and
+ * informs of the state change.
+ */ 
 static void radeonLineStipple( GLcontext *ctx, GLint factor, GLushort pattern )
 {
    radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
@@ -510,9 +644,27 @@ static void radeonLineStipple( GLcontext *ctx, GLint factor, GLushort pattern )
       ((((GLuint)factor & 0xff) << 16) | ((GLuint)pattern));
 }
 
+/*@}*/
 
-/* =============================================================
- * Masks
+
+/***************************************************************
+ * \name Masks
+ */
+/*@{*/
+
+/**
+ * \brief Specify the masking of frame buffer color components.
+ *
+ * \param ctx GL context.
+ * \param r whether the red component should be written.
+ * \param g whether the green component should be written.
+ * \param b whether the blue component should be written.
+ * \param a whether the alpha component should be written.
+ *
+ * \sa glColorMask().
+ *
+ * Calculates the new value of the RADEON_MSK_RB3D_PLANEMASK register and
+ * informs of the state change if it varies.
  */
 static void radeonColorMask( GLcontext *ctx,
 			     GLboolean r, GLboolean g,
@@ -531,10 +683,14 @@ static void radeonColorMask( GLcontext *ctx,
    }
 }
 
+/*@}*/
 
-/* =============================================================
- * Polygon state
+
+/***************************************************************
+ * \name Polygon state
  */
+/*@{*/
+
 #if _HAVE_FULL_GL
 static void radeonPolygonOffset( GLcontext *ctx,
 				 GLfloat factor, GLfloat units )
@@ -573,9 +729,6 @@ static void radeonPolygonStipple( GLcontext *ctx, const GLubyte *mask )
 }
 #endif
 
-
-
-
 static void radeonShadeModel( GLcontext *ctx, GLenum mode )
 {
    radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
@@ -609,13 +762,28 @@ static void radeonShadeModel( GLcontext *ctx, GLenum mode )
    }
 }
 
+/*@}*/
 
 
-
-/* =============================================================
- * Stencil
+/***************************************************************
+ * \name Stencil
  */
+/*@{*/
 
+/**
+ * \brief Specify the stencil testing function.
+ *
+ * \param ctx GL context.
+ * \param func test function.
+ * \param ref reference value for the stencil test.
+ * \param mask bit mask to be ANDed with both the reference and stored values
+ * when the test is done.
+ * 
+ * \sa glStencilFunc().
+ *
+ * Calculates the new value of the RADEON_CTX_RB3D_ZSTENCILCNTL and
+ * RADEON_MSK_RB3D_STENCILREFMASK registers and informs of the state change.
+ */
 static void radeonStencilFunc( GLcontext *ctx, GLenum func,
 			       GLint ref, GLuint mask )
 {
@@ -660,6 +828,17 @@ static void radeonStencilFunc( GLcontext *ctx, GLenum func,
    rmesa->hw.msk.cmd[MSK_RB3D_STENCILREFMASK] |= refmask;
 }
 
+/**
+ * \brief Specify the stencil writing mask.
+ *
+ * \param ctx GL context.
+ * \param mask bit mask to control the writing of the bits in the stencil plane.
+ * 
+ * \sa glStencilMask().
+ *
+ * Calculates the new value of the RADEON_MSK_RB3D_STENCILREFMASK register and
+ * informs of the state change.
+ */
 static void radeonStencilMask( GLcontext *ctx, GLuint mask )
 {
    radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
@@ -670,6 +849,21 @@ static void radeonStencilMask( GLcontext *ctx, GLuint mask )
       (ctx->Stencil.WriteMask[0] << RADEON_STENCIL_WRITEMASK_SHIFT);
 }
 
+/**
+ * \brief Specify the stencil test actions.
+ *
+ * \param ctx GL context.
+ * \param fail action to take when the stencil test fails.
+ * \param zfail action to take when the stencil test passes, but the depth test
+ * fails.
+ * \param zpass action to take when both the stencil test and the depth test
+ * fail.
+ * 
+ * \sa glStencilOp().
+ *
+ * Calculates the new value of the RADEON_CTX_RB3D_ZSTENCILCNTL register and
+ * informs of the state change.
+ */
 static void radeonStencilOp( GLcontext *ctx, GLenum fail,
 			     GLenum zfail, GLenum zpass )
 {
@@ -748,6 +942,15 @@ static void radeonStencilOp( GLcontext *ctx, GLenum fail,
 #endif
 }
 
+/**
+ * \brief Specify the clear value for the stencil buffer.
+ *
+ * \param ctx GL context.
+ * \param s the index used when the stencil buffer is used. Not used.
+ *
+ * Sets the new value of stencil clear register with the value stored in the GL
+ * context.
+ */
 static void radeonClearStencil( GLcontext *ctx, GLint s )
 {
    radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
@@ -758,10 +961,13 @@ static void radeonClearStencil( GLcontext *ctx, GLint s )
        (ctx->Stencil.WriteMask[0] << RADEON_STENCIL_WRITEMASK_SHIFT));
 }
 
+/*@}*/
 
-/* =============================================================
- * Window position and viewport transformation
+
+/***************************************************************
+ * \name Window position and viewport transformation
  */
+/*@{*/
 
 /*
  * To correctly position primitives:
@@ -795,7 +1001,21 @@ void radeonUpdateWindow( GLcontext *ctx )
 }
 
 
-
+/**
+ * \brief Set the viewport.
+ *
+ * \param ctx GL context.
+ * \param x \e x position of the lower left corner of the viewport rectangle.
+ * Not used.
+ * \param y \e y position of the lower left corner of the viewport rectangle.
+ * Not used.
+ * \param width width of the viewport rectangle. Not used.
+ * \param height height of the viewport rectangle. Not used.
+ *
+ * \sa glViewport().
+ * 
+ * Fires the vertices and updates the window.
+ */
 static void radeonViewport( GLcontext *ctx, GLint x, GLint y,
 			    GLsizei width, GLsizei height )
 {
@@ -807,18 +1027,41 @@ static void radeonViewport( GLcontext *ctx, GLint x, GLint y,
    radeonUpdateWindow( ctx );
 }
 
+/**
+ * \brief Specify the depth range.
+ *
+ * \param ctx GL context.
+ * \param nearval near clipping plane coordinate. Not used.
+ * \param farval far clipping plane coordinate. Not used.
+ *
+ * \sa glDepthRange().
+ * 
+ * Just calls radeonUpdateWindow().
+ */
 static void radeonDepthRange( GLcontext *ctx, GLclampd nearval,
 			      GLclampd farval )
 {
    radeonUpdateWindow( ctx );
 }
 
+/*@}*/
 
 
-/* =============================================================
- * Miscellaneous
+/***************************************************************
+ * \name Miscellaneous
  */
+/*@{*/
 
+/**
+ * \brief Specify the clear value of the color buffers.
+ *
+ * \param ctx GL context.
+ * \param color red, green, blue and alpha values used when clering the color buffers.
+ *
+ * \sa glClearColor().
+ *
+ * Stores the clear color value in the driver state.
+ */
 static void radeonClearColor( GLcontext *ctx, const GLfloat color[4] )
 {
    radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
@@ -830,8 +1073,6 @@ static void radeonClearColor( GLcontext *ctx, const GLfloat color[4] )
    rmesa->state.color.clear = radeonPackColor( rmesa->radeonScreen->cpp,
 					       c[0], c[1], c[2], c[3] );
 }
-
-
 
 
 static GLuint radeon_rop_tab[] = {
@@ -853,6 +1094,17 @@ static GLuint radeon_rop_tab[] = {
    RADEON_ROP_SET,
 };
 
+/**
+ * \brief Specify a logical pixel operation for color rendering.
+ *
+ * \param ctx GL context.
+ * \param opcode logical operation.
+ *
+ * \sa glLogicOp().
+ *
+ * Calculates the new value of RADEON_MSK_RB3D_ROPCNTL and informs of the state
+ * change.
+ */
 static void radeonLogicOpCode( GLcontext *ctx, GLenum opcode )
 {
    radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
@@ -863,7 +1115,6 @@ static void radeonLogicOpCode( GLcontext *ctx, GLenum opcode )
    RADEON_STATECHANGE( rmesa, msk );
    rmesa->hw.msk.cmd[MSK_RB3D_ROPCNTL] = radeon_rop_tab[rop];
 }
-
 
 void radeonSetCliprects( radeonContextPtr rmesa, GLenum mode )
 {
@@ -899,7 +1150,14 @@ void radeonSetCliprects( radeonContextPtr rmesa, GLenum mode )
       radeonRecalcScissorRects( rmesa );
 }
 
-
+/**
+ * \brief Specify which color buffers to be drawn into.
+ *
+ * \param ctx GL context.
+ * \param mode which color buffers to be drawn into.
+ *
+ * \sa glDrawBuffer().
+ */
 static void radeonDrawBuffer( GLcontext *ctx, GLenum mode )
 {
    radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
@@ -970,11 +1228,25 @@ static void radeonReadBuffer( GLcontext *ctx, GLenum mode )
 {
 }
 
+/*@}*/
 
-/* =============================================================
- * State enable/disable
+
+/***************************************************************
+ * \name State enable/disable
  */
+/*@{*/
 
+/**
+ * \brief Enable or disable a GL capability.
+ *
+ * \param cap GL capability.
+ * \param state whether to enable or disable the capability.
+ *
+ * \sa glEnable() and glDisable().
+ * 
+ * Changes the apropriate registers and state variables, informing of the state
+ * change if necessary.
+ */
 static void radeonEnable( GLcontext *ctx, GLenum cap, GLboolean state )
 {
    radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
@@ -1274,13 +1546,24 @@ static void radeonEnable( GLcontext *ctx, GLenum cap, GLboolean state )
    }
 }
 
-/* =============================================================
- * Deferred state management - matrices, textures, other?
+/*@}*/
+
+
+/***************************************************************
+ * \name Deferred state management - matrices, textures, other?
  */
+/*@{*/
 
-
-
-
+/**
+ * \brief Upload a transformation matrix.
+ *
+ * \param rmesa Radeon driver context.
+ * \param src source transformation matrix.
+ * \param idx index of the transformation matrix to upload.
+ *
+ * Transposes and updates the matrix in the driver context and informs of the
+ * state change.
+ */
 void radeonUploadMatrix( radeonContextPtr rmesa, GLfloat *src, int idx )
 {
    float *dest = ((float *)RADEON_DB_STATE( mat[idx] ))+MAT_ELT_0;
@@ -1297,6 +1580,11 @@ void radeonUploadMatrix( radeonContextPtr rmesa, GLfloat *src, int idx )
    RADEON_DB_STATECHANGE( rmesa, &rmesa->hw.mat[idx] );
 }
 
+/**
+ * \brief Upload a transposed transformation matrix.
+ *
+ * Same as radeonUploadMatrix() but without the need to transpose.
+ */
 void radeonUploadMatrixTranspose( radeonContextPtr rmesa, GLfloat *src, 
 				  int idx )
 {
@@ -1304,9 +1592,6 @@ void radeonUploadMatrixTranspose( radeonContextPtr rmesa, GLfloat *src,
    memcpy(dest, src, 16*sizeof(float));
    RADEON_DB_STATECHANGE( rmesa, &rmesa->hw.mat[idx] );
 }
-
-
-
 
 
 void radeonValidateState( GLcontext *ctx )
@@ -1378,7 +1663,13 @@ static void radeonInvalidateState( GLcontext *ctx, GLuint new_state )
 
 
 
-/* Initialize the driver's state functions.
+/**
+ * \brief Initialize the driver's state functions.
+ *
+ * \param ctx GL context.
+ * 
+ * Called by radeonCreateContext() to fill the driver's state functions 
+ * with those living in this file.
  */
 void radeonInitStateFuncs( GLcontext *ctx )
 {
@@ -1423,3 +1714,5 @@ void radeonInitStateFuncs( GLcontext *ctx )
    ctx->Driver.Viewport			= radeonViewport;
 
 }
+
+/*@}*/

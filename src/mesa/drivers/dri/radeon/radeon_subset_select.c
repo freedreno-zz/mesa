@@ -1,4 +1,6 @@
-/* $Id: radeon_subset_select.c,v 1.1.2.1 2003/02/07 20:22:17 keithw Exp $ */
+/**
+ * \file radeon_subset_select.c
+ */
 
 /*
  * Mesa 3-D graphics library
@@ -23,6 +25,8 @@
  * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
+/* $Id: radeon_subset_select.c,v 1.1.2.2 2003/02/16 20:48:12 jrfonseca Exp $ */
 
 
 #include "glheader.h"
@@ -54,11 +58,12 @@ static struct {
 
 
 /**********************************************************************/
-/*****         Vertex Transformation and Clipping                 *****/
+/** \name        Vertex Transformation and Clipping                   */
 /**********************************************************************/
+/*@{*/
 
-/*
- * Transform a point (column vector) by a matrix:   Q = M * P
+/**
+ * \brief Transform a point (column vector) by a matrix:   Q = M * P
  */
 #define TRANSFORM_POINT( Q, M, P )					\
    Q.x = M[0] * P.x + M[4] * P.y + M[8] *  P.z + M[12] * P.w;	\
@@ -66,8 +71,8 @@ static struct {
    Q.z = M[2] * P.x + M[6] * P.y + M[10] * P.z + M[14] * P.w;	\
    Q.w = M[3] * P.x + M[7] * P.y + M[11] * P.z + M[15] * P.w;
 
-/*
- * clip coord to window coord mapping
+/**
+ * \brief Clip coord to window coord mapping
  */
 #define MAP_POINT( Q, P, VP )                                      \
    Q.x = (GLfloat) (((P.x / P.w) + 1.0) * VP.Width / 2.0 + VP.X);  \
@@ -76,15 +81,15 @@ static struct {
    Q.w = (GLfloat) P.w;
 
 
-/*
- * Linear interpolation:
+/**
+ * \brief Linear interpolation:
  */
 #define INTERPOLATE(T, A, B)   ((A) + ((B) - (A)) * (T))
 
 
 
-/*
- * Interpolate vertex position, color, texcoords, etc.
+/**
+ * \brief Interpolate vertex position, color, texcoords, etc.
  */
 static void
 interpolate_vertex(GLfloat t, const vertex *v0, const vertex *v1, 
@@ -112,7 +117,9 @@ interpolate_vertex(GLfloat t, const vertex *v0, const vertex *v1,
 
 
 
-/* clip bit codes */
+/*
+ * Clip bit codes 
+ */
 #define CLIP_LEFT    1
 #define CLIP_RIGHT   2
 #define CLIP_BOTTOM  4
@@ -121,10 +128,10 @@ interpolate_vertex(GLfloat t, const vertex *v0, const vertex *v1,
 #define CLIP_FAR    32
 
 
-/*
- * Apply view volume clip testing to a point.
- * Return:  0 - visible
- *          non-zero - clip code mask (or of above CLIP_ bits)
+/**
+ * \brief Apply view volume clip testing to a point.
+ *
+ * \return zero if visible, or the clip code mask (binary OR of above CLIP_* bits)
  */
 static GLuint
 clip_point(const vertex *v)
@@ -140,12 +147,16 @@ clip_point(const vertex *v)
 }
 
 
-/*
- * Apply clipping to a line segment.
- * Input:  v0, v1 - incoming vertices
- * Output:  v0out, v1out - result/clipped vertices
- * Return:  GL_TRUE: visible
- *          GL_FALSE: totally clipped
+/**
+ * \brief Apply clipping to a line segment.
+ *
+ * \param v0in input start vertice
+ * \param v1in input end vertice
+ * \param v0new output start vertice
+ * \param v1new output end vertice
+ *
+ * \return GL_TRUE if the line segment is visible, ot GL_FALS if it is totally
+ * clipped.
  */
 static GLboolean
 clip_line(const vertex *v0in, const vertex *v1in,
@@ -169,7 +180,7 @@ clip_line(const vertex *v0in, const vertex *v1in,
    v1 = *v1in;
 
 
-/*
+/**
  * We use 6 instances of this code to clip agains the 6 planes.
  * For each plane, we define the OUTSIDE and COMPUTE_INTERSECTION
  * macros apprpriately.
@@ -266,12 +277,14 @@ clip_line(const vertex *v0in, const vertex *v1in,
 
 
 
-/*
- * Apply clipping to a polygon.
- * Input: vIn - array of input vertices
- *        inCount - number of input vertices
- * Output: vOut - new vertices
- * Return: number of vertices in vOut
+/**
+ * \brief Apply clipping to a polygon.
+ *
+ * \param vIn array of input vertices.
+ * \param inCount number of input vertices
+ * \param vOut array of output vertices.
+ *
+ * \return number of vertices in /p vOut.
  */
 static GLuint
 clip_polygon(const vertex *vIn, unsigned int inCount, vertex *vOut)
@@ -417,11 +430,14 @@ clip_polygon(const vertex *vIn, unsigned int inCount, vertex *vOut)
 	return result;
 }
 
+/*@}*/
+
 
 
 /**********************************************************************/
-/*****                       Selection                            *****/
+/** \name                    Selection                                */
 /**********************************************************************/
+/*@{*/
 
 
 static void
@@ -689,7 +705,8 @@ static void radeon_select_Vertex3fv(const GLfloat * v)
 }
 
 
-/* Color
+/* 
+ * Color
  */
 static void radeon_select_Color4f( GLfloat r, GLfloat g,
 				   GLfloat b, GLfloat a )
@@ -717,7 +734,8 @@ static void radeon_select_Color3fv( const GLfloat *v )
    radeon_select_Color4f( v[0], v[1], v[2], 1.0 );
 }
 
-/* TexCoord
+/*
+ * TexCoord
  */
 static __inline__ void radeon_select_TexCoord2f( GLfloat s, GLfloat t )
 {
@@ -733,7 +751,8 @@ static void radeon_select_TexCoord2fv( const GLfloat *v )
 }
 
 
-/* Begin/End
+/*
+ * Begin/End
  */ 
 static void radeon_select_Begin(GLenum mode)
 {
@@ -776,7 +795,8 @@ static void radeon_select_End(void)
    ctx->Driver.CurrentExecPrimitive = GL_POLYGON+1;
 }
 
-/* Nothing much to do here, as we don't buffer anything:
+/*
+ * Nothing much to do here, as we don't buffer anything:
  */
 static void radeonSelectFlushVertices( GLcontext *ctx, GLuint flags )
 {
@@ -823,3 +843,5 @@ void radeonInitSelect( GLcontext *ctx )
 {
    ctx->Driver.RenderMode = radeonRenderMode;
 }
+
+/*@}*/

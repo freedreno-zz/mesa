@@ -1,4 +1,10 @@
-/* $XFree86: xc/lib/GL/mesa/src/drv/radeon/radeon_tex.c,v 1.6 2002/09/16 18:05:20 eich Exp $ */
+/**
+ * \file radeon_subset_tex.c
+ *
+ * \author Gareth Hughes <gareth@valinux.com>
+ * \author Brian Paul <brianp@valinux.com>
+ */
+
 /*
  * Copyright 2000, 2001 ATI Technologies Inc., Ontario, Canada, and
  *                      VA Linux Systems Inc., Fremont, California.
@@ -23,11 +29,9 @@
  * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
  * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
  * USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
- * Authors:
- *    Gareth Hughes <gareth@valinux.com>
- *    Brian Paul <brianp@valinux.com>
  */
+
+/* $XFree86: xc/lib/GL/mesa/src/drv/radeon/radeon_tex.c,v 1.6 2002/09/16 18:05:20 eich Exp $ */
 
 #include "glheader.h"
 #include "imports.h"
@@ -48,7 +52,11 @@
 #include <stdio.h>
 
 
-/* Destroy hardware state associated with texture `t'.
+/**
+ * \brief Destroy hardware state associated with a texture.
+ *
+ * \param rmesa device context data.
+ * \param t texture object to be destroyed.
  */
 void radeonDestroyTexObj( radeonContextPtr rmesa, radeonTexObjPtr t )
 {
@@ -73,7 +81,8 @@ void radeonDestroyTexObj( radeonContextPtr rmesa, radeonTexObjPtr t )
 }
 
 
-/* Keep track of swapped out texture objects.
+/**
+ * \brief Keep track of swapped out texture objects.
  */
 static void radeonSwapOutTexObj( radeonContextPtr rmesa, radeonTexObjPtr t )
 {
@@ -88,7 +97,8 @@ static void radeonSwapOutTexObj( radeonContextPtr rmesa, radeonTexObjPtr t )
 
 
 
-/* Texture space has been invalidated.
+/**
+ * Texture space has been invalidated.
  */
 void radeonAgeTextures( radeonContextPtr rmesa, int heap )
 {
@@ -101,9 +111,10 @@ void radeonAgeTextures( radeonContextPtr rmesa, int heap )
 }
 
 
-/* =============================================================
- * Texture image conversions
+/***************************************************************
+ * \name Texture image conversions
  */
+/*@{*/
 
 /* Upload the texture image associated with texture `t' at level `level'
  * at the address relative to `start'.
@@ -146,9 +157,12 @@ static void radeonUploadSubImage( radeonContextPtr rmesa,
    }
 }
 
-/* Upload the texture images associated with texture `t'.  This might
- * require removing our own and/or other client's texture objects to
+/**
+ * \brief Upload texture images.
+ *
+ * This might require removing our own and/or other client's texture objects to
  * make room for these images.
+ * 
  */
 static void radeonSetTexImages( radeonContextPtr rmesa,
 				struct gl_texture_object *tObj )
@@ -319,11 +333,13 @@ static void radeonSetTexImages( radeonContextPtr rmesa,
    t->dirty_images = 0;
 }
 
+/*@}*/
 
 
-/* ================================================================
- * Texture combine functions
+/******************************************************************
+ * \name Texture combine functions
  */
+/*@{*/
 
 #define RADEON_DISABLE		0
 #define RADEON_REPLACE		1
@@ -439,12 +455,13 @@ static GLuint radeon_alpha_combine[][RADEON_MAX_COMBFUNC] =
 
 };
 
+/*@}*/
 
 
-
-/* ================================================================
- * Texture unit state management
+/******************************************************************
+ * \name Texture unit state management
  */
+/*@{*/
 
 static void radeonUpdateTextureEnv( GLcontext *ctx, int unit )
 {
@@ -845,3 +862,5 @@ void radeonInitTextureFuncs( GLcontext *ctx )
 
    radeonInitTextureObjects( ctx );
 }
+
+/*@}*/

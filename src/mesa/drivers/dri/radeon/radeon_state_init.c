@@ -1,4 +1,11 @@
-/* $XFree86$ */
+/**
+ * \file radeon_state_init.c
+ * \brief State initialization.
+ *
+ * \author Gareth Hughes <gareth@valinux.com>
+ * \author Keith Whitwell <keith@tungstengraphics.com>
+ */
+
 /*
  * Copyright 2000, 2001 VA Linux Systems Inc., Fremont, California.
  *
@@ -22,12 +29,10 @@
  * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
- *
- * Authors:
- *    Gareth Hughes <gareth@valinux.com>
- *    Keith Whitwell <keith@tungstengraphics.com>
  */
-
+ 
+/* $XFree86$ */
+ 
 #include "glheader.h"
 #include "imports.h"
 #include "mmath.h"
@@ -50,10 +55,10 @@
 #include "radeon_tex.h"
 #include "radeon_vtxfmt.h"
 
-/* =============================================================
- * State initialization
- */
 
+/**
+ * \brief Print the dirty context state info.
+ */
 void radeonPrintDirty( radeonContextPtr rmesa, const char *msg )
 {
    struct radeon_state_atom *l;
@@ -99,12 +104,19 @@ static int cmdscl( int offset, int stride, int count )
    return h.i;
 }
 
+
+/**
+ * \brief Utility macro for state checking functions definition.
+ */
 #define CHECK( NM, FLAG )			\
 static GLboolean check_##NM( GLcontext *ctx )	\
 {						\
    return FLAG;					\
 }
 
+/**
+ * \brief Utility macro for TCL state checking functions definition.
+ */
 #define TCL_CHECK( NM, FLAG )				\
 static GLboolean check_##NM( GLcontext *ctx )		\
 {							\
@@ -140,7 +152,8 @@ TCL_CHECK( tcl_eyespace_or_fog, ctx->_NeedEyeCoords || ctx->Fog.Enabled )
 
 
 
-/* Initialize the context's hardware state.
+/**
+ * \brief Initialize the context's hardware state.
  */
 void radeonInitState( radeonContextPtr rmesa )
 {

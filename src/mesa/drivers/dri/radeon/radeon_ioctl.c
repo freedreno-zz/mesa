@@ -1,4 +1,11 @@
-/* $XFree86: xc/lib/GL/mesa/src/drv/radeon/radeon_ioctl.c,v 1.7 2002/09/16 18:05:19 eich Exp $ */
+/**
+ * \file radeon_ioctl.c
+ *
+ * \author Kevin E. Martin <martin@valinux.com>
+ * \author Gareth Hughes <gareth@valinux.com>
+ * \author Keith Whitwell <keith@tungstengraphics.com>
+ */
+
 /**************************************************************************
 
 Copyright 2000, 2001 ATI Technologies Inc., Ontario, Canada, and
@@ -27,13 +34,7 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 **************************************************************************/
 
-/*
- * Authors:
- *   Kevin E. Martin <martin@valinux.com>
- *   Gareth Hughes <gareth@valinux.com>
- *   Keith Whitwell <keith@tungstengraphics.com>
- *
- */
+/* $XFree86: xc/lib/GL/mesa/src/drv/radeon/radeon_ioctl.c,v 1.7 2002/09/16 18:05:19 eich Exp $ */
 
 #include "glheader.h"
 #include "imports.h"
@@ -59,9 +60,10 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 static void radeonWaitForIdle( radeonContextPtr rmesa );
 
-/* =============================================================
- * Kernel command buffer handling
+/***************************************************************
+ * \name Kernel command buffer handling
  */
+/*@{*/
 
 static void print_state_atom( struct radeon_state_atom *state )
 {
@@ -132,8 +134,9 @@ void radeonEmitState( radeonContextPtr rmesa )
 
 
 
-/* Fire a section of the retained (indexed_verts) buffer as a regular
- * primtive.  
+/**
+ * Fire a section of the retained (indexed_verts) buffer as a regular
+ * primitive.  
  */
 extern void radeonEmitVbufPrim( radeonContextPtr rmesa,
 				GLuint vertex_format,
@@ -323,8 +326,9 @@ static int radeonFlushCmdBufLocked( radeonContextPtr rmesa,
 }
 
 
-/* Note: does not emit any commands to avoid recursion on
- * radeonAllocCmdBuf.
+/**
+ * \note Does not emit any commands to avoid recursion on
+ * radeonAllocCmdBuf().
  */
 void radeonFlushCmdBuf( radeonContextPtr rmesa, const char *caller )
 {
@@ -341,11 +345,13 @@ void radeonFlushCmdBuf( radeonContextPtr rmesa, const char *caller )
    }
 }
 
+/*@}*/
 
-/* =============================================================
- * Hardware vertex buffer handling
+
+/***************************************************************
+ * \name Hardware vertex buffer handling
  */
-
+/*@{*/
 
 void radeonRefillCurrentDmaRegion( radeonContextPtr rmesa )
 {
@@ -452,8 +458,9 @@ void radeonReleaseDmaRegion( radeonContextPtr rmesa,
    region->start = 0;
 }
 
-/* Allocates a region from rmesa->dma.current.  If there isn't enough
- * space in current, grab a new buffer (and discard what was left of current)
+/**
+ * Allocates a region from rmesa->dma.current.  If there isn't enough space in
+ * current, grab a new buffer (and discard what was left of current)
  */
 void radeonAllocDmaRegion( radeonContextPtr rmesa, 
 			   struct radeon_dma_region *region,
@@ -500,9 +507,13 @@ void radeonAllocDmaRegionVerts( radeonContextPtr rmesa,
    radeonAllocDmaRegion( rmesa, region, vertsize * numverts, alignment );
 }
 
-/* ================================================================
- * SwapBuffers with client-side throttling
+/*@}*/
+
+
+/******************************************************************
+ * \name SwapBuffers with client-side throttling
  */
+/*@{*/
 
 static GLuint radeonGetLastFrame (radeonContextPtr rmesa) 
 {
@@ -596,7 +607,8 @@ static void radeonWaitForFrameCompletion( radeonContextPtr rmesa )
    }
 }
 
-/* Copy the back color buffer to the front color buffer.
+/**
+ * \brief Copy the back color buffer to the front color buffer.
  */
 void radeonCopyBuffer( const __DRIdrawablePrivate *dPriv )
 {
@@ -707,10 +719,14 @@ void radeonPageFlip( const __DRIdrawablePrivate *dPriv )
    rmesa->hw.ctx.cmd[CTX_RB3D_COLORPITCH]  = rmesa->state.color.drawPitch;
 }
 
+/*@}*/
 
-/* ================================================================
+
+/******************************************************************
  * Buffer clear
  */
+/*@{*/
+
 #define RADEON_MAX_CLEARS	256
 
 static void radeonClear( GLcontext *ctx, GLbitfield mask, GLboolean all,
@@ -965,7 +981,8 @@ void radeonFlush( GLcontext *ctx )
    }
 }
 
-/* Make sure all commands have been sent to the hardware and have
+/**
+ * Make sure all commands have been sent to the hardware and have
  * completed processing.
  */
 void radeonFinish( GLcontext *ctx )
@@ -984,6 +1001,11 @@ void radeonFinish( GLcontext *ctx )
 }
 
 
+/**
+ * \brief Setup the GL context callbacks.
+ *
+ * \sa Called by radeonCreateContext().
+ */
 void radeonInitIoctlFuncs( GLcontext *ctx )
 {
     ctx->Driver.Clear = radeonClear;
@@ -991,3 +1013,4 @@ void radeonInitIoctlFuncs( GLcontext *ctx )
     ctx->Driver.Flush = radeonFlush;
 }
 
+/*@}*/

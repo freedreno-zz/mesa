@@ -1,38 +1,40 @@
-/* $XFree86: xc/lib/GL/mesa/src/drv/radeon/radeon_context.h,v 1.4 2002/09/10 00:39:39 dawes Exp $ */
-/**************************************************************************
-
-Copyright 2000, 2001 ATI Technologies Inc., Ontario, Canada, and
-                     VA Linux Systems Inc., Fremont, California.
-
-All Rights Reserved.
-
-Permission is hereby granted, free of charge, to any person obtaining a
-copy of this software and associated documentation files (the "Software"),
-to deal in the Software without restriction, including without limitation
-on the rights to use, copy, modify, merge, publish, distribute, sub
-license, and/or sell copies of the Software, and to permit persons to whom
-the Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice (including the next
-paragraph) shall be included in all copies or substantial portions of the
-Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL
-ATI, VA LINUX SYSTEMS AND/OR THEIR SUPPLIERS BE LIABLE FOR ANY CLAIM,
-DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
-OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
-USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-**************************************************************************/
+/**
+ * \file radeon_context.h
+ * \brief Radeon OpenGL context definition.
+ * 
+ * \author Kevin E. Martin <martin@valinux.com>
+ * \author Gareth Hughes <gareth@valinux.com>
+ * \author Keith Whitwell <keith@tungstengraphics.com>
+ */
 
 /*
- * Authors:
- *   Kevin E. Martin <martin@valinux.com>
- *   Gareth Hughes <gareth@valinux.com>
- *   Keith Whitwell <keith@tungstengraphics.com>
+ * Copyright 2000, 2001 ATI Technologies Inc., Ontario, Canada, and
+ *                      VA Linux Systems Inc., Fremont, California.
+ * 
+ * All Rights Reserved.
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * on the rights to use, copy, modify, merge, publish, distribute, sub
+ * license, and/or sell copies of the Software, and to permit persons to whom
+ * the Software is furnished to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL
+ * ATI, VA LINUX SYSTEMS AND/OR THEIR SUPPLIERS BE LIABLE FOR ANY CLAIM,
+ * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+ * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+ * USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * 
  */
+
+/* $XFree86: xc/lib/GL/mesa/src/drv/radeon/radeon_context.h,v 1.4 2002/09/10 00:39:39 dawes Exp $ */
 
 #ifndef __RADEON_CONTEXT_H__
 #define __RADEON_CONTEXT_H__
@@ -70,14 +72,14 @@ struct radeon_scissor_state {
    XF86DRIClipRectRec rect;
    GLboolean enabled;
 
-   GLuint numClipRects;			/* Cliprects active */
-   GLuint numAllocedClipRects;		/* Cliprects available */
+   GLuint numClipRects;			/**< \brief Cliprects active */
+   GLuint numAllocedClipRects;		/**< \brief Cliprects available */
    XF86DRIClipRectPtr pClipRects;
 };
 
 struct radeon_stencilbuffer_state {
    GLboolean hwBuffer;
-   GLuint clear;			/* rb3d_stencilrefmask value */
+   GLuint clear;			/**< \brief rb3d_stencilrefmask value */
 };
 
 struct radeon_stipple_state {
@@ -92,45 +94,55 @@ struct radeon_stipple_state {
 
 typedef struct radeon_tex_obj radeonTexObj, *radeonTexObjPtr;
 
-/* Texture object in locally shared texture space.
+/**
+ * \brief Texture object in locally shared texture space.
  */
 struct radeon_tex_obj {
    radeonTexObjPtr next, prev;
 
-   struct gl_texture_object *tObj;	/* Mesa texture object */
+   /** \brief Mesa texture object */
+   struct gl_texture_object *tObj;	
 
-   PMemBlock memBlock;			/* Memory block containing texture */
-   GLuint bufAddr;			/* Offset to start of locally
-					   shared texture block */
+   /** \brief Memory block containing texture */
+   PMemBlock memBlock;			
+   
+   /** \brief Offset to start of locally shared texture block */
+   GLuint bufAddr;
+   
+   /**
+    * Flags for whether or not images need to be uploaded to local or AGP
+    * texture space
+    */
+   GLuint dirty_images;			
 
-   GLuint dirty_images;			/* Flags for whether or not
-					   images need to be uploaded to
-					   local or AGP texture space */
+   /**
+    * Flags (1 per texunit) for whether or not this texobj has dirty hardware
+    * state (pp_*) that needs to be brought into the texunit.
+    */
+   GLuint dirty_state;
 
-   GLuint dirty_state;		        /* Flags (1 per texunit) for
-					   whether or not this texobj
-					   has dirty hardware state
-					   (pp_*) that needs to be
-					   brought into the
-					   texunit. */
-
-   GLint heap;				/* Texture heap currently stored in */
+   /** \brief Texture heap currently stored in */
+   GLint heap;				
 
    drmRadeonTexImage image[RADEON_MAX_TEXTURE_LEVELS];
 
-   GLint totalSize;			/* Total size of the texture
-					   including all mipmap levels */
+   /* Total size of the texture including all mipmap levels */
+   GLint totalSize;
 
    GLuint pp_txfilter;		        /* hardware register values */
    GLuint pp_txformat;
    GLuint pp_txoffset;
    GLuint pp_border_color;
 
-   /* texObj->Image[firstLevel] through texObj->Image[lastLevel] are the
+   /* \name Images to upload
+    * 
+    * texObj->Image[firstLevel] through texObj->Image[lastLevel] are the
     * images to upload.
     */
+   /*@{*/
    GLint firstLevel;     
-   GLint lastLevel;      
+   GLint lastLevel;
+   /*@}*/
 };
 
 
@@ -145,14 +157,17 @@ struct radeon_texture_state {
 };
 
 
+/**
+ * \brief Radeon state atom double-linked list.
+ */
 struct radeon_state_atom {
    struct radeon_state_atom *next, *prev;
-   const char *name;		         /* for debug */
-   int cmd_size;		         /* size in bytes */
+   const char *name;		         /**< \brief for debug */
+   int cmd_size;		         /**< \brief size in bytes */
    GLuint is_tcl;
-   int *cmd;			         /* one or more cmd's */
-   int *lastcmd;			 /* one or more cmd's */
-   GLboolean (*check)( GLcontext * );    /* is this state active? */
+   int *cmd;			         /**< \brief one or more cmd's */
+   int *lastcmd;			 /**< \brief one or more cmd's */
+   GLboolean (*check)( GLcontext * );    /**< \brief is this state active? */
 };
    
 
@@ -359,38 +374,49 @@ struct radeon_state_atom {
 
 
 struct radeon_hw_state {
-   /* All state should be on one of these lists:
+   /**
+    * \name State
+    * 
+    * All state should be on one of these lists
     */
-   struct radeon_state_atom dirty; /* dirty list head placeholder */
-   struct radeon_state_atom clean; /* clean list head placeholder */
+   /*@{*/
+   struct radeon_state_atom dirty; /**< \brief dirty list head placeholder */
+   struct radeon_state_atom clean; /**< \brief clean list head placeholder */
+   /*@}*/
 
-   /* Hardware state, stored as cmdbuf commands:  
-    *   -- Need to doublebuffer for
-    *           - reviving state after loss of context
-    *           - eliding noop statechange loops? (except line stipple count)
+   /**
+    * \name Hardware state
+    * 
+    * Stored as cmdbuf commands:  
+    * - Need to doublebuffer for
+    *   - reviving state after loss of context
+    *   - eliding no-op statechange loops? (except line stipple count)
     */
+   /*@{*/
    struct radeon_state_atom ctx;
    struct radeon_state_atom set;
    struct radeon_state_atom lin;
    struct radeon_state_atom msk;
    struct radeon_state_atom vpt;
-   struct radeon_state_atom tcl;
+   struct radeon_state_atom tcl;	/**< \ brief TCL */
    struct radeon_state_atom msc;
    struct radeon_state_atom tex[2];
    struct radeon_state_atom zbs;
    struct radeon_state_atom mtl; 
-   struct radeon_state_atom mat[5]; 
-   struct radeon_state_atom lit[8]; /* includes vec, scl commands */
+   struct radeon_state_atom mat[5];	/**< \brief matrix transformations */
+   struct radeon_state_atom lit[8];	/**< \brief includes vec, scl commands */
    struct radeon_state_atom ucp[6];
-   struct radeon_state_atom eye; /* eye pos */
-   struct radeon_state_atom grd; /* guard band clipping */
-   struct radeon_state_atom fog; 
+   struct radeon_state_atom eye;	/**< \brief eye pos */
+   struct radeon_state_atom grd;	/**< \brief guard band clipping */
+   struct radeon_state_atom fog;	/**< \brief fog */
    struct radeon_state_atom glt; 
+   /*@}*/
 };
 
+/**
+ * \brief Derived state for internal purposes:
+ */
 struct radeon_state {
-   /* Derived state for internal purposes:
-    */
    struct radeon_colorbuffer_state color;
    struct radeon_depthbuffer_state depth;
    struct radeon_pixel_state pixel;
@@ -410,10 +436,11 @@ struct radeon_texture {
    GLint numHeaps;
 };
 
-/* Need refcounting on dma buffers:
+/**
+ * \brief Reference counting on DMA buffers.
  */
 struct radeon_dma_buffer {
-   int refcount;		/* the number of retained regions in buf */
+   int refcount;	/**< \brief the number of retained regions in \p buf */
    drmBufPtr buf;
 };
 
@@ -421,12 +448,15 @@ struct radeon_dma_buffer {
 			(rvb)->address - rmesa->dma.buf0_address +	\
 			(rvb)->start)
 
-/* A retained region, eg vertices for indexed vertices.
+/**
+ * \brief A retained region.
+ *
+ * e.g. vertices for indexed vertices.
  */
 struct radeon_dma_region {
    struct radeon_dma_buffer *buf;
-   char *address;		/* == buf->address */
-   int start, end, ptr;		/* offsets from start of buf */
+   char *address;		/**< \brief == buf->address */
+   int start, end, ptr;		/**< \brief offsets from start of \p buf */
    int aos_start;
    int aos_stride;
    int aos_size;
@@ -434,22 +464,25 @@ struct radeon_dma_region {
 
 
 struct radeon_dma {
-   /* Active dma region.  Allocations for vertices and retained
-    * regions come from here.  Also used for emitting random vertices,
-    * these may be flushed by calling flush_current();
+   /**
+    * \brief Active dma region.  
+    *
+    * Allocations for vertices and retained regions come from here.  Also used
+    * for emitting random vertices, these may be flushed by calling
+    * flush_current();
     */
    struct radeon_dma_region current;
    
    void (*flush)( radeonContextPtr );
 
-   char *buf0_address;		/* start of buf[0], for index calcs */
-   GLuint nr_released_bufs;	/* flush after so many buffers released */
+   char *buf0_address;		/**< \brief start of buf[0], for index calcs */
+   GLuint nr_released_bufs;	/**< \brief flush after so many buffers released */
 };
 
 struct radeon_dri_mirror {
-   __DRIcontextPrivate	*context;	/* DRI context */
-   __DRIscreenPrivate	*screen;	/* DRI screen */
-   __DRIdrawablePrivate	*drawable;	/* DRI drawable bound to this ctx */
+   __DRIcontextPrivate	*context;	/**< \brief DRI context */
+   __DRIscreenPrivate	*screen;	/**< \brief DRI screen */
+   __DRIdrawablePrivate	*drawable;	/**< \brief DRI drawable bound to this ctx */
 
    drmContext hwContext;
    drmLock *hwLock;
@@ -501,61 +534,86 @@ struct radeon_ioctl {
 
 
 
-
-
+/**
+ * \brief Radeon GL context.
+ */
 struct radeon_context {
-   GLcontext *glCtx;			/* Mesa context */
-
-   /* Driver and hardware state management
+   /**
+    * \brief Mesa context.
     */
+   GLcontext *glCtx;			
+
+   /**
+    * \name Driver and hardware state management
+    */
+   /*@{*/
    struct radeon_hw_state hw;
    struct radeon_state state;
+   /*@}*/
 
-   /* Texture object bookkeeping
+   /**
+    * \brief Texture object bookkeeping
     */
    struct radeon_texture texture;
 
 
-   /* Rasterization and vertex state:
+   /**
+    * \name Rasterization and vertex state
     */
+   /*@{*/
    GLuint TclFallback;
    GLuint Fallback;
    GLuint NewGLState;
-
+   /*@}*/
    
-   /* Temporaries for translating away float colors:
+   /**
+    * \name Temporaries for translating away float colors
     */
+   /*@{*/
    struct gl_client_array UbyteColor;
    struct gl_client_array UbyteSecondaryColor;
+   /*@}*/
 
-   /* Vertex buffers
+   /**
+    * \name Vertex buffers
     */
+   /*@{*/
    struct radeon_ioctl ioctl;
    struct radeon_dma dma;
    struct radeon_store store;
+   /*@}*/
 
-   /* Page flipping
+   /**
+    * \brief Page flipping
     */
    GLuint doPageFlip;
 
-   /* Busy waiting
+   /**
+    * \name Busy waiting
     */
+   /*@{*/
    GLuint do_usleeps;
    GLuint do_irqs;
    GLuint irqsEmitted;
    drmRadeonIrqWait iw;
+   /*@}*/
 
-   /* Drawable, cliprect and scissor information
+   /**
+    * \name Drawable, cliprect and scissor information
     */
-   GLuint numClipRects;			/* Cliprects for the draw buffer */
+   /*@{*/
+   GLuint numClipRects;			/**< \brief Cliprects for the draw buffer */
    XF86DRIClipRectPtr pClipRects;
    unsigned int lastStamp;
    GLboolean lost_context;
-   radeonScreenPtr radeonScreen;	/* Screen private DRI data */
-   RADEONSAREAPrivPtr sarea;		/* Private SAREA data */
+   radeonScreenPtr radeonScreen;	/**< Screen private DRI data */
+   RADEONSAREAPrivPtr sarea;		/**< \brief Private SAREA data */
+   /*@}*/
 
-   /* TCL stuff
+   /**
+    * \name TCL stuff
     */
+   /*@{*/
    GLmatrix TexGenMatrix[RADEON_MAX_TEXTURE_UNITS];
    GLboolean recheck_texgen[RADEON_MAX_TEXTURE_UNITS];
    GLboolean TexGenNeedNormals[RADEON_MAX_TEXTURE_UNITS];
@@ -563,8 +621,10 @@ struct radeon_context {
    GLuint TexGenEnabled;
    GLmatrix tmpmat;
    GLuint last_ReallyEnabled;
+   /*@}*/
 
-   /* VBI
+   /**
+    * \brief VBI
     */
    GLuint vbl_seq;
 
@@ -582,11 +642,16 @@ struct radeon_context {
     */
 /*    struct radeon_vbinfo vb; */
 
-   /* Mirrors of some DRI state
+   /**
+    * \brief Mirrors of some DRI state
     */
    struct radeon_dri_mirror dri;
 };
 
+
+/**
+ * Macro to get the pointer to the Radeon context from the GL context.
+ */
 #define RADEON_CONTEXT(ctx)		((radeonContextPtr)(ctx->DriverCtx))
 
 
@@ -603,6 +668,7 @@ static __inline GLuint radeonPackColor( GLuint cpp,
       return 0;
    }
 }
+
 
 /* ================================================================
  * Debugging:

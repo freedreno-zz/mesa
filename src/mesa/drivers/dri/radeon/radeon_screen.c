@@ -1,38 +1,38 @@
-/* $XFree86: xc/lib/GL/mesa/src/drv/radeon/radeon_screen.c,v 1.4 2002/02/22 21:45:00 dawes Exp $ */
-/**************************************************************************
-
-Copyright 2000, 2001 ATI Technologies Inc., Ontario, Canada, and
-                     VA Linux Systems Inc., Fremont, California.
-
-All Rights Reserved.
-
-Permission is hereby granted, free of charge, to any person obtaining a
-copy of this software and associated documentation files (the "Software"),
-to deal in the Software without restriction, including without limitation
-on the rights to use, copy, modify, merge, publish, distribute, sub
-license, and/or sell copies of the Software, and to permit persons to whom
-the Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice (including the next
-paragraph) shall be included in all copies or substantial portions of the
-Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL
-ATI, VA LINUX SYSTEMS AND/OR THEIR SUPPLIERS BE LIABLE FOR ANY CLAIM,
-DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
-OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
-USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-**************************************************************************/
-
-/*
- * Authors:
- *   Kevin E. Martin <martin@valinux.com>
- *   Gareth Hughes <gareth@valinux.com>
- *
+/**
+ * \file radeon_screen.c
+ * 
+ * \author Kevin E. Martin <martin@valinux.com>
+ * \author Gareth Hughes <gareth@valinux.com>
  */
+
+/* 
+ * Copyright 2000, 2001 ATI Technologies Inc., Ontario, Canada, and
+ *                      VA Linux Systems Inc., Fremont, California.
+ * 
+ * All Rights Reserved.
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * on the rights to use, copy, modify, merge, publish, distribute, sub
+ * license, and/or sell copies of the Software, and to permit persons to whom
+ * the Software is furnished to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL
+ * ATI, VA LINUX SYSTEMS AND/OR THEIR SUPPLIERS BE LIABLE FOR ANY CLAIM,
+ * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+ * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+ * USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * 
+ */
+
+/* $XFree86: xc/lib/GL/mesa/src/drv/radeon/radeon_screen.c,v 1.4 2002/02/22 21:45:00 dawes Exp $ */
 
 #include "glheader.h"
 #include "imports.h"
@@ -60,7 +60,25 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #endif
 
 
-/* Create the device specific screen private data struct.
+/**
+ * \brief Create the device specific screen private data struct.
+ *
+ * \param sPriv DRI screen private data.
+ * 
+ * \return pointer to the device specific screen private data.
+ *
+ * Checks the version compatability of the DRI extension, the DDX driver and
+ * the DRM driver.
+ * 
+ * Disables the TCL for DRM versions less than 1.3.x, or if the RADEON_COMPAT
+ * environment variable is set. Requests the AGP buffer offset to the DRM for
+ * versions >=1.3.x, and the IRQ number for >=1.6.x.
+ * 
+ * Maps the MMIO region, the status region, the vertex buffers and (if
+ * available) the AGP texture region.
+ * 
+ * Fills in the device screen private data with the DRI screen private data
+ * supplied.
  */
 radeonScreenPtr radeonCreateScreen( __DRIscreenPrivate *sPriv )
 {
@@ -246,7 +264,13 @@ radeonScreenPtr radeonCreateScreen( __DRIscreenPrivate *sPriv )
    return radeonScreen;
 }
 
-/* Destroy the device specific screen private data struct.
+/**
+ * \brief Destroy the device specific screen private data struct.
+ *
+ * \param sPriv DRI screen private data.
+ *
+ * Unmaps all previously mapped regions and deallocates the device specific
+ * private data.
  */
 void radeonDestroyScreen( __DRIscreenPrivate *sPriv )
 {

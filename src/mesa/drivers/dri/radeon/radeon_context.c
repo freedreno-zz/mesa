@@ -1,39 +1,39 @@
-/* $XFree86: xc/lib/GL/mesa/src/drv/radeon/radeon_context.c,v 1.4 2002/09/10 00:39:39 dawes Exp $ */
-/**************************************************************************
-
-Copyright 2000, 2001 ATI Technologies Inc., Ontario, Canada, and
-                     VA Linux Systems Inc., Fremont, California.
-
-All Rights Reserved.
-
-Permission is hereby granted, free of charge, to any person obtaining a
-copy of this software and associated documentation files (the "Software"),
-to deal in the Software without restriction, including without limitation
-on the rights to use, copy, modify, merge, publish, distribute, sub
-license, and/or sell copies of the Software, and to permit persons to whom
-the Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice (including the next
-paragraph) shall be included in all copies or substantial portions of the
-Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL
-ATI, VA LINUX SYSTEMS AND/OR THEIR SUPPLIERS BE LIABLE FOR ANY CLAIM,
-DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
-OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
-USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-**************************************************************************/
+/**
+ * \file radeon_context.c
+ * \brief Device specific context initialization.
+ * 
+ * \author Kevin E. Martin <martin@valinux.com>
+ * \author Gareth Hughes <gareth@valinux.com>
+ * \author Keith Whitwell <keith@tungstengraphics.com>
+ */
 
 /*
- * Authors:
- *   Kevin E. Martin <martin@valinux.com>
- *   Gareth Hughes <gareth@valinux.com>
- *   Keith Whitwell <keith@tungstengraphics.com>
- *
+ * Copyright 2000, 2001 ATI Technologies Inc., Ontario, Canada, and
+ *                      VA Linux Systems Inc., Fremont, California.
+ * 
+ * All Rights Reserved.
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * on the rights to use, copy, modify, merge, publish, distribute, sub
+ * license, and/or sell copies of the Software, and to permit persons to whom
+ * the Software is furnished to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL
+ * ATI, VA LINUX SYSTEMS AND/OR THEIR SUPPLIERS BE LIABLE FOR ANY CLAIM,
+ * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+ * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+ * USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
+/* $XFree86: xc/lib/GL/mesa/src/drv/radeon/radeon_context.c,v 1.4 2002/09/10 00:39:39 dawes Exp $ */
 
 #include "glheader.h"
 #include "imports.h"
@@ -62,8 +62,15 @@ int RADEON_DEBUG = (0);
 #endif
 
 
-
-/* Return the width and height of the given buffer.
+/**
+ * \brief Return the width and height of the given buffer.
+ *
+ * \param buffer frame buffer. Not used.
+ * \param width will hold the width of the buffer.
+ * \param height will hold the height of the buffer.
+ * 
+ * Returns the width and height of the current drawable while holding the
+ * hardware lock.
  */
 static void radeonGetBufferSize( GLframebuffer *buffer,
 				 GLuint *width, GLuint *height )
@@ -77,7 +84,19 @@ static void radeonGetBufferSize( GLframebuffer *buffer,
    UNLOCK_HARDWARE( rmesa );
 }
 
-/* Return various strings for glGetString().
+/**
+ * \brief Return various strings for glGetString().
+ *
+ * \param ctx GL context.
+ * \param name name of the string to return.
+ *
+ * \param pointer to a static string describing the aspect specified by \p
+ * name.
+ *
+ * \sa glGetString().
+ *
+ * Returns the wanted string, appending miscellaneous information (such as AGP
+ * mode, processor abilities, TCL support, etc.) for the GL_RENDERER aspect.
  */
 static const GLubyte *radeonGetString( GLcontext *ctx, GLenum name )
 {
@@ -150,7 +169,10 @@ static const GLubyte *radeonGetString( GLcontext *ctx, GLenum name )
 }
 
 
-/* Extension strings exported by the R100 driver.
+/**
+ * \brief Device specific extension names exported by the R100 driver.
+ *
+ * \note None in the case of the subset driver.
  */
 static const char * const radeon_extensions[] =
 {
@@ -181,7 +203,13 @@ static const char * const radeon_extensions[] =
     NULL
 };
 
-/* Initialize the extensions supported by this driver.
+/**
+ * \brief Initialize the extensions supported by this driver.
+ *
+ * \param ctx GL context.
+ *
+ * Enables the imaging extensions and every extension specified in in the
+ * radeon_extensions table.
  */
 static void radeonInitExtensions( GLcontext *ctx )
 {
@@ -194,6 +222,14 @@ static void radeonInitExtensions( GLcontext *ctx )
 }
 
 
+/**
+ * \brief Resize the buffers.
+ *
+ * \param buffer frame buffer to be resized.
+ * 
+ * Informs the software rasterizer (if enabled at compile time) of the buffer
+ * resizing.
+ */
 static void ResizeBuffers( GLframebuffer *buffer )
 {
 #if _HAVE_SWRAST
@@ -202,7 +238,10 @@ static void ResizeBuffers( GLframebuffer *buffer )
 }
 
 
-/* Initialize the driver's misc functions.
+/**
+ * \brief Initialize the driver miscellaneous function callbacks.
+ *
+ * \param ctx GL context.
  */
 static void radeonInitDriverFuncs( GLcontext *ctx )
 {
@@ -217,7 +256,24 @@ static void radeonInitDriverFuncs( GLcontext *ctx )
 
 
 
-/* Create the device specific context.
+/**
+ * \brief Create the device specific context.
+ *
+ * \param glVisual visual information.
+ * \param driContextPriv DRI specific context data.
+ * \param sharedContextPrivate shared context.
+ * 
+ * \return GL_TRUE if successful, or GL_FALSE otherwise.
+ *
+ * Allocates a Radeon context and initializes it, adding a Mesa context. Fills
+ * in with information from the Radeon specific screen data in
+ * __DRIscreenPrivateRec::private, such as the SAREA pointer, DMA buffers
+ * addresses and texture heaps.
+ *
+ * Calls the radeonInit* functions to populate the driver callback functions.
+ *
+ * If compiled with debug support, reads the RADEON_DEBUG environment variable
+ * and sets the debugging flags accordingly.
  */
 static GLboolean
 radeonCreateContext( const __GLcontextModes *glVisual,
@@ -436,9 +492,15 @@ radeonCreateContext( const __GLcontextModes *glVisual,
 }
 
 
-/* Destroy the device specific context.
- */
-/* Destroy the Mesa and driver specific context data.
+/**
+ * \brief Destroy the device specific context data.
+ *
+ * \param driContextPriv DRI specific context data.
+ *
+ * If destroying the currently bound context, fires the vertices and unbinds it first.
+ *
+ * Frees the radeon context resources, freeing the Mesa context. Frees the private texture object from
+ * the shared context data if its reference count reaches zero.
  */
 static void
 radeonDestroyContext( __DRIcontextPrivate *driContextPriv )
@@ -516,8 +578,14 @@ radeonDestroyContext( __DRIcontextPrivate *driContextPriv )
 
 
 
-/* Create and initialize the Mesa and driver specific pixmap buffer
+/**
+ * \brief Create and initialize the Mesa and device specific pixmap buffer
  * data.
+ *
+ * \param driScrnPriv DRI specific screen data.
+ * \param driDrawPriv DRI specific drawable data.
+ * \param mesaVis visual.
+ * \param isPixmap must be GL_FALSE. Not implemented.
  */
 static GLboolean
 radeonCreateBuffer( __DRIscreenPrivate *driScrnPriv,
@@ -552,6 +620,13 @@ radeonCreateBuffer( __DRIscreenPrivate *driScrnPriv,
 }
 
 
+/**
+ * \brief Destroy device specific pixmap data.
+ *
+ * \param driDrawPriv DRI specific drawable data.
+ *
+ * Destroys Mesa framebuffer.
+ */
 static void
 radeonDestroyBuffer(__DRIdrawablePrivate *driDrawPriv)
 {
@@ -559,7 +634,14 @@ radeonDestroyBuffer(__DRIdrawablePrivate *driDrawPriv)
 }
 
 
-
+/**
+ * \brief Swap buffers.
+ *
+ * \param dPriv DRI specific drawable data.
+ *
+ * If in double buffer mode it dispatches the call, either to
+ * radeonCopyBuffer() or radeonPageFlip() if page flipping is enabled.
+ */
 static void
 radeonSwapBuffers( __DRIdrawablePrivate *dPriv )
 {
@@ -587,8 +669,16 @@ radeonSwapBuffers( __DRIdrawablePrivate *dPriv )
 }
 
 
-/* Force the context `c' to be the current context and associate with it
- * buffer `b'.
+/**
+ * \brief Set the current context.
+ * 
+ * \param driContextPriv DRI specific context data to be activated. 
+ * \param driDrawPriv DRI specific drawable data, to which the context is to be associated for writing.
+ * \param driReadPriv DRI specific drawable data, to which the context is to be associated for reading.
+ *
+ * \return GL_TRUE on success, or GL_FALSE on failure.
+ *
+ * 
  */
 static GLboolean
 radeonMakeCurrent( __DRIcontextPrivate *driContextPriv,
@@ -633,7 +723,11 @@ radeonMakeCurrent( __DRIcontextPrivate *driContextPriv,
    return GL_TRUE;
 }
 
-/* Force the context `c' to be unbound from its buffer.
+
+/**
+ * \brief Unbind context from its buffer.
+ *
+ * Calls radeonVtxfmtUnbindContext().
  */
 static GLboolean
 radeonUnbindContext( __DRIcontextPrivate *driContextPriv )
@@ -647,12 +741,22 @@ radeonUnbindContext( __DRIcontextPrivate *driContextPriv )
    return GL_TRUE;
 }
 
-/* Fullscreen mode isn't used for much -- could be a way to shrink
+
+/**
+ * \brief Open/close fullscreen mode.
+ * 
+ * Fullscreen mode isn't used for much -- could be a way to shrink
  * front/back buffers & get more texture memory if the client has
  * changed the video resolution.
  * 
  * Pageflipping is now done automatically whenever there is a single
  * 3d client.
+ * 
+ * \param driContextPriv DRI specific context data. Not used.
+ * 
+ * \return always GL_TRUE.
+ *
+ * This function is a no-op.
  */
 static GLboolean
 radeonOpenCloseFullScreen( __DRIcontextPrivate *driContextPriv )
@@ -670,8 +774,14 @@ __driRegisterExtensions( void )
 
 
 
-/* Initialize the driver specific screen private data.  (Called as
- * callback from __driUtilCreateScreen below).
+/**
+ * \brief Initialize the driver specific screen private data.
+ *
+ * \param sPriv DRI specific screen data.
+ * 
+ * \return GL_TRUE on success or GL_FALSE on faillure.
+ * 
+ * Called as callback from __driCreateScreen below.
  */
 static GLboolean
 radeonInitDriver( __DRIscreenPrivate *sPriv )
@@ -686,7 +796,9 @@ radeonInitDriver( __DRIscreenPrivate *sPriv )
 }
 
 
-
+/**
+ * \brief Driver interface structure
+ */
 static struct __DriverAPIRec radeonAPI = {
    radeonInitDriver,
    radeonDestroyScreen,
@@ -703,10 +815,12 @@ static struct __DriverAPIRec radeonAPI = {
 
 
 
-/*
- * This is the bootstrap function for the driver.
+/**
+ * \brief Bootstrap function for the driver.
+ *
  * The __driCreateScreen name is the symbol that libGL.so fetches.
- * Return:  pointer to a __DRIscreenPrivate.
+ * 
+ * \return pointer to a __DRIscreenPrivate.
  */
 void *__driCreateScreen(Display *dpy, int scrn, __DRIscreen *psc,
                         int numConfigs, __GLXvisualConfig *config)
