@@ -27,6 +27,7 @@
  *    Keith Whitwell <keith@tungstengraphics.com>
  */
 
+#include "context.h"
 #include "imports.h"
 #include "mtypes.h"
 #include "state.h"
@@ -122,6 +123,8 @@ void _tnl_playback_vertex_list( GLcontext *ctx, void *data )
 {
    struct tnl_vertex_list *node = (struct tnl_vertex_list *)data;
    TNLcontext *tnl = TNL_CONTEXT(ctx);
+
+   FLUSH_CURRENT(ctx, 0);
 
    if (!node->prim_count || !node->count) 
       return;
