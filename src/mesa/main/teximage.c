@@ -1,8 +1,8 @@
-/* $Id: teximage.c,v 1.104.2.2 2002/03/19 16:42:41 brianp Exp $ */
+/* $Id: teximage.c,v 1.104.2.3 2002/04/23 16:45:16 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  4.0.2
+ * Version:  4.0.3
  *
  * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
  *
@@ -1222,7 +1222,7 @@ _mesa_GetTexImage( GLenum target, GLint level, GLenum format,
       return;
    }
 
-   if (_mesa_sizeof_type(type) <= 0) {
+   if (_mesa_sizeof_packed_type(type) <= 0) {
       _mesa_error( ctx, GL_INVALID_ENUM, "glGetTexImage(type)" );
       return;
    }
