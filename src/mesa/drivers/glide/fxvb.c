@@ -1,4 +1,4 @@
-/* $Id: fxvb.c,v 1.19 2003/10/02 17:36:45 brianp Exp $ */
+/* $Id: fxvb.c,v 1.19.2.1 2003/11/21 13:40:21 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -301,7 +301,7 @@ void fxBuildVertices( GLcontext *ctx, GLuint start, GLuint count,
    if (!newinputs)
       return;
 
-   if (newinputs & VERT_BIT_CLIP) {
+   if (newinputs & VERT_BIT_POS) {
       setup_tab[fxMesa->SetupIndex].emit( ctx, start, count, v );   
    } else {
       GLuint ind = 0;

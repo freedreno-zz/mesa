@@ -68,10 +68,10 @@ static drmBufMapPtr i810_create_empty_buffers(void)
 {
    drmBufMapPtr retval;
 
-   retval = (drmBufMapPtr)ALIGN_MALLOC(sizeof(drmBufMap));
+   retval = (drmBufMapPtr)MALLOC(sizeof(drmBufMap));
    if(retval == NULL) return NULL;
    memset(retval, 0, sizeof(drmBufMap));
-   retval->list = (drmBufPtr)ALIGN_MALLOC(sizeof(drmBuf) * I810_DMA_BUF_NR);
+   retval->list = (drmBufPtr)MALLOC(sizeof(drmBuf) * I810_DMA_BUF_NR);
    if(retval->list == NULL) {
       Xfree(retval);
       return NULL;

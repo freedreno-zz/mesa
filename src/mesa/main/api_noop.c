@@ -789,6 +789,7 @@ void _mesa_noop_EvalMesh2( GLenum mode, GLint i1, GLint i2, GLint j1, GLint j2 )
 }
 
 
+
 /* Build a vertexformat full of things to use outside begin/end pairs.
  * 
  * TODO -- build a whole dispatch table for this purpose, and likewise

@@ -248,9 +248,9 @@ static void TAG(emit)( GLcontext *ctx,
 	 STRIDE_4F(col, col_stride);
       }
       if (DO_SPEC) {
-	 UNCLAMPED_FLOAT_TO_UBYTE(v->v.specular.red, col[0][0]);
-	 UNCLAMPED_FLOAT_TO_UBYTE(v->v.specular.green, col[0][1]);
-	 UNCLAMPED_FLOAT_TO_UBYTE(v->v.specular.blue, col[0][2]);
+	 UNCLAMPED_FLOAT_TO_UBYTE(v->v.specular.red, spec[0][0]);
+	 UNCLAMPED_FLOAT_TO_UBYTE(v->v.specular.green, spec[0][1]);
+	 UNCLAMPED_FLOAT_TO_UBYTE(v->v.specular.blue, spec[0][2]);
 	 STRIDE_4F(spec, spec_stride);
       }
       if (DO_FOG) {

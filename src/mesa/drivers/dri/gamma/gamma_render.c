@@ -178,7 +178,7 @@ static void VERT_FALLBACK( GLcontext *ctx,
    tnl->Driver.Render.PrimitiveNotify( ctx, flags & PRIM_MODE_MASK );
    tnl->Driver.Render.BuildVertices( ctx, start, count, ~0 );
    tnl->Driver.Render.PrimTabVerts[flags&PRIM_MODE_MASK]( ctx, start, count, flags );
-   GAMMA_CONTEXT(ctx)->SetupNewInputs = VERT_BIT_CLIP;
+   GAMMA_CONTEXT(ctx)->SetupNewInputs = VERT_BIT_POS;
 }
 
 static const GLuint hw_prim[GL_POLYGON+1] = {
@@ -236,7 +236,7 @@ static __inline void gammaEndPrimitive( gammaContextPtr gmesa )
 
 
 static GLboolean gamma_run_render( GLcontext *ctx,
-				  struct gl_pipeline_stage *stage )
+				  struct tnl_pipeline_stage *stage )
 {
    gammaContextPtr gmesa = GAMMA_CONTEXT(ctx);
    TNLcontext *tnl = TNL_CONTEXT(ctx);
@@ -271,9 +271,9 @@ static GLboolean gamma_run_render( GLcontext *ctx,
 
 
 static void gamma_check_render( GLcontext *ctx,
-				 struct gl_pipeline_stage *stage )
+				 struct tnl_pipeline_stage *stage )
 {
-   GLuint inputs = VERT_BIT_CLIP | VERT_BIT_COLOR0;
+   GLuint inputs = VERT_BIT_POS | VERT_BIT_COLOR0;
 
    if (ctx->RenderMode == GL_RENDER) {
       if (ctx->_TriangleCaps & DD_SEPARATE_SPECULAR)
@@ -293,13 +293,13 @@ static void gamma_check_render( GLcontext *ctx,
 }
 
 
-static void dtr( struct gl_pipeline_stage *stage )
+static void dtr( struct tnl_pipeline_stage *stage )
 {
    (void)stage;
 }
 
 
-const struct gl_pipeline_stage _gamma_render_stage =
+const struct tnl_pipeline_stage _gamma_render_stage =
 {
    "gamma render",
    (_DD_NEW_SEPARATE_SPECULAR |

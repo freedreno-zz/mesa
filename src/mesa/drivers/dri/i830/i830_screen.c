@@ -57,7 +57,7 @@ static int i830_malloc_proxy_buf(drmBufMapPtr buffers)
    drmBufPtr buf;
    int i;
 
-   buffer = ALIGN_MALLOC(I830_DMA_BUF_SZ);
+   buffer = MALLOC(I830_DMA_BUF_SZ);
    if(buffer == NULL) return -1;
    for(i = 0; i < I830_DMA_BUF_NR; i++) {
       buf = &(buffers->list[i]);
@@ -71,10 +71,10 @@ static drmBufMapPtr i830_create_empty_buffers(void)
 {
    drmBufMapPtr retval;
 
-   retval = (drmBufMapPtr)ALIGN_MALLOC(sizeof(drmBufMap));
+   retval = (drmBufMapPtr)MALLOC(sizeof(drmBufMap));
    if(retval == NULL) return NULL;
    memset(retval, 0, sizeof(drmBufMap));
-   retval->list = (drmBufPtr)ALIGN_MALLOC(sizeof(drmBuf) * I830_DMA_BUF_NR);
+   retval->list = (drmBufPtr)MALLOC(sizeof(drmBuf) * I830_DMA_BUF_NR);
    if(retval->list == NULL) {
       Xfree(retval);
       return NULL;

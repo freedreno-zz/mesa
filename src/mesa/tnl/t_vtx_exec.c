@@ -34,6 +34,30 @@
 #include "t_vtx_api.h"
 #include "t_pipeline.h"
 
+static void _tnl_print_vtx( GLcontext *ctx )
+{
+   TNLcontext *tnl = TNL_CONTEXT(ctx);
+   GLuint count = tnl->vtx.initial_counter - tnl->vtx.counter;
+   GLuint i;
+
+   _mesa_debug(0, "%s: %u vertices %d primitives, %d vertsize\n",
+	       __FUNCTION__,
+               count,
+	       tnl->vtx.prim_count,
+	       tnl->vtx.vertex_size);
+
+   for (i = 0 ; i < tnl->vtx.prim_count ; i++) {
+      struct tnl_prim *prim = &tnl->vtx.prim[i];
+      _mesa_debug(0, "   prim %d: %s %d..%d %s %s\n",
+		  i, 
+		  _mesa_lookup_enum_by_nr(prim->mode & PRIM_MODE_MASK),
+		  prim->start, 
+		  prim->start + prim->count,
+		  (prim->mode & PRIM_BEGIN) ? "BEGIN" : "(wrap)",
+		  (prim->mode & PRIM_END) ? "END" : "(wrap)");
+   }
+}
+
 GLboolean *_tnl_translate_edgeflag( GLcontext *ctx, const GLfloat *data,
 				    GLuint count, GLuint stride )
 {
@@ -240,6 +264,9 @@ static GLuint _tnl_copy_vertices( GLcontext *ctx )
 void _tnl_flush_vtx( GLcontext *ctx )
 {
    TNLcontext *tnl = TNL_CONTEXT(ctx);
+
+   if (0)
+      _tnl_print_vtx( ctx );
 
    if (tnl->vtx.prim_count && 
        tnl->vtx.counter != tnl->vtx.initial_counter) {

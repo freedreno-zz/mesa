@@ -97,7 +97,7 @@ static GLuint prepare_materials( GLcontext *ctx,
    store->mat_count = 0;
    store->mat_bitmask = 0;
 
-   /* If ColorMaterial enabled, set overwrite effected AttrPtr's with
+   /* If ColorMaterial enabled, overwrite affected AttrPtr's with
     * the color pointer.  This could be done earlier.
     */
    if (ctx->Light.ColorMaterialEnabled) {
@@ -166,7 +166,8 @@ static void init_lighting( void )
 }
 
 
-static GLboolean run_lighting( GLcontext *ctx, struct tnl_pipeline_stage *stage )
+static GLboolean run_lighting( GLcontext *ctx, 
+			       struct tnl_pipeline_stage *stage )
 {
    struct light_stage_data *store = LIGHT_STAGE_DATA(stage);
    TNLcontext *tnl = TNL_CONTEXT(ctx);
@@ -285,6 +286,11 @@ static GLboolean run_init_lighting( GLcontext *ctx,
    _mesa_vector4f_alloc( &store->LitSecondary[1], 0, size, 32 );
    _mesa_vector4f_alloc( &store->LitIndex[0], 0, size, 32 );
    _mesa_vector4f_alloc( &store->LitIndex[1], 0, size, 32 );
+
+   store->LitIndex[0].size = 1;
+   store->LitIndex[0].stride = sizeof(GLfloat);
+   store->LitIndex[1].size = 1;
+   store->LitIndex[1].stride = sizeof(GLfloat);
 
    /* Now validate the stage derived data...
     */

@@ -673,8 +673,7 @@ static GLboolean r200_run_render( GLcontext *ctx,
 		 _mesa_lookup_enum_by_nr(prim & PRIM_MODE_MASK), 
 		 start, start+length);
 
-      if (length)
-	 tab[prim & PRIM_MODE_MASK]( ctx, start, start + length, flags );
+      tab[prim & PRIM_MODE_MASK]( ctx, start, start + length, flags );
    }
 
    tnl->Driver.Render.Finish( ctx );

@@ -2,7 +2,7 @@
  * fxDDReadPixels888 does not convert 8A8R8G8B into 5R5G5B
  */
 
-/* $Id: fxdd.c,v 1.100 2003/10/02 17:36:44 brianp Exp $ */
+/* $Id: fxdd.c,v 1.100.2.1 2003/11/21 13:40:21 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -960,7 +960,7 @@ fxDDGetString(GLcontext * ctx, GLenum name)
  }
 }
 
-static const struct gl_pipeline_stage *fx_pipeline[] = {
+static const struct tnl_pipeline_stage *fx_pipeline[] = {
    &_tnl_vertex_transform_stage,	/* TODO: Add the fastpath here */
    &_tnl_normal_transform_stage,
    &_tnl_lighting_stage,
