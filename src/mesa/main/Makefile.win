@@ -156,9 +156,9 @@ mesadll	: $(MESADLL)
 
 CFLAGS	= $(cvarsdll) $(CFLAGS) -D_OPENGL32_ -DBUILD_GL32 -DNO_PARALLEL -DNO_STEREO
 !IFNDEF NODEBUG
-CFLAGS = $(CFLAGS) -DMESA_DEBUG
+CFLAGS = $(CFLAGS) -DMESA_DEBUG -Zi
 !ENDIF
-LFLAGS	= $(dlllflags) $(lcommon) $(LFLAGS)
+LFLAGS	= $(dlllflags) $(lcommon) $(LFLAGS) /MAP
 
 OBJS	= $(ASM_SRCS:.S=.obj) $(CORE_SRCS:.c=.obj) $(DRIVER_SRCS:.c=.obj)
 LIBS	= winmm.lib $(guilibsdll)
