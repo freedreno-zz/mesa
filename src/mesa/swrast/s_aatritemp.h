@@ -1,4 +1,4 @@
-/* $Id: s_aatritemp.h,v 1.21 2001/09/19 20:30:44 kschultz Exp $ */
+/* $Id: s_aatritemp.h,v 1.21.2.1 2001/12/05 10:22:55 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -149,7 +149,7 @@
       const GLfloat area = majDx * botDy - botDx * majDy;
       ltor = (GLboolean) (area < 0.0F);
       /* Do backface culling */
-      if (area * bf < 0 || area * area < .0025)
+      if (area * bf < 0 || area == 0 || IS_INF_OR_NAN(area))
 	 return;
    }
 
