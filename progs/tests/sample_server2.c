@@ -1,4 +1,4 @@
-/* $Id: sample_server2.c,v 1.1.2.2 2003/04/25 09:37:29 keithw Exp $ */
+/* $Id: sample_server2.c,v 1.1.2.3 2003/04/29 08:21:44 keithw Exp $ */
 
 /*
  * Sample server that just keeps first available window mapped.
@@ -89,9 +89,7 @@ int main( int argc, char *argv[] )
 
       /* This can happen if select() is interrupted by a signal:
        */
-      if (r < 0) {
-	 if (errno == EINTR || errno == EAGAIN)
-	    continue;
+      if (r < 0 && errno != EINTR && errno != EAGAIN) {
 	 perror ("select()");
 	 exit (1);
       }
@@ -107,7 +105,7 @@ int main( int argc, char *argv[] )
 	 r = read(0, rbuf, BUFSZ);	 
 	 if (r < 1) {
 	    perror("read");	
-	    exit(1);
+	    abort();
 	 }
 	 rbuf_count = r;
       }
@@ -118,7 +116,7 @@ int main( int argc, char *argv[] )
 	 r = write(1, rbuf, rbuf_count);	 
 	 if (r < 1) {
 	    perror("write");
-	    exit(1);
+	    abort();
 	 }
 	 rbuf_count -= r;
 	 if (rbuf_count) 
