@@ -32,7 +32,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: m_matrix.c,v 1.14.4.2 2003/03/22 16:49:59 jrfonseca Exp $ */
+/* $Id: m_matrix.c,v 1.14.4.3 2003/03/23 14:58:08 jrfonseca Exp $ */
 
 
 #include "glheader.h"
@@ -880,6 +880,20 @@ _math_matrix_rotate( GLmatrix *mat,
    matrix_multf( mat, m, MAT_FLAG_ROTATION );
 }
 
+/**
+ * \brief Apply a perspective projection matrix.
+ *
+ * \param mat matrix to apply the projection.
+ * \param left left clipping plane coordinate.
+ * \param right right clipping plane coordinate.
+ * \param bottom bottom clipping plane coordinate.
+ * \param top top clipping plane coordinate.
+ * \param nearval distance to the near clipping plane.
+ * \param farval distance to the far clipping plane.
+ *
+ * Creates the projection matrix and multiplies it with \p mat, marking the
+ * MAT_FLAG_PERSPECTIVE flag.
+ */
 void
 _math_matrix_frustum( GLmatrix *mat,
 		      GLfloat left, GLfloat right,
@@ -906,6 +920,20 @@ _math_matrix_frustum( GLmatrix *mat,
    matrix_multf( mat, m, MAT_FLAG_PERSPECTIVE );
 }
 
+/**
+ * \brief Apply an orthographic projection matrix.
+ *
+ * \param mat matrix to apply the projection.
+ * \param left left clipping plane coordinate.
+ * \param right right clipping plane coordinate.
+ * \param bottom bottom clipping plane coordinate.
+ * \param top top clipping plane coordinate.
+ * \param nearval distance to the near clipping plane.
+ * \param farval distance to the far clipping plane.
+ *
+ * Creates the projection matrix and multiplies it with \p mat, marking the
+ * MAT_FLAG_GENERAL_SCALE and MAT_FLAG_TRANSLATION flags.
+ */
 void
 _math_matrix_ortho( GLmatrix *mat,
 		    GLfloat left, GLfloat right,
@@ -933,6 +961,19 @@ _math_matrix_ortho( GLmatrix *mat,
    matrix_multf( mat, m, (MAT_FLAG_GENERAL_SCALE|MAT_FLAG_TRANSLATION));
 }
 
+/**
+ * \brief Multiply a matrix with a general scaling matrix.
+ *
+ * \param mat matrix.
+ * \param x x axis scale factor.
+ * \param y y axis scale factor.
+ * \param z z axis scale factor.
+ *
+ * Multiplies in-place the elements of \p mat by the scale factors. Checks if
+ * the scales faactors are roughly the same, marking the MAT_FLAG_UNIFORM_SCALE
+ * flag, or MAT_FLAG_GENERAL_SCALE. Marks the MAT_DIRTY_TYPE and
+ * MAT_DIRTY_INVERSE dirty flags.
+ */
 void
 _math_matrix_scale( GLmatrix *mat, GLfloat x, GLfloat y, GLfloat z )
 {
@@ -951,6 +992,18 @@ _math_matrix_scale( GLmatrix *mat, GLfloat x, GLfloat y, GLfloat z )
 		  MAT_DIRTY_INVERSE);
 }
 
+/**
+ * \brief Multiply a matrix with a translation matrix.
+ *
+ * \param mat matrix.
+ * \param x translation vector x coordinate.
+ * \param y translation vector y coordinate.
+ * \param z translation vector z coordinate.
+ *
+ * Adds the translation coordinates to the elements of \p mat in-place.  Marks
+ * the MAT_FLAG_TRANSLATION flag, and the MAT_DIRTY_TYPE and MAT_DIRTY_INVERSE
+ * dirty flags.
+ */
 void
 _math_matrix_translate( GLmatrix *mat, GLfloat x, GLfloat y, GLfloat z )
 {
@@ -965,6 +1018,14 @@ _math_matrix_translate( GLmatrix *mat, GLfloat x, GLfloat y, GLfloat z )
 		  MAT_DIRTY_INVERSE);
 }
 
+/**
+ * \brief Set a matrix to the indentity matrix.
+ *
+ * \param mat matrix.
+ *
+ * Copies ::Identity into \p GLmatrix::m, and into GLmatrix::inv if not NULL.
+ * Sets the matrix type to indentity, and clear the dirty flags.
+ */
 void
 _math_matrix_set_identity( GLmatrix *mat )
 {
@@ -1026,8 +1087,12 @@ _math_matrix_set_identity( GLmatrix *mat )
 
 #define SQ(x) ((x)*(x))
 
-/* Determine type and flags from scratch.  This is expensive enough to
- * only want to do it once.
+/**
+ * \brief Determine type and flags from scratch.  
+ *
+ * \param mat matrix.
+ * 
+ * This is expensive enough to only want to do it once.
  */
 static void analyse_from_scratch( GLmatrix *mat )
 {
@@ -1137,8 +1202,10 @@ static void analyse_from_scratch( GLmatrix *mat )
    }
 }
 
-/* Analyse a matrix given that its flags are accurate - this is the
- * more common operation, hopefully.
+/**
+ * \brief Analyse a matrix given that its flags are accurate.
+ * 
+ * This is the more common operation, hopefully.
  */
 static void analyse_from_flags( GLmatrix *mat )
 {
@@ -1178,6 +1245,16 @@ static void analyse_from_flags( GLmatrix *mat )
    }
 }
 
+/**
+ * \brief Analyze and update a matrix.
+ *
+ * \param mat matrix.
+ *
+ * If the matrix type is dirty then calls either analyse_from_scratch() or
+ * analyse_from_flags() to determine its type, according to whether the flags
+ * are dirty or not, respectively. If the matrix has an inverse and it's dirty
+ * then calls matrix inverse. Finally clears the firty flags.
+ */
 void
 _math_matrix_analyse( GLmatrix *mat )
 {
@@ -1204,6 +1281,14 @@ _math_matrix_analyse( GLmatrix *mat )
 /** \name Matrix setup */
 /*@{*/
 
+/**
+ * \brief Copy a matrix.
+ *
+ * \param to destination matrix.
+ * \param from source matrix.
+ *
+ * Copies all fields in GLmatrix, creating an inverse array if necessary.
+ */
 void
 _math_matrix_copy( GLmatrix *to, const GLmatrix *from )
 {
@@ -1221,7 +1306,15 @@ _math_matrix_copy( GLmatrix *to, const GLmatrix *from )
    }
 }
 
-
+/**
+ * \brief Loads a matrix array into GLmatrix.
+ * 
+ * \param m matrix array.
+ * \param mat matrix.
+ *
+ * Copies \p m into GLmatrix::m and marks the MAT_FLAG_GENERAL and MAT_DIRTY
+ * flags.
+ */
 void
 _math_matrix_loadf( GLmatrix *mat, const GLfloat *m )
 {
@@ -1229,6 +1322,13 @@ _math_matrix_loadf( GLmatrix *mat, const GLfloat *m )
    mat->flags = (MAT_FLAG_GENERAL | MAT_DIRTY);
 }
 
+/**
+ * \brief Matrix constructor.
+ *
+ * \param m matrix.
+ *
+ * Initialize the GLmatrix fields.
+ */
 void
 _math_matrix_ctr( GLmatrix *m )
 {
@@ -1240,6 +1340,13 @@ _math_matrix_ctr( GLmatrix *m )
    m->flags = 0;
 }
 
+/**
+ * \brief Matrix destructor.
+ *
+ * \param m matrix.
+ *
+ * Frees the data in a GLmatrix.
+ */
 void
 _math_matrix_dtr( GLmatrix *m )
 {
@@ -1253,6 +1360,13 @@ _math_matrix_dtr( GLmatrix *m )
    }
 }
 
+/**
+ * \brief Allocate a matrix inverse.
+ *
+ * \param m matrix.
+ *
+ * Allocates the matrix inverse, GLmatrix::inv, and sets it to Identity.
+ */
 void
 _math_matrix_alloc_inv( GLmatrix *m )
 {
@@ -1270,6 +1384,12 @@ _math_matrix_alloc_inv( GLmatrix *m )
 /** \name Matrix transpose */
 /*@{*/
 
+/**
+ * \brief Transpose a GLfloat matrix.
+ *
+ * \param to destination array.
+ * \param from source array.
+ */
 void
 _math_transposef( GLfloat to[16], const GLfloat from[16] )
 {
@@ -1291,6 +1411,12 @@ _math_transposef( GLfloat to[16], const GLfloat from[16] )
    to[15] = from[15];
 }
 
+/**
+ * \brief Transpose a GLdouble matrix.
+ *
+ * \param to destination array.
+ * \param from source array.
+ */
 void
 _math_transposed( GLdouble to[16], const GLdouble from[16] )
 {
@@ -1312,6 +1438,12 @@ _math_transposed( GLdouble to[16], const GLdouble from[16] )
    to[15] = from[15];
 }
 
+/**
+ * \brief Transpose a GLdouble matrix and convert to GLfloat.
+ *
+ * \param to destination array.
+ * \param from source array.
+ */
 void
 _math_transposefd( GLfloat to[16], const GLdouble from[16] )
 {

@@ -1,5 +1,6 @@
 /**
  * \file texutil_tmp.h
+ * \brief Texture conversion templates.
  *
  * \author Gareth Hughes
  *
@@ -19,6 +20,8 @@
  *  - \c CONVERT_DIRECT - if defined, just memcpy texels from src to dest
  *  - \c SRC_TEXEL_BYTES - bytes per source texel
  *  - \c PRESERVE_DST_TYPE - if defined, don't undefined these macros at end
+ *  
+ * \sa convert_func.
  */
 
 /*
@@ -45,7 +48,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: texutil_tmp.h,v 1.12.4.1 2003/03/22 16:49:59 jrfonseca Exp $ */
+/* $Id: texutil_tmp.h,v 1.12.4.2 2003/03/23 14:58:08 jrfonseca Exp $ */
 
 
 #define DST_TEXEL_BYTES		(4 / DST_TEXELS_PER_DWORD)
@@ -55,9 +58,17 @@
 				 convert->dstImageHeight * DST_TEXEL_BYTES)
 
 
-/* =============================================================
- * PRE: No pixelstore attribs, width == dstImageWidth.
+/***************************************************************/
+/** \name Doesn't require pixelstore attributes or stride
+ *
+ * \code width == dstImageWidth \endcode 
+ * and
+ * \code height == dstImageHeight \endcode
+ * if applicable.
  */
+/*@{*/
+
+/** \sa convert_func */
 static GLboolean
 TAG(texsubimage2d)( const struct convert_info *convert )
 {
@@ -92,8 +103,7 @@ TAG(texsubimage2d)( const struct convert_info *convert )
    return GL_TRUE;
 }
 
-/* PRE: As above, height == dstImageHeight also.
- */
+/** \sa convert_func */
 static GLboolean
 TAG(texsubimage3d)( const struct convert_info *convert )
 {
@@ -128,11 +138,20 @@ TAG(texsubimage3d)( const struct convert_info *convert )
    return GL_TRUE;
 }
 
+/*@}*/
 
 
-/* =============================================================
- * PRE: No pixelstore attribs, width != dstImageWidth.
+/***************************************************************/
+/** \name Requires stride but no pixelstore attributes
+ *
+ * \code width != dstImageWidth \endcode 
+ * or
+ * \code height != dstImageHeight \endcode
+ * if applicable.
  */
+/*@{*/
+
+/** \sa convert_func */
 static GLboolean
 TAG(texsubimage2d_stride)( const struct convert_info *convert )
 {
@@ -164,8 +183,7 @@ TAG(texsubimage2d_stride)( const struct convert_info *convert )
    return GL_TRUE;
 }
 
-/* PRE: As above, or height != dstImageHeight also.
- */
+/** \sa convert_func */
 static GLboolean
 TAG(texsubimage3d_stride)( const struct convert_info *convert )
 {
@@ -201,11 +219,20 @@ TAG(texsubimage3d_stride)( const struct convert_info *convert )
    return GL_TRUE;
 }
 
+/*@}*/
 
 
-/* =============================================================
- * PRE: Require pixelstore attribs, width == dstImageWidth.
+/***************************************************************/
+/** \name Requires pixelstore attributes but no stride.
+ *
+ * \code width == dstImageWidth \endcode 
+ * and
+ * \code height == dstImageHeight \endcode
+ * if applicable.
  */
+/*@{*/
+
+/** \sa convert_func */
 static GLboolean
 TAG(texsubimage2d_unpack)( const struct convert_info *convert )
 {
@@ -262,8 +289,7 @@ TAG(texsubimage2d_unpack)( const struct convert_info *convert )
    return GL_TRUE;
 }
 
-/* PRE: as above, height == dstImageHeight also.
- */
+/** \sa convert_func */
 static GLboolean
 TAG(texsubimage3d_unpack)( const struct convert_info *convert )
 {
@@ -334,11 +360,20 @@ TAG(texsubimage3d_unpack)( const struct convert_info *convert )
    return GL_TRUE;
 }
 
+/*@}*/
 
 
-/* =============================================================
- * PRE: Require pixelstore attribs, width != dstImageWidth.
+/***************************************************************/
+/** \name Requires pixelstore attributes and stride.
+ *
+ * \code width != dstImageWidth \endcode 
+ * or
+ * \code height != dstImageHeight \endcode
+ * if applicable.
  */
+/*@{*/
+
+/** \sa convert_func */
 static GLboolean
 TAG(texsubimage2d_stride_unpack)( const struct convert_info *convert )
 {
@@ -385,8 +420,7 @@ TAG(texsubimage2d_stride_unpack)( const struct convert_info *convert )
    return GL_TRUE;
 }
 
-/* PRE: As above, or height != dstImageHeight also.
- */
+/** \sa convert_func */
 static GLboolean
 TAG(texsubimage3d_stride_unpack)( const struct convert_info *convert )
 {
@@ -442,8 +476,19 @@ TAG(texsubimage3d_stride_unpack)( const struct convert_info *convert )
    return GL_TRUE;
 }
 
+/*@}*/
 
 
+/***********************************************************************/
+/** \name Conversion function tables
+ */
+/*@{*/
+
+/**
+ * \brief 2D texture conversion functions table.
+ * 
+ * \sa convert_func.
+ */
 static convert_func TAG(texsubimage2d_tab)[] = {
    TAG(texsubimage2d),
    TAG(texsubimage2d_stride),
@@ -451,12 +496,19 @@ static convert_func TAG(texsubimage2d_tab)[] = {
    TAG(texsubimage2d_stride_unpack),
 };
 
+/**
+ * \brief 3D texture conversion functions table.
+ *
+ * \sa convert_func.
+ */
 static convert_func TAG(texsubimage3d_tab)[] = {
    TAG(texsubimage3d),
    TAG(texsubimage3d_stride),
    TAG(texsubimage3d_unpack),
    TAG(texsubimage3d_stride_unpack),
 };
+
+/*@}*/
 
 
 #ifndef PRESERVE_DST_TYPE

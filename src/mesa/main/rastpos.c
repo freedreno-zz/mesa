@@ -27,11 +27,11 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: rastpos.c,v 1.39.4.7 2003/03/23 03:51:34 jrfonseca Exp $ */
+/* $Id: rastpos.c,v 1.39.4.8 2003/03/23 14:58:08 jrfonseca Exp $ */
 
 
 #include "glheader.h"
-#include "clip.h"
+//#include "clip.h"
 #include "colormac.h"
 #include "context.h"
 #include "feedback.h"
@@ -46,11 +46,12 @@
 #include "math/m_matrix.h"
 
 
-/*
- * Clip a point against the view volume.
- * \param v - vertex-vector describing the point to clip
- * \return 0 = outside view volume
- *          1 = inside view volume
+/**
+ * \brief Clip a point against the view volume.
+ *
+ * \param v vertex vector describing the point to clip.
+ * 
+ * \return zero if outside view volume, or one if inside.
  */
 static GLuint
 viewclip_point( const GLfloat v[] )
@@ -66,7 +67,13 @@ viewclip_point( const GLfloat v[] )
 }
 
 
-/* As above, but only clip test against far/near Z planes */
+/**
+ * \brief Clip a point against the far/near Z clipping planes.
+ *
+ * \param v vertex vector describing the point to clip.
+ * 
+ * \return zero if outside view volume, or one if inside.
+ */
 static GLuint
 viewclip_point_z( const GLfloat v[] )
 {
@@ -79,12 +86,12 @@ viewclip_point_z( const GLfloat v[] )
 }
 
 
-
-/*
- * Clip a point against the user clipping planes.
- * \param v - vertex-vector describing the point to clip.
- * \return 0 = point was clipped
- *          1 = point not clipped
+/**
+ * \brief Clip a point against the user clipping planes.
+ * 
+ * \param v vertex vector describing the point to clip.
+ * 
+ * \return zero if the point was clipped, or one otherwise.
  */
 static GLuint
 userclip_point( GLcontext* ctx, const GLfloat v[] )
@@ -274,8 +281,19 @@ shade_rastpos(GLcontext *ctx,
 }
 #endif
 
-/*
- * Caller:  context->API.RasterPos4f
+/**
+ * \brief Set the raster position for pixel operations.
+ *
+ * \param x x coordinate for the raster position.
+ * \param y y coordinate for the raster position.
+ * \param z z coordinate for the raster position.
+ * \param w w coordinate for the raster position.
+ * 
+ * \sa Called by _mesa_RasterPos4f().
+ *
+ * Flushes the vertices, transforms and clips the vertex coordinates, and finally sets the current raster position and associated data in __GLcontextRec::Current.
+ * When in selection mode calls _mesa_update_hitflag() with the current raster
+ * position.
  */
 static void
 raster_pos4f(GLcontext *ctx, GLfloat x, GLfloat y, GLfloat z, GLfloat w)
@@ -391,60 +409,70 @@ raster_pos4f(GLcontext *ctx, GLfloat x, GLfloat y, GLfloat z, GLfloat w)
 }
 
 
+/** \brief Calls _mesa_RasterPos4f() */
 void
 _mesa_RasterPos2d(GLdouble x, GLdouble y)
 {
    _mesa_RasterPos4f((GLfloat) x, (GLfloat) y, 0.0F, 1.0F);
 }
 
+/** \brief Calls _mesa_RasterPos4f() */
 void
 _mesa_RasterPos2f(GLfloat x, GLfloat y)
 {
    _mesa_RasterPos4f(x, y, 0.0F, 1.0F);
 }
 
+/** \brief Calls _mesa_RasterPos4f() */
 void
 _mesa_RasterPos2i(GLint x, GLint y)
 {
    _mesa_RasterPos4f((GLfloat) x, (GLfloat) y, 0.0F, 1.0F);
 }
 
+/** \brief Calls _mesa_RasterPos4f() */
 void
 _mesa_RasterPos2s(GLshort x, GLshort y)
 {
    _mesa_RasterPos4f(x, y, 0.0F, 1.0F);
 }
 
+/** \brief Calls _mesa_RasterPos4f() */
 void
 _mesa_RasterPos3d(GLdouble x, GLdouble y, GLdouble z)
 {
    _mesa_RasterPos4f((GLfloat) x, (GLfloat) y, (GLfloat) z, 1.0F);
 }
 
+/** \brief Calls _mesa_RasterPos4f() */
 void
 _mesa_RasterPos3f(GLfloat x, GLfloat y, GLfloat z)
 {
    _mesa_RasterPos4f(x, y, z, 1.0F);
 }
 
+/** \brief Calls _mesa_RasterPos4f() */
 void
 _mesa_RasterPos3i(GLint x, GLint y, GLint z)
 {
    _mesa_RasterPos4f((GLfloat) x, (GLfloat) y, (GLfloat) z, 1.0F);
 }
 
+/** \brief Calls _mesa_RasterPos4f() */
 void
 _mesa_RasterPos3s(GLshort x, GLshort y, GLshort z)
 {
    _mesa_RasterPos4f(x, y, z, 1.0F);
 }
 
+/** \brief Calls _mesa_RasterPos4f() */
 void
 _mesa_RasterPos4d(GLdouble x, GLdouble y, GLdouble z, GLdouble w)
 {
    _mesa_RasterPos4f((GLfloat) x, (GLfloat) y, (GLfloat) z, (GLfloat) w);
 }
 
+/** \brief Calls raster_pos4f() */
 void
 _mesa_RasterPos4f(GLfloat x, GLfloat y, GLfloat z, GLfloat w)
 {
@@ -452,66 +480,77 @@ _mesa_RasterPos4f(GLfloat x, GLfloat y, GLfloat z, GLfloat w)
    raster_pos4f(ctx, x, y, z, w);
 }
 
+/** \brief Calls _mesa_RasterPos4f() */
 void
 _mesa_RasterPos4i(GLint x, GLint y, GLint z, GLint w)
 {
    _mesa_RasterPos4f((GLfloat) x, (GLfloat) y, (GLfloat) z, (GLfloat) w);
 }
 
+/** \brief Calls _mesa_RasterPos4f() */
 void
 _mesa_RasterPos4s(GLshort x, GLshort y, GLshort z, GLshort w)
 {
    _mesa_RasterPos4f(x, y, z, w);
 }
 
+/** \brief Calls _mesa_RasterPos4f() */
 void
 _mesa_RasterPos2dv(const GLdouble *v)
 {
    _mesa_RasterPos4f((GLfloat) v[0], (GLfloat) v[1], 0.0F, 1.0F);
 }
 
+/** \brief Calls _mesa_RasterPos4f() */
 void
 _mesa_RasterPos2fv(const GLfloat *v)
 {
    _mesa_RasterPos4f(v[0], v[1], 0.0F, 1.0F);
 }
 
+/** \brief Calls _mesa_RasterPos4f() */
 void
 _mesa_RasterPos2iv(const GLint *v)
 {
    _mesa_RasterPos4f((GLfloat) v[0], (GLfloat) v[1], 0.0F, 1.0F);
 }
 
+/** \brief Calls _mesa_RasterPos4f() */
 void
 _mesa_RasterPos2sv(const GLshort *v)
 {
    _mesa_RasterPos4f(v[0], v[1], 0.0F, 1.0F);
 }
 
+/** \brief Calls _mesa_RasterPos4f() */
 void
 _mesa_RasterPos3dv(const GLdouble *v)
 {
    _mesa_RasterPos4f((GLfloat) v[0], (GLfloat) v[1], (GLfloat) v[2], 1.0F);
 }
 
+/** \brief Calls _mesa_RasterPos4f() */
 void
 _mesa_RasterPos3fv(const GLfloat *v)
 {
    _mesa_RasterPos4f(v[0], v[1], v[2], 1.0F);
 }
 
+/** \brief Calls _mesa_RasterPos4f() */
 void
 _mesa_RasterPos3iv(const GLint *v)
 {
    _mesa_RasterPos4f((GLfloat) v[0], (GLfloat) v[1], (GLfloat) v[2], 1.0F);
 }
 
+/** \brief Calls _mesa_RasterPos4f() */
 void
 _mesa_RasterPos3sv(const GLshort *v)
 {
    _mesa_RasterPos4f(v[0], v[1], v[2], 1.0F);
 }
 
+/** \brief Calls _mesa_RasterPos4f() */
 void
 _mesa_RasterPos4dv(const GLdouble *v)
 {
@@ -519,12 +558,14 @@ _mesa_RasterPos4dv(const GLdouble *v)
 		     (GLfloat) v[2], (GLfloat) v[3]);
 }
 
+/** \brief Calls _mesa_RasterPos4f() */
 void
 _mesa_RasterPos4fv(const GLfloat *v)
 {
    _mesa_RasterPos4f(v[0], v[1], v[2], v[3]);
 }
 
+/** \brief Calls _mesa_RasterPos4f() */
 void
 _mesa_RasterPos4iv(const GLint *v)
 {
@@ -532,6 +573,7 @@ _mesa_RasterPos4iv(const GLint *v)
 		     (GLfloat) v[2], (GLfloat) v[3]);
 }
 
+/** \brief Calls _mesa_RasterPos4f() */
 void
 _mesa_RasterPos4sv(const GLshort *v)
 {

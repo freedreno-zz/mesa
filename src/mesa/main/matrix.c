@@ -32,7 +32,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: matrix.c,v 1.45.4.5 2003/03/23 03:51:34 jrfonseca Exp $ */
+/* $Id: matrix.c,v 1.45.4.6 2003/03/23 14:58:08 jrfonseca Exp $ */
 
 
 #include "glheader.h"
@@ -90,7 +90,7 @@ _mesa_Frustum( GLdouble left, GLdouble right,
 
 
 /**
- * \brief Apply a orthographic projection matrix.
+ * \brief Apply an orthographic projection matrix.
  *
  * \param left left clipping plane coordinate.
  * \param right right clipping plane coordinate.

@@ -1,5 +1,3 @@
-/* $Id: api_loopback.h,v 1.2 2001/03/12 00:48:37 gareth Exp $ */
-
 /*
  * Mesa 3-D graphics library
  * Version:  3.5
@@ -24,10 +22,14 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+/* $Id: api_loopback.h,v 1.2.8.1 2003/03/23 14:58:08 jrfonseca Exp $ */
+
+
 #ifndef API_LOOPBACK_H
 #define API_LOOPBACK_H
 
 #include "glheader.h"
+
 
 struct _glapi_table;
 
