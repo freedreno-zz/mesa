@@ -313,6 +313,9 @@ extern void __glXRegisterExtensions(void);
 extern void *__glXRegisterGLXFunction(const char *funcName, void *funcAddr);
 extern void __glXRegisterGLXExtensionString(const char *extName);
 
+extern Bool __glXWindowExists(Display *dpy, GLXDrawable draw);
+
+
 
 /************************************************************************/
 

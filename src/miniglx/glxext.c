@@ -1113,3 +1113,30 @@ __glXRegisterExtensions(void)
 #endif
 }
 
+
+
+static Bool __driWindowExistsFlag;
+
+static int __driWindowExistsErrorHandler(Display *dpy, XErrorEvent *xerr)
+{
+    if (xerr->error_code == BadWindow) {
+      __driWindowExistsFlag = GL_FALSE;
+    }
+    return 0;
+}
+
+/*
+ * Utility function useful to DRI drivers.
+ */
+Bool __glXWindowExists(Display *dpy, GLXDrawable draw)
+{
+    XWindowAttributes xwa;
+    int (*oldXErrorHandler)(Display *, XErrorEvent *);
+
+    XSync(dpy, GL_FALSE);
+    __driWindowExistsFlag = GL_TRUE;
+    oldXErrorHandler = XSetErrorHandler(__driWindowExistsErrorHandler);
+    XGetWindowAttributes(dpy, draw, &xwa); /* dummy request */
+    XSetErrorHandler(oldXErrorHandler);
+    return __driWindowExistsFlag;
+}

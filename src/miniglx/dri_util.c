@@ -232,28 +232,6 @@ static void __driRemoveDrawable(void *drawHash, __DRIdrawable *pdraw)
     }
 }
 
-static Bool __driWindowExistsFlag;
-
-static int __driWindowExistsErrorHandler(Display *dpy, XErrorEvent *xerr)
-{
-    if (xerr->error_code == BadWindow) {
-	__driWindowExistsFlag = GL_FALSE;
-    }
-    return 0;
-}
-
-static Bool __driWindowExists(Display *dpy, GLXDrawable draw)
-{
-    XWindowAttributes xwa;
-    int (*oldXErrorHandler)(Display *, XErrorEvent *);
-
-    __driWindowExistsFlag = GL_TRUE;
-    oldXErrorHandler = XSetErrorHandler(__driWindowExistsErrorHandler);
-    XGetWindowAttributes(dpy, draw, &xwa); /* dummy request */
-    XSetErrorHandler(oldXErrorHandler);
-    return __driWindowExistsFlag;
-}
-
 static void __driGarbageCollectDrawables(void *drawHash)
 {
     GLXDrawable draw;
@@ -265,7 +243,7 @@ static void __driGarbageCollectDrawables(void *drawHash)
 	    __DRIdrawablePrivate *pdp = (__DRIdrawablePrivate *)pdraw->private;
 	    dpy = pdp->driScreenPriv->display;
 	    XSync(dpy, GL_FALSE);
-	    if (!__driWindowExists(dpy, draw)) {
+	    if (!__glXWindowExists(dpy, draw)) {
 		/* Destroy the local drawable data in the hash table, if the
 		   drawable no longer exists in the Xserver */
 		__driRemoveDrawable(drawHash, pdraw);
@@ -763,7 +741,7 @@ static void driDestroyDrawable(Display *dpy, void *drawablePrivate)
 
     if (pdp) {
         (*psp->DriverAPI.DestroyBuffer)(pdp);
-	if (__driWindowExists(dpy, pdp->draw)) {
+	if (__glXWindowExists(dpy, pdp->draw)) {
 #if 0
 	    (void)XF86DRIDestroyDrawable(dpy, scrn, pdp->draw);
 #else
