@@ -1,8 +1,8 @@
-/* $Id: texstate.c,v 1.5 1999/11/11 01:22:28 brianp Exp $ */
+/* $Id: texstate.c,v 1.4.2.1 1999/11/19 15:31:05 miklos Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.3
+ * Version:  3.1
  * 
  * Copyright (C) 1999  Brian Paul   All Rights Reserved.
  * 
@@ -25,12 +25,19 @@
  */
 
 
+
 #ifdef PC_HEADER
 #include "all.h"
 #else
-#include "glheader.h"
+#ifndef XFree86Server
+#include <assert.h>
+#include <stdio.h>
+#else
+#include "GL/xf86glx.h"
+#endif
 #include "context.h"
 #include "enums.h"
+#include "extensions.h"
 #include "macros.h"
 #include "matrix.h"
 #include "texobj.h"
@@ -60,10 +67,9 @@
 /**********************************************************************/
 
 
-void
-_mesa_TexEnvfv( GLenum target, GLenum pname, const GLfloat *param )
+void gl_TexEnvfv( GLcontext *ctx,
+                  GLenum target, GLenum pname, const GLfloat *param )
 {
-   GET_CURRENT_CONTEXT(ctx);
    struct gl_texture_unit *texUnit = &ctx->Texture.Unit[ctx->Texture.CurrentUnit];
 
    ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx, "glTexEnv");
@@ -84,6 +90,12 @@ _mesa_TexEnvfv( GLenum target, GLenum pname, const GLfloat *param )
    if (pname==GL_TEXTURE_ENV_MODE) {
       GLenum mode = (GLenum) (GLint) *param;
       switch (mode) {
+         case GL_ADD:
+            if (!gl_extension_is_enabled(ctx, "GL_EXT_texture_env_add")) {
+               gl_error(ctx, GL_INVALID_ENUM, "glTexEnv(param)");
+               return;
+            }
+            /* FALL-THROUGH */
 	 case GL_MODULATE:
 	 case GL_BLEND:
 	 case GL_DECAL:
@@ -123,40 +135,12 @@ _mesa_TexEnvfv( GLenum target, GLenum pname, const GLfloat *param )
 }
 
 
-void
-_mesa_TexEnvf( GLenum target, GLenum pname, GLfloat param )
+
+
+
+void gl_GetTexEnvfv( GLcontext *ctx,
+                     GLenum target, GLenum pname, GLfloat *params )
 {
-   _mesa_TexEnvfv( target, pname, &param );
-}
-
-
-
-void
-_mesa_TexEnvi( GLenum target, GLenum pname, GLint param )
-{
-   GLfloat p[4];
-   p[0] = (GLfloat) param;
-   p[1] = p[2] = p[3] = 0.0;
-   _mesa_TexEnvfv( target, pname, p );
-}
-
-
-void
-_mesa_TexEnviv( GLenum target, GLenum pname, const GLint *param )
-{
-   GLfloat p[4];
-   p[0] = INT_TO_FLOAT( param[0] );
-   p[1] = INT_TO_FLOAT( param[1] );
-   p[2] = INT_TO_FLOAT( param[2] );
-   p[3] = INT_TO_FLOAT( param[3] );
-   _mesa_TexEnvfv( target, pname, p );
-}
-
-
-void
-_mesa_GetTexEnvfv( GLenum target, GLenum pname, GLfloat *params )
-{
-   GET_CURRENT_CONTEXT(ctx);
    struct gl_texture_unit *texUnit = &ctx->Texture.Unit[ctx->Texture.CurrentUnit];
    if (target!=GL_TEXTURE_ENV) {
       gl_error( ctx, GL_INVALID_ENUM, "glGetTexEnvfv(target)" );
@@ -175,10 +159,9 @@ _mesa_GetTexEnvfv( GLenum target, GLenum pname, GLfloat *params )
 }
 
 
-void
-_mesa_GetTexEnviv( GLenum target, GLenum pname, GLint *params )
+void gl_GetTexEnviv( GLcontext *ctx,
+                     GLenum target, GLenum pname, GLint *params )
 {
-   GET_CURRENT_CONTEXT(ctx);
    struct gl_texture_unit *texUnit = &ctx->Texture.Unit[ctx->Texture.CurrentUnit];
    if (target!=GL_TEXTURE_ENV) {
       gl_error( ctx, GL_INVALID_ENUM, "glGetTexEnviv(target)" );
@@ -207,17 +190,9 @@ _mesa_GetTexEnviv( GLenum target, GLenum pname, GLint *params )
 /**********************************************************************/
 
 
-void
-_mesa_TexParameterf( GLenum target, GLenum pname, GLfloat param )
+void gl_TexParameterfv( GLcontext *ctx,
+                        GLenum target, GLenum pname, const GLfloat *params )
 {
-   _mesa_TexParameterfv(target, pname, &param);
-}
-
-
-void
-_mesa_TexParameterfv( GLenum target, GLenum pname, const GLfloat *params )
-{
-   GET_CURRENT_CONTEXT(ctx);
    struct gl_texture_unit *texUnit = &ctx->Texture.Unit[ctx->Texture.CurrentUnit];
    GLenum eparam = (GLenum) (GLint) params[0];
    struct gl_texture_object *texObj;
@@ -362,41 +337,20 @@ _mesa_TexParameterfv( GLenum target, GLenum pname, const GLfloat *params )
 }
 
 
-void
-_mesa_TexParameteri( GLenum target, GLenum pname, const GLint param )
-{
-   GLfloat fparam[4];
-   fparam[0] = (GLfloat) param;
-   fparam[1] = fparam[2] = fparam[3] = 0.0;
-   _mesa_TexParameterfv(target, pname, fparam);
-}
 
-void
-_mesa_TexParameteriv( GLenum target, GLenum pname, const GLint *params )
-{
-   GLfloat fparam[4];
-   fparam[0] = (GLfloat) params[0];
-   fparam[1] = fparam[2] = fparam[3] = 0.0;
-   _mesa_TexParameterfv(target, pname, fparam);
-}
-
-
-void
-_mesa_GetTexLevelParameterfv( GLenum target, GLint level,
-                              GLenum pname, GLfloat *params )
+void gl_GetTexLevelParameterfv( GLcontext *ctx, GLenum target, GLint level,
+                                GLenum pname, GLfloat *params )
 {
    GLint iparam;
-   _mesa_GetTexLevelParameteriv( target, level, pname, &iparam );
+   gl_GetTexLevelParameteriv( ctx, target, level, pname, &iparam );
    *params = (GLfloat) iparam;
 }
 
 
 
-void
-_mesa_GetTexLevelParameteriv( GLenum target, GLint level,
-                              GLenum pname, GLint *params )
+void gl_GetTexLevelParameteriv( GLcontext *ctx, GLenum target, GLint level,
+                                GLenum pname, GLint *params )
 {
-   GET_CURRENT_CONTEXT(ctx);
    const struct gl_texture_unit *texUnit = &ctx->Texture.Unit[ctx->Texture.CurrentUnit];
    const struct gl_texture_image *img = NULL;
    GLuint dimensions;
@@ -501,10 +455,10 @@ _mesa_GetTexLevelParameteriv( GLenum target, GLint level,
 
 
 
-void
-_mesa_GetTexParameterfv( GLenum target, GLenum pname, GLfloat *params )
+
+void gl_GetTexParameterfv( GLcontext *ctx,
+                           GLenum target, GLenum pname, GLfloat *params )
 {
-   GET_CURRENT_CONTEXT(ctx);
    struct gl_texture_unit *texUnit = &ctx->Texture.Unit[ctx->Texture.CurrentUnit];
    struct gl_texture_object *obj;
 
@@ -569,10 +523,9 @@ _mesa_GetTexParameterfv( GLenum target, GLenum pname, GLfloat *params )
 }
 
 
-void
-_mesa_GetTexParameteriv( GLenum target, GLenum pname, GLint *params )
+void gl_GetTexParameteriv( GLcontext *ctx,
+                           GLenum target, GLenum pname, GLint *params )
 {
-   GET_CURRENT_CONTEXT(ctx);
    struct gl_texture_unit *texUnit = &ctx->Texture.Unit[ctx->Texture.CurrentUnit];
    struct gl_texture_object *obj;
 
@@ -651,10 +604,9 @@ _mesa_GetTexParameteriv( GLenum target, GLenum pname, GLint *params )
 /**********************************************************************/
 
 
-void
-_mesa_TexGenfv( GLenum coord, GLenum pname, const GLfloat *params )
+void gl_TexGenfv( GLcontext *ctx,
+                  GLenum coord, GLenum pname, const GLfloat *params )
 {
-   GET_CURRENT_CONTEXT(ctx);
    GLuint tUnit = ctx->Texture.CurrentTransformUnit;
    struct gl_texture_unit *texUnit = &ctx->Texture.Unit[tUnit];
    ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx, "glTexGenfv");
@@ -665,7 +617,7 @@ _mesa_TexGenfv( GLenum coord, GLenum pname, const GLfloat *params )
 	      gl_lookup_enum_by_nr(pname),
 	      *(int *)params);
 
-   switch (coord) {
+   switch( coord ) {
       case GL_S:
          if (pname==GL_TEXTURE_GEN_MODE) {
 	    GLenum mode = (GLenum) (GLint) *params;
@@ -851,57 +803,10 @@ _mesa_TexGenfv( GLenum coord, GLenum pname, const GLfloat *params )
 }
 
 
-void
-_mesa_TexGeniv(GLenum coord, GLenum pname, const GLint *params )
+
+void gl_GetTexGendv( GLcontext *ctx,
+                     GLenum coord, GLenum pname, GLdouble *params )
 {
-   GLfloat p[4];
-   p[0] = params[0];
-   p[1] = params[1];
-   p[2] = params[2];
-   p[3] = params[3];
-   _mesa_TexGenfv(coord, pname, p);
-}
-
-
-void
-_mesa_TexGend(GLenum coord, GLenum pname, GLdouble param )
-{
-   GLfloat p = (GLfloat) param;
-   _mesa_TexGenfv( coord, pname, &p );
-}
-
-
-void
-_mesa_TexGendv(GLenum coord, GLenum pname, const GLdouble *params )
-{
-   GLfloat p[4];
-   p[0] = params[0];
-   p[1] = params[1];
-   p[2] = params[2];
-   p[3] = params[3];
-   _mesa_TexGenfv( coord, pname, p );
-}
-
-
-void
-_mesa_TexGenf( GLenum coord, GLenum pname, GLfloat param )
-{
-   _mesa_TexGenfv(coord, pname, &param);
-}
-
-
-void
-_mesa_TexGeni( GLenum coord, GLenum pname, GLint param )
-{
-   _mesa_TexGeniv( coord, pname, &param );
-}
-
-
-
-void
-_mesa_GetTexGendv( GLenum coord, GLenum pname, GLdouble *params )
-{
-   GET_CURRENT_CONTEXT(ctx);
    GLuint tUnit = ctx->Texture.CurrentTransformUnit;
    struct gl_texture_unit *texUnit = &ctx->Texture.Unit[tUnit];
 
@@ -976,10 +881,9 @@ _mesa_GetTexGendv( GLenum coord, GLenum pname, GLdouble *params )
 
 
 
-void
-_mesa_GetTexGenfv( GLenum coord, GLenum pname, GLfloat *params )
+void gl_GetTexGenfv( GLcontext *ctx,
+                     GLenum coord, GLenum pname, GLfloat *params )
 {
-   GET_CURRENT_CONTEXT(ctx);
    GLuint tUnit = ctx->Texture.CurrentTransformUnit;
    struct gl_texture_unit *texUnit = &ctx->Texture.Unit[tUnit];
 
@@ -1054,10 +958,9 @@ _mesa_GetTexGenfv( GLenum coord, GLenum pname, GLfloat *params )
 
 
 
-void
-_mesa_GetTexGeniv( GLenum coord, GLenum pname, GLint *params )
+void gl_GetTexGeniv( GLcontext *ctx,
+                     GLenum coord, GLenum pname, GLint *params )
 {
-   GET_CURRENT_CONTEXT(ctx);
    GLuint tUnit = ctx->Texture.CurrentTransformUnit;
    struct gl_texture_unit *texUnit = &ctx->Texture.Unit[tUnit];
 
@@ -1087,7 +990,7 @@ _mesa_GetTexGeniv( GLenum coord, GLenum pname, GLint *params )
 	 break;
       case GL_T:
          if (pname==GL_TEXTURE_GEN_MODE) {
-            params[0] = texUnit->GenModeT;
+            params[0] = (GLint) texUnit->GenModeT;
 	 }
 	 else if (pname==GL_OBJECT_PLANE) {
             params[0] = (GLint) texUnit->ObjectPlaneT[0];
@@ -1108,7 +1011,7 @@ _mesa_GetTexGeniv( GLenum coord, GLenum pname, GLint *params )
 	 break;
       case GL_R:
          if (pname==GL_TEXTURE_GEN_MODE) {
-            params[0] = texUnit->GenModeR;
+            params[0] = (GLint) texUnit->GenModeR;
 	 }
 	 else if (pname==GL_OBJECT_PLANE) {
             params[0] = (GLint) texUnit->ObjectPlaneR[0];
@@ -1129,7 +1032,7 @@ _mesa_GetTexGeniv( GLenum coord, GLenum pname, GLint *params )
 	 break;
       case GL_Q:
          if (pname==GL_TEXTURE_GEN_MODE) {
-            params[0] = texUnit->GenModeQ;
+            params[0] = (GLint) texUnit->GenModeQ;
 	 }
 	 else if (pname==GL_OBJECT_PLANE) {
             params[0] = (GLint) texUnit->ObjectPlaneQ[0];
@@ -1142,7 +1045,7 @@ _mesa_GetTexGeniv( GLenum coord, GLenum pname, GLint *params )
             params[1] = (GLint) texUnit->EyePlaneQ[1];
             params[2] = (GLint) texUnit->EyePlaneQ[2];
             params[3] = (GLint) texUnit->EyePlaneQ[3];
-         }
+	 }
 	 else {
 	    gl_error( ctx, GL_INVALID_ENUM, "glGetTexGeniv(pname)" );
 	    return;
@@ -1156,10 +1059,8 @@ _mesa_GetTexGeniv( GLenum coord, GLenum pname, GLint *params )
 
 
 /* GL_ARB_multitexture */
-void
-_mesa_ActiveTextureARB( GLenum target )
+void gl_ActiveTexture( GLcontext *ctx, GLenum target )
 {
-   GET_CURRENT_CONTEXT(ctx);
    GLint maxUnits = ctx->Const.MaxTextureUnits;
 
    ASSERT_OUTSIDE_BEGIN_END( ctx, "glActiveTextureARB" );
@@ -1183,10 +1084,8 @@ _mesa_ActiveTextureARB( GLenum target )
 
 
 /* GL_ARB_multitexture */
-void
-_mesa_ClientActiveTextureARB( GLenum target )
+void gl_ClientActiveTexture( GLcontext *ctx, GLenum target )
 {
-   GET_CURRENT_CONTEXT(ctx);
    GLint maxUnits = ctx->Const.MaxTextureUnits;
 
    ASSERT_OUTSIDE_BEGIN_END( ctx, "glClientActiveTextureARB" );
