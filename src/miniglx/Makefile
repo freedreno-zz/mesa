@@ -2,11 +2,12 @@
 # Indirect rendering not supported, etc.
 
 
-SOURCES = glxext.c dispatch.c glapi.c
+#SOURCES = glxext.c dispatch.c glapi.c
+SOURCES = miniglx.c dispatch.c glapi.c XF86dri.c
 OBJS = $(SOURCES:.c=.o)
 
 INCLUDES = -I. -I.. -I../../include
-CFLAGS = -c -g $(INCLUDES) -MD
+CFLAGS = -c -g $(INCLUDES) -MD -DUSE_DRI=1
 
 LIBS = -ldl -L/usr/X11R6/lib -lX11
 
@@ -35,4 +36,4 @@ include $(SOURCES:.c=.d)
 .SUFFIXES: .c .d
 
 .c.d:
-	$(CC) -M $(INCLUDES) $< -o $@
+	$(CC) -M $(INCLUDES) -DUSE_DRI=1 $< -o $@

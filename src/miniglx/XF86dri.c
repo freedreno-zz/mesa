@@ -38,7 +38,21 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  * Interfaces with code lifted from the 2d ddx driver to perform
  * various initialization services which would ordinarily be done by
  * the X server.
+ *
+ * I've #ifdef-out quite a bit of the code in here temporarily. (Brian)
  */
+
+
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include "miniglxP.h"
+#include "xf86dri.h"
+
+
+#define XF86DRI_MAJOR_VERSION   4
+#define XF86DRI_MINOR_VERSION   1
+#define XF86DRI_PATCH_VERSION   0
 
 
 
@@ -82,12 +96,14 @@ Bool XF86DRIOpenConnection(dpy, screen, hSAREA, busIdString)
     drmHandlePtr hSAREA;
     char **busIdString;
 {
+#if 0
     DRIScreenPrivPtr pDRIPriv = DRI_SCREEN_PRIV(pScreen);
 
     *hSAREA           = pDRIPriv->hSAREA;
     *busIdString      = strdup(pDRIPriv->pDriverInfo->busIdString);
 
     TRACE("OpenConnection... return True\n");
+#endif
     return True;
 }
 
@@ -96,10 +112,12 @@ Bool XF86DRIAuthConnection(dpy, screen, magic)
     int screen;
     drmMagic magic;
 {
+#if 0
     DRIScreenPrivPtr pDRIPriv = DRI_SCREEN_PRIV(pScreen);
 
     if (drmAuthMagic(pDRIPriv->drmFD, magic)) return FALSE;
-    return TRUE;
+#endif
+    return True;
 }
 
 Bool XF86DRICloseConnection(dpy, screen)
@@ -118,15 +136,18 @@ Bool XF86DRIGetClientDriverName(dpy, screen, ddxDriverMajorVersion,
     int* ddxDriverPatchVersion;
     char** clientDriverName;
 {
+#if 0
     DRIScreenPrivPtr pDRIPriv = DRI_SCREEN_PRIV(pScreen);
 
     *ddxDriverMajorVersion = pDRIPriv->pDriverInfo->ddxDriverMajorVersion;
     *ddxDriverMinorVersion = pDRIPriv->pDriverInfo->ddxDriverMinorVersion;
     *ddxDriverPatchVersion = pDRIPriv->pDriverInfo->ddxDriverPatchVersion;
     *clientDriverName      = strdup(pDRIPriv->pDriverInfo->clientDriverName);
-
-    return TRUE;
+#endif
+    return True;
 }
+
+#if 0
 DRIContextPrivPtr
 DRICreateContextPriv(ScreenPtr pScreen,
 		     drmContextPtr pHWContext,
@@ -140,7 +161,9 @@ DRICreateContextPriv(ScreenPtr pScreen,
 
     return DRICreateContextPrivFromHandle(pScreen, *pHWContext, flags);
 }
+#endif
 
+#if 0
 DRIContextPrivPtr
 DRICreateContextPrivFromHandle(ScreenPtr pScreen,
 			       drmContext hHWContext,
@@ -186,7 +209,9 @@ DRICreateContextPrivFromHandle(ScreenPtr pScreen,
     }
     return pDRIContextPriv;
 }
+#endif
 
+#if 0
 Bool
 DRICreateContext(ScreenPtr pScreen, VisualPtr visual,
                  XID context, drmContextPtr pHWContext)
@@ -229,7 +254,7 @@ DRICreateContext(ScreenPtr pScreen, VisualPtr visual,
 
     return TRUE;
 }
-
+#endif
 
 
 
@@ -240,6 +265,7 @@ Bool XF86DRICreateContext(dpy, screen, visual, context, hHWContext)
     XID* context;
     drmContextPtr hHWContext;
 {
+#if 0
     XExtDisplayInfo *info = find_display (dpy);
     xXF86DRICreateContextReply rep;
     xXF86DRICreateContextReq *req;
@@ -265,9 +291,11 @@ Bool XF86DRICreateContext(dpy, screen, visual, context, hHWContext)
     UnlockDisplay(dpy);
     SyncHandle();
     TRACE("CreateContext... return True\n");
+#endif
     return True;
 }
 
+#if 0
 Bool
 DRIDestroyContextPriv(DRIContextPrivPtr pDRIContextPriv)
 {
@@ -294,6 +322,7 @@ DRIDestroyContextPriv(DRIContextPrivPtr pDRIContextPriv)
     xfree(pDRIContextPriv);
     return TRUE;
 }
+#endif
 
 
 Bool XF86DRIDestroyContext(dpy, screen, context)
@@ -301,6 +330,7 @@ Bool XF86DRIDestroyContext(dpy, screen, context)
     int screen;
     XID context;
 {
+#if 0
     DRIContextPrivPtr pDRIContextPriv = (DRIContextPrivPtr)pResource;
     DRIScreenPrivPtr pDRIPriv;
     void *contextStore;
@@ -309,6 +339,9 @@ Bool XF86DRIDestroyContext(dpy, screen, context)
 
     TRACE("DestroyContext\n");
     return DRIDestroyContextPriv(pDRIContextPriv);
+#else
+    return False;
+#endif
 }
 
 Bool XF86DRICreateDrawable(dpy, screen, drawable, hHWDrawable)
@@ -317,6 +350,7 @@ Bool XF86DRICreateDrawable(dpy, screen, drawable, hHWDrawable)
     Drawable drawable;
     drmDrawablePtr hHWDrawable;
 {
+#if 0
     DRIScreenPrivPtr	pDRIPriv = DRI_SCREEN_PRIV(pScreen);
     DRIDrawablePrivPtr	pDRIDrawablePriv;
     WindowPtr		pWin;
@@ -351,12 +385,13 @@ Bool XF86DRICreateDrawable(dpy, screen, drawable, hHWDrawable)
     }
     else { /* pixmap (or for GLX 1.3, a PBuffer) */
 	/* NOT_DONE */
-	return FALSE;
+	return False;
     }
-
-    return TRUE;
+#endif
+    return True;
 }
 
+#if 0
 Bool
 DRIDrawablePrivDelete(pointer pResource, XID id)
 {
@@ -391,13 +426,14 @@ DRIDrawablePrivDelete(pointer pResource, XID id)
 
     return TRUE;
 }
-
+#endif
 
 Bool XF86DRIDestroyDrawable(dpy, screen, drawable)
     Display* dpy;
     int screen;
     Drawable drawable;
 {
+#if 0
     DRIDrawablePrivPtr	pDRIDrawablePriv;
     WindowPtr		pWin;
 
@@ -415,8 +451,8 @@ Bool XF86DRIDestroyDrawable(dpy, screen, drawable)
 	/* NOT_DONE */
 	return FALSE;
     }
-
-    return TRUE;
+#endif
+    return True;
 }
 
 Bool XF86DRIGetDrawableInfo(dpy, screen, drawable, 
@@ -441,10 +477,10 @@ Bool XF86DRIGetDrawableInfo(dpy, screen, drawable,
     int* numBackClipRects;
     XF86DRIClipRectPtr*	pBackClipRects;    
 {
+#if 0
    DRIScreenPrivPtr    pDRIPriv = DRI_SCREEN_PRIV(pScreen);
    DRIDrawablePrivPtr	pDRIDrawablePriv, pOldDrawPriv;
    int			i;
-
    *index = 0;
    *stamp = 0;
    *X = 0;
@@ -453,8 +489,22 @@ Bool XF86DRIGetDrawableInfo(dpy, screen, drawable,
    *H = pScreen->h;
    *numClipRects = 1;
    *pClipRects = &pScreen->clipList;
+#else
+   *index = 0;
+   *stamp = 0;
+   *X = 0;
+   *Y = 0;
+   *W = drawable->w;
+   *H = drawable->h;
+   *numClipRects = 1;
+   *pClipRects = (XF86DRIClipRectPtr) malloc(sizeof(XF86DRIClipRectRec));
+   (*pClipRects)[0].x1 = 0;
+   (*pClipRects)[0].y1 = 0;
+   (*pClipRects)[0].x2 = drawable->w;
+   (*pClipRects)[0].y2 = drawable->h;
+#endif
 
-   return TRUE;
+   return True;
 }
 
 Bool XF86DRIGetDeviceInfo(dpy, screen, hFrameBuffer, 
@@ -468,6 +518,7 @@ Bool XF86DRIGetDeviceInfo(dpy, screen, hFrameBuffer,
     int* devPrivateSize;
     void** pDevPrivate;
 {
+#if 0
     DRIScreenPrivPtr pDRIPriv = DRI_SCREEN_PRIV(pScreen);
 
     *hFrameBuffer = pDRIPriv->hFrameBuffer;
@@ -476,8 +527,8 @@ Bool XF86DRIGetDeviceInfo(dpy, screen, hFrameBuffer,
     *fbStride = pDRIPriv->pDriverInfo->frameBufferStride;
     *devPrivateSize = 0;
     *pDevPrivate = 0;
-
-    return TRUE;
+#endif
+    return True;
 }
 
 Bool XF86DRIOpenFullScreen(dpy, screen, drawable)

@@ -44,6 +44,24 @@
 #ifndef _mini_GLX_client_h_
 #define _mini_GLX_client_h_
 
+/*
+ * Define replacements for some X datatypes and define the DRI-related
+ * datastructures.
+ */
+
+
+#ifndef USE_DRI
+#error "USE_DRI must be zero or one"
+#endif
+
+#include <linux/fb.h>
+
+#include <GL/miniglx.h>
+#include "glheader.h"
+#include "mtypes.h"
+
+
+typedef unsigned long XID;
 
 typedef struct __GLXvisualConfigRec {
     VisualID vid;
@@ -178,6 +196,96 @@ struct __DRIdrawableRec {
     */
     void *private;
 };
+
+
+
+/*
+ * X Visual type.
+ */
+struct MiniGLXVisualRec {
+#if USE_DRI
+   const __GLXvisualConfig *glxConfig;
+#else
+   GLvisual glvisual;        /* OpenGL attribs */
+#endif
+   XVisualInfo *visInfo;     /* pointer back to corresponding XVisualInfo */
+   Display *dpy;
+   GLuint pixelFormat;       /* one of PF_* values */
+}; /* Visual */
+
+
+/*
+ * X Window type.
+ */
+struct MiniGLXWindowRec {
+#if !USE_DRI
+   GLframebuffer glframebuffer;    /* must be first */
+#endif
+   Visual *visual;
+   int x, y;                       /* pos (always 0,0) */
+   unsigned int w, h;              /* size */
+   void *frontStart;               /* start of front color buffer */
+   void *backStart;                /* start of back color buffer */
+   size_t size;                    /* color buffer size, in bytes */
+   GLuint bytesPerPixel;
+   GLuint rowStride;               /* in bytes */
+   GLubyte *frontBottom;           /* pointer to last row */
+   GLubyte *backBottom;            /* pointer to last row */
+   GLubyte *curBottom;             /* = frontBottom or backBottom */
+#if USE_DRI
+   __DRIdrawable driDrawable;
+#endif
+}; /* Window */
+
+
+/*
+ * GLXContext type.
+ */
+struct MiniGLXContextRec {
+#if !USE_DRI
+   GLcontext glcontext;  /* must be first */
+#endif
+   Window drawBuffer;
+   Window curBuffer;
+#if USE_DRI
+   __DRIcontext driContext;
+#endif
+}; /* GLXContext */
+
+
+/*
+ * X Display type
+ */
+struct MiniGLXDisplayRec {
+   struct fb_fix_screeninfo FixedInfo;
+   struct fb_var_screeninfo OrigVarInfo, VarInfo;
+   int DesiredDepth;
+   int OriginalVT;
+   int ConsoleFD;
+   int FrameBufferFD;
+   caddr_t FrameBuffer;  /* start of mmap'd framebuffer */
+   int FrameBufferSize;  /* in bytes */
+   caddr_t MMIOAddress;  /* start of mmap'd MMIO region */
+   int MMIOSize;         /* in bytes */
+   int NumWindows;
+   Window TheWindow;     /* only allow one window for now */
+
+   int numConfigs;
+   __GLXvisualConfig *configs;
+
+#if USE_DRI
+   /* From __GLXdisplayPrivate */
+   CreateScreenFunc createScreen;
+   __DRIscreen driScreen;
+   void *dlHandle;
+#endif
+};
+
+
+
+extern __DRIscreen *__glXFindDRIScreen(Display *dpy, int scrn);
+
+extern Bool __glXWindowExists(Display *dpy, GLXDrawable draw);
 
 
 #endif /* !_mini_GLX_client_h_ */

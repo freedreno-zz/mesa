@@ -1,4 +1,4 @@
-/* $Id: miniglx.c,v 1.1.4.5 2002/11/28 00:24:04 brianp Exp $ */
+/* $Id: miniglx.c,v 1.1.4.6 2002/11/29 16:07:58 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -35,8 +35,6 @@
  *
  */
 
-#define USE_DRI 0
-
 #include <assert.h>
 #include <errno.h>
 #include <signal.h>
@@ -49,16 +47,23 @@
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <sys/types.h>
-#include <linux/fb.h>
 #include <linux/kd.h>
 #include <linux/vt.h>
 
-#include "GL/miniglx.h"
-#if USE_DRI
-#include "miniglxclient.h"
-#endif
+#include "miniglxP.h"
 
-#include "glheader.h"
+#if USE_DRI
+
+#include "glapi.h"
+
+#define MALLOC(N) malloc(N)
+#define CALLOC(N) calloc(1, N)
+#define CALLOC_STRUCT(T) ((struct T *) calloc(1, sizeof(struct T)))
+#define FREE(P)   free(P)
+#define STRCMP(A, B)  strcmp(A, B)
+
+#else
+
 #include "context.h"
 #include "extensions.h"
 #include "imports.h"
@@ -72,6 +77,14 @@
 #include "tnl/t_context.h"
 #include "tnl/t_pipeline.h"
 
+#define STRCMP(A, B)  _mesa_strcmp(A, B)
+
+#endif
+
+#if USE_DRI
+#define DRIVER_DRI_SO "radeon_dri.so"
+#endif
+
 
 #define PF_B8G8R8     1
 #define PF_B8G8R8A8   2
@@ -80,88 +93,10 @@
 #define PF_CI8        5
 
 
-/*
- * This corresponds to X's Visual type.  We're changing it; using it to
- * store all the OpenGL visual attributes.
- */
-struct MiniGLXVisualRec {
-   GLvisual glvisual;        /* OpenGL attribs */
-   XVisualInfo *visInfo;     /* pointer back to corresponding XVisualInfo */
-   Display *dpy;
-   GLuint pixelFormat;       /* one of PF_* values */
-}; /* Visual */
-
-/*
- * Derived from Mesa's GLframebuffer class.
- */
-struct MiniGLXWindowRec {
-#if !USE_DRI
-   GLframebuffer glframebuffer;    /* must be first */
-#endif
-   Visual *visual;
-   int x, y;                       /* pos (always 0,0) */
-   unsigned int w, h;              /* size */
-   void *frontStart;               /* start of front color buffer */
-   void *backStart;                /* start of back color buffer */
-   size_t size;                    /* color buffer size, in bytes */
-   GLuint bytesPerPixel;
-   GLuint rowStride;               /* in bytes */
-   GLubyte *frontBottom;           /* pointer to last row */
-   GLubyte *backBottom;            /* pointer to last row */
-   GLubyte *curBottom;             /* = frontBottom or backBottom */
-#if USE_DRI
-   __DRIdrawable driDrawable;
-#endif
-}; /* Window */
-
-
-/*
- * Derived from Mesa's GLcontext class.
- */
-struct MiniGLXContextRec {
-#if !USE_DRI
-   GLcontext glcontext;  /* must be first */
-#endif
-   Window drawBuffer;
-   Window curBuffer;
-#if USE_DRI
-   __DRIcontext driContext;
-#endif
-}; /* GLXContext */
-
-
-
-/*
- * Per-display info (replaces Xlib's Display type)
- */
-struct MiniGLXDisplayRec {
-   struct fb_fix_screeninfo FixedInfo;
-   struct fb_var_screeninfo OrigVarInfo, VarInfo;
-   int DesiredDepth;
-   int OriginalVT;
-   int ConsoleFD;
-   int FrameBufferFD;
-   caddr_t FrameBuffer;  /* start of mmap'd framebuffer */
-   int FrameBufferSize;  /* in bytes */
-   caddr_t MMIOAddress;  /* start of mmap'd MMIO region */
-   int MMIOSize;         /* in bytes */
-   int NumWindows;
-   Window TheWindow;     /* only allow one window for now */
 
 #if USE_DRI
-   /* From __GLXdisplayPrivate */
-   CreateScreenFunc createScreen;
-   /*
-   void *(*createScreen)(Display *dpy, int scrn, __DRIscreen *psc,
-                         int numConfigs, __GLXvisualConfig *config);
-   */
-
-   __DRIscreen driScreen;
-   int numConfigs;
-   __GLXvisualConfig *configs;
+static GLXContext CurrentContext = NULL;
 #endif
-};
-
 
 
 /**********************************************************************/
@@ -181,7 +116,7 @@ get_string(GLcontext *ctx, GLenum pname)
    (void) ctx;
    switch (pname) {
       case GL_RENDERER:
-         return (const GLubyte *) "Mesa glfbdev";
+         return (const GLubyte *) "Mesa miniglx";
       default:
          return NULL;
    }
@@ -690,6 +625,69 @@ CleanupFBDev( Display *dpy )
 }
 
 
+/**********************************************************************/
+/* Misc functions needed for DRI drivers                              */
+/**********************************************************************/
+
+#if USE_DRI
+
+__DRIscreen *
+__glXFindDRIScreen(Display *dpy, int scrn)
+{
+   (void) scrn;
+   return &(dpy->driScreen);
+}
+
+Bool
+__glXWindowExists(Display *dpy, GLXDrawable draw)
+{
+   if (dpy->TheWindow == draw)
+      return True;
+   else
+      return False;
+}
+
+unsigned long
+_glthread_GetID(void)
+{
+   return 0;
+}
+
+#endif
+
+
+
+static void
+InitializeScreenConfigs(int *numConfigs, __GLXvisualConfig **configs)
+{
+   int i;
+
+   *numConfigs = 1;
+   *configs = (__GLXvisualConfig *)
+      CALLOC(*numConfigs * sizeof(__GLXvisualConfig));
+   for (i = 0; i < *numConfigs; i++) {
+      (*configs)[i].vid = 100 + i;
+      (*configs)[i].class = TrueColor;
+      (*configs)[i].rgba = True;
+      (*configs)[i].redSize = 8;
+      (*configs)[i].greenSize = 8;
+      (*configs)[i].blueSize = 8;
+      (*configs)[i].alphaSize = 8;
+      (*configs)[i].redMask = 0xff0000;
+      (*configs)[i].greenMask = 0xff00;
+      (*configs)[i].blueMask = 0xff;
+      (*configs)[i].alphaMask = 0xff000000;
+      (*configs)[i].doubleBuffer = True;
+      (*configs)[i].stereo = True;
+      (*configs)[i].bufferSize = 32;
+      (*configs)[i].depthSize = 24;
+      (*configs)[i].stencilSize = 8;
+      (*configs)[i].auxBuffers = 0;
+      (*configs)[i].level = 0;
+      /* leave remaining fields zero */
+   }
+}
+
 
 /**********************************************************************/
 /* Public API functions (Xlib and GLX)                                */
@@ -699,19 +697,18 @@ Display *
 WRAP(XOpenDisplay)( const char *display_name )
 {
    Display *dpy;
-#if USE_DRI
-   void *handle;
-#endif
 
-   dpy = (Display *) _mesa_calloc(sizeof(Display));
+   dpy = (Display *) CALLOC(sizeof(Display));
    if (!dpy)
       return NULL;
 
    if (!OpenFBDev(dpy)) {
       fprintf(stderr, "OpenFBDev failed\n");
-      _mesa_free(dpy);
+      FREE(dpy);
       return NULL;
    }
+
+   InitializeScreenConfigs(&dpy->numConfigs, &dpy->configs);
 
 #if USE_DRI
    /*
@@ -719,29 +716,30 @@ WRAP(XOpenDisplay)( const char *display_name )
     * We're kind of combining the per-display and per-screen information
     * which was kept separate in XFree86/DRI's libGL.
     */
-   handle = dlopen("radeon_dri.so", RTLD_NOW | RTLD_GLOBAL);
-   if (!handle) {
-      _mesa_free(dpy);
+   dpy->dlHandle = dlopen(DRIVER_DRI_SO, RTLD_NOW | RTLD_GLOBAL);
+   if (!dpy->dlHandle) {
+      fprintf(stderr, "Unable to open %s: %s\n", DRIVER_DRI_SO, dlerror());
+      CleanupFBDev(dpy);
+      FREE(dpy);
       return NULL;
    }
 
-   dpy->createScreen = (CreateScreenFunc) dlsym(handle, "__driCreateScreen");
+   dpy->createScreen = (CreateScreenFunc) dlsym(dpy->dlHandle,
+                                                "__driCreateScreen");
    if (!dpy->createScreen) {
-      dlclose(handle);
-      _mesa_free(dpy);
+      fprintf(stderr, "Couldn't find __driCreateScreen in %s\n",
+              DRIVER_DRI_SO);
+      dlclose(dpy->dlHandle);
+      FREE(dpy);
       return NULL;
    }
-
-   /* XXX this isn't done yet */
-   dpy->numConfigs = 1;
-   dpy->configs = _mesa_calloc(sizeof(__GLXvisualConfig));
 
    /* this effectively initializes the DRI driver */
    dpy->driScreen.private = (*dpy->createScreen)(dpy, 0, &(dpy->driScreen),
                                                  dpy->numConfigs,
                                                  dpy->configs);
    if (!dpy->driScreen.private) {
-      _mesa_free(dpy);
+      FREE(dpy);
       return NULL;
    }
 #endif
@@ -755,10 +753,11 @@ WRAP(XCloseDisplay)( Display *dpy )
 {
 #if USE_DRI
    (*dpy->driScreen.destroyScreen)(dpy, 0, dpy->driScreen.private);
+   dlclose(dpy->dlHandle);
 #endif
 
    CleanupFBDev(dpy);
-   _mesa_free(dpy);
+   FREE(dpy);
 }
 
 
@@ -786,7 +785,7 @@ WRAP(XCreateWindow)( Display *dpy, Window parent, int x, int y,
 
    assert(dpy->TheWindow == NULL);
 
-   win = MALLOC_STRUCT(MiniGLXWindowRec);
+   win = MALLOC(sizeof(struct MiniGLXWindowRec));
    if (!win)
       return NULL;
 
@@ -811,7 +810,7 @@ WRAP(XCreateWindow)( Display *dpy, Window parent, int x, int y,
 
    /* do fbdev setup */
    if (!SetupFBDev(dpy, win)) {
-      _mesa_free(win);
+      FREE(win);
       return NULL;
    }
 
@@ -823,7 +822,11 @@ WRAP(XCreateWindow)( Display *dpy, Window parent, int x, int y,
    win->frontBottom = (GLubyte *) win->frontStart
                     + (height - 1) * win->rowStride;
 
+#if USE_DRI
+   if (visual->glxConfig->doubleBuffer) {
+#else
    if (visual->glvisual.doubleBufferMode) {
+#endif
       win->backStart = (GLubyte *) win->frontStart + win->size;
       win->backBottom = (GLubyte *) win->backStart
                       + (height - 1) * win->rowStride;
@@ -841,7 +844,7 @@ WRAP(XCreateWindow)( Display *dpy, Window parent, int x, int y,
                              visual->visInfo->visualid, &(win->driDrawable));
    if (!win->driDrawable.private) {
       RestoreFBDev(dpy);
-      _mesa_free(win);
+      FREE(win);
       return NULL;
    }
 #endif
@@ -885,9 +888,9 @@ WRAP(XDestroyWindow)( Display *dpy, Window win )
       RestoreFBDev(dpy);
 #if !USE_DRI
       /* free the software depth, stencil, accum buffers */
-      _mesa_free_framebuffer_data(&win->glframebuffer);
+      FREE_framebuffer_data(&win->glframebuffer);
 #endif
-      _mesa_free(win);
+      FREE(win);
       /* unlink window from display */
       dpy->NumWindows--;
       assert(dpy->NumWindows == 0);
@@ -913,7 +916,7 @@ WRAP(XCreateColormap)( Display *dpy, Window w, Visual *visual, int alloc )
    (void) w;
    (void) visual;
    (void) alloc;
-   return (Colormap) _mesa_malloc(1);
+   return (Colormap) MALLOC(1);
 }
 
 
@@ -922,12 +925,12 @@ WRAP(XFreeColormap)( Display *dpy, Colormap cmap )
 {
    (void) dpy;
    (void) cmap;
-   _mesa_free(cmap);
+   FREE(cmap);
 }
 
 
 XVisualInfo*
-WRAP(glXChooseVisual)( Display *display, int screen, int *attribs )
+WRAP(glXChooseVisual)( Display *dpy, int screen, int *attribs )
 {
    Visual *vis;
    XVisualInfo *visInfo;
@@ -938,17 +941,27 @@ WRAP(glXChooseVisual)( Display *display, int screen, int *attribs )
    GLint accumRedBits = 0, accumGreenBits = 0;
    GLint accumBlueBits = 0, accumAlphaBits = 0;
    GLint numSamples = 0;
+   int i;
 
    /*
     * XXX in the future, <screen> might be interpreted as a VT
     */
-   ASSERT(display);
+   ASSERT(dpy);
 
-   vis = (Visual *) _mesa_calloc(sizeof(Visual));
+   vis = (Visual *) CALLOC(sizeof(Visual));
    if (!vis)
       return NULL;
 
-   vis->dpy = display;
+   visInfo = (XVisualInfo *) MALLOC(sizeof(XVisualInfo));
+   if (!visInfo) {
+      FREE(vis);
+      return NULL;
+   }
+
+   visInfo->visual = vis;
+   visInfo->visualid = 0;
+   vis->visInfo = visInfo;
+   vis->dpy = dpy;
 
    /* parse the attribute list */
    for (attrib = attribs; attrib && *attrib != None; attrib++) {
@@ -1005,10 +1018,35 @@ WRAP(glXChooseVisual)( Display *display, int screen, int *attribs )
       default:
          /* unexpected token */
          fprintf(stderr, "unexpected token in glXChooseVisual attrib list\n");
-         _mesa_free(vis);
+         FREE(vis);
+         FREE(visInfo);
          return NULL;
       }
    }
+
+#if USE_DRI
+   /* search screen configs for suitable visual */
+   (void) numSamples;
+   (void) indexBits;
+   (void) redBits;
+   (void) greenBits;
+   (void) blueBits;
+   (void) alphaBits;
+   (void) stereoFlag;
+   for (i = 0; i < dpy->numConfigs; i++) {
+      const __GLXvisualConfig *config = dpy->configs + i;
+      /* XXX add more tests */
+      if (config->rgba == rgbFlag &&
+          config->depthSize >= depthBits &&
+          config->stencilSize >= stencilBits) {
+         /* found it */
+         visInfo->visualid = config->vid;
+         vis->glxConfig = config;
+         break;
+      }          
+   }
+
+#else
 
    if (!_mesa_initialize_visual(&vis->glvisual, rgbFlag, dbFlag, stereoFlag,
                                 redBits, greenBits, blueBits, alphaBits,
@@ -1017,17 +1055,11 @@ WRAP(glXChooseVisual)( Display *display, int screen, int *attribs )
                                 accumBlueBits, accumAlphaBits,
                                 numSamples)) {
       /* something was invalid */
-      _mesa_free(vis);
+      FREE(vis);
+      FREE(visInfo);
       return NULL;
    }
-
-   visInfo = (XVisualInfo *) _mesa_malloc(sizeof(XVisualInfo));
-   if (!visInfo) {
-      _mesa_free(vis);
-      return NULL;
-   }
-   visInfo->visual = vis;
-   vis->visInfo = visInfo;
+#endif
 
    /* compute depth and bpp */
    if (rgbFlag) {
@@ -1074,7 +1106,7 @@ WRAP(glXCreateContext)( Display *dpy, XVisualInfo *vis,
    ctx->driContext.private = (*dpy->driScreen.createContext)(dpy, vis,
                                           sharePriv, &(ctx->driContext));
    if (!ctx->driContext.private) {
-      _mesa_free(ctx);
+      FREE(ctx);
       return NULL;
    }
 
@@ -1083,7 +1115,7 @@ WRAP(glXCreateContext)( Display *dpy, XVisualInfo *vis,
    if (!_mesa_initialize_context(&ctx->glcontext, &vis->visual->glvisual,
                                  shareList ? &shareList->glcontext : NULL,
                                  (void *) ctx, GL_FALSE)) {
-      _mesa_free(ctx);
+      FREE(ctx);
       return NULL;
    }
 
@@ -1173,7 +1205,11 @@ WRAP(glXDestroyContext)( Display *dpy, GLXContext ctx )
    if (glxctx) {
       if (glxctx == ctx) {
          /* destroying current context */
+#if USE_DRI
+         (*ctx->driContext.bindContext)(dpy, 0, 0, 0);
+#else
          _mesa_make_current2(NULL, NULL, NULL);
+#endif
       }
 #if USE_DRI
       (*ctx->driContext.destroyContext)(dpy, 0, ctx->driContext.private);
@@ -1181,7 +1217,7 @@ WRAP(glXDestroyContext)( Display *dpy, GLXContext ctx )
       _mesa_notifyDestroy(&ctx->glcontext);
       _mesa_free_context_data(&ctx->glcontext);
 #endif
-      _mesa_free(ctx);
+      FREE(ctx);
    }
 }
 
@@ -1199,21 +1235,26 @@ WRAP(glXMakeCurrent)( Display *dpy, GLXDrawable drawable, GLXContext ctx)
                                                  oldContext, 0);
       }
       /* bind new */
+      CurrentContext = ctx;
       (*ctx->driContext.bindContext)(dpy, 0, drawable, ctx);
 #else
       _mesa_make_current2( &ctx->glcontext,
                            &drawable->glframebuffer,
                            &drawable->glframebuffer );
-#endif
-      ctx->drawBuffer = drawable;
-      ctx->curBuffer = drawable;
       if (ctx->glcontext.Viewport.Width == 0) {
          _mesa_Viewport(0, 0, drawable->w, drawable->h);
       }
+#endif
+      ctx->drawBuffer = drawable;
+      ctx->curBuffer = drawable;
    }
    else {
       /* unbind */
+#if USE_DRI
+      (*ctx->driContext.bindContext)(dpy, 0, 0, 0);
+#else
       _mesa_make_current2( NULL, NULL, NULL );
+#endif
    }
    return True;
 }
@@ -1248,8 +1289,12 @@ WRAP(glXSwapBuffers)( Display *dpy, GLXDrawable drawable )
 GLXContext
 WRAP(glXGetCurrentContext)( void )
 {
+#if USE_DRI
+   return CurrentContext;
+#else
    GET_CURRENT_CONTEXT(ctx);
    return (GLXContext) ctx;
+#endif
 }
 
 
@@ -1284,7 +1329,7 @@ WRAP(glXGetProcAddress)( const GLubyte *procName )
    };
    const struct name_address *entry;
    for (entry = functions; entry->name; entry++) {
-      if (_mesa_strcmp(entry->name, (const char *) procName) == 0) {
+      if (STRCMP(entry->name, (const char *) procName) == 0) {
          return entry->func;
       }
    }
