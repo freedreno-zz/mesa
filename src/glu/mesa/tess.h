@@ -1,4 +1,4 @@
-/* $Id: tess.h,v 1.15.2.1 1999/11/15 21:21:31 gareth Exp $ */
+/* $Id: tess.h,v 1.15.2.2 1999/11/27 01:37:17 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -82,6 +82,9 @@ struct GLUtesselator
  * Tessellation error handler:
  *****************************************************************************/
 extern void tess_error_callback( GLUtesselator *, GLenum );
+
+extern void delete_contour( tess_contour_t **contour );
+extern void contour_dump( tess_contour_t *contour );
 
 
 /*****************************************************************************
