@@ -1,4 +1,20 @@
-/* $Id: glheader.h,v 1.29 2002/10/30 19:44:41 brianp Exp $ */
+/**
+ * \file glheader.h
+ * \brief Top-most include file.
+ * 
+ * This is the top-most include file of the Mesa sources.
+ * It includes gl.h and all system headers which are needed.
+ * Other Mesa source files should _not_ directly include any system
+ * headers.  This allows Mesa to be integrated into XFree86 and
+ * allows system-dependent hacks/work-arounds to be collected in one place.
+ *
+ * If you touch this file, everything gets recompiled!
+ *
+ * This file should be included before any other header in the .c files.
+ *
+ * Put compiler/OS/assembly pragmas and macros here to avoid
+ * cluttering other source files.
+ */
 
 /*
  * Mesa 3-D graphics library
@@ -24,25 +40,12 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+/* $Id: glheader.h,v 1.29.4.1 2003/03/02 00:27:35 jrfonseca Exp $ */
+
 
 #ifndef GLHEADER_H
 #define GLHEADER_H
 
-
-/*
- * This is the top-most include file of the Mesa sources.
- * It includes gl.h and all system headers which are needed.
- * Other Mesa source files should _not_ directly include any system
- * headers.  This allows Mesa to be integrated into XFree86 and
- * allows system-dependent hacks/work-arounds to be collected in one place.
- *
- * If you touch this file, everything gets recompiled!
- *
- * This file should be included before any other header in the .c files.
- *
- * Put compiler/OS/assembly pragmas and macros here to avoid
- * cluttering other source files.
- */
 
 
 
@@ -282,7 +285,7 @@ typedef struct tagPIXELFORMATDESCRIPTOR PIXELFORMATDESCRIPTOR, *PPIXELFORMATDESC
 #endif
 
 
-/*
+/**
  * Sometimes we treat GLfloats as GLints.  On x86 systems, moving a float
  * as a int (thereby using integer registers instead of fp registers) is
  * a performance win.  Typically, this can be done with ordinary casts.

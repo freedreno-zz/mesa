@@ -1,4 +1,6 @@
-/* $Id: glapi.h,v 1.20 2002/06/29 19:48:16 brianp Exp $ */
+/**
+ * \file glapi.h
+ */
 
 /*
  * Mesa 3-D graphics library
@@ -24,6 +26,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+/* $Id: glapi.h,v 1.20.6.1 2003/03/02 00:27:35 jrfonseca Exp $ */
 
 #ifndef _GLAPI_H
 #define _GLAPI_H

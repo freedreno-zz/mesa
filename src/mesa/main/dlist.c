@@ -1,4 +1,7 @@
-/* $Id: dlist.c,v 1.100 2002/11/06 15:16:23 brianp Exp $ */
+/**
+ * \file dlist.c
+ * \brief Display lists management functions.
+ */
 
 /*
  * Mesa 3-D graphics library
@@ -23,6 +26,8 @@
  * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
+/* $Id: dlist.c,v 1.100.4.1 2003/03/02 00:27:34 jrfonseca Exp $ */
 
 #include "glheader.h"
 #include "imports.h"
@@ -70,47 +75,48 @@
 
 
 
-/*
-Functions which aren't compiled but executed immediately:
-	glIsList
-	glGenLists
-	glDeleteLists
-	glEndList  --- BUT:  call ctx->Driver.EndList at end of list execution?
-	glFeedbackBuffer
-	glSelectBuffer
-	glRenderMode
-	glReadPixels
-	glPixelStore
-	glFlush
-	glFinish
-	glIsEnabled
-	glGet*
+/**
+ * Functions which aren't compiled but executed immediately:
+ * - glIsList
+ * - glGenLists
+ * - glDeleteLists
+ * - glEndList  --- BUT:  call ctx->Driver.EndList at end of list execution?
+ * - glFeedbackBuffer
+ * - glSelectBuffer
+ * - glRenderMode
+ * - glReadPixels
+ * - glPixelStore
+ * - glFlush
+ * - glFinish
+ * - glIsEnabled
+ * - glGet*
+ * 
+ * Functions which cause errors if called while compiling a display list:
+ *  - glNewList
+ */
 
-Functions which cause errors if called while compiling a display list:
-	glNewList
-*/
 
 
-
-/*
+/**
  * Display list instructions are stored as sequences of "nodes".  Nodes
  * are allocated in blocks.  Each block has BLOCK_SIZE nodes.  Blocks
  * are linked together with a pointer.
  */
 
 
-/* How many nodes to allocate at a time:
- * - reduced now that we hold vertices etc. elsewhere.
+/**
+ * \brief How many nodes to allocate at a time.
+ * 
+ * \note Reduced now that we hold vertices etc. elsewhere.
  */
 #define BLOCK_SIZE 256
 
 
-/*
- * Display list opcodes.
+/**
+ * \brief Display list opcodes.
  *
  * The fact that these identifiers are assigned consecutive
  * integer values starting at 0 is very important, see InstSize array usage)
- *
  */
 typedef enum {
 	OPCODE_ACCUM,
@@ -258,7 +264,9 @@ typedef enum {
 } OpCode;
 
 
-/*
+/**
+ * \brief Display list node.
+ *
  * Each instruction in the display list is stored as a sequence of
  * contiguous nodes in memory.
  * Each node is the union of a variety of datatypes.
@@ -279,9 +287,9 @@ union node {
 };
 
 
-
-/* Number of nodes of storage needed for each instruction.  Sizes for
- * dynamically allocated opcodes are stored in the context struct.
+/**
+ * \brief Number of nodes of storage needed for each instruction.  
+ * Sizes for dynamically allocated opcodes are stored in the context struct.
  */
 static GLuint InstSize[ OPCODE_END_OF_LIST+1 ];
 
@@ -291,10 +299,6 @@ void mesa_print_display_list( GLuint list );
 /**********************************************************************/
 /*****                           Private                          *****/
 /**********************************************************************/
-
-
-
-
 
 /*
  * Make an empty display list.  This is used by glGenLists() to
