@@ -24,6 +24,7 @@
 #include "miniglxP.h"
 #include <linux/vt.h>
 #include <sys/ioctl.h>
+#include <sys/mman.h>
 
 
 #include "sarea.h"
@@ -381,7 +382,7 @@ static void *driCreateDrawable(Display *dpy, int scrn,
     pdp->y = 0;
     pdp->w = pdp->draw->w;
     pdp->h = pdp->draw->h;
-    pdp->numClipRects = 1;
+    pdp->numClipRects = 0;
     pdp->pClipRects = (XF86DRIClipRectPtr) malloc(sizeof(XF86DRIClipRectRec));
     (pdp->pClipRects)[0].x1 = 0;
     (pdp->pClipRects)[0].y1 = 0;
@@ -415,7 +416,6 @@ static void *driCreateDrawable(Display *dpy, int scrn,
     pdp->swapBuffers = psp->DriverAPI.SwapBuffers;
 
     pdp->pStamp = &(psp->pSAREA->drawableTable[pdp->index].stamp);
-    __driUtilUpdateDrawableInfo( pdp );
     return (void *) pdp;
 }
 
@@ -692,6 +692,11 @@ __driUtilCreateScreen(Display *dpy, int scrn, __DRIscreen *psc,
 	 free(psp);
 	 return NULL;
       }
+
+#if !_HAVE_FULL_GL
+      mprotect(psp->pSAREA, dpy->driverContext.shared.SAREASize, PROT_READ);
+#endif
+
    } else {
       psp->pFB = dpy->driverContext.FBAddress;
       psp->pSAREA = dpy->driverContext.pSAREA;
