@@ -1,4 +1,4 @@
-/* $Id: teximage.c,v 1.104.2.12 2002/09/23 16:39:44 brianp Exp $ */
+/* $Id: teximage.c,v 1.104.2.13 2002/10/02 17:24:40 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -909,12 +909,32 @@ texture_error_check( GLcontext *ctx, GLenum target,
           iformat != GL_YCBCR_MESA ||
           (type != GL_UNSIGNED_SHORT_8_8_MESA &&
           type != GL_UNSIGNED_SHORT_8_8_REV_MESA)) {
-         char message[100];
-         sprintf(message,
-                 "glTexImage%d(format/type/internalFormat YCBCR mismatch",
-                 dimensions);
-         _mesa_error(ctx, GL_INVALID_ENUM, message);
+         if (!isProxy) {
+            char message[100];
+            sprintf(message,
+                    "glTexImage%d(format/type/internalFormat YCBCR mismatch)",
+                    dimensions);
+            _mesa_error(ctx, GL_INVALID_ENUM, message);
+         }
          return GL_TRUE; /* error */
+      }
+      if (target != GL_TEXTURE_2D &&
+          target != GL_PROXY_TEXTURE_2D &&
+          target != GL_TEXTURE_RECTANGLE_NV &&
+          target != GL_PROXY_TEXTURE_RECTANGLE_NV) {
+         if (!isProxy)
+            _mesa_error(ctx, GL_INVALID_ENUM, "glTexImage(target)");
+         return GL_TRUE;
+      }
+      if (border != 0) {
+         if (!isProxy) {
+            char message[100];
+            sprintf(message,
+                    "glTexImage%d(format=GL_YCBCR_MESA and border=%d)",
+                    dimensions, border);
+            _mesa_error(ctx, GL_INVALID_VALUE, message);
+         }
+         return GL_TRUE;
       }
    }
 
@@ -943,36 +963,40 @@ subtexture_error_check( GLcontext *ctx, GLuint dimensions,
    GLboolean compressed;
 
    if (dimensions == 1) {
-      if (target != GL_TEXTURE_1D) {
+      if (target == GL_TEXTURE_1D) {
+         maxLevels = ctx->Const.MaxTextureLevels;
+      }
+      else {
          _mesa_error( ctx, GL_INVALID_ENUM, "glTexSubImage1D(target)" );
          return GL_TRUE;
       }
-      maxLevels = ctx->Const.MaxTextureLevels;
    }
    else if (dimensions == 2) {
-      if (ctx->Extensions.ARB_texture_cube_map) {
-         if ((target < GL_TEXTURE_CUBE_MAP_POSITIVE_X_ARB ||
-              target > GL_TEXTURE_CUBE_MAP_NEGATIVE_Z_ARB) &&
-             target != GL_TEXTURE_2D) {
-            _mesa_error( ctx, GL_INVALID_ENUM, "glTexSubImage2D(target)" );
-            return GL_TRUE;
-         }
+      if (ctx->Extensions.ARB_texture_cube_map &&
+          target >= GL_TEXTURE_CUBE_MAP_POSITIVE_X_ARB &&
+          target <=GL_TEXTURE_CUBE_MAP_NEGATIVE_Z_ARB) {
+         maxLevels = ctx->Const.MaxCubeTextureLevels;
       }
-      else if (target != GL_TEXTURE_2D) {
+      else if (ctx->Extensions.NV_texture_rectangle &&
+               target == GL_TEXTURE_RECTANGLE_NV) {
+         maxLevels = 1;
+      }
+      else if (target == GL_TEXTURE_2D) {
+         maxLevels = ctx->Const.MaxTextureLevels;
+      }
+      else {
          _mesa_error( ctx, GL_INVALID_ENUM, "glTexSubImage2D(target)" );
          return GL_TRUE;
       }
-      if (target == GL_PROXY_TEXTURE_2D && target == GL_TEXTURE_2D)
-         maxLevels = ctx->Const.MaxTextureLevels;
-      else
-         maxLevels = ctx->Const.MaxCubeTextureLevels;
    }
    else if (dimensions == 3) {
-      if (target != GL_TEXTURE_3D) {
+      if (target == GL_TEXTURE_3D) {
+         maxLevels = ctx->Const.Max3DTextureLevels;
+      }
+      else {
          _mesa_error( ctx, GL_INVALID_ENUM, "glTexSubImage3D(target)" );
          return GL_TRUE;
       }
-      maxLevels = ctx->Const.Max3DTextureLevels;
    }
    else {
       _mesa_problem( ctx, "bad dims in texture_error_check" );
@@ -1010,7 +1034,7 @@ subtexture_error_check( GLcontext *ctx, GLuint dimensions,
    destTex = _mesa_select_tex_image(ctx, texUnit, target, level);
 
    if (!destTex) {
-      _mesa_error(ctx, GL_INVALID_OPERATION, "glTexSubImage2D");
+      _mesa_error(ctx, GL_INVALID_OPERATION, "glTexSubImage1/2/3D");
       return GL_TRUE;
    }
 
@@ -1315,6 +1339,11 @@ copytexsubimage_error_check( GLcontext *ctx, GLuint dimensions,
                      "glCopyTexSubImage3D(zoffset != -border");
          return GL_TRUE;
       }
+   }
+
+   if (teximage->IntFormat == GL_YCBCR_MESA) {
+      _mesa_error(ctx, GL_INVALID_OPERATION, "glCopyTexSubImage2D");
+      return GL_TRUE;
    }
 
    /* if we get here, the parameters are OK */
