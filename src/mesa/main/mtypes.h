@@ -29,7 +29,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: mtypes.h,v 1.97.4.3 2003/03/16 00:27:12 jrfonseca Exp $ */
+/* $Id: mtypes.h,v 1.97.4.4 2003/03/20 12:56:58 jrfonseca Exp $ */
 
 
 #ifndef TYPES_H
@@ -1240,14 +1240,15 @@ struct gl_feedback {
  * \brief Selection attributes.
  */
 struct gl_selection {
-   GLuint *Buffer;
-   GLuint BufferSize;	/**< \brief size of SelectBuffer */
-   GLuint BufferCount;	/**< \brief number of values in SelectBuffer */
-   GLuint Hits;		/**< \brief number of records in SelectBuffer */
-   GLuint NameStackDepth;
-   GLuint NameStack[MAX_NAME_STACK_DEPTH];
-   GLboolean HitFlag;
-   GLfloat HitMinZ, HitMaxZ;
+   GLuint *Buffer;	/**< \brief selection buffer */
+   GLuint BufferSize;	/**< \brief size of the selection buffer */
+   GLuint BufferCount;	/**< \brief number of values in the selection buffer */
+   GLuint Hits;		/**< \brief number of records in the selection buffer */
+   GLuint NameStackDepth; /**< \brief name stack depth */
+   GLuint NameStack[MAX_NAME_STACK_DEPTH]; /**< \brief name stack */
+   GLboolean HitFlag;	/**< \brief hit flag */
+   GLfloat HitMinZ;	/**< \brief minimum hit depth */
+   GLfloat HitMaxZ;	/**< \brief maximum hit depth */
 };
 
 

@@ -1,4 +1,25 @@
-/* $Id: imports.c,v 1.25.4.1 2003/03/09 10:52:21 jrfonseca Exp $ */
+/**
+ * \file imports.c
+ * \brief Standard C library function wrappers.
+ * 
+ * Imports are services which the device driver or window system or
+ * operating system provides to the core renderer.  The core renderer (Mesa)
+ * will call these functions in order to do memory allocation, simple I/O,
+ * etc.
+ *
+ * Some drivers will want to override/replace this file with something
+ * specialized, but that'll be rare.
+ *
+ * Eventually, I want to move roll the glheader.h file into this.
+ *
+ * The OpenGL SI's __GLimports structure allows per-context specification of
+ * replacements for the standard C lib functions.  In practice that's probably
+ * never needed; compile-time replacements are far more likely.
+ *
+ * The _mesa_*() functions defined here don't in general take a context
+ * parameter.  I guess we can change that someday, if need be.
+ * So for now, the __GLimports stuff really isn't used.
+ */
 
 /*
  * Mesa 3-D graphics library
@@ -24,26 +45,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-
-/*
- * Imports are services which the device driver or window system or
- * operating system provides to the core renderer.  The core renderer (Mesa)
- * will call these functions in order to do memory allocation, simple I/O,
- * etc.
- *
- * Some drivers will want to override/replace this file with something
- * specialized, but that'll be rare.
- *
- * Eventually, I want to move roll the glheader.h file into this.
- *
- * The OpenGL SI's __GLimports structure allows per-context specification of
- * replacements for the standard C lib functions.  In practice that's probably
- * never needed; compile-time replacements are far more likely.
- *
- * The _mesa_foo() functions defined here don't in general take a context
- * parameter.  I guess we can change that someday, if need be.
- * So for now, the __GLimports stuff really isn't used.
- */
+/* $Id: imports.c,v 1.25.4.2 2003/03/20 12:56:57 jrfonseca Exp $ */
 
 
 #include "glheader.h"
@@ -60,17 +62,21 @@
 
 
 /**********************************************************************/
-/* Wrappers for standard C library functions                          */
-/**********************************************************************/
-
-/*
+/** \name Wrappers for standard C library functions
+ *
  * Functions still needed:
- * scanf
- * qsort
- * bsearch
- * rand and RAND_MAX
+ * - scanf
+ * - qsort
+ * - bsearch
+ * - rand and RAND_MAX
+ *
+ * \note When compiled into a XFree86 module these functions wrap around
+ * XFree86 own wrappers.
  */
+/**********************************************************************/
+/*@{*/
 
+/** \brief Wrapper around either malloc() or xf86malloc() */
 void *
 _mesa_malloc(size_t bytes)
 {
@@ -81,7 +87,7 @@ _mesa_malloc(size_t bytes)
 #endif
 }
 
-
+/** \brief Wrapper around either calloc() or xf86calloc() */
 void *
 _mesa_calloc(size_t bytes)
 {
@@ -92,7 +98,7 @@ _mesa_calloc(size_t bytes)
 #endif
 }
 
-
+/** \brief Wrapper around either free() or xf86free() */
 void
 _mesa_free(void *ptr)
 {
@@ -103,7 +109,17 @@ _mesa_free(void *ptr)
 #endif
 }
 
-
+/**
+ * \brief Allocate aligned memory.
+ *
+ * \param bytes number of bytes to allocate.
+ * \param alignment alignment (must be greater than zero).
+ * 
+ * Allocates extra memory to accomodate rounding up the address for
+ * alignment and to record the real malloc address.
+ *
+ * \sa _mesa_align_free().
+ */
 void *
 _mesa_align_malloc(size_t bytes, unsigned long alignment)
 {
@@ -111,9 +127,6 @@ _mesa_align_malloc(size_t bytes, unsigned long alignment)
 
    ASSERT( alignment > 0 );
 
-   /* Allocate extra memory to accomodate rounding up the address for
-    * alignment and to record the real malloc address.
-    */
    ptr = (unsigned long) _mesa_malloc(bytes + alignment + sizeof(void *));
    if (!ptr)
       return NULL;
@@ -132,7 +145,8 @@ _mesa_align_malloc(size_t bytes, unsigned long alignment)
    return (void *) buf;
 }
 
-
+/** \brief Same as _mesa_align_malloc(), but using _mesa_calloc() instead of
+ * _mesa_malloc() */
 void *
 _mesa_align_calloc(size_t bytes, unsigned long alignment)
 {
@@ -158,23 +172,27 @@ _mesa_align_calloc(size_t bytes, unsigned long alignment)
    return (void *)buf;
 }
 
-
+/**
+ * \brief Free memory allocated with _mesa_align_malloc() or _mesa_align_calloc().
+ *
+ * \param ptr pointer to the memory to be freed.
+ * 
+ * The actual address to free is stored in the word immediately before the
+ * address the client sees.
+ */
 void
 _mesa_align_free(void *ptr)
 {
 #if 0
    _mesa_free( (void *)(*(unsigned long *)((unsigned long)ptr - sizeof(void *))) );
 #else
-   /* The actuall address to free is stuffed in the word immediately
-    * before the address the client sees.
-    */
    void **cubbyHole = (void **) ((char *) ptr - sizeof(void *));
    void *realAddr = *cubbyHole;
    _mesa_free(realAddr);
 #endif
 }
 
-
+/** \brief Wrapper around either memcpy() or xf86memcpy() */
 void *
 _mesa_memcpy(void *dest, const void *src, size_t n)
 {
@@ -187,7 +205,7 @@ _mesa_memcpy(void *dest, const void *src, size_t n)
 #endif
 }
 
-
+/** \brief Wrapper around either memset() or xf86memset() */
 void
 _mesa_memset( void *dst, int val, size_t n )
 {
@@ -200,7 +218,12 @@ _mesa_memset( void *dst, int val, size_t n )
 #endif
 }
 
-
+/** \brief Fill memory with a constant 16bit word.
+ *
+ * \param dst destination pointer.
+ * \param val value.
+ * \param n number of words.
+ */
 void
 _mesa_memset16( unsigned short *dst, unsigned short val, size_t n )
 {
@@ -208,7 +231,7 @@ _mesa_memset16( unsigned short *dst, unsigned short val, size_t n )
       *dst++ = val;
 }
 
-
+/** \brief Wrapper around either memcpy() or xf86memcpy() or bzero() */
 void
 _mesa_bzero( void *dst, size_t n )
 {
@@ -221,7 +244,7 @@ _mesa_bzero( void *dst, size_t n )
 #endif
 }
 
-
+/** \brief Wrapper around either sin() or xf86sin() */
 double
 _mesa_sin(double a)
 {
@@ -232,7 +255,7 @@ _mesa_sin(double a)
 #endif
 }
 
-
+/** \brief Wrapper around either cos() or xf86cos() */
 double
 _mesa_cos(double a)
 {
@@ -243,7 +266,7 @@ _mesa_cos(double a)
 #endif
 }
 
-
+/** \brief Wrapper around either sqrt() or xf86sqrt() */
 double
 _mesa_sqrt(double x)
 {
@@ -254,7 +277,7 @@ _mesa_sqrt(double x)
 #endif
 }
 
-
+/** \brief Wrapper around either pow() or xf86pow() */
 double
 _mesa_pow(double x, double y)
 {
@@ -265,7 +288,7 @@ _mesa_pow(double x, double y)
 #endif
 }
 
-
+/** \brief Wrapper around either () or xf86() */
 char *
 _mesa_getenv( const char *var )
 {
@@ -276,7 +299,7 @@ _mesa_getenv( const char *var )
 #endif
 }
 
-
+/** \brief Wrapper around either strstr() or xf86strstr() */
 char *
 _mesa_strstr( const char *haystack, const char *needle )
 {
@@ -287,7 +310,7 @@ _mesa_strstr( const char *haystack, const char *needle )
 #endif
 }
 
-
+/** \brief Wrapper around either strncat() or xf86strncat() */
 char *
 _mesa_strncat( char *dest, const char *src, size_t n )
 {
@@ -298,7 +321,7 @@ _mesa_strncat( char *dest, const char *src, size_t n )
 #endif
 }
 
-
+/** \brief Wrapper around either strcpy() or xf86strcpy() */
 char *
 _mesa_strcpy( char *dest, const char *src )
 {
@@ -309,7 +332,7 @@ _mesa_strcpy( char *dest, const char *src )
 #endif
 }
 
-
+/** \brief Wrapper around either strncpy() or xf86strncpy() */
 char *
 _mesa_strncpy( char *dest, const char *src, size_t n )
 {
@@ -320,7 +343,7 @@ _mesa_strncpy( char *dest, const char *src, size_t n )
 #endif
 }
 
-
+/** \brief Wrapper around either strlen() or xf86strlen() */
 size_t
 _mesa_strlen( const char *s )
 {
@@ -331,7 +354,7 @@ _mesa_strlen( const char *s )
 #endif
 }
 
-
+/** \brief Wrapper around either strcmp() or xf86strcmp() */
 int
 _mesa_strcmp( const char *s1, const char *s2 )
 {
@@ -342,7 +365,7 @@ _mesa_strcmp( const char *s1, const char *s2 )
 #endif
 }
 
-
+/** \brief Wrapper around either strncmp() or xf86strncmp() */
 int
 _mesa_strncmp( const char *s1, const char *s2, size_t n )
 {
@@ -353,7 +376,7 @@ _mesa_strncmp( const char *s1, const char *s2, size_t n )
 #endif
 }
 
-
+/** \brief Wrapper around either atoi() or xf86atoi() */
 int
 _mesa_atoi(const char *s)
 {
@@ -364,7 +387,7 @@ _mesa_atoi(const char *s)
 #endif
 }
 
-
+/** \brief Wrapper around either vsprintf() or xf86vsprintf() */
 int
 _mesa_sprintf( char *str, const char *fmt, ... )
 {
@@ -380,7 +403,8 @@ _mesa_sprintf( char *str, const char *fmt, ... )
    return r;
 }
 
-
+/** \brief Wrapper around either printf() or xf86printf(), using vsprintf() for
+ * the formatting. */
 void
 _mesa_printf( const char *fmtString, ... )
 {
@@ -396,7 +420,16 @@ _mesa_printf( const char *fmtString, ... )
 #endif
 }
 
-
+/**
+ * \brief Display a warning.
+ *
+ * \param ctx GL context.
+ * \param fmtString printf() alike format string.
+ * 
+ * If debugging is enabled (either at compile-time via the DEBUG macro, or
+ * run-time via the MESA_DEBUG environment variable), prints the warning to
+ * stderr, either via fprintf() or xf86printf().
+ */
 void
 _mesa_warning( GLcontext *ctx, const char *fmtString, ... )
 {
@@ -421,10 +454,14 @@ _mesa_warning( GLcontext *ctx, const char *fmtString, ... )
    }
 }
 
-
-/*
- * This function is called when the Mesa user has stumbled into a code
+/**
+ * \brief This function is called when the Mesa user has stumbled into a code
  * path which may not be implemented fully or correctly.
+ *
+ * \param ctx GL context.
+ * \param s problem description string.
+ *
+ * Prints the message to stderr, either via fprintf() or xf86fprintf().
  */
 void
 _mesa_problem( const GLcontext *ctx, const char *s )
@@ -439,13 +476,19 @@ _mesa_problem( const GLcontext *ctx, const char *s )
 #endif
 }
 
-
-/*
- * If in debug mode, print error message to stdout.
+/**
+ * \brief Display an error message.
+ *
+ * If in debug mode, print error message.
  * Also, record the error code by calling _mesa_record_error().
- * \param ctx - the GL context
- *         error - the error value
- *         fmtString - printf-style format string, followed by optional args
+ * 
+ * \param ctx the GL context.
+ * \param error the error value.
+ * \param fmtString printf() style format string, followed by optional args
+ *         
+ * If debugging is enabled (either at compile-time via the DEBUG macro, or
+ * run-time via the MESA_DEBUG environment variable), interperts the error code and 
+ * prints the error message via _mesa_debug().
  */
 void
 _mesa_error( GLcontext *ctx, GLenum error, const char *fmtString, ... )
@@ -511,9 +554,13 @@ _mesa_error( GLcontext *ctx, GLenum error, const char *fmtString, ... )
    _mesa_record_error(ctx, error);
 }  
 
-
-/*
- * Call this to report debug information.  Uses stderr.
+/**
+ * \brief Report debug information.
+ * 
+ * \param ctx GL context.
+ * \param fmtString printf() alike format string.
+ * 
+ * Prints the message to stderr, either via fprintf() or xf86printf().
  */
 void
 _mesa_debug( const GLcontext *ctx, const char *fmtString, ... )
@@ -530,12 +577,15 @@ _mesa_debug( const GLcontext *ctx, const char *fmtString, ... )
 #endif
 }
 
+/*@{*/
 
 
 /**********************************************************************/
-/* Default Imports Wrapper                                            */
+/** \name Default Imports Wrapper                                     */
 /**********************************************************************/
+/*@{*/
 
+/** \brief Wrapper around _mesa_malloc() */
 static void *
 default_malloc(__GLcontext *gc, size_t size)
 {
@@ -543,6 +593,7 @@ default_malloc(__GLcontext *gc, size_t size)
    return _mesa_malloc(size);
 }
 
+/** \brief Wrapper around _mesa_malloc() */
 static void *
 default_calloc(__GLcontext *gc, size_t numElem, size_t elemSize)
 {
@@ -550,6 +601,7 @@ default_calloc(__GLcontext *gc, size_t numElem, size_t elemSize)
    return _mesa_calloc(numElem * elemSize);
 }
 
+/** \brief Wrapper around either realloc() or xf86realloc() */
 static void *
 default_realloc(__GLcontext *gc, void *oldAddr, size_t newSize)
 {
@@ -561,6 +613,7 @@ default_realloc(__GLcontext *gc, void *oldAddr, size_t newSize)
 #endif
 }
 
+/** \brief Wrapper around _mesa_free() */
 static void
 default_free(__GLcontext *gc, void *addr)
 {
@@ -568,6 +621,7 @@ default_free(__GLcontext *gc, void *addr)
    _mesa_free(addr);
 }
 
+/** \brief Wrapper around _mesa_getenv() */
 static char * CAPI
 default_getenv( __GLcontext *gc, const char *var )
 {
@@ -575,12 +629,14 @@ default_getenv( __GLcontext *gc, const char *var )
    return _mesa_getenv(var);
 }
 
+/** \brief Wrapper around _mesa_warning() */
 static void
 default_warning(__GLcontext *gc, char *str)
 {
    _mesa_warning(gc, str);
 }
 
+/** \brief Wrapper around _mesa_problem() */
 static void
 default_fatal(__GLcontext *gc, char *str)
 {
@@ -588,6 +644,7 @@ default_fatal(__GLcontext *gc, char *str)
    abort();
 }
 
+/** \brief Wrapper around atoi() */
 static int CAPI
 default_atoi(__GLcontext *gc, const char *str)
 {
@@ -595,6 +652,7 @@ default_atoi(__GLcontext *gc, const char *str)
    return atoi(str);
 }
 
+/** \brief Wrapper around vsprintf() */
 static int CAPI
 default_sprintf(__GLcontext *gc, char *str, const char *fmt, ...)
 {
@@ -606,18 +664,21 @@ default_sprintf(__GLcontext *gc, char *str, const char *fmt, ...)
    return r;
 }
 
+/** \brief Wrapper around fopen() */
 static void * CAPI
 default_fopen(__GLcontext *gc, const char *path, const char *mode)
 {
    return fopen(path, mode);
 }
 
+/** \brief Wrapper around fclose() */
 static int CAPI
 default_fclose(__GLcontext *gc, void *stream)
 {
    return fclose((FILE *) stream);
 }
 
+/** \brief Wrapper around vfprintf() */
 static int CAPI
 default_fprintf(__GLcontext *gc, void *stream, const char *fmt, ...)
 {
@@ -629,21 +690,26 @@ default_fprintf(__GLcontext *gc, void *stream, const char *fmt, ...)
    return r;
 }
 
-/* XXX this really is driver-specific and can't be here */
+/**
+ * \todo this really is driver-specific and can't be here 
+ */
 static __GLdrawablePrivate *
 default_GetDrawablePrivate(__GLcontext *gc)
 {
    return NULL;
 }
 
+/*@}*/
 
 
-
-/*
- * Initialize a __GLimports object to point to the functions in
- * this file.  This is to be called from device drivers.
- * \param imports - the object to init
- *         driverCtx - pointer to device driver-specific data
+/**
+ * \brief Initialize a __GLimports object to point to the functions in this
+ * file.  
+ *
+ * This is to be called from device drivers.
+ * 
+ * \param imports the object to initialize.
+ * \param driverCtx pointer to device driver-specific data.
  */
 void
 _mesa_init_default_imports(__GLimports *imports, void *driverCtx)

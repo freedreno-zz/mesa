@@ -1,4 +1,7 @@
-/* $Id: hash.h,v 1.6.6.1 2003/03/16 00:27:12 jrfonseca Exp $ */
+/**
+ * \file hash.h
+ * \brief Generic hash table. 
+ */
 
 /*
  * Mesa 3-D graphics library
@@ -23,6 +26,8 @@
  * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
+/* $Id: hash.h,v 1.6.6.2 2003/03/20 12:56:57 jrfonseca Exp $ */
 
 
 #ifndef HASH_H

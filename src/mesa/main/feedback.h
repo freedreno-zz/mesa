@@ -1,4 +1,7 @@
-/* $Id: feedback.h,v 1.7.8.1 2003/03/20 09:20:43 keithw Exp $ */
+/**
+ * \file feedback.h
+ * \brief Selection and feedback modes functions.
+ */
 
 /*
  * Mesa 3-D graphics library
@@ -23,6 +26,8 @@
  * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
+/* $Id: feedback.h,v 1.7.8.2 2003/03/20 12:56:57 jrfonseca Exp $ */
 
 
 #ifndef FEEDBACK_H

@@ -27,7 +27,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: dd.h,v 1.74.6.3 2003/03/19 15:43:15 jrfonseca Exp $ */
+/* $Id: dd.h,v 1.74.6.4 2003/03/20 12:56:57 jrfonseca Exp $ */
 
 
 #ifndef DD_INCLUDED
@@ -796,6 +796,7 @@ struct dd_function_table {
 typedef struct {
    /**
     * \name Vertex
+    * .
     */
    /*@{*/
    void (*ArrayElement)( GLint ); /* NOTE */
@@ -860,11 +861,11 @@ typedef struct {
    void (*Rectf)( GLfloat, GLfloat, GLfloat, GLfloat );
 
    /**
-    * \param Array
+    * \name Array
     *
     * These may or may not belong here.  Heuristic: if an array is
     * enabled, the installed vertex format should support that array and
-    * it's current size natively.
+    * its current size natively.
     */
    /*@{*/
    void (*DrawArrays)( GLenum mode, GLint start, GLsizei count );

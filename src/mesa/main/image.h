@@ -1,4 +1,7 @@
-/* $Id: image.h,v 1.18 2002/03/13 04:34:32 brianp Exp $ */
+/**
+ * \file image.h
+ * \brief Image handling.
+ */
 
 /*
  * Mesa 3-D graphics library
@@ -23,6 +26,8 @@
  * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
+/* $Id: image.h,v 1.18.6.1 2003/03/20 12:56:57 jrfonseca Exp $ */
 
 
 #ifndef IMAGE_H

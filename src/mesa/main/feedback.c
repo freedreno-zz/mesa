@@ -1,4 +1,7 @@
-/* $Id: feedback.c,v 1.27.4.3 2003/03/20 09:20:42 keithw Exp $ */
+/**
+ * \file feedback.c
+ * \brief Selection and feedback modes functions.
+ */
 
 /*
  * Mesa 3-D graphics library
@@ -23,6 +26,8 @@
  * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
+/* $Id: feedback.c,v 1.27.4.4 2003/03/20 12:56:57 jrfonseca Exp $ */
 
 
 #include "glheader.h"
@@ -153,12 +158,21 @@ void _mesa_feedback_vertex( GLcontext *ctx,
 
 
 /**********************************************************************/
-/*                              Selection                             */
-/**********************************************************************/
+/** \name Selection */
+/*@{*/
 
-
-/*
- * NOTE: this function can't be put in a display list.
+/**
+ * \brief Establish a buffer for selection mode values.
+ * 
+ * \param size buffer size.
+ * \param buffer buffer.
+ *
+ * \sa glSelectBuffer().
+ * 
+ * \note this function can't be put in a display list.
+ * 
+ * Verifies we're not in GL_SELECT render mode, flushes the vertices and
+ * initialize the fields in __GLcontextRec::Select with the given buffer.
  */
 void
 _mesa_SelectBuffer( GLsizei size, GLuint *buffer )
@@ -181,6 +195,15 @@ _mesa_SelectBuffer( GLsizei size, GLuint *buffer )
 }
 
 
+/**
+ * \brief Write a value of a record into the selection buffer.
+ * 
+ * \param CTX GL context.
+ * \param V value.
+ *
+ * Verifies there is free space in the buffer to write the value and
+ * increments the pointer.
+ */
 #define WRITE_RECORD( CTX, V )					\
 	if (CTX->Select.BufferCount < CTX->Select.BufferSize) {	\
 	   CTX->Select.Buffer[CTX->Select.BufferCount] = (V);	\
@@ -188,7 +211,15 @@ _mesa_SelectBuffer( GLsizei size, GLuint *buffer )
 	CTX->Select.BufferCount++;
 
 
-
+/**
+ * \brief Update the hit flag and the maximum and minimun depth values.
+ *
+ * \param ctx GL context.
+ * \param z depth.
+ *
+ * Sets gl_selection::HitFlag and updates gl_selection::HitMinZ and
+ * gl_selection::HitMaxZ.
+ */
 void _mesa_update_hitflag( GLcontext *ctx, GLfloat z )
 {
    ctx->Select.HitFlag = GL_TRUE;
@@ -201,6 +232,17 @@ void _mesa_update_hitflag( GLcontext *ctx, GLfloat z )
 }
 
 
+/**
+ * \brief Write the hit record.
+ *
+ * \param ctx GL context.
+ *
+ * Write the hit record, i.e., number of names in the stack, the minimum and
+ * maximum depth values and the number of names in the name stack at the time
+ * of the event. Resets the hit flag. 
+ *
+ * \sa gl_selection.
+ */
 static void write_hit_record( GLcontext *ctx )
 {
    GLuint i;
@@ -227,7 +269,13 @@ static void write_hit_record( GLcontext *ctx )
 }
 
 
-
+/**
+ * \brief Initialize the name stack.
+ *
+ * Verifies we are in select mode and resets the name stack depth and resets
+ * the hit record data in gl_selection. Marks new render mode in
+ * __GLcontextRec::NewState.
+ */
 void
 _mesa_InitNames( void )
 {
@@ -248,7 +296,17 @@ _mesa_InitNames( void )
 }
 
 
-
+/**
+ * \brief Load the top-most name of the name stack.
+ *
+ * \param name name.
+ *
+ * Verifies we are in selection mode and that the name stack is not empty.
+ * Flushes vertices. If there is a hit flag writes it (via write_hit_record()),
+ * and replace the top-most name in the stack.
+ *
+ * sa __GLcontextRec::Select.
+ */
 void
 _mesa_LoadName( GLuint name )
 {
@@ -277,6 +335,17 @@ _mesa_LoadName( GLuint name )
 }
 
 
+/**
+ * \brief Push a name into the name stack.
+ *
+ * \param name name.
+ *
+ * Verifies we are in selection mode and that the name stack is not full.
+ * Flushes vertices. If there is a hit flag writes it (via write_hit_record()),
+ * and adds the name to the top of the name stack.
+ *
+ * sa __GLcontextRec::Select.
+ */
 void
 _mesa_PushName( GLuint name )
 {
@@ -299,7 +368,15 @@ _mesa_PushName( GLuint name )
 }
 
 
-
+/**
+ * \brief Pop a name into the name stack.
+ *
+ * Verifies we are in selection mode and that the name stack is not empty.
+ * Flushes vertices. If there is a hit flag writes it (via write_hit_record()),
+ * and removes top-most name in the name stack.
+ *
+ * sa __GLcontextRec::Select.
+ */
 void
 _mesa_PopName( void )
 {
@@ -321,16 +398,27 @@ _mesa_PopName( void )
       ctx->Select.NameStackDepth--;
 }
 
+/*@}*/
 
 
 /**********************************************************************/
-/*                           Render Mode                              */
-/**********************************************************************/
+/** \name Render Mode */
+/*@{*/
 
-
-
-/*
- * NOTE: this function can't be put in a display list.
+/**
+ * \brief Set rasterization mode.
+ *
+ * \param mode rasterization mode.
+ *
+ * \note this function can't be put in a display list.
+ *
+ * \sa glRenderMode().
+ * 
+ * Flushes the vertices and do the necessary cleanup according to the previous
+ * rasterization mode, such as writing the hit record or resent the select
+ * buffer index when exiting the select mode. Updates
+ * __GLcontextRec::RenderMode and notifies the driver via
+ * dd_function_table::RenderMode.
  */
 GLint
 _mesa_RenderMode( GLenum mode )
@@ -412,12 +500,16 @@ _mesa_RenderMode( GLenum mode )
    return result;
 }
 
+/*@}*/
 
 
 /**********************************************************************/
-/*****                      Initialization                        *****/
-/**********************************************************************/
+/** \name Initialization */
+/*@{*/
 
+/**
+ * \brief Initialize context feedback data.
+ */
 void _mesa_init_feedback( GLcontext * ctx )
 {
    /* Feedback */
@@ -436,3 +528,5 @@ void _mesa_init_feedback( GLcontext * ctx )
    /* Miscellaneous */
    ctx->RenderMode = GL_RENDER;
 }
+
+/*@}*/
