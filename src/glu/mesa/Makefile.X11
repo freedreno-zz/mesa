@@ -1,8 +1,8 @@
-# $Id: Makefile.X11,v 1.6.2.2 2000/07/11 01:39:41 brianp Exp $
+# $Id: Makefile.X11,v 1.6.2.3 2000/07/11 03:48:23 brianp Exp $
 
 # Mesa 3-D graphics library
-# Version:  3.1
-# Copyright (C) 1995-1999  Brian Paul
+# Version:  3.2.1
+# Copyright (C) 1995-2000  Brian Paul
 
 # Makefile for GLU library
 
@@ -10,7 +10,7 @@
 ##### MACROS #####
 
 GLU_MAJOR = 1
-GLU_MINOR = 2
+GLU_MINOR = 1
 GLU_TINY = 0$(MESA_MAJOR)0$(MESA_MINOR)0$(MESA_TINY)
 
 VPATH = RCS
