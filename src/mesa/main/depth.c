@@ -1,4 +1,4 @@
-/* $Id: depth.c,v 1.17.4.1 2000/11/05 21:24:00 brianp Exp $ */
+/* $Id: depth.c,v 1.17.4.2 2001/02/08 15:54:33 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -1630,29 +1630,31 @@ _mesa_clear_depth_buffer( GLcontext *ctx )
       if (ctx->Visual->DepthBits <= 16) {
          const GLushort clearValue = (GLushort) (ctx->Depth.Clear * ctx->Visual->DepthMax);
          const GLint rows = ctx->DrawBuffer->Ymax - ctx->DrawBuffer->Ymin + 1;
-         const GLint width = ctx->DrawBuffer->Width;
+         const GLint cols = ctx->DrawBuffer->Xmax - ctx->DrawBuffer->Xmin + 1;
+         const GLint rowStride = ctx->DrawBuffer->Width;
          GLushort *dRow = (GLushort *) ctx->DrawBuffer->DepthBuffer
-            + ctx->DrawBuffer->Ymin * width + ctx->DrawBuffer->Xmin;
+            + ctx->DrawBuffer->Ymin * rowStride + ctx->DrawBuffer->Xmin;
          GLint i, j;
          for (i = 0; i < rows; i++) {
-            for (j = 0; j < width; j++) {
+            for (j = 0; j < cols; j++) {
                dRow[j] = clearValue;
             }
-            dRow += width;
+            dRow += rowStride;
          }
       }
       else {
          const GLuint clearValue = (GLuint) (ctx->Depth.Clear * ctx->Visual->DepthMax);
          const GLint rows = ctx->DrawBuffer->Ymax - ctx->DrawBuffer->Ymin + 1;
-         const GLint width = ctx->DrawBuffer->Width;
+         const GLint cols = ctx->DrawBuffer->Xmax - ctx->DrawBuffer->Xmin + 1;
+         const GLint rowStride = ctx->DrawBuffer->Width;
          GLuint *dRow = (GLuint *) ctx->DrawBuffer->DepthBuffer
-            + ctx->DrawBuffer->Ymin * width + ctx->DrawBuffer->Xmin;
+            + ctx->DrawBuffer->Ymin * rowStride + ctx->DrawBuffer->Xmin;
          GLint i, j;
          for (i = 0; i < rows; i++) {
-            for (j = 0; j < width; j++) {
+            for (j = 0; j < cols; j++) {
                dRow[j] = clearValue;
             }
-            dRow += width;
+            dRow += rowStride;
          }
       }
    }
