@@ -905,108 +905,12 @@ int __driInitFBDev( struct MiniGLXDisplayRec *dpy )
 
 
 
-/* Stop the CP */
-static int RADEONCPStop( struct MiniGLXDisplayRec *dpy )
-{
-    drmRadeonCPStop  stop;
-    int              ret, i;
-
-    stop.flush = 1;
-    stop.idle  = 1;
-
-    ret = drmCommandWrite(dpy->drmFD, DRM_RADEON_CP_STOP, &stop, 
-			  sizeof(drmRadeonCPStop));
-
-    if (ret == 0) {
-	return 0;
-    } else if (errno != EBUSY) {
-	return -errno;
-    }
-
-    stop.flush = 0;
- 
-    i = 0;
-    do {
-	ret = drmCommandWrite(dpy->drmFD, DRM_RADEON_CP_STOP, &stop, 
-			      sizeof(drmRadeonCPStop));
-    } while (ret && errno == EBUSY && i++ < 16);
-
-    if (ret == 0) {
-	return 0;
-    } else if (errno != EBUSY) {
-	return -errno;
-    }
-
-    stop.idle = 0;
-
-    if (drmCommandWrite(dpy->drmFD, DRM_RADEON_CP_STOP,
-			&stop, sizeof(drmRadeonCPStop))) {
-	return -errno;
-    } else {
-	return 0;
-    }
-}
-
-
-
 /* The screen is being closed, so clean up any state and free any
  * resources used by the DRI.
  */
 void __driHaltFBDev( struct MiniGLXDisplayRec *dpy )
 {
-    drmRadeonInit  drmInfo;
-    RADEONInfoPtr info = (RADEONInfoPtr) dpy->driverInfo;
-
-/* All this should be automatic:
- */
-#if 0
-    if (!info) 
-       return;
-
-    DRM_LOCK(dpy->drmFD, dpy->pSAREA, dpy->serverContext, 0); 
-
-
-    if (RADEONCPStop(dpy)) {
-       fprintf(stderr, "RADEONCPStop failed: %d\n", errno);
-       DRM_UNLOCK(dpy->drmFD, dpy->pSAREA, dpy->serverContext);
-       return;
-    }
-
-				/* De-allocate all kernel resources */
-    memset(&drmInfo, 0, sizeof(drmRadeonInit));
-    drmInfo.func = DRM_RADEON_CLEANUP_CP;
-    drmCommandWrite(dpy->drmFD, DRM_RADEON_CP_INIT,
-		    &drmInfo, sizeof(drmRadeonInit));
-
-
-
-    if (info->irq) {
-	drmCtlUninstHandler(dpy->drmFD);
-	info->irq = 0;
-    }
-
-			
-    /* De-allocate all AGP resources */
-    if (info->agpMemHandle) {
-	drmAgpUnbind(dpy->drmFD, info->agpMemHandle);
-	drmAgpFree(dpy->drmFD, info->agpMemHandle);
-	info->agpMemHandle = 0;
-	drmAgpRelease(dpy->drmFD);
-    }
-
-				/* De-allocate all DRI resources */
-/*     if (dpy->drmSIGIOHandlerInstalled)  */
-/*        drmRemoveSIGIOHandler(dpy->drmFD); */
-
-    DRM_UNLOCK(dpy->drmFD, dpy->pSAREA, dpy->serverContext);
-
-
-    drmUnmap(dpy->pSAREA, dpy->SAREASize);
-#endif
-
-
     drmClose(dpy->drmFD);
-
-    free(info);
+    free(dpy->driverInfo);
     dpy->driverInfo = 0;
 }
