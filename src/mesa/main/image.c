@@ -1,4 +1,4 @@
-/* $Id: image.c,v 1.35.4.2 2000/10/05 16:23:18 brianp Exp $ */
+/* $Id: image.c,v 1.35.4.3 2000/11/05 21:24:00 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -630,7 +630,7 @@ _mesa_pack_rgba_span( GLcontext *ctx,
    }
    else if (!applyTransferOps && format == GL_RGB && type == GL_UNSIGNED_BYTE) {
       /* common simple case */
-      GLint i;
+      GLuint i;
       GLubyte *dest = (GLubyte *) destination;
       for (i = 0; i < n; i++) {
          dest[0] = srcRgba[i][RCOMP];
@@ -3016,7 +3016,7 @@ _mesa_unpack_depth_span( const GLcontext *ctx, GLuint n, GLdepth *dest,
                          const struct gl_pixelstore_attrib *unpacking,
                          GLboolean applyTransferOps )
 {
-   GLfloat *depth = MALLOC(n * sizeof(GLfloat));
+   GLfloat *depth = (GLfloat *) MALLOC(n * sizeof(GLfloat));
    if (!depth)
       return;
 
@@ -3147,7 +3147,7 @@ _mesa_unpack_image( GLsizei width, GLsizei height, GLsizei depth,
    }
 
    {
-      GLubyte *destBuffer = MALLOC(bytesPerRow * height * depth);
+      GLubyte *destBuffer = (GLubyte *) MALLOC(bytesPerRow * height * depth);
       GLubyte *dst;
       GLint img, row;
       if (!destBuffer)
@@ -3201,9 +3201,8 @@ _mesa_unpack_bitmap( GLint width, GLint height, const GLubyte *pixels,
    width_in_bytes = CEILING( width, 8 );
    dst = buffer;
    for (row = 0; row < height; row++) {
-      GLubyte *src = _mesa_image_address( packing, pixels, width, height,
-                                          GL_COLOR_INDEX, GL_BITMAP,
-                                          0, row, 0 );
+      GLubyte *src = (GLubyte *) _mesa_image_address(packing, pixels, width,
+                                 height, GL_COLOR_INDEX, GL_BITMAP, 0, row, 0);
       if (!src) {
          FREE(buffer);
          return NULL;
@@ -3296,7 +3295,7 @@ _mesa_pack_bitmap( GLint width, GLint height, const GLubyte *source,
    width_in_bytes = CEILING( width, 8 );
    src = source;
    for (row = 0; row < height; row++) {
-      GLubyte *dst = _mesa_image_address( packing, dest, width, height,
+      GLubyte *dst = (GLubyte *) _mesa_image_address( packing, dest, width, height,
                                           GL_COLOR_INDEX, GL_BITMAP,
                                           0, row, 0 );
       if (!dst)

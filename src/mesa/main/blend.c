@@ -1,4 +1,4 @@
-/* $Id: blend.c,v 1.16.4.2 2000/10/22 23:10:49 gareth Exp $ */
+/* $Id: blend.c,v 1.16.4.3 2000/11/05 21:24:00 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -890,7 +890,7 @@ _mesa_blend_span( GLcontext *ctx, GLuint n, GLint x, GLint y,
    if (!ctx->Color.BlendFunc)
       set_blend_function(ctx);
 
-   (*ctx->Color.BlendFunc)( ctx, n, mask, rgba, (const GLubyte (*)[4])dest );
+   (*ctx->Color.BlendFunc)( ctx, n, mask, rgba, (CONST GLubyte (*)[4])dest );
 }
 
 
@@ -925,5 +925,5 @@ _mesa_blend_pixels( GLcontext *ctx,
    if (!ctx->Color.BlendFunc)
       set_blend_function(ctx);
 
-   (*ctx->Color.BlendFunc)( ctx, n, mask, rgba, (const GLubyte (*)[4])dest );
+   (*ctx->Color.BlendFunc)( ctx, n, mask, rgba, (CONST GLubyte (*)[4])dest );
 }

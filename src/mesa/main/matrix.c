@@ -1,4 +1,4 @@
-/* $Id: matrix.c,v 1.18.4.1 2000/07/31 15:31:17 brianp Exp $ */
+/* $Id: matrix.c,v 1.18.4.2 2000/11/05 21:24:01 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -764,18 +764,16 @@ static void analyze_from_scratch( GLmatrix *mat )
 
    /* Do the real work
     */
-   if (mask == MASK_IDENTITY) {
+   if (mask == (GLuint) MASK_IDENTITY) {
       mat->type = MATRIX_IDENTITY;
    }
-   else if ((mask & MASK_2D_NO_ROT) == MASK_2D_NO_ROT)  
-   {
+   else if ((mask & MASK_2D_NO_ROT) == (GLuint) MASK_2D_NO_ROT) {
       mat->type = MATRIX_2D_NO_ROT;
       
       if ((mask & MASK_NO_2D_SCALE) != MASK_NO_2D_SCALE)
 	 mat->flags = MAT_FLAG_GENERAL_SCALE;
    }
-   else if ((mask & MASK_2D) == MASK_2D)  
-   {
+   else if ((mask & MASK_2D) == (GLuint) MASK_2D) {
       GLfloat mm = DOT2(m, m);
       GLfloat m4m4 = DOT2(m+4,m+4);
       GLfloat mm4 = DOT2(m,m+4);
@@ -794,8 +792,7 @@ static void analyze_from_scratch( GLmatrix *mat )
 	 mat->flags |= MAT_FLAG_ROTATION;
 
    }
-   else if ((mask & MASK_3D_NO_ROT) == MASK_3D_NO_ROT)
-   {
+   else if ((mask & MASK_3D_NO_ROT) == (GLuint) MASK_3D_NO_ROT) {
       mat->type = MATRIX_3D_NO_ROT;
 
       /* Check for scale */
@@ -806,8 +803,7 @@ static void analyze_from_scratch( GLmatrix *mat )
       } else
 	 mat->flags |= MAT_FLAG_GENERAL_SCALE;
    }
-   else if ((mask & MASK_3D) == MASK_3D)
-   {
+   else if ((mask & MASK_3D) == (GLuint) MASK_3D) {
       GLfloat c1 = DOT3(m,m);
       GLfloat c2 = DOT3(m+4,m+4);
       GLfloat c3 = DOT3(m+8,m+8);

@@ -1,4 +1,4 @@
-/* $Id: state.c,v 1.21.4.4 2000/10/31 19:57:39 brianp Exp $ */
+/* $Id: state.c,v 1.21.4.5 2000/11/05 21:24:01 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -775,7 +775,7 @@ static void update_pixel_masking( GLcontext *ctx )
 
 static void update_fog_mode( GLcontext *ctx )
 {
-   int old_mode = ctx->FogMode;
+   const GLuint old_mode = ctx->FogMode;
 
    if (ctx->Fog.Enabled) {
       if (ctx->Texture.ReallyEnabled)

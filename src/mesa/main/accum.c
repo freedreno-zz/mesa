@@ -1,4 +1,4 @@
-/* $Id: accum.c,v 1.23.2.1 2000/10/17 00:24:11 brianp Exp $ */
+/* $Id: accum.c,v 1.23.2.2 2000/11/05 21:24:00 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -360,10 +360,11 @@ _mesa_Accum( GLenum op, GLfloat value )
             static GLchan multTable[32768];
             static GLfloat prevMult = 0.0;
             GLuint j;
-            const GLint max = MIN2((GLint) (256 / mult), 32767);
+            GLint k;
+            const GLint max = MIN2((GLuint) (256 / mult), 32767);
             if (mult != prevMult) {
-               for (j = 0; j < max; j++)
-                  multTable[j] = (GLint) ((GLfloat) j * mult + 0.5F);
+               for (k = 0; k < max; k++)
+                  multTable[k] = (GLint) ((GLfloat) k * mult + 0.5F);
                prevMult = mult;
             }
 
@@ -386,7 +387,7 @@ _mesa_Accum( GLenum op, GLfloat value )
                   _mesa_mask_rgba_span( ctx, width, xpos, ypos, rgba );
                }
                (*ctx->Driver.WriteRGBASpan)( ctx, width, xpos, ypos, 
-                                             (const GLubyte (*)[4])rgba, NULL );
+                                          (CONST GLubyte (*)[4]) rgba, NULL );
                ypos++;
             }
          }
@@ -413,7 +414,7 @@ _mesa_Accum( GLenum op, GLfloat value )
                   _mesa_mask_rgba_span( ctx, width, xpos, ypos, rgba );
                }
                (*ctx->Driver.WriteRGBASpan)( ctx, width, xpos, ypos, 
-                                             (const GLubyte (*)[4])rgba, NULL );
+                                          (CONST GLubyte (*)[4]) rgba, NULL );
                ypos++;
             }
 	 }

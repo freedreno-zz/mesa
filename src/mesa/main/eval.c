@@ -1,4 +1,4 @@
-/* $Id: eval.c,v 1.10 2000/07/20 15:53:17 keithw Exp $ */
+/* $Id: eval.c,v 1.10.2.1 2000/11/05 21:24:00 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -110,8 +110,8 @@ static void
 horner_bezier_curve(const GLfloat *cp, GLfloat *out, GLfloat t,
                     GLuint dim, GLuint order)
 {
-  GLfloat s, powert;
-  GLuint i, k, bincoeff;
+  GLfloat s, powert, bincoeff;
+  GLuint i, k;
 
   if(order >= 2)
   { 
@@ -162,8 +162,8 @@ horner_bezier_surf(GLfloat *cn, GLfloat *out, GLfloat u, GLfloat v,
   {
     if(uorder >= 2)
     { 
-      GLfloat s, poweru;
-      GLuint j, k, bincoeff;
+      GLfloat s, poweru, bincoeff;
+      GLuint j, k;
 
       /* Compute the control polygon for the surface-curve in u-direction */
       for(j=0; j<vorder; j++)

@@ -1,4 +1,4 @@
-/* $Id: teximage.c,v 1.39.4.7 2000/10/16 23:37:16 brianp Exp $ */
+/* $Id: teximage.c,v 1.39.4.8 2000/11/05 21:24:01 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -53,50 +53,50 @@
 #ifdef DEBUG
 static void PrintTexture(const struct gl_texture_image *img)
 {
-  int i, j, c;
-  GLubyte *data = img->Data;
+   GLuint i, j, c;
+   GLubyte *data = img->Data;
 
-  if (!data) {
-     printf("No texture data\n");
-     return;
-  }
+   if (!data) {
+      printf("No texture data\n");
+      return;
+   }
 
-  switch (img->Format) {
-     case GL_ALPHA:
-     case GL_LUMINANCE:
-     case GL_INTENSITY:
-     case GL_COLOR_INDEX:
-        c = 1;
-        break;
-     case GL_LUMINANCE_ALPHA:
-        c = 2;
-        break;
-     case GL_RGB:
-        c = 3;
-        break;
-     case GL_RGBA:
-        c = 4;
-        break;
-     default:
-        gl_problem(NULL, "error in PrintTexture\n");
-        return;
-  }
+   switch (img->Format) {
+      case GL_ALPHA:
+      case GL_LUMINANCE:
+      case GL_INTENSITY:
+      case GL_COLOR_INDEX:
+         c = 1;
+         break;
+      case GL_LUMINANCE_ALPHA:
+         c = 2;
+         break;
+      case GL_RGB:
+         c = 3;
+         break;
+      case GL_RGBA:
+         c = 4;
+         break;
+      default:
+         gl_problem(NULL, "error in PrintTexture\n");
+         return;
+   }
 
 
-  for (i = 0; i < img->Height; i++) {
-    for (j = 0; j < img->Width; j++) {
-      if (c==1)
-        printf("%02x  ", data[0]);
-      else if (c==2)
-        printf("%02x%02x  ", data[0], data[1]);
-      else if (c==3)
-        printf("%02x%02x%02x  ", data[0], data[1], data[2]);
-      else if (c==4)
-        printf("%02x%02x%02x%02x  ", data[0], data[1], data[2], data[3]);
-      data += c;
-    }
-    printf("\n");
-  }
+   for (i = 0; i < img->Height; i++) {
+      for (j = 0; j < img->Width; j++) {
+         if (c==1)
+            printf("%02x  ", data[0]);
+         else if (c==2)
+            printf("%02x%02x  ", data[0], data[1]);
+         else if (c==3)
+            printf("%02x%02x%02x  ", data[0], data[1], data[2]);
+         else if (c==4)
+            printf("%02x%02x%02x%02x  ", data[0], data[1], data[2], data[3]);
+         data += c;
+      }
+      printf("\n");
+   }
 }
 #endif
 
@@ -699,7 +699,7 @@ make_texture_image( GLcontext *ctx,
        && !ctx->Pixel.IndexOffset && !ctx->Pixel.IndexShift
        && srcType == GL_UNSIGNED_BYTE && depth == 1) {
 
-      if (srcFormat == internalFormat ||
+      if ((GLint) srcFormat == internalFormat ||
           (srcFormat == GL_LUMINANCE && internalFormat == 1) ||
           (srcFormat == GL_LUMINANCE_ALPHA && internalFormat == 2) ||
           (srcFormat == GL_RGB && internalFormat == 3) ||
@@ -825,13 +825,14 @@ make_null_texture( struct gl_texture_image *texImage )
       };
 
       GLubyte *imgPtr = texImage->Data;
-      GLint i, j, k;
+      GLuint i, j;
+      GLint k;
       for (i = 0; i < texImage->Height; i++) {
          GLint srcRow = 7 - i % 8;
          for (j = 0; j < texImage->Width; j++) {
             GLint srcCol = j % 32;
             GLint texel = (message[srcRow][srcCol]=='X') ? 255 : 70;
-            for (k=0;k<components;k++) {
+            for (k = 0; k < components; k++) {
                *imgPtr++ = (GLubyte) texel;
             }
          }
@@ -2153,7 +2154,7 @@ _mesa_GetTexImage( GLenum target, GLint level, GLenum format,
                default:
                   gl_problem( ctx, "bad format in gl_GetTexImage" );
             }
-            _mesa_pack_rgba_span( ctx, width, (const GLubyte (*)[4])rgba,
+            _mesa_pack_rgba_span( ctx, width, (CONST GLubyte (*)[4])rgba,
                                   format, type, dest, &ctx->Pack, GL_TRUE );
          }
       }
@@ -2307,8 +2308,9 @@ _mesa_TexSubImage2D( GLenum target, GLint level,
          /* color index texture */
          GLubyte *dst = texImage->Data
                     + (yoffsetb * texImage->Width + xoffsetb) * texComponents;
-         const GLubyte *src = _mesa_image_address(&ctx->Unpack, pixels,
-                                     width, height, format, type, 0, 0, 0);
+         const GLubyte *src = (const GLubyte *)
+            _mesa_image_address(&ctx->Unpack, pixels, width, height, format,
+                                type, 0, 0, 0);
          GLint row;
          for (row = 0; row < height; row++) {
             _mesa_unpack_index_span(ctx, width, GL_UNSIGNED_BYTE, dst, type,
@@ -2321,8 +2323,9 @@ _mesa_TexSubImage2D( GLenum target, GLint level,
          /* color texture */
          GLubyte *dst = texImage->Data
                     + (yoffsetb * texImage->Width + xoffsetb) * texComponents;
-         const GLubyte *src = _mesa_image_address(&ctx->Unpack, pixels,
-                                     width, height, format, type, 0, 0, 0);
+         const GLubyte *src = (const GLubyte *)
+            _mesa_image_address(&ctx->Unpack, pixels, width, height, format,
+                                type, 0, 0, 0);
          GLint row;
          for (row = 0; row < height; row++) {
             _mesa_unpack_ubyte_color_span(ctx, width, texFormat, dst, format,
@@ -2412,8 +2415,9 @@ _mesa_TexSubImage3D( GLenum target, GLint level,
          /* color index texture */
          GLint img, row;
          for (img = 0; img < depth; img++) {
-            const GLubyte *src = _mesa_image_address(&ctx->Unpack, pixels,
-                                    width, height, format, type, img, 0, 0);
+            const GLubyte *src = (const GLubyte *)
+               _mesa_image_address(&ctx->Unpack, pixels, width, height,
+                                   format, type, img, 0, 0);
             GLubyte *dst = texImage->Data + ((zoffsetb + img) * dstRectArea
                      + yoffsetb * texWidth + xoffsetb) * texComponents;
             for (row = 0; row < height; row++) {
@@ -2428,8 +2432,9 @@ _mesa_TexSubImage3D( GLenum target, GLint level,
          /* color texture */
          GLint img, row;
          for (img = 0; img < depth; img++) {
-            const GLubyte *src = _mesa_image_address(&ctx->Unpack, pixels,
-                                     width, height, format, type, img, 0, 0);
+            const GLubyte *src = (const GLubyte *)
+               _mesa_image_address(&ctx->Unpack, pixels, width, height,
+                                   format, type, img, 0, 0);
             GLubyte *dst = texImage->Data + ((zoffsetb + img) * dstRectArea
                      + yoffsetb * texWidth + xoffsetb) * texComponents;
             for (row = 0; row < height; row++) {
@@ -2787,7 +2792,7 @@ _mesa_CompressedTexImage1DARB(GLenum target, GLint level,
                 gl_error(ctx, GL_INVALID_VALUE, "glCompressedTexImage1DARB(imageSize)");
                 return;
             }
-            texImage->Data = MALLOC(computedImageSize);
+            texImage->Data = (GLubyte *) MALLOC(computedImageSize);
             if (texImage->Data) {
                MEMCPY(texImage->Data, data, computedImageSize);
             }
@@ -2922,7 +2927,7 @@ _mesa_CompressedTexImage2DARB(GLenum target, GLint level,
                 gl_error(ctx, GL_INVALID_VALUE, "glCompressedTexImage2DARB(imageSize)");
                 return;
             }
-            texImage->Data = MALLOC(computedImageSize);
+            texImage->Data = (GLubyte *) MALLOC(computedImageSize);
             if (texImage->Data) {
                MEMCPY(texImage->Data, data, computedImageSize);
             }
@@ -3051,7 +3056,7 @@ _mesa_CompressedTexImage3DARB(GLenum target, GLint level,
                 gl_error(ctx, GL_INVALID_VALUE, "glCompressedTexImage3DARB(imageSize)");
                 return;
             }
-            texImage->Data = MALLOC(computedImageSize);
+            texImage->Data = (GLubyte *) MALLOC(computedImageSize);
             if (texImage->Data) {
                MEMCPY(texImage->Data, data, computedImageSize);
             }

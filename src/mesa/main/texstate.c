@@ -1,4 +1,4 @@
-/* $Id: texstate.c,v 1.15.4.1 2000/08/01 17:33:51 brianp Exp $ */
+/* $Id: texstate.c,v 1.15.4.2 2000/11/05 21:24:01 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -1592,7 +1592,7 @@ void
 _mesa_ActiveTextureARB( GLenum target )
 {
    GET_CURRENT_CONTEXT(ctx);
-   GLint maxUnits = ctx->Const.MaxTextureUnits;
+   const GLuint maxUnits = ctx->Const.MaxTextureUnits;
 
    ASSERT_OUTSIDE_BEGIN_END( ctx, "glActiveTextureARB" );
 
@@ -1619,7 +1619,7 @@ void
 _mesa_ClientActiveTextureARB( GLenum target )
 {
    GET_CURRENT_CONTEXT(ctx);
-   GLint maxUnits = ctx->Const.MaxTextureUnits;
+   const GLuint maxUnits = ctx->Const.MaxTextureUnits;
 
    ASSERT_OUTSIDE_BEGIN_END( ctx, "glClientActiveTextureARB" );
 

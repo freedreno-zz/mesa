@@ -274,7 +274,7 @@ typedef struct {
 } tfxMipMapLevel;
 
 typedef struct tfxTexInfo_t {
-  struct tfxTexInfo *next;
+  struct tfxTexInfo_t *next;
   struct gl_texture_object *tObj;
 
   GLuint lastTimeUsed;

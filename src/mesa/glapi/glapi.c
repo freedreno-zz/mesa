@@ -1,4 +1,4 @@
-/* $Id: glapi.c,v 1.42.4.1 2000/10/19 20:14:57 brianp Exp $ */
+/* $Id: glapi.c,v 1.42.4.2 2000/11/05 21:24:00 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -1565,7 +1565,7 @@ _glapi_add_entrypoint(const char *funcName, GLuint offset)
    {
       GLint index = get_static_proc_offset(funcName);
       if (index >= 0) {
-         return (GLboolean) (index == offset);  /* bad offset! */
+         return (GLboolean) (index == (GLint) offset);  /* bad offset! */
       }
    }
 
@@ -1673,7 +1673,7 @@ GLint
 _glapi_get_proc_offset(const char *funcName)
 {
    /* search extension functions first */
-   GLint i;
+   GLuint i;
    for (i = 0; i < NumExtEntryPoints; i++) {
       if (strcmp(ExtEntryTable[i].Name, funcName) == 0) {
          return ExtEntryTable[i].Offset;
@@ -1693,7 +1693,7 @@ const GLvoid *
 _glapi_get_proc_address(const char *funcName)
 {
    /* search extension functions first */
-   GLint i;
+   GLuint i;
    for (i = 0; i < NumExtEntryPoints; i++) {
       if (strcmp(ExtEntryTable[i].Name, funcName) == 0) {
          return ExtEntryTable[i].Address;
