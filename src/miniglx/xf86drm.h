@@ -60,6 +60,11 @@ typedef unsigned int  drmContext,  *drmContextPtr;  /**< GLXContext handle */
 typedef unsigned int  drmDrawable, *drmDrawablePtr; /**< Unused */
 typedef unsigned int  drmMagic,    *drmMagicPtr;    /**< Magic for auth */
 
+/**
+ * \brief Driver version information.
+ *
+ * \sa drmGetVersion() and drmSetVersion().
+ */
 typedef struct _drmVersion {
     int     version_major;        /**< Major version */
     int     version_minor;        /**< Minor version */
