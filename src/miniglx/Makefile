@@ -9,14 +9,14 @@ OBJS = $(SOURCES:.c=.o)
 INCLUDES = -I. -I.. -I../../include
 CFLAGS = -c -g $(INCLUDES) -MD 
 
-LIBS = -ldl -L/usr/X11R6/lib -lX11
+LIBS = -ldl 
 
 
 
 default: libGL.so.1.2 libGL.so.1 libGL.so
 
 
-libGL.so.1.2: $(OBJS)
+libGL.so.1.2: $(OBJS) Makefile
 	gcc -shared -Wl,-soname,libGL.so -Wl,-Bsymbolic $(OBJS) $(LIBS) -o $@
 
 libGL.so.1:
