@@ -1,4 +1,4 @@
-/* $Id: sample_server2.c,v 1.1.2.1 2003/04/17 15:47:48 keithw Exp $ */
+/* $Id: sample_server2.c,v 1.1.2.2 2003/04/25 09:37:29 keithw Exp $ */
 
 /*
  * Sample server that just keeps first available window mapped.
@@ -63,14 +63,15 @@ int main( int argc, char *argv[] )
       int r, n;
       struct timeval tv;
       fd_set rfds, wfds;
+      int bored = 0;
 
       FD_ZERO(&rfds);
       FD_ZERO(&wfds);
-      tv.tv_sec = 10;
+      tv.tv_sec = 1;
       tv.tv_usec = 0;
 
       if (rbuf_count) {
-	 FD_SET( 1, &rfds );	/* notify when we can write out buffer */
+	 FD_SET( 1, &wfds );	/* notify when we can write out buffer */
 	 n = 1;
       }
       else {
@@ -95,6 +96,9 @@ int main( int argc, char *argv[] )
 	 exit (1);
       }
 
+      if (tv.tv_sec == 0 && tv.tv_usec == 0)
+	 bored = 1;
+
       /* Check and handle events on our local file descriptors
        */
       if (FD_ISSET( 0, &rfds )) {
@@ -106,9 +110,8 @@ int main( int argc, char *argv[] )
 	    exit(1);
 	 }
 	 rbuf_count = r;
-
       }
-      
+
       if (FD_ISSET( 1, &wfds )) {
 	 /* Can write to stdout */
 	 assert(rbuf_count > 0);
@@ -117,7 +120,6 @@ int main( int argc, char *argv[] )
 	    perror("write");
 	    exit(1);
 	 }
-
 	 rbuf_count -= r;
 	 if (rbuf_count) 
 	    memmove(rbuf + r, rbuf, rbuf_count);
@@ -128,6 +130,9 @@ int main( int argc, char *argv[] )
        */
       while (XCheckMaskEvent( dpy, ~0, &ev )) {
 	 struct client *c;
+	 bored = 0;
+
+	 fprintf(stderr, "Received event %d\n", ev.type);
 
 	 switch (ev.type) {
 	 case CreateNotify: 
@@ -191,6 +196,22 @@ int main( int argc, char *argv[] )
 	       break;
 	    }
 	 }
+      }
+      else if (bored) {
+	 struct client *c;
+	 /* bored of mapped client now, let's try & find another one */
+	 for (c = mapped_client->next ; c && !c->mappable ; c = c->next)
+	    ;
+	 if (!c)
+	    for (c = clients ; c && !c->mappable ; c = c->next)
+	       ;
+	 if (c && c != mapped_client) {
+	    XUnmapWindow( dpy, mapped_client->windowid );
+	    XMapWindow( dpy, c->windowid );
+	    mapped_client = c;
+	 }
+	 else 
+	    fprintf(stderr, "I'm bored!\n");
       }
    }
 
