@@ -1,4 +1,4 @@
-/* $Id: state.c,v 1.21.4.3 2000/10/21 01:22:13 brianp Exp $ */
+/* $Id: state.c,v 1.21.4.4 2000/10/31 19:57:39 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -934,21 +934,23 @@ void gl_update_state( GLcontext *ctx )
       ctx->Texture.Unit[1].LastEnvMode = ctx->Texture.Unit[1].EnvMode;
    }
 
-   if (ctx->NewState & NEW_TEXTURE_MATRIX) {
-      ctx->Enabled &= ~(ENABLE_TEXMAT0|ENABLE_TEXMAT1);
+   /* Update ctx->Enabled's ENABLE_TEXMATn flags */
+   if (ctx->NewState & (NEW_TEXTURE_MATRIX | NEW_TEXTURE_ENABLE)) {
+      ctx->Enabled &= ~(ENABLE_TEXMAT0 | ENABLE_TEXMAT1);
 
       for (i=0; i < MAX_TEXTURE_UNITS; i++) {
 	 if (ctx->TextureMatrix[i].flags & MAT_DIRTY_ALL_OVER) {
 	    gl_matrix_analyze( &ctx->TextureMatrix[i] );
 	    ctx->TextureMatrix[i].flags &= ~MAT_DIRTY_DEPENDENTS;
-
-	    if (ctx->Texture.Unit[i].Enabled &&
-		ctx->TextureMatrix[i].type != MATRIX_IDENTITY)
-	       ctx->Enabled |= ENABLE_TEXMAT0 << i;
 	 }
+         if (ctx->Texture.Unit[i].Enabled &&
+             ctx->TextureMatrix[i].type != MATRIX_IDENTITY) {
+            ctx->Enabled |= ENABLE_TEXMAT0 << i;
+         }
       }
    }
 
+   /* Update ctx->Enabled's ENABLE_TEXGENn and ENABLE_TEXn flags */
    if (ctx->NewState & (NEW_TEXTURING | NEW_TEXTURE_ENABLE)) {
       ctx->Texture.NeedNormals = GL_FALSE;
       gl_update_dirty_texobjs(ctx);
