@@ -1,4 +1,4 @@
-/* $Id: context.c,v 1.18.2.4 1999/11/30 20:31:57 brianp Exp $ */
+/* $Id: context.c,v 1.18.2.5 1999/12/01 12:45:42 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -1571,7 +1571,7 @@ void gl_make_current( GLcontext *ctx, GLframebuffer *buffer )
     * first time each context is made current we'll print some useful
     * information.
     */
-   if (ctx->FirstTimeCurrent) {
+   if (ctx && ctx->FirstTimeCurrent) {
       if (getenv("MESA_INFO")) {
          fprintf(stderr, "Mesa GL_VERSION = %s\n", (char *) gl_GetString(ctx, GL_VERSION));
          fprintf(stderr, "Mesa GL_RENDERER = %s\n", (char *) gl_GetString(ctx, GL_RENDERER));
