@@ -1,4 +1,4 @@
-/* $Id: context.c,v 1.18.2.8 2000/03/06 16:59:26 brianp Exp $ */
+/* $Id: context.c,v 1.18.2.9 2000/05/26 18:21:10 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -1713,7 +1713,7 @@ void gl_set_api_table( GLcontext *ctx, const struct gl_api_table *api )
 void gl_problem( const GLcontext *ctx, const char *s )
 {
    fprintf( stderr, "Mesa implementation error: %s\n", s );
-   fprintf( stderr, "Report to mesa-bugs@mesa3d.org\n" );
+   fprintf( stderr, "Report to Mesa bug database at www.mesa3d.org\n" );
    (void) ctx;
 }
 
