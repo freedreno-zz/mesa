@@ -27,7 +27,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: dlist.c,v 1.100.4.1 2003/03/02 00:27:34 jrfonseca Exp $ */
+/* $Id: dlist.c,v 1.100.4.2 2003/03/09 10:52:20 jrfonseca Exp $ */
 
 #include "glheader.h"
 #include "imports.h"
@@ -315,7 +315,7 @@ static Node *make_empty_list( void )
 
 /*
  * Destroy all nodes in a display list.
- * Input:  list - display list number
+ * \param list - display list number
  */
 void _mesa_destroy_list( GLcontext *ctx, GLuint list )
 {
@@ -657,9 +657,9 @@ void _mesa_init_lists( void )
 
 /*
  * Allocate space for a display list instruction.
- * Input:  opcode - type of instruction
+ * \param opcode - type of instruction
  *         argcount - size in bytes of data required.
- * Return: pointer to the usable data area (not including the internal
+ * \return pointer to the usable data area (not including the internal
  *         opcode).
  */
 void *
@@ -4193,7 +4193,7 @@ islist(GLcontext *ctx, GLuint list)
  * Execute a display list.  Note that the ListBase offset must have already
  * been added before calling this function.  I.e. the list argument is
  * the absolute list number, not relative to ListBase.
- * Input:  list - display list number
+ * \param list - display list number
  */
 static void
 execute_list( GLcontext *ctx, GLuint list )

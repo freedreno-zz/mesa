@@ -1,4 +1,4 @@
-/* $Id: teximage.c,v 1.124 2002/10/30 19:58:58 brianp Exp $ */
+/* $Id: teximage.c,v 1.124.4.1 2003/03/09 10:52:21 jrfonseca Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -757,9 +757,9 @@ _mesa_init_teximage_fields(GLcontext *ctx, GLenum target,
 
 /*
  * Test glTexImage[123]D() parameters for errors.
- * Input:
+ * \param
  *         dimensions - must be 1 or 2 or 3
- * Return:  GL_TRUE = an error was detected, GL_FALSE = no errors
+ * \return GL_TRUE = an error was detected, GL_FALSE = no errors
  */
 static GLboolean
 texture_error_check( GLcontext *ctx, GLenum target,
@@ -1046,9 +1046,9 @@ texture_error_check( GLcontext *ctx, GLenum target,
 
 /*
  * Test glTexSubImage[123]D() parameters for errors.
- * Input:
+ * \param
  *         dimensions - must be 1 or 2 or 3
- * Return:  GL_TRUE = an error was detected, GL_FALSE = no errors
+ * \return GL_TRUE = an error was detected, GL_FALSE = no errors
  */
 static GLboolean
 subtexture_error_check( GLcontext *ctx, GLuint dimensions,
@@ -1213,8 +1213,8 @@ subtexture_error_check( GLcontext *ctx, GLuint dimensions,
 
 /*
  * Test glCopyTexImage[12]D() parameters for errors.
- * Input:  dimensions - must be 1 or 2 or 3
- * Return:  GL_TRUE = an error was detected, GL_FALSE = no errors
+ * \param dimensions - must be 1 or 2 or 3
+ * \return GL_TRUE = an error was detected, GL_FALSE = no errors
  */
 static GLboolean
 copytexture_error_check( GLcontext *ctx, GLuint dimensions,

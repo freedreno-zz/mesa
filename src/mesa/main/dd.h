@@ -27,7 +27,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: dd.h,v 1.74.6.1 2003/03/02 00:27:33 jrfonseca Exp $ */
+/* $Id: dd.h,v 1.74.6.2 2003/03/09 10:52:20 jrfonseca Exp $ */
 
 
 #ifndef DD_INCLUDED
@@ -74,10 +74,11 @@ struct dd_function_table {
    /**
     * \brief Clear the color/depth/stencil/accum buffer(s).
     *
-    * \p mask is a bitmask of the DD_*_BIT values defined above that indicates
+    * \param mask a bitmask of the DD_*_BIT values defined above that indicates
     * which buffers need to be cleared.
-    * If \p all is true then clear the whole buffer, else clear only the
-    * region defined by \c (x, y, width, height).
+    * \param all if true then clear the whole buffer, else clear only the
+    * region defined by <c>(x, y, width, height)</c>.
+    * 
     * This function must obey the glColorMask(), glIndexMask() and glStencilMask()
     * settings!
     * Software Mesa can do masked clears if the device driver can't.
@@ -580,7 +581,7 @@ struct dd_function_table {
    void (*DepthFunc)(GLcontext *ctx, GLenum func);
    void (*DepthMask)(GLcontext *ctx, GLboolean flag);
    void (*DepthRange)(GLcontext *ctx, GLclampd nearval, GLclampd farval);
-   void (*Enable)(GLcontext* ctx, GLenum cap, GLboolean state);
+   void (*Enable)(GLcontext *ctx, GLenum cap, GLboolean state);
    void (*Fogfv)(GLcontext *ctx, GLenum pname, const GLfloat *params);
    void (*Hint)(GLcontext *ctx, GLenum target, GLenum mode);
    void (*IndexMask)(GLcontext *ctx, GLuint mask);

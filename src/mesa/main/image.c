@@ -1,4 +1,4 @@
-/* $Id: image.c,v 1.69.4.1 2002/12/30 15:20:35 keithw Exp $ */
+/* $Id: image.c,v 1.69.4.2 2003/03/09 10:52:20 jrfonseca Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -417,14 +417,14 @@ _mesa_is_legal_format_and_type( GLenum format, GLenum type )
 /*
  * Return the address of a pixel in an image (actually a volume).
  * Pixel unpacking/packing parameters are observed according to 'packing'.
- * Input:  image - start of image data
+ * \param image - start of image data
  *         width, height - size of image
  *         format - image format
  *         type - pixel component type
  *         packing - the pixelstore attributes
  *         img - which image in the volume (0 for 1D or 2D images)
  *         row, column - location of pixel in the image
- * Return:  address of pixel at (image,row,column) in image or NULL if error.
+ * \return address of pixel at (image,row,column) in image or NULL if error.
  */
 GLvoid *
 _mesa_image_address( const struct gl_pixelstore_attrib *packing,
@@ -1782,7 +1782,7 @@ _mesa_pack_float_rgba_span( GLcontext *ctx,
  * Optionally apply the enabled pixel transfer ops.
  * Pack into memory using the given packing params struct.
  * This is used by glReadPixels and glGetTexImage?D()
- * Input:  ctx - the context
+ * \param ctx - the context
  *         n - number of pixels in the span
  *         rgba - the pixels
  *         format - dest packing format
@@ -2539,7 +2539,7 @@ extract_float_rgba(GLuint n, GLfloat rgba[][4],
  * the pixel unpacking parameters.
  * Return GLubyte values in the specified dest image format.
  * This is (or will be) used by glDrawPixels and glTexImage?D().
- * Input:  ctx - the context
+ * \param ctx - the context
  *         n - number of pixels in the span
  *         dstFormat - format of destination color array
  *         dest - the destination color array

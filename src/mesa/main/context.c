@@ -28,7 +28,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: context.c,v 1.188.2.1.2.6 2003/03/05 14:22:21 keithw Exp $ */
+/* $Id: context.c,v 1.188.2.1.2.7 2003/03/09 10:52:20 jrfonseca Exp $ */
 
 /**
  * \mainpage Mesa Core Module
@@ -134,8 +134,15 @@ free_shared_state( GLcontext *ctx, struct gl_shared_state *ss );
 /*@{*/
 
 /**
- * Called by window system/device driver (via gc->exports.destroyCurrent())
- * when the rendering context is to be destroyed.
+ * \brief Destroy context callback.
+ * 
+ * \param gc context.
+ * \return GL_TRUE on success, or GL_FALSE on failure.
+ * 
+ * Called by window system/device driver (via __GLexports::destroyCurrent) when
+ * the rendering context is to be destroyed.
+ *
+ * Frees the context data and the context structure.
  */
 GLboolean
 _mesa_destroyContext(__GLcontext *gc)
@@ -148,8 +155,15 @@ _mesa_destroyContext(__GLcontext *gc)
 }
 
 /**
- * Called by window system/device driver (via gc->exports.loseCurrent())
+ * \brief Unbind context callback.
+ * 
+ * \param gc context.
+ * \return GL_TRUE on success, or GL_FALSE on failure.
+ *
+ * Called by window system/device driver (via __GLexports::loseCurrent)
  * when the rendering context is made non-current.
+ *
+ * No-op.
  */
 GLboolean
 _mesa_loseCurrent(__GLcontext *gc)
@@ -159,8 +173,15 @@ _mesa_loseCurrent(__GLcontext *gc)
 }
 
 /**
- * Called by window system/device driver (via gc->exports.makeCurrent())
+ * \brief Bind context callback.
+ * 
+ * \param gc context.
+ * \return GL_TRUE on success, or GL_FALSE on failure.
+ *
+ * Called by window system/device driver (via __GLexports::makeCurrent)
  * when the rendering context is made current.
+ *
+ * No-op.
  */
 GLboolean
 _mesa_makeCurrent(__GLcontext *gc)
@@ -170,8 +191,12 @@ _mesa_makeCurrent(__GLcontext *gc)
 }
 
 /**
- * Called by window system/device driver - yadda, yadda, yadda.
- * See above comments.
+ * \brief Share context callback.
+ * 
+ * \param gc context.
+ * \return GL_TRUE on success, or GL_FALSE on failure.
+ *
+ * Called by window system/device driver (via __GLexports::shareContext)
  */
 GLboolean
 _mesa_shareContext(__GLcontext *gc, __GLcontext *gcShare)
@@ -190,6 +215,9 @@ _mesa_shareContext(__GLcontext *gc, __GLcontext *gcShare)
    }
 }
 
+/**
+ * \brief Copy context callback.
+ */
 GLboolean
 _mesa_copyContext(__GLcontext *dst, const __GLcontext *src, GLuint mask)
 {
@@ -202,12 +230,19 @@ _mesa_copyContext(__GLcontext *dst, const __GLcontext *src, GLuint mask)
    }
 }
 
+/** No-op. */
 GLboolean
 _mesa_forceCurrent(__GLcontext *gc)
 {
    return GL_TRUE;
 }
 
+/**
+ * \brief Windows/buffer resizing notification callback.
+ *
+ * \param gc GL context.
+ * \return GL_TRUE on success, or GL_FALSE on failure.
+ */
 GLboolean
 _mesa_notifyResize(__GLcontext *gc)
 {
@@ -222,7 +257,13 @@ _mesa_notifyResize(__GLcontext *gc)
 }
 
 /**
+ * \brief Window/buffer destruction notification callback.
+ *
+ * \param gc GL context.
+ * 
  * Called when the context's window/buffer is going to be destroyed. 
+ *
+ * No-op.
  */
 void
 _mesa_notifyDestroy(__GLcontext *gc)
@@ -231,6 +272,10 @@ _mesa_notifyDestroy(__GLcontext *gc)
 }
 
 /**
+ * \brief Swap buffers notification callback.
+ * 
+ * \param gc GL context.
+ *
  * Called by window system just before swapping buffers.
  * We have to finish any pending rendering.
  */
@@ -240,17 +285,20 @@ _mesa_notifySwapBuffers(__GLcontext *gc)
    FLUSH_VERTICES( gc, 0 );
 }
 
+/** \brief No-op. */
 struct __GLdispatchStateRec *
 _mesa_dispatchExec(__GLcontext *gc)
 {
    return NULL;
 }
 
+/** \brief No-op. */
 void
 _mesa_beginDispatchOverride(__GLcontext *gc)
 {
 }
 
+/** \brief No-op. */
 void
 _mesa_endDispatchOverride(__GLcontext *gc)
 {
@@ -330,15 +378,15 @@ __glCoreNopDispatch(void)
 /**
  * \brief Allocate a new GLvisual object.
  * 
- * \param rgbFlag GL_TRUE=RGB(A) mode, GL_FALSE=Color Index mode
- * \param dbFlag double buffering?
- * \param stereoFlag stereo buffer?
+ * \param rgbFlag GL_TRUE for RGB(A) mode, GL_FALSE for Color Index mode.
+ * \param dbFlag double buffering
+ * \param stereoFlag stereo buffer
  * \param depthBits requested bits per depth buffer value. Any value in [0, 32]
  * is acceptable but the actual depth type will be GLushort or GLuint as
  * needed.
  * \param stencilBits requested minimum bits per stencil buffer value
  * \param accumBits requested minimum bits per accum buffer component
- * \param indexBits number of bits per pixel if rgbFlag==GL_FALSE
+ * \param indexBits number of bits per pixel if \p rgbFlag is GL_FALSE
  * \param red number of bits per color component in frame buffer for RGB(A)
  * mode.  We always use 8 in core Mesa though.
  * \param green same as above.
@@ -347,6 +395,9 @@ __glCoreNopDispatch(void)
  * 
  * \return pointer to new GLvisual or NULL if requested parameters can't be
  * met.
+ *
+ * Allocates a GLvisual structure and initializes it via
+ * _mesa_initialize_visual().
  */
 GLvisual *
 _mesa_create_visual( GLboolean rgbFlag,
@@ -385,7 +436,10 @@ _mesa_create_visual( GLboolean rgbFlag,
  * 
  * \return GL_TRUE on success, or GL_FALSE on failure.
  *
- * \sa see _mesa_create_visual() above.
+ * \sa _mesa_create_visual() above for the parameter description.
+ *
+ * Makes some sanity checks and fills in the fields of the
+ * GLvisual structure with the given parameters.
  */
 GLboolean
 _mesa_initialize_visual( GLvisual *vis,
@@ -462,6 +516,13 @@ _mesa_initialize_visual( GLvisual *vis,
    return GL_TRUE;
 }
 
+/**
+ * \brief Destroy a visual.
+ *
+ * \param vis visual.
+ * 
+ * Frees the visual structure.
+ */
 void
 _mesa_destroy_visual( GLvisual *vis )
 {
@@ -489,6 +550,9 @@ _mesa_destroy_visual( GLvisual *vis )
  * \param softwareAlpha create/use a software alpha buffer?
  *
  * \return pointer to new GLframebuffer struct or NULL if error.
+ *
+ * Allocate a GLframebuffer structure and initializes it via
+ * _mesa_initialize_framebuffer().
  */
 GLframebuffer *
 _mesa_create_framebuffer( const GLvisual *visual,
@@ -510,7 +574,10 @@ _mesa_create_framebuffer( const GLvisual *visual,
 /**
  * \brief Initialize a GLframebuffer object.
  * 
- * \sa _mesa_create_framebuffer() above.
+ * \sa _mesa_create_framebuffer() above for the parameter description.
+ *
+ * Makes some sanity checks and fills in the fields of the
+ * GLframebuffer structure with the given parameters.
  */
 void
 _mesa_initialize_framebuffer( GLframebuffer *buffer,
@@ -550,9 +617,10 @@ _mesa_initialize_framebuffer( GLframebuffer *buffer,
    buffer->UseSoftwareAlphaBuffers = softwareAlpha;
 }
 
-
 /**
  * \brief Free a framebuffer struct and its buffers.
+ *
+ * Calls _mesa_free_framebuffer_data() and frees the structure.
  */
 void
 _mesa_destroy_framebuffer( GLframebuffer *buffer )
@@ -563,9 +631,12 @@ _mesa_destroy_framebuffer( GLframebuffer *buffer )
    }
 }
 
-
 /**
  * \brief Free the data hanging off of \p buffer, but not \p buffer itself.
+ *
+ * \param buffer framebuffer.
+ *
+ * Frees all the buffers associated with the structure.
  */
 void
 _mesa_free_framebuffer_data( GLframebuffer *buffer )
@@ -607,14 +678,29 @@ _mesa_free_framebuffer_data( GLframebuffer *buffer )
 
 
 /**********************************************************************/
-/** \name Context allocation, initialization, destroying       *****/
+/** \name Context allocation, initialization, destroying              */
 /**********************************************************************/
+/**
+ * The purpose of the most initalization functions here is to provide the
+ * default state values according to the OpenGL specification.
+ */
 /*@{*/
 
+/**
+ * \brief One-time initalization mutex lock.
+ *
+ * \sa Used by one_time_init().
+ */
 _glthread_DECLARE_STATIC_MUTEX(OneTimeLock);
 
 /**
- * \brief This function just calls all the various one-time-init functions in Mesa.
+ * \brief Calls all the various one-time-init functions in Mesa.
+ *
+ * While holding the OneTimeLock lock, calls several initialization functions,
+ * and sets the glapi callbacks if the \c MESA_DEBUG environment variable is
+ * defined.
+ *
+ * \sa _mesa_init_lists(), _math_init() and _mesa_init_math().
  */
 static void
 one_time_init( GLcontext *ctx )
@@ -663,6 +749,17 @@ one_time_init( GLcontext *ctx )
    _glthread_UNLOCK_MUTEX(OneTimeLock);
 }
 
+/**
+ * \brief Initialize a matrix stack.
+ *
+ * \param stack matrix stack.
+ * \param maxDepth maximum stack depth.
+ * \param dirtyFlag dirty flag.
+ * 
+ * Allocates an array of \p maxDepth elements for the matrix stack and calls
+ * _math_matrix_ctr() and _math_matrix_alloc_inv() for each element to
+ * initialize it.
+ */
 static void
 init_matrix_stack( struct matrix_stack *stack,
                    GLuint maxDepth, GLuint dirtyFlag )
@@ -681,6 +778,14 @@ init_matrix_stack( struct matrix_stack *stack,
    stack->Top = stack->Stack;
 }
 
+/**
+ * \brief Free matrix stack.
+ * 
+ * \param stack matrix stack.
+ * 
+ * Calls _math_matrix_dtr() for each element of the matrix stack and
+ * frees the array.
+ */
 static void
 free_matrix_stack( struct matrix_stack *stack )
 {
@@ -694,6 +799,13 @@ free_matrix_stack( struct matrix_stack *stack )
 
 /**
  * \brief Allocate and initialize a shared context state structure.
+ *
+ * \return pointer to a gl_shared_state structure on success, or NULL on
+ * failure.
+ *
+ * Initializes the display list, texture objects and vertex programs hash
+ * tables, allocates the texture objects. If it runs out of memory, frees
+ * everything already allocated before returing NULL.
  */
 static struct gl_shared_state *
 alloc_shared_state( void )
@@ -775,6 +887,15 @@ alloc_shared_state( void )
 
 /**
  * \brief Deallocate a shared state context and all children structures.
+ *
+ * \param ctx GL context.
+ * \param ss shared state pointer.
+ * 
+ * Frees the display lists, the texture objects (calling the driver texture
+ * deletion callback to free its private data) and the vertex programs, as well
+ * as their hash tables.
+ *
+ * \sa alloc_shared_state().
  */
 static void
 free_shared_state( GLcontext *ctx, struct gl_shared_state *ss )
@@ -818,9 +939,11 @@ free_shared_state( GLcontext *ctx, struct gl_shared_state *ss )
 }
 
 /**
- * \brief Initialize the n-th light.  
+ * \brief Initialize the n-th light data structure.
  *
- * Note that the defaults for light 0 are different than the other lights.
+ * \param l pointer to the gl_light structure to be initialized.
+ * \param n number of the light. 
+ * \note The defaults for light 0 are different than the other lights.
  */
 static void
 init_light( struct gl_light *l, GLuint n )
@@ -848,6 +971,11 @@ init_light( struct gl_light *l, GLuint n )
    l->Enabled = GL_FALSE;
 }
 
+/**
+ * \brief Initialize the light model data structure.
+ *
+ * \param lm pointer to the gl_lightmodel structure to be initialized.
+ */
 static void
 init_lightmodel( struct gl_lightmodel *lm )
 {
@@ -857,6 +985,11 @@ init_lightmodel( struct gl_lightmodel *lm )
    lm->ColorControl = GL_SINGLE_COLOR;
 }
 
+/**
+ * \brief Initalize the material data structure.
+ * 
+ * \param m pointer to the gl_material structure to be initialized.
+ */
 static void
 init_material( struct gl_material *m )
 {
@@ -870,6 +1003,12 @@ init_material( struct gl_material *m )
    m->SpecularIndex = 1;
 }
 
+/**
+ * \brief Initalize a texture unit.
+ *
+ * \param ctx GL context.
+ * \param unit texture unit number to be initialized.
+ */
 static void
 init_texture_unit( GLcontext *ctx, GLuint unit )
 {
@@ -961,7 +1100,12 @@ init_2d_map( struct gl_2d_map *map, int n, const float *initial )
 }
 
 /**
- * \brief Initialize the attribute groups in a GLcontext.
+ * \brief Initialize the attribute groups in a GL context.
+ *
+ * \param ctx GL context.
+ *
+ * Initializes all the attributes, calling the respective <c>init*</c>
+ * functions for the more complex data structures.
  */
 static void
 init_attrib_groups( GLcontext *ctx )
@@ -1563,10 +1707,10 @@ init_attrib_groups( GLcontext *ctx )
 /**
  * \brief Allocate the proxy textures.  
  *
- * If we run out of memory part way through the allocations clean up and return
- * GL_FALSE.
- *
  * \return GL_TRUE on success, or GL_FALSE on failure
+ * 
+ * If run out of memory part way through the allocations, clean up and return
+ * GL_FALSE.
  */
 static GLboolean
 alloc_proxy_textures( GLcontext *ctx )
@@ -1658,6 +1802,14 @@ alloc_proxy_textures( GLcontext *ctx )
    }
 }
 
+/**
+ * \brief Set the debugging flags.
+ *
+ * \param debug debug string
+ *
+ * If compiled with debugging support then search for keywords in \p debug and
+ * enables the verbose debug output of the respective feature.
+ */
 static void add_debug_flags( const char *debug )
 {
 #ifdef MESA_DEBUG
@@ -1700,6 +1852,17 @@ static void add_debug_flags( const char *debug )
  *
  * This includes allocating all the other structs and arrays which hang off of
  * the context by pointers.
+ * 
+ * \param ctx GL context.
+ * 
+ * \sa _mesa_create_context() for the remaining parameter description.
+ *
+ * Performs the imports and exports callback tables initialzation, and
+ * miscellaenuos one-time initializations. If no shared context is supplied one
+ * is allocated, and increase its reference count.  Setups the GL API dispatch
+ * tables.  Initialize the TNL module. Sets the maximum Z buffer depth.
+ * Finally queries the \c MESA_DEBUG and \c MESA_VERBOSE environment variables
+ * for debug flags.
  */
 GLboolean
 _mesa_initialize_context( GLcontext *ctx,
@@ -1973,7 +2136,9 @@ _mesa_create_context( const GLvisual *visual,
 /**
  * \brief Free the data associated with the given context.
  * 
- * But don't free() the GLcontext struct itself!
+ * But doesn't free the GLcontext struct itself.
+ *
+ * \sa _mesa_initialize_context() and init_attrib_groups().
  */
 void
 _mesa_free_context_data( GLcontext *ctx )
@@ -2089,6 +2254,10 @@ _mesa_free_context_data( GLcontext *ctx )
 
 /**
  * \brief Destroy a GLcontext structure.
+ *
+ * \param ctx GL context.
+ * 
+ * Calls _mesa_free_context_data() and free the structure.
  */
 void
 _mesa_destroy_context( GLcontext *ctx )
@@ -2105,6 +2274,11 @@ _mesa_destroy_context( GLcontext *ctx )
  * \param src source context
  * \param dst destination context
  * \param mask bitwise OR of GL_*_BIT flags
+ *
+ * According to the bits specified in \p mask, copies the corresponding
+ * attributes from \p src into \dst.  For many of the attributes a simple \c
+ * memcpy is not enough due to the existence of internal pointers in their data
+ * structures.
  */
 void
 _mesa_copy_context( const GLcontext *src, GLcontext *dst, GLuint mask )
@@ -2213,6 +2387,9 @@ _mesa_copy_context( const GLcontext *src, GLcontext *dst, GLuint mask )
    dst->NewState = _NEW_ALL;
 }
 
+/**
+ * \brief Print information about this Mesa version and build options.
+ */
 static void print_info( void )
 {
    _mesa_debug(NULL, "Mesa GL_VERSION = %s\n",
@@ -2242,6 +2419,11 @@ static void print_info( void )
 
 /**
  * \brief Set the current context, binding the given frame buffer to the context.
+ *
+ * \param newCtx new GL context.
+ * \param buffer framebuffer.
+ * 
+ * Calls _mesa_make_current2() with \p buffer as read and write framebuffer.
  */
 void
 _mesa_make_current( GLcontext *newCtx, GLframebuffer *buffer )
@@ -2249,10 +2431,24 @@ _mesa_make_current( GLcontext *newCtx, GLframebuffer *buffer )
    _mesa_make_current2( newCtx, buffer, buffer );
 }
 
-
 /**
  * \brief Bind the given context to the given draw-buffer and read-buffer and
  * make it the current context for this thread.
+ *
+ * \param newCtx new GL context. If NULL then there will be no current GL
+ * context.
+ * \param drawBuffer draw framebuffer.
+ * \param readBuffer read framebuffer.
+ * 
+ * Check that the context's and framebuffer's visuals are compatible, returning
+ * imediatly otherwise. Sets the glapi current context via
+ * _glapi_set_context(). If \p newCtx is not NULL, associates \p drawBuffer and
+ * \p readBuffer with it and calls dd_function_table::ResizeBuffers if the buffers size has changed. 
+ * Calls dd_function_table::MakeCurrent callback if defined.
+ *
+ * When a context is bound by the first time and the \c MESA_INFO environment
+ * variable is set it calls print_info() as an aid for remote user
+ * troubleshooting.
  */
 void
 _mesa_make_current2( GLcontext *newCtx, GLframebuffer *drawBuffer,
@@ -2354,10 +2550,12 @@ _mesa_make_current2( GLcontext *newCtx, GLframebuffer *drawBuffer,
 }
 
 /**
- * \brief Return current context handle for the calling thread.
+ * \brief Get current context for the calling thread.
  * 
- * This isn't the fastest way to get the current context.
- * If you need speed, see the GET_CURRENT_CONTEXT() macro in context.h
+ * \return pointer to the current GL context.
+ * 
+ * Calls _glapi_get_context(). This isn't the fastest way to get the current
+ * context.  If you need speed, see the GET_CURRENT_CONTEXT macro in context.h.
  */
 GLcontext *
 _mesa_get_current_context( void )
@@ -2366,10 +2564,16 @@ _mesa_get_current_context( void )
 }
 
 /**
- * \brief Return pointer to this context's current API dispatch table.
+ * \brief Get context's current API dispatch table.
  *
  * It'll either be the immediate-mode execute dispatcher or the display list
  * compile dispatcher.
+ * 
+ * \param ctx GL context.
+ *
+ * \return pointer to dispatch_table.
+ *
+ * Simply returns __GLcontextRec::CurrentDispatch.
  */
 struct _glapi_table *
 _mesa_get_dispatch(GLcontext *ctx)
@@ -2386,8 +2590,15 @@ _mesa_get_dispatch(GLcontext *ctx)
 /*@{*/
 
 /**
- * Record the given error code and call the driver's Error function if defined.
+ * \brief Record an error.
  *
+ * \param ctx GL context.
+ * \param error error code.
+ * 
+ * Records the given error code and call the driver's dd_function_table::Error
+ * function if defined.
+ *
+ * \sa
  * This is called via _mesa_error().
  */
 void
@@ -2406,6 +2617,12 @@ _mesa_record_error( GLcontext *ctx, GLenum error )
    }
 }
 
+/**
+ * \brief Execute glFinish().
+ *
+ * Calls the ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH macro and the
+ * dd_function_table::Finish driver callback, if not NULL.
+ */
 void
 _mesa_Finish( void )
 {
@@ -2416,6 +2633,12 @@ _mesa_Finish( void )
    }
 }
 
+/**
+ * \brief Execute glFlush().
+ *
+ * Calls the ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH macro and the
+ * dd_function_table::Flush driver callback, if not NULL.
+ */
 void
 _mesa_Flush( void )
 {

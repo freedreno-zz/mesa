@@ -1,4 +1,7 @@
-/* $Id: texobj.c,v 1.62 2002/10/24 23:57:21 brianp Exp $ */
+/**
+ * \file texobj.c
+ * \brief Texture object functions.
+ */
 
 /*
  * Mesa 3-D graphics library
@@ -24,6 +27,8 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+/* $Id: texobj.c,v 1.62.4.1 2003/03/09 10:52:21 jrfonseca Exp $ */
+
 #include "glheader.h"
 #include "colortab.h"
 #include "context.h"
@@ -37,16 +42,23 @@
 #include "mtypes.h"
 
 
-/*
- * Allocate a new texture object and add it to the linked list of texture
- * objects.  If name>0 then also insert the new texture object into the hash
+/**
+ * \brief Allocate a new texture object and add it to the linked list of
+ * texture objects.  
+ *
+ * \param shared the shared GL state structure to contain the texture object
+ * \param name integer name for the texture object
+ * \param target either GL_TEXTURE_1D, GL_TEXTURE_2D, GL_TEXTURE_3D,
+ * GL_TEXTURE_CUBE_MAP_ARB or GL_TEXTURE_RECTANGLE_NV.  zero is ok for the sake
+ * of GenTextures()
+ *
+ * \return pointer to new texture object.
+ *
+ * Allocate and initalize a gl_texture_object structure, and insert in the
+ * shared state texture list while holding its mutex.
+ * If <c>name > 0</c> then also insert the new texture object into the hash
  * table.
- * Input:  shared - the shared GL state structure to contain the texture object
- *         name - integer name for the texture object
- *         target - either GL_TEXTURE_1D, GL_TEXTURE_2D, GL_TEXTURE_3D,
- *                  GL_TEXTURE_CUBE_MAP_ARB or GL_TEXTURE_RECTANGLE_NV
- *                      zero is ok for the sake of GenTextures()
- * Return:  pointer to new texture object
+ * 
  */
 struct gl_texture_object *
 _mesa_alloc_texture_object( struct gl_shared_state *shared,
@@ -112,12 +124,16 @@ _mesa_alloc_texture_object( struct gl_shared_state *shared,
    return obj;
 }
 
-
-/*
- * Deallocate a texture object struct and remove it from the given
+/**
+ * \brief Deallocate a texture object struct and remove it from the given
  * shared GL state.
- * Input:  shared - the shared GL state to which the object belongs
- *         t - the texture object to delete
+ *
+ * \param shared the shared GL state to which the object belongs.
+ * \param t the texture object to delete.
+ *
+ * Unlink the texture object from the shared state texture linked list while
+ * holding its lock. If the texture is a name number it's also removed from the
+ * hash table. Finally rees the texture images and the object itself.
  */
 void _mesa_free_texture_object( struct gl_shared_state *shared,
                                 struct gl_texture_object *t )
@@ -168,9 +184,11 @@ void _mesa_free_texture_object( struct gl_shared_state *shared,
    FREE( t );
 }
 
-
-/*
- * Copy texture object state from one texture object to another.
+/**
+ * \brief Copy texture object state from one texture object to another.
+ *
+ * \param dest destination texture object.
+ * \param src source texture object.
  */
 void
 _mesa_copy_texture_object( struct gl_texture_object *dest,
@@ -206,8 +224,13 @@ _mesa_copy_texture_object( struct gl_texture_object *dest,
 }
 
 
-/*
- * Report why a texture object is incomplete.  (for debug only)
+/**
+ * \brief Report why a texture object is incomplete.  
+ *
+ * \param t texture object.
+ * \param why string describing why it's incomplete.
+ *
+ * \note For debug purposes only.
  */
 #if 0
 static void
@@ -216,13 +239,21 @@ incomplete(const struct gl_texture_object *t, const char *why)
    _mesa_printf("Texture Obj %d incomplete because: %s\n", t->Name, why);
 }
 #else
-#define incomplete(a, b)
+#define incomplete(t, why)
 #endif
 
 
-/*
- * Examine a texture object to determine if it is complete.
- * The t->Complete flag will be set to GL_TRUE or GL_FALSE accordingly.
+/**
+ * \brief Examine a texture object to determine if it is complete.
+ *
+ * The gl_texture_object::Complete flag will be set to GL_TRUE or GL_FALSE
+ * accordingly.
+ *
+ * \param ctx GL context.
+ * \param t texture object.
+ *
+ * According to the texture target, verifies that each of the mipmaps is
+ * present and has the expected size.
  */
 void
 _mesa_test_texobj_completeness( const GLcontext *ctx,
@@ -492,13 +523,26 @@ _mesa_test_texobj_completeness( const GLcontext *ctx,
    }
 }
 
-
+/**
+ * \brief Texture name generation lock.
+ *
+ * Used by _mesa_GenTextures() to guarantee that the generation and allocation
+ * of texture IDs is atomic.
+ */
 _glthread_DECLARE_STATIC_MUTEX(GenTexturesLock);
 
-
-/*
- * Execute glGenTextures
- */
+/**
+ * \brief Generate texture names.
+ *
+ * \param n number of texture names to be generated.
+ * \param texName an array in which will hold the generated texture names.
+ *
+ * \sa glGenTextures().
+ *
+ * While holdind the GenTexturesLock lock, calls _mesa_HashFindFreeKeyBlock()
+ * to find a block of free texture IDs which are stored in \p texName.
+ * Corresponding empty texture objects are also generated.
+ */ 
 void
 _mesa_GenTextures( GLsizei n, GLuint *texName )
 {
@@ -537,10 +581,17 @@ _mesa_GenTextures( GLsizei n, GLuint *texName )
    _glthread_UNLOCK_MUTEX(GenTexturesLock);
 }
 
-
-
-/*
- * Execute glDeleteTextures
+/**
+ * \brief Delete named textures.
+ *
+ * \param n number of textures to be deleted.
+ * \param texName array of textures names to be deleted.
+ *
+ * \sa glDeleteTextures().
+ *
+ * For each texture checks if its bound to any of the texture units, unbind it
+ * and decrementing the reference count if so. If the texture reference count
+ * is zero, delete its object.
  */
 void
 _mesa_DeleteTextures( GLsizei n, const GLuint *texName)
@@ -616,10 +667,20 @@ _mesa_DeleteTextures( GLsizei n, const GLuint *texName)
    }
 }
 
-
-
-/*
- * Execute glBindTexture
+/**
+ * \brief Bind a named texture to a texturing target.
+ * 
+ * \param target texture target.
+ * \param texName texture name.
+ * 
+ * \sa glBindTexture().
+ *
+ * Determines the old texture object bound and returns immediatly if rebinding
+ * the same texture.  Get the current texture which is either a default texture
+ * if name is null, a named texture from the hash, or a new texture if the
+ * given texture name is new. Increments its reference count, binds it, and
+ * calls dd_driver_table::BindTexture. Decrements the old texture reference
+ * count and deletes it if it reaches zero.
  */
 void
 _mesa_BindTexture( GLenum target, GLuint texName )
@@ -766,10 +827,17 @@ _mesa_BindTexture( GLenum target, GLuint texName )
    }
 }
 
-
-
-/*
- * Execute glPrioritizeTextures
+/**
+ * \brief Set texture priorities.
+ * 
+ * \param n number of textures.
+ * \param texName texture names.
+ * \param priorities corresponding texture priorities.
+ * 
+ * \sa glPrioritizeTextures().
+ * 
+ * Looksup each texture in the hash, clamps the corresponding priority between
+ * 0.0 and 1.0, and calls dd_driver_table::PrioritizeTexture.
  */
 void
 _mesa_PrioritizeTextures( GLsizei n, const GLuint *texName,
@@ -802,10 +870,23 @@ _mesa_PrioritizeTextures( GLsizei n, const GLuint *texName,
    ctx->NewState |= _NEW_TEXTURE;
 }
 
-
-
-/*
- * Execute glAreTexturesResident
+/**
+ * \brief See if textures are loaded in texture memory.
+ * 
+ * \param n number of textures to query.
+ * \param texName array with the texture names.
+ * \param residences array which will hold the residence status.
+ *
+ * \return GL_TRUE if all textures are resident and \p residences is left unchanged, 
+ * 
+ * \sa glAreTexturesResident().
+ *
+ * Looksup each texture in the hash and calls
+ * dd_driver_table::IsTextureResident.
+ * 
+ * \todo According to the OpenGL specification the \p residences contents
+ * should be left unchanged when all textures are resident, which is not done in
+ * this implementation.
  */
 GLboolean
 _mesa_AreTexturesResident(GLsizei n, const GLuint *texName,
@@ -850,10 +931,17 @@ _mesa_AreTexturesResident(GLsizei n, const GLuint *texName,
    return allResident;
 }
 
-
-
-/*
- * Execute glIsTexture
+/**
+ * \brief See if a name corresponds to a texture.
+ *
+ * \param texture texture name.
+ *
+ * \return GL_TRUE if texture name corresponds to a texture, or GL_FALSE
+ * otherwise.
+ * 
+ * \sa glIsTexture().
+ *
+ * Calls _mesa_HashLookup().
  */
 GLboolean
 _mesa_IsTexture( GLuint texture )

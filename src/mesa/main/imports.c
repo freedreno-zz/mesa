@@ -1,4 +1,4 @@
-/* $Id: imports.c,v 1.25 2002/10/30 20:40:46 brianp Exp $ */
+/* $Id: imports.c,v 1.25.4.1 2003/03/09 10:52:21 jrfonseca Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -443,7 +443,7 @@ _mesa_problem( const GLcontext *ctx, const char *s )
 /*
  * If in debug mode, print error message to stdout.
  * Also, record the error code by calling _mesa_record_error().
- * Input:  ctx - the GL context
+ * \param ctx - the GL context
  *         error - the error value
  *         fmtString - printf-style format string, followed by optional args
  */
@@ -642,7 +642,7 @@ default_GetDrawablePrivate(__GLcontext *gc)
 /*
  * Initialize a __GLimports object to point to the functions in
  * this file.  This is to be called from device drivers.
- * Input:  imports - the object to init
+ * \param imports - the object to init
  *         driverCtx - pointer to device driver-specific data
  */
 void

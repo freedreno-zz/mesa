@@ -1,4 +1,4 @@
-/* $Id: texutil.c,v 1.34 2002/10/29 20:28:53 brianp Exp $ */
+/* $Id: texutil.c,v 1.34.4.1 2003/03/09 10:52:21 jrfonseca Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -868,7 +868,7 @@ _mesa_convert_texsubimage1d( GLint mesaFormat,
  * with the _mesa_transfer_teximage() function.  That function will also
  * do image transfer operations such as scale/bias and convolution.
  *
- * Input:
+ * \param
  *   mesaFormat - one of the MESA_FORMAT_* values from texformat.h
  *   xoffset, yoffset - position in dest image to put data
  *   width, height - incoming image size, also size of dest region.

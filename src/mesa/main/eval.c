@@ -1,4 +1,4 @@
-/* $Id: eval.c,v 1.24 2002/10/24 23:57:20 brianp Exp $ */
+/* $Id: eval.c,v 1.24.4.1 2003/03/09 10:52:20 jrfonseca Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -202,8 +202,8 @@ get_2d_map( GLcontext *ctx, GLenum target )
 /*
  * Copy 1-parametric evaluator control points from user-specified
  * memory space to a buffer of contiguous control points.
- * Input:  see glMap1f for details
- * Return:  pointer to buffer of contiguous control points or NULL if out
+ * \param see glMap1f for details
+ * \return pointer to buffer of contiguous control points or NULL if out
  *          of memory.
  */
 GLfloat *_mesa_copy_map_points1f( GLenum target, GLint ustride, GLint uorder,
@@ -257,8 +257,8 @@ GLfloat *_mesa_copy_map_points1d( GLenum target, GLint ustride, GLint uorder,
  * Additional memory is allocated to be used by the horner and
  * de Casteljau evaluation schemes.
  *
- * Input:  see glMap2f for details
- * Return:  pointer to buffer of contiguous control points or NULL if out
+ * \param see glMap2f for details
+ * \return pointer to buffer of contiguous control points or NULL if out
  *          of memory.
  */
 GLfloat *_mesa_copy_map_points2f( GLenum target,

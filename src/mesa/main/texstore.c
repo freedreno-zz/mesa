@@ -1,4 +1,4 @@
-/* $Id: texstore.c,v 1.47.4.1 2002/11/20 21:40:02 brianp Exp $ */
+/* $Id: texstore.c,v 1.47.4.2 2003/03/09 10:52:21 jrfonseca Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -159,7 +159,7 @@ components_in_intformat( GLint format )
  * apply pixel transfer ops into a temporary image buffer.  Then,
  * convert the temporary image into the special hardware format.
  *
- * Input:
+ * \param
  *   dimensions - 1, 2, or 3
  *   texDestFormat - GL_LUMINANCE, GL_INTENSITY, GL_LUMINANCE_ALPHA, GL_ALPHA,
  *                   GL_RGB or GL_RGBA (the destination format)
@@ -435,7 +435,7 @@ transfer_teximage(GLcontext *ctx, GLuint dimensions,
  * Transfer a texture image from user space to <destAddr> applying all
  * needed image transfer operations and storing the result in the format
  * specified by <dstFormat>.  <dstFormat> may be any format from texformat.h.
- * Input:
+ * \param
  *   dimensions - 1, 2 or 3
  *   baseInternalFormat - base format of the internal texture format
  *       specified by the user.  This is very important, see below.

@@ -1,4 +1,4 @@
-/* $Id: rastpos.c,v 1.39 2002/10/24 23:57:21 brianp Exp $ */
+/* $Id: rastpos.c,v 1.39.4.1 2003/03/09 10:52:21 jrfonseca Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -44,8 +44,8 @@
 
 /*
  * Clip a point against the view volume.
- * Input:  v - vertex-vector describing the point to clip
- * Return:  0 = outside view volume
+ * \param v - vertex-vector describing the point to clip
+ * \return 0 = outside view volume
  *          1 = inside view volume
  */
 static GLuint
@@ -78,8 +78,8 @@ viewclip_point_z( const GLfloat v[] )
 
 /*
  * Clip a point against the user clipping planes.
- * Input:  v - vertex-vector describing the point to clip.
- * Return:  0 = point was clipped
+ * \param v - vertex-vector describing the point to clip.
+ * \return 0 = point was clipped
  *          1 = point not clipped
  */
 static GLuint
@@ -106,7 +106,7 @@ userclip_point( GLcontext* ctx, const GLfloat v[] )
 /* This has been split off to allow the normal shade routines to
  * get a little closer to the vertex buffer, and to use the
  * GLvector objects directly.
- * Input: ctx - the context
+ * \param ctx - the context
  *        vertex - vertex location
  *        normal - normal vector
  * Output: Rcolor - returned color
