@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.1.2.2 2002/12/04 16:00:05 keithw Exp $
+# $Id: Makefile,v 1.1.2.3 2002/12/11 14:44:50 keithw Exp $
 
 # Mesa 3-D graphics library
 # Version:  5.0
@@ -8,7 +8,11 @@
 
 MESA = ../../..
 MESABUILDDIR = $(MESA)/src
-INCLUDES = -I$(MESABUILDDIR) -I$(MESA)/include -I. -I../common -I$(MESABUILDDIR)/miniglx
+INSTALLDIR = /home/XF4/xc-trunk
+
+INCLUDES = -I$(MESABUILDDIR) -I$(MESA)/include -I. -I../common \
+	   -I$(MESABUILDDIR)/miniglx -Iserver
+
 CFLAGS = $(INCLUDES) -g -MD -DGLX_DIRECT_RENDERING
 
 # The .a files for each mesa module required by this driver:
@@ -39,7 +43,7 @@ DRIVER_SOURCES = radeon_compat.c \
 		 radeon_vtxfmt_c.c \
 		 radeon_vtxfmt_sse.c \
 		 radeon_vtxfmt_x86.c \
-		 ../common/mm.c
+		 ../common/mm.c 
 
 C_SOURCES = $(DRIVER_SOURCES) \
 	    $(DRI_SOURCES) 
@@ -65,6 +69,9 @@ default: radeon_dri.so
 
 radeon_dri.so:  $(COREMESA) $(OBJECTS) Makefile
 	rm -f $@ && gcc -o $@ -shared $(OBJECTS) $(COREMESA) -L$(MESA)/src/miniglx -lGL -lc -lm
+
+install: radeon_dri.so
+	install -C radeon_dri.so $(INSTALLDIR)/lib/modules/dri
 
 clean:
 	-rm -f *.o *~ *.d .\#* *.so

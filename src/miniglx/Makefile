@@ -6,8 +6,7 @@ SOURCES = dispatch.c \
 	  dri_util.c \
 	  glapi.c \
 	  miniglx.c \
-	  xf86drm.c \
-	  XF86dri.c
+	  xf86drm.c 
 
 OBJS = $(SOURCES:.c=.o)
 
@@ -29,6 +28,10 @@ libGL.so.1:
 
 libGL.so:
 	ln -s libGL.so.1 libGL.so
+
+
+#miniglx.a: $(OBJECTS) Makefile
+#	rm -f $@ && ar rcv $@ $(OBJECTS) && ranlib $@
 
 glapi.c: ../glapi.c
 	ln -s ../glapi.c .

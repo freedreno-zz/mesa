@@ -56,9 +56,18 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #define CAPI  /* XXX this should be globally defined somewhere */
 
 #include "GL/miniglx.h"           /* for GLXDrawable */
-#include "xf86dri.h"             /* for XF86DRIClipRectPtr */
 #include "sarea.h"               /* for XF86DRISAREAPtr */
 #include "GL/internal/glcore.h"  /* for __GLcontextModes */
+#include "miniglxP.h"		/* XID, etc */
+
+/* Warning : Do not change XF86DRIClipRect without changing the kernel 
+ * structure! */
+typedef struct _XF86DRIClipRect {
+    unsigned short	x1; /* Upper left: inclusive */
+    unsigned short	y1;
+    unsigned short	x2; /* Lower right: exclusive */
+    unsigned short	y2;
+} XF86DRIClipRectRec, *XF86DRIClipRectPtr;
 
 
 typedef struct __DRIdisplayPrivateRec  __DRIdisplayPrivate;
