@@ -1,4 +1,4 @@
-/* $Id: extensions.c,v 1.10.2.3 1999/12/12 18:30:47 keithw Exp $ */
+/* $Id: extensions.c,v 1.10.2.4 1999/12/21 17:22:39 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -27,6 +27,7 @@
 
 #ifndef XFree86Server
 #include <stdlib.h>
+#include <stdio.h>
 #else
 #include "GL/xf86glx.h"
 #endif
@@ -73,6 +74,8 @@ static struct { int enabled; const char *name; } default_extensions[] = {
    { DEFAULT_ON,     "GL_EXT_compiled_vertex_array" },
    { DEFAULT_ON,     "GL_EXT_clip_volume_hint" },
    
+   { DEFAULT_OFF,    "GL_EXT_texture_env_add" },
+
    /* These obviously won't make it before 3.3:
     */
    { DEFAULT_OFF,    "GL_EXT_vertex_array_set" },
@@ -109,13 +112,20 @@ static int set_extension( GLcontext *ctx, const char *name, GLuint state )
       if (strncmp(i->name, name, MAX_EXT_NAMELEN) == 0) 
 	 break;
 
-   if (i == ctx->Extensions.ext_list) return 1;
+   if (i == ctx->Extensions.ext_list) {
+      if (MESA_VERBOSE&VERBOSE_EXTENSIONS)
+	 fprintf(stderr, "extension %s -- not found\n", name);
+      return 1;
+   }
 
-   if (i->enabled && !(i->enabled & ALWAYS_ENABLED))
+   if (i->enabled != state && !(i->enabled & ALWAYS_ENABLED))
    {
       if (i->notify) i->notify( ctx, state );      
       i->enabled = state;
    }
+
+   if (MESA_VERBOSE&VERBOSE_EXTENSIONS)
+      fprintf(stderr, "extension %s, state %d\n", name, i->enabled);
 
    return 0;
 }   

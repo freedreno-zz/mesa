@@ -1,4 +1,4 @@
-/* $Id: texstate.c,v 1.4.2.2 1999/11/22 13:54:02 brianp Exp $ */
+/* $Id: texstate.c,v 1.4.2.3 1999/12/21 17:22:39 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -90,6 +90,16 @@ void gl_TexEnvfv( GLcontext *ctx,
    if (pname==GL_TEXTURE_ENV_MODE) {
       GLenum mode = (GLenum) (GLint) *param;
       switch (mode) {
+         case GL_ADD:
+	    if (!ctx->Texture.ExtAddEnv) {
+	       if (gl_extension_is_enabled(ctx, "GL_EXT_texture_env_add")) 
+		  ctx->Texture.ExtAddEnv = 1;
+	       else {
+		  gl_error( ctx, GL_INVALID_VALUE, "glTexEnv(param)" );
+		  return;
+	       }
+	    }
+	    /* FALLTHROUGH */
 	 case GL_MODULATE:
 	 case GL_BLEND:
 	 case GL_DECAL:
