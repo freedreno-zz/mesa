@@ -1,4 +1,4 @@
-/* $Id: xm_api.c,v 1.29.2.2 2002/02/15 19:15:08 brianp Exp $ */
+/* $Id: xm_api.c,v 1.29.2.3 2002/02/20 23:59:40 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -2605,7 +2605,7 @@ void XMesaGarbageCollect( void )
    XMesaBuffer b, next;
    for (b=XMesaBufferList; b; b=next) {
       next = b->Next;
-      if (!b->pixmap_flag) {
+      if (b->display && b->frontbuffer && !b->pixmap_flag) {
 #ifdef XFree86Server
 	 /* NOT_NEEDED */
 #else
