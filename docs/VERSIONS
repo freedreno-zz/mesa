@@ -1,4 +1,4 @@
-$Id: VERSIONS,v 1.73.2.23 2002/04/26 13:54:47 brianp Exp $
+$Id: VERSIONS,v 1.73.2.24 2002/06/07 19:38:06 brianp Exp $
 
 
 Mesa Version History
@@ -955,7 +955,7 @@ Mesa Version History
 	- mipmap LOD computation
 
 
-4.0.3  May ??, 2002
+4.0.3  June ??, 2002
     New:
 	- updated GL/glext.h file (version 13)
 	- corrected MMX blend code (Jose Fonseca)
@@ -973,6 +973,7 @@ Mesa Version History
 	- glGetTexImage() didn't accept packed pixel types
 	- glPixelMapu[is]v() could explode given too large of pixelmap
 	- glGetTexParameter[if]v() didn't accept GL_TEXTURE_MAX_ANISOTROPY_EXT
+	- GL/glext.h token GL_MAX_RECTANGLE_TEXTURE_SIZE_NV was misnamed
     Changes:
 	- lots of C++ (g++) code clean-ups
 	- lots of T&L updates for the Radeon DRI driver
