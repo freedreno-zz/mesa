@@ -1,4 +1,4 @@
-/* $Id: tess.c,v 1.20.2.6 1999/12/05 02:04:30 gareth Exp $ */
+/* $Id: tess.c,v 1.20.2.7 1999/12/05 17:01:17 gareth Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -578,7 +578,6 @@ GLUtesselator* GLAPIENTRY gluNewTess( void )
     tobj->boundary_only = GL_FALSE;
     tobj->tolerance = GLU_TESS_EPSILON;
     tobj->orientation = GLU_UNKNOWN;
-    tobj->projection = PROJ_NONE;
 
     tobj->data = NULL;
 

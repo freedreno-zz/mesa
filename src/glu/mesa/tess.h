@@ -1,4 +1,4 @@
-/* $Id: tess.h,v 1.15.2.5 1999/12/05 02:04:30 gareth Exp $ */
+/* $Id: tess.h,v 1.15.2.6 1999/12/05 17:01:17 gareth Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -60,7 +60,6 @@ struct GLUtesselator
     GLboolean		boundary_only;
     GLdouble		tolerance;
     GLenum		orientation;
-    tess_proj_t		projection;
     void		*data;
     GLint		num_contours;
     tess_contour_t	*contours, *last_contour;
