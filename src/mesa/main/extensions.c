@@ -1,4 +1,4 @@
-/* $Id: extensions.c,v 1.10.2.4 1999/12/21 17:22:39 keithw Exp $ */
+/* $Id: extensions.c,v 1.10.2.5 2000/06/08 22:47:59 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -54,6 +54,7 @@ static struct { int enabled; const char *name; } default_extensions[] = {
    { DEFAULT_ON,     "GL_EXT_blend_minmax" },
    { DEFAULT_ON,     "GL_EXT_blend_logic_op" },
    { DEFAULT_ON,     "GL_EXT_blend_subtract" },
+   { DEFAULT_ON,     "GL_EXT_packed_pixels" },
    { DEFAULT_ON,     "GL_EXT_paletted_texture" },
    { DEFAULT_ON,     "GL_EXT_point_parameters" },
    { ALWAYS_ENABLED, "GL_EXT_polygon_offset" },
