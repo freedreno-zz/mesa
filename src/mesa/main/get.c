@@ -1,4 +1,4 @@
-/* $Id: get.c,v 1.5.2.6 2000/03/11 23:28:37 brianp Exp $ */
+/* $Id: get.c,v 1.5.2.7 2000/03/23 00:14:02 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -3795,7 +3795,7 @@ const GLubyte *gl_GetString( GLcontext *ctx, GLenum name )
 {
    static char result[1000];
    static char *vendor = "Brian Paul";
-   static char *version = "1.2 Mesa 3.2";
+   static char *version = "1.2 Mesa 3.2 beta 1";
 
    ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH_WITH_RETVAL(ctx, "glGetString", 0);
 
