@@ -1,4 +1,4 @@
-/* $Id: glu.h,v 1.22 2000/07/11 14:11:44 brianp Exp $ */
+/* $Id: glu.h,v 1.22.4.1 2000/10/26 15:32:46 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -200,7 +200,7 @@ extern "C" {
 #define GLU_NURBS_ERROR37	100287   /* duplicate point on pwlcurve */
 
 /* GLU 1.3 and later */
-#define GLU_NURBS_MODE ?
+#define GLU_NURBS_MODE		100160
 
 
 /* Errors */
