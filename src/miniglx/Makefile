@@ -2,9 +2,11 @@
 # Indirect rendering not supported, etc.
 
 
-OBJS = glxext.o dispatch.o glapi.o
+SOURCES = glxext.c dispatch.c glapi.c
+OBJS = $(SOURCES:.c=.o)
 
-CFLAGS = -c -g -I. -I.. -I../../include
+INCLUDES = -I. -I.. -I../../include
+CFLAGS = -c -g $(INCLUDES) -MD
 
 LIBS = -ldl -L/usr/X11R6/lib -lX11
 
@@ -22,18 +24,15 @@ libGL.so.1:
 libGL.so:
 	ln -s libGL.so.1 libGL.so
 
-glxext.o: glxext.c glxclient.h
-	$(CC) $(CFLAGS) glxext.c
-
-dispatch.o: dispatch.c
-	$(CC) $(CFLAGS) dispatch.c
-
-glapi.o: glapi.c
-	$(CC) $(CFLAGS) glapi.c
-
 glapi.c: ../glapi.c
 	ln -s ../glapi.c .
 
-
 clean:
-	rm -f *~ *.o libGL.so* glapi.c
+	rm -f *~ *.o libGL.so* glapi.c *.d
+
+include $(SOURCES:.c=.d)
+
+.SUFFIXES: .c .d
+
+.c.d:
+	$(CC) -M $(INCLUDES) $< -o $@
