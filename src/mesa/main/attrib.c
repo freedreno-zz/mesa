@@ -1,8 +1,8 @@
-/* $Id: attrib.c,v 1.57.2.3 2002/06/14 03:49:09 brianp Exp $ */
+/* $Id: attrib.c,v 1.57.2.4 2002/06/16 03:19:57 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  4.0.2
+ * Version:  4.0.3
  *
  * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
  *
@@ -70,44 +70,6 @@ new_attrib_node( GLbitfield kind )
    }
    return an;
 }
-
-
-
-/*
- * Copy texture object state from one texture object to another.
- */
-static void
-copy_texobj_state( struct gl_texture_object *dest,
-                   const struct gl_texture_object *src )
-{
-   dest->Name = src->Name;
-   /*
-   dest->Dimensions = src->Dimensions;
-   */
-   dest->Priority = src->Priority;
-   dest->BorderColor[0] = src->BorderColor[0];
-   dest->BorderColor[1] = src->BorderColor[1];
-   dest->BorderColor[2] = src->BorderColor[2];
-   dest->BorderColor[3] = src->BorderColor[3];
-   dest->WrapS = src->WrapS;
-   dest->WrapT = src->WrapT;
-   dest->WrapR = src->WrapR;
-   dest->MinFilter = src->MinFilter;
-   dest->MagFilter = src->MagFilter;
-   dest->MinLod = src->MinLod;
-   dest->MaxLod = src->MaxLod;
-   dest->BaseLevel = src->BaseLevel;
-   dest->MaxLevel = src->MaxLevel;
-   dest->MaxAnisotropy = src->MaxAnisotropy;
-   dest->CompareFlag = src->CompareFlag;
-   dest->CompareOperator = src->CompareOperator;
-   dest->ShadowAmbient = src->ShadowAmbient;
-   dest->_MaxLevel = src->_MaxLevel;
-   dest->_MaxLambda = src->_MaxLambda;
-   dest->Palette = src->Palette;
-   dest->Complete = src->Complete;
-}
-
 
 
 void
@@ -383,10 +345,14 @@ _mesa_PushAttrib(GLbitfield mask)
       MEMCPY( attr, &ctx->Texture, sizeof(struct gl_texture_attrib) );
       /* copy state of the currently bound texture objects */
       for (u = 0; u < ctx->Const.MaxTextureUnits; u++) {
-         copy_texobj_state(&attr->Unit[u].Saved1D, attr->Unit[u].Current1D);
-         copy_texobj_state(&attr->Unit[u].Saved2D, attr->Unit[u].Current2D);
-         copy_texobj_state(&attr->Unit[u].Saved3D, attr->Unit[u].Current3D);
-         copy_texobj_state(&attr->Unit[u].SavedCubeMap, attr->Unit[u].CurrentCubeMap);
+         _mesa_copy_texture_object(&attr->Unit[u].Saved1D,
+                                    attr->Unit[u].Current1D);
+         _mesa_copy_texture_object(&attr->Unit[u].Saved2D,
+                                    attr->Unit[u].Current2D);
+         _mesa_copy_texture_object(&attr->Unit[u].Saved3D,
+                                    attr->Unit[u].Current3D);
+         _mesa_copy_texture_object(&attr->Unit[u].SavedCubeMap,
+                                    attr->Unit[u].CurrentCubeMap);
       }
       newnode = new_attrib_node( GL_TEXTURE_BIT );
       newnode->data = attr;

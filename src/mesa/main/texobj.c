@@ -1,10 +1,10 @@
-/* $Id: texobj.c,v 1.50 2001/07/27 14:30:50 brianp Exp $ */
+/* $Id: texobj.c,v 1.50.2.1 2002/06/16 03:19:58 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.5
+ * Version:  4.0.3
  *
- * Copyright (C) 1999-2001  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -156,6 +156,41 @@ void _mesa_free_texture_object( struct gl_shared_state *shared,
    /* free this object */
    FREE( t );
 }
+
+
+
+/*
+ * Copy texture object state from one texture object to another.
+ */
+void
+_mesa_copy_texture_object( struct gl_texture_object *dest,
+                           const struct gl_texture_object *src )
+{
+   dest->Name = src->Name;
+   dest->Priority = src->Priority;
+   dest->BorderColor[0] = src->BorderColor[0];
+   dest->BorderColor[1] = src->BorderColor[1];
+   dest->BorderColor[2] = src->BorderColor[2];
+   dest->BorderColor[3] = src->BorderColor[3];
+   dest->WrapS = src->WrapS;
+   dest->WrapT = src->WrapT;
+   dest->WrapR = src->WrapR;
+   dest->MinFilter = src->MinFilter;
+   dest->MagFilter = src->MagFilter;
+   dest->MinLod = src->MinLod;
+   dest->MaxLod = src->MaxLod;
+   dest->BaseLevel = src->BaseLevel;
+   dest->MaxLevel = src->MaxLevel;
+   dest->MaxAnisotropy = src->MaxAnisotropy;
+   dest->CompareFlag = src->CompareFlag;
+   dest->CompareOperator = src->CompareOperator;
+   dest->ShadowAmbient = src->ShadowAmbient;
+   dest->_MaxLevel = src->_MaxLevel;
+   dest->_MaxLambda = src->_MaxLambda;
+   dest->Palette = src->Palette;
+   dest->Complete = src->Complete;
+}
+
 
 
 /*
