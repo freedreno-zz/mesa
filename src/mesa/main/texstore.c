@@ -1,4 +1,4 @@
-/* $Id: texstore.c,v 1.34.2.7 2002/09/17 14:13:43 brianp Exp $ */
+/* $Id: texstore.c,v 1.34.2.8 2002/09/21 17:11:08 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -116,7 +116,7 @@ components_in_intformat( GLint format )
       case GL_DEPTH_COMPONENT32_SGIX:
          return 1;
       case GL_YCBCR_MESA:
-         return 1; /* XXX YUV ok? */
+         return 2; /* Y + (Cb or Cr) */
       default:
          return -1;  /* error */
    }
