@@ -1,4 +1,4 @@
-$Id: VERSIONS,v 1.73.2.5 2001/11/13 00:26:07 brianp Exp $
+$Id: VERSIONS,v 1.73.2.6 2001/11/15 19:50:24 brianp Exp $
 
 
 Mesa Version History
@@ -911,3 +911,4 @@ Mesa Version History
 	- enable the #define GL_VERSION_1_3 in GL/gl.h
 	- added GL 1.3 and GLX 1.4 entries to gl_mangle.h and glx_mangle.h
 	- fixed glu.h typedef problem found with MSDev 6.0
+	- build libGL.so with -Bsymbolic (fixes bug found with Chromium)
