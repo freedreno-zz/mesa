@@ -1,10 +1,10 @@
-/* $Id: feedback.c,v 1.6 1999/11/11 01:22:26 brianp Exp $ */
+/* $Id: feedback.c,v 1.5.2.1 2000/01/17 15:36:06 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.3
+ * Version:  3.2
  * 
- * Copyright (C) 1999  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2000  Brian Paul   All Rights Reserved.
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -28,7 +28,12 @@
 #ifdef PC_HEADER
 #include "all.h"
 #else
-#include "glheader.h"
+#ifndef XFree86Server
+#include <assert.h>
+#include <stdio.h>
+#else
+#include "GL/xf86glx.h"
+#endif
 #include "context.h"
 #include "enums.h"
 #include "feedback.h"
@@ -49,9 +54,8 @@
 
 
 void
-_mesa_FeedbackBuffer( GLsizei size, GLenum type, GLfloat *buffer )
+gl_FeedbackBuffer( GLcontext *ctx, GLsizei size, GLenum type, GLfloat *buffer )
 {
-   GET_CURRENT_CONTEXT(ctx);
    ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH( ctx, "glFeedbackBuffer" );
 
    if (ctx->RenderMode==GL_FEEDBACK) {
@@ -107,10 +111,8 @@ _mesa_FeedbackBuffer( GLsizei size, GLenum type, GLfloat *buffer )
 
 
 
-void
-_mesa_PassThrough( GLfloat token )
+void gl_PassThrough( GLcontext *ctx, GLfloat token )
 {
-   GET_CURRENT_CONTEXT(ctx);
    ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx, "glPassThrough");
 
    if (ctx->RenderMode==GL_FEEDBACK) {
@@ -251,10 +253,8 @@ void gl_feedback_points( GLcontext *ctx, GLuint first, GLuint last )
 /*
  * NOTE: this function can't be put in a display list.
  */
-void
-_mesa_SelectBuffer( GLsizei size, GLuint *buffer )
+void gl_SelectBuffer( GLcontext *ctx, GLsizei size, GLuint *buffer )
 {
-   GET_CURRENT_CONTEXT(ctx);
    ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx, "glSelectBuffer");
    if (ctx->RenderMode==GL_SELECT) {
       gl_error( ctx, GL_INVALID_OPERATION, "glSelectBuffer" );
@@ -294,9 +294,9 @@ void gl_select_triangle( GLcontext *ctx,
    struct vertex_buffer *VB = ctx->VB;
 
    if (gl_cull_triangle( ctx, v0, v1, v2, 0 )) {
-      gl_update_hitflag( ctx, VB->Win.data[v0][3] / DEPTH_SCALE );
-      gl_update_hitflag( ctx, VB->Win.data[v1][3] / DEPTH_SCALE );
-      gl_update_hitflag( ctx, VB->Win.data[v2][3] / DEPTH_SCALE );
+      gl_update_hitflag( ctx, VB->Win.data[v0][2] / DEPTH_SCALE );
+      gl_update_hitflag( ctx, VB->Win.data[v1][2] / DEPTH_SCALE );
+      gl_update_hitflag( ctx, VB->Win.data[v2][2] / DEPTH_SCALE );
    }
 }
 
@@ -306,8 +306,8 @@ void gl_select_line( GLcontext *ctx,
 {
    struct vertex_buffer *VB = ctx->VB;
 
-   gl_update_hitflag( ctx, VB->Win.data[v0][3] / DEPTH_SCALE );
-   gl_update_hitflag( ctx, VB->Win.data[v1][3] / DEPTH_SCALE );
+   gl_update_hitflag( ctx, VB->Win.data[v0][2] / DEPTH_SCALE );
+   gl_update_hitflag( ctx, VB->Win.data[v1][2] / DEPTH_SCALE );
 }
 
 void gl_select_points( GLcontext *ctx, GLuint first, GLuint last )
@@ -317,7 +317,7 @@ void gl_select_points( GLcontext *ctx, GLuint first, GLuint last )
 
    for (i=first;i<=last;i++) 
       if (VB->ClipMask[i]==0) 
-         gl_update_hitflag( ctx, VB->Win.data[i][3] / DEPTH_SCALE);
+         gl_update_hitflag( ctx, VB->Win.data[i][2] / DEPTH_SCALE);
 }
 
 
@@ -348,10 +348,8 @@ static void write_hit_record( GLcontext *ctx )
 
 
 
-void
-_mesa_InitNames( void )
+void gl_InitNames( GLcontext *ctx )
 {
-   GET_CURRENT_CONTEXT(ctx);
    ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx, "glInitNames");
    /* Record the hit before the HitFlag is wiped out again. */
    if (ctx->RenderMode==GL_SELECT) {
@@ -367,10 +365,8 @@ _mesa_InitNames( void )
 
 
 
-void
-_mesa_LoadName( GLuint name )
+void gl_LoadName( GLcontext *ctx, GLuint name )
 {
-   GET_CURRENT_CONTEXT(ctx);
    ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx, "glLoadName");
    if (ctx->RenderMode!=GL_SELECT) {
       return;
@@ -391,10 +387,8 @@ _mesa_LoadName( GLuint name )
 }
 
 
-void
-_mesa_PushName( GLuint name )
+void gl_PushName( GLcontext *ctx, GLuint name )
 {
-   GET_CURRENT_CONTEXT(ctx);
    ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx, "glPushName");
    if (ctx->RenderMode!=GL_SELECT) {
       return;
@@ -412,10 +406,8 @@ _mesa_PushName( GLuint name )
 
 
 
-void
-_mesa_PopName( void )
+void gl_PopName( GLcontext *ctx )
 {
-   GET_CURRENT_CONTEXT(ctx);
    ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx, "glPopName");
    if (ctx->RenderMode!=GL_SELECT) {
       return;
@@ -442,10 +434,8 @@ _mesa_PopName( void )
 /*
  * NOTE: this function can't be put in a display list.
  */
-GLint
-_mesa_RenderMode( GLenum mode )
+GLint gl_RenderMode( GLcontext *ctx, GLenum mode )
 {
-   GET_CURRENT_CONTEXT(ctx);
    GLint result;
 
    ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH_WITH_RETVAL(ctx, "glRenderMode", 0);
@@ -513,7 +503,6 @@ _mesa_RenderMode( GLenum mode )
 	 gl_error( ctx, GL_INVALID_ENUM, "glRenderMode" );
 	 return 0;
    }
-
 
    ctx->RenderMode = mode;
    ctx->NewState |= NEW_ALL;
