@@ -35,6 +35,7 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "macros.h"
 #include "vtxfmt.h"
 #include "dlist.h"
+#include "state.h"
 #include "api_arrayelt.h"
 #include "api_noop.h"
 #include "t_vtx_api.h"
@@ -1074,8 +1075,9 @@ static void _tnl_current_init( GLcontext *ctx )
    for (i = 0; i < VERT_ATTRIB_MAX; i++) 
       tnl->vtx.current[i] = ctx->Current.Attrib[i];
 
-   for (i = _TNL_ATTRIB_MAT_FRONT_AMBIENT; i < _TNL_ATTRIB_INDEX; i++)
-      tnl->vtx.current[i] = ctx->Light.Material.Attrib[i];
+   for (i = 0; i < MAT_ATTRIB_MAX; i++)
+      tnl->vtx.current[_TNL_ATTRIB_MAT_FRONT_AMBIENT + i] = 
+	 ctx->Light.Material.Attrib[i];
 
    tnl->vtx.current[_TNL_ATTRIB_INDEX] = &ctx->Current.Index;
 
