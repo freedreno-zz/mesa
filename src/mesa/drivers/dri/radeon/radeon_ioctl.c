@@ -1225,6 +1225,9 @@ void radeonFlush( GLcontext *ctx )
    if (RADEON_DEBUG & DEBUG_IOCTL)
       fprintf(stderr, "%s\n", __FUNCTION__);
 
+   if (!rmesa->radeonScreen->buffers)
+      return;
+
    if (rmesa->dma.flush)
       rmesa->dma.flush( rmesa );
 
