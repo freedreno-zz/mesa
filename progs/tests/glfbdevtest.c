@@ -1,7 +1,7 @@
-/* $Id: glfbdevtest.c,v 1.1.4.3 2002/11/22 16:13:49 brianp Exp $ */
+/* $Id: glfbdevtest.c,v 1.1.4.4 2002/11/26 21:20:45 brianp Exp $ */
 
 /*
- * Test the GLFBDev interface.
+ * Test the GLFBDev interface.   Only tested with radeonfb driver!!!!
  */
 
 
@@ -25,13 +25,77 @@
 #define DEFAULT_DEPTH 8
 
 static struct fb_fix_screeninfo FixedInfo;
-static struct fb_var_screeninfo VarInfo;
+static struct fb_var_screeninfo VarInfo, OrigVarInfo;
 static int DesiredDepth = 0;
 static int OriginalVT = -1;
 static int ConsoleFD = -1;
 static int FrameBufferFD = -1;
 static caddr_t FrameBuffer = (caddr_t) -1;
-static int FrameBufferSize = 0;
+static caddr_t MMIOAddress = (caddr_t) -1;
+
+
+static void
+print_fixed_info(const struct fb_fix_screeninfo *fixed, const char *s)
+{
+   static const char *visuals[] = {
+      "MONO01", "MONO10", "TRUECOLOR", "PSEUDOCOLOR",
+      "DIRECTCOLOR", "STATIC_PSEUDOCOLOR"
+   };
+
+   printf("%s info -----------------------\n", s);
+   printf("id = %16s\n", fixed->id);
+   printf("smem_start = 0x%x\n", fixed->smem_start);
+   printf("smem_len = %d (0x%x)\n", fixed->smem_len, fixed->smem_len);
+   printf("type = 0x%x\n", fixed->type);
+   printf("type_aux = 0x%x\n", fixed->type_aux);
+   printf("visual = 0x%x (%s)\n", fixed->visual, visuals[fixed->visual]);
+   printf("xpanstep = %d\n", fixed->xpanstep);
+   printf("ypanstep = %d\n", fixed->ypanstep);
+   printf("ywrapstep = %d\n", fixed->ywrapstep);
+   printf("line_length = %d\n", fixed->line_length);
+   printf("mmio_start = 0x%x\n", fixed->mmio_start);
+   printf("mmio_len = %d (0x%x)\n", fixed->mmio_len, fixed->mmio_len);
+   printf("accel = 0x%x\n", fixed->accel);
+}
+
+
+static void
+print_var_info(const struct fb_var_screeninfo *var, const char *s)
+{
+   printf("%s info -----------------------\n", s);
+   printf("xres = %d\n", var->xres);
+   printf("yres = %d\n", var->yres);
+   printf("xres_virtual = %d\n", var->xres_virtual);
+   printf("yres_virtual = %d\n", var->yres_virtual);
+   printf("xoffset = %d\n", var->xoffset);
+   printf("yoffset = %d\n", var->yoffset);
+   printf("bits_per_pixel = %d\n", var->bits_per_pixel);
+   printf("grayscale = %d\n", var->grayscale);
+
+   printf("red.offset = %d  length = %d  msb_right = %d\n",
+          var->red.offset, var->red.length, var->red.msb_right);
+   printf("green.offset = %d  length = %d  msb_right = %d\n",
+          var->green.offset, var->green.length, var->green.msb_right);
+   printf("blue.offset = %d  length = %d  msb_right = %d\n",
+          var->blue.offset, var->blue.length, var->blue.msb_right);
+   printf("transp.offset = %d  length = %d  msb_right = %d\n",
+          var->transp.offset, var->transp.length, var->transp.msb_right);
+
+   printf("nonstd = %d\n", var->nonstd);
+   printf("activate = %d\n", var->activate);
+   printf("height = %d mm\n", var->height);
+   printf("width = %d mm\n", var->width);
+   printf("accel_flags = 0x%x\n", var->accel_flags);
+   printf("pixclock = %d\n", var->pixclock);
+   printf("left_margin = %d\n", var->left_margin);
+   printf("right_margin = %d\n", var->right_margin);
+   printf("upper_margin = %d\n", var->upper_margin);
+   printf("lower_margin = %d\n", var->lower_margin);
+   printf("hsync_len = %d\n", var->hsync_len);
+   printf("vsync_len = %d\n", var->vsync_len);
+   printf("sync = %d\n", var->sync);
+   printf("vmode = %d\n", var->vmode);
+}
 
 
 static void
@@ -48,6 +112,7 @@ initialize_fbdev( void )
 {
    char ttystr[1000];
    int fd, vtnumber, ttyfd;
+   int sz;
 
    if (geteuid()) {
       fprintf(stderr, "error: you need to be root\n");
@@ -136,20 +201,33 @@ initialize_fbdev( void )
    }
 #endif
 
+   /* Get the fixed screen info */
+   if (ioctl(FrameBufferFD, FBIOGET_FSCREENINFO, &FixedInfo)) {
+      fprintf(stderr, "error: ioctl(FBIOGET_FSCREENINFO) failed: %s\n",
+              strerror(errno));
+      exit(1);
+   }
+
+   print_fixed_info(&FixedInfo, "Fixed");
+
+
   /* get the variable screen info */
-   if (ioctl(FrameBufferFD, FBIOGET_VSCREENINFO, &VarInfo)) {
+   if (ioctl(FrameBufferFD, FBIOGET_VSCREENINFO, &OrigVarInfo)) {
       fprintf(stderr, "error: ioctl(FBIOGET_VSCREENINFO) failed: %s\n",
               strerror(errno));
       exit(1);
    }
 
+   print_var_info(&OrigVarInfo, "Orig Var");
+
+   /* operate on a copy */
+   VarInfo = OrigVarInfo;
+
    /* set the depth, resolution, etc */
-   /*   DesiredDepth = 32;*/
+   DesiredDepth = 32;
    if (DesiredDepth)
       VarInfo.bits_per_pixel = DesiredDepth;
-   VarInfo.xres_virtual = VarInfo.xres = 1280;
-   VarInfo.yres_virtual = VarInfo.yres = 1024;
-#if 1
+
    if (VarInfo.bits_per_pixel == 16) {
       VarInfo.red.offset = 11;
       VarInfo.green.offset = 5;
@@ -164,33 +242,36 @@ initialize_fbdev( void )
       VarInfo.red.offset = 16;
       VarInfo.green.offset = 8;
       VarInfo.blue.offset = 0;
-      VarInfo.transp.offset = 0;
+      VarInfo.transp.offset = 24;
       VarInfo.red.length = 8;
       VarInfo.green.length = 8;
       VarInfo.blue.length = 8;
-      VarInfo.transp.length = 0;
+      VarInfo.transp.length = 8;
    }
-#endif
-   printf("xres=%d yres=%d\n", VarInfo.xres, VarInfo.yres);
-   printf("bits_per_pixel=%d\n", VarInfo.bits_per_pixel);
+   /* timing values taken from /etc/fb.modes (1280x1024 @ 75Hz) */
+   VarInfo.xres_virtual = VarInfo.xres = 1280;
+   VarInfo.yres_virtual = VarInfo.yres = 1024;
+   VarInfo.pixclock = 7408;
+   VarInfo.left_margin = 248;
+   VarInfo.right_margin = 16;
+   VarInfo.upper_margin = 38;
+   VarInfo.lower_margin = 1;
+   VarInfo.hsync_len = 144;
+   VarInfo.vsync_len = 3;
+
    VarInfo.xoffset = 0;
    VarInfo.yoffset = 0;
    VarInfo.nonstd = 0;
    VarInfo.vmode &= ~FB_VMODE_YWRAP; /* turn off scrolling */
 
-   /* set variable screen info */
+   /* set new variable screen info */
    if (ioctl(FrameBufferFD, FBIOPUT_VSCREENINFO, &VarInfo)) {
       fprintf(stderr, "ioctl(FBIOPUT_VSCREENINFO failed): %s\n",
               strerror(errno));
       exit(1);
    }
 
-   /* Get the fixed screen info */
-   if (ioctl(FrameBufferFD, FBIOGET_FSCREENINFO, &FixedInfo)) {
-      fprintf(stderr, "error: ioctl(FBIOGET_FSCREENINFO) failed: %s\n",
-              strerror(errno));
-      exit(1);
-   }
+   print_var_info(&VarInfo, "New Var");
 
    if (FixedInfo.visual != FB_VISUAL_TRUECOLOR &&
        FixedInfo.visual != FB_VISUAL_DIRECTCOLOR) {
@@ -220,10 +301,14 @@ initialize_fbdev( void )
       }
    }
 
+   /*
+    * fbdev says the frame buffer is at offset zero, and the mmio region
+    * is immediately after.
+    */
+
    /* mmap the framebuffer into our address space */
-   FrameBufferSize = FixedInfo.smem_len;
    FrameBuffer = (caddr_t) mmap(0, /* start */
-                                FrameBufferSize, /* bytes */
+                                FixedInfo.smem_len, /* bytes */
                                 PROT_READ | PROT_WRITE, /* prot */
                                 MAP_SHARED, /* flags */
                                 FrameBufferFD, /* fd */
@@ -233,6 +318,23 @@ initialize_fbdev( void )
               strerror(errno));
       exit(1);
    }
+   printf("FrameBuffer = %p\n", FrameBuffer);
+
+#if 1
+   /* mmap the MMIO region into our address space */
+   MMIOAddress = (caddr_t) mmap(0, /* start */
+                                FixedInfo.mmio_len, /* bytes */
+                                PROT_READ | PROT_WRITE, /* prot */
+                                MAP_SHARED, /* flags */
+                                FrameBufferFD, /* fd */
+                                FixedInfo.smem_len /* offset */);
+   if (MMIOAddress == (caddr_t) - 1) {
+      fprintf(stderr, "error: unable to mmap mmio region: %s\n",
+              strerror(errno));
+   }
+   printf("MMIOAddress = %p\n", MMIOAddress);
+#endif
+
 }
 
 
@@ -241,7 +343,16 @@ shutdown_fbdev( void )
 {
    struct vt_mode VT;
 
-   munmap(FrameBuffer, FrameBufferSize);
+   printf("cleaning up...\n");
+   /* restore original variable screen info */
+   if (ioctl(FrameBufferFD, FBIOPUT_VSCREENINFO, &OrigVarInfo)) {
+      fprintf(stderr, "ioctl(FBIOPUT_VSCREENINFO failed): %s\n",
+              strerror(errno));
+      exit(1);
+   }
+
+   munmap(MMIOAddress, FixedInfo.mmio_len);
+   munmap(FrameBuffer, FixedInfo.smem_len);
    close(FrameBufferFD);
 
    /* restore text mode */
