@@ -2,7 +2,6 @@
 PROGS = gears \
 	glinfo \
 	texobj \
-	isosurf \
 	bounce \
 	terrain
 
