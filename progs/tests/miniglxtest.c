@@ -1,16 +1,14 @@
-/* $Id: miniglxtest.c,v 1.1.4.2 2002/11/27 17:02:39 brianp Exp $ */
+/* $Id: miniglxtest.c,v 1.1.4.3 2002/11/27 21:04:18 brianp Exp $ */
 
 /*
  * Test the mini GLX interface.
  */
 
 
-
 #include <GL/gl.h>
 #include <GL/miniglx.h>
 #include <stdio.h>
 #include <stdlib.h>
-
 
 
 static void redraw( Display *dpy, Window w, int rot )
@@ -28,18 +26,6 @@ static void redraw( Display *dpy, Window w, int rot )
 
    WRAP(glXSwapBuffers)( dpy, w );
 }
-
-
-
-static void resize( unsigned int width, unsigned int height )
-{
-   printf("Resize event\n");
-   glViewport( 0, 0, width, height );
-   glMatrixMode( GL_PROJECTION );
-   glLoadIdentity();
-   glOrtho( -1.0, 1.0, -1.0, 1.0, -1.0, 1.0 );
-}
-
 
 
 static Window make_rgb_db_window( Display *dpy,
@@ -95,8 +81,6 @@ static void event_loop( Display *dpy, Window win )
 {
    int i;
 
-   resize(1280, 1024);
-
    printf("Hang on... drawing 5 frames\n");
    for (i = 0; i < 5; i++) {
       redraw( dpy, win, i*10 );
@@ -111,7 +95,7 @@ int main( int argc, char *argv[] )
 
    dpy = WRAP(XOpenDisplay)(NULL);
 
-   win = make_rgb_db_window( dpy, 1280, 1024);
+   win = make_rgb_db_window( dpy, 800, 600);
 
    glShadeModel( GL_FLAT );
    glClearColor( 0.5, 0.5, 0.5, 1.0 );
