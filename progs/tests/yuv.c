@@ -4,7 +4,7 @@
  * Brian Paul   13 September 2002
  */
 
-
+#include <assert.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -191,8 +191,14 @@ static void Init( int argc, char *argv[] )
    ConvertRGBtoYUV(ImgWidth, ImgHeight, Image, ImageYUV);
    glTexImage2D(GL_TEXTURE_RECTANGLE_NV, 0,
                 GL_YCBCR_MESA, ImgWidth, ImgHeight, 0,
-                GL_YCBCR_MESA, GL_UNSIGNED_SHORT_8_8_APPLE, ImageYUV);
+                GL_YCBCR_MESA, GL_UNSIGNED_SHORT_8_8_MESA, ImageYUV);
 
+   assert(glGetError() == GL_NO_ERROR);
+   glTexSubImage2D(GL_TEXTURE_RECTANGLE_NV, 0,
+                   0, 0, ImgWidth, ImgHeight,
+                   GL_YCBCR_MESA, GL_UNSIGNED_SHORT_8_8_MESA, ImageYUV);
+
+   assert(glGetError() == GL_NO_ERROR);
 #endif
 
    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
