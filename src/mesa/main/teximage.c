@@ -1,4 +1,4 @@
-/* $Id: teximage.c,v 1.39.4.11 2001/03/02 16:40:47 gareth Exp $ */
+/* $Id: teximage.c,v 1.39.4.12 2001/03/06 05:30:30 gareth Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -1879,11 +1879,10 @@ void
 _mesa_GetTexImage( GLenum target, GLint level, GLenum format,
                    GLenum type, GLvoid *pixels )
 {
-   GET_CURRENT_CONTEXT(ctx);
    const struct gl_texture_object *texObj;
    struct gl_texture_image *texImage;
    GLboolean discardImage;
-
+   GET_CURRENT_CONTEXT(ctx);
    ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx, "glGetTexImage");
 
    if (level < 0 || level >= ctx->Const.MaxTextureLevels) {
@@ -2059,11 +2058,12 @@ _mesa_TexSubImage1D( GLenum target, GLint level,
                      GLenum format, GLenum type,
                      const GLvoid *pixels )
 {
-   GET_CURRENT_CONTEXT(ctx);
    struct gl_texture_unit *texUnit;
    struct gl_texture_object *texObj;
    struct gl_texture_image *texImage;
    GLboolean success = GL_FALSE;
+   GET_CURRENT_CONTEXT(ctx);
+   ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx, "glTexSubImage1D");
 
    if (subtexture_error_check(ctx, 1, target, level, xoffset, 0, 0,
                               width, 1, 1, format, type)) {
@@ -2142,11 +2142,12 @@ _mesa_TexSubImage2D( GLenum target, GLint level,
                      GLenum format, GLenum type,
                      const GLvoid *pixels )
 {
-   GET_CURRENT_CONTEXT(ctx);
    struct gl_texture_unit *texUnit;
    struct gl_texture_object *texObj;
    struct gl_texture_image *texImage;
    GLboolean success = GL_FALSE;
+   GET_CURRENT_CONTEXT(ctx);
+   ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx, "glTexSubImage2D");
 
    if (subtexture_error_check(ctx, 2, target, level, xoffset, yoffset, 0,
                               width, height, 1, format, type)) {
@@ -2255,11 +2256,12 @@ _mesa_TexSubImage3D( GLenum target, GLint level,
                      GLenum format, GLenum type,
                      const GLvoid *pixels )
 {
-   GET_CURRENT_CONTEXT(ctx);
    struct gl_texture_unit *texUnit;
    struct gl_texture_object *texObj;
    struct gl_texture_image *texImage;
    GLboolean success = GL_FALSE;
+   GET_CURRENT_CONTEXT(ctx);
+   ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx, "glTexSubImage3D");
 
    if (subtexture_error_check(ctx, 3, target, level, xoffset, yoffset, zoffset,
                               width, height, depth, format, type)) {
@@ -3001,11 +3003,12 @@ _mesa_CompressedTexSubImage1DARB(GLenum target, GLint level, GLint xoffset,
                                  GLsizei width, GLenum format,
                                  GLsizei imageSize, const GLvoid *data)
 {
-   GET_CURRENT_CONTEXT(ctx);
    struct gl_texture_unit *texUnit;
    struct gl_texture_object *texObj;
    struct gl_texture_image *texImage;
    GLboolean success = GL_FALSE;
+   GET_CURRENT_CONTEXT(ctx);
+   ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx, "glCompressedTexSubImage1DARB");
 
    if (subtexture_error_check(ctx, 1, target, level, xoffset, 0, 0,
                               width, 1, 1, format, GL_NONE)) {
@@ -3038,11 +3041,12 @@ _mesa_CompressedTexSubImage2DARB(GLenum target, GLint level, GLint xoffset,
                                  GLenum format, GLsizei imageSize,
                                  const GLvoid *data)
 {
-   GET_CURRENT_CONTEXT(ctx);
    struct gl_texture_unit *texUnit;
    struct gl_texture_object *texObj;
    struct gl_texture_image *texImage;
    GLboolean success = GL_FALSE;
+   GET_CURRENT_CONTEXT(ctx);
+   ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx, "glCompressedTexSubImage2DARB");
 
    if (subtexture_error_check(ctx, 2, target, level, xoffset, yoffset, 0,
                               width, height, 1, format, GL_NONE)) {
@@ -3076,11 +3080,12 @@ _mesa_CompressedTexSubImage3DARB(GLenum target, GLint level, GLint xoffset,
                                  GLsizei height, GLsizei depth, GLenum format,
                                  GLsizei imageSize, const GLvoid *data)
 {
-   GET_CURRENT_CONTEXT(ctx);
    struct gl_texture_unit *texUnit;
    struct gl_texture_object *texObj;
    struct gl_texture_image *texImage;
    GLboolean success = GL_FALSE;
+   GET_CURRENT_CONTEXT(ctx);
+   ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx, "glCompressedTexSubImage3DARB");
 
    if (subtexture_error_check(ctx, 3, target, level, xoffset, yoffset, zoffset,
                               width, height, depth, format, GL_NONE)) {
@@ -3111,10 +3116,9 @@ _mesa_CompressedTexSubImage3DARB(GLenum target, GLint level, GLint xoffset,
 void
 _mesa_GetCompressedTexImageARB(GLenum target, GLint level, GLvoid *img)
 {
-   GET_CURRENT_CONTEXT(ctx);
    const struct gl_texture_object *texObj;
    struct gl_texture_image *texImage;
-
+   GET_CURRENT_CONTEXT(ctx);
    ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx, "glGetCompressedTexImageARB");
 
    if (level < 0 || level >= ctx->Const.MaxTextureLevels) {
