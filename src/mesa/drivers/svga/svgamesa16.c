@@ -1,4 +1,4 @@
-/* $Id: svgamesa16.c,v 1.1.2.3 2000/01/23 17:48:12 brianp Exp $ */
+/* $Id: svgamesa16.c,v 1.1.2.4 2000/01/31 22:10:39 tanner Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -26,6 +26,10 @@
  * Original author:  Brian Paul
  * Additional authors:  Slawomir Szczyrba <steev@hot.pl>  (Mesa 3.2)
  */
+
+#ifdef HAVE_CONFIG_H
+#include "conf.h"
+#endif
 
 #ifdef SVGA
 
