@@ -12,7 +12,7 @@
 <h2>
 <center>
 <h3>Tungsten Graphics, Inc.</h3>
-<h3>February 3, 2003<br>
+<h3>February 26, 2003<br>
 </h3>
 </center>
 </h2>
@@ -623,34 +623,7 @@ Polygon culling is enabled and disabled with the commands <span
  style="font-weight: bold;">glDisable</span>(GL_CULL_FACE),
 respectively.<br>
 <br>
-<h3>4.3.3 Polygon Fill Mode</h3>
-The command<br>
-<br>
-<div style="margin-left: 40px;">void<span style="font-weight: bold;"><span
- style="font-weight: bold;"> </span><span style="font-weight: bold;"></span>glPolygonMode</span>(GLenum<span
- style="font-style: italic;">face</span>, GLenum <span
- style="font-style: italic;">mode</span>)<br>
-</div>
-<br>
-controls whether polygons are filled, outlined or drawn with a point at
-each vertex.&nbsp; The <span style="font-style: italic;">face</span>
-parameter must be GL_FRONT_AND_BACK. &nbsp;The values GL_FRONT and
-GL_BACK are not permitted by the subset.<br>
-<br>
-If <span style="font-style: italic;">mode</span> is GL_FILL then
-triangles, quadrilaterals and triangles will be filled (the default).
-&nbsp;If <span style="font-style: italic;">mode</span> is GL_LINE then
-triangles, quadrilaterals and polygons will be outlined with line
-segments instead of being filled.<span style="font-weight: bold;"></span>
-&nbsp;If <span style="font-style: italic;">mode</span> is GL_POINT then
-triangles, quadrilaterals and polygons will be rendered with a point at
-each vertex instead of being filled.<span style="font-weight: bold;"></span><br>
-<br>
-Any other values for <span style="font-style: italic;">face</span> or <span
- style="font-style: italic;">mode</span> will raise the error
-GL_INVALID_ENUM.<br>
-<br>
-<h3>4.3.4 Polygon Antialiasing</h3>
+<h3>4.3.3 Polygon Antialiasing</h3>
 Polygons may be antialiased in order to smooth their edges.
 &nbsp;Polygon antialiasing is enabled and disabled with the commands <span
  style="font-weight: bold;">glEnable</span>(GL_POLYGON_SMOOTH) and <span
@@ -688,8 +661,8 @@ are linearly interpolated to produce the fragment colors.<br>
 <h2>4.5 Bitmap Rasterization</h2>
 A bitmap is a monochromatic, binary image in which each image element
 (or pixel) is represented by one bit. &nbsp;Fragments are only generated
-for the bits (pixels) which are set.  &nbsp;Bitmaps are commonly used
-to draw text (glyphs) and markers.<br>
+for the bits (pixels) which are set.  &nbsp;Bitmaps are commonly used to
+draw text (glyphs) and markers.<br>
 <br>
 A bitmap is drawn with the command<br>
 <br>
@@ -844,6 +817,7 @@ the subset.<br>
 Polygon commands:<br>
 <div style="margin-left: 40px; font-weight: bold;">glPolygonStipple<br>
 glPolygonOffset<br>
+glPolygonMode<br>
 <br>
 </div>
 </div>
@@ -2763,15 +2737,6 @@ name stack.<br>
       </td>
     </tr>
     <tr>
-      <td style="vertical-align: top;">GL_POLYGON_MODE<br>
-      </td>
-      <td style="vertical-align: top;">2<br>
-      </td>
-      <td style="vertical-align: top;">Current front and back polygon
-modes: GL_POINT, GL_LINE or GL_FILL.<br>
-      </td>
-    </tr>
-    <tr>
       <td style="vertical-align: top;">GL_POLYGON_SMOOTH<br>
       </td>
       <td style="vertical-align: top;">1<br>
@@ -3456,7 +3421,7 @@ number of approaches to antialiasing have been summarized in email.<br>
 RECOMMENDATION: don't support edge flags. &nbsp;They don't effect
 polygon antialiasing.<br>
 <br>
-RESOLUTION: open<br>
+RESOLUTION: closed, as of 26 Feb 2003.<br>
 <br>
 <h2>A.3 glRasterPos vs. glWindowPos</h2>
 Should glRasterPos and/or glWindowPos commands be supported?<br>
@@ -3601,6 +3566,12 @@ supported.<br>
 <br>
 RESOLUTION: open<br>
 <br>
+<h2>A.15 glPolygonMode</h2>
+Is <span style="font-weight: bold;">glPolygonMode</span> needed?<br>
+<br>
+RECOMMENDATION: No. &nbsp;Omit it.<br>
+<br>
+RESOLUTION: closed, as of 26 Feb 2003<br>
 <br>
 <br>
 <p> </p>
