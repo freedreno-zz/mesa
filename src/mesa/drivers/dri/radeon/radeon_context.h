@@ -608,9 +608,9 @@ struct radeon_context {
     * \name Vertex buffers
     */
    /*@{*/
-   struct radeon_ioctl ioctl;
-   struct radeon_dma dma;
-   struct radeon_store store; /**< \ brief Command buffer */
+   struct radeon_ioctl ioctl; 
+   struct radeon_dma dma;     /**< \brief DMA information */
+   struct radeon_store store; /**< \brief Command buffer */
    /*@}*/
 
    /**

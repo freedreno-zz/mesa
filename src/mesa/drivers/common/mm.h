@@ -1,5 +1,9 @@
+/**
+ * \file mm.h
+ * \brief Memory management.
+ */
+
 /*
- * GLX Hardware Device Driver common code
  * Copyright (C) 1999 Keith Whitwell
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
@@ -25,58 +29,57 @@
 #ifndef MM_INC
 #define MM_INC
 
+/**
+ * \brief Memmory block/heap.
+ */
 struct mem_block_t {
-  struct mem_block_t *next;
-  struct mem_block_t *heap;
-  int ofs,size;
-  int align;
-  int free:1;
-  int reserved:1;
+  struct mem_block_t *next; /**< \brief pointer to next block in the heap */
+  struct mem_block_t *heap; /**< \brief pointer to the heap (first block) */
+  int ofs;                  /**< \brief offset */
+  int size;                 /**< \brief size */
+  int align;                /**< \brief alignment */
+  int free:1;               /**< \brief free flag */
+  int reserved:1;           /**< \brief reserved flag */
 };
+
+/**
+ * \brief Memmory block.
+ */
 typedef struct mem_block_t TMemBlock;
+
+/**
+ * \brief Memmory block pointer.
+ */
 typedef struct mem_block_t *PMemBlock;
 
-/* a heap is just the first block in a chain */
+/**
+ * \brief Memmory heap.
+ * 
+ * \note A heap is just the first block in a chain 
+ */
 typedef struct mem_block_t memHeap_t;
 
+/**
+ * \brief Get Memmory block size.
+ */
 static __inline__ int mmBlockSize(PMemBlock b)
 { return b->size; }
 
+/**
+ * \brief Get Memmory block offset.
+ */
 static __inline__ int mmOffset(PMemBlock b)
 { return b->ofs; }
 
-/* 
- * input: total size in bytes
- * return: a heap pointer if OK, NULL if error
- */
 memHeap_t *mmInit( int ofs, int size );
 
-/*
- * Allocate 'size' bytes with 2^align2 bytes alignment,
- * restrict the search to free memory after 'startSearch'
- * depth and back buffers should be in different 4mb banks
- * to get better page hits if possible
- * input:	size = size of block
- *       	align2 = 2^align2 bytes alignment
- *		startSearch = linear offset from start of heap to begin search
- * return: pointer to the allocated block, 0 if error
- */
 PMemBlock  mmAllocMem( memHeap_t *heap, int size, int align2, 
 		       int startSearch );
 
-/*
- * Free block starts at offset
- * input: pointer to a block
- * return: 0 if OK, -1 if error
- */
 int  mmFreeMem( PMemBlock b );
 
-/*
- * destroy MM
- */
-void mmDestroy( memHeap_t *mmInit );
+void mmDestroy( memHeap_t *heap );
 
-/* For debuging purpose. */
-void mmDumpMemInfo( memHeap_t *mmInit );
+void mmDumpMemInfo( memHeap_t *heap );
 
 #endif

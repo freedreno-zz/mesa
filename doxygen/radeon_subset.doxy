@@ -53,6 +53,7 @@ WARN_LOGFILE           =
 #---------------------------------------------------------------------------
 INPUT                  = \
 			../src/drv/common/mm.c \
+			../src/drv/common/mm.h \
 			../src/drv/radeon/radeon_context.c \
 			../src/drv/radeon/radeon_context.h \
 		 	../src/drv/radeon/radeon_ioctl.c \
@@ -64,6 +65,7 @@ INPUT                  = \
 		 	../src/drv/radeon/radeon_state.c \
 		 	../src/drv/radeon/radeon_state.h \
 		 	../src/drv/radeon/radeon_state_init.c \
+			../src/drv/radeon/radeon_subset.h \
 			../src/drv/radeon/radeon_subset_bitmap.c \
 			../src/drv/radeon/radeon_subset_readpix.c \
 			../src/drv/radeon/radeon_subset_select.c \

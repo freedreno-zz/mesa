@@ -1,5 +1,9 @@
+/**
+ * \file mm.c
+ * \brief Memory management.
+ */
+
 /*
- * GLX Hardware Device Driver common code
  * Copyright (C) 1999 Keith Whitwell
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
@@ -19,20 +23,29 @@
  * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR 
  * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE 
  * OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
  */
+
 /* $XFree86: xc/lib/GL/mesa/src/drv/common/mm.c,v 1.3 2001/08/18 02:51:03 dawes Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
 
 #include "mm.h"
-#include "hwlog.h"
 
 /* KW: I don't know who the author of this code is, but it wasn't me
  * despite what the copyright says...
  */
 
+/**
+ * \brief Dump memmory information about the heap.
+ *
+ * \param heap memmory heap.
+ *
+ * \note For debugging purposes.
+ *
+ * \internal
+ * Prints the offset, size and flags for each block.
+ */
 void mmDumpMemInfo( memHeap_t *heap )
 {
    TMemBlock *p;
@@ -52,6 +65,19 @@ void mmDumpMemInfo( memHeap_t *heap )
    fprintf(stderr, "End of memory blocks\n");
 }
 
+
+/**
+ * \brief Memmory heap initialization.
+ * 
+ * \param offset offset in bytes.
+ * \param size total size in bytes
+ * 
+ * \return a heap pointer on success, or NULL on failure.
+ *
+ * \internal
+ * Allocate a mem_block_t structure and initialize it with the heap
+ * information.
+ */
 memHeap_t *mmInit(int ofs,
 		  int size)
 {
@@ -71,6 +97,22 @@ memHeap_t *mmInit(int ofs,
 }
 
 
+/**
+ * \brief Slice a free memmory block.
+ *
+ * \param p memmory block.
+ * \param startofs start offset to slice.
+ * \param size of the slice.
+ * \param reserved flag.
+ * \param alignment block alignment.
+ *
+ * \return pointer to the slice block on success, or NULL on failure.
+ * 
+ * \internal
+ * Creates a new block to the left with the remaining memory before the slice
+ * start (if any), a block to the right with the remaing memmory after the
+ * slice (if any), and the reduced memmory block itself as the slice.
+ */
 static TMemBlock* SliceBlock(TMemBlock *p, 
 			     int startofs, int size, 
 			     int reserved, int alignment)
@@ -111,6 +153,26 @@ static TMemBlock* SliceBlock(TMemBlock *p,
    return p;
 }
 
+
+/**
+ * \brief Allocate a memmory block.
+ *
+ * Allocate \p size bytes with \p 2^align2 bytes alignment,
+ * restrict the search to free memory after \p startSearch.
+ * Depth and back buffers should be in different 4MB banks
+ * to get better page hits if possible.
+ * 
+ * \param heap memmory heap.
+ * \param size size to allocate in bytes.
+ * \param align2 base 2 log of the alignment in bytes.
+ * \param startSearch linear offset from start of the heap to begin the search.
+ * 
+ * \return pointer to the allocated block on success, or NULL on failure.
+ *
+ * \internal
+ * Walks through the free blocks on the heap and if it finds one above
+ * startSearch and large enough slices it via SliceBlock() and returns the result.
+ */
 PMemBlock mmAllocMem( memHeap_t *heap, int size, int align2, int startSearch)
 {
    int mask,startofs,endofs;
@@ -140,6 +202,17 @@ PMemBlock mmAllocMem( memHeap_t *heap, int size, int align2, int startSearch)
    return p;
 }
 
+
+/**
+ * \brief Join two successive free memmory blocks.
+ *
+ * \param p pointer to first memmory block.
+ *
+ * \return 1 on success, or 0 on failure.
+ *
+ * \internal
+ * Adds the size of the second block to the first and frees its data structure.
+ */
 static __inline__ int Join2Blocks(TMemBlock *p)
 {
    if (p->free && p->next && p->next->free) {
@@ -152,6 +225,18 @@ static __inline__ int Join2Blocks(TMemBlock *p)
    return 0;
 }
 
+
+/**
+ * \brief Free a memmory block.
+ * 
+ * \param pointer to a block.
+ *
+ * \return 0 on success, or -1 on failure.
+ *
+ * \internal
+ * Search the given block on the heap, mark it as free and attempt to join it
+ * with the next one via Join2Blocks().
+ */
 int mmFreeMem(PMemBlock b)
 {
    TMemBlock *p,*prev;
@@ -185,6 +270,14 @@ int mmFreeMem(PMemBlock b)
 }
 
 
+/**
+ * \brief Destroy the memmory heap.
+ * 
+ * \param heap memmory heap.
+ *
+ * \internal
+ * Frees each block in the heap.
+ */
 void mmDestroy(memHeap_t *heap)
 {
    TMemBlock *p,*q;

@@ -117,7 +117,7 @@ static struct vb_t {
    GLenum prim;          /**< \brief primitive */
    GLuint vertex_format; /**< \brief vertex format */
    GLint vertex_size;    /**< \brief vertex size */
-   GLboolean recheck;
+   GLboolean recheck;    /**< \brief set if it's needed to validate this information */
    /*@}*/
 } vb;
 
@@ -151,7 +151,8 @@ static struct prims_t {
  *
  * \param rmesa Radeon context.
  *
- * Truncates any redundant vertices off the end of the buffer and 
+ * Truncates any redundant vertices off the end of the buffer, emit the
+ * remainging vertices and advances the current DMA region.
  */
 static void finish_prim( radeonContextPtr rmesa )
 {
@@ -178,6 +179,15 @@ static void finish_prim( radeonContextPtr rmesa )
 }
 
 
+/**
+ * \brief Copy a vertex from the current DMA region
+ *
+ * \param rmesa Radeon context.
+ * \param n vertice index relative to the current DMA region.
+ * \param dst destination pointer.
+ *
+ * Used internally by copy_dma_verts().
+ */
 static void copy_vertex( radeonContextPtr rmesa, GLuint n, GLfloat *dst )
 {
    GLuint i;
@@ -190,6 +200,17 @@ static void copy_vertex( radeonContextPtr rmesa, GLuint n, GLfloat *dst )
 }
 
 
+/**
+ * \brief Copy last vertices from the current DMA buffer to resume in a new buffer.
+ *
+ * \param rmesa Radeon context.
+ * \param tmp destination buffer.
+ *
+ * Takes from the current DMA buffer the last vertices necessary to resume in a
+ * new buffer, according to the current primitive.  Uses internally
+ * copy_vertex() for the vertex copying.
+ * 
+ */
 static GLuint copy_dma_verts( radeonContextPtr rmesa, 
 			      GLfloat (*tmp)[MAX_VERTEX_DWORDS] )
 {
@@ -242,6 +263,13 @@ static GLuint copy_dma_verts( radeonContextPtr rmesa,
 
 static void notify_wrap_buffer( void );
 
+/**
+ * \brief Resets the vertex buffer notifycation mechanism.
+ *
+ * Fills in vb_t::stack with the values from the current DMA region in
+ * radeon_dma::current and sets points the notification callback to
+ * notify_wrap_buffer().
+ */
 static void reset_notify( void )
 {
    radeonContextPtr rmesa = RADEON_CONTEXT( vb.context );
@@ -255,6 +283,13 @@ static void reset_notify( void )
    vb.stack[0].notify = notify_wrap_buffer;
 }      
 
+/**
+ * \brief Full buffer notification callback.
+ *
+ * Makes a copy of the necessary vertices of the current buffer via
+ * copy_dma_verts(), gets and resets new buffer via radeon and reemits the
+ * saved vertices.
+ */
 static void notify_wrap_buffer( void )
 {
    GLcontext *ctx = vb.context;
@@ -286,6 +321,7 @@ static void notify_wrap_buffer( void )
    }
 }
 
+
 static void notify_noop( void )
 {
    vb.stack[0].dmaptr = (int *)vb.vertex;
@@ -293,11 +329,30 @@ static void notify_noop( void )
    vb.stack[0].vertspace = 1;
 }
 
+/**
+ * \brief Pop the notification mechanism stack.
+ *
+ * Simply copy the second stack array element into the first.
+ *
+ * \sa vb_t::stack and push_notify().
+ */
 static void pop_notify( void )
 {
    vb.stack[0] = vb.stack[1];
 }
 
+/**
+ * \brief Push the notification mechanism stack.
+ *
+ * \param notify new notify callback for the stack head.
+ * \param space space available for vertices in \p store.
+ * \param store buffer where to store the vertices.
+ * 
+ * Copy the second stack array element into the first and makes the stack head
+ * use the given resources.
+ * 
+ * \sa vb_t::stack and pop_notify().
+ */
 static void push_notify( void (*notify)( void ), int space, 
 			 union vertex_dword *store )
 {
@@ -310,7 +365,12 @@ static void push_notify( void (*notify)( void ), int space,
 
 
 /**
- * \brief Emit a stored vertex (in vb.vertex_store) to DMA.
+ * \brief Emit a stored vertex (in vb_t::vertex_store) to DMA.
+ *
+ * \param v vertex index.
+ *
+ * Adds the vertex into the current vertex buffer and calls the notification
+ * callback vb_t::notify().
  */
 static void emit_vertex( int v )
 {
@@ -325,7 +385,14 @@ static void emit_vertex( int v )
 
 
 /**
- * \brief Emit a quad (in vb.vertex_store) to dma as two triangles.
+ * \brief Emit a quad (in vb_t::vertex_store) to DMA as two triangles.
+ *
+ * \param v0 first vertex index.
+ * \param v1 second vertex index.
+ * \param v2 third vertex index.
+ * \param v3 fourth vertex index.
+ *
+ * Calls emit_vertex() to emit the triangles' vertices.
  */
 static void emit_quad( int v0, int v1, int v2, int v3 )
 {
@@ -334,7 +401,11 @@ static void emit_quad( int v0, int v1, int v2, int v3 )
 }
 
 /**
- * \brief Every fourth vertex in a quad primitive, this is called to emit.
+ * \brief Every fourth vertex in a quad primitive, this is called to emit it.
+ *
+ * Pops the notification stack, calls emit_quad() and pushes the notification
+ * stack again, with itself and the vb_t::vertex_store to process another four
+ * vertices.
  */
 static void notify_quad( void )
 {
@@ -343,11 +414,18 @@ static void notify_quad( void )
    push_notify( notify_quad, 4, vb.vertex_store );
 }
 
-/*
- * After the 4th vertex, emit either a quad or a flipped quad each two
- * vertices.
- */
 static void notify_qstrip1( void );
+
+/**
+ * \brief After the 4th vertex, emit either a quad or a flipped quad each two
+ * vertices.
+ *
+ * Pops the notification stack, calls emit_quad() with the flipped vertices and
+ * pushes the notification stack again, with notify_qstrip1() and the
+ * vb_t::vertex_store to process another two vertices.
+ *
+ * \sa notify_qstrip1().
+ */
 static void notify_qstrip0( void )
 {
    pop_notify();
@@ -355,6 +433,16 @@ static void notify_qstrip0( void )
    push_notify( notify_qstrip1, 2, vb.vertex_store );
 }
 
+/**
+ * \brief After the 4th vertex, emit either a quad or a flipped quad each two
+ * vertices.
+ *
+ * Pops the notification stack, calls emit_quad() with the straight vertices
+ * and pushes the notification stack again, with notify_qstrip0() and the
+ * vb_t::vertex_store to process another two vertices.
+ *
+ * \sa notify_qstrip0().
+ */
 static void notify_qstrip1( void )
 {
    pop_notify();
@@ -366,6 +454,8 @@ static void notify_qstrip1( void )
  * \brief Emit the saved vertex (but hang on to it for later).
  *
  * Continue processing this primitive as a linestrip.
+ *
+ * Pops the notification stack and calls emit_quad with the first vertex.
  */
 static void notify_lineloop0( void )
 {
@@ -373,15 +463,30 @@ static void notify_lineloop0( void )
    emit_vertex(0);
 }
 
-
-
-
+/**
+ * \brief Invalidate the current vertex format.
+ *
+ * \param ctx GL context.
+ *
+ * Sets the vb_t::recheck flag.
+ */
 void radeonVtxfmtInvalidate( GLcontext *ctx )
 {
    vb.recheck = GL_TRUE;
 }
 
 
+/**
+ * \brief Validate the vertex format from the context.
+ *
+ * \param ctx GL context.
+ *
+ * Signals a new primitive and determines the appropriate vertex format and
+ * size. Points vb_t::floatcolorptr and vb_t::texcoordptr to the curent vertex
+ * and sets them to the current color and texture attributes.
+ *
+ * Clears the vb_t::recheck flag on exit.
+ */
 static void radeonVtxfmtValidate( GLcontext *ctx )
 {
    radeonContextPtr rmesa = RADEON_CONTEXT( ctx );
@@ -440,7 +545,10 @@ static void radeonVtxfmtValidate( GLcontext *ctx )
 
 
 
-/* Begin/End
+/**
+ * \brief Process glBegin/glEnd.
+ *
+ * \param mode primitive.
  */
 static void radeon_Begin( GLenum mode )
 {
@@ -467,7 +575,7 @@ static void radeon_Begin( GLenum mode )
    if (vb.recheck) 
       radeonVtxfmtValidate( ctx );
 
-   /* Do we need to grab a new dma region for the vertices?
+   /* Do we need to grab a new DMA region for the vertices?
     */
    if (rmesa->dma.current.ptr + 12*vb.vertex_size*4 > rmesa->dma.current.end) {
       RADEON_NEWPRIM( rmesa );
@@ -549,6 +657,15 @@ static void radeon_End( void )
 }
 
 
+/**
+ * \brief Flush vertices.
+ *
+ * \param ctx GL context.
+ * \param flags flags.
+ *
+ * If FLUSH_UPDATE_CURRENT is et in \p flags then the current vertex attributes
+ * in the GL context is updated from vb_t::floatcolorptr and vb_t::texcoordptr.
+ */
 static void radeonFlushVertices( GLcontext *ctx, GLuint flags )
 {
    if (flags & FLUSH_UPDATE_CURRENT) {
@@ -569,8 +686,14 @@ static void radeonFlushVertices( GLcontext *ctx, GLuint flags )
 }
 
 
-/* Code each function once, let the compiler optimize away the inline
- * calls:
+/**
+ * \brief Set current vertex coordinates.
+ *
+ * \param x x vertex coordinate.
+ * \param y y vertex coordinate.
+ * \param z z vertex coordinate.
+ * 
+ * Set the current vertex coordinates. If run out of space in this buffer call the notification callback.
  */
 static __inline__ void radeon_Vertex3f( GLfloat x, GLfloat y, GLfloat z )
 {
@@ -587,6 +710,16 @@ static __inline__ void radeon_Vertex3f( GLfloat x, GLfloat y, GLfloat z )
       vb.stack[0].notify();
 }
 
+/**
+ * \brief Set current vertex color.
+ *
+ * \param r red color component.
+ * \param g gree color component.
+ * \param b blue color component.
+ * \param a alpha color component.
+ *
+ * Sets the current vertex color via vb_t::floatcolorptr.
+ */
 static __inline__  void radeon_Color4f( GLfloat r, GLfloat g,
 					GLfloat b, GLfloat a )
 {
@@ -597,6 +730,16 @@ static __inline__  void radeon_Color4f( GLfloat r, GLfloat g,
    dest[3] = a;
 }
 
+/**
+ * \brief Set current vertex color.
+ *
+ * \param r red color component.
+ * \param g gree color component.
+ * \param b blue color component.
+ * \param a alpha color component.
+ *
+ * Sets the current vertex color via vb_t::floatcolorptr.
+ */
 static __inline__ void radeon_TexCoord2f( GLfloat s, GLfloat t )
 {
    GLfloat *dest = vb.texcoordptr;
@@ -604,44 +747,79 @@ static __inline__ void radeon_TexCoord2f( GLfloat s, GLfloat t )
    dest[1] = t;
 }
 
-/* Rely on __inline__ to make these efficient:
+/**
+ * Calls radeon_Vertex3f(), which is expanded inline by the compiler to be
+ * efficient.
  */
 static void radeon_Vertex3fv( const GLfloat *v )
 {
    radeon_Vertex3f( v[0], v[1], v[2] );
 }
 
+/**
+ * Calls radeon_Vertex3f(), which is expanded inline by the compiler to be
+ * efficient.
+ */
 static void radeon_Vertex2f( GLfloat x, GLfloat y )
 {
    radeon_Vertex3f( x, y, 0 );
 }
 
+/**
+ * Calls radeon_Vertex3f(), which is expanded inline by the compiler to be
+ * efficient.
+ */
 static void radeon_Vertex2fv( const GLfloat *v )
 {
    radeon_Vertex3f( v[0], v[1], 0 );
 }
 
+/**
+ * Calls radeon_Vertex3f(), which is expanded inline by the compiler to be
+ * efficient.
+ */
 static void radeon_Color4fv( const GLfloat *v )
 {
    radeon_Color4f( v[0], v[1], v[2], v[3] );
 }
 
+/**
+ * Calls radeon_Color4f(), which is expanded inline by the compiler to be
+ * efficient.
+ */
 static void radeon_Color3f( GLfloat r, GLfloat g, GLfloat b )
 {
    radeon_Color4f( r, g, b, 1.0 );
 }
 
+/**
+ * Calls radeon_Color4f(), which is expanded inline by the compiler to be
+ * efficient.
+ */
 static void radeon_Color3fv( const GLfloat *v )
 {
    radeon_Color4f( v[0], v[1], v[2], 1.0 );
 }
 
+/**
+ * Calls radeon_TexCoord2f(), which is expanded inline by the compiler to be
+ * efficient.
+ */
 static void radeon_TexCoord2fv( const GLfloat *v )
 {
    radeon_TexCoord2f( v[0], v[1] );
 }
 
-
+/**
+ * \brief Setup the GL context callbacks.
+ * 
+ * \param ctx GL context.
+ * 
+ * Setups the GL context callbacks and links _glapi_table entries related to
+ * the glBegin()/glEnd() pairs to the functions in this module.
+ * 
+ * Called by radeonCreateContext().
+ */
 void radeonVtxfmtInit( GLcontext *ctx )
 {
    struct _glapi_table *exec = ctx->Exec;
@@ -667,25 +845,51 @@ void radeonVtxfmtInit( GLcontext *ctx )
    notify_noop();
 }
 
-
+/**
+ * No-op.
+ */
 void radeonVtxfmtUnbindContext( GLcontext *ctx )
 {
 }
 
+/**
+ * No-op.
+ */
 void radeonVtxfmtMakeCurrent( GLcontext *ctx )
 {
 }
 
+/**
+ * No-op.
+ */
 void radeonVtxfmtDestroy( GLcontext *ctx )
 {
 }
 
+/**
+ * \brief Software rendering fallback.
+ *
+ * \param ctx GL context.
+ * \param bit fallback bitmask.
+ * \param mode enable or disable.
+ * 
+ * Does nothing except display a warning message if \p mode is set.
+ */
 void radeonFallback( GLcontext *ctx, GLuint bit, GLboolean mode )
 {
    if (mode)
       fprintf(stderr, "Warning: hit nonexistant fallback path!\n");
 }
 
+/**
+ * \brief Software TCL fallback.
+ *
+ * \param ctx GL context.
+ * \param bit fallback bitmask.
+ * \param mode enable or disable.
+ * 
+ * Does nothing except display a warning message if \p mode is set.
+ */
 void radeonTclFallback( GLcontext *ctx, GLuint bit, GLboolean mode )
 {
    if (mode)
