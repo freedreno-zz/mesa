@@ -1,8 +1,8 @@
-/* $Id: imports.h,v 1.8.2.1 2003/01/14 02:57:30 brianp Exp $ */
+/* $Id: imports.h,v 1.8.2.2 2003/02/28 16:28:16 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  5.0
+ * Version:  5.1
  *
  * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
  *
@@ -167,8 +167,14 @@ _mesa_strcmp( const char *s1, const char *s2 );
 extern int
 _mesa_strncmp( const char *s1, const char *s2, size_t n );
 
+extern char *
+_mesa_strdup( const char *s );
+
 extern int
 _mesa_atoi( const char *s );
+
+extern double
+_mesa_strtod( const char *s, char **end );
 
 extern int
 _mesa_sprintf( char *str, const char *fmt, ... );
@@ -181,7 +187,7 @@ extern void
 _mesa_warning( __GLcontext *gc, const char *fmtString, ... );
 
 extern void
-_mesa_problem( const __GLcontext *ctx, const char *s );
+_mesa_problem( const __GLcontext *ctx, const char *fmtString, ... );
 
 extern void
 _mesa_error( __GLcontext *ctx, GLenum error, const char *fmtString, ... );

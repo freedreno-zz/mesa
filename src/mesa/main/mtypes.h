@@ -1,10 +1,10 @@
-/* $Id: mtypes.h,v 1.97 2002/10/21 15:52:34 brianp Exp $ */
+/* $Id: mtypes.h,v 1.97.2.1 2003/02/28 16:28:17 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  4.1
+ * Version:  5.0.1
  *
- * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2003  Brian Paul   All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -1367,6 +1367,7 @@ struct gl_extensions {
    GLboolean ARB_texture_env_dot3;
    GLboolean ARB_texture_mirrored_repeat;
    GLboolean ARB_window_pos;
+   GLboolean ATI_texture_env_combine3;
    GLboolean ATI_texture_mirror_once;
    GLboolean EXT_blend_color;
    GLboolean EXT_blend_func_separate;

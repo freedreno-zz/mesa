@@ -1,8 +1,8 @@
-/* $Id: imports.c,v 1.25.2.1 2002/12/01 13:59:51 brianp Exp $ */
+/* $Id: imports.c,v 1.25.2.2 2003/02/28 16:28:14 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  5.0.1
+ * Version:  5.1
  *
  * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
  *
@@ -356,6 +356,17 @@ _mesa_strncmp( const char *s1, const char *s2, size_t n )
 }
 
 
+char *
+_mesa_strdup( const char *s )
+{
+   int l = _mesa_strlen(s);
+   char *s2 = (char *) _mesa_malloc(l + 1);
+   if (s2)
+      _mesa_strcpy(s2, s);
+   return s2;
+}
+
+
 int
 _mesa_atoi(const char *s)
 {
@@ -363,6 +374,17 @@ _mesa_atoi(const char *s)
    return xf86atoi(s);
 #else
    return atoi(s);
+#endif
+}
+
+
+double
+_mesa_strtod( const char *s, char **end )
+{
+#if defined(XFree86LOADER) && defined(IN_MODULE)
+   return xf86strtod(s, end);
+#else
+   return strtod(s, end);
 #endif
 }
 
@@ -429,14 +451,21 @@ _mesa_warning( GLcontext *ctx, const char *fmtString, ... )
  * path which may not be implemented fully or correctly.
  */
 void
-_mesa_problem( const GLcontext *ctx, const char *s )
+_mesa_problem( const GLcontext *ctx, const char *fmtString, ... )
 {
+   va_list args;
+   char str[MAXSTRING];
    (void) ctx;
+
+   va_start( args, fmtString );  
+   vsnprintf( str, MAXSTRING, fmtString, args );
+   va_end( args );
+
 #if defined(XFree86LOADER) && defined(IN_MODULE)
-   xf86fprintf(stderr, "Mesa implementation error: %s\n", s);
+   xf86fprintf(stderr, "Mesa implementation error: %s\n", str);
    xf86fprintf(stderr, "Please report to the DRI project at dri.sourceforge.net\n");
 #else
-   fprintf(stderr, "Mesa implementation error: %s\n", s);
+   fprintf(stderr, "Mesa implementation error: %s\n", str);
    fprintf(stderr, "Please report to the Mesa bug database at www.mesa3d.org\n" );
 #endif
 }
