@@ -33,10 +33,16 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <GL/gl.h>
+#define USE_MINI_GLX 1
+#if USE_MINI_GLX
+#include <GL/miniglx.h>
+#else
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
-#include <GL/gl.h>
 #include <GL/glx.h>
+#endif
+
 
 
 #define BENCHMARK
@@ -346,13 +352,18 @@ make_window( Display *dpy, const char *name,
    attr.background_pixel = 0;
    attr.border_pixel = 0;
    attr.colormap = XCreateColormap( dpy, root, visinfo->visual, AllocNone);
-   attr.event_mask = StructureNotifyMask | ExposureMask | KeyPressMask;
+   attr.event_mask = StructureNotifyMask | ExposureMask 
+#if !USE_MINI_GLX
+      | KeyPressMask
+#endif
+      ;
    mask = CWBackPixel | CWBorderPixel | CWColormap | CWEventMask;
 
    win = XCreateWindow( dpy, root, 0, 0, width, height,
 		        0, visinfo->depth, InputOutput,
 		        visinfo->visual, mask, &attr );
 
+#if !USE_MINI_GLX
    /* set hints and properties */
    {
       XSizeHints sizehints;
@@ -365,6 +376,7 @@ make_window( Display *dpy, const char *name,
       XSetStandardProperties(dpy, win, name, name,
                               None, (char **)NULL, 0, &sizehints);
    }
+#endif
 
    ctx = glXCreateContext( dpy, visinfo, NULL, True );
    if (!ctx) {
@@ -382,7 +394,12 @@ make_window( Display *dpy, const char *name,
 static void
 event_loop(Display *dpy, Window win)
 {
+#if USE_MINI_GLX
+   reshape(300, 300);
+#endif
+
    while (1) {
+#if !USE_MINI_GLX
       while (XPending(dpy) > 0) {
          XEvent event;
          XNextEvent(dpy, &event);
@@ -421,6 +438,7 @@ event_loop(Display *dpy, Window win)
             }
          }
       }
+#endif
 
       /* next frame */
       angle += 2.0;
