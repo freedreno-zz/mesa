@@ -1205,6 +1205,84 @@ static void _save_Begin( GLenum mode )
 }
 
 
+/* Unlike the functions above, these are to be hooked into the vtxfmt
+ * maintained in ctx->ListState, active when the list is known or
+ * suspected to be outside any begin/end primitive.
+ */
+static void _save_OBE_Rectf( GLfloat x1, GLfloat y1, GLfloat x2, GLfloat y2 )
+{
+   GET_CURRENT_CONTEXT(ctx);
+   _save_NotifyBegin( ctx, GL_QUADS | PRIM_WEAK );
+   glVertex2f( x1, y1 );
+   glVertex2f( x2, y1 );
+   glVertex2f( x2, y2 );
+   glVertex2f( x1, y2 );
+   glEnd();
+}
+
+
+static void _save_OBE_DrawArrays(GLenum mode, GLint start, GLsizei count)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   GLint i;
+
+   if (!_mesa_validate_DrawArrays( ctx, mode, start, count ))
+      return;
+
+   _save_NotifyBegin( ctx, mode | PRIM_WEAK );
+   for (i = start ; i < count ; i++)
+      glArrayElement( i );
+   glEnd();
+}
+
+
+static void _save_OBE_DrawElements(GLenum mode, GLsizei count, GLenum type,
+				   const GLvoid *indices)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   GLint i;
+
+   if (!_mesa_validate_DrawElements( ctx, mode, count, type, indices ))
+      return;
+
+   _save_NotifyBegin( ctx, mode | PRIM_WEAK );
+
+   switch (type) {
+   case GL_UNSIGNED_BYTE:
+      for (i = 0 ; i < count ; i++)
+	 glArrayElement( ((GLubyte *)indices)[i] );
+      break;
+   case GL_UNSIGNED_SHORT:
+      for (i = 0 ; i < count ; i++)
+	 glArrayElement( ((GLushort *)indices)[i] );
+      break;
+   case GL_UNSIGNED_INT:
+      for (i = 0 ; i < count ; i++)
+	 glArrayElement( ((GLuint *)indices)[i] );
+      break;
+   default:
+      _mesa_error( ctx, GL_INVALID_ENUM, "glDrawElements(type)" );
+      break;
+   }
+
+   glEnd();
+}
+
+static void _save_OBE_DrawRangeElements(GLenum mode,
+					GLuint start, GLuint end,
+					GLsizei count, GLenum type,
+					const GLvoid *indices)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   if (_mesa_validate_DrawRangeElements( ctx, mode,
+					 start, end,
+					 count, type, indices ))
+      _save_OBE_DrawElements( mode, count, type, indices );
+}
+
+
+
+
 
 static void _save_vtxfmt_init( GLcontext *ctx )
 {
@@ -1405,7 +1483,7 @@ static void _save_current_init( GLcontext *ctx )
 }
 
 /**
- * Setup vector pointers that will be used to bind immediates to VB's.
+ * Initialize the display list compiler
  */
 void _tnl_save_init( GLcontext *ctx )
 {
@@ -1428,6 +1506,15 @@ void _tnl_save_init( GLcontext *ctx )
 
    _save_vtxfmt_init( ctx );
    _save_current_init( ctx );
+
+   /* Hook our array functions into the outside-begin-end vtxfmt in 
+    * ctx->ListState.
+    */
+   ctx->ListState.ListVtxfmt.Rectf = _save_OBE_Rectf;
+   ctx->ListState.ListVtxfmt.DrawArrays = _save_OBE_DrawArrays;
+   ctx->ListState.ListVtxfmt.DrawElements = _save_OBE_DrawElements;
+   ctx->ListState.ListVtxfmt.DrawRangeElements = _save_OBE_DrawRangeElements;
+   _mesa_install_save_vtxfmt( ctx, &ctx->ListState.ListVtxfmt );
 }
 
 

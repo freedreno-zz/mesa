@@ -175,10 +175,12 @@ void _tnl_playback_vertex_list( GLcontext *ctx, void *data )
       if (ctx->Driver.CurrentExecPrimitive != PRIM_OUTSIDE_BEGIN_END &&
 	  (node->prim[0].mode & PRIM_BEGIN)) {
 
-	 /* Degenerate case: list is called inside begin/end pair.
+	 /* Degenerate case: list is called inside begin/end pair and
+	  * includes operations such as glBegin or glDrawArrays.
 	  */
 	 _mesa_error( ctx, GL_INVALID_OPERATION, "displaylist recursive begin");
-	 _tnl_loopback_vertex_list( ctx, data );
+	 if (!(node->prim[0].mode & PRIM_WEAK))
+	    _tnl_loopback_vertex_list( ctx, data );
 	 return;
       }
       else if (node->dangling_attr_ref) {
