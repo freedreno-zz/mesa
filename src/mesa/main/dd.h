@@ -1,4 +1,4 @@
-/* $Id: dd.h,v 1.26.4.2 2000/08/29 22:58:57 brianp Exp $ */
+/* $Id: dd.h,v 1.26.4.3 2000/09/07 15:30:48 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -639,6 +639,16 @@ struct dd_function_table {
     * with FREE() when finished.
     * The size of the image can be deduced from the target and level.
     * Core Mesa will perform any image format/type conversions that are needed.
+    */
+
+   GLboolean (*TestProxyTexImage)(GLcontext *ctx, GLenum target,
+                                  GLint level, GLint internalFormat,
+                                  GLenum format, GLenum type,
+                                  GLint width, GLint height,
+                                  GLint depth, GLint border);
+   /* Called by glTexImage[123]D when user specifies a proxy texture
+    * target.  Return GL_TRUE if the proxy test passes, return GL_FALSE
+    * if the test fails.
     */
 
    GLboolean (*CompressedTexImage1D)( GLcontext *ctx, GLenum target,

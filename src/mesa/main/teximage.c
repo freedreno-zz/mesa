@@ -1,4 +1,3 @@
-/* $Id: teximage.c,v 1.39.4.4 2000/09/05 22:09:03 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -1537,10 +1536,16 @@ _mesa_TexImage1D( GLenum target, GLint level, GLint internalFormat,
       gl_put_texobj_on_dirty_list( ctx, texObj );
       ctx->NewState |= NEW_TEXTURING;
    }
-   else if (target==GL_PROXY_TEXTURE_1D) {
+   else if (target == GL_PROXY_TEXTURE_1D) {
       /* Proxy texture: check for errors and update proxy state */
-      if (texture_error_check(ctx, target, level, internalFormat,
-                              format, type, 1, width, 1, 1, border)) {
+      GLenum error = texture_error_check(ctx, target, level, internalFormat,
+                                         format, type, 1, width, 1, 1, border);
+      if (!error && ctx->Driver.TestProxyTexImage) {
+         error = !(*ctx->Driver.TestProxyTexImage)(ctx, target, level,
+                                                  internalFormat, format, type,
+                                                  width, 1, 1, border);
+      }
+      if (error) {
          /* if error, clear all proxy texture image parameters */
          if (level>=0 && level<ctx->Const.MaxTextureLevels) {
             clear_proxy_teximage(ctx->Texture.Proxy1D->Image[level]);
@@ -1668,10 +1673,16 @@ _mesa_TexImage2D( GLenum target, GLint level, GLint internalFormat,
       gl_put_texobj_on_dirty_list( ctx, texObj );
       ctx->NewState |= NEW_TEXTURING;
    }
-   else if (target==GL_PROXY_TEXTURE_2D) {
+   else if (target == GL_PROXY_TEXTURE_2D) {
       /* Proxy texture: check for errors and update proxy state */
-      if (texture_error_check(ctx, target, level, internalFormat,
-                              format, type, 2, width, height, 1, border)) {
+      GLenum error = texture_error_check(ctx, target, level, internalFormat,
+                                    format, type, 2, width, height, 1, border);
+      if (!error && ctx->Driver.TestProxyTexImage) {
+         error = !(*ctx->Driver.TestProxyTexImage)(ctx, target, level,
+                                                  internalFormat, format, type,
+                                                  width, height, 1, border);
+      }
+      if (error) {
          /* if error, clear all proxy texture image parameters */
          if (level>=0 && level<ctx->Const.MaxTextureLevels) {
             clear_proxy_teximage(ctx->Texture.Proxy2D->Image[level]);
@@ -1689,7 +1700,6 @@ _mesa_TexImage2D( GLenum target, GLint level, GLint internalFormat,
       return;
    }
 }
-
 
 
 /*
@@ -1792,10 +1802,16 @@ _mesa_TexImage3D( GLenum target, GLint level, GLint internalFormat,
       gl_put_texobj_on_dirty_list( ctx, texObj );
       ctx->NewState |= NEW_TEXTURING;
    }
-   else if (target==GL_PROXY_TEXTURE_3D) {
+   else if (target == GL_PROXY_TEXTURE_3D) {
       /* Proxy texture: check for errors and update proxy state */
-      if (texture_error_check(ctx, target, level, internalFormat,
-                              format, type, 3, width, height, depth, border)) {
+      GLenum error = texture_error_check(ctx, target, level, internalFormat,
+                                format, type, 3, width, height, depth, border);
+      if (!error && ctx->Driver.TestProxyTexImage) {
+         error = !(*ctx->Driver.TestProxyTexImage)(ctx, target, level,
+                                                 internalFormat, format, type,
+                                                 width, height, depth, border);
+      }
+      if (error) {
          /* if error, clear all proxy texture image parameters */
          if (level>=0 && level<ctx->Const.MaxTextureLevels) {
             clear_proxy_teximage(ctx->Texture.Proxy3D->Image[level]);
@@ -2739,8 +2755,14 @@ _mesa_CompressedTexImage1DARB(GLenum target, GLint level,
    }
    else if (target == GL_PROXY_TEXTURE_1D) {
       /* Proxy texture: check for errors and update proxy state */
-      if (texture_error_check(ctx, target, level, internalFormat,
-                              GL_NONE, GL_NONE, 1, width, 1, 1, border)) {
+      GLenum error = texture_error_check(ctx, target, level, internalFormat,
+                                    GL_NONE, GL_NONE, 1, width, 1, 1, border);
+      if (!error && ctx->Driver.TestProxyTexImage) {
+         error = !(*ctx->Driver.TestProxyTexImage)(ctx, target, level,
+                                             internalFormat, GL_NONE, GL_NONE,
+                                             width, 1, 1, border);
+      }
+      if (error) {
          /* if error, clear all proxy texture image parameters */
          if (level>=0 && level<ctx->Const.MaxTextureLevels) {
             clear_proxy_teximage(ctx->Texture.Proxy1D->Image[level]);
@@ -2868,8 +2890,14 @@ _mesa_CompressedTexImage2DARB(GLenum target, GLint level,
    }
    else if (target == GL_PROXY_TEXTURE_2D) {
       /* Proxy texture: check for errors and update proxy state */
-      if (texture_error_check(ctx, target, level, internalFormat,
-                              GL_NONE, GL_NONE, 1, width, 1, 1, border)) {
+      GLenum error = texture_error_check(ctx, target, level, internalFormat,
+                                GL_NONE, GL_NONE, 2, width, height, 1, border);
+      if (!error && ctx->Driver.TestProxyTexImage) {
+         error = !(*ctx->Driver.TestProxyTexImage)(ctx, target, level,
+                                              internalFormat, GL_NONE, GL_NONE,
+                                              width, height, 1, border);
+      }
+      if (error) {
          /* if error, clear all proxy texture image parameters */
          if (level>=0 && level<ctx->Const.MaxTextureLevels) {
             clear_proxy_teximage(ctx->Texture.Proxy2D->Image[level]);
@@ -2991,8 +3019,14 @@ _mesa_CompressedTexImage3DARB(GLenum target, GLint level,
    }
    else if (target == GL_PROXY_TEXTURE_3D) {
       /* Proxy texture: check for errors and update proxy state */
-      if (texture_error_check(ctx, target, level, internalFormat,
-                          GL_NONE, GL_NONE, 1, width, height, depth, border)) {
+      GLenum error = texture_error_check(ctx, target, level, internalFormat,
+                            GL_NONE, GL_NONE, 1, width, height, depth, border);
+      if (!error && ctx->Driver.TestProxyTexImage) {
+         error = !(*ctx->Driver.TestProxyTexImage)(ctx, target, level,
+                                             internalFormat, GL_NONE, GL_NONE,
+                                             width, height, depth, border);
+      }
+      if (error) {
          /* if error, clear all proxy texture image parameters */
          if (level>=0 && level<ctx->Const.MaxTextureLevels) {
             clear_proxy_teximage(ctx->Texture.Proxy3D->Image[level]);
