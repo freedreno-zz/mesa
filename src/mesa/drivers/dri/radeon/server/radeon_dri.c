@@ -898,10 +898,6 @@ static int __driValidateMode( struct MiniGLXDisplayRec *dpy )
    info->gen_int_cntl = INREG(RADEON_GEN_INT_CNTL);
    info->crtc_offset_cntl = INREG(RADEON_CRTC_OFFSET_CNTL);
 
-   fprintf(stderr, "saved: %x, %x\n", 
-	   info->gen_int_cntl,
-	   info->crtc_offset_cntl);
-
    return 1;
 }
 
@@ -910,11 +906,6 @@ static int __driPostValidateMode( struct MiniGLXDisplayRec *dpy )
 {
    unsigned char *RADEONMMIO = dpy->MMIOAddress;
    RADEONInfoPtr info = dpy->driverInfo;
-
-
-   fprintf(stderr, "modied: %x, %x\n", 
-	   INREG(RADEON_GEN_INT_CNTL),
-	   INREG(RADEON_CRTC_OFFSET_CNTL));
 
    /* Restore registers that fbdev has clobbered.
     */
