@@ -1,4 +1,4 @@
-/* $Id: texstore.c,v 1.34.2.6 2002/09/16 20:29:22 brianp Exp $ */
+/* $Id: texstore.c,v 1.34.2.7 2002/09/17 14:13:43 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -1669,7 +1669,6 @@ _mesa_generate_mipmap(GLcontext *ctx, GLenum target,
       GLint srcWidth, srcHeight, srcDepth;
       GLint dstWidth, dstHeight, dstDepth;
       GLint border, bytesPerTexel;
-      GLint t;
 
       srcImage = texObj->Image[level];
       ASSERT(srcImage);
@@ -1722,7 +1721,7 @@ _mesa_generate_mipmap(GLcontext *ctx, GLenum target,
          MESA_PBUFFER_FREE(dstImage->Data);
 
       /* initialize new image */
-      _mesa_init_teximage_fields(ctx, t, dstImage, dstWidth, dstHeight,
+      _mesa_init_teximage_fields(ctx, target, dstImage, dstWidth, dstHeight,
                                  dstDepth, border, srcImage->Format);
       dstImage->DriverData = NULL;
       dstImage->TexFormat = srcImage->TexFormat;
