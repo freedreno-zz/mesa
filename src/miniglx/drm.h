@@ -237,8 +237,8 @@ typedef struct drm_map {
 typedef struct drm_client {
 	int		idx;	/**< Which client desired? */
 	int		auth;	/**< Is client authenticated? */
-	unsigned long	pid;	/**< Process id */
-	unsigned long	uid;	/**< User id */
+	unsigned long	pid;	/**< Process ID */
+	unsigned long	uid;	/**< User ID */
 	unsigned long	magic;	/**< Magic */
 	unsigned long	iocs;	/**< Ioctl count */
 } drm_client_t;
@@ -330,8 +330,8 @@ typedef enum drm_dma_flags {
 
 				      /* Flags for DMA buffer request */
 	_DRM_DMA_WAIT	      = 0x10, /**< Wait for free buffers */
-	_DRM_DMA_SMALLER_OK   = 0x20, /**< Smaller-than-requested buffers ok */
-	_DRM_DMA_LARGER_OK    = 0x40  /**< Larger-than-requested buffers ok */
+	_DRM_DMA_SMALLER_OK   = 0x20, /**< Smaller-than-requested buffers OK */
+	_DRM_DMA_LARGER_OK    = 0x40  /**< Larger-than-requested buffers OK */
 } drm_dma_flags_t;
 
 
@@ -381,7 +381,7 @@ typedef struct drm_buf_free {
  * \sa drm_buf_map.
  */
 typedef struct drm_buf_pub {
-	int		  idx;	       /**< Index into master buflist */
+	int		  idx;	       /**< Index into the master buffer list */
 	int		  total;       /**< Buffer size */
 	int		  used;	       /**< Amount of buffer in use (for DMA) */
 	void		  *address;    /**< Address of buffer */
@@ -392,8 +392,8 @@ typedef struct drm_buf_pub {
  * \brief DRM_IOCTL_MAP_BUFS ioctl argument type.
  */
 typedef struct drm_buf_map {
-	int	      count;	/**< Length of buflist */
-	void	      *virtual;	/**< Mmaped area in user-virtual */
+	int	      count;	/**< Length of the buffer list */
+	void	      *virtual;	/**< Mmap'd area in user-virtual */
 	drm_buf_pub_t *list;	/**< Buffer information */
 } drm_buf_map_t;
 
@@ -401,7 +401,7 @@ typedef struct drm_buf_map {
 /**
  * \brief DRM_IOCTL_DMA ioctl argument type.
  *
- * Indices here refer to the offset into buflist in drm_buf_get_t.
+ * Indices here refer to the offset into the buffer list in drm_buf_get.
  *
  * \sa drmDMA().
  */

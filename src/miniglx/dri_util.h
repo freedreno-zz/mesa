@@ -98,8 +98,8 @@ do {                                                                    \
 /**
  * \brief Driver callback functions.
  *
- * Each DRI driver must have one of these structs with all the pointers set to
- * appropriate functions within the driver.
+ * Each DRI driver must have one of these structures with all the pointers set
+ * to appropriate functions within the driver.
  * 
  * When glXCreateContext() is called, for example, it'll call a helper function
  * dri_util.c which in turn will jump through the \a CreateContext pointer in
@@ -142,12 +142,12 @@ struct __DriverAPIRec {
     void (*DestroyBuffer)(__DRIdrawablePrivate *driDrawPriv);
 
     /**
-     * \brief Buffer swaping callback 
+     * \brief Buffer swapping callback 
      */
     void (*SwapBuffers)(__DRIdrawablePrivate *driDrawPriv);
 
     /**
-     * \brief Context actication callback
+     * \brief Context activation callback
      */
     GLboolean (*MakeCurrent)(__DRIcontextPrivate *driContextPriv,
                              __DRIdrawablePrivate *driDrawPriv,
@@ -205,7 +205,7 @@ struct __DRIdrawablePrivateRec {
     int refcount;
 
     /**
-     * \brief Index of this drawable's information in the SAREA.
+     * \brief Index of this drawable information in the SAREA.
      */
     unsigned int index;
 
@@ -415,9 +415,10 @@ struct __DRIscreenPrivateRec {
      * other context. 
      *
      * A dummy hHWContext is created for this context, and is used by the GL
-     * core when a HW lock is required but the drawable is not currently bound
-     * (e.g., potentially during a SwapBuffers request).  The dummy context is
-     * created when the first "real" context is created on this screen.
+     * core when a hardware lock is required but the drawable is not currently
+     * bound (e.g., potentially during a SwapBuffers request).  The dummy
+     * context is created when the first "real" context is created on this
+     * screen.
      */
     __DRIcontextPrivate dummyContextPriv;
 

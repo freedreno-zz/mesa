@@ -58,7 +58,7 @@ typedef unsigned int  drmSize,     *drmSizePtr;	    /**< For mapped regions */
 typedef void          *drmAddress, **drmAddressPtr; /**< For mapped regions */
 typedef unsigned int  drmContext,  *drmContextPtr;  /**< GLXContext handle */
 typedef unsigned int  drmDrawable, *drmDrawablePtr; /**< Unused */
-typedef unsigned int  drmMagic,    *drmMagicPtr;    /**< Magic for auth */
+typedef unsigned int  drmMagic,    *drmMagicPtr;    /**< Magic for authentication */
 
 /**
  * \brief Driver version information.
@@ -135,8 +135,8 @@ typedef enum {
 
     /* Flags for DMA buffer request */
     DRM_DMA_WAIT         = 0x10, /**< Wait for free buffers */
-    DRM_DMA_SMALLER_OK   = 0x20, /**< Smaller-than-requested buffers ok */
-    DRM_DMA_LARGER_OK    = 0x40  /**< Larger-than-requested buffers ok */
+    DRM_DMA_SMALLER_OK   = 0x20, /**< Smaller-than-requested buffers OK */
+    DRM_DMA_LARGER_OK    = 0x40  /**< Larger-than-requested buffers OK */
 } drmDMAFlags;
 
 typedef enum {
@@ -176,7 +176,7 @@ typedef struct _drmBufInfo {
 } drmBufInfo, *drmBufInfoPtr;
 
 typedef struct _drmBuf {
-    int              idx;	  /**< Index into master buflist */
+    int              idx;	  /**< Index into the master buffer list */
     int              total;	  /**< Buffer size */
     int              used;	  /**< Amount of buffer in use (for DMA) */
     drmAddress       address;	  /**< Address */

@@ -22,7 +22,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: miniglx.c,v 1.1.4.40 2003/01/19 14:08:20 jrfonseca Exp $ */
+/* $Id: miniglx.c,v 1.1.4.41 2003/01/19 18:47:54 jrfonseca Exp $ */
 
 
 /**
@@ -74,7 +74,7 @@
 /**
  * \page datatypes Notes on the XVisualInfo, Visual, and __GLXvisualConfig data types
  * 
- * -# X (unfortunately) has two (or three) datatypes which
+ * -# X (unfortunately) has two (or three) data types which
  *    describe visuals.  Ideally, there would just be one.
  * -# We need the #__GLXvisualConfig type to augment #XVisualInfo and #Visual
  *    because we need to describe the GLX-specific attributes of visuals.
@@ -334,7 +334,7 @@ OpenFBDev( Display *dpy )
  *
  * Attempts to draws a bitmap with a gradient.
  *
- * \todo Timings are hardcoded in the code for a set of supported modes.
+ * \todo Timings are hard-coded in the source for a set of supported modes.
  */
 static GLboolean
 SetupFBDev( Display *dpy, Window win )
@@ -661,8 +661,8 @@ _glthread_GetID(void)
 
 
 /**
- * \brief Scan linux /prog/bus/pci/devices file to determine hardware
- * chipset based on supplied busid.
+ * \brief Scan Linux /prog/bus/pci/devices file to determine hardware
+ * chipset based on supplied bus ID.
  * 
  * \return non-zeros on success, zero otherwise.
  * 
@@ -708,7 +708,7 @@ static int get_chipset_from_busid( Display *dpy )
 /**
  * \brief Read settings from a configuration file.
  * 
- * The configuration file is usually "/etc/minigilx.conf", but can be overriden
+ * The configuration file is usually "/etc/miniglx.conf", but can be overridden
  * with the MINIGLX_CONF environment variable. 
  *
  * The format consists in \code option = value \endcode lines. The option names 
@@ -835,7 +835,7 @@ static int __read_config_file( Display *dpy )
  * Calls OpenFBDev() to open the framebuffer device and calls
  * MiniGLXDriverRec::initFBDev to do the client-side initialization on it.
  *
- * Loads the DRI driver and pulls in MiniGLX-specific hooks into a
+ * Loads the DRI driver and pulls in Mini GLX specific hooks into a
  * MiniGLXDriverRec structure, and the standard DRI \e __driCreateScreen hook.
  * Asks the driver for a list of supported visuals.  Performs the per-screen
  * client-side initialization - has to be done this here as it depends on the
@@ -881,7 +881,7 @@ XOpenDisplay( const char *display_name )
       return NULL;
    }
 
-   /* Pull in MiniGLX-specific hooks:
+   /* Pull in Mini GLX specific hooks:
     */
    dpy->driver = (struct MiniGLXDriverRec *) dlsym(dpy->dlHandle,
 						   "__driMiniGLXDriver");
@@ -1003,7 +1003,7 @@ XCloseDisplay( Display *display )
  * screen width such as 1024 or 1280. 
  * \param height the window height. For Mini GLX, this specifies the desired
  * screen height such as 768 or 1024.
- * \param border_width the border sith. For Mini GLX, it should be zero.
+ * \param border_width the border width. For Mini GLX, it should be zero.
  * \param depth the window pixel depth. For Mini GLX, this should be the depth
  * found in the #XVisualInfo object returned by glXChooseVisual() 
  * \param class the window class. For Mini GLX this value should be
@@ -1183,20 +1183,20 @@ XMapWindow( Display *display, Window w )
  * \brief Create color map structure.
  *
  * \param dpy the display handle as returned by XOpenDisplay().
- * \param w the window on whose screen you want to create a colormap. This
+ * \param w the window on whose screen you want to create a color map. This
  * parameter is ignored by Mini GLX but should be the value returned by the
  * \code RootWindow(display, 0) \endcode macro.
  * \param visual a visual type supported on the screen. This parameter is
  * ignored by Mini GLX but should be the XVisualInfo::visual returned by
  * glXChooseVisual().
- * \param alloc the colormap entries to be allocated. This parameter is ignored
+ * \param alloc the color map entries to be allocated. This parameter is ignored
  * by Mini GLX but should be set to #AllocNone.
  *
  * \return the color map.
  * 
  * \internal
  * This function is only provided to ease porting.  Practically a no-op -
- * returns a pointer to a dinamically allocated chunk of memory (one byte).
+ * returns a pointer to a dynamically allocated chunk of memory (one byte).
  */
 Colormap
 XCreateColormap( Display *dpy, Window w, Visual *visual, int alloc )
@@ -1210,10 +1210,10 @@ XCreateColormap( Display *dpy, Window w, Visual *visual, int alloc )
 
 
 /**
- * \brief Destroy colormap structure.
+ * \brief Destroy color map structure.
  *
  * \param display The display handle as returned by XOpenDisplay().
- * \param colormap the colormap to destroy.
+ * \param colormap the color map to destroy.
  *
  * \internal
  * This function is only provided to ease porting.  Practically a no-op. 
@@ -1597,7 +1597,7 @@ glXGetConfig( Display *dpy, XVisualInfo *vis, int attrib, int *value )
  *
  * \internal
  * This function creates and initializes a ::MiniGLXContextRec structure and
- * calls the __DRIscreenRec::createContext method to initalize the client
+ * calls the __DRIscreenRec::createContext method to initialize the client
  * private data.
  */ 
 GLXContext
@@ -1796,8 +1796,8 @@ glXGetCurrentDrawable( void )
  * prevent linking the application with older versions of the library.
  * 
  * \internal
- * Returns the function address by looking up its name in a static (name, func)
- * pair list.
+ * Returns the function address by looking up its name in a static (name,
+ * address) pair list.
  */
 const void *
 glXGetProcAddress( const GLubyte *procName )
@@ -1850,7 +1850,7 @@ glXGetProcAddress( const GLubyte *procName )
  * \sa #MINI_GLX_VERSION_1_0.
  * 
  * \internal
- * Returns the hardcoded Mini GLX version.
+ * Returns the hard-coded Mini GLX version.
  */
 Bool
 glXQueryVersion( Display *dpy, int *major, int *minor )

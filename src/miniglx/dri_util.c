@@ -343,7 +343,7 @@ static void driDestroyDrawable(Display *dpy, void *drawablePrivate)
  * 
  * \internal
  * This function allocates and fills a __DRIdrawablePrivateRec structure,
- * initializing the invariant window dimensions and cliprects.  It obtains the
+ * initializing the invariant window dimensions and clip rects.  It obtains the
  * visual config, converts it into a __GLcontextModesRec and passes it to
  * __DriverAPIRec::CreateBuffer to create a buffer.
  */
@@ -372,7 +372,7 @@ static void *driCreateDrawable(Display *dpy, int scrn,
     pdp->display = dpy;
     pdp->screen = scrn;
 
-    /* Initialize with the invariant window dimensions and cliprects here.
+    /* Initialize with the invariant window dimensions and clip rects here.
      */
     pdp->x = 0;
     pdp->y = 0;
@@ -474,7 +474,7 @@ static void driDestroyContext(Display *dpy, int scrn, void *contextPrivate)
  * \param dpy the display handle.
  * \param scrn the screen number.
  * \param vis the visual information.
- * \param sharedPrivate the shared context dependent methods or NULL if non-existant.
+ * \param sharedPrivate the shared context dependent methods or NULL if non-existent.
  * \param pctx will receive the context dependent methods.
  *
  * \returns a opaque pointer to the per-context private information on success, or NULL
@@ -482,7 +482,7 @@ static void driDestroyContext(Display *dpy, int scrn, void *contextPrivate)
  * 
  * \internal
  * This function allocates and fills a __DRIcontextPrivateRec structure.  It
- * gets the visual config, converts it into a __GLcontextModesRec and passes it
+ * gets the visual, converts it into a __GLcontextModesRec and passes it
  * to __DriverAPIRec::CreateContext to create the context.
  */
 static void *driCreateContext(Display *dpy, XVisualInfo *vis,
@@ -752,7 +752,7 @@ __driUtilCreateScreenNoDRM(Display *dpy, int scrn, __DRIscreen *psc,
  * \internal
  * These can be put in place and safely used prior to __driUtilCreateScreen()
  * being called.  This allows glXCreateContext() to be called prior to
- * XCreateWindow(), but still allows XCreateWindow() to deterimine the virtual
+ * XCreateWindow(), but still allows XCreateWindow() to determine the virtual
  * resolution (a screen parameter as far as the driver is concerned).
  */
 void

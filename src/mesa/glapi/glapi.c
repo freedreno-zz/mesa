@@ -1,4 +1,4 @@
-/* $Id: glapi.c,v 1.67.4.2 2003/01/18 13:42:06 jrfonseca Exp $ */
+/* $Id: glapi.c,v 1.67.4.3 2003/01/19 18:47:53 jrfonseca Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -240,7 +240,7 @@ static GLboolean DispatchOverride = GL_FALSE;
  * 
  * \param str string.
  *
- * \return a pointer to an allocated copy of \p str if sucessful, or NULL if
+ * \return a pointer to an allocated copy of \p str if successful, or NULL if
  * not enough memory.
  * 
  * strdup() is actually not a standard ANSI C or POSIX routine.
@@ -276,7 +276,7 @@ str_dup(const char *str)
  * If more than one thread is detected then permanently sets ThreadSafe to
  * true.
  *
- * Once ThreadSafe is true, it make sure that the calling thread's disptach
+ * Once ThreadSafe is true, it make sure that the calling thread's dispatch
  * pointer isn't null.
  * 
  * \note Is a no-op if not compiled with threads support.
@@ -376,7 +376,7 @@ _glapi_get_context(void)
  * \sa _glapi_get_dispatch().
  *
  * \internal
- * If the dispatch table is being overriden then set the the real dispatch
+ * If the dispatch table is being overridden then set the the real dispatch
  * table pointer (_glapi_RealDispatch) instead of the current dispatch table
  * pointer (_glapi_Dispatch).
  *
@@ -669,7 +669,7 @@ extern void __glapi_sparc_icache_flush(unsigned int *);
  * \internal
  * We need assembly language in order to accomplish this.
  * 
- * The function body is generated in dinamically allocated memory from a static
+ * The function body is generated in dynamically allocated memory from a static
  * machine instruction template specific to the target processor.
  */
 static void *
@@ -776,7 +776,7 @@ generate_entrypoint(GLuint functionOffset)
  * \param offset dispatch table offset.
  *
  * \internal
- * Same as generate_entrypoint(), but without allocating the stuv and copying
+ * Same as generate_entrypoint(), but without allocating the stub and copying
  * the template.
  */
 static void

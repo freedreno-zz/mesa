@@ -176,12 +176,12 @@ struct __DRIdrawableRec {
  * \brief Interface to the DRI driver.
  *
  * This structure is retrieved from the loadable driver by the \e
- * __driMiniGLXDriver symbol to access the MiniGLX-specific hardware
- * initalization and takedown routines.
+ * __driMiniGLXDriver symbol to access the Mini GLX specific hardware
+ * initialization and take down routines.
  */
 struct MiniGLXDriverRec { 
    /**
-    * \brief Get the list of supported configs.
+    * \brief Get the list of supported visuals.
     */
    int (*initScreenConfigs)( struct MiniGLXDisplayRec *dpy,
 			     int *numConfigs, __GLXvisualConfig **configs );
@@ -293,7 +293,7 @@ struct MiniGLXDisplayRec {
    caddr_t MMIOAddress;  /**< \brief start of the mmap'd MMIO region */
    int MMIOSize;         /**< \brief size of the mmap'd MMIO region in bytes */
    int NumWindows;       /**< \brief number of open windows */
-   Window TheWindow;     /**< \brief open windo - only allow one window for now */
+   Window TheWindow;     /**< \brief open window - only allow one window for now */
 
    /**
     * \name Visual configurations
@@ -347,7 +347,7 @@ struct MiniGLXDisplayRec {
    int drmFD;  /**< \brief DRM device file descriptor */
    unsigned long hSAREA;
    unsigned long hFrameBuffer;
-   unsigned int serverContext;	/* temporary drm context -- make an auto var? */
+   unsigned int serverContext;	/* temporary DRM context -- make an auto var? */
    int SAREASize;
    void *pSAREA;
    /*@}*/
