@@ -38,21 +38,19 @@
 #include "t_context.h"
 #include "t_pipeline.h"
 
-#define LIGHT_FLAGS         0x1	/* must be first */
-#define LIGHT_TWOSIDE       0x2
-#define LIGHT_COLORMATERIAL 0x4
-#define MAX_LIGHT_FUNC      0x8
+#define LIGHT_TWOSIDE       0x1
+#define LIGHT_MATERIAL      0x2
+#define MAX_LIGHT_FUNC      0x4
 
 typedef void (*light_func)( GLcontext *ctx,
 			    struct vertex_buffer *VB,
-			    struct gl_pipeline_stage *stage,
+			    struct tnl_pipeline_stage *stage,
 			    GLvector4f *input );
 
 struct light_stage_data {
-   struct gl_client_array FloatColor; 
-   struct gl_client_array LitColor[2];
-   struct gl_client_array LitSecondary[2];
-   GLvector1ui LitIndex[2];
+   GLvector4f LitColor[2];
+   GLvector4f LitSecondary[2];
+   GLvector1f LitIndex[2];
    light_func *light_func_tab;
 };
 
@@ -60,46 +58,14 @@ struct light_stage_data {
 #define LIGHT_STAGE_DATA(stage) ((struct light_stage_data *)(stage->privatePtr))
 
 
-static void import_color_material( GLcontext *ctx,
-				   struct gl_pipeline_stage *stage )
+
+
+static void update_materials( GLcontext *ctx, GLuint j )
 {
-   struct vertex_buffer *VB = &TNL_CONTEXT(ctx)->vb;
-   struct gl_client_array *to = &LIGHT_STAGE_DATA(stage)->FloatColor;
-   struct gl_client_array *from = VB->ColorPtr[0];
-   GLuint count = VB->Count;
-
-   if (!to->Ptr) {
-      to->Ptr = (GLubyte *) ALIGN_MALLOC( VB->Size * 4 * sizeof(GLfloat), 32 );
-      to->Type = GL_FLOAT;
-   }
-
-   /* No need to transform the same value 3000 times.
-    */
-   if (!from->StrideB) {
-      to->StrideB = 0;
-      count = 1;
-   }
-   else
-      to->StrideB = 4 * sizeof(GLfloat);
-   
-   _math_trans_4fc( (GLfloat (*)[4]) to->Ptr,
-		    from->Ptr,
-		    from->StrideB,
-		    from->Type,
-		    from->Size,
-		    0,
-		    count);
-
-   VB->ColorPtr[0] = to;
-}
-
-
-static void update_materials( GLcontext *ctx,
-			      const struct gl_material *src,
-			      GLuint bitmask )
-{
+/*
    _mesa_copy_materials( &ctx->Light.Material, src, bitmask );
    _mesa_update_material( ctx, bitmask );
+*/
 }
 
 /* Tables for all the shading functions.
@@ -114,32 +80,16 @@ static light_func _tnl_light_ci_tab[MAX_LIGHT_FUNC];
 #define IDX              (0)
 #include "t_vb_lighttmp.h"
 
-#define TAG(x)           x##_tw
+#define TAG(x)           x##_twoside
 #define IDX              (LIGHT_TWOSIDE)
 #include "t_vb_lighttmp.h"
 
-#define TAG(x)           x##_fl
-#define IDX              (LIGHT_FLAGS)
+#define TAG(x)           x##_material
+#define IDX              (LIGHT_MATERIAL)
 #include "t_vb_lighttmp.h"
 
-#define TAG(x)           x##_tw_fl
-#define IDX              (LIGHT_FLAGS|LIGHT_TWOSIDE)
-#include "t_vb_lighttmp.h"
-
-#define TAG(x)           x##_cm
-#define IDX              (LIGHT_COLORMATERIAL)
-#include "t_vb_lighttmp.h"
-
-#define TAG(x)           x##_tw_cm
-#define IDX              (LIGHT_TWOSIDE|LIGHT_COLORMATERIAL)
-#include "t_vb_lighttmp.h"
-
-#define TAG(x)           x##_fl_cm
-#define IDX              (LIGHT_FLAGS|LIGHT_COLORMATERIAL)
-#include "t_vb_lighttmp.h"
-
-#define TAG(x)           x##_tw_fl_cm
-#define IDX              (LIGHT_FLAGS|LIGHT_TWOSIDE|LIGHT_COLORMATERIAL)
+#define TAG(x)           x##_twoside_material
+#define IDX              (LIGHT_TWOSIDE|LIGHT_MATERIAL)
 #include "t_vb_lighttmp.h"
 
 
@@ -149,55 +99,41 @@ static void init_lighting( void )
 
    if (!done) {
       init_light_tab();
-      init_light_tab_tw();
-      init_light_tab_fl();
-      init_light_tab_tw_fl();
-      init_light_tab_cm();
-      init_light_tab_tw_cm();
-      init_light_tab_fl_cm();
-      init_light_tab_tw_fl_cm();
+      init_light_tab_twoside();
+      init_light_tab_material();
+      init_light_tab_twoside_material();
       done = 1;
    }
 }
 
 
-static GLboolean run_lighting( GLcontext *ctx, struct gl_pipeline_stage *stage )
+static GLboolean run_lighting( GLcontext *ctx, struct tnl_pipeline_stage *stage )
 {
    struct light_stage_data *store = LIGHT_STAGE_DATA(stage);
    TNLcontext *tnl = TNL_CONTEXT(ctx);
    struct vertex_buffer *VB = &tnl->vb;
    GLvector4f *input = ctx->_NeedEyeCoords ? VB->EyePtr : VB->ObjPtr;
-   GLuint ind;
 
 /*     _tnl_print_vert_flags( __FUNCTION__, stage->changed_inputs ); */
 
-   /* Make sure we can talk about elements 0..2 in the vector we are
-    * lighting.
+   /* Make sure we can talk about position x,y and z:
+    *
+    * FIXME!
     */
-   if (stage->changed_inputs & (VERT_BIT_EYE|VERT_BIT_POS)) {
-      if (input->size <= 2) {
-	 if (input->flags & VEC_NOT_WRITEABLE) {
-	    ASSERT(VB->importable_data & VERT_BIT_POS);
-
-	    VB->import_data( ctx, VERT_BIT_POS, VEC_NOT_WRITEABLE );
-	    input = ctx->_NeedEyeCoords ? VB->EyePtr : VB->ObjPtr;
-
-	    ASSERT((input->flags & VEC_NOT_WRITEABLE) == 0);
-	 }
-
-	 _mesa_vector4f_clean_elem(input, VB->Count, 2);
+#if 0
+   if (stage->changed_inputs & _TNL_BIT_POS) {
+      if (input->size <= 2 && input == VB->ObjPtr) {
+	 input = _mesa_vector4f_clean_elem(VB->ObjPtr, some_storage,
+					   VB->Count, 2);
       }
    }
+#endif
 
-   if (VB->Flag)
-      ind = LIGHT_FLAGS;
-   else
-      ind = 0;
-
+   
    /* The individual functions know about replaying side-effects
     * vs. full re-execution. 
     */
-   store->light_func_tab[ind]( ctx, VB, stage, input );
+   store->light_func_tab[0]( ctx, VB, stage, input );
 
    return GL_TRUE;
 }
@@ -206,7 +142,7 @@ static GLboolean run_lighting( GLcontext *ctx, struct gl_pipeline_stage *stage )
 /* Called in place of do_lighting when the light table may have changed.
  */
 static GLboolean run_validate_lighting( GLcontext *ctx,
-					struct gl_pipeline_stage *stage )
+					struct tnl_pipeline_stage *stage )
 {
    GLuint ind = 0;
    light_func *tab;
@@ -228,8 +164,11 @@ static GLboolean run_validate_lighting( GLcontext *ctx,
    else
       tab = _tnl_light_ci_tab;
 
+   /* Need to check color stride != 0.
+    * Also need to check for materials in the VB:
+    */
    if (ctx->Light.ColorMaterialEnabled)
-      ind |= LIGHT_COLORMATERIAL;
+      ind |= LIGHT_MATERIAL;
 
    if (ctx->Light.Model.TwoSide)
       ind |= LIGHT_TWOSIDE;
@@ -246,23 +185,13 @@ static GLboolean run_validate_lighting( GLcontext *ctx,
    return stage->run( ctx, stage );
 }
 
-static void alloc_4chan( struct gl_client_array *a, GLuint sz )
-{
-   a->Ptr = (GLubyte *) ALIGN_MALLOC( sz * sizeof(GLchan) * 4, 32 );
-   a->Size = 4;
-   a->Type = CHAN_TYPE;
-   a->Stride = 0;
-   a->StrideB = sizeof(GLchan) * 4;
-   a->Enabled = 0;
-   a->Flags = 0;
-}
 
 
 /* Called the first time stage->run is called.  In effect, don't
  * allocate data until the first time the stage is run.
  */
 static GLboolean run_init_lighting( GLcontext *ctx,
-				    struct gl_pipeline_stage *stage )
+				    struct tnl_pipeline_stage *stage )
 {
    TNLcontext *tnl = TNL_CONTEXT(ctx);
    struct light_stage_data *store;
@@ -277,15 +206,12 @@ static GLboolean run_init_lighting( GLcontext *ctx,
     */
    init_lighting();
 
-   store->FloatColor.Ptr = 0;
-
-   alloc_4chan( &store->LitColor[0], size );
-   alloc_4chan( &store->LitColor[1], size );
-   alloc_4chan( &store->LitSecondary[0], size );
-   alloc_4chan( &store->LitSecondary[1], size );
-
-   _mesa_vector1ui_alloc( &store->LitIndex[0], 0, size, 32 );
-   _mesa_vector1ui_alloc( &store->LitIndex[1], 0, size, 32 );
+   _mesa_vector4f_alloc( &store->LitColor[0], 0, size, 32 );
+   _mesa_vector4f_alloc( &store->LitColor[1], 0, size, 32 );
+   _mesa_vector4f_alloc( &store->LitSecondary[0], 0, size, 32 );
+   _mesa_vector4f_alloc( &store->LitSecondary[1], 0, size, 32 );
+   _mesa_vector1f_alloc( &store->LitIndex[0], 0, size, 32 );
+   _mesa_vector1f_alloc( &store->LitIndex[1], 0, size, 32 );
 
    /* Now validate the stage derived data...
     */
@@ -299,52 +225,48 @@ static GLboolean run_init_lighting( GLcontext *ctx,
  * Check if lighting is enabled.  If so, configure the pipeline stage's
  * type, inputs, and outputs.
  */
-static void check_lighting( GLcontext *ctx, struct gl_pipeline_stage *stage )
+static void check_lighting( GLcontext *ctx, struct tnl_pipeline_stage *stage )
 {
    stage->active = ctx->Light.Enabled && !ctx->VertexProgram.Enabled;
    if (stage->active) {
       if (stage->privatePtr)
 	 stage->run = run_validate_lighting;
-      stage->inputs = VERT_BIT_NORMAL|VERT_BIT_MATERIAL;
+      stage->inputs = _TNL_BIT_NORMAL|_TNL_BITS_MAT_ANY;
       if (ctx->Light._NeedVertices)
-	 stage->inputs |= VERT_BIT_EYE; /* effectively, even when lighting in obj */
+	 stage->inputs |= _TNL_BIT_POS; 
       if (ctx->Light.ColorMaterialEnabled)
-	 stage->inputs |= VERT_BIT_COLOR0;
+	 stage->inputs |= _TNL_BIT_COLOR0;
 
-      stage->outputs = VERT_BIT_COLOR0;
+      stage->outputs = _TNL_BIT_COLOR0;
       if (ctx->Light.Model.ColorControl == GL_SEPARATE_SPECULAR_COLOR)
-	 stage->outputs |= VERT_BIT_COLOR1;
+	 stage->outputs |= _TNL_BIT_COLOR1;
    }
 }
 
 
-static void dtr( struct gl_pipeline_stage *stage )
+static void dtr( struct tnl_pipeline_stage *stage )
 {
    struct light_stage_data *store = LIGHT_STAGE_DATA(stage);
 
    if (store) {
-      ALIGN_FREE( store->LitColor[0].Ptr );
-      ALIGN_FREE( store->LitColor[1].Ptr );
-      ALIGN_FREE( store->LitSecondary[0].Ptr );
-      ALIGN_FREE( store->LitSecondary[1].Ptr );
-
-      if (store->FloatColor.Ptr)
-	 ALIGN_FREE( store->FloatColor.Ptr );
-
-      _mesa_vector1ui_free( &store->LitIndex[0] );
-      _mesa_vector1ui_free( &store->LitIndex[1] );
+      _mesa_vector4f_free( &store->LitColor[0] );
+      _mesa_vector4f_free( &store->LitColor[1] );
+      _mesa_vector4f_free( &store->LitSecondary[0] );
+      _mesa_vector4f_free( &store->LitSecondary[1] );
+      _mesa_vector1f_free( &store->LitIndex[0] );
+      _mesa_vector1f_free( &store->LitIndex[1] );
       FREE( store );
       stage->privatePtr = 0;
    }
 }
 
-const struct gl_pipeline_stage _tnl_lighting_stage =
+const struct tnl_pipeline_stage _tnl_lighting_stage =
 {
    "lighting",			/* name */
    _NEW_LIGHT,			/* recheck */
    _NEW_LIGHT|_NEW_MODELVIEW,	/* recalc -- modelview dependency
 				 * otherwise not captured by inputs
-				 * (which may be VERT_BIT_POS) */
+				 * (which may be _TNL_BIT_POS) */
    GL_FALSE,			/* active? */
    0,				/* inputs */
    0,				/* outputs */

@@ -1,0 +1,261 @@
+
+/*
+ * Mesa 3-D graphics library
+ * Version:  5.1
+ *
+ * Copyright (C) 1999-2003  Brian Paul   All Rights Reserved.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included
+ * in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+ * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+ * BRIAN PAUL BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+ * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+/* Author:
+ *    Keith Whitwell <keith@tungstengraphics.com>
+ */
+
+#include "context.h"
+#include "glapi.h"
+#include "imports.h"
+#include "macros.h"
+#include "mtypes.h"
+#include "t_context.h"
+#include "t_save_api.h"
+
+/* If someone compiles a display list like:
+ *      glBegin(Triangles)
+ *      glVertex() 
+ *      ... lots of vertices ...
+ *      glEnd()
+ * 
+ * and then tries to execute it like this:
+ *
+ *      glBegin(Lines)
+ *      glCallList()
+ *      glEnd()
+ *
+ * it will wind up in here, as the vertex copying used when wrapping
+ * buffers in list compilation (Triangles) won't be right for how the
+ * list is being executed (as Lines). 
+ *
+ * This could be avoided by not compiling as vertex_lists until after
+ * the first glEnd() has been seen.  However, that would miss an
+ * important category of display lists, for the sake of a degenerate
+ * usage. 
+ *
+ * Further, replaying degenerately-called lists in this fashion is
+ * probably no worse than the replay using opcodes.
+ */
+
+typedef void (*attr_func)( GLint target, const GLfloat * );
+
+
+/* Wrapper functions in case glVertexAttrib*fvNV doesn't exist */
+static void VertexAttrib1fvNV(GLint target, const GLfloat *v)
+{
+   _glapi_Dispatch->VertexAttrib1fvNV(target, v);
+}
+
+static void VertexAttrib2fvNV(GLint target, const GLfloat *v)
+{
+   _glapi_Dispatch->VertexAttrib2fvNV(target, v);
+}
+
+static void VertexAttrib3fvNV(GLint target, const GLfloat *v)
+{
+   _glapi_Dispatch->VertexAttrib3fvNV(target, v);
+}
+
+static void VertexAttrib4fvNV(GLint target, const GLfloat *v)
+{
+   _glapi_Dispatch->VertexAttrib4fvNV(target, v);
+}
+
+static attr_func vert_attrfunc[4] = {
+   VertexAttrib1fvNV,
+   VertexAttrib2fvNV,
+   VertexAttrib3fvNV,
+   VertexAttrib4fvNV
+};
+
+
+static void mat_attr1fv( GLint target, const GLfloat *v )
+{
+   switch (target) {
+   case _TNL_ATTRIB_MAT_FRONT_SHININESS:
+      glMaterialfv( GL_FRONT, GL_SHININESS, v );
+      break;
+   case _TNL_ATTRIB_MAT_BACK_SHININESS:
+      glMaterialfv( GL_BACK, GL_SHININESS, v );
+      break;
+   }
+}
+
+
+static void mat_attr3fv( GLint target, const GLfloat *v )
+{
+   switch (target) {
+   case _TNL_ATTRIB_MAT_FRONT_INDEXES:
+      glMaterialfv( GL_FRONT, GL_COLOR_INDEXES, v );
+      break;
+   case _TNL_ATTRIB_MAT_BACK_INDEXES:
+      glMaterialfv( GL_BACK, GL_COLOR_INDEXES, v );
+      break;
+   }
+}
+
+
+static void mat_attr4fv( GLint target, const GLfloat *v )
+{
+   switch (target) {
+   case _TNL_ATTRIB_MAT_FRONT_EMISSION:
+      glMaterialfv( GL_FRONT, GL_EMISSION, v );
+      break;
+   case _TNL_ATTRIB_MAT_BACK_EMISSION:
+      glMaterialfv( GL_BACK, GL_EMISSION, v );
+      break;
+   case _TNL_ATTRIB_MAT_FRONT_AMBIENT:
+      glMaterialfv( GL_FRONT, GL_AMBIENT, v );
+      break;
+   case _TNL_ATTRIB_MAT_BACK_AMBIENT:
+      glMaterialfv( GL_BACK, GL_AMBIENT, v );
+      break;
+   case _TNL_ATTRIB_MAT_FRONT_DIFFUSE:
+      glMaterialfv( GL_FRONT, GL_DIFFUSE, v );
+      break;
+   case _TNL_ATTRIB_MAT_BACK_DIFFUSE:
+      glMaterialfv( GL_BACK, GL_DIFFUSE, v );
+      break;
+   case _TNL_ATTRIB_MAT_FRONT_SPECULAR:
+      glMaterialfv( GL_FRONT, GL_SPECULAR, v );
+      break;
+   case _TNL_ATTRIB_MAT_BACK_SPECULAR:
+      glMaterialfv( GL_BACK, GL_SPECULAR, v );
+      break;
+   }
+}
+
+
+static attr_func mat_attrfunc[4] = {
+   mat_attr1fv,
+   0,
+   mat_attr3fv,
+   mat_attr4fv
+};
+
+
+static void index_attr1fv(GLint target, const GLfloat *v)
+{
+   glIndexf(v[0]);
+}
+
+static void edgeflag_attr1fv(GLint target, const GLfloat *v)
+{
+   glEdgeFlag((v[0] == 1.0));
+}
+
+struct loopback_attr {
+   GLint target;
+   GLint sz;
+   attr_func func;
+};
+
+void _tnl_loopback_vertex_list( GLcontext *ctx, struct tnl_vertex_list *list )
+{
+   struct loopback_attr la[32];
+   GLuint i, nr = 0;
+
+   for (i = 1 ; i <= _TNL_ATTRIB_TEX7 ; i++) {
+      if (list->attrsz[i]) {
+	 la[nr].target = i;
+	 la[nr].sz = list->attrsz[i];
+	 la[nr].func = vert_attrfunc[list->attrsz[i]-1];
+	 nr++;
+      }
+   }
+
+   for (i = _TNL_ATTRIB_MAT_FRONT_AMBIENT ; 
+	i <= _TNL_ATTRIB_MAT_BACK_INDEXES ; 
+	i++) {
+      if (list->attrsz[i]) {
+	 la[nr].target = i;
+	 la[nr].sz = list->attrsz[i];
+	 la[nr].func = mat_attrfunc[list->attrsz[i]-1];
+	 nr++;
+      }
+   }
+
+   if (list->attrsz[_TNL_ATTRIB_EDGEFLAG]) {
+      la[nr].target = _TNL_ATTRIB_EDGEFLAG;
+      la[nr].sz = list->attrsz[_TNL_ATTRIB_EDGEFLAG];
+      la[nr].func = edgeflag_attr1fv;
+      nr++;
+   }
+
+   if (list->attrsz[_TNL_ATTRIB_INDEX]) {
+      la[nr].target = _TNL_ATTRIB_INDEX;
+      la[nr].sz = list->attrsz[_TNL_ATTRIB_INDEX];
+      la[nr].func = index_attr1fv;
+      nr++;
+   }
+
+   /* Must be last
+    */
+   if (list->attrsz[_TNL_ATTRIB_POS]) {
+      la[nr].target = _TNL_ATTRIB_POS;
+      la[nr].sz = list->attrsz[_TNL_ATTRIB_POS];
+      la[nr].func = vert_attrfunc[list->attrsz[0]-1];
+      nr++;
+   }
+   else {
+      fprintf(stderr, "No pos attrib???\n");
+      return;
+   }
+
+   /* Don't emit ends and begins on wrapped primitives.  Don't replay
+    * wrapped vertices.  If we get here, it's probably because the the
+    * precalculated wrapping is wrong.
+    */
+   for (i = 0 ; i < list->prim_count ; i++) {
+      GLint begin = list->prim[i].start;
+      GLint end = begin + list->prim[i].count;
+      GLfloat *data;
+      GLint j, k;
+
+      if (list->prim[i].mode & PRIM_BEGIN)
+	 glBegin( list->prim[i].mode & PRIM_MODE_MASK );
+      else {
+	 assert(i == 0);
+	 assert(begin == 0);
+	 begin += list->wrap_count;
+      }
+
+      data = list->buffer + begin * list->vertex_size;
+
+      for (j = begin ; j < end ; j++) {
+	 for (k = 0 ; k < nr ; k++) {
+	    la[k].func( la[k].target, data );
+	    data += la[k].sz;
+	 }
+      }
+
+      if (list->prim[i].mode & PRIM_END) 
+	 glEnd();
+      else {
+	 assert (i == list->prim_count-1);
+      }
+   }
+}
