@@ -1092,7 +1092,8 @@ struct DRIDriverRec __driDriver = {
    mgaInitFBDev,
    mgaHaltFBDev,
    mgaEngineShutdown,
-   mgaEngineRestore
+   mgaEngineRestore,
+   0
 };
 
 
