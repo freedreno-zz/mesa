@@ -1,4 +1,4 @@
-# $Id: Make-config,v 1.10.2.2 2000/03/18 23:40:53 brianp Exp $
+# $Id: Make-config,v 1.10.2.3 2000/03/23 00:12:13 brianp Exp $
 
 MESA_MAJOR=3
 MESA_MINOR=2
@@ -7,7 +7,7 @@ VERSION=$(MESA_MAJOR).$(MESA_MINOR)
 
 # Mesa 3-D graphics library
 # 
-# Copyright (C) 1999  Brian Paul   All Rights Reserved.
+# Copyright (C) 1999-2000  Brian Paul   All Rights Reserved.
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -451,7 +451,7 @@ linux:
 	"GLUT_LIB = libglut.a" \
 	"GLW_LIB = libGLw.a" \
 	"CC = gcc" \
-	"CFLAGS = -O2 -funroll-loops -ansi -pedantic -ffast-math -D_SVID_SOURCE -D_BSD_SOURCE -DSHM -I/usr/X11R6/include" \
+	"CFLAGS = -O3 -funroll-loops -ansi -pedantic -ffast-math -D_SVID_SOURCE -D_BSD_SOURCE -DSHM -I/usr/X11R6/include" \
 	"MAKELIB = ../bin/mklib.ar-ruv" \
 	"XLIBS = -L/usr/X11R6/lib -lX11 -lXext -lXmu -lXt -lXi -lSM -lICE -lm"
 
@@ -488,7 +488,7 @@ linux-386:
 	"GLUT_LIB = libglut.a" \
 	"GLW_LIB = libGLw.a" \
 	"CC = gcc" \
-	"CFLAGS = -O2 -funroll-loops -ansi -pedantic -ffast-math -D_SVID_SOURCE -D_BSD_SOURCE -DSHM -DUSE_X86_ASM -I/usr/X11R6/include" \
+	"CFLAGS = -O3 -funroll-loops -ansi -pedantic -ffast-math -D_SVID_SOURCE -D_BSD_SOURCE -DSHM -DUSE_X86_ASM -I/usr/X11R6/include" \
 	"MAKELIB = ../bin/mklib.ar-ruv" \
 	"XLIBS = -L/usr/X11R6/lib -lX11 -lXext -lXmu -lXt -lXi -lSM -lICE -lm" \
 	"ASM_SOURCES = X86/x86a.S X86/common_x86asm.S X86/vertex.S"
@@ -637,7 +637,7 @@ linux-alpha:
 	"GLUT_LIB = libglut.so" \
 	"GLW_LIB = libGLw.a" \
 	"CC = gcc" \
-	"CFLAGS = -O2 -mieee -pedantic -L/usr/X11R6/lib -D_XOPEN_SOURCE -DSHM" \
+	"CFLAGS = -O3 -mieee -pedantic -L/usr/X11R6/lib -D_XOPEN_SOURCE -DSHM" \
 	"MAKELIB = ../bin/mklib.ar-ruv" \
 	"XLIBS = -L/usr/X11R6/lib -lX11 -lm"
 
@@ -687,7 +687,7 @@ linux-386-pthread:
 	"GLU_LIB = libGLU.a" \
 	"GLUT_LIB = libglut.a" \
 	"CC = gcc" \
-	"CFLAGS = -O2 -funroll-loops -ansi -pedantic -ffast-math -D_SVID_SOURCE -D_BSD_SOURCE -I/usr/X11R\6/include -DSHM -DUSE_X86_ASM -D_REENTRANT -DTHREADS -DPTHREADS" \
+	"CFLAGS = -O3 -funroll-loops -ansi -pedantic -ffast-math -D_SVID_SOURCE -D_BSD_SOURCE -I/usr/X11R\6/include -DSHM -DUSE_X86_ASM -D_REENTRANT -DTHREADS -DPTHREADS" \
 	"MAKELIB = ../bin/mklib.ar-ruv" \
 	"XLIBS = -L/usr/X11R6/lib -lX11 -lXext -lXmu -lXt -lXi -lSM -lICE -lpthread -lm" \
 	"ASM_SOURCES = X86/x86a.S X86/common_x86asm.S X86/vertex.S"
@@ -723,7 +723,7 @@ linux-sparc5-elf:
 	"GLUT_LIB = libglut.so" \
 	"GLW_LIB = libGLw.so" \
 	"CC = gcc" \
-	"CFLAGS = -mv8 -O2 -ffast-math -ansi -pedantic -fPIC -D_SVID_SOURCE -D_BSD_SOURCE -I/usr/X11R6/include -DSHM" \
+	"CFLAGS = -mv8 -O3 -ffast-math -ansi -pedantic -fPIC -D_SVID_SOURCE -D_BSD_SOURCE -I/usr/X11R6/include -DSHM" \
 	"MAKELIB = ../bin/mklib.linux" \
 	"XLIBS = -L/usr/X11R6/lib -lX11 -lXext -lXmu -lXt -lXi -lSM -lICE -lm"
 
@@ -735,7 +735,7 @@ linux-sparc-ultra:
 	"GLUT_LIB = libglut.so" \
 	"GLW_LIB = libGLw.so" \
 	"CC = gcc" \
-	"CFLAGS = -mv8 -O2 -mtune=ultrasparc -ansi -pedantic -fPIC -D_SVID_SOURCE -D_BSD_SOURCE -I/usr/X11R6/include -DSHM" \
+	"CFLAGS = -mv8 -O3 -mtune=ultrasparc -ansi -pedantic -fPIC -D_SVID_SOURCE -D_BSD_SOURCE -I/usr/X11R6/include -DSHM" \
 	"MAKELIB = ../bin/mklib.linux" \
 	"XLIBS = -L/usr/X11R6/lib -lX11 -lXext -lXmu -lXt -lXi -lSM -lICE -lm"
 
@@ -795,7 +795,7 @@ netbsd:
 	"GLUT_LIB = libglut.so" \
 	"GLW_LIB = libGLw.so" \
 	"CC = gcc" \
-	"CFLAGS = -O2 -fPIC -DSHM -I/usr/X11R6/include -DHZ=100"  \
+	"CFLAGS = -O3 -fPIC -DSHM -I/usr/X11R6/include -DHZ=100"  \
 	"MAKELIB = ../bin/mklib.netbsd" \
 	"XLIBS = -L/usr/X11R6/lib -lXext -lXmu -lXi -lX11 -lm"
 
