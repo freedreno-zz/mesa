@@ -23,7 +23,7 @@
  */
 
 /*
- * DOS/DJGPP device driver v1.3 for Mesa 5.0
+ * DOS/DJGPP device driver v1.3 for Mesa
  *
  *  Copyright (C) 2002 - Borca Daniel
  *  Email : dborca@yahoo.com
@@ -1100,7 +1100,7 @@ static const GLubyte* get_string (GLcontext *ctx, GLenum name)
                                      #ifdef MATROX
                                      " (MGA)"
                                      #endif
-                                     "\0port (c) Borca Daniel feb-2003";
+                                     "\0port (c) Borca Daniel mar-2003";
         default:
              return NULL;
  }
