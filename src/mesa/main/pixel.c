@@ -1,8 +1,8 @@
-/* $Id: pixel.c,v 1.31.2.2 2002/04/24 20:41:51 brianp Exp $ */
+/* $Id: pixel.c,v 1.31.2.3 2002/09/20 19:40:53 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  4.0.3
+ * Version:  4.0.4
  *
  * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
  *
@@ -223,6 +223,13 @@ _mesa_PixelStorei( GLenum pname, GLint param )
 	 FLUSH_VERTICES(ctx, _NEW_PACKUNPACK);
 	 ctx->Unpack.Alignment = param;
 	 break;
+      case GL_UNPACK_CLIENT_STORAGE_APPLE:
+         if (param == (GLint)ctx->Unpack.ClientStorage)
+            return;
+         FLUSH_VERTICES(ctx, _NEW_PACKUNPACK);
+         ctx->Unpack.ClientStorage = param ? GL_TRUE : GL_FALSE;
+         break;
+
       default:
 	 _mesa_error( ctx, GL_INVALID_ENUM, "glPixelStore" );
 	 return;

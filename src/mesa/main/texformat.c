@@ -1,4 +1,4 @@
-/* $Id: texformat.c,v 1.11.2.1 2002/09/13 19:34:40 brianp Exp $ */
+/* $Id: texformat.c,v 1.11.2.2 2002/09/20 19:40:54 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -442,7 +442,7 @@ const struct gl_texture_format _mesa_texformat_ci8 = {
 const struct gl_texture_format _mesa_texformat_ycbcr = {
    MESA_FORMAT_YCBCR,			/* MesaFormat */
    GL_YCBCR_MESA,			/* BaseFormat */
-   GL_UNSIGNED_SHORT_8_8_APPLE,		/* Type */
+   GL_UNSIGNED_SHORT_8_8_MESA,		/* Type */
    0,					/* RedBits */
    0,					/* GreenBits */
    0,					/* BlueBits */
@@ -461,7 +461,7 @@ const struct gl_texture_format _mesa_texformat_ycbcr = {
 const struct gl_texture_format _mesa_texformat_ycbcr_rev = {
    MESA_FORMAT_YCBCR_REV,		/* MesaFormat */
    GL_YCBCR_MESA,			/* BaseFormat */
-   GL_UNSIGNED_SHORT_8_8_REV_APPLE,	/* Type */
+   GL_UNSIGNED_SHORT_8_8_REV_MESA,	/* Type */
    0,					/* RedBits */
    0,					/* GreenBits */
    0,					/* BlueBits */
@@ -631,7 +631,7 @@ _mesa_choose_tex_format( GLcontext *ctx, GLint internalFormat,
       return &_mesa_texformat_rgba;
 
    case GL_YCBCR_MESA:
-      if (type == GL_UNSIGNED_SHORT_8_8_APPLE)
+      if (type == GL_UNSIGNED_SHORT_8_8_MESA)
          return &_mesa_texformat_ycbcr;
       else
          return &_mesa_texformat_ycbcr_rev;

@@ -1,4 +1,4 @@
-/* $Id: teximage.c,v 1.104.2.10 2002/09/15 17:35:05 brianp Exp $ */
+/* $Id: teximage.c,v 1.104.2.11 2002/09/20 19:40:54 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -904,8 +904,8 @@ texture_error_check( GLcontext *ctx, GLenum target,
       ASSERT(ctx->Extensions.MESA_ycbcr_texture);
       if (format != GL_YCBCR_MESA ||
           iformat != GL_YCBCR_MESA ||
-          (type != GL_UNSIGNED_SHORT_8_8_APPLE &&
-          type != GL_UNSIGNED_SHORT_8_8_REV_APPLE)) {
+          (type != GL_UNSIGNED_SHORT_8_8_MESA &&
+          type != GL_UNSIGNED_SHORT_8_8_REV_MESA)) {
          char message[100];
          sprintf(message,
                  "glTexImage%d(format/type/internalFormat YCBCR mismatch",
@@ -1437,9 +1437,9 @@ _mesa_GetTexImage( GLenum target, GLint level, GLenum format,
                       width * sizeof(GLushort));
                /* check for byte swapping */
                if ((texImage->TexFormat->MesaFormat == MESA_FORMAT_YCBCR
-                    && type == GL_UNSIGNED_SHORT_8_8_REV_APPLE) ||
+                    && type == GL_UNSIGNED_SHORT_8_8_REV_MESA) ||
                    (texImage->TexFormat->MesaFormat == MESA_FORMAT_YCBCR_REV
-                    && type == GL_UNSIGNED_SHORT_8_8_APPLE)) {
+                    && type == GL_UNSIGNED_SHORT_8_8_MESA)) {
                   if (!ctx->Pack.SwapBytes)
                      _mesa_swap2((GLushort *) dest, width);
                }

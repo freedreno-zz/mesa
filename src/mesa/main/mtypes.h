@@ -1,4 +1,4 @@
-/* $Id: mtypes.h,v 1.51.2.10 2002/09/15 17:35:05 brianp Exp $ */
+/* $Id: mtypes.h,v 1.51.2.11 2002/09/20 19:40:53 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -809,6 +809,7 @@ struct gl_texture_image {
    GLuint DepthLog2;		/* = log2(Depth2) */
    GLuint MaxLog2;		/* = MAX(WidthLog2, HeightLog2) */
    GLvoid *Data;		/* Image data, accessed via FetchTexel() */
+   GLboolean IsClientData;      /* Data owned by client? */
 
    const struct gl_texture_format *TexFormat;
 
@@ -991,6 +992,7 @@ struct gl_pixelstore_attrib {
    GLint SkipImages;      /* for GL_EXT_texture3D */
    GLboolean SwapBytes;
    GLboolean LsbFirst;
+   GLboolean ClientStorage; /* GL_APPLE_client_storage */
 };
 
 
@@ -1257,6 +1259,7 @@ struct gl_extensions {
    GLboolean SGIX_shadow;
    GLboolean SGIX_shadow_ambient;
    GLboolean _3DFX_texture_compression_FXT1;
+   GLboolean APPLE_client_storage;
 };
 
 
