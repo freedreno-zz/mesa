@@ -1,4 +1,4 @@
-$Id: VERSIONS,v 1.73.2.29 2002/06/25 15:22:12 brianp Exp $
+$Id: VERSIONS,v 1.73.2.30 2002/09/03 17:50:21 brianp Exp $
 
 
 Mesa Version History
@@ -981,3 +981,17 @@ Mesa Version History
 	- lots of T&L updates for the Radeon DRI driver
     Known bugs:
 	- mipmap LOD computation (fixed for Mesa 4.1)
+
+
+4.0.4  September ??, 2002
+    New:
+	- GL_NV_texture_rectangle extension
+	- updated glext.h header (version 16)
+    Bug fixes:
+	- fixed GL_LINEAR fog bug by adding clamping
+	- fixed FP exceptions found using Alpha CPU
+	- 3dfx MESA_GLX_FX=window (render to window) didn't work
+	- fixed memory leak in wglCreateContest (Karl Schultz)
+	- define GLAPIENTRY and GLAPI if undefined in glu.h
+    Changes:
+	- max texture units reduced to six to accomodate texture rectangles
