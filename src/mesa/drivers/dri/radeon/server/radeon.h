@@ -90,7 +90,6 @@ typedef struct {
    drmSize           agpSize;
    drmHandle         agpMemHandle;     /* Handle from drmAgpAlloc */
    unsigned long     agpOffset;
-   unsigned char     *AGP;             /* Map */
    int               agpMode;
    int               agpFastWrite;
 
@@ -99,29 +98,23 @@ typedef struct {
    drmHandle         ringHandle;       /* Handle from drmAddMap */
    drmSize           ringMapSize;      /* Size of map */
    int               ringSize;         /* Size of ring (in MB) */
-   unsigned char     *ring;            /* Map */
-   int               ringSizeLog2QW;
 
    unsigned long     ringReadOffset;   /* Offset into AGP space */
    drmHandle         ringReadPtrHandle; /* Handle from drmAddMap */
    drmSize           ringReadMapSize;  /* Size of map */
-   unsigned char     *ringReadPtr;     /* Map */
 
    /* CP vertex/indirect buffer data */
    unsigned long     bufStart;         /* Offset into AGP space */
    drmHandle         bufHandle;        /* Handle from drmAddMap */
    drmSize           bufMapSize;       /* Size of map */
    int               bufSize;          /* Size of buffers (in MB) */
-   unsigned char     *buf;             /* Map */
    int               bufNumBufs;       /* Number of buffers */
-   drmBufMapPtr      buffers;          /* Buffer map */
 
    /* CP AGP Texture data */
    unsigned long     agpTexStart;      /* Offset into AGP space */
    drmHandle         agpTexHandle;     /* Handle from drmAddMap */
    drmSize           agpTexMapSize;    /* Size of map */
    int               agpTexSize;       /* Size of AGP tex space (in MB) */
-   unsigned char     *agpTex;          /* Map */
    int               log2AGPTexGran;
 
    int               drmMinor;
@@ -140,10 +133,9 @@ typedef struct {
    unsigned int            backPitchOffset;
    unsigned int            depthPitchOffset;
 
-   unsigned int            dst_pitch_offset;
-
    int               irq;
    unsigned int            gen_int_cntl;
+   unsigned int            crtc_offset_cntl;
 
 } RADEONInfoRec, *RADEONInfoPtr;
 
