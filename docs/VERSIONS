@@ -1,4 +1,4 @@
-$Id: VERSIONS,v 1.38.2.22 2001/01/06 22:43:00 gareth Exp $
+$Id: VERSIONS,v 1.38.2.23 2001/01/08 15:57:07 brianp Exp $
 
 
 Mesa Version History
@@ -776,10 +776,11 @@ Mesa Version History
 	- finished internal support for compressed textures for DRI
 
 
-3.4.1  December ??, 2000
+3.4.1  January ??, 2001
     New:
 	- fixed some Linux build problems
 	- fixed some Windows build problems
+	- GL_EXT_texture_env_dot3 extension (Gareth Hughes)
     Bug fixes:
 	- added RENDER_START/RENDER_FINISH macros for glCopyTexImage in DRI
 	- various state-update code changes needed for DRI bugs
@@ -790,4 +791,3 @@ Mesa Version History
 	- fixed a glColorMaterial lighting bug
 	- fixed bad args to Read/WriteStencilSpan in h/w stencil clear function
 	- glXCopySubBufferMESA() Y position was off by one
-	- GL_EXT_texture_env_dot3 extension (Gareth Hughes)
