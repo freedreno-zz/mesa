@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.1.2.11 2003/01/18 12:25:56 keithw Exp $
+# $Id: Makefile,v 1.1.2.12 2003/01/20 14:50:18 keithw Exp $
 
 # Mesa 3-D graphics library
 # Version:  5.0
@@ -75,7 +75,7 @@ radeon_dri.so:  $(COREMESA) $(OBJECTS) Makefile
 
 install:
 	rm -f $(MESA)/lib/radeon_dri.so && \
-	install -C radeon_dri.so $(MESA)/lib/radeon_dri.so
+	install radeon_dri.so $(MESA)/lib/radeon_dri.so
 
 clean:
 	-rm -f *.o *~ *.d .\#* *.so
