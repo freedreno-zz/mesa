@@ -22,7 +22,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: miniglx_events.c,v 1.1.2.2 2003/04/17 15:46:42 keithw Exp $ */
+/* $Id: miniglx_events.c,v 1.1.2.3 2003/04/22 14:29:53 keithw Exp $ */
 
 
 /**
@@ -79,20 +79,29 @@ enum msgs {
 static XEvent *queue_event( Display *dpy )
 {
    int incr = (dpy->eventqueue.tail + 1) & MINIGLX_EVENT_QUEUE_MASK;
-   if (incr == dpy->eventqueue.head)
+   if (incr == dpy->eventqueue.head) {
+      fprintf(stderr, "queue_event: queue full\n");
       return 0;
+   }
    else {
+      XEvent *ev = &dpy->eventqueue.queue[dpy->eventqueue.tail];
+      fprintf(stderr, "queue_event: return event slot %d\n", 
+	      dpy->eventqueue.tail);
       dpy->eventqueue.tail = incr;
-      return &dpy->eventqueue.queue[incr];
+      return ev;
    }
 }
 
-static int dequeue_event( Display *dpy, XEvent *ev )
+static int dequeue_event( Display *dpy, XEvent *event_return )
 {
-   if (dpy->eventqueue.tail == dpy->eventqueue.head)
+   if (dpy->eventqueue.tail == dpy->eventqueue.head) {
+      fprintf(stderr, "dequeue_event: queue empty\n");
       return False;
+   }
    else {
-      ev = &dpy->eventqueue.queue[dpy->eventqueue.head];
+      fprintf(stderr, "dequeue_event: return event slot %d (tail %d)\n",
+	      dpy->eventqueue.head, dpy->eventqueue.tail);
+      *event_return = dpy->eventqueue.queue[dpy->eventqueue.head];      
       dpy->eventqueue.head += 1;
       dpy->eventqueue.head &= MINIGLX_EVENT_QUEUE_MASK;
       return True;
@@ -138,6 +147,7 @@ static int send_msg( Display *dpy, int i,
       return False;
    }
    
+   fprintf(stderr, "send %d bytes to %d\n", sz, i);
    memcpy( dpy->fd[i].writebuf + cnt, msg, sz ); cnt += sz;
    dpy->fd[i].writebuf_count = cnt;
    return True;
@@ -255,13 +265,11 @@ handle_fifo_read( Display *dpy, int i )
    XEvent *er;
    int count = 1;
 
-   /* read message id */
-   /* read remainder of message (if any) */
-   
    if (dpy->IsClient) {
       switch (id) {
 	 /* The server has called 'XMapWindow' on a client window */
       case _YouveGotFocus:
+	 fprintf(stderr, "_YouveGotFocus\n");
 	 er = queue_event(dpy);
 	 if (!er) return False;
 	 er->xmap.type = MapNotify;
@@ -276,6 +284,7 @@ handle_fifo_read( Display *dpy, int i )
 	 /* The server has called 'XMapWindow' or 'X???'  on a client
 	  * window */
       case _RepaintPlease:
+	 fprintf(stderr, "_RepaintPlease\n");
 	 er = queue_event(dpy);
 	 if (!er) return False;
 	 er->xexpose.type = Expose;
@@ -300,6 +309,7 @@ handle_fifo_read( Display *dpy, int i )
 
 	 /* The server has called 'XUnmapWindow' on a client window */
       case _YouveLostFocus:
+	 fprintf(stderr, "_YouveLostFocus\n");
 	 er = queue_event(dpy);
 	 if (!er) return False;
 	 er->xunmap.type = UnmapNotify;
@@ -323,6 +333,7 @@ handle_fifo_read( Display *dpy, int i )
 	  * (having called 'XMapWindow' locally).
 	  */
       case _CanIHaveFocus:	 
+	 fprintf(stderr, "_CanIHaveFocus\n");
 	 er = queue_event(dpy);
 	 if (!er) return False;
 	 er->xmaprequest.type = MapRequest;
@@ -331,6 +342,7 @@ handle_fifo_read( Display *dpy, int i )
 	 er->xmaprequest.display = dpy;
 	 er->xmaprequest.parent = 0;
 	 er->xmaprequest.window = (Window)i;
+	 fprintf(stderr, "queued MapRequest\n");
 	 break;
 
 	 /* Both _YouveLostFocus and _IDontWantFocus generate unmap
@@ -340,6 +352,7 @@ handle_fifo_read( Display *dpy, int i )
 	  * unmapped its own window.
 	  */
       case _IDontWantFocus:
+	 fprintf(stderr, "_IDontWantFocus\n");
 	 er = queue_event(dpy);
 	 if (!er) return False;
 	 er->xunmap.type = UnmapNotify;
