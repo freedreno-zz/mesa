@@ -1,10 +1,10 @@
-/* $Id: get.c,v 1.99.2.2 2002/12/18 15:10:53 brianp Exp $ */
+/* $Id: get.c,v 1.99.2.3 2003/01/22 00:42:10 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
  * Version:  5.0.1
  *
- * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2003  Brian Paul   All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -1240,6 +1240,7 @@ _mesa_GetBooleanv( GLenum pname, GLboolean *params )
          params[0] = INT_TO_BOOL(ctx->Current.Attrib[VERT_ATTRIB_COLOR1][0]);
          params[1] = INT_TO_BOOL(ctx->Current.Attrib[VERT_ATTRIB_COLOR1][1]);
          params[2] = INT_TO_BOOL(ctx->Current.Attrib[VERT_ATTRIB_COLOR1][2]);
+         params[3] = INT_TO_BOOL(ctx->Current.Attrib[VERT_ATTRIB_COLOR1][3]);
 	 break;
       case GL_SECONDARY_COLOR_ARRAY_EXT:
          CHECK_EXTENSION_B(EXT_secondary_color, pname);
@@ -2605,6 +2606,7 @@ _mesa_GetDoublev( GLenum pname, GLdouble *params )
          params[0] = ctx->Current.Attrib[VERT_ATTRIB_COLOR1][0];
          params[1] = ctx->Current.Attrib[VERT_ATTRIB_COLOR1][1];
          params[2] = ctx->Current.Attrib[VERT_ATTRIB_COLOR1][2];
+         params[3] = ctx->Current.Attrib[VERT_ATTRIB_COLOR1][3];
 	 break;
       case GL_SECONDARY_COLOR_ARRAY_EXT:
          CHECK_EXTENSION_D(EXT_secondary_color, pname);
@@ -3946,6 +3948,7 @@ _mesa_GetFloatv( GLenum pname, GLfloat *params )
          params[0] = ctx->Current.Attrib[VERT_ATTRIB_COLOR1][0];
          params[1] = ctx->Current.Attrib[VERT_ATTRIB_COLOR1][1];
          params[2] = ctx->Current.Attrib[VERT_ATTRIB_COLOR1][2];
+         params[3] = ctx->Current.Attrib[VERT_ATTRIB_COLOR1][3];
 	 break;
       case GL_SECONDARY_COLOR_ARRAY_EXT:
          CHECK_EXTENSION_F(EXT_secondary_color, pname);
@@ -5326,6 +5329,7 @@ _mesa_GetIntegerv( GLenum pname, GLint *params )
          params[0] = FLOAT_TO_INT( (ctx->Current.Attrib[VERT_ATTRIB_COLOR1][0]) );
          params[1] = FLOAT_TO_INT( (ctx->Current.Attrib[VERT_ATTRIB_COLOR1][1]) );
          params[2] = FLOAT_TO_INT( (ctx->Current.Attrib[VERT_ATTRIB_COLOR1][2]) );
+         params[3] = FLOAT_TO_INT( (ctx->Current.Attrib[VERT_ATTRIB_COLOR1][3]) );
 	 break;
       case GL_SECONDARY_COLOR_ARRAY_EXT:
          CHECK_EXTENSION_I(EXT_secondary_color, pname);
