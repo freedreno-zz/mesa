@@ -1,4 +1,4 @@
-/* $Id: miniglxtest.c,v 1.1.4.6 2003/01/20 11:25:50 keithw Exp $ */
+/* $Id: miniglxtest.c,v 1.1.4.7 2003/02/21 22:18:24 keithw Exp $ */
 
 /*
  * Test the mini GLX interface.
@@ -21,6 +21,19 @@
 #define NR_DISPLAYS 2
 
 GLXContext ctx;
+
+
+static void _subset_Rectf( GLfloat x1, GLfloat y1, GLfloat x2, GLfloat y2 )
+{
+   glBegin( GL_QUADS );
+   glVertex2f( x1, y1 );
+   glVertex2f( x2, y1 );
+   glVertex2f( x2, y2 );
+   glVertex2f( x1, y2 );
+   glEnd();
+}
+
+
 
 static void redraw( Display *dpy, Window w, int rot )
 {
@@ -46,7 +59,7 @@ static void redraw( Display *dpy, Window w, int rot )
    glPushMatrix();
    glRotatef(rot, 0, 0, 1);
    glScalef(.5, .5, .5);
-   glRectf( -1, -1, 1, 1 );
+   _subset_Rectf( -1, -1, 1, 1 );
    glPopMatrix();
 #endif
 
