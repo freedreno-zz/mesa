@@ -1,4 +1,4 @@
-/* $Id: get.c,v 1.69.2.7 2002/08/28 01:13:34 brianp Exp $ */
+/* $Id: get.c,v 1.69.2.8 2002/09/05 21:16:17 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -5483,6 +5483,7 @@ _mesa_GetString( GLenum name )
                  ctx->Extensions.ARB_multisample &&
                  ctx->Extensions.ARB_texture_border_clamp &&
                  ctx->Extensions.ARB_texture_compression &&
+                 ctx->Extensions.ARB_texture_cube_map &&
                  ctx->Extensions.EXT_texture_env_add &&
                  ctx->Extensions.ARB_texture_env_combine &&
                  ctx->Extensions.ARB_texture_env_dot3)
