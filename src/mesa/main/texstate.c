@@ -1,10 +1,10 @@
-/* $Id: texstate.c,v 1.87.2.1 2002/12/30 19:20:11 alanh Exp $ */
+/* $Id: texstate.c,v 1.87.2.2 2003/01/16 15:21:35 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  5.0
+ * Version:  5.0.1
  *
- * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2003  Brian Paul   All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -2404,7 +2404,13 @@ _mesa_ActiveTextureARB( GLenum target )
    }
 
    FLUSH_VERTICES(ctx, _NEW_TEXTURE);
+
    ctx->Texture.CurrentUnit = texUnit;
+   if (ctx->Transform.MatrixMode == GL_TEXTURE) {
+      /* update current stack pointer */
+      ctx->CurrentStack = &ctx->TextureMatrixStack[texUnit];
+   }
+
    if (ctx->Driver.ActiveTexture) {
       (*ctx->Driver.ActiveTexture)( ctx, (GLuint) texUnit );
    }
