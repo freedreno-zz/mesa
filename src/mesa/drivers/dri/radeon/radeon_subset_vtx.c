@@ -96,24 +96,55 @@ static struct {
 static void radeonFlushVertices( GLcontext *, GLuint );
 
 
-static struct { int start, incr, hwprim; } prims[GL_POLYGON+1] = {
-   { 1, 1, RADEON_CP_VC_CNTL_PRIM_TYPE_POINT }, /* GL_POINTS */
-   { 2, 2, RADEON_CP_VC_CNTL_PRIM_TYPE_LINE }, /* GL_LINES */
-   { 2, 1, RADEON_CP_VC_CNTL_PRIM_TYPE_LINE_STRIP }, /* GL_LINE_LOOP */
-   { 2, 1, RADEON_CP_VC_CNTL_PRIM_TYPE_LINE_STRIP }, /* GL_LINE_STRIP */
-   { 3, 3, RADEON_CP_VC_CNTL_PRIM_TYPE_TRI_LIST }, /* GL_TRIANGLES */
-   { 3, 1, RADEON_CP_VC_CNTL_PRIM_TYPE_TRI_STRIP }, /* GL_TRIANGLE_STRIP */
-   { 3, 1, RADEON_CP_VC_CNTL_PRIM_TYPE_TRI_FAN }, /* GL_TRIANGLE_FAN */
-   { 4, 4, RADEON_CP_VC_CNTL_PRIM_TYPE_TRI_LIST }, /* GL_QUADS */
-   { 4, 2, RADEON_CP_VC_CNTL_PRIM_TYPE_TRI_STRIP }, /* GL_QUAD_STRIP */
-   { 3, 1, RADEON_CP_VC_CNTL_PRIM_TYPE_TRI_FAN }, /* GL_POLYGON */
+static struct { int start, incr, hwprim, lnprim, ptprim; } prims[10] = {
+   { 1, 1, 
+     RADEON_CP_VC_CNTL_PRIM_TYPE_POINT, 
+     RADEON_CP_VC_CNTL_PRIM_TYPE_POINT,
+     RADEON_CP_VC_CNTL_PRIM_TYPE_POINT},
+   { 2, 2, 
+     RADEON_CP_VC_CNTL_PRIM_TYPE_LINE, 
+     RADEON_CP_VC_CNTL_PRIM_TYPE_LINE,
+     RADEON_CP_VC_CNTL_PRIM_TYPE_LINE }, 
+   { 2, 1, 
+     RADEON_CP_VC_CNTL_PRIM_TYPE_LINE_STRIP,
+     RADEON_CP_VC_CNTL_PRIM_TYPE_LINE_STRIP,
+     RADEON_CP_VC_CNTL_PRIM_TYPE_LINE_STRIP },
+   { 2, 1, 
+     RADEON_CP_VC_CNTL_PRIM_TYPE_LINE_STRIP, 
+     RADEON_CP_VC_CNTL_PRIM_TYPE_LINE_STRIP,
+     RADEON_CP_VC_CNTL_PRIM_TYPE_LINE_STRIP },
+   { 3, 3, 
+     RADEON_CP_VC_CNTL_PRIM_TYPE_TRI_LIST, 
+     RADEON_CP_VC_CNTL_PRIM_TYPE_LINE,
+     RADEON_CP_VC_CNTL_PRIM_TYPE_POINT },
+   { 3, 1, 
+     RADEON_CP_VC_CNTL_PRIM_TYPE_TRI_STRIP, 
+     RADEON_CP_VC_CNTL_PRIM_TYPE_LINE,
+     RADEON_CP_VC_CNTL_PRIM_TYPE_POINT },
+   { 3, 1,
+     RADEON_CP_VC_CNTL_PRIM_TYPE_TRI_FAN, 
+     RADEON_CP_VC_CNTL_PRIM_TYPE_LINE,
+     RADEON_CP_VC_CNTL_PRIM_TYPE_POINT }, 
+   { 4, 4, 
+     RADEON_CP_VC_CNTL_PRIM_TYPE_TRI_LIST, 
+     RADEON_CP_VC_CNTL_PRIM_TYPE_LINE,
+     RADEON_CP_VC_CNTL_PRIM_TYPE_POINT },
+   { 4, 2, 
+     RADEON_CP_VC_CNTL_PRIM_TYPE_TRI_STRIP, 
+     RADEON_CP_VC_CNTL_PRIM_TYPE_LINE,
+     RADEON_CP_VC_CNTL_PRIM_TYPE_POINT }, 
+   { 3, 1, 
+     RADEON_CP_VC_CNTL_PRIM_TYPE_TRI_FAN, 
+     RADEON_CP_VC_CNTL_PRIM_TYPE_LINE_STRIP,
+     RADEON_CP_VC_CNTL_PRIM_TYPE_POINT }, 
 };
 
 static void finish_prim( radeonContextPtr rmesa )
 {
    GLuint prim_end = vb.stack[0].initial_vertspace - vb.stack[0].vertspace;
+   GLuint hwprim = 0;
    
-   /* Too few vertices (eg: 2 vertices for a triangles prim?)
+   /* Too few vertices? (eg: 2 vertices for a triangles prim?)
     */
    if (prim_end < prims[vb.prim].start) 
       return;
@@ -125,8 +156,15 @@ static void finish_prim( radeonContextPtr rmesa )
 
    radeonEmitVertexAOS( rmesa, vb.vertex_size, GET_START(&rmesa->dma.current) );
 
+   switch (vb.context->Polygon.FrontMode) {
+   case GL_LINE: hwprim = prims[vb.prim].lnprim; break;
+   case GL_POINT: hwprim = prims[vb.prim].ptprim; break;
+   case GL_FILL: hwprim = prims[vb.prim].hwprim; break;
+   default: return;
+   }
+
    radeonEmitVbufPrim( rmesa, vb.vertex_format,
-		       prims[vb.prim].hwprim | rmesa->tcl.tcl_flag, 
+		       hwprim | rmesa->tcl.tcl_flag, 
 		       prim_end );
 
    rmesa->dma.current.ptr = 
@@ -154,7 +192,7 @@ static GLuint copy_dma_verts( radeonContextPtr rmesa,
    GLcontext *ctx = vb.context;
    GLuint nr = vb.stack[0].initial_vertspace - vb.stack[0].vertspace;
 
-   switch( ctx->Driver.CurrentExecPrimitive )
+   switch( vb.prim )
    {
    case GL_POINTS:
       return 0;
@@ -278,16 +316,28 @@ static void emit_vertex( int v )
       vb.stack[0].notify();
 }
 
+static void emit_tri( int v0, int v1, int v2 )
+{
+   assert (vb.context->Polygon.FrontMode == GL_LINE);
+   emit_vertex( v0 ); emit_vertex( v1 );
+   emit_vertex( v1 ); emit_vertex( v2 );
+   emit_vertex( v2 ); emit_vertex( v0 );
+}
+
 /* Emit a quad (in vb.vertex_store) to dma as two triangles.
  */
 static void emit_quad( int v0, int v1, int v2, int v3 )
 {
-   emit_vertex( v0 );
-   emit_vertex( v1 );
-   emit_vertex( v3 );
-   emit_vertex( v1 );
-   emit_vertex( v2 );
-   emit_vertex( v3 );
+   if (vb.context->Polygon.FrontMode == GL_LINE) {
+      emit_vertex( v0 ); emit_vertex( v1 );
+      emit_vertex( v1 ); emit_vertex( v2 );
+      emit_vertex( v2 ); emit_vertex( v3 );
+      emit_vertex( v3 ); emit_vertex( v0 );
+   } 
+   else {
+      emit_vertex( v0 ); emit_vertex( v1 ); emit_vertex( v3 );
+      emit_vertex( v1 ); emit_vertex( v2 ); emit_vertex( v3 );
+   }
 }
 
 /* Every fourth vertex in a quad primitive, this is called to emit:
@@ -306,7 +356,7 @@ static void notify_qstrip1( void );
 static void notify_qstrip0( void )
 {
    pop_notify();
-   emit_quad( 0, 1, 2, 3 );
+   emit_quad( 0, 1, 3, 2 );
    push_notify( notify_qstrip1, 2, vb.vertex_store );
 }
 
@@ -324,6 +374,56 @@ static void notify_lineloop0( void )
 {
    pop_notify();
    emit_vertex(0);
+}
+
+/* Need to decompose tristrip & trifan to tris for unfilled line modes
+ */
+static void notify_tristrip1( void );
+static void notify_tristrip2( void );
+static void notify_tristrip0( void )
+{
+   pop_notify();
+   emit_tri( 0, 1, 2 );
+   push_notify( notify_tristrip1, 1, vb.vertex_store );
+}
+
+static void notify_tristrip1( void )
+{
+   pop_notify();
+   emit_tri( 1, 0, 2 );
+   push_notify( notify_tristrip2, 1, vb.vertex_store + 1*vb.vertex_size );
+}
+
+static void notify_tristrip2( void )
+{
+   pop_notify();
+   emit_tri( 1, 0, 2 );
+   push_notify( notify_tristrip0, 1, vb.vertex_store + 2*vb.vertex_size );
+}
+
+
+static void notify_trifan1( void );
+static void notify_trifan0( void )
+{
+   pop_notify();
+   emit_tri( 0, 1, 2 );
+   push_notify( notify_trifan1, 1, vb.vertex_store + 1*vb.vertex_size );
+}
+
+static void notify_trifan1( void )
+{
+   pop_notify();
+   emit_tri( 0, 2, 1 );
+   push_notify( notify_trifan0, 1, vb.vertex_store + 2*vb.vertex_size );
+}
+
+/* Emit lines in GL_LINE fill mode
+ */
+static void notify_tri( void )
+{
+   pop_notify();
+   emit_tri( 0, 1, 2 );
+   push_notify( notify_tri, 3, vb.vertex_store );
 }
 
 
@@ -431,39 +531,62 @@ static void radeon_Begin( GLenum mode )
    vb.prim = ctx->Driver.CurrentExecPrimitive = mode;
    se_cntl = rmesa->hw.set.cmd[SET_SE_CNTL] | RADEON_FLAT_SHADE_VTX_LAST;
 
+   if (ctx->Line.StippleFlag && 
+       (ctx->Polygon.FrontMode == GL_LINE || 
+	mode == GL_LINES || 
+	mode == GL_LINE_LOOP ||
+	mode == GL_LINE_STRIP))
+      RESET_STIPPLE();
+
    switch( mode ) {
+   case GL_LINES:
+      if (ctx->Line.StippleFlag) 
+	 AUTO_STIPPLE( GL_TRUE );
+      break;
+   case GL_LINE_LOOP:
+      vb.prim = GL_LINE_STRIP;
+      push_notify( notify_lineloop0, 1, vb.vertex_store );
+      break;
+   case GL_TRIANGLES:
+      if (ctx->Polygon.FrontMode == GL_LINE) {
+	 vb.prim = GL_LINES;
+	 push_notify( notify_tri, 3, vb.vertex_store );
+      }
+      break;
+   case GL_TRIANGLE_STRIP:
+      if (ctx->Polygon.FrontMode == GL_LINE) {
+	 vb.prim = GL_LINES;
+	 push_notify( notify_tristrip0, 3, vb.vertex_store );
+      }
+      break;
+   case GL_TRIANGLE_FAN:
+      if (ctx->Polygon.FrontMode == GL_LINE) {
+	 vb.prim = GL_LINES;
+	 push_notify( notify_trifan0, 3, vb.vertex_store );
+      }
+      break;
    case GL_QUADS:
-      vb.prim = GL_TRIANGLES;
+      if (ctx->Polygon.FrontMode == GL_LINE) 
+	 vb.prim = GL_LINES;
+      else
+	 vb.prim = GL_TRIANGLES;
       push_notify( notify_quad, 4, vb.vertex_store );
       break;
    case GL_QUAD_STRIP:
-      /* Need special treatment only for flat shading -- otherwise the
-       * tristrip primitive works fine.
-       */
-      if (ctx->_TriangleCaps & DD_FLATSHADE) {
+      if (ctx->Polygon.FrontMode == GL_LINE) {
+	 push_notify( notify_qstrip0, 4, vb.vertex_store );
+      }
+      else if (ctx->_TriangleCaps & DD_FLATSHADE) {
 	 vb.prim = GL_TRIANGLES;
 	 push_notify( notify_qstrip0, 4, vb.vertex_store );
       }
       break;
-   case GL_LINES:
-      if (ctx->Line.StippleFlag) {
-	 RESET_STIPPLE();
-	 AUTO_STIPPLE( GL_TRUE );
-      }
-      break;
-   case GL_LINE_LOOP:
-      if (ctx->Line.StippleFlag)
-	 RESET_STIPPLE();
-      vb.prim = GL_LINE_STRIP;
-      push_notify( notify_lineloop0, 1, vb.vertex_store );
-      break;
-   case GL_LINE_STRIP:
-      if (ctx->Line.StippleFlag)
-	 RESET_STIPPLE();
-      break;
    case GL_POLYGON:
       if (ctx->_TriangleCaps & DD_FLATSHADE)
 	 se_cntl &= ~RADEON_FLAT_SHADE_VTX_LAST;
+      if (ctx->Polygon.FrontMode == GL_LINE) 
+	 push_notify( notify_lineloop0, 1, vb.vertex_store );
+      break;
    default:
       break;
    }
@@ -618,7 +741,7 @@ void radeonVtxfmtInit( GLcontext *ctx )
    exec->Vertex3fv = radeon_Vertex3fv;
    exec->Begin = radeon_Begin;
    exec->End = radeon_End;
-   exec->Rectf = _mesa_noop_Rectf; /* is this supported? */
+   exec->Rectf = _mesa_noop_Rectf;
 
    vb.context = ctx;
    
