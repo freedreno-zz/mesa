@@ -1,10 +1,10 @@
-/* $Id: api_validate.c,v 1.5 2001/03/12 00:48:37 gareth Exp $ */
+/* $Id: api_validate.c,v 1.5.2.1 2002/03/19 15:22:41 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.5
+ * Version:  4.0.2
  *
- * Copyright (C) 1999-2001  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -44,8 +44,7 @@ _mesa_validate_DrawElements(GLcontext *ctx,
       return GL_FALSE;
    }
 
-   if (mode < 0 ||
-       mode > GL_POLYGON) {
+   if (mode > GL_POLYGON) {
       _mesa_error(ctx, GL_INVALID_ENUM, "glDrawArrays(mode)" );
       return GL_FALSE;
    }
@@ -82,7 +81,7 @@ _mesa_validate_DrawRangeElements(GLcontext *ctx, GLenum mode,
       return GL_FALSE;
    }
 
-   if (mode < 0 || mode > GL_POLYGON) {
+   if (mode > GL_POLYGON) {
       _mesa_error(ctx, GL_INVALID_ENUM, "glDrawArrays(mode)" );
       return GL_FALSE;
    }
@@ -122,7 +121,7 @@ _mesa_validate_DrawArrays(GLcontext *ctx,
       return GL_FALSE;
    }
 
-   if (mode < 0 || mode > GL_POLYGON) {
+   if (mode > GL_POLYGON) {
       _mesa_error(ctx, GL_INVALID_ENUM, "glDrawArrays(mode)" );
       return GL_FALSE;
    }
