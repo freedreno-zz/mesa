@@ -1,8 +1,8 @@
-/* $Id: depth.c,v 1.9 1999/11/11 01:22:26 brianp Exp $ */
+/* $Id: depth.c,v 1.8.2.1 2000/04/04 00:50:28 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.3
+ * Version:  3.1
  * 
  * Copyright (C) 1999  Brian Paul   All Rights Reserved.
  * 
@@ -24,14 +24,28 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+
+/* $XFree86: xc/lib/GL/mesa/src/depth.c,v 1.3 1999/04/04 00:20:22 dawes Exp $ */
+
+/*
+ * Depth buffer functions
+ */
+
+#include <stdlib.h>
+
 #ifdef PC_HEADER
 #include "all.h"
 #else
-#include "glheader.h"
+#ifndef XFree86Server
+#include <stdio.h>
+#include <string.h>
+#else
+#include "GL/xf86glx.h"
+#endif
 #include "context.h"
 #include "enums.h"
 #include "depth.h"
-#include "mem.h"
+#include "macros.h"
 #include "types.h"
 #endif
 
@@ -43,10 +57,8 @@
 
 
 
-void
-_mesa_ClearDepth( GLclampd depth )
+void gl_ClearDepth( GLcontext* ctx, GLclampd depth )
 {
-   GET_CURRENT_CONTEXT(ctx);
    ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx, "glClearDepth");
    ctx->Depth.Clear = (GLfloat) CLAMP( depth, 0.0, 1.0 );
    if (ctx->Driver.ClearDepth)
@@ -55,10 +67,8 @@ _mesa_ClearDepth( GLclampd depth )
 
 
 
-void
-_mesa_DepthFunc( GLenum func )
+void gl_DepthFunc( GLcontext* ctx, GLenum func )
 {
-   GET_CURRENT_CONTEXT(ctx);
    ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx, "glDepthFunc");
 
    if (MESA_VERBOSE & (VERBOSE_API|VERBOSE_TEXTURE))
@@ -98,10 +108,8 @@ _mesa_DepthFunc( GLenum func )
 
 
 
-void
-_mesa_DepthMask( GLboolean flag )
+void gl_DepthMask( GLcontext* ctx, GLboolean flag )
 {
-   GET_CURRENT_CONTEXT(ctx);
    ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx, "glDepthMask");
 
    if (MESA_VERBOSE & (VERBOSE_API|VERBOSE_TEXTURE))
@@ -853,9 +861,14 @@ void gl_clear_depth_buffer( GLcontext* ctx )
    else {
       /* clear whole buffer */
       if (sizeof(GLdepth)==2 && (clear_value&0xff)==(clear_value>>8)) {
-         /* lower and upper bytes of clear_value are same, use MEMSET */
-         MEMSET( ctx->Buffer->Depth, clear_value&0xff,
-                 2*ctx->Buffer->Width*ctx->Buffer->Height);
+         if (clear_value == 0) {
+            BZERO(ctx->Buffer->Depth, 2*ctx->Buffer->Width*ctx->Buffer->Height);
+         }
+         else {
+            /* lower and upper bytes of clear_value are same, use MEMSET */
+            MEMSET( ctx->Buffer->Depth, clear_value&0xff,
+                    2*ctx->Buffer->Width*ctx->Buffer->Height);
+         }
       }
       else {
          GLdepth *d = ctx->Buffer->Depth;

@@ -1,8 +1,8 @@
-/* $Id: osmesa.c,v 1.3 1999/11/11 01:28:41 brianp Exp $ */
+/* $Id: osmesa.c,v 1.2.2.1 2000/04/04 00:50:29 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.3
+ * Version:  3.1
  * 
  * Copyright (C) 1999  Brian Paul   All Rights Reserved.
  * 
@@ -38,7 +38,7 @@
 #include "GL/osmesa.h"
 #include "context.h"
 #include "depth.h"
-#include "mem.h"
+#include "macros.h"
 #include "matrix.h"
 #include "types.h"
 #include "vb.h"
@@ -224,6 +224,7 @@ OSMesaContext GLAPIENTRY OSMesaCreateContext( GLenum format, OSMesaContext share
                                             indexBits,
                                             8, 8, 8, alphaBits );
       if (!osmesa->gl_visual) {
+         FREE(osmesa);
          return NULL;
       }
 
@@ -400,7 +401,7 @@ GLboolean GLAPIENTRY OSMesaMakeCurrent( OSMesaContext ctx, void *buffer, GLenum 
    /* init viewport */
    if (ctx->gl_ctx->Viewport.Width==0) {
       /* initialize viewport and scissor box to buffer size */
-      _mesa_Viewport( 0, 0, width, height );
+      gl_Viewport( ctx->gl_ctx, 0, 0, width, height );
       ctx->gl_ctx->Scissor.Width = width;
       ctx->gl_ctx->Scissor.Height = height;
    }
@@ -631,8 +632,13 @@ static GLbitfield clear( GLcontext *ctx, GLbitfield mask, GLboolean all,
             GLuint i, n, *ptr4;
             n = osmesa->rowlength * osmesa->height;
             ptr4 = (GLuint *) osmesa->buffer;
-            for (i=0;i<n;i++) {
-               *ptr4++ = osmesa->clearpixel;
+            if (osmesa->clearpixel) {
+               for (i=0;i<n;i++) {
+                  *ptr4++ = osmesa->clearpixel;
+               }
+            }
+            else {
+               BZERO(ptr4, n * sizeof(GLuint));
             }
          }
          else {
