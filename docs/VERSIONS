@@ -1,4 +1,4 @@
-$Id: VERSIONS,v 1.13.2.1 1999/11/12 15:45:45 brianp Exp $
+$Id: VERSIONS,v 1.13.2.2 1999/12/03 18:49:05 brianp Exp $
 
 
 Mesa Version History
@@ -661,10 +661,11 @@ Mesa Version History
 	- New Makefile-system (autoconf,automake,libtool)
 
 
-3.1 final  November ??, 1999
+3.1 final  December ??, 1999
     New:
 	- added demos/gloss.c
 	- added xdemos/glxdpyinfo.c
     Bug fixes:
 	- several vertex array bug fixes
+	- glCopyPixels with pixel zooming now works
 
