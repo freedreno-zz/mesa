@@ -1,4 +1,4 @@
-$Id: VERSIONS,v 1.38.2.30 2001/03/23 16:28:39 brianp Exp $
+$Id: VERSIONS,v 1.38.2.31 2001/03/28 21:38:36 brianp Exp $
 
 
 Mesa Version History
@@ -806,3 +806,4 @@ post-3.4.1
     Bug fixes:
 	- deleting the currently bound texture could cause bad problems
 	- using fog could result in random vertex alpha values
+	- AA triangle rendering could touch pixels outside right window bound
