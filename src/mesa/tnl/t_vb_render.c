@@ -312,7 +312,6 @@ static GLboolean run_render( GLcontext *ctx,
 	 GLuint start = VB->Primitive[i].start;
 	 GLuint length = VB->Primitive[i].count;
 
-	 assert(length);
 	 assert((prim & PRIM_MODE_MASK) < GL_POLYGON+1);
 
 	 if (MESA_VERBOSE & VERBOSE_PRIMS)

@@ -67,7 +67,7 @@ static void _tnl_wrap_buffers( GLcontext *ctx )
    if (ctx->Driver.CurrentExecPrimitive != GL_POLYGON+1) {
       tnl->vtx.prim[0].mode = ctx->Driver.CurrentExecPrimitive;
       tnl->vtx.prim[0].start = 0;
-      tnl->vtx.prim[0].count = -1;
+      tnl->vtx.prim[0].count = 0;
       tnl->vtx.prim_count++;
    }
 }
@@ -1003,7 +1003,7 @@ static void _tnl_End( void )
 }
 
 
-static void _tnl_imm_vtxfmt_init( GLcontext *ctx )
+static void _tnl_exec_vtxfmt_init( GLcontext *ctx )
 {
    GLvertexformat *vfmt = &(TNL_CONTEXT(ctx)->exec_vtxfmt);
    vfmt->ArrayElement = _ae_loopback_array_elt;	        /* generic helper */
@@ -1076,22 +1076,49 @@ void _tnl_FlushVertices( GLcontext *ctx, GLuint flags )
    _mesa_debug( 0, "%s\n", __FUNCTION__); 
 
 
-   if (ctx->Driver.CurrentExecPrimitive != PRIM_OUTSIDE_BEGIN_END)
+   if (ctx->Driver.CurrentExecPrimitive != PRIM_OUTSIDE_BEGIN_END) {
+      _mesa_debug( 0, "%s -- inside begin/end\n", __FUNCTION__); 
       return;
+   }
 
-   if (tnl->vtx.counter != tnl->vtx.initial_counter)
+   if (tnl->vtx.counter != tnl->vtx.initial_counter) {
       _tnl_flush_vtx( ctx );
+      init_0( tnl );
+   }
 
    if (flags & FLUSH_UPDATE_CURRENT) {
       _tnl_copy_to_current( ctx );
-
-/*       _mesa_install_exec_vtxfmt( ctx, &tnl->exec_vtxfmt ); */
 
       /* reset attrfv table
        */
       init_attrfv( tnl );
    }
+
+   ctx->Driver.NeedFlush &= ~flags;
 }
+
+static void _tnl_current_init( GLcontext *ctx ) 
+{
+   TNLcontext *tnl = TNL_CONTEXT(ctx);
+   GLint i;
+
+   for (i = 0; i < VERT_ATTRIB_MAX; i++) 
+      tnl->vtx.current[i] = ctx->Current.Attrib[i];
+
+   for (i = _TNL_ATTRIB_MAT_FRONT_AMBIENT; i < _TNL_ATTRIB_INDEX; i++)
+      tnl->vtx.current[i] = ctx->Light.Material.Attrib[i];
+
+   tnl->vtx.current[_TNL_ATTRIB_INDEX] = &ctx->Current.Index;
+
+   /* Current edgeflag?
+    */
+
+   /* Initialize the vertex4f pointers pointing to Current also?
+    */
+
+}
+
+
 
 
 void _tnl_vtx_init( GLcontext *ctx )
@@ -1103,19 +1130,8 @@ void _tnl_vtx_init( GLcontext *ctx )
    for (i = 0; i < _TNL_ATTRIB_INDEX; i++)
       _mesa_vector4f_init( &tmp->Attribs[i], 0, 0);
 
-
-   for (i = 0; i < VERT_ATTRIB_MAX; i++)
-      tnl->vtx.current[i] = ctx->Current.Attrib[i];
-
-   for (i = _TNL_ATTRIB_MAT_FRONT_AMBIENT; i < _TNL_ATTRIB_INDEX; i++)
-      tnl->vtx.current[i] = ctx->Light.Material.Attrib[i];
-
-   tnl->vtx.current[_TNL_ATTRIB_INDEX] = &ctx->Current.Index;
-
-   /* Current edgeflag?
-    */
-
-   _tnl_imm_vtxfmt_init( ctx );
+   _tnl_current_init( ctx );
+   _tnl_exec_vtxfmt_init( ctx );
 
    _mesa_install_exec_vtxfmt( ctx, &tnl->exec_vtxfmt );
    init_attrfv( tnl );

@@ -28,6 +28,7 @@
 #include "glheader.h"
 #include "api_eval.h"
 #include "context.h"
+#include "state.h"
 #include "macros.h"
 #include "math/m_eval.h"
 #include "t_vtx_api.h"
@@ -45,6 +46,12 @@ GLboolean *_tnl_translate_edgeflag( GLcontext *ctx, const GLfloat *data,
    return ef;
 }
 
+static GLint get_size( const GLfloat *f )
+{
+   if (f[3] != 1.0) return 4;
+   if (f[2] != 0.0) return 3;
+   return 2;
+}
 
 /* Some nasty stuff still hanging on here.  
  *
@@ -81,7 +88,15 @@ static void _tnl_vb_bind_vtx( GLcontext *ctx )
 	 data += tnl->vtx.attrsz[attr];
       }
       else {
-	 VB->AttribPtr[attr] = &tnl->current.Attribs[attr];
+/* 	 VB->AttribPtr[attr] = &tnl->current.Attribs[attr]; */
+
+
+	 tmp->Attribs[attr].count = count;
+	 tmp->Attribs[attr].data = (GLfloat (*)[4]) tnl->vtx.current[attr];
+	 tmp->Attribs[attr].start = tnl->vtx.current[attr];
+	 tmp->Attribs[attr].size = get_size( tnl->vtx.current[attr] );
+	 tmp->Attribs[attr].stride = 0;
+	 VB->AttribPtr[attr] = &tmp->Attribs[attr];
       }
    }
 
@@ -204,7 +219,10 @@ void _tnl_flush_vtx( GLcontext *ctx )
        tnl->vtx.counter != tnl->vtx.initial_counter) {
 
       tnl->vtx.copied.nr = _tnl_copy_vertices( ctx ); 
-   
+
+      if (ctx->NewState)
+	 _mesa_update_state( ctx );
+      
       if (tnl->pipeline.build_state_changes)
 	 _tnl_validate_pipeline( ctx );
 

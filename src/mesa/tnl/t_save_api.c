@@ -239,7 +239,7 @@ static void _save_compile_vertex_list( GLcontext *ctx )
       tnl->save.prim[0].mode = (node->prim[node->prim_count-1].mode & 
 				PRIM_MODE_MASK);
       tnl->save.prim[0].start = 0;
-      tnl->save.prim[0].count = -1;
+      tnl->save.prim[0].count = 0;
    }
 
    /* Deal with GL_COMPILE_AND_EXECUTE:
@@ -279,7 +279,7 @@ static void _save_wrap_buffers( GLcontext *ctx )
    assert(tnl->save.prim_count == 0);
    tnl->save.prim[0].mode = mode;
    tnl->save.prim[0].start = 0;
-   tnl->save.prim[0].count = -1;
+   tnl->save.prim[0].count = 0;
    tnl->save.prim_count++;
 }
 
