@@ -906,7 +906,6 @@ static int __driInitFBDev( struct MiniGLXDisplayRec *dpy )
     * the clear ioctl to do this, but would need to setup hw state
     * first.
     */
-   if (0) {
    memset(dpy->FrameBuffer + info->frontOffset,
 	  0,
 	  info->frontPitch * dpy->cpp * dpy->virtualHeight );
@@ -914,7 +913,6 @@ static int __driInitFBDev( struct MiniGLXDisplayRec *dpy )
    memset(dpy->FrameBuffer + info->backOffset,
 	  0,
 	  info->backPitch * dpy->cpp * dpy->virtualHeight );
-   }
 
    return 1;
 }
