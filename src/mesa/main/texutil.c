@@ -1,4 +1,4 @@
-/* $Id: texutil.c,v 1.5.4.4 2000/11/09 22:31:28 brianp Exp $ */
+/* $Id: texutil.c,v 1.5.4.5 2000/11/17 02:42:01 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -823,15 +823,21 @@ _mesa_convert_texsubimage(MesaIntTexFormat dstFormat,
                const GLubyte *src = (const GLubyte *)
                   _mesa_image_address(packing, srcImage, srcWidth, srcHeight,
                                       srcFormat, srcType, 0, 0, 0);
-               const GLint srcStride = _mesa_image_row_stride(packing,
+               const GLint srcRowStride = _mesa_image_row_stride(packing,
                                                   width, srcFormat, srcType);
                GLubyte *dst = (GLubyte *) dstImage
                             + dstYoffset * dstRowStride + dstXoffset;
+               const GLint rowSize = width * sizeof(GLubyte);
                GLint row;
-               for (row = 0; row < height; row++) {
-                  MEMCPY(dst, src, width * sizeof(GLubyte));
-                  dst += dstRowStride;
-                  src += srcStride;
+               if (dstRowStride == srcRowStride && dstRowStride == rowSize) {
+                  MEMCPY(dst, src, rowSize * height);
+               }
+               else {
+                  for (row = 0; row < height; row++) {
+                     MEMCPY(dst, src, rowSize);
+                     dst += dstRowStride;
+                     src += srcRowStride;
+                  }
                }
             }
             else {
