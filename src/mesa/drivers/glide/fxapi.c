@@ -835,7 +835,6 @@ fxMesaContext GLAPIENTRY fxMesaCreateContext(GLuint win,GrScreenResolution_t res
    GLint accumSize=0;
    GLcontext *shareCtx = NULL;
    GLcontext *ctx = 0;
-   FX_GrContext_t glideContext = 0;
    char *errorstr;
 
    if (MESA_VERBOSE&VERBOSE_DRIVER) {
@@ -942,6 +941,13 @@ fxMesaContext GLAPIENTRY fxMesaCreateContext(GLuint win,GrScreenResolution_t res
       goto errorhandler;
    }
 
+   /* Pixel tables are use during pixel read-back */
+   if (glbHWConfig.SSTs[glbCurrentBoard].type == GR_SSTTYPE_VOODOO) {
+      fxInitPixelTables(GL_TRUE); /* use BGR pixel order on Voodoo1/2 */
+   }
+   else {
+      fxInitPixelTables(GL_FALSE); /* use RGB pixel order otherwise */
+   }
 
    fxMesa->width=FX_grSstScreenWidth();
    fxMesa->height=FX_grSstScreenHeight();
@@ -1204,7 +1210,7 @@ int GLAPIENTRY fxQueryHardware(void)
         char buf[80];
                         
         FX_grGlideGetVersion(buf);
-        fprintf(stderr,"Using Glide V%s\n",0);
+        fprintf(stderr,"Using Glide V%s\n","");
         fprintf(stderr,"Number of boards: %d\n",glbHWConfig.num_sst);
 
         if(glbHWConfig.SSTs[glbCurrentBoard].type==GR_SSTTYPE_VOODOO) {

@@ -246,19 +246,14 @@ static void fxDDReadRGBASpan(const GLcontext *ctx,
   assert(n < MAX_WIDTH);
 
   grLfbReadRegion( fxMesa->currentFB, x, bottom-y, n, 1, 0, data);
+  assert(FX_PixelTablesInitialized);
   for (i=0;i<n;i++) {
-#if FXMESA_USE_ARGB
-    rgba[i][RCOMP]=(data[i] & 0xF800) >> 8;
-    rgba[i][GCOMP]=(data[i] & 0x07E0) >> 3;
-    rgba[i][BCOMP]=(data[i] & 0x001F) << 3;
-#else
-    rgba[i][RCOMP]=(data[i] & 0x001f) << 3;
-    rgba[i][GCOMP]=(data[i] & 0x07e0) >> 3;
-    rgba[i][BCOMP]=(data[i] & 0xf800) >> 8;
-#endif
-    rgba[i][ACOMP]=255;
+    GLushort pixel = data[i];
+    rgba[i][RCOMP] = FX_PixelToR[pixel];
+    rgba[i][GCOMP] = FX_PixelToG[pixel];
+    rgba[i][BCOMP] = FX_PixelToB[pixel];
+    rgba[i][ACOMP] = 255;
   }
-
 }
 
 /************************************************************************/
@@ -308,28 +303,22 @@ static void fxDDReadRGBAPixels(const GLcontext *ctx,
   fxMesaContext fxMesa=(fxMesaContext)ctx->DriverCtx;
   GLuint i;
   GLint bottom=fxMesa->height-1;
-  GLushort data;
 
   if (MESA_VERBOSE&VERBOSE_DRIVER) {
      fprintf(stderr,"fxmesa: fxDDReadRGBAPixels(...)\n");
   }
 
-  for(i=0;i<n;i++)
+  assert(FX_PixelTablesInitialized);
+  for(i=0;i<n;i++) {
     if(mask[i]) {
-      grLfbReadRegion(fxMesa->currentFB,x[i],bottom-y[i],1,1,0,&data);
-   #if FXMESA_USE_ARGB 
-      rgba[i][RCOMP]=(data & 0xF800) >> 8;
-      rgba[i][GCOMP]=(data & 0x07E0) >> 3;
-      rgba[i][BCOMP]=(data & 0x001F) >> 8;
-   #else
-      rgba[i][RCOMP]=(data & 0x001f) << 3;
-      rgba[i][GCOMP]=(data & 0x07e0) >> 3;
-      rgba[i][BCOMP]=(data & 0xf800) >> 8;
-   #endif
-      /* the alpha value should be read from the auxiliary buffer when required */
-
-      rgba[i][ACOMP]=255;
+      GLushort pixel;
+      FX_grLfbReadRegion(fxMesa->currentFB,x[i],bottom-y[i],1,1,0,&pixel);
+      rgba[i][RCOMP] = FX_PixelToR[pixel];
+      rgba[i][GCOMP] = FX_PixelToG[pixel];
+      rgba[i][BCOMP] = FX_PixelToB[pixel];
+      rgba[i][ACOMP] = 255;
     }
+  }
 }
 
 /************************************************************************/

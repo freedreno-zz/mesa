@@ -392,6 +392,16 @@ struct tfxMesaVertexBuffer {
 #define DRI_FX_CONTEXT
 #endif
 
+
+/* These lookup table are used to extract RGB values in [0,255] from
+ * 16-bit pixel values.
+ */
+extern GLubyte FX_PixelToR[0x10000];
+extern GLubyte FX_PixelToG[0x10000];
+extern GLubyte FX_PixelToB[0x10000];
+extern GLboolean FX_PixelTablesInitialized;
+
+
 struct tfxMesaContext {
   GuTexPalette glbPalette;
 
@@ -621,5 +631,7 @@ extern void fxPrintHintState( const char *msg, GLuint state );
 extern void fxDDDoRenderVB( struct vertex_buffer *VB );
 
 extern int fxDDInitFxMesaContext( fxMesaContext fxMesa );
+
+extern void fxInitPixelTables(GLboolean bgrOrder);
 
 #endif

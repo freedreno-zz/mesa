@@ -34,6 +34,45 @@
 #include "enums.h"
 #include "extensions.h"
 
+
+/* These lookup table are used to extract RGB values in [0,255] from
+ * 16-bit pixel values.
+ */
+GLubyte FX_PixelToR[0x10000];
+GLubyte FX_PixelToG[0x10000];
+GLubyte FX_PixelToB[0x10000];
+GLboolean FX_PixelTablesInitialized = GL_FALSE;
+
+/*
+ * Initialize the FX_PixelTo{RGB} arrays.
+ * Input: bgrOrder - if TRUE, pixels are in BGR order, else RGB order.
+ */
+void fxInitPixelTables(GLboolean bgrOrder)
+{
+  GLuint pixel;
+  for (pixel = 0; pixel <= 0xffff; pixel++) {
+    GLuint r, g, b;
+    if (bgrOrder) {
+      r = (pixel & 0x001F) << 3;
+      g = (pixel & 0x07E0) >> 3;
+      b = (pixel & 0xF800) >> 8;
+    }
+    else {
+      r = (pixel & 0xF800) >> 8;
+      g = (pixel & 0x07E0) >> 3;
+      b = (pixel & 0x001F) << 3;
+    }
+    r = r * 255 / 0xF8;  /* fill in low-order bits */
+    g = g * 255 / 0xFC;
+    b = b * 255 / 0xF8;
+    FX_PixelToR[pixel] = r;
+    FX_PixelToG[pixel] = g;
+    FX_PixelToB[pixel] = b;
+  }
+  FX_PixelTablesInitialized = GL_TRUE;
+}
+
+
 /**********************************************************************/
 /*****                 Miscellaneous functions                    *****/
 /**********************************************************************/
