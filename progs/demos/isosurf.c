@@ -1,4 +1,4 @@
-/* $Id: isosurf.c,v 1.15.4.1 2003/02/23 21:04:25 keithw Exp $ */
+/* $Id: isosurf.c,v 1.15.4.2 2003/03/22 08:40:35 keithw Exp $ */
 
 /*
  * Display an isosurface of 3-D wind speed volume.
@@ -37,7 +37,7 @@
 #define GL_GLEXT_LEGACY
 #include "GL/glut.h"
 
-#include "readtex.c"   /* I know, this is a hack.  KW: me too. */
+#include "readtex.c"   
 #define TEXTURE_FILE "../images/reflect.rgb"
 
 #define LIT		0x00000001
@@ -805,10 +805,10 @@ static void Init(int argc, char *argv[])
 	 expand_arrays();
 	 make_tri_indices();
 
-	 if (!LoadRGBMipmaps(TEXTURE_FILE, GL_RGB)) {
-	    printf("Error: couldn't load texture image\n");
-	    exit(1);
-	 }
+/* 	 if (!LoadRGBMipmaps(TEXTURE_FILE, GL_RGB)) { */
+/* 	    printf("Error: couldn't load texture image\n"); */
+/* 	    exit(1); */
+/* 	 } */
       }
    }
 

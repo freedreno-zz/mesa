@@ -680,18 +680,13 @@ loadpic(void)
    }
 
    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-   if ((gluerr = gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGBA, 256, 256, GL_RGBA,
-				   GL_UNSIGNED_BYTE,
-				   (GLvoid *) (&terrainpic[0][0])))) {
-      fprintf(stderr, "GLULib%s\n", (char *) gluErrorString(gluerr));
-      exit(-1);
-   }
+   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, GL_RGBA, 256, 256, GL_RGBA,
+		GL_UNSIGNED_BYTE, (GLvoid *) terrainpic);
 
    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
-   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
-		   GL_LINEAR_MIPMAP_LINEAR);
+   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);

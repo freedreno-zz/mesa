@@ -14,12 +14,12 @@ PROGS = gears \
 
 # make executable from .c file:
 .c: $(LIB_DEP)
-	gcc -I../include -I../util -g $< -L../lib -lglut -lGL -lm -o $@
+	gcc -I../include -I../util -g $< -L../lib -lglut -lGL -lGLU -lm -o $@
 
 
 default: $(PROGS)
 
 
 clean:
-	-rm *.o *~
+	-rm -f *.o *~ $(PROGS)
 

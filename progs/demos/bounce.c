@@ -1,4 +1,4 @@
-/* $Id: bounce.c,v 1.3.8.1 2003/02/23 19:25:07 keithw Exp $ */
+/* $Id: bounce.c,v 1.3.8.2 2003/03/22 08:40:35 keithw Exp $ */
 
 /*
  * Bouncing ball demo.
@@ -115,15 +115,15 @@ draw(void)
   glColor3f(0, 1, 1);
   glBegin(GL_LINES);
   for (i = -5; i <= 5; i++) {
-    glVertex2i(i, -5);
-    glVertex2i(i, 5);
+    glVertex2f(i, -5);
+    glVertex2f(i, 5);
   }
   for (i = -5; i <= 5; i++) {
-    glVertex2i(-5, i);
-    glVertex2i(5, i);
+    glVertex2f(-5, i);
+    glVertex2f(5, i);
   }
   for (i = -5; i <= 5; i++) {
-    glVertex2i(i, -5);
+    glVertex2f(i, -5);
     glVertex2f(i * 1.15, -5.9);
   }
   glVertex2f(-5.3, -5.35);

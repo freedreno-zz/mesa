@@ -1,4 +1,4 @@
-/* $Id: texobj.c,v 1.6.6.1 2003/02/23 19:25:07 keithw Exp $ */
+/* $Id: texobj.c,v 1.6.6.2 2003/03/22 08:40:35 keithw Exp $ */
 
 /*
  * Example of using the 1.1 texture object functions.
@@ -50,7 +50,7 @@ static void draw( void )
 #endif
    }
    else {
-      glCallList( TexObj[0] );
+/*       glCallList( TexObj[0] ); */
    }
    glBegin( GL_POLYGON );
    glTexCoord2f( 0.0, 0.0 );   glVertex2f( -1.0, -1.0 );
@@ -70,7 +70,7 @@ static void draw( void )
 #endif
    }
    else {
-      glCallList( TexObj[1] );
+/*       glCallList( TexObj[1] ); */
    }
    glBegin( GL_POLYGON );
    glTexCoord2f( 0.0, 0.0 );   glVertex2f( -1.0, -1.0 );
@@ -166,8 +166,8 @@ static void init( void )
 #endif
    }
    else {
-      TexObj[0] = glGenLists(2);
-      TexObj[1] = TexObj[0]+1;
+/*       TexObj[0] = glGenLists(2); */
+/*       TexObj[1] = TexObj[0]+1; */
    }
 
    /* setup first texture object */
@@ -178,7 +178,7 @@ static void init( void )
 #endif
    }
    else {
-      glNewList( TexObj[0], GL_COMPILE );
+/*       glNewList( TexObj[0], GL_COMPILE ); */
    }
    /* red on white */
    for (i=0;i<height;i++) {
@@ -201,7 +201,7 @@ static void init( void )
    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
    if (!UseObj) {
-      glEndList();
+/*       glEndList(); */
    }
    /* end of texture object */
 
@@ -214,7 +214,7 @@ static void init( void )
 /*       assert(!glIsTexture(TexObj[1] + 999)); */
    }
    else {
-      glNewList( TexObj[1], GL_COMPILE );
+/*       glNewList( TexObj[1], GL_COMPILE ); */
    }
    /* green on blue */
    for (i=0;i<height;i++) {
@@ -235,7 +235,7 @@ static void init( void )
    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
    if (!UseObj) {
-      glEndList();
+/*       glEndList(); */
    }
    /* end texture object */
 
