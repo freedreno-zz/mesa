@@ -1,4 +1,4 @@
-$Id: VERSIONS,v 1.38.2.3 2000/08/29 21:16:50 brianp Exp $
+$Id: VERSIONS,v 1.38.2.4 2000/09/06 17:48:31 brianp Exp $
 
 
 Mesa Version History
@@ -759,5 +759,5 @@ Mesa Version History
 	- glAreTexturesResident return value was wrong when using hardware
 	- glXUseXFont segfaulted when using 3dfx driver (via MESA_GLX_FX)
     Changes:
-	-
+	- finished internal support for compressed textures for DRI
 
