@@ -971,9 +971,10 @@ ExtensionPrintInfo known_extensions[] =
 #endif /* HAVE_XRECORD */
     /* add new extensions here */
     /* wish list: PEX XKB LBX */
+    {"", NULL, False}  /* dummy, incase none of above are defined */
 };
 
-int num_known_extensions = sizeof known_extensions / sizeof known_extensions[0];
+int num_known_extensions = sizeof known_extensions / sizeof known_extensions[0] - 1;
 
 void
 print_known_extensions(f)
@@ -982,7 +983,7 @@ print_known_extensions(f)
     int i;
     for (i = 0; i < num_known_extensions; i++)
     {
-	fprintf(f, "%s ", known_extensions[i].extname);
+       fprintf(f, "%s ", known_extensions[i].extname);
     }
 }
 
