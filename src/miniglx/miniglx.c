@@ -22,7 +22,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: miniglx.c,v 1.1.4.32 2003/01/14 16:52:47 keithw Exp $ */
+/* $Id: miniglx.c,v 1.1.4.33 2003/01/16 23:39:30 keithw Exp $ */
 
 
 /**
@@ -251,6 +251,43 @@ OpenFBDev( Display *dpy )
    /* make copy */
    dpy->VarInfo = dpy->OrigVarInfo;  /* structure copy */
 
+   /* Get the fixed screen info */
+   if (ioctl(dpy->FrameBufferFD, FBIOGET_FSCREENINFO, &dpy->FixedInfo)) {
+      fprintf(stderr, "error: ioctl(FBIOGET_FSCREENINFO) failed: %s\n",
+              strerror(errno));
+      return GL_FALSE;
+   }
+
+
+
+   /* mmap the framebuffer into our address space */
+   dpy->FrameBufferSize = dpy->FixedInfo.smem_len;
+   dpy->FrameBuffer = (caddr_t) mmap(0, /* start */
+                                     dpy->FrameBufferSize, /* bytes */
+                                     PROT_READ | PROT_WRITE, /* prot */
+                                     MAP_SHARED, /* flags */
+                                     dpy->FrameBufferFD, /* fd */
+                                     0 /* offset */);
+   if (dpy->FrameBuffer == (caddr_t) - 1) {
+      fprintf(stderr, "error: unable to mmap framebuffer: %s\n",
+              strerror(errno));
+      return GL_FALSE;
+   }
+	    
+   /* mmap the MMIO region into our address space */
+   dpy->MMIOSize = dpy->FixedInfo.mmio_len;
+   dpy->MMIOAddress = (caddr_t) mmap(0, /* start */
+                                     dpy->MMIOSize, /* bytes */
+                                     PROT_READ | PROT_WRITE, /* prot */
+                                     MAP_SHARED, /* flags */
+                                     dpy->FrameBufferFD, /* fd */
+                                     dpy->FixedInfo.smem_len /* offset */);
+   if (dpy->MMIOAddress == (caddr_t) - 1) {
+      fprintf(stderr, "error: unable to mmap mmio region: %s\n",
+              strerror(errno));
+      return GL_FALSE;
+   }
+
    return GL_TRUE;
 }
 
@@ -271,21 +308,30 @@ SetupFBDev( Display *dpy, Window win )
    /* Bump size up to next supported mode.
     */
    if (width <= 800 && height <= 600) {
-      width = 800; height = 600;
+      width = 800; height = 600; 
+   }  
+   else if (width <= 1024 && height <= 768) { 
+      width = 1024; height = 768; 
    } 
-   else if (width <= 1024 && height <= 768) {
-      width = 1024; height = 768;
-   }
-   else if (width <= 1280 && height <= 1024) {
-      width = 1280; height = 1024;
-   }
+   else if (width <= 1280 && height <= 1024) { 
+      width = 1280; height = 1024; 
+   } 
 
-
+   if (width > dpy->virtualWidth ||
+       height > dpy->virtualHeight ||
+       win->visual->visInfo->bits_per_rgb != dpy->bpp) {
+      fprintf(stderr, 
+	      "width/height/bpp (%d/%d/%d) exceed display limits (%d/%d/%d)\n",
+	      width, height, win->visual->visInfo->bits_per_rgb,
+	      dpy->virtualWidth, dpy->virtualHeight, dpy->bpp);
+      return GL_FALSE;
+   }
+   
    /* set the depth, resolution, etc */
    dpy->VarInfo = dpy->OrigVarInfo;
-   dpy->VarInfo.bits_per_pixel = win->visual->visInfo->bits_per_rgb;
-   dpy->VarInfo.xres_virtual = width;
-   dpy->VarInfo.yres_virtual = height;
+   dpy->VarInfo.bits_per_pixel = dpy->bpp;
+   dpy->VarInfo.xres_virtual = dpy->virtualWidth;
+   dpy->VarInfo.yres_virtual = dpy->virtualHeight;
    dpy->VarInfo.xres = width;
    dpy->VarInfo.yres = height;
    dpy->VarInfo.xoffset = 0;
@@ -327,7 +373,8 @@ SetupFBDev( Display *dpy, Window win )
       return 0;
    }
 
-   if (width == 1280 && height == 1024) {
+   if (dpy->VarInfo.xres == 1280 && 
+       dpy->VarInfo.yres == 1024) {
       /* timing values taken from /etc/fb.modes (1280x1024 @ 75Hz) */
       dpy->VarInfo.pixclock = 7408;
       dpy->VarInfo.left_margin = 248;
@@ -337,7 +384,8 @@ SetupFBDev( Display *dpy, Window win )
       dpy->VarInfo.hsync_len = 144;
       dpy->VarInfo.vsync_len = 3;
    }
-   else if (width == 1024 && height == 768) {
+   else if (dpy->VarInfo.xres == 1024 && 
+	    dpy->VarInfo.yres == 768) {
       /* timing values taken from /etc/fb.modes (1024x768 @ 75Hz) */
       dpy->VarInfo.pixclock = 12699;
       dpy->VarInfo.left_margin = 176;
@@ -347,7 +395,8 @@ SetupFBDev( Display *dpy, Window win )
       dpy->VarInfo.hsync_len = 96;
       dpy->VarInfo.vsync_len = 3;
    }
-   else if (width == 800 && height == 600) {
+   else if (dpy->VarInfo.xres == 800 &&
+	    dpy->VarInfo.yres == 600) {
       /* timing values taken from /etc/fb.modes (800x600 @ 75Hz) */
       dpy->VarInfo.pixclock = 20203;
       dpy->VarInfo.left_margin = 160;
@@ -360,13 +409,14 @@ SetupFBDev( Display *dpy, Window win )
    else {
       /* XXX need timings for other screen sizes */
       fprintf(stderr, "XXXX screen size %d x %d not supported at this time!\n",
-             width, height);
+	      dpy->VarInfo.xres, dpy->VarInfo.yres);
       return GL_FALSE;
    }
 
    /* set variable screen info */
    if (ioctl(dpy->FrameBufferFD, FBIOPUT_VSCREENINFO, &dpy->VarInfo)) {
-      fprintf(stderr, "Unable to set screen to depth %d\n", dpy->DesiredDepth);
+      fprintf(stderr, "error: ioctl(FBIOPUT_VSCREENINFO) failed: %s\n",
+	      strerror(errno));
       return GL_FALSE;
    }
 
@@ -403,38 +453,6 @@ SetupFBDev( Display *dpy, Window win )
       }
    }
 
-   /* mmap the framebuffer into our address space */
-   dpy->FrameBufferSize = dpy->FixedInfo.smem_len;
-   dpy->FrameBuffer = (caddr_t) mmap(0, /* start */
-                                     dpy->FrameBufferSize, /* bytes */
-                                     PROT_READ | PROT_WRITE, /* prot */
-                                     MAP_SHARED, /* flags */
-                                     dpy->FrameBufferFD, /* fd */
-                                     0 /* offset */);
-   if (dpy->FrameBuffer == (caddr_t) - 1) {
-      fprintf(stderr, "error: unable to mmap framebuffer: %s\n",
-              strerror(errno));
-      return GL_FALSE;
-   }
-
-   dpy->cpp = dpy->VarInfo.bits_per_pixel / 8;
-	    
-   /* mmap the MMIO region into our address space */
-   dpy->MMIOSize = dpy->FixedInfo.mmio_len;
-   dpy->MMIOAddress = (caddr_t) mmap(0, /* start */
-                                     dpy->MMIOSize, /* bytes */
-                                     PROT_READ | PROT_WRITE, /* prot */
-                                     MAP_SHARED, /* flags */
-                                     dpy->FrameBufferFD, /* fd */
-                                     dpy->FixedInfo.smem_len /* offset */);
-   if (dpy->MMIOAddress == (caddr_t) - 1) {
-      fprintf(stderr, "error: unable to mmap mmio region: %s\n",
-              strerror(errno));
-      return GL_FALSE;
-   }
-
-   /* TODO:  Tell kernel not to use accelerated functions -- see fbdevhw.c */
-
    return GL_TRUE;
 }
 
@@ -456,9 +474,6 @@ RestoreFBDev( Display *dpy )
    }
    dpy->VarInfo = dpy->OrigVarInfo;
 
-   munmap(dpy->FrameBuffer, dpy->FrameBufferSize);
-   munmap(dpy->MMIOAddress, dpy->MMIOSize);
-
    return GL_TRUE;
 }
 
@@ -472,6 +487,9 @@ static void
 CloseFBDev( Display *dpy )
 {
    struct vt_mode VT;
+
+   munmap(dpy->FrameBuffer, dpy->FrameBufferSize);
+   munmap(dpy->MMIOAddress, dpy->MMIOSize);
 
    /* restore text mode */
    ioctl(dpy->ConsoleFD, KDSETMODE, KD_TEXT);
@@ -531,8 +549,6 @@ _glthread_GetID(void)
  * \return non-zeros on success, zero otherwise.
  * 
  * \internal 
- * 
- * \todo Replace with a config file read at runtime, eventually...
  */
 int __read_config_file( Display *dpy )
 {
@@ -549,6 +565,10 @@ int __read_config_file( Display *dpy )
    dpy->pciFunc = 0;
    dpy->chipset = 0;   
    dpy->pciBusID = 0;
+   dpy->virtualWidth = 1280;
+   dpy->virtualHeight = 1024;
+   dpy->bpp = 32;
+   dpy->cpp = 4;
 
    fname = getenv("MINIGLX_CONF");
    if (!fname) fname = "/etc/miniglx.conf";
@@ -596,7 +616,24 @@ int __read_config_file( Display *dpy )
       }
       else if (strcmp(opt, "chipset") == 0) {
 	 if (sscanf(val, "0x%x", &dpy->chipset) != 1)
-	    fprintf(stderr, "malformed chipset: %x\n", dpy->chipset);
+	    fprintf(stderr, "malformed chipset: %s\n", opt);
+      }
+      else if (strcmp(opt, "virtualWidth") == 0) {
+	 if (sscanf(val, "%d", &dpy->virtualWidth) != 1)
+	    fprintf(stderr, "malformed virtualWidth: %s\n", opt);
+      }
+      else if (strcmp(opt, "virtualHeight") == 0) {
+	 if (sscanf(val, "%d", &dpy->virtualHeight) != 1)
+	    fprintf(stderr, "malformed virutalHeight: %s\n", opt);
+      }
+      else if (strcmp(opt, "bpp") == 0) {
+	 if (sscanf(val, "%d", &dpy->bpp) != 1)
+	    fprintf(stderr, "malformed bpp: %s\n", opt);
+	 if (dpy->bpp != 32) {
+	    fprintf(stderr, "Only 32bpp modes currently supported\n");
+	    dpy->bpp = 32;
+	 }
+	 dpy->cpp = dpy->bpp / 8;
       }
    }
 
@@ -689,6 +726,36 @@ XOpenDisplay( const char *display_name )
    dpy->driver->initScreenConfigs( &dpy->numConfigs, &dpy->configs );
 
 
+   /* Perform the initialization normally done in the X server */
+   if (!dpy->driver->initFBDev( dpy )) {
+      fprintf(stderr, "%s: __driInitFBDev failed\n", __FUNCTION__);
+      dlclose(dpy->dlHandle);
+      FREE(dpy);
+      return NULL;
+   }
+
+   /* Perform the client-side initialization.  Have to do this here as
+    * it depends on the display resolution chosen, which in this
+    * window system depends on the size of the "window" created.
+    *
+    * Clearly there is a limit of one on the number of windows in
+    * existence at any time.
+    *
+    * Need to shut down drm and free dri data in XDestroyWindow, too.
+    */
+   dpy->driScreen.private = (*dpy->createScreen)(dpy, 0, 
+						 &(dpy->driScreen),
+						 dpy->numConfigs,
+						 dpy->configs);
+   if (!dpy->driScreen.private) {
+      fprintf(stderr, "%s: __driCreateScreen failed\n", __FUNCTION__);
+      dlclose(dpy->dlHandle);
+      FREE(dpy);
+      return NULL;
+   }
+
+
+
    /* Setup some callbacks in the screen private.
     */
    __driUtilInitScreen( dpy, 0, &(dpy->driScreen) );
@@ -720,6 +787,17 @@ XCloseDisplay( Display *display )
 
    if (display->NumWindows) 
       XDestroyWindow( display, display->TheWindow );
+
+   /* As this is done in CreateWindow, need to undo it here:
+    */
+   if (display->driScreen.private) 
+      (*display->driScreen.destroyScreen)(display, 0, 
+					  display->driScreen.private);
+
+   /* As this is done in CreateWindow, need to undo it here:
+    */
+   (*display->driver->haltFBDev)( display );
+
 
    dlclose(display->dlHandle);
    CloseFBDev(display);
@@ -812,7 +890,7 @@ XCreateWindow( Display *display, Window parent, int x, int y,
    }
 
 
-   win->bytesPerPixel = display->VarInfo.bits_per_pixel / 8;
+   win->bytesPerPixel = display->bpp / 8;
    win->rowStride = width * win->bytesPerPixel;
    win->size = win->rowStride * height * win->bytesPerPixel; /* XXX stride? */
    win->frontStart = display->FrameBuffer;
@@ -830,35 +908,6 @@ XCreateWindow( Display *display, Window parent, int x, int y,
       win->backStart = NULL;
       win->backBottom = NULL;
       win->curBottom = win->frontBottom;
-   }
-
-
-   /* Perform the initialization normally done in the X server */
-   if (!display->driver->initFBDev( display )) {
-      fprintf(stderr, "%s: __driInitFBDev failed\n", __FUNCTION__);
-      RestoreFBDev(display);
-      FREE(win);
-      return NULL;
-   }
-
-   /* Perform the client-side initialization.  Have to do this here as
-    * it depends on the display resolution chosen, which in this
-    * window system depends on the size of the "window" created.
-    *
-    * Clearly there is a limit of one on the number of windows in
-    * existence at any time.
-    *
-    * Need to shut down drm and free dri data in XDestroyWindow, too.
-    */
-   display->driScreen.private = (*display->createScreen)(display, 0, 
-                                                         &(display->driScreen),
-                                                         display->numConfigs,
-                                                         display->configs);
-   if (!display->driScreen.private) {
-      fprintf(stderr, "%s: __driCreateScreen failed\n", __FUNCTION__);
-      RestoreFBDev(display);
-      FREE(win);
-      return NULL;
    }
 
 
@@ -909,16 +958,6 @@ XDestroyWindow( Display *display, Window w )
        */
       if (w->driDrawable.private)
 	 (*w->driDrawable.destroyDrawable)(display, w->driDrawable.private);
-
-      /* As this is done in CreateWindow, need to undo it here:
-       */
-      if (display->driScreen.private) 
-	 (*display->driScreen.destroyScreen)(display, 0, 
-					     display->driScreen.private);
-
-      /* As this is done in CreateWindow, need to undo it here:
-       */
-      (*display->driver->haltFBDev)( display );
 
       /* put framebuffer back to initial state */
       RestoreFBDev(display);

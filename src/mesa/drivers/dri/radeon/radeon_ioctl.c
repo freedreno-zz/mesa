@@ -427,6 +427,15 @@ static int radeonFlushCmdBufLocked( radeonContextPtr rmesa,
       cmd.boxes = (drmClipRect *)rmesa->pClipRects;
    }
 
+   if (0) {
+      int i;
+      for (i = 0 ; i < cmd.nbox ; i++) 
+	 fprintf(stderr, "Emit box %d/%d %d,%d %d,%d\n",
+		 i, cmd.nbox,
+		 cmd.boxes[i].x1, cmd.boxes[i].y1, 
+		 cmd.boxes[i].x2, cmd.boxes[i].y2);
+   }
+
    ret = drmCommandWrite( rmesa->dri.fd,
 			  DRM_RADEON_CMDBUF,
 			  &cmd, sizeof(cmd) );

@@ -140,7 +140,7 @@ static int RADEONEngineRestore( struct MiniGLXDisplayRec *dpy,
    OUTREG(RADEON_RB3D_CNTL, 0);
    RADEONEngineReset( dpy );
 
-   switch (dpy->VarInfo.bits_per_pixel) {
+   switch (dpy->bpp) {
    case 16: datatype = 4; break;
    case 32: datatype = 6; break;
    default: return 0;
@@ -150,14 +150,14 @@ static int RADEONEngineRestore( struct MiniGLXDisplayRec *dpy,
       ((datatype << RADEON_GMC_DST_DATATYPE_SHIFT)
        | RADEON_GMC_CLR_CMP_CNTL_DIS);
 
-   pitch64 = ((dpy->VarInfo.xres_virtual * (dpy->VarInfo.bits_per_pixel / 8) + 0x3f)) >> 6;
+   pitch64 = ((dpy->virtualWidth * (dpy->bpp / 8) + 0x3f)) >> 6;
 
    RADEONWaitForFifo(dpy, 1);
    OUTREG(RADEON_DEFAULT_OFFSET, ((INREG(RADEON_DEFAULT_OFFSET) & 0xC0000000)
 				  | (pitch64 << 22)));
 
-/*    RADEONWaitForFifo(dpy, 1); */
-/*    OUTREG(RADEON_SURFACE_CNTL, info->ModeReg.surface_cntl); */
+   RADEONWaitForFifo(dpy, 1);
+   OUTREG(RADEON_SURFACE_CNTL, RADEON_SURF_TRANSLATION_DIS); 
 
    RADEONWaitForFifo(dpy, 1);
    OUTREG(RADEON_DEFAULT_SC_BOTTOM_RIGHT, (RADEON_DEFAULT_SC_RIGHT_MAX
@@ -179,7 +179,7 @@ static int RADEONEngineRestore( struct MiniGLXDisplayRec *dpy,
    OUTREG(RADEON_AUX_SC_CNTL,       0);
 
 /*    RADEONWaitForIdleMMIO(dpy); */
-/*    sleep(2); */
+   usleep(100); 
 }
 
 /* Compute log base 2 of val */
@@ -323,7 +323,7 @@ static int RADEONDRIAgpInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info)
 static int RADEONDRIKernelInit(struct MiniGLXDisplayRec *dpy,
 			       RADEONInfoPtr info)
 {
-   int cpp = dpy->VarInfo.bits_per_pixel / 8;
+   int cpp = dpy->bpp / 8;
    drmRadeonInit  drmInfo;
    int ret;
 
@@ -343,8 +343,8 @@ static int RADEONDRIKernelInit(struct MiniGLXDisplayRec *dpy,
    drmInfo.agp_size            = info->agpSize*1024*1024;
    drmInfo.ring_size           = info->ringSize*1024*1024;
    drmInfo.usec_timeout        = 1000;
-   drmInfo.fb_bpp              = dpy->VarInfo.bits_per_pixel;
-   drmInfo.depth_bpp           = dpy->VarInfo.bits_per_pixel;
+   drmInfo.fb_bpp              = dpy->bpp;
+   drmInfo.depth_bpp           = dpy->bpp;
    drmInfo.front_offset        = info->frontOffset;
    drmInfo.front_pitch         = info->frontPitch * cpp;
    drmInfo.back_offset         = info->backOffset;
@@ -443,16 +443,18 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
    drmVersionPtr  version;
    int err;
 
+   usleep(100);
+
    {
-      int  width_bytes = (dpy->VarInfo.xres_virtual * dpy->cpp);
+      int  width_bytes = (dpy->virtualWidth * dpy->cpp);
       int  maxy        = dpy->FrameBufferSize / width_bytes;
 
 
-      if (maxy <= dpy->VarInfo.yres_virtual * 3) {
+      if (maxy <= dpy->virtualHeight * 3) {
 	 fprintf(stderr, 
 		 "Static buffer allocation failed -- "
 		 "need at least %d kB video memory (have %d kB)\n",
-		 (dpy->VarInfo.xres_virtual * dpy->VarInfo.yres_virtual *
+		 (dpy->virtualWidth * dpy->virtualHeight *
 		  dpy->cpp * 3 + 1023) / 1024,
 		 dpy->FrameBufferSize / 1024);
 	 return 0;
@@ -582,19 +584,19 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
 
    /* Memory manager setup */
    {
-      int        width_bytes = dpy->VarInfo.xres_virtual * dpy->cpp;
+      int        width_bytes = dpy->virtualWidth * dpy->cpp;
       int        cpp         = dpy->cpp;
-      int        bufferSize  = ((dpy->VarInfo.yres_virtual * width_bytes
+      int        bufferSize  = ((dpy->virtualHeight * width_bytes
 				 + RADEON_BUFFER_ALIGN)
 				& ~RADEON_BUFFER_ALIGN);
-      int        depthSize   = ((((dpy->VarInfo.yres_virtual+15) & ~15) * width_bytes
+      int        depthSize   = ((((dpy->virtualHeight+15) & ~15) * width_bytes
 				 + RADEON_BUFFER_ALIGN)
 				& ~RADEON_BUFFER_ALIGN);
       int        l;
       int        scanlines;
 
       info->frontOffset = 0;
-      info->frontPitch = dpy->VarInfo.xres_virtual;
+      info->frontPitch = dpy->virtualWidth;
 
       fprintf(stderr, 
 	      "Using %d MB AGP aperture\n", info->agpSize);
@@ -641,12 +643,12 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
       info->depthOffset = ((info->textureOffset - depthSize +
 			    RADEON_BUFFER_ALIGN) &
 			   ~RADEON_BUFFER_ALIGN);
-      info->depthPitch = dpy->VarInfo.xres_virtual;
+      info->depthPitch = dpy->virtualWidth;
 
       info->backOffset = ((info->depthOffset - bufferSize +
 			   RADEON_BUFFER_ALIGN) &
 			  ~RADEON_BUFFER_ALIGN);
-      info->backPitch = dpy->VarInfo.xres_virtual;
+      info->backPitch = dpy->virtualWidth;
 
 
       fprintf(stderr, 
@@ -725,10 +727,10 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
    dpy->driverClientMsgSize = sizeof(RADEONDRIRec);
    pRADEONDRI                    = (RADEONDRIPtr)dpy->driverClientMsg;
    pRADEONDRI->deviceID          = info->Chipset;
-   pRADEONDRI->width             = dpy->VarInfo.xres_virtual;
-   pRADEONDRI->height            = dpy->VarInfo.yres_virtual;
-   pRADEONDRI->depth             = dpy->VarInfo.bits_per_pixel; /* XXX: depth */
-   pRADEONDRI->bpp               = dpy->VarInfo.bits_per_pixel;
+   pRADEONDRI->width             = dpy->virtualWidth;
+   pRADEONDRI->height            = dpy->virtualHeight;
+   pRADEONDRI->depth             = dpy->bpp; /* XXX: depth */
+   pRADEONDRI->bpp               = dpy->bpp;
    pRADEONDRI->IsPCI             = 0;
    pRADEONDRI->AGPMode           = info->agpMode;
    pRADEONDRI->frontOffset       = info->frontOffset;
@@ -851,21 +853,14 @@ static int __driInitScreenConfigs(int *numConfigs, __GLXvisualConfig **configs)
    return 1;
 }
 
-/* Will fbdev set a pitch appropriate for 3d?
- */
 static int __driValidateMode( struct MiniGLXDisplayRec *dpy )
 {
-    int  dummy = dpy->VarInfo.xres_virtual;
-
-    switch (dpy->VarInfo.bits_per_pixel / 8) {
-    case 1: dummy = (dpy->VarInfo.xres_virtual + 127) & ~127; break;
-    case 2: dummy = (dpy->VarInfo.xres_virtual +  31) &  ~31; break;
-    case 3:
-    case 4: dummy = (dpy->VarInfo.xres_virtual +  15) &  ~15; break;
-    }
-
-    dpy->VarInfo.xres_virtual = dummy;
-    return 1;
+   /* Work around radeonfb.o bug: virtual resolution must equal real
+    * resolution.
+    */
+   dpy->VarInfo.xres = dpy->VarInfo.xres_virtual;
+   dpy->VarInfo.yres = dpy->VarInfo.yres_virtual;
+   return 1;
 }
 
 /*
@@ -873,6 +868,19 @@ static int __driValidateMode( struct MiniGLXDisplayRec *dpy )
 static int __driInitFBDev( struct MiniGLXDisplayRec *dpy )
 {
    RADEONInfoPtr info = calloc(1, sizeof(*info));
+
+   {
+      int  dummy = dpy->virtualWidth;
+
+      switch (dpy->bpp / 8) {
+      case 1: dummy = (dpy->virtualWidth + 127) & ~127; break;
+      case 2: dummy = (dpy->virtualWidth +  31) &  ~31; break;
+      case 3:
+      case 4: dummy = (dpy->virtualWidth +  15) &  ~15; break;
+      }
+
+      dpy->virtualWidth = dummy;
+   }
 
    dpy->driverInfo = (void *)info;
    
@@ -886,7 +894,7 @@ static int __driInitFBDev( struct MiniGLXDisplayRec *dpy )
    info->Chipset = dpy->chipset;
    get_chipfamily_from_chipset( info );
 
-   info->frontPitch = dpy->VarInfo.xres_virtual;
+   info->frontPitch = dpy->virtualWidth;
    info->LinearAddr = dpy->FixedInfo.smem_start & 0xfc000000;
     
 
@@ -898,14 +906,16 @@ static int __driInitFBDev( struct MiniGLXDisplayRec *dpy )
     * the clear ioctl to do this, but would need to setup hw state
     * first.
     */
+   if (0) {
    memset(dpy->FrameBuffer + info->frontOffset,
 	  0,
-	  info->frontPitch * dpy->cpp * dpy->VarInfo.yres_virtual );
+	  info->frontPitch * dpy->cpp * dpy->virtualHeight );
 
    memset(dpy->FrameBuffer + info->backOffset,
 	  0,
-	  info->backPitch * dpy->cpp * dpy->VarInfo.yres_virtual );
-   
+	  info->backPitch * dpy->cpp * dpy->virtualHeight );
+   }
+
    return 1;
 }
 

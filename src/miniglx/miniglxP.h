@@ -264,7 +264,6 @@ struct MiniGLXDisplayRec {
    struct fb_fix_screeninfo FixedInfo;
    struct fb_var_screeninfo OrigVarInfo, VarInfo;
    struct sigaction OrigSigUsr1;
-   int DesiredDepth;
    int OriginalVT;
    int ConsoleFD;
    int FrameBufferFD;
@@ -274,8 +273,6 @@ struct MiniGLXDisplayRec {
    int MMIOSize;         /**< in bytes */
    int NumWindows;
    Window TheWindow;     /**< only allow one window for now */
-
-   int cpp; 
 
    /**
     * \name Visual configurations
@@ -319,6 +316,10 @@ struct MiniGLXDisplayRec {
    int pciDevice;
    int pciFunc;
    int chipset;
+   int virtualWidth;
+   int virtualHeight;
+   int bpp;
+   int cpp; 
    /*@}*/
 
    /**

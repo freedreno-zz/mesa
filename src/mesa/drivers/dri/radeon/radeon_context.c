@@ -289,7 +289,8 @@ radeonCreateContext( const __GLcontextModes *glVisual,
       shareCtx = ((radeonContextPtr) sharedContextPrivate)->glCtx;
    else
       shareCtx = NULL;
-   rmesa->glCtx = _mesa_create_context(glVisual, shareCtx, (void *) rmesa, GL_TRUE);
+   rmesa->glCtx = _mesa_create_context(glVisual, shareCtx, (void *) rmesa,
+				       GL_TRUE);
    if (!rmesa->glCtx) {
       FREE(rmesa);
       return GL_FALSE;
@@ -435,42 +436,6 @@ radeonCreateContext( const __GLcontextModes *glVisual,
    rmesa->do_usleeps = !getenv("RADEON_NO_USLEEPS");
    
 #if DO_DEBUG
-   if (getenv("RADEON_DEBUG_FALLBACKS"))
-      RADEON_DEBUG |= DEBUG_FALLBACKS;
-
-   if (getenv("RADEON_DEBUG_TEXTURE"))
-      RADEON_DEBUG |= DEBUG_TEXTURE;
-
-   if (getenv("RADEON_DEBUG_IOCTL"))
-      RADEON_DEBUG |= DEBUG_IOCTL;
-
-   if (getenv("RADEON_DEBUG_PRIMS"))
-      RADEON_DEBUG |= DEBUG_PRIMS;
-
-   if (getenv("RADEON_DEBUG_VERTS"))
-      RADEON_DEBUG |= DEBUG_VERTS;
-
-   if (getenv("RADEON_DEBUG_STATE"))
-      RADEON_DEBUG |= DEBUG_STATE;
-
-   if (getenv("RADEON_DEBUG_CODEGEN"))
-      RADEON_DEBUG |= DEBUG_CODEGEN;
-
-   if (getenv("RADEON_DEBUG_VTXFMT"))
-      RADEON_DEBUG |= DEBUG_VFMT;
-
-   if (getenv("RADEON_DEBUG_VERBOSE"))
-      RADEON_DEBUG |= DEBUG_VERBOSE;
-
-   if (getenv("RADEON_DEBUG_DRI"))
-      RADEON_DEBUG |= DEBUG_DRI;
-
-   if (getenv("RADEON_DEBUG_DMA"))
-      RADEON_DEBUG |= DEBUG_DMA;
-
-   if (getenv("RADEON_DEBUG_SANITY"))
-      RADEON_DEBUG |= DEBUG_SANITY;
-
    if (getenv("RADEON_DEBUG"))
    {
       const char *debug = getenv("RADEON_DEBUG");
@@ -510,8 +475,6 @@ radeonCreateContext( const __GLcontextModes *glVisual,
       if (strstr(debug, "san")) 
          RADEON_DEBUG |= DEBUG_SANITY;
    }
-
-
 #endif
 
    if (getenv("RADEON_NO_RAST")) {

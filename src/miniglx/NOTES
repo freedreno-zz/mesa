@@ -88,10 +88,27 @@ It may be necessary to link directly against the minGLX libGL.so.
 
 5) Reduced number of Xlib and GLX entrypoints.
 
-Many, many Xlib and GLX entrypoints, structures and macros are not
-present in MiniGLX.  It will be necessary to find and eliminate all
-references to non-supported entrypoints.  
+By definition (MiniGLX is a subset of GLX), many Xlib and GLX
+entrypoints, structures and macros are not present in MiniGLX.  It
+will be necessary to find and eliminate all references to
+non-supported entrypoints.
 
-6) Must create context *after* window.
 
-This is odd, and should probably be regarded as a bug in miniglx.
+---------------------------------------------------------------
+
+Bugs in radeonfb.o -- the radeon framebuffer driver.
+----------------------------------------------------
+
+Several bugs have been found in the radeonfb.o framebuffer driver.  
+
+1) Occasionally, after entering graphics mode, colors appear 'shifted'
+or 'translated', particularly in higher resolution modes.  This is
+definitely a bug in radeonfb.o as this can be provoked even when using
+the software dri driver (fb_dri.so).  Importance: High.  Workaround:
+None, except restarting the application.
+
+2) Modes with virtual resolutions different to displayed resolutions
+do not work.  Importance: medium.  Workaround: Avoid these situations
+by always setting the visible resolution to the virtual resolution
+specified in the configuration file.
+
