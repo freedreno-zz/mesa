@@ -1,4 +1,4 @@
-$Id: VERSIONS,v 1.13.2.10 2000/01/17 18:17:41 brianp Exp $
+$Id: VERSIONS,v 1.13.2.11 2000/01/22 19:48:23 brianp Exp $
 
 
 Mesa Version History
@@ -686,3 +686,4 @@ Mesa Version History
 		GL_SMOOTH_LINE_WIDTH_GRANULARITY
 		GL_ALIASED_POINT_SIZE_RANGE
 		GL_ALIASED_LINE_WIDTH_RANGE
+	- fixed glCopyPixels when copying from back to front buffer
