@@ -1,4 +1,4 @@
-/* $Id: mtypes.h,v 1.51.2.1 2001/11/06 15:51:07 brianp Exp $ */
+/* $Id: mtypes.h,v 1.51.2.2 2002/02/12 17:37:26 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -1389,6 +1389,7 @@ struct gl_extensions {
 #define NEED_EYE_LIGHT           0x2
 #define NEED_EYE_LIGHT_MODELVIEW 0x4
 #define NEED_EYE_POINT_ATTEN     0x8
+#define NEED_EYE_DRIVER          0x10
 
 
 /*

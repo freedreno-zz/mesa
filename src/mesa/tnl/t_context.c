@@ -1,4 +1,4 @@
-/* $Id: t_context.c,v 1.22 2001/07/19 15:54:35 brianp Exp $ */
+/* $Id: t_context.c,v 1.22.2.1 2002/02/12 17:37:26 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -33,6 +33,7 @@
 #include "mtypes.h"
 #include "mem.h"
 #include "dlist.h"
+#include "light.h"
 #include "vtxfmt.h"
 
 #include "t_context.h"
@@ -125,6 +126,8 @@ _tnl_CreateContext( GLcontext *ctx )
 
    tnl->Driver.Render.PrimTabElts = _tnl_render_tab_elts;
    tnl->Driver.Render.PrimTabVerts = _tnl_render_tab_verts;
+   tnl->Driver.NotifyMaterialChange = _mesa_validate_all_lighting_tables;
+
 
    
    return GL_TRUE;
@@ -220,16 +223,19 @@ void
 _tnl_need_dlist_loopback( GLcontext *ctx, GLboolean mode )
 {
    TNLcontext *tnl = TNL_CONTEXT(ctx);
-   if (tnl->LoopbackDListCassettes != mode) {
-      tnl->LoopbackDListCassettes = mode;
-   }
+   tnl->LoopbackDListCassettes = mode;
 }
 
 void
 _tnl_need_dlist_norm_lengths( GLcontext *ctx, GLboolean mode )
 {
    TNLcontext *tnl = TNL_CONTEXT(ctx);
-   if (tnl->CalcDListNormalLengths != mode) {
-      tnl->CalcDListNormalLengths = mode;
-   }
+   tnl->CalcDListNormalLengths = mode;
+}
+
+void
+_tnl_isolate_materials( GLcontext *ctx, GLboolean mode )
+{
+   TNLcontext *tnl = TNL_CONTEXT(ctx);
+   tnl->IsolateMaterials = mode;
 }

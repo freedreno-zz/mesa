@@ -1,4 +1,4 @@
-/* $Id: enable.c,v 1.50 2001/06/26 01:32:48 brianp Exp $ */
+/* $Id: enable.c,v 1.50.2.1 2002/02/12 17:37:26 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -267,6 +267,11 @@ void _mesa_set_enable( GLcontext *ctx, GLenum cap, GLboolean state )
 	 return;
       FLUSH_VERTICES(ctx, _NEW_LIGHT);
       ctx->Light.Enabled = state;
+
+      if (ctx->Light.Enabled && ctx->Light.Model.TwoSide)
+	 ctx->_TriangleCaps |= DD_TRI_LIGHT_TWOSIDE;
+      else
+	 ctx->_TriangleCaps &= ~DD_TRI_LIGHT_TWOSIDE;
 
       if ((ctx->Light.Enabled &&
 	   ctx->Light.Model.ColorControl==GL_SEPARATE_SPECULAR_COLOR)

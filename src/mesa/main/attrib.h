@@ -1,4 +1,4 @@
-/* $Id: attrib.h,v 1.5 2001/03/12 00:48:37 gareth Exp $ */
+/* $Id: attrib.h,v 1.5.2.1 2002/02/12 17:37:26 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -30,7 +30,6 @@
 
 
 #include "mtypes.h"
-
 
 extern void
 _mesa_PushAttrib( GLbitfield mask );

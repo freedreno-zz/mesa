@@ -1,4 +1,4 @@
-/* $Id: t_imm_dlist.c,v 1.29.2.6 2002/01/15 20:18:00 brianp Exp $ */
+/* $Id: t_imm_dlist.c,v 1.29.2.7 2002/02/12 17:37:26 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -340,6 +340,7 @@ execute_compiled_cassette( GLcontext *ctx, void *data )
    }
 
    if (tnl->LoopbackDListCassettes) {
+/*        (tnl->IsolateMaterials && (IM->OrFlag & VERT_MATERIAL)) ) { */
       fixup_compiled_primitives( ctx, IM );
       loopback_compiled_cassette( ctx, IM );
       restore_compiled_primitives( ctx, IM );
@@ -570,7 +571,9 @@ static void loopback_compiled_cassette( GLcontext *ctx, struct immediate *IM )
    void (GLAPIENTRY *texcoordfv[MAX_TEXTURE_UNITS])( GLenum, const GLfloat * );
    GLuint maxtex = 0;
    GLuint p, length, prim = 0;
-   
+
+   _tnl_print_vert_flags(__FUNCTION__, orflag);
+
    if (orflag & VERT_OBJ_234)
       vertex = (void (GLAPIENTRY *)(const GLfloat *)) glVertex4fv;
    else

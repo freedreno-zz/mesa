@@ -1,4 +1,4 @@
-/* $Id: t_imm_fixup.c,v 1.26.2.2 2001/12/03 17:46:57 keithw Exp $ */
+/* $Id: t_imm_fixup.c,v 1.26.2.3 2002/02/12 17:37:26 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -368,6 +368,8 @@ static void copy_material( struct immediate *next,
 			   struct immediate *prev,
 			   GLuint dst, GLuint src )
 {
+   fprintf(stderr, "%s\n", __FUNCTION__);
+
    if (next->Material == 0) {
       next->Material = (GLmaterial (*)[2]) MALLOC( sizeof(GLmaterial) *
 						   IMM_SIZE * 2 );
@@ -430,6 +432,7 @@ void _tnl_copy_immediate_vertices( GLcontext *ctx, struct immediate *next )
 	 GLuint dst = next->CopyStart+i;
 	 next->Elt[dst] = prev->Elt[src];
 	 next->Flag[dst] = VERT_ELT;
+	 elts[i+offset] = dst;
       }
 /*        fprintf(stderr, "ADDING VERT_ELT!\n"); */
       next->CopyOrFlag |= VERT_ELT;
@@ -517,14 +520,14 @@ void _tnl_copy_immediate_vertices( GLcontext *ctx, struct immediate *next )
 	 next->CopyOrFlag |= prev->Flag[src] & (VERT_FIXUP|
 						VERT_MATERIAL|
 						VERT_OBJ);
+	 elts[i+offset] = dst;
       }
    }
 
-   if (--tnl->ExecCopySource->ref_count == 0)
+   if (--tnl->ExecCopySource->ref_count == 0) 
       _tnl_free_immediate( tnl->ExecCopySource );
 
-   tnl->ExecCopySource = 0;
-   tnl->ExecCopyCount = 0;
+   tnl->ExecCopySource = next; next->ref_count++;
 }
 
 
@@ -722,17 +725,19 @@ _tnl_get_exec_copy_verts( GLcontext *ctx, struct immediate *IM )
 /*     fprintf(stderr, "_tnl_get_exec_copy_verts %s\n",  */
 /*  	   _mesa_lookup_enum_by_nr(prim)); */
 
-   ASSERT(tnl->ExecCopySource == 0);
+   if (tnl->ExecCopySource)
+      if (--tnl->ExecCopySource->ref_count == 0) 
+	 _tnl_free_immediate( tnl->ExecCopySource );
 
    if (prim == GL_POLYGON+1) {
+      tnl->ExecCopySource = 0;
       tnl->ExecCopyCount = 0;
       tnl->ExecCopyTexSize = 0;
       tnl->ExecParity = 0;
    } else {
       /* Remember this immediate as the one to copy from.
        */
-      IM->ref_count++;
-      tnl->ExecCopySource = IM;
+      tnl->ExecCopySource = IM; IM->ref_count++;
       tnl->ExecCopyCount = 0;
       tnl->ExecCopyTexSize = IM->CopyTexSize;
 

@@ -1,4 +1,4 @@
-/* $Id: state.c,v 1.69 2001/09/18 23:06:14 kschultz Exp $ */
+/* $Id: state.c,v 1.69.2.1 2002/02/12 17:37:26 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -510,13 +510,11 @@ update_polygon( GLcontext *ctx )
 static void
 calculate_model_project_matrix( GLcontext *ctx )
 {
-   if (!ctx->_NeedEyeCoords) {
       _math_matrix_mul_matrix( &ctx->_ModelProjectMatrix,
 			       &ctx->ProjectionMatrix,
 			       &ctx->ModelView );
 
       _math_matrix_analyse( &ctx->_ModelProjectMatrix );
-   }
 }
 
 static void
@@ -550,7 +548,6 @@ update_tnl_spaces( GLcontext *ctx, GLuint oldneedeyecoords )
       /* Recalculate all state that depends on _NeedEyeCoords.
        */
       update_modelview_scale(ctx);
-      calculate_model_project_matrix(ctx);
       _mesa_compute_light_positions( ctx );
 
       if (ctx->Driver.LightingSpaceChange)
@@ -564,9 +561,6 @@ update_tnl_spaces( GLcontext *ctx, GLuint oldneedeyecoords )
        */
       if (new_state & _NEW_MODELVIEW)
 	 update_modelview_scale(ctx);
-
-      if (new_state & (_NEW_MODELVIEW|_NEW_PROJECTION))
-	 calculate_model_project_matrix(ctx);
 
       if (new_state & (_NEW_LIGHT|_NEW_MODELVIEW))
 	 _mesa_compute_light_positions( ctx );
@@ -712,12 +706,12 @@ update_texture_matrices( GLcontext *ctx )
       if (ctx->TextureMatrix[i].flags & MAT_DIRTY) {
 	 _math_matrix_analyse( &ctx->TextureMatrix[i] );
 
-	 if (ctx->Driver.TextureMatrix)
-	    ctx->Driver.TextureMatrix( ctx, i, &ctx->TextureMatrix[i] );
-
 	 if (ctx->Texture.Unit[i]._ReallyEnabled &&
 	     ctx->TextureMatrix[i].type != MATRIX_IDENTITY)
 	    ctx->Texture._TexMatEnabled |= ENABLE_TEXMAT(i);
+
+	 if (ctx->Driver.TextureMatrix)
+	    ctx->Driver.TextureMatrix( ctx, i, &ctx->TextureMatrix[i] );
       }
    }
 }
@@ -912,6 +906,12 @@ void _mesa_update_state( GLcontext *ctx )
 	    ctx->_NeedEyeCoords |= NEED_EYE_LIGHT_MODELVIEW;
    }
 
+   /* Keep ModelviewProject uptodate always to allow tnl
+    * implementations that go model->clip even when eye is required.
+    */
+   if (new_state & (_NEW_MODELVIEW|_NEW_PROJECTION))
+      calculate_model_project_matrix(ctx);
+
 
    /* ctx->_NeedEyeCoords is now uptodate.
     *
@@ -923,7 +923,6 @@ void _mesa_update_state( GLcontext *ctx )
     * light positions & normal transforms for other reasons.
     */
    if (new_state & (_NEW_MODELVIEW |
-		    _NEW_PROJECTION |
 		    _NEW_LIGHT |
 		    _MESA_NEW_NEED_EYE_COORDS))
       update_tnl_spaces( ctx, oldneedeyecoords );
@@ -981,4 +980,19 @@ void _mesa_update_state( GLcontext *ctx )
       ASSERT(ctx->Driver.CompressedTexSubImage3D);
 #endif
    }
+}
+
+/* Is this helpful?
+ */
+void
+_mesa_allow_light_in_model( GLcontext *ctx, GLboolean flag )
+{
+   if (flag) 
+      ctx->_NeedEyeCoords &= ~NEED_EYE_DRIVER;
+   else
+      ctx->_NeedEyeCoords |= NEED_EYE_DRIVER;
+
+   ctx->NewState |= _NEW_POINT;	/* one of the bits from
+				 * _MESA_NEW_NEED_EYE_COORDS.
+				 */
 }

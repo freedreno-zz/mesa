@@ -1,4 +1,4 @@
-/* $Id: t_vb_lighttmp.h,v 1.19.2.1 2001/12/03 17:40:43 keithw Exp $ */
+/* $Id: t_vb_lighttmp.h,v 1.19.2.2 2002/02/12 17:37:26 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -160,7 +160,7 @@ static void TAG(light_rgba_spec)( GLcontext *ctx,
 	 _mesa_update_material( ctx, new_material[j], new_material_mask[j] );
 
       if ( CHECK_VALIDATE(j) ) {
-	 _mesa_validate_all_lighting_tables( ctx );
+	 TNL_CONTEXT(ctx)->Driver.NotifyMaterialChange( ctx );
 	 UNCLAMPED_FLOAT_TO_CHAN(sumA[0], ctx->Light.Material[0].Diffuse[3]);
 	 if (IDX & LIGHT_TWOSIDE) 
 	    UNCLAMPED_FLOAT_TO_CHAN(sumA[1], ctx->Light.Material[1].Diffuse[3]);
@@ -369,7 +369,7 @@ static void TAG(light_rgba)( GLcontext *ctx,
 	 _mesa_update_material( ctx, new_material[j], new_material_mask[j] );
 
       if ( CHECK_VALIDATE(j) ) {
-	 _mesa_validate_all_lighting_tables( ctx );
+	 TNL_CONTEXT(ctx)->Driver.NotifyMaterialChange( ctx );
 	 UNCLAMPED_FLOAT_TO_CHAN(sumA[0], ctx->Light.Material[0].Diffuse[3]);
 	 if (IDX & LIGHT_TWOSIDE)
 	    UNCLAMPED_FLOAT_TO_CHAN(sumA[1], ctx->Light.Material[1].Diffuse[3]);
@@ -567,7 +567,7 @@ static void TAG(light_fast_rgba_single)( GLcontext *ctx,
 	 _mesa_update_material( ctx, new_material[j], new_material_mask[j] );
 
       if ( CHECK_VALIDATE(j) )
-	 _mesa_validate_all_lighting_tables( ctx );
+	 TNL_CONTEXT(ctx)->Driver.NotifyMaterialChange( ctx );
 
 
       /* No attenuation, so incoporate _MatAmbient into base color.
@@ -695,7 +695,7 @@ static void TAG(light_fast_rgba)( GLcontext *ctx,
 	    _mesa_update_material( ctx, new_material[j], new_material_mask[j] );
 
 	 if ( CHECK_VALIDATE(j) ) {
-	    _mesa_validate_all_lighting_tables( ctx );
+	    TNL_CONTEXT(ctx)->Driver.NotifyMaterialChange( ctx );
 	    UNCLAMPED_FLOAT_TO_CHAN(sumA[0], ctx->Light.Material[0].Diffuse[3]);
 	    if (IDX & LIGHT_TWOSIDE)
 	       UNCLAMPED_FLOAT_TO_CHAN(sumA[1], 
@@ -837,7 +837,7 @@ static void TAG(light_ci)( GLcontext *ctx,
 	 _mesa_update_material( ctx, new_material[j], new_material_mask[j] );
 
       if ( CHECK_VALIDATE(j) )
-	 _mesa_validate_all_lighting_tables( ctx );
+	 TNL_CONTEXT(ctx)->Driver.NotifyMaterialChange( ctx );
 
       diffuse[0] = specular[0] = 0.0F;
 
