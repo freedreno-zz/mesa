@@ -1,4 +1,4 @@
-/* $Id: quadric.c,v 1.3 1999/11/11 09:55:39 joukj Exp $ */
+/* $Id: quadric.c,v 1.1.1.1.2.1 1999/12/15 12:59:29 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -23,26 +23,8 @@
 
 /*
  * $Log: quadric.c,v $
- * Revision 1.3  1999/11/11 09:55:39  joukj
- *
- *  tess_macro.h included
- *
- * Revision 1.2  1999/11/11 03:21:43  kendallb
- *
- *  . Updated GL/gl.h with GLCALLACKP and GLAPIENTRYP macros for compatibility
- *    with the IBM VisualAge C++ compiler. Eventually some more code will be
- *    needed in the headers to enable the reversal of (__stdcall*) to (*__stdcall)
- *    for the IBM compilers, however we currently build using our own header files
- *    that already handle this.
- *
- *  . Changed instances of (GLCALLBACK*) to GLCALLBACKP for compatibility
- *    with the IBM VisualAge C++ compiler in src-glu.
- *
- *  . Misc cleanups for warnings generated with Watcom C++ in src-glu. Compiles
- *    with 0 warnings now.
- *
- *  . tess_hash.c: line 244 - Why is this function stubbed out? I removed the
- *    code with a #if 0 to avoid a compiler warning, but it looks dangerous.
+ * Revision 1.1.1.1.2.1  1999/12/15 12:59:29  brianp
+ * replaced 0 with 0.0 in sin, cos calls
  *
  * Revision 1.1.1.1  1999/08/19 00:55:42  jtg
  * Imported sources
@@ -122,9 +104,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "gluP.h"
-#include "tess_macros.h"
 #endif
 
+
+
+#ifndef M_PI
+#  define M_PI (3.1415926)
+#endif
+
+
+/*
+ * Convert degrees to radians:
+ */
+#define DEG_TO_RAD(A)   ((A)*(M_PI/180.0))
 
 
 /*
@@ -146,7 +138,7 @@ struct GLUquadric {
 	GLenum Orientation;		/* GLU_INSIDE or GLU_OUTSIDE */
 	GLboolean TextureFlag;		/* Generate texture coords? */
 	GLenum Normals;		/* GLU_NONE, GLU_FLAT, or GLU_SMOOTH */
-	void (GLCALLBACKP ErrorFunc)(GLenum err);	/* Error handler callback function */
+	void (GLCALLBACK *ErrorFunc)(GLenum err);	/* Error handler callback function */
 };
 
 
@@ -232,7 +224,7 @@ void GLAPIENTRY gluQuadricOrientation( GLUquadricObj *quadObject,
  * Set the error handler callback function.
  */
 void GLAPIENTRY gluQuadricCallback( GLUquadricObj *qobj,
-								  GLenum which, void (GLCALLBACKP fn)() )
+                                  GLenum which, void (GLCALLBACK *fn)() )
 {
    /*
     * UGH, this is a mess!  I thought ANSI was a standard.
@@ -243,13 +235,13 @@ void GLAPIENTRY gluQuadricCallback( GLUquadricObj *qobj,
 #elif defined(OPENSTEP)
       qobj->ErrorFunc = (void(*)(GLenum))fn;
 #elif defined(_WIN32)
-	  qobj->ErrorFunc = (void(GLCALLBACKP)(int))fn;
+      qobj->ErrorFunc = (void(GLCALLBACK*)(int))fn;
 #elif defined(__STORM__)
-	  qobj->ErrorFunc = (void(GLCALLBACKP)(GLenum))fn;
+      qobj->ErrorFunc = (void(GLCALLBACK*)(GLenum))fn;
 #elif defined(__BEOS__)
       qobj->ErrorFunc = (void(*)(GLenum))fn;
 #else
-	  qobj->ErrorFunc = (void(GLCALLBACKP)())fn;
+      qobj->ErrorFunc = (void(GLCALLBACK*)())fn;
 #endif
    }
 }
@@ -392,8 +384,8 @@ void GLAPIENTRY gluCylinder( GLUquadricObj *qobj,
          for (i=0;i<=slices;i++) {
             GLfloat x, y;
             if (i == slices) {
-               x = sin(0);
-               y = cos(0);
+               x = sin(0.0);
+               y = cos(0.0);
             }
             else {
                x = sin(i * da);
