@@ -1,8 +1,8 @@
-/* $Id: image.c,v 1.35.4.1 2000/09/12 21:10:36 brianp Exp $ */
+/* $Id: image.c,v 1.35.4.2 2000/10/05 16:23:18 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.3
+ * Version:  3.4
  * 
  * Copyright (C) 1999-2000  Brian Paul   All Rights Reserved.
  * 
@@ -2353,7 +2353,7 @@ _mesa_unpack_ubyte_color_span( GLcontext *ctx,
                               unpacking);
 
          if (applyTransferOps) {
-            if (ctx->Pixel.MapColorFlag) {
+            if (dstFormat == GL_COLOR_INDEX && ctx->Pixel.MapColorFlag) {
                _mesa_map_ci(ctx, n, indexes);
             }
             if (ctx->Pixel.IndexShift || ctx->Pixel.IndexOffset) {
@@ -2622,7 +2622,7 @@ _mesa_unpack_float_color_span( GLcontext *ctx,
                               unpacking);
 
          if (applyTransferOps) {
-            if (ctx->Pixel.MapColorFlag) {
+            if (dstFormat == GL_COLOR_INDEX && ctx->Pixel.MapColorFlag) {
                _mesa_map_ci(ctx, n, indexes);
             }
             if (ctx->Pixel.IndexShift || ctx->Pixel.IndexOffset) {
