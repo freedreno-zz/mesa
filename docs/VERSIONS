@@ -1,4 +1,4 @@
-$Id: VERSIONS,v 1.13.2.11 2000/01/22 19:48:23 brianp Exp $
+$Id: VERSIONS,v 1.13.2.12 2000/01/22 20:10:57 brianp Exp $
 
 
 Mesa Version History
@@ -687,3 +687,5 @@ Mesa Version History
 		GL_ALIASED_POINT_SIZE_RANGE
 		GL_ALIASED_LINE_WIDTH_RANGE
 	- fixed glCopyPixels when copying from back to front buffer
+    New:
+	- updated SVGA Linux driver
