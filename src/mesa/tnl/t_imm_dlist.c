@@ -1,4 +1,4 @@
-/* $Id: t_imm_dlist.c,v 1.29.2.2 2001/12/03 17:59:36 keithw Exp $ */
+/* $Id: t_imm_dlist.c,v 1.29.2.3 2001/12/04 13:04:05 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -437,7 +437,7 @@ _tnl_EndCallList( GLcontext *ctx )
    if (ctx->Driver.CurrentExecPrimitive != PRIM_OUTSIDE_BEGIN_END)
       beginstate = VERT_BEGIN_0|VERT_BEGIN_1;
 
-   _tnl_reset_exec_input( ctx, IMM_MAX_COPIED_VERTS, beginstate, 0 );
+   _tnl_reset_exec_input( ctx, TNL_CURRENT_IM(ctx)->Start, beginstate, 0 );
 }
 
 
