@@ -1,10 +1,10 @@
-/* $Id: accum.c,v 1.10.2.3 2000/06/19 00:45:17 brianp Exp $ */
+/* $Id: accum.c,v 1.10.2.4 2000/07/18 03:50:16 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.1
+ * Version:  3.2.1
  * 
- * Copyright (C) 1999  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2000  Brian Paul   All Rights Reserved.
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -347,9 +347,8 @@ void gl_Accum( GLcontext *ctx, GLenum op, GLfloat value )
             static GLchan multTable[32768];
             static GLfloat prevMult = 0.0;
             GLuint j;
-            const GLint max = (GLint) (256 / mult);
+            const GLint max = MIN2((GLint) (256 / mult), 32767);
             if (mult != prevMult) {
-               assert(max <= 32768);
                for (j = 0; j < max; j++)
                   multTable[j] = (GLint) ((GLfloat) j * mult + 0.5F);
                prevMult = mult;
