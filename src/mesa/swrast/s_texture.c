@@ -1,4 +1,4 @@
-/* $Id: s_texture.c,v 1.41.2.8 2002/09/13 19:34:43 brianp Exp $ */
+/* $Id: s_texture.c,v 1.41.2.9 2002/09/23 16:39:45 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -883,7 +883,8 @@ sample_linear_2d( GLcontext *ctx, GLuint texUnit,
  * Optimized 2-D texture sampling:
  *    S and T wrap mode == GL_REPEAT
  *    GL_NEAREST min/mag filter
- *    No border
+ *    No border, 
+ *    RowStride == Width,
  *    Format = GL_RGB
  */
 static void
@@ -924,6 +925,7 @@ opt_sample_rgb_2d( GLcontext *ctx, GLuint texUnit,
  *    S and T wrap mode == GL_REPEAT
  *    GL_NEAREST min/mag filter
  *    No border
+ *    RowStride == Width,
  *    Format = GL_RGBA
  */
 static void
@@ -980,7 +982,7 @@ sample_lambda_2d( GLcontext *ctx, GLuint texUnit,
       switch (tObj->MagFilter) {
       case GL_NEAREST:
          if (tObj->WrapS == GL_REPEAT && tObj->WrapT == GL_REPEAT &&
-             img->Border == 0) {
+             img->Border == 0 && img->Width == img->RowStride) {
             switch (img->Format) {
             case GL_RGB:
                opt_sample_rgb_2d(ctx, texUnit, tObj, n, s, t, NULL,
@@ -2039,12 +2041,14 @@ _swrast_choose_texture_sample_func( GLcontext *ctx, GLuint texUnit,
                if (t->WrapS == GL_REPEAT &&
                    t->WrapT == GL_REPEAT &&
                    t->Image[baseLevel]->Border == 0 &&
+                   t->Image[baseLevel]->Width == t->Image[baseLevel]->RowStride &&
                    t->Image[baseLevel]->TexFormat->MesaFormat == MESA_FORMAT_RGB) {
                   swrast->TextureSample[texUnit] = opt_sample_rgb_2d;
                }
                else if (t->WrapS == GL_REPEAT &&
                         t->WrapT == GL_REPEAT &&
                         t->Image[baseLevel]->Border == 0 &&
+			t->Image[baseLevel]->Width == t->Image[baseLevel]->RowStride &&
                         t->Image[baseLevel]->TexFormat->MesaFormat == MESA_FORMAT_RGBA) {
                   swrast->TextureSample[texUnit] = opt_sample_rgba_2d;
                }

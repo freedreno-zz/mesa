@@ -1,4 +1,4 @@
-/* $Id: teximage.c,v 1.104.2.11 2002/09/20 19:40:54 brianp Exp $ */
+/* $Id: teximage.c,v 1.104.2.12 2002/09/23 16:39:44 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -102,6 +102,7 @@ static void PrintTexture(const struct gl_texture_image *img)
             printf("%02x%02x%02x%02x  ", data[0], data[1], data[2], data[3]);
          data += c;
       }
+      data += (img->RowStride - img->Width) * c;
       printf("\n");
    }
 #endif
@@ -612,6 +613,7 @@ clear_teximage_fields(struct gl_texture_image *img)
    img->Width = 0;
    img->Height = 0;
    img->Depth = 0;
+   img->RowStride = 0;
    img->Width2 = 0;
    img->Height2 = 0;
    img->Depth2 = 0;
@@ -643,6 +645,7 @@ _mesa_init_teximage_fields(GLcontext *ctx, GLenum target,
    img->Width = width;
    img->Height = height;
    img->Depth = depth;
+   img->RowStride = img->Width;
    img->WidthLog2 = logbase2(width - 2 * border);
    if (height == 1)  /* 1-D texture */
       img->HeightLog2 = 0;
@@ -1432,8 +1435,9 @@ _mesa_GetTexImage( GLenum target, GLint level, GLenum format,
                                      depthRow, &ctx->Pack);
             }
             else if (format == GL_YCBCR_MESA) {
+	       const GLint rowstride = texImage->RowStride;
                /* No pixel transfer */
-               MEMCPY(dest, (const GLushort *) texImage->Data + row * width,
+               MEMCPY(dest, (const GLushort *) texImage->Data + row * rowstride,
                       width * sizeof(GLushort));
                /* check for byte swapping */
                if ((texImage->TexFormat->MesaFormat == MESA_FORMAT_YCBCR
