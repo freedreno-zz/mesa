@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.1.2.27 2003/03/05 13:16:20 keithw Exp $
+# $Id: Makefile,v 1.1.2.28 2003/03/05 14:22:28 keithw Exp $
 
 # Mesa 3-D graphics library
 # Version:  5.0
@@ -48,7 +48,7 @@ FULL_MESA = 	$(MESABUILDDIR)/swrast_setup/swrast_setup.a \
 		$(MESABUILDDIR)/math/math.a #kludge
 
 SUBSET_MESA = 	$(MESABUILDDIR)/mesa.a \
-		$(MESABUILDDIR)/math/math.a
+		$(MESABUILDDIR)/math/m_matrix.o
 
 
 

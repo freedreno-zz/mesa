@@ -28,7 +28,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: context.c,v 1.188.2.1.2.5 2003/03/04 17:23:34 keithw Exp $ */
+/* $Id: context.c,v 1.188.2.1.2.6 2003/03/05 14:22:21 keithw Exp $ */
 
 /**
  * \mainpage Mesa Core Module
@@ -632,7 +632,9 @@ one_time_init( GLcontext *ctx )
 
       _mesa_init_lists();
 
+#if _HAVE_FULL_GL
       _math_init();
+#endif
       _mesa_init_math();
 
 #ifdef USE_SPARC_ASM

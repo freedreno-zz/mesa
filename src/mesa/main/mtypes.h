@@ -29,7 +29,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: mtypes.h,v 1.97.4.1 2003/03/02 00:27:35 jrfonseca Exp $ */
+/* $Id: mtypes.h,v 1.97.4.2 2003/03/05 14:22:24 keithw Exp $ */
 
 
 #ifndef TYPES_H
@@ -2046,9 +2046,9 @@ struct __GLcontextRec {
 /** \brief The string names for GL_POINT, GL_LINE_LOOP, etc */
 extern const char *_mesa_prim_name[GL_POLYGON+4];
 
-#ifndef MESA_DEBUG
-#define MESA_DEBUG
-#endif
+/* #ifndef MESA_DEBUG */
+/* #define MESA_DEBUG */
+/* #endif */
 
 #ifdef MESA_DEBUG
 extern int MESA_VERBOSE;

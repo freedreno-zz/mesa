@@ -1,4 +1,4 @@
-/* $Id: enable.c,v 1.71 2002/10/24 23:57:20 brianp Exp $ */
+/* $Id: enable.c,v 1.71.4.1 2003/03/05 14:22:23 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -200,6 +200,7 @@ void _mesa_set_enable( GLcontext *ctx, GLenum cap, GLboolean state )
          ctx->Color.ColorLogicOpEnabled =
             (ctx->Color.BlendEquation == GL_LOGIC_OP && state);
          break;
+#if FEATURE_userclip
       case GL_CLIP_PLANE0:
       case GL_CLIP_PLANE1:
       case GL_CLIP_PLANE2:
@@ -233,6 +234,7 @@ void _mesa_set_enable( GLcontext *ctx, GLenum cap, GLboolean state )
             }               
          }
          break;
+#endif
       case GL_COLOR_MATERIAL:
          if (ctx->Light.ColorMaterialEnabled == state)
             return;

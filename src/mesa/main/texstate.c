@@ -1,4 +1,4 @@
-/* $Id: texstate.c,v 1.87 2002/11/05 20:58:37 brianp Exp $ */
+/* $Id: texstate.c,v 1.87.4.1 2003/03/05 14:22:25 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -1845,7 +1845,7 @@ _mesa_GetTexParameteriv( GLenum target, GLenum pname, GLint *params )
 /*                    Texture Coord Generation                        */
 /**********************************************************************/
 
-
+#if FEATURE_texgen
 void
 _mesa_TexGenfv( GLenum coord, GLenum pname, const GLfloat *params )
 {
@@ -2383,7 +2383,7 @@ _mesa_GetTexGeniv( GLenum coord, GLenum pname, GLint *params )
 	 return;
    }
 }
-
+#endif
 
 /* GL_ARB_multitexture */
 void

@@ -1,4 +1,4 @@
-/* $Id: state.c,v 1.97.4.3 2003/03/05 14:04:20 keithw Exp $ */
+/* $Id: state.c,v 1.97.4.4 2003/03/05 14:22:25 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -704,6 +704,7 @@ update_projection( GLcontext *ctx )
 {
    _math_matrix_analyse( ctx->ProjectionMatrixStack.Top );
 
+#if FEATURE_userclip
    /* Recompute clip plane positions in clipspace.  This is also done
     * in _mesa_ClipPlane().
     */
@@ -717,6 +718,7 @@ update_projection( GLcontext *ctx )
 	 }
       }
    }
+#endif
 }
 
 
