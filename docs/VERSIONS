@@ -1,4 +1,4 @@
-$Id: VERSIONS,v 1.118.2.12 2003/01/22 00:43:35 brianp Exp $
+$Id: VERSIONS,v 1.118.2.13 2003/02/04 02:31:13 brianp Exp $
 
 
 Mesa Version History
@@ -1085,6 +1085,7 @@ Mesa Version History
 5.0.1  Month day, 2003
     New:
 	- DOS driver updates from Daniel Borca
+	- updated GL/gl_mangle.h file (Bill Hoffman)
     Bug fixes:
 	- auto mipmap generation for cube maps was broken (bug 641363)
 	- writing/clearing software alpha channels was unreliable
@@ -1097,6 +1098,8 @@ Mesa Version History
 	- fix fog stride bug in tnl code for h/w drivers (Michel Danzer)
 	- fixed glActiveTexture / glMatrixMode(GL_TEXTURE) bug (#669080)
 	- glGet(GL_CURRENT_SECONDARY_COLOR) should return 4 values, not 3
+	- fixed compilation problem on Solaris7/x86 (bug 536406)
+	- fixed prefetch bug in 3DNow! code (Felix Kuhling)
     Changes:
 	- use glPolygonOffset in gloss demo to avoid z-fighting artifacts
 	- updated winpos and pointblast demos to use ARB extensions
