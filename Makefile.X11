@@ -1,7 +1,7 @@
-# $Id: Makefile.X11,v 1.69 2002/11/13 15:33:51 brianp Exp $
+# $Id: Makefile.X11,v 1.69.2.1 2002/12/19 15:17:56 brianp Exp $
 
 # Mesa 3-D graphics library
-# Version:  5.0
+# Version:  5.0.1
 # 
 # Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
 # 
@@ -330,10 +330,10 @@ realclean: clean
 	cd samples     && $(MAKE) -f Makefile.X11 realclean || true
 
 
-DIRECTORY = Mesa-5.0
-LIB_NAME = MesaLib-5.0
-DEMO_NAME = MesaDemos-5.0
-GLU_NAME = MesaGLU-5.0
+DIRECTORY = Mesa-5.0.1
+LIB_NAME = MesaLib-5.0.1
+DEMO_NAME = MesaDemos-5.0.1
+GLU_NAME = MesaGLU-5.0.1
 GLUT_NAME = GLUT-3.7
 
 
@@ -429,7 +429,8 @@ LIB_FILES =	\
 	$(DIRECTORY)/src/windml/man3/*.3				\
 	$(DIRECTORY)/src/windml/man3/*.html				\
 	$(DIRECTORY)/src/DOS/*.[chS]					\
-	$(DIRECTORY)/src/DOS/vesa/*.[ch]				\
+	$(DIRECTORY)/src/DOS/vesa/*.[chS]				\
+	$(DIRECTORY)/src/DOS/vga/*.[ch]					\
 	$(DIRECTORY)/src/BeOS/*.cpp					\
 	$(DIRECTORY)/src/FX/Makefile.am					\
 	$(DIRECTORY)/src/FX/Makefile.in					\
