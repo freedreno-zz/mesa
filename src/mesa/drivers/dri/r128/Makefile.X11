@@ -1,4 +1,4 @@
-# $Id: Makefile.X11,v 1.1 2003/08/22 20:11:44 brianp Exp $
+# $Id: Makefile.X11,v 1.1.2.1 2003/11/21 15:49:30 keithw Exp $
 
 # Mesa 3-D graphics library
 # Version:  5.0
@@ -36,10 +36,11 @@ DRIVER_SOURCES = \
 		r128_span.c \
 		r128_texmem.c \
 		r128_vb.c \
-                ../common/mm.c \
-                ../common/utils.c \
-                ../common/texmem.c \
-                ../common/vblank.c
+		../common/mm.c \
+		../common/utils.c \
+		../common/texmem.c \
+		../common/vblank.c \
+		../common/xmlconfig.c
 
 INCLUDES = $(MINIGLX_INCLUDES) \
 	   $(SHARED_INCLUDES)
@@ -91,6 +92,10 @@ targets: depend r128_dri.so
 
 r128_dri.so:  $(OBJECTS) $(MESA_MODULES) $(WINOBJ) Makefile.X11
 	rm -f $@ && gcc -o $@ -shared $(OBJECTS) $(MESA_MODULES) $(WINOBJ) $(WINLIB) -lc $(GL_LIB_DEPS)
+	rm -f $(TOP)/lib/r128_dri.so && \
+	install r128_dri.so $(TOP)/lib/r128_dri.so
+
+$(TOP)/lib/r128_dri.so: r128_dri.so
 	rm -f $(TOP)/lib/r128_dri.so && \
 	install r128_dri.so $(TOP)/lib/r128_dri.so
 

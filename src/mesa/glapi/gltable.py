@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# $Id: gltable.py,v 1.3 2001/11/18 22:42:57 brianp Exp $
+# $Id: gltable.py,v 1.3.14.1 2003/11/21 15:49:38 keithw Exp $
 
 # Mesa 3-D graphics library
 # Version:  4.1
@@ -77,7 +77,7 @@ def PrintRecords():
 			pass
 		prevk = int(k)
 		(name, returnType, argList) = records[k]
-		print '   %s (*%s)(%s); /* %d */' % (returnType, name, argList, k)
+		print '   %s (GLAPIENTRYP %s)(%s); /* %d */' % (returnType, name, argList, k)
 #endef
 
 

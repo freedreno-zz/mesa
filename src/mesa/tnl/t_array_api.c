@@ -124,7 +124,7 @@ static void _tnl_draw_range_elements( GLcontext *ctx, GLenum mode,
 /**
  * Called via the GL API dispatcher.
  */
-void
+void GLAPIENTRY
 _tnl_DrawArrays(GLenum mode, GLint start, GLsizei count)
 {
    GET_CURRENT_CONTEXT(ctx);
@@ -278,7 +278,7 @@ _tnl_DrawArrays(GLenum mode, GLint start, GLsizei count)
 /**
  * Called via the GL API dispatcher.
  */
-void
+void GLAPIENTRY
 _tnl_DrawRangeElements(GLenum mode,
 		       GLuint start, GLuint end,
 		       GLsizei count, GLenum type, const GLvoid *indices)
@@ -291,8 +291,12 @@ _tnl_DrawRangeElements(GLenum mode,
 
    if (ctx->Array.ElementArrayBufferObj->Name) {
       /* use indices in the buffer object */
-      ASSERT(ctx->Array.ElementArrayBufferObj->Data);
-      indices = (GLuint *) ctx->Array.ElementArrayBufferObj->Data;
+      if (!ctx->Array.ElementArrayBufferObj->Data) {
+         _mesa_warning(ctx,
+                       "DrawRangeElements with empty vertex elements buffer!");
+         return;
+      }
+      indices = (GLvoid *) ctx->Array.ElementArrayBufferObj->Data;
    }
 
    /* Check arguments, etc.
@@ -349,7 +353,7 @@ _tnl_DrawRangeElements(GLenum mode,
 /**
  * Called via the GL API dispatcher.
  */
-void
+void GLAPIENTRY
 _tnl_DrawElements(GLenum mode, GLsizei count, GLenum type,
 		  const GLvoid *indices)
 {
@@ -361,7 +365,10 @@ _tnl_DrawElements(GLenum mode, GLsizei count, GLenum type,
 
    if (ctx->Array.ElementArrayBufferObj->Name) {
       /* use indices in the buffer object */
-      ASSERT(ctx->Array.ElementArrayBufferObj->Data);
+      if (!ctx->Array.ElementArrayBufferObj->Data) {
+         _mesa_warning(ctx, "DrawElements with empty vertex elements buffer!");
+         return;
+      }
       indices = (const GLvoid *) ctx->Array.ElementArrayBufferObj->Data;
    }
 

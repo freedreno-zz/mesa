@@ -35,8 +35,8 @@
 /*
  * arctessellator.c++
  *
- * $Date: 2002/11/01 23:35:07 $ $Revision: 1.2 $
- * $Header: /home/krh/git/sync/mesa-cvs-repo/Mesa/src/glu/sgi/libnurbs/internals/arctess.cc,v 1.2 2002/11/01 23:35:07 brianp Exp $
+ * $Date: 2003/11/21 15:49:25 $ $Revision: 1.2.12.1 $
+ * $Header: /home/krh/git/sync/mesa-cvs-repo/Mesa/src/glu/sgi/libnurbs/internals/arctess.cc,v 1.2.12.1 2003/11/21 15:49:25 keithw Exp $
  */
 
 #include "glimports.h"
@@ -59,7 +59,7 @@
  */
 
 ArcTessellator::ArcTessellator( TrimVertexPool& t, Pool& p ) 
-	: trimvertexpool(t), pwlarcpool(p)
+	: pwlarcpool(p), trimvertexpool(t)
 {
 }
 

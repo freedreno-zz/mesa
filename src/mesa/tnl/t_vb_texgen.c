@@ -352,22 +352,20 @@ static void texgen( GLcontext *ctx,
    struct vertex_buffer *VB = &tnl->vb;
    GLvector4f *in = VB->TexCoordPtr[unit];
    GLvector4f *out = &store->texcoord[unit];
-   struct gl_texture_unit *texUnit = &ctx->Texture.Unit[unit];
+   const struct gl_texture_unit *texUnit = &ctx->Texture.Unit[unit];
    const GLvector4f *obj = VB->ObjPtr;
    const GLvector4f *eye = VB->EyePtr;
    const GLvector4f *normal = VB->NormalPtr;
+   const GLfloat *m = store->tmp_m;
+   const GLuint count = VB->Count;
    GLfloat (*texcoord)[4] = (GLfloat (*)[4])out->data;
-   GLfloat *indata;
-   GLuint count = VB->Count;
    GLfloat (*f)[3] = store->tmp_f;
-   GLfloat *m = store->tmp_m;
    GLuint holes = 0;
 
-
    if (texUnit->_GenFlags & TEXGEN_NEED_M) {
-      build_m_tab[in->size]( store->tmp_f, store->tmp_m, normal, eye );
+      build_m_tab[eye->size]( store->tmp_f, store->tmp_m, normal, eye );
    } else if (texUnit->_GenFlags & TEXGEN_NEED_F) {
-      build_f_tab[in->size]( (GLfloat *)store->tmp_f, 3, normal, eye );
+      build_f_tab[eye->size]( (GLfloat *)store->tmp_f, 3, normal, eye );
    }
 
    if (!in) {
@@ -413,8 +411,8 @@ static void texgen( GLcontext *ctx,
 				       texUnit->EyePlaneS );
 	 break;
       case GL_SPHERE_MAP:
-	 for (indata=in->start,i=0 ; i<count ;i++, STRIDE_F(indata,in->stride))
-	    texcoord[i][0] = indata[0] * m[i] + 0.5F;
+         for (i = 0; i < count; i++)
+            texcoord[i][0] = f[i][0] * m[i] + 0.5F;
 	 break;
       case GL_REFLECTION_MAP_NV:
 	 for (i=0;i<count;i++)
@@ -446,8 +444,8 @@ static void texgen( GLcontext *ctx,
 				       texUnit->EyePlaneT );
 	 break;
       case GL_SPHERE_MAP:
-	 for (indata=in->start,i=0; i<count ;i++,STRIDE_F(indata,in->stride))
-	     texcoord[i][1] = indata[1] * m[i] + 0.5F;
+         for (i = 0; i < count; i++)
+            texcoord[i][1] = f[i][1] * m[i] + 0.5F;
 	 break;
       case GL_REFLECTION_MAP_NV:
 	 for (i=0;i<count;i++)
@@ -547,9 +545,9 @@ static GLboolean run_validate_texgen_stage( GLcontext *ctx,
       if (texUnit->TexGenEnabled) {
 	 GLuint sz;
 
-	 if (texUnit->TexGenEnabled & R_BIT)
+	 if (texUnit->TexGenEnabled & Q_BIT)
 	    sz = 4;
-	 else if (texUnit->TexGenEnabled & Q_BIT)
+	 else if (texUnit->TexGenEnabled & R_BIT)
 	    sz = 3;
 	 else if (texUnit->TexGenEnabled & T_BIT)
 	    sz = 2;
@@ -558,8 +556,9 @@ static GLboolean run_validate_texgen_stage( GLcontext *ctx,
 
 	 store->TexgenSize[i] = sz;
 	 store->TexgenHoles[i] = (all_bits[sz] & ~texUnit->TexGenEnabled);
-	 store->TexgenFunc[i] = texgen;
+	 store->TexgenFunc[i] = texgen; /* general solution */
 
+         /* look for special texgen cases */
 	 if (texUnit->TexGenEnabled == (S_BIT|T_BIT|R_BIT)) {
 	    if (texUnit->_GenFlags == TEXGEN_REFLECTION_MAP_NV) {
 	       store->TexgenFunc[i] = texgen_reflection_map_nv;

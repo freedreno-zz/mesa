@@ -430,6 +430,7 @@ struct gl_colorbuffer_attrib {
    GLenum LogicOp;			/**< Logic operator */
    GLboolean IndexLogicOpEnabled;	/**< Color index logic op enabled flag */
    GLboolean ColorLogicOpEnabled;	/**< RGBA logic op enabled flag */
+   GLboolean _LogicOpEnabled;		/**< RGBA logic op + EXT_blend_logic_op enabled flag */
    /*@}*/
 
    GLboolean DitherFlag;		/**< Dither enable flag */
@@ -473,7 +474,7 @@ struct gl_current_attrib {
  */
 struct gl_depthbuffer_attrib {
    GLenum Func;			/**< Function for depth buffer compare */
-   GLfloat Clear;		/**< Value to clear depth buffer to */
+   GLclampd Clear;		/**< Value to clear depth buffer to */
    GLboolean Test;		/**< Depth buffering enabled flag */
    GLboolean Mask;		/**< Depth buffer writable? */
    GLboolean OcclusionTest;	/**< GL_HP_occlusion_test */
@@ -1289,13 +1290,15 @@ struct gl_client_array {
    GLenum Type;
    GLsizei Stride;		/**< user-specified stride */
    GLsizei StrideB;		/**< actual stride in bytes */
-   GLubyte *Ptr;
-   GLuint Flags;
+   const GLubyte *Ptr;
    GLuint Enabled;		/**< one of the _NEW_ARRAY_ bits */
    GLboolean Normalized;        /**< GL_ARB_vertex_program */
 
    /**< GL_ARB_vertex_buffer_object */
    struct gl_buffer_object *BufferObj;
+   GLuint _MaxElement;
+
+   GLuint Flags;
 };
 
 
@@ -1327,6 +1330,7 @@ struct gl_array_attrib {
    struct gl_buffer_object *ArrayBufferObj;
    struct gl_buffer_object *ElementArrayBufferObj;
 #endif
+   GLuint _MaxElement;          /* Min of all enabled array's maxes */
 };
 
 
@@ -1442,7 +1446,8 @@ enum register_file
    PROGRAM_ENV_PARAM,
    PROGRAM_NAMED_PARAM,
    PROGRAM_STATE_VAR,
-   PROGRAM_WRITE_ONLY
+   PROGRAM_WRITE_ONLY,
+	PROGRAM_ADDRESS
 };
 
 
@@ -1481,6 +1486,7 @@ struct vertex_program
    GLboolean IsPositionInvariant;  /* GL_NV_vertex_program1_1 */
    GLuint InputsRead;     /* Bitmask of which input regs are read */
    GLuint OutputsWritten; /* Bitmask of which output regs are written to */
+   struct program_parameter_list *Parameters; /**< array [NumParameters] */
 };
 
 
@@ -1718,6 +1724,8 @@ struct gl_constants
    /* vertex or fragment program */
    GLuint MaxProgramMatrices;
    GLuint MaxProgramMatrixStackDepth;
+   /* vertex array / buffer object bounds checking */
+   GLboolean CheckArrayBounds;
 };
 
 
@@ -1807,6 +1815,7 @@ struct gl_extensions
    GLboolean SGIX_shadow_ambient; /* or GL_ARB_shadow_ambient */
    GLboolean TDFX_texture_compression_FXT1;
    GLboolean APPLE_client_storage;
+   GLboolean S3_s3tc;
    /*@}*/
    /* The extension string */
    const GLubyte *String;

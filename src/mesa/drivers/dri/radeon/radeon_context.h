@@ -446,7 +446,7 @@ struct radeon_dma_buffer {
    drmBufPtr buf;
 };
 
-#define GET_START(rvb) (rmesa->radeonScreen->agp_buffer_offset +			\
+#define GET_START(rvb) (rmesa->radeonScreen->gart_buffer_offset +			\
 			(rvb)->address - rmesa->dma.buf0_address +	\
 			(rvb)->start)
 
@@ -697,6 +697,7 @@ struct radeon_context {
    unsigned              nr_heaps;
    driTexHeap          * texture_heaps[ RADEON_NR_TEX_HEAPS ];
    driTextureObject      swapped;
+   GLboolean             default32BitTextures;
 
 
    /* Rasterization and vertex state:
@@ -769,6 +770,10 @@ struct radeon_context {
    /* Mirrors of some DRI state
     */
    struct radeon_dri_mirror dri;
+
+   /* Configuration cache
+    */
+   driOptionCache optionCache;
 
  
    /* Performance counters

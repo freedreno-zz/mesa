@@ -1,5 +1,3 @@
-/* $Id: fxdrv.h,v 1.59 2003/10/02 17:36:44 brianp Exp $ */
-
 /*
  * Mesa 3-D graphics library
  * Version:  4.0
@@ -86,6 +84,14 @@
   (  (unsigned int)(c[0])) )
 #endif
 
+#define TDFXPACKCOLOR1555( r, g, b, a )					   \
+   ((((r) & 0xf8) << 7) | (((g) & 0xf8) << 2) | (((b) & 0xf8) >> 3) |	   \
+    ((a) ? 0x8000 : 0))
+#define TDFXPACKCOLOR565( r, g, b )					   \
+   ((((r) & 0xf8) << 8) | (((g) & 0xfc) << 3) | (((b) & 0xf8) >> 3))
+#define TDFXPACKCOLOR8888( r, g, b, a )					   \
+   (((a) << 24) | ((r) << 16) | ((g) << 8) | (b))
+
 
 
 /* fastpath flags first
@@ -147,6 +153,90 @@
 #define FX_UM_ALPHA_CONSTANT        0x08000000
 
 
+/* for Voodoo3/Banshee's grColorCombine() and grAlphaCombine() */
+struct tdfx_combine {
+   GrCombineFunction_t Function;	/* Combine function */
+   GrCombineFactor_t Factor;		/* Combine scale factor */
+   GrCombineLocal_t Local;		/* Local combine source */
+   GrCombineOther_t Other;		/* Other combine source */
+   FxBool Invert;			/* Combine result inversion flag */
+};
+
+/* for Voodoo3's grTexCombine() */
+struct tdfx_texcombine {
+   GrCombineFunction_t FunctionRGB;
+   GrCombineFactor_t FactorRGB;
+   GrCombineFunction_t FunctionAlpha;
+   GrCombineFactor_t FactorAlpha;
+   FxBool InvertRGB;
+   FxBool InvertAlpha;
+};
+
+
+/* for Voodoo5's grColorCombineExt() */
+struct tdfx_combine_color_ext {
+   GrCCUColor_t SourceA;
+   GrCombineMode_t ModeA;
+   GrCCUColor_t SourceB;
+   GrCombineMode_t ModeB;
+   GrCCUColor_t SourceC;
+   FxBool InvertC;
+   GrCCUColor_t SourceD;
+   FxBool InvertD;
+   FxU32 Shift;
+   FxBool Invert;
+};
+
+/* for Voodoo5's grAlphaCombineExt() */
+struct tdfx_combine_alpha_ext {
+   GrACUColor_t SourceA;
+   GrCombineMode_t ModeA;
+   GrACUColor_t SourceB;
+   GrCombineMode_t ModeB;
+   GrACUColor_t SourceC;
+   FxBool InvertC;
+   GrACUColor_t SourceD;
+   FxBool InvertD;
+   FxU32 Shift;
+   FxBool Invert;
+};
+
+/* for Voodoo5's grTexColorCombineExt() */
+struct tdfx_color_texenv {
+   GrTCCUColor_t SourceA;
+   GrCombineMode_t ModeA;
+   GrTCCUColor_t SourceB;
+   GrCombineMode_t ModeB;
+   GrTCCUColor_t SourceC;
+   FxBool InvertC;
+   GrTCCUColor_t SourceD;
+   FxBool InvertD;
+   FxU32 Shift;
+   FxBool Invert;
+};
+
+/* for Voodoo5's grTexAlphaCombineExt() */
+struct tdfx_alpha_texenv {
+   GrTACUColor_t SourceA;
+   GrCombineMode_t ModeA;
+   GrTACUColor_t SourceB;
+   GrCombineMode_t ModeB;
+   GrTACUColor_t SourceC;
+   FxBool InvertC;
+   GrTCCUColor_t SourceD;
+   FxBool InvertD;
+   FxU32 Shift;
+   FxBool Invert;
+};
+
+/* Voodoo5's texture combine environment */
+struct tdfx_texcombine_ext {
+   struct tdfx_alpha_texenv Alpha;
+   struct tdfx_color_texenv Color;
+   GrColor_t EnvColor;
+};
+
+
 /*
   Memory range from startAddr to endAddr-1
 */
@@ -196,6 +286,7 @@ typedef struct tfxTexInfo_t
 
    GLfloat sScale, tScale;
 
+   GrTexTable_t paltype;
    GuTexPalette palette;
 
    GLboolean fixedPalette;
@@ -229,6 +320,7 @@ typedef struct
    GrAlphaBlendFnc_t blendDstFuncRGB;
    GrAlphaBlendFnc_t blendSrcFuncAlpha;
    GrAlphaBlendFnc_t blendDstFuncAlpha;
+   GrAlphaBlendOp_t blendEq;
 
    /* Depth test */
 
@@ -317,13 +409,6 @@ tfxUnitsState;
 			        _NEW_COLOR)	\
 
 
-/* These lookup table are used to extract RGB values in [0,255] from
- * 16-bit pixel values.
- */
-extern GLubyte FX_PixelToR[0x10000];
-extern GLubyte FX_PixelToG[0x10000];
-extern GLubyte FX_PixelToB[0x10000];
-
 /* lookup table for scaling y bit colors up to 8 bits */
 extern GLuint FX_rgb_scale_4[16];
 extern GLuint FX_rgb_scale_5[32];
@@ -335,6 +420,7 @@ typedef void (*fx_point_func) (fxMesaContext, GrVertex *);
 
 struct tfxMesaContext
 {
+   GrTexTable_t glbPalType;
    GuTexPalette glbPalette;
 
    GLcontext *glCtx;		/* the core Mesa context */
@@ -443,10 +529,12 @@ struct tfxMesaContext
     * from `glbHWConfig' when creating a new context...
     */
    GrSstType type;
+   FxBool HavePalExt;	/* PALETTE6666 */
    FxBool HavePixExt;	/* PIXEXT */
    FxBool HaveTexFmt;	/* TEXFMT */
    FxBool HaveCmbExt;	/* COMBINE */
    FxBool HaveMirExt;	/* TEXMIRROR */
+   FxBool HaveTexUma;	/* TEXUMA */
    FxBool HaveTexus2;	/* Texus 2 - FXT1 */
    struct tdfx_glide Glide;
    char rendererString[100];
@@ -485,6 +573,10 @@ extern void fxPrintTextureData(tfxTexInfo * ti);
 extern const struct gl_texture_format *
 fxDDChooseTextureFormat( GLcontext *ctx, GLint internalFormat,
                          GLenum srcFormat, GLenum srcType );
+extern GLboolean fxDDIsCompressedFormat (GLcontext *ctx, GLenum internalFormat);
+extern GLuint fxDDCompressedTextureSize (GLcontext *ctx,
+                                         GLsizei width, GLsizei height, GLsizei depth,
+                                         GLenum format);
 extern void fxDDTexImage2D(GLcontext * ctx, GLenum target, GLint level,
 			   GLint internalFormat, GLint width, GLint height,
 			   GLint border, GLenum format, GLenum type,
@@ -492,7 +584,6 @@ extern void fxDDTexImage2D(GLcontext * ctx, GLenum target, GLint level,
 			   const struct gl_pixelstore_attrib *packing,
 			   struct gl_texture_object *texObj,
 			   struct gl_texture_image *texImage);
-
 extern void fxDDTexSubImage2D(GLcontext * ctx, GLenum target, GLint level,
 			      GLint xoffset, GLint yoffset,
 			      GLsizei width, GLsizei height,
@@ -501,17 +592,33 @@ extern void fxDDTexSubImage2D(GLcontext * ctx, GLenum target, GLint level,
 			      const struct gl_pixelstore_attrib *packing,
 			      struct gl_texture_object *texObj,
 			      struct gl_texture_image *texImage);
+extern void fxDDCompressedTexImage2D(GLcontext *ctx, GLenum target,
+                                     GLint level, GLint internalFormat,
+                                     GLsizei width, GLsizei height, GLint border,
+                                     GLsizei imageSize, const GLvoid *data,
+                                     struct gl_texture_object *texObj,
+                                     struct gl_texture_image *texImage);
+extern void fxDDCompressedTexSubImage2D(GLcontext *ctx, GLenum target,
+                                        GLint level, GLint xoffset,
+                                        GLint yoffset, GLsizei width,
+                                        GLint height, GLenum format,
+                                        GLsizei imageSize, const GLvoid *data,
+                                        struct gl_texture_object *texObj,
+                                        struct gl_texture_image *texImage);
 extern void fxDDTexEnv(GLcontext *, GLenum, GLenum, const GLfloat *);
 extern void fxDDTexParam(GLcontext *, GLenum, struct gl_texture_object *,
 			 GLenum, const GLfloat *);
 extern void fxDDTexBind(GLcontext *, GLenum, struct gl_texture_object *);
 extern void fxDDTexDel(GLcontext *, struct gl_texture_object *);
+extern GLboolean fxDDIsTextureResident(GLcontext *, struct gl_texture_object *);
 extern void fxDDTexPalette(GLcontext *, struct gl_texture_object *);
 extern void fxDDTexUseGlbPalette(GLcontext *, GLboolean);
 
 extern void fxDDEnable(GLcontext *, GLenum, GLboolean);
 extern void fxDDAlphaFunc(GLcontext *, GLenum, GLfloat);
 extern void fxDDBlendFunc(GLcontext *, GLenum, GLenum);
+extern void fxDDBlendFuncSeparate(GLcontext *, GLenum, GLenum, GLenum, GLenum);
+extern void fxDDBlendEquation(GLcontext *, GLenum);
 extern void fxDDDepthMask(GLcontext *, GLboolean);
 extern void fxDDDepthFunc(GLcontext *, GLenum);
 extern void fxDDStencilFunc (GLcontext *ctx, GLenum func, GLint ref, GLuint mask);
@@ -532,6 +639,7 @@ extern void fxTMReloadMipMapLevel(fxMesaContext, struct gl_texture_object *,
 extern void fxTMReloadSubMipMapLevel(fxMesaContext,
 				     struct gl_texture_object *, GLint, GLint,
 				     GLint);
+extern int fxTMCheckStartAddr (fxMesaContext fxMesa, GLint tmu, tfxTexInfo *ti);
 
 extern void fxTexGetFormat(GLcontext *, GLenum, GrTextureFormat_t *, GLint *); /* [koolsmoky] */
 
@@ -570,15 +678,18 @@ extern int fxDDInitFxMesaContext(fxMesaContext fxMesa);
 extern void fxDDDestroyFxMesaContext(fxMesaContext fxMesa);
 
 
-void fxColorMask (fxMesaContext fxMesa, GLboolean enable);
-
-
 extern void fxSetScissorValues(GLcontext * ctx);
 extern void fxTMMoveInTM_NoLock(fxMesaContext fxMesa,
 				struct gl_texture_object *tObj, GLint where);
-extern void fxInitPixelTables(fxMesaContext fxMesa, GLboolean bgrOrder);
 
 extern void fxCheckIsInHardware(GLcontext *ctx);
+
+/* fxsetup:
+ * semi-private functions
+ */
+void fxSetupCull (GLcontext * ctx);
+void fxSetupScissor (GLcontext * ctx);
+void fxSetupColorMask (GLcontext * ctx);
 
 /* Flags for software fallback cases */
 #define FX_FALLBACK_TEXTURE_1D_3D	0x0001
@@ -594,5 +705,12 @@ extern void fxCheckIsInHardware(GLcontext *ctx);
 #define FX_FALLBACK_TEXTURE_MULTI	0x0400
 
 extern GLuint fx_check_IsInHardware(GLcontext *ctx);
+
+/* run-time debugging */
+#if FX_DEBUG
+extern int TDFX_DEBUG;
+#else
+#define TDFX_DEBUG		0
+#endif
 
 #endif

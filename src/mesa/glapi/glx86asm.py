@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# $Id: glx86asm.py,v 1.6 2002/06/11 01:26:58 brianp Exp $
+# $Id: glx86asm.py,v 1.6.14.1 2003/11/21 15:49:38 keithw Exp $
 
 # Mesa 3-D graphics library
 # Version:  4.1
@@ -43,21 +43,24 @@ def PrintHead():
 	print '#include "glapioffsets.h"'
 	print ''
 	print '#ifndef __WIN32__'
-	print ''
-	print '#if defined(USE_MGL_NAMESPACE)'
-	print '#define GL_PREFIX(n) GLNAME(CONCAT(mgl,n))'
+	print ''	
+	print '#if defined(STDCALL_API)'
+	print '#define GL_PREFIX(n,n2) GLNAME(CONCAT(gl,n2))'
+	print '#elif defined(USE_MGL_NAMESPACE)'
+	print '#define GL_PREFIX(n,n2) GLNAME(CONCAT(mgl,n))'
 	print '#else'
-	print '#define GL_PREFIX(n) GLNAME(CONCAT(gl,n))'
+	print '#define GL_PREFIX(n,n2) GLNAME(CONCAT(gl,n))'
 	print '#endif'
 	print ''
 	print '#define GL_OFFSET(x) CODEPTR(REGOFF(4 * x, EAX))'
 	print ''
-	print '#if defined(GNU_ASSEMBLER) && !defined(DJGPP)'
+	print '#if defined(GNU_ASSEMBLER) && !defined(__DJGPP__) && !defined(__MINGW32__)'
 	print '#define GLOBL_FN(x) GLOBL x ; .type x,@function'
 	print '#else'
 	print '#define GLOBL_FN(x) GLOBL x'
 	print '#endif'
 	print ''
+	print 'SEG_TEXT'
 	print ''
 	print 'EXTERN GLNAME(_glapi_Dispatch)'
 	print ''
@@ -83,6 +86,19 @@ def FindOffset(funcName):
 	return -1
 #enddef
 
+# Find the size of the arguments on the stack for _stdcall name mangling
+def FindStackSize(typeList):
+	result = 0
+	for typ in typeList:
+		if typ == 'GLdouble' or typ == 'GLclampd':
+			result += 8;
+		else:
+			result += 4;
+		#endif
+	#endfor
+	return result
+#enddef
+
 def EmitFunction(name, returnType, argTypeList, argNameList, alias, offset):
 	argList = apiparser.MakeArgList(argTypeList, argNameList)
 	if alias != '':
@@ -104,17 +120,17 @@ def EmitFunction(name, returnType, argTypeList, argNameList, alias, offset):
 	# save this info in case we need to look up an alias later
 	records.append((name, dispatchName, offset))
 
+	# Find the argument stack size for _stdcall name mangling
+	stackSize = FindStackSize(argTypeList)
+
 	# print the assembly code
 	print 'ALIGNTEXT16'
-	print "GLOBL_FN(GL_PREFIX(%s))" % (name)
-	print "GL_PREFIX(%s):" % (name)
+	print "GLOBL_FN(GL_PREFIX(%s,%s@%s))" % (name, name, stackSize)
+	print "GL_PREFIX(%s,%s@%s):" % (name, name, stackSize)
 	print '\tMOV_L(CONTENT(GLNAME(_glapi_Dispatch)), EAX)'
 	print "\tJMP(GL_OFFSET(_gloffset_%s))" % (dispatchName)
 	print ''
-
 #enddef
-
-
 
 PrintHead()
 apiparser.ProcessSpecFile("APIspec", EmitFunction)

@@ -726,8 +726,9 @@ _mesa_fetch_state(GLcontext *ctx, const enum state_index state[],
             case STATE_LOCAL:
                COPY_4V(value, ctx->FragmentProgram.Current->Base.LocalParams[idx]);
                break;				
-	 default:
-	    break;
+            default:
+               _mesa_problem(ctx, "Bad state switch in _mesa_fetch_state()");
+               return;
          }				  
       }			
       return;
@@ -746,8 +747,9 @@ _mesa_fetch_state(GLcontext *ctx, const enum state_index state[],
             case STATE_LOCAL:
                COPY_4V(value, ctx->VertexProgram.Current->Base.LocalParams[idx]);
                break;				
-	 default:
-	    break;
+            default:
+               _mesa_problem(ctx, "Bad state switch in _mesa_fetch_state()");
+               return;
          }				  
       }			
       return;
@@ -789,7 +791,7 @@ _mesa_load_state_parameters(GLcontext *ctx,
  * \note Called from the GL API dispatcher by both glBindProgramNV
  * and glBindProgramARB.
  */
-void
+void GLAPIENTRY
 _mesa_BindProgram(GLenum target, GLuint id)
 {
    struct program *prog;
@@ -892,7 +894,7 @@ _mesa_BindProgram(GLenum target, GLuint id)
  * \note Not compiled into display lists.
  * \note Called by both glDeleteProgramsNV and glDeleteProgramsARB.
  */
-void
+void GLAPIENTRY 
 _mesa_DeletePrograms(GLsizei n, const GLuint *ids)
 {
    GLint i;
@@ -943,7 +945,7 @@ _mesa_DeletePrograms(GLsizei n, const GLuint *ids)
  * \note Not compiled into display lists.
  * \note Called by both glGenProgramsNV and glGenProgramsARB.
  */
-void
+void GLAPIENTRY
 _mesa_GenPrograms(GLsizei n, GLuint *ids)
 {
    GLuint first;
@@ -988,7 +990,7 @@ _mesa_GenPrograms(GLsizei n, GLuint *ids)
  * \param id is the program identifier
  * \return GL_TRUE if id is a program, else GL_FALSE.
  */
-GLboolean
+GLboolean GLAPIENTRY
 _mesa_IsProgram(GLuint id)
 {
    struct program *prog;

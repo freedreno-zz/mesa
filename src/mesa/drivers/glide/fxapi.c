@@ -1,5 +1,3 @@
-/* $Id: fxapi.c,v 1.38 2003/10/02 17:36:44 brianp Exp $ */
-
 /*
  * Mesa 3-D graphics library
  * Version:  4.0
@@ -216,7 +214,7 @@ fxMesaCreateBestContext(GLuint win, GLint width, GLint height,
     return NULL;
  }
 
- return fxMesaCreateContext(win, res, GR_REFRESH_60Hz/*ZZZ: GR_REFRESH_75Hz*/, attribList);
+ return fxMesaCreateContext(win, res, GR_REFRESH_60Hz, attribList);
 }
 
 
@@ -233,7 +231,7 @@ fxMesaCreateContext(GLuint win,
 
  int i;
  const char *str;
- int numChips, sliaa, fsaa;
+ int sliaa, numSLI, samplesPerChip, tmuRam, fbRam;
  struct SstCard_St *voodoo;
  struct tdfx_glide *Glide;
 
@@ -245,14 +243,9 @@ fxMesaCreateContext(GLuint win,
  GrPixelFormat_t pixFmt;
    
  GLboolean useBGR;
- GLboolean verbose = GL_FALSE;
 
  if (TDFX_DEBUG & VERBOSE_DRIVER) {
     fprintf(stderr, "%s(...)\n", __FUNCTION__);
- }
-
- if (getenv("MESA_FX_INFO")) {
-    verbose = GL_TRUE;
  }
 
  /* Okay, first process the user flags */
@@ -313,7 +306,6 @@ fxMesaCreateContext(GLuint win,
                                   and disables the splash screen due to y-origin swapping.
                                   Note: We only want the former. */
  voodoo = &glbHWConfig.SSTs[glbCurrentBoard];
- numChips = voodoo->numChips;
 
  fxMesa = (fxMesaContext)CALLOC_STRUCT(tfxMesaContext);
  if (!fxMesa) {
@@ -321,48 +313,165 @@ fxMesaCreateContext(GLuint win,
     goto errorhandler;
  }
 
+ if (getenv("MESA_FX_INFO")) {
+    fxMesa->verbose = GL_TRUE;
+ }
+
  fxMesa->type = voodoo->type;
+ fxMesa->HavePalExt = voodoo->HavePalExt;
  fxMesa->HavePixExt = voodoo->HavePixExt;
  fxMesa->HaveTexFmt = voodoo->HaveTexFmt;
  fxMesa->HaveCmbExt = voodoo->HaveCmbExt;
  fxMesa->HaveMirExt = voodoo->HaveMirExt;
+ fxMesa->HaveTexUma = voodoo->HaveTexUma;
  fxMesa->HaveTexus2 = voodoo->HaveTexus2;
  fxMesa->Glide = glbHWConfig.Glide;
  Glide = &fxMesa->Glide;
- sprintf(fxMesa->rendererString, "Mesa %s v0.51 %s %dMB FB, %dMB TM, %d TMU, %s",
-                           grGetString(GR_RENDERER),
-                           grGetString(GR_HARDWARE),
-                           voodoo->fbRam,
-                           (voodoo->tmuConfig[GR_TMU0].tmuRam + ((voodoo->nTexelfx > 1) ? voodoo->tmuConfig[GR_TMU1].tmuRam : 0)),
-                           voodoo->nTexelfx,
-                           (numChips > 1) ? "SLI" : "NOSLI");
+
+ /*
+  * Pixel tables are used during pixel read-back
+  * Either initialize them for RGB or BGR order;
+  * However, 32bit capable cards have the right order.
+  * As a consequence, 32bit read-back is not swizzled!
+  * Also determine if we need vertex snapping.
+  */
+ /* number of SLI units and AA Samples per chip */
+ sliaa = 0;
+ switch (voodoo->type) {
+        case GR_SSTTYPE_VOODOO:
+        case GR_SSTTYPE_Banshee:
+             useBGR = GL_TRUE;
+             fxMesa->snapVertices = GL_TRUE;
+             break;
+        case GR_SSTTYPE_Voodoo2:
+             useBGR = GL_TRUE;
+             fxMesa->snapVertices = GL_FALSE;
+             break;
+        case GR_SSTTYPE_Voodoo4:
+        case GR_SSTTYPE_Voodoo5:
+             if ((str = Glide->grGetRegistryOrEnvironmentStringExt("SSTH3_SLI_AA_CONFIGURATION")) != NULL) {
+                sliaa = atoi(str);
+             }
+        case GR_SSTTYPE_Voodoo3:
+        default:
+             useBGR = GL_FALSE;
+             fxMesa->snapVertices = GL_FALSE;
+             break;
+ }
+ /* ZZZ TO DO: Add the old SLI/AA settings for Napalm. */
+ switch(voodoo->numChips) {
+ case 4: /* 4 chips */
+   switch(sliaa) {
+   case 8: /* 8 Sample AA */
+     numSLI         = 1;
+     samplesPerChip = 2;
+     break;
+   case 7: /* 4 Sample AA */
+     numSLI         = 1;
+     samplesPerChip = 1;
+     break;
+   case 6: /* 2 Sample AA */
+     numSLI         = 2;
+     samplesPerChip = 1;
+     break;
+   default:
+     numSLI         = 4;
+     samplesPerChip = 1;
+   }
+   break;
+ case 2: /* 2 chips */
+   switch(sliaa) {
+   case 4: /* 4 Sample AA */
+     numSLI         = 1;
+     samplesPerChip = 2;
+     break;
+   case 3: /* 2 Sample AA */
+     numSLI         = 1;
+     samplesPerChip = 1;
+     break;
+   default:
+     numSLI         = 2;
+     samplesPerChip = 1;
+   }
+   break;
+ default: /* 1 chip */
+   switch(sliaa) {
+   case 1: /* 2 Sample AA */
+     numSLI         = 1;
+     samplesPerChip = 2;
+     break;
+   default:
+     numSLI         = 1;
+     samplesPerChip = 1;
+   }
+ }
+
+ fxMesa->fsaa = samplesPerChip * voodoo->numChips / numSLI; /* 1:noFSAA, 2:2xFSAA, 4:4xFSAA, 8:8xFSAA */
 
  switch (fxMesa->colDepth = colDepth) {
-        case 15:
-             redBits = 5;
-             greenBits = 5;
-             blueBits = 5;
-             alphaBits = 1;
-             pixFmt = GR_PIXFMT_ARGB_1555;
-             break;
-        case 16:
-             redBits = 5;
-             greenBits = 6;
-             blueBits = 5;
-             alphaBits = depthSize ? 0 : 8;
-             pixFmt = GR_PIXFMT_RGB_565;
-             break;
-        case 32:
-             redBits = 8;
-             greenBits = 8;
-             blueBits = 8;
-             alphaBits = 8;
-             pixFmt = GR_PIXFMT_ARGB_8888;
-             break;
-        default:
-             str = "pixelFormat";
-             goto errorhandler;
+   case 15:
+     redBits   = 5;
+     greenBits = 5;
+     blueBits  = 5;
+     alphaBits = 1;
+     switch(fxMesa->fsaa) {
+       case 8:
+         pixFmt = GR_PIXFMT_AA_8_ARGB_1555;
+         break;
+       case 4:
+         pixFmt = GR_PIXFMT_AA_4_ARGB_1555;
+         break;
+       case 2:
+         pixFmt = GR_PIXFMT_AA_2_ARGB_1555;
+         break;
+       default:
+         pixFmt = GR_PIXFMT_ARGB_1555;
+     }
+     break;
+   case 16:
+     redBits   = 5;
+     greenBits = 6;
+     blueBits  = 5;
+     alphaBits = depthSize ? 0 : 8;
+     switch(fxMesa->fsaa) {
+       case 8:
+         pixFmt = GR_PIXFMT_AA_8_RGB_565;
+         break;
+       case 4:
+         pixFmt = GR_PIXFMT_AA_4_RGB_565;
+         break;
+       case 2:
+         pixFmt = GR_PIXFMT_AA_2_RGB_565;
+         break;
+       default:
+         pixFmt = GR_PIXFMT_RGB_565;
+     }
+     break;
+   case 32:
+     redBits   = 8;
+     greenBits = 8;
+     blueBits  = 8;
+     alphaBits = 8;
+     switch(fxMesa->fsaa) {
+       case 8:
+         pixFmt = GR_PIXFMT_AA_8_ARGB_8888;
+         break;
+       case 4:
+         pixFmt = GR_PIXFMT_AA_4_ARGB_8888;
+         break;
+       case 2:
+         pixFmt = GR_PIXFMT_AA_2_ARGB_8888;
+         break;
+       default:
+         pixFmt = GR_PIXFMT_ARGB_8888;
+     }
+     break;
+   default:
+     str = "pixelFormat";
+     goto errorhandler;
  }
+
+ /* ZZZ TODO: check if there is enough fbRam */
 
  /* Tips:
   * 1. we don't bother setting/checking AUX for stencil, because we'll decide
@@ -391,7 +500,6 @@ fxMesaCreateContext(GLuint win,
  fxMesa->haveZBuffer = depthSize > 0;
  fxMesa->haveDoubleBuffer = doubleBuffer;
  fxMesa->haveGlobalPaletteTexture = GL_FALSE;
- fxMesa->verbose = verbose;
  fxMesa->board = glbCurrentBoard;
 
  fxMesa->haveTwoTMUs = (voodoo->nTexelfx > 1);
@@ -419,60 +527,6 @@ fxMesaCreateContext(GLuint win,
     fxMesa->swapInterval = 0;
  }
 
- if ((str = Glide->grGetRegistryOrEnvironmentStringExt("SSTH3_SLI_AA_CONFIGURATION"))) {
-    sliaa = atoi(str);
- } else {
-    sliaa = 0;
- }
- switch (colDepth) {
-        case 15:
-             if ((numChips == 4) && (sliaa == 8)) {
-                pixFmt = GR_PIXFMT_AA_8_ARGB_1555;
-                fsaa = 8;
-             } else if (((numChips == 4) && (sliaa == 7)) || ((numChips == 2) && (sliaa == 4))) {
-                pixFmt = GR_PIXFMT_AA_4_ARGB_1555;
-                fsaa = 4;
-             } else if (((numChips == 4) && (sliaa == 6)) || ((numChips == 2) && (sliaa == 3)) || ((numChips == 1) && (sliaa == 1))) {
-                pixFmt = GR_PIXFMT_AA_2_ARGB_1555;
-                fsaa = 2;
-             } else {
-                fsaa = 0;
-             }
-             break;
-        case 16:
-             if ((numChips == 4) && (sliaa == 8)) {
-                pixFmt = GR_PIXFMT_AA_8_RGB_565;
-                fsaa = 8;
-             } else if (((numChips == 4) && (sliaa == 7)) || ((numChips == 2) && (sliaa == 4))) {
-                pixFmt = GR_PIXFMT_AA_4_RGB_565;
-                fsaa = 4;
-             } else if (((numChips == 4) && (sliaa == 6)) || ((numChips == 2) && (sliaa == 3)) || ((numChips == 1) && (sliaa == 1))) {
-                pixFmt = GR_PIXFMT_AA_2_RGB_565;
-                fsaa = 2;
-             } else {
-                fsaa = 0;
-             }
-             break;
-        case 32:
-             if ((numChips == 4) && (sliaa == 8)) {
-                pixFmt = GR_PIXFMT_AA_8_ARGB_8888;
-                fsaa = 8;
-             } else if (((numChips == 4) && (sliaa == 7)) || ((numChips == 2) && (sliaa == 4))) {
-                pixFmt = GR_PIXFMT_AA_4_ARGB_8888;
-                fsaa = 4;
-             } else if (((numChips == 4) && (sliaa == 6)) || ((numChips == 2) && (sliaa == 3)) || ((numChips == 1) && (sliaa == 1))) {
-                pixFmt = GR_PIXFMT_AA_2_ARGB_8888;
-                fsaa = 2;
-             } else {
-                fsaa = 0;
-             }
-             break;
-        default: /* NOTREACHED */
-             str = "pixelFormat";
-             goto errorhandler;
- }
- fxMesa->fsaa = fsaa;
-
  BEGIN_BOARD_LOCK();
  if (fxMesa->HavePixExt) {
     fxMesa->glideContext = Glide->grSstWinOpenExt((FxU32)win, res, ref,
@@ -492,46 +546,44 @@ fxMesaCreateContext(GLuint win,
     goto errorhandler;
  }
 
-   /*
-    * Pixel tables are used during pixel read-back
-    * Either initialize them for RGB or BGR order;
-    * However, 32bit capable cards have the right order.
-    * As a consequence, 32bit read-back is not swizzled!
-    * Also determine if we need vertex snapping.
-    */
-   switch (voodoo->type) {
-          case GR_SSTTYPE_VOODOO:
-          case GR_SSTTYPE_Banshee:
-               useBGR = GL_TRUE;
-               fxMesa->snapVertices = GL_TRUE;
-               break;
-          case GR_SSTTYPE_Voodoo2:
-               useBGR = GL_TRUE;
-               fxMesa->snapVertices = GL_FALSE;
-               break;
-          case GR_SSTTYPE_Voodoo3:
-          case GR_SSTTYPE_Voodoo4:
-          case GR_SSTTYPE_Voodoo5:
-          default:
-               useBGR = GL_FALSE;
-               fxMesa->snapVertices = GL_FALSE;
-               break;
-   }
+  /* Not that it matters, but tmuRam and fbRam change after grSstWinOpen. */
+  tmuRam = voodoo->tmuConfig[GR_TMU0].tmuRam;
+  fbRam  = voodoo->fbRam;
+  BEGIN_BOARD_LOCK();
+  {
+    FxI32 result;
+    grGet(GR_MEMORY_TMU, 4, &result);
+    tmuRam = result / (1024 * 1024);
+    grGet(GR_MEMORY_FB, 4, &result);
+    fbRam = result / (1024 * 1024);
+  }
+  END_BOARD_LOCK();
 
-   fxInitPixelTables(fxMesa, useBGR);
+  sprintf(fxMesa->rendererString, "Mesa %s v0.51 %s %dMB FB, %dMB TM, %d TMU, %s",
+                           grGetString(GR_RENDERER),
+                           grGetString(GR_HARDWARE),
+                           fbRam,
+                           tmuRam * voodoo->nTexelfx,
+                           voodoo->nTexelfx,
+                           (voodoo->numChips > 1) ? "SLI" : "NOSLI");
 
-   fxMesa->width = FX_grSstScreenWidth();
-   fxMesa->height = FX_grSstScreenHeight();
+  fxMesa->bgrOrder = useBGR;
 
+   /* screen */
+   fxMesa->screen_width = FX_grSstScreenWidth();
+   fxMesa->screen_height = FX_grSstScreenHeight();
+
+   /* window inside screen */
+   fxMesa->width = fxMesa->screen_width;
+   fxMesa->height = fxMesa->screen_height;
+
+   /* scissor inside window */
    fxMesa->clipMinX = 0;
    fxMesa->clipMaxX = fxMesa->width;
    fxMesa->clipMinY = 0;
    fxMesa->clipMaxY = fxMesa->height;
 
-   fxMesa->screen_width = fxMesa->width;
-   fxMesa->screen_height = fxMesa->height;
-
-   if (verbose) {
+   if (fxMesa->verbose) {
       char buf[80];
 
       strcpy(buf, grGetString(GR_VERSION));
@@ -544,7 +596,7 @@ fxMesaCreateContext(GLuint win,
       fprintf(stderr, "Voodoo pixel order = %s, vertex snapping = %d\n",
                       useBGR ? "BGR" : "RGB",
                       fxMesa->snapVertices);
-      fprintf(stderr, "Voodoo screen: %dx%d.%d\n",
+      fprintf(stderr, "Voodoo screen: %dx%d:%d\n",
 	              fxMesa->screen_width, fxMesa->screen_height, colDepth);
    }
 

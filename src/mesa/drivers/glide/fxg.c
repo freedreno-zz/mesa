@@ -31,6 +31,8 @@
  */
 
 
+#ifdef FX
+
 #include <stdio.h>
 #include <stdarg.h>
 #include <assert.h>
@@ -38,17 +40,23 @@
 #define DEBUG_TRAP_internal
 #include "fxg.h"
 
+/* texus.h */
+FX_ENTRY void FX_CALL txImgQuantize (char *dst, char *src, int w, int h, FxU32 format, FxU32 dither);
+FX_ENTRY void FX_CALL txMipQuantize (TxMip *pxMip, TxMip *txMip, int fmt, FxU32 d, FxU32 comp);
+FX_ENTRY void FX_CALL txPalToNcc (GuNccTable *ncc_table, const FxU32 *pal);
+/* texus.h */
+
 
 
 /****************************************************************************\
 * logging                                                                    *
 \****************************************************************************/
 #if DEBUG_TRAP
-#define TRAP_LOG trap_printf
+#define TRAP_LOG trp_printf
 #ifdef __GNUC__
 __attribute__ ((format(printf, 1, 2)))
 #endif /* __GNUC__ */
-int trap_printf (const char *format, ...)
+int trp_printf (const char *format, ...)
 {
  va_list arg;
  int n;
@@ -232,8 +240,10 @@ const char *TRP_BLEND (GrAlphaBlendFnc_t func)
         TRAP_CASE_STRING(GR_BLEND_ONE_MINUS_SRC_COLOR);
         /*TRAP_CASE_STRING(GR_BLEND_ONE_MINUS_DST_COLOR); ==GR_BLEND_ONE_MINUS_SRC_COLOR*/
         TRAP_CASE_STRING(GR_BLEND_ONE_MINUS_DST_ALPHA);
-        TRAP_CASE_STRING(GR_BLEND_RESERVED_8);
-        TRAP_CASE_STRING(GR_BLEND_RESERVED_9);
+        TRAP_CASE_STRING(GR_BLEND_SAME_COLOR_EXT);
+        /*TRAP_CASE_STRING(GR_BLEND_RESERVED_8); ==GR_BLEND_SAME_COLOR_EXT*/
+        TRAP_CASE_STRING(GR_BLEND_ONE_MINUS_SAME_COLOR_EXT);
+        /*TRAP_CASE_STRING(GR_BLEND_RESERVED_9); ==GR_BLEND_ONE_MINUS_SAME_COLOR_EXT*/
         TRAP_CASE_STRING(GR_BLEND_RESERVED_A);
         TRAP_CASE_STRING(GR_BLEND_RESERVED_B);
         TRAP_CASE_STRING(GR_BLEND_RESERVED_C);
@@ -731,8 +741,6 @@ const char *TRP_BLENDOP (GrAlphaBlendOp_t op)
         TRAP_CASE_STRING(GR_BLEND_OP_ADD);
         TRAP_CASE_STRING(GR_BLEND_OP_SUB);
         TRAP_CASE_STRING(GR_BLEND_OP_REVSUB);
-        TRAP_CASE_STRING(GR_BLEND_SAME_COLOR_EXT);
-        TRAP_CASE_STRING(GR_BLEND_ONE_MINUS_SAME_COLOR_EXT);
         TRAP_NODEFAULT;
  }
 }
@@ -783,6 +791,25 @@ const char *TRP_TMU (GrChipID_t tmu)
  }
 }
 
+const char *TRP_TXDITHER (FxU32 dither)
+{
+ switch (dither) {
+        TRAP_CASE_STRING(TX_DITHER_NONE);
+        TRAP_CASE_STRING(TX_DITHER_4x4);
+        TRAP_CASE_STRING(TX_DITHER_ERR);
+        TRAP_NODEFAULT;
+ }
+}
+
+const char *TRP_TXCOMPRESS (FxU32 compress)
+{
+ switch (compress) {
+        TRAP_CASE_STRING(TX_COMPRESSION_STATISTICAL);
+        TRAP_CASE_STRING(TX_COMPRESSION_HEURISTIC);
+        TRAP_NODEFAULT;
+ }
+}
+
 
 
 /****************************************************************************\
@@ -798,6 +825,11 @@ void (FX_CALL *real_grChromaRangeModeExt) (GrChromakeyMode_t mode);
 void (FX_CALL *real_grChromaRangeExt) (GrColor_t color, GrColor_t range, GrChromaRangeMode_t match_mode);
 void (FX_CALL *real_grTexChromaModeExt) (GrChipID_t tmu, GrChromakeyMode_t mode);
 void (FX_CALL *real_grTexChromaRangeExt) (GrChipID_t tmu, GrColor_t min, GrColor_t max, GrTexChromakeyMode_t mode);
+
+/* pointcast */
+void (FX_CALL *real_grTexDownloadTableExt) (GrChipID_t tmu, GrTexTable_t type, void *data);
+void (FX_CALL *real_grTexDownloadTablePartialExt) (GrChipID_t tmu, GrTexTable_t type, void *data, int start, int end);
+void (FX_CALL *real_grTexNCCTableExt) (GrChipID_t tmu, GrNCCTable_t table);
 
 /* tbext */
 void (FX_CALL *real_grTextureBufferExt) (GrChipID_t tmu, FxU32 startAddress, GrLOD_t thisLOD, GrLOD_t largeLOD, GrAspectRatio_t aspectRatio, GrTextureFormat_t format, FxU32 odd_even_mask);
@@ -1857,6 +1889,41 @@ void FX_CALL trap_grTexChromaRangeExt (GrChipID_t           tmu,
 #undef FN_NAME
 }
 
+        /* pointcast */
+void FX_CALL trap_grTexDownloadTableExt (GrChipID_t   tmu,
+                                         GrTexTable_t type,
+                                         void         *data)
+{
+#define FN_NAME "grTexDownloadTableExt"
+ TRAP_LOG("%s(%s, %s, %p)\n", FN_NAME, TRP_TMU(tmu), TRP_TABLE(type), data);
+ assert(real_grTexDownloadTableExt);
+ (*real_grTexDownloadTableExt)(tmu, type, data);
+#undef FN_NAME
+}
+
+void FX_CALL trap_grTexDownloadTablePartialExt (GrChipID_t   tmu,
+                                                GrTexTable_t type,
+                                                void         *data,
+                                                int          start,
+                                                int          end)
+{
+#define FN_NAME "grTexDownloadTablePartialExt"
+ TRAP_LOG("%s(%s, %s, %p, %d, %d)\n", FN_NAME, TRP_TMU(tmu), TRP_TABLE(type), data, start, end);
+ assert(real_grTexDownloadTablePartialExt);
+ (*real_grTexDownloadTablePartialExt)(tmu, type, data, start, end);
+#undef FN_NAME
+}
+
+void FX_CALL trap_grTexNCCTableExt (GrChipID_t   tmu,
+                                    GrNCCTable_t table)
+{
+#define FN_NAME "grTexNCCTableExt"
+ TRAP_LOG("%s(%s, %s)\n", FN_NAME, TRP_TMU(tmu), TRP_NCC(table));
+ assert(real_grTexNCCTableExt);
+ (*real_grTexNCCTableExt)(tmu, table);
+#undef FN_NAME
+}
+
         /* tbext */
 void FX_CALL trap_grTextureBufferExt (GrChipID_t        tmu,
                                       FxU32             startAddress,
@@ -2087,7 +2154,71 @@ void FX_CALL trap_grTBufferWriteMaskExt (FxU32 tmask)
  (*real_grTBufferWriteMaskExt)(tmask);
 #undef FN_NAME
 }
+
+/*
+** texus functions
+*/
+void FX_CALL trap_txImgQuantize (char  *dst,
+                                 char  *src,
+                                 int   w,
+                                 int   h,
+                                 FxU32 format,
+                                 FxU32 dither)
+{
+#define FN_NAME "txImgQuantize"
+ TRAP_LOG("%s(%p, %p, %d, %d, %s, %s)\n", FN_NAME, dst, src, w, h, TRP_TEXFMT(format), TRP_TXDITHER(dither));
+ txImgQuantize(dst, src, w, h, format, dither);
+#undef FN_NAME
+}
+
+void FX_CALL trap_txMipQuantize (TxMip *pxMip,
+                                 TxMip *txMip,
+                                 int   fmt,
+                                 FxU32 d,
+                                 FxU32 comp)
+{
+#define FN_NAME "txMipQuantize"
+ TRAP_LOG("%s(%p, %p, %s, %s, %s)\n", FN_NAME, (void *)pxMip, (void *)txMip, TRP_TEXFMT(fmt), TRP_TXDITHER(d), TRP_TXCOMPRESS(comp));
+ txMipQuantize(pxMip, txMip, fmt, d, comp);
+#undef FN_NAME
+}
+
+void FX_CALL trap_txPalToNcc (GuNccTable *ncc_table,
+                              const FxU32 *pal)
+{
+#define FN_NAME "txPalToNcc"
+ TRAP_LOG("%s(%p, %p)\n", FN_NAME, (void *)ncc_table, (void *)pal);
+ txPalToNcc(ncc_table, pal);
+#undef FN_NAME
+}
 #endif
+
+
+
+/****************************************************************************\
+* housekeeping (fake pointers)
+\****************************************************************************/
+void FX_CALL fake_grTexDownloadTableExt (GrChipID_t   tmu,
+                                         GrTexTable_t type,
+                                         void         *data)
+{
+ grTexDownloadTable(type, data);
+}
+
+void FX_CALL fake_grTexDownloadTablePartialExt (GrChipID_t   tmu,
+                                                GrTexTable_t type,
+                                                void         *data,
+                                                int          start,
+                                                int          end)
+{
+ grTexDownloadTablePartial(type, data, start, end);
+}
+
+void FX_CALL fake_grTexNCCTableExt (GrChipID_t   tmu,
+                                    GrNCCTable_t table)
+{
+ grTexNCCTable(table);
+}
 
 
 
@@ -2097,9 +2228,13 @@ void FX_CALL trap_grTBufferWriteMaskExt (FxU32 tmask)
 void tdfx_hook_glide (struct tdfx_glide *Glide)
 {
 #if DEBUG_TRAP
-#define GET_EXT_ADDR(name)  *(GrProc *)&real_##name = grGetProcAddress(#name), Glide->name = trap_##name
+#define GET_EXT_ADDR(name) *(GrProc *)&real_##name = grGetProcAddress(#name), Glide->name = trap_##name
+#define GET_EXT_FAKE(name) GET_EXT_ADDR(name); if (real_##name == NULL) real_##name = fake_##name
+#define GET_TXS_ADDR(name) Glide->name = trap_##name
 #else  /* DEBUG_TRAP */
-#define GET_EXT_ADDR(name)  *(GrProc *)&Glide->name = grGetProcAddress(#name)
+#define GET_EXT_ADDR(name) *(GrProc *)&Glide->name = grGetProcAddress(#name)
+#define GET_EXT_FAKE(name) GET_EXT_ADDR(name); if (Glide->name == NULL) Glide->name = fake_##name
+#define GET_TXS_ADDR(name) Glide->name = name
 #endif /* DEBUG_TRAP */
 
  /*
@@ -2111,6 +2246,10 @@ void tdfx_hook_glide (struct tdfx_glide *Glide)
  GET_EXT_ADDR(grChromaRangeExt);
  GET_EXT_ADDR(grTexChromaModeExt);
  GET_EXT_ADDR(grTexChromaRangeExt);
+ /* pointcast */
+ GET_EXT_FAKE(grTexDownloadTableExt);
+ GET_EXT_FAKE(grTexDownloadTablePartialExt);
+ GET_EXT_FAKE(grTexNCCTableExt);
  /* tbext */
  GET_EXT_ADDR(grTextureBufferExt);
  GET_EXT_ADDR(grTextureAuxBufferExt);
@@ -2131,5 +2270,14 @@ void tdfx_hook_glide (struct tdfx_glide *Glide)
  GET_EXT_ADDR(grAlphaBlendFunctionExt);
  GET_EXT_ADDR(grTBufferWriteMaskExt);
 
+ /*
+ ** texus
+ */
+ GET_TXS_ADDR(txImgQuantize);
+ GET_TXS_ADDR(txMipQuantize);
+ GET_TXS_ADDR(txPalToNcc);
+
 #undef GET_EXT_ADDR
 }
+
+#endif /* FX */

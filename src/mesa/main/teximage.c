@@ -262,6 +262,30 @@ _mesa_base_tex_format( GLcontext *ctx, GLint format )
             return GL_RGBA;
          else
             return -1;
+      case GL_COMPRESSED_RGB_S3TC_DXT1_EXT:
+         if (ctx->Extensions.EXT_texture_compression_s3tc)
+            return GL_RGB;
+         else
+            return -1;
+      case GL_COMPRESSED_RGBA_S3TC_DXT1_EXT:
+      case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
+      case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
+         if (ctx->Extensions.EXT_texture_compression_s3tc)
+            return GL_RGBA;
+         else
+            return -1;
+      case GL_RGB_S3TC:
+      case GL_RGB4_S3TC:
+         if (ctx->Extensions.S3_s3tc)
+            return GL_RGB;
+         else
+            return -1;
+      case GL_RGBA_S3TC:
+      case GL_RGBA4_S3TC:
+         if (ctx->Extensions.S3_s3tc)
+            return GL_RGBA;
+         else
+            return -1;
 
       case GL_YCBCR_MESA:
          if (ctx->Extensions.MESA_ycbcr_texture)
@@ -366,13 +390,24 @@ is_index_format(GLenum format)
  * are supported.
  */
 static GLboolean
-is_compressed_format(GLenum internalFormat)
+is_compressed_format(GLcontext *ctx, GLenum internalFormat)
 {
    switch (internalFormat) {
       case GL_COMPRESSED_RGB_FXT1_3DFX:
       case GL_COMPRESSED_RGBA_FXT1_3DFX:
+      case GL_COMPRESSED_RGB_S3TC_DXT1_EXT:
+      case GL_COMPRESSED_RGBA_S3TC_DXT1_EXT:
+      case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
+      case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
+      case GL_RGB_S3TC:
+      case GL_RGB4_S3TC:
+      case GL_RGBA_S3TC:
+      case GL_RGBA4_S3TC:
          return GL_TRUE;
       default:
+         if (ctx->Driver.IsCompressedFormat) {
+            return ctx->Driver.IsCompressedFormat(ctx, internalFormat);
+         }
          return GL_FALSE;
    }
 }
@@ -916,7 +951,7 @@ _mesa_init_teximage_fields(GLcontext *ctx, GLenum target,
    img->Height2 = height - 2 * border; /*1 << img->HeightLog2;*/
    img->Depth2 = depth - 2 * border; /*1 << img->DepthLog2;*/
    img->MaxLog2 = MAX2(img->WidthLog2, img->HeightLog2);
-   img->IsCompressed = is_compressed_format(internalFormat);
+   img->IsCompressed = is_compressed_format(ctx, internalFormat);
    if (img->IsCompressed)
       img->CompressedSize = _mesa_compressed_texture_size(ctx, width, height,
                                                        depth, internalFormat);
@@ -1236,7 +1271,7 @@ texture_error_check( GLcontext *ctx, GLenum target,
       }
    }
 
-   if (is_compressed_format(internalFormat)) {
+   if (is_compressed_format(ctx, internalFormat)) {
       if (target == GL_TEXTURE_2D || target == GL_PROXY_TEXTURE_2D) {
          /* OK */
       }
@@ -1569,7 +1604,7 @@ copytexture_error_check( GLcontext *ctx, GLuint dimensions,
       return GL_TRUE;
    }
 
-   if (is_compressed_format(internalFormat)) {
+   if (is_compressed_format(ctx, internalFormat)) {
       if (target != GL_TEXTURE_2D) {
          _mesa_error(ctx, GL_INVALID_ENUM,
                      "glCopyTexImage%d(target)", dimensions);
@@ -1756,7 +1791,7 @@ copytexsubimage_error_check( GLcontext *ctx, GLuint dimensions,
  * \param type pixel data type.
  * \param pixels pixel data.
  */
-void
+void GLAPIENTRY
 _mesa_GetTexImage( GLenum target, GLint level, GLenum format,
                    GLenum type, GLvoid *pixels )
 {
@@ -1895,7 +1930,7 @@ _mesa_GetTexImage( GLenum target, GLint level, GLenum format,
 /*
  * Called from the API.  Note that width includes the border.
  */
-void
+void GLAPIENTRY
 _mesa_TexImage1D( GLenum target, GLint level, GLint internalFormat,
                   GLsizei width, GLint border, GLenum format,
                   GLenum type, const GLvoid *pixels )
@@ -1984,7 +2019,7 @@ _mesa_TexImage1D( GLenum target, GLint level, GLint internalFormat,
 }
 
 
-void
+void GLAPIENTRY
 _mesa_TexImage2D( GLenum target, GLint level, GLint internalFormat,
                   GLsizei width, GLsizei height, GLint border,
                   GLenum format, GLenum type,
@@ -2089,7 +2124,7 @@ _mesa_TexImage2D( GLenum target, GLint level, GLint internalFormat,
  * Called by the API or display list executor.
  * Note that width and height include the border.
  */
-void
+void GLAPIENTRY
 _mesa_TexImage3D( GLenum target, GLint level, GLint internalFormat,
                   GLsizei width, GLsizei height, GLsizei depth,
                   GLint border, GLenum format, GLenum type,
@@ -2170,7 +2205,7 @@ _mesa_TexImage3D( GLenum target, GLint level, GLint internalFormat,
 }
 
 
-void
+void GLAPIENTRY
 _mesa_TexImage3DEXT( GLenum target, GLint level, GLenum internalFormat,
                      GLsizei width, GLsizei height, GLsizei depth,
                      GLint border, GLenum format, GLenum type,
@@ -2182,7 +2217,7 @@ _mesa_TexImage3DEXT( GLenum target, GLint level, GLenum internalFormat,
 
 
 
-void
+void GLAPIENTRY
 _mesa_TexSubImage1D( GLenum target, GLint level,
                      GLint xoffset, GLsizei width,
                      GLenum format, GLenum type,
@@ -2227,7 +2262,7 @@ _mesa_TexSubImage1D( GLenum target, GLint level,
 }
 
 
-void
+void GLAPIENTRY
 _mesa_TexSubImage2D( GLenum target, GLint level,
                      GLint xoffset, GLint yoffset,
                      GLsizei width, GLsizei height,
@@ -2276,7 +2311,7 @@ _mesa_TexSubImage2D( GLenum target, GLint level,
 
 
 
-void
+void GLAPIENTRY
 _mesa_TexSubImage3D( GLenum target, GLint level,
                      GLint xoffset, GLint yoffset, GLint zoffset,
                      GLsizei width, GLsizei height, GLsizei depth,
@@ -2321,7 +2356,7 @@ _mesa_TexSubImage3D( GLenum target, GLint level,
 
 
 
-void
+void GLAPIENTRY
 _mesa_CopyTexImage1D( GLenum target, GLint level,
                       GLenum internalFormat,
                       GLint x, GLint y,
@@ -2381,7 +2416,7 @@ _mesa_CopyTexImage1D( GLenum target, GLint level,
 
 
 
-void
+void GLAPIENTRY
 _mesa_CopyTexImage2D( GLenum target, GLint level, GLenum internalFormat,
                       GLint x, GLint y, GLsizei width, GLsizei height,
                       GLint border )
@@ -2441,7 +2476,7 @@ _mesa_CopyTexImage2D( GLenum target, GLint level, GLenum internalFormat,
 
 
 
-void
+void GLAPIENTRY
 _mesa_CopyTexSubImage1D( GLenum target, GLint level,
                          GLint xoffset, GLint x, GLint y, GLsizei width )
 {
@@ -2477,7 +2512,7 @@ _mesa_CopyTexSubImage1D( GLenum target, GLint level,
 
 
 
-void
+void GLAPIENTRY
 _mesa_CopyTexSubImage2D( GLenum target, GLint level,
                          GLint xoffset, GLint yoffset,
                          GLint x, GLint y, GLsizei width, GLsizei height )
@@ -2516,7 +2551,7 @@ _mesa_CopyTexSubImage2D( GLenum target, GLint level,
 
 
 
-void
+void GLAPIENTRY
 _mesa_CopyTexSubImage3D( GLenum target, GLint level,
                          GLint xoffset, GLint yoffset, GLint zoffset,
                          GLint x, GLint y, GLsizei width, GLsizei height )
@@ -2612,7 +2647,7 @@ compressed_texture_error_check(GLcontext *ctx, GLint dimensions,
 
    maxTextureSize = 1 << (maxLevels - 1);
 
-   if (!is_compressed_format(internalFormat))
+   if (!is_compressed_format(ctx, internalFormat))
       return GL_INVALID_ENUM;
 
    if (border != 0)
@@ -2701,7 +2736,7 @@ compressed_subtexture_error_check(GLcontext *ctx, GLint dimensions,
 
    maxTextureSize = 1 << (maxLevels - 1);
 
-   if (!is_compressed_format(format))
+   if (!is_compressed_format(ctx, format))
       return GL_INVALID_ENUM;
 
    if (width < 1 || width > maxTextureSize)
@@ -2733,7 +2768,7 @@ compressed_subtexture_error_check(GLcontext *ctx, GLint dimensions,
 
 
 
-void
+void GLAPIENTRY
 _mesa_CompressedTexImage1DARB(GLenum target, GLint level,
                               GLenum internalFormat, GLsizei width,
                               GLint border, GLsizei imageSize,
@@ -2812,7 +2847,7 @@ _mesa_CompressedTexImage1DARB(GLenum target, GLint level,
 }
 
 
-void
+void GLAPIENTRY
 _mesa_CompressedTexImage2DARB(GLenum target, GLint level,
                               GLenum internalFormat, GLsizei width,
                               GLsizei height, GLint border, GLsizei imageSize,
@@ -2896,7 +2931,7 @@ _mesa_CompressedTexImage2DARB(GLenum target, GLint level,
 }
 
 
-void
+void GLAPIENTRY
 _mesa_CompressedTexImage3DARB(GLenum target, GLint level,
                               GLenum internalFormat, GLsizei width,
                               GLsizei height, GLsizei depth, GLint border,
@@ -2976,7 +3011,7 @@ _mesa_CompressedTexImage3DARB(GLenum target, GLint level,
 }
 
 
-void
+void GLAPIENTRY
 _mesa_CompressedTexSubImage1DARB(GLenum target, GLint level, GLint xoffset,
                                  GLsizei width, GLenum format,
                                  GLsizei imageSize, const GLvoid *data)
@@ -3024,7 +3059,7 @@ _mesa_CompressedTexSubImage1DARB(GLenum target, GLint level, GLint xoffset,
 }
 
 
-void
+void GLAPIENTRY
 _mesa_CompressedTexSubImage2DARB(GLenum target, GLint level, GLint xoffset,
                                  GLint yoffset, GLsizei width, GLsizei height,
                                  GLenum format, GLsizei imageSize,
@@ -3074,7 +3109,7 @@ _mesa_CompressedTexSubImage2DARB(GLenum target, GLint level, GLint xoffset,
 }
 
 
-void
+void GLAPIENTRY
 _mesa_CompressedTexSubImage3DARB(GLenum target, GLint level, GLint xoffset,
                                  GLint yoffset, GLint zoffset, GLsizei width,
                                  GLsizei height, GLsizei depth, GLenum format,
@@ -3126,7 +3161,7 @@ _mesa_CompressedTexSubImage3DARB(GLenum target, GLint level, GLint xoffset,
 }
 
 
-void
+void GLAPIENTRY
 _mesa_GetCompressedTexImageARB(GLenum target, GLint level, GLvoid *img)
 {
    const struct gl_texture_unit *texUnit;

@@ -1,9 +1,8 @@
-
 /*
  * Mesa 3-D graphics library
- * Version:  4.1
+ * Version:  5.1
  *
- * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2003  Brian Paul   All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -32,7 +31,7 @@
 #include "mtypes.h"
 
 
-void
+void GLAPIENTRY
 _mesa_ClearAccum( GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha )
 {
    GLfloat tmp[4];
@@ -51,9 +50,8 @@ _mesa_ClearAccum( GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha )
    COPY_4FV( ctx->Accum.ClearColor, tmp );
 }
 
-/* Should really be a driver-supplied function?
- */
-void
+
+void GLAPIENTRY
 _mesa_Accum( GLenum op, GLfloat value )
 {
    GET_CURRENT_CONTEXT(ctx);
@@ -67,6 +65,11 @@ _mesa_Accum( GLenum op, GLfloat value )
 
    if (ctx->NewState)
       _mesa_update_state( ctx );
+
+   if (ctx->RenderMode != GL_RENDER) {
+      /* no-op */
+      return;
+   }
 
    /* Determine region to operate upon. */
    if (ctx->Scissor.Enabled) {

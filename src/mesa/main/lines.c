@@ -50,7 +50,7 @@
  * width is different from one. Notifies the driver via the
  * dd_function_table::LineWidth callback.
  */
-void
+void GLAPIENTRY
 _mesa_LineWidth( GLfloat width )
 {
    GET_CURRENT_CONTEXT(ctx);
@@ -93,7 +93,7 @@ _mesa_LineWidth( GLfloat width )
  * change flushes the vertices and notifies the driver via
  * the dd_function_table::LineStipple callback.
  */
-void
+void GLAPIENTRY
 _mesa_LineStipple( GLint factor, GLushort pattern )
 {
    GET_CURRENT_CONTEXT(ctx);
@@ -122,7 +122,7 @@ _mesa_LineStipple( GLint factor, GLushort pattern )
  * Initializes __GLcontextRec::Line and line related constants in
  * __GLcontextRec::Const.
  */
-void _mesa_init_line( GLcontext * ctx )
+void GLAPIENTRY _mesa_init_line( GLcontext * ctx )
 {
    /* Line group */
    ctx->Line.SmoothFlag = GL_FALSE;

@@ -59,7 +59,7 @@ _swrast_update_rasterflags( GLcontext *ctx )
    if (ctx->Visual.rgbMode) {
       const GLuint colorMask = *((GLuint *) &ctx->Color.ColorMask);
       if (colorMask != 0xffffffff)        RasterMask |= MASKING_BIT;
-      if (ctx->Color.ColorLogicOpEnabled) RasterMask |= LOGIC_OP_BIT;
+      if (ctx->Color._LogicOpEnabled)     RasterMask |= LOGIC_OP_BIT;
       if (ctx->Texture._EnabledUnits)     RasterMask |= TEXTURE_BIT;
    }
    else {
@@ -269,7 +269,7 @@ _swrast_validate_point( GLcontext *ctx, const SWvertex *v0 )
 }
 
 
-static void
+static void _ASMAPI
 _swrast_validate_blend_func( GLcontext *ctx, GLuint n,
 			     const GLubyte mask[],
 			     GLchan src[][4],
@@ -311,11 +311,6 @@ _swrast_validate_texture_sample( GLcontext *ctx, GLuint texUnit,
 
    swrast->TextureSample[texUnit]( ctx, texUnit, tObj, n, texcoords,
                                    lambda, rgba );
-
-   /* GL_SGI_texture_color_table */
-   if (ctx->Texture.Unit[texUnit].ColorTableEnabled) {
-      _swrast_texture_table_lookup(&ctx->Texture.Unit[texUnit].ColorTable, n, rgba);
-   }
 }
 
 

@@ -1062,6 +1062,15 @@ _mesa_init_constants( GLcontext *ctx )
    ctx->Const.MaxProgramMatrices = MAX_PROGRAM_MATRICES;
    ctx->Const.MaxProgramMatrixStackDepth = MAX_PROGRAM_MATRIX_STACK_DEPTH;
 
+   /* If we're running in the X server, do bounds checking to prevent
+    * segfaults and server crashes!
+    */
+#if defined(XFree86LOADER) && defined(IN_MODULE)
+   ctx->Const.CheckArrayBounds = GL_TRUE;
+#else
+   ctx->Const.CheckArrayBounds = GL_FALSE;
+#endif
+
    ASSERT(ctx->Const.MaxTextureUnits == MAX2(ctx->Const.MaxTextureImageUnits, ctx->Const.MaxTextureCoordUnits));
 }
 
@@ -1906,7 +1915,7 @@ _mesa_record_error( GLcontext *ctx, GLenum error )
  * Calls the #ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH macro and the
  * dd_function_table::Finish driver callback, if not NULL.
  */
-void
+void GLAPIENTRY
 _mesa_Finish( void )
 {
    GET_CURRENT_CONTEXT(ctx);
@@ -1922,7 +1931,7 @@ _mesa_Finish( void )
  * Calls the #ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH macro and the
  * dd_function_table::Flush driver callback, if not NULL.
  */
-void
+void GLAPIENTRY
 _mesa_Flush( void )
 {
    GET_CURRENT_CONTEXT(ctx);

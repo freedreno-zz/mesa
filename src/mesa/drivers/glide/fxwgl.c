@@ -1,5 +1,3 @@
-/* $Id: fxwgl.c,v 1.18 2003/10/02 17:36:45 brianp Exp $ */
-
 /*
  * Mesa 3-D graphics library
  * Version:  4.0
@@ -59,6 +57,11 @@ extern "C"
 
 #define MAX_MESA_ATTRS  20
 
+#if (_MSC_VER >= 1200)
+#pragma warning( push )
+#pragma warning( disable : 4273 )
+#endif
+
 struct __extensions__
 {
    PROC proc;
@@ -71,7 +74,7 @@ struct __pixelformat__
    GLint mesaAttr[MAX_MESA_ATTRS];
 };
 
-//WINGDIAPI void GLAPIENTRY gl3DfxSetPaletteEXT(GLuint *);
+WINGDIAPI void GLAPIENTRY gl3DfxSetPaletteEXT(GLuint *);
 
 struct __pixelformat__ pix[] = {
    /* 16bit RGB565 single buffer with depth */
@@ -166,53 +169,6 @@ struct __pixelformat__ pix[] = {
      FXMESA_NONE}
    }
    ,
-#if 1
-  /* 24bit RGB888 single buffer with depth */
-   {
-    {sizeof(PIXELFORMATDESCRIPTOR), 1,
-     PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL,
-     PFD_TYPE_RGBA,
-     24,
-     8, 0, 8, 8, 8, 16, 0, 0,
-     0, 0, 0, 0, 0,
-     24,
-     8,
-     0,
-     PFD_MAIN_PLANE,
-     0, 0, 0, 0}
-    ,
-    {FXMESA_COLORDEPTH, 32,
-     FXMESA_ALPHA_SIZE, 8,
-     FXMESA_DEPTH_SIZE, 24,
-     FXMESA_STENCIL_SIZE, 8,
-     FXMESA_ACCUM_SIZE, 0,
-     FXMESA_NONE}
-   }
-   ,
-   /* 24bit RGB888 double buffer with depth */
-   {
-    {sizeof(PIXELFORMATDESCRIPTOR), 1,
-     PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL |
-     PFD_DOUBLEBUFFER | PFD_SWAP_COPY,
-     PFD_TYPE_RGBA,
-     24,
-     8, 0, 8, 8, 8, 16, 0, 0,
-     0, 0, 0, 0, 0,
-     24,
-     8,
-     0,
-     PFD_MAIN_PLANE,
-     0, 0, 0, 0}
-    ,
-    {FXMESA_COLORDEPTH, 32,
-     FXMESA_DOUBLEBUFFER,
-     FXMESA_ALPHA_SIZE, 8,
-     FXMESA_DEPTH_SIZE, 24,
-     FXMESA_STENCIL_SIZE, 8,
-     FXMESA_ACCUM_SIZE, 0,
-     FXMESA_NONE}
-   },
-#endif
    /* 32bit ARGB8888 single buffer with depth */
    {
     {sizeof(PIXELFORMATDESCRIPTOR), 1,
@@ -365,7 +321,7 @@ wglCreateContext(HDC hdc)
       SetWindowLong(hWnd, GWL_WNDPROC, (LONG) __wglMonitor);
    }
 
-#ifdef FX_DEBUG
+#if FX_DEBUG
    freopen("MESA.LOG", "w", stderr);
 #endif
 
@@ -915,7 +871,7 @@ wglDescribeLayerPlane(HDC hdc, int iPixelFormat, int iLayerPlane,
 
 GLAPI int GLAPIENTRY
 wglGetLayerPaletteEntries(HDC hdc, int iLayerPlane, int iStart,
-                          int cEntries, CONST COLORREF *pcr)
+                          int cEntries, COLORREF *pcr)
 {
   SetLastError(0);
   return (FALSE);
@@ -935,5 +891,9 @@ wglSetLayerPaletteEntries(HDC hdc,int iLayerPlane, int iStart,
   SetLastError(0);
   return(FALSE);
 }
+
+#if (_MSC_VER >= 1200)
+#pragma warning( pop )
+#endif
 
 #endif /* FX */

@@ -20,6 +20,7 @@ SOURCES =accum.c \
 	api_loopback.c \
 	api_noop.c \
 	api_validate.c \
+	arbparse.c \
 	arbfragparse.c \
 	arbprogram.c \
 	arbvertparse.c \
@@ -71,13 +72,13 @@ SOURCES =accum.c \
 	texstore.c \
 	texutil.c \
 	varray.c \
-	vtxfmt.c \
-	vsnprintf.c
+	vtxfmt.c
 
 OBJECTS=accum.obj,\
 api_loopback.obj,\
 api_noop.obj,\
 api_validate.obj,\
+arbparse.obj,\
 arbfragparse.obj,\
 arbprogram.obj,\
 arbvertparse.obj,\
@@ -129,8 +130,7 @@ texstate.obj,\
 texstore.obj,\
 texutil.obj,\
 varray.obj,\
-vtxfmt.obj,\
-vsnprintf.obj
+vtxfmt.obj
 
 ##### RULES #####
 
@@ -150,6 +150,7 @@ accum.obj : accum.c
 api_loopback.obj : api_loopback.c
 api_noop.obj : api_noop.c
 api_validate.obj : api_validate.c
+arbparse.obj : arbparse.c
 arbfragparse.obj : arbfragparse.c
 arbprogram.obj : arbprogram.c
 arbvertparse.obj : arbvertparse.c
@@ -177,7 +178,7 @@ hash.obj : hash.c
 hint.obj : hint.c
 histogram.obj : histogram.c
 image.obj : image.c
-imports.obj : imports.c
+imports.obj : imports.c vsnprintf.c
 light.obj : light.c
 lines.obj : lines.c
 matrix.obj : matrix.c
@@ -202,4 +203,3 @@ texstore.obj : texstore.c
 texutil.obj : texutil.c
 varray.obj : varray.c
 vtxfmt.obj : vtxfmt.c
-vsnprintf.obj : vsnprintf.c

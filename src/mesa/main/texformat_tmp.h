@@ -337,9 +337,9 @@ static void FETCH(ycbcr_rev)( const struct gl_texture_image *texImage,
    const GLushort *src0 = USHORT_SRC( texImage, (i & ~1), j, k ); /* even */
    const GLushort *src1 = src0 + 1;                               /* odd */
    const GLubyte y0 = *src0 & 0xff;         /* luminance */
-   const GLubyte cr = (*src0 >> 8) & 0xff;  /* chroma U */
+   const GLubyte cr = (*src0 >> 8) & 0xff;  /* chroma V */
    const GLubyte y1 = *src1 & 0xff;         /* luminance */
-   const GLubyte cb = (*src1 >> 8) & 0xff;  /* chroma V */
+   const GLubyte cb = (*src1 >> 8) & 0xff;  /* chroma U */
    GLchan *rgba = (GLchan *) texel;
    GLint r, g, b;
    if (i & 1) {
@@ -359,6 +359,27 @@ static void FETCH(ycbcr_rev)( const struct gl_texture_image *texImage,
    rgba[BCOMP] = CLAMP(b, 0, CHAN_MAX);
    rgba[ACOMP] = CHAN_MAX;
 }
+
+
+#if DIM == 2
+static void FETCH(rgb_fxt1)( const struct gl_texture_image *texImage,
+                             GLint i, GLint j, GLint k, GLvoid *texel )
+{
+   /* Extract the (i,j) pixel from texImage->Data and return it
+    * in texel[RCOMP], texel[GCOMP], texel[BCOMP], texel[ACOMP].
+    */
+}
+#endif
+
+#if DIM == 2
+static void FETCH(rgba_fxt1)( const struct gl_texture_image *texImage,
+                              GLint i, GLint j, GLint k, GLvoid *texel )
+{
+   /* Extract the (i,j) pixel from texImage->Data and return it
+    * in texel[RCOMP], texel[GCOMP], texel[BCOMP], texel[ACOMP].
+    */
+}
+#endif
 
 
 #if DIM == 2

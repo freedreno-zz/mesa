@@ -1,5 +1,3 @@
-/* $Id: fxglidew.h,v 1.16 2003/10/02 17:36:44 brianp Exp $ */
-
 /*
  * Mesa 3-D graphics library
  * Version:  4.0
@@ -71,13 +69,15 @@ typedef struct {
                int fbRam;	/* 1, 2, or 4 MB */
                int fbiRev;	/* Rev of Pixelfx chip */
                int nTexelfx;	/* How many texelFX chips are there? */
-               int numChips;	/* Number of Voodoo chips [koolsmoky] */
+               int numChips;	/* Number of Voodoo chips */
                GrTMUConfig_t tmuConfig[GLIDE_NUM_TMU];	/* Configuration of the Texelfx chips */
                /* Glide3 extensions */
+               FxBool HavePalExt;	/* PALETTE6666 */
                FxBool HavePixExt;	/* PIXEXT */
                FxBool HaveTexFmt;	/* TEXFMT */
                FxBool HaveCmbExt;	/* COMBINE */
                FxBool HaveMirExt;	/* TEXMIRROR */
+               FxBool HaveTexUma;	/* TEXUMA */
                FxBool HaveTexus2;	/* Texus 2 - FXT1 */
         }
         SSTs[MAX_NUM_SST];	/* configuration for each board */
@@ -213,14 +213,6 @@ extern FxBool FX_grSstControl(FxU32 code);
     grBufferClear(c, a, d);		\
     END_CLIP_LOOP();			\
   } while (0)
-
-
-
-#if FX_DEBUG
-extern int TDFX_DEBUG;
-#else
-#define TDFX_DEBUG		0
-#endif
 
 
 

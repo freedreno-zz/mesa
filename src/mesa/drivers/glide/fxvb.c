@@ -1,5 +1,3 @@
-/* $Id: fxvb.c,v 1.19.2.1 2003/11/21 13:40:21 keithw Exp $ */
-
 /*
  * Mesa 3-D graphics library
  * Version:  5.1
@@ -118,7 +116,7 @@ static void interp_extras( GLcontext *ctx,
 		 GET_COLOR(VB->ColorPtr[1], dst),
 		 GET_COLOR(VB->ColorPtr[1], out),
 		 GET_COLOR(VB->ColorPtr[1], in) );
-#if 0 /* [dBorca] leaving disabled for now */
+#if 1 /* [dBorca] GL_EXT_separate_specular_color */
       if (VB->SecondaryColorPtr[1]) {
 	 INTERP_3CHAN( t,
 		    GET_COLOR(VB->SecondaryColorPtr[1], dst),
@@ -143,7 +141,7 @@ static void copy_pv_extras( GLcontext *ctx, GLuint dst, GLuint src )
    if (VB->ColorPtr[1]) {
 	 COPY_CHAN4( GET_COLOR(VB->ColorPtr[1], dst),
 		   GET_COLOR(VB->ColorPtr[1], src) );
-#if 0 /* [dBorca] leaving disabled for now */
+#if 1 /* [dBorca] GL_EXT_separate_specular_color */
 	 if (VB->SecondaryColorPtr[1]) {
 	    COPY_CHAN4( GET_COLOR(VB->SecondaryColorPtr[1], dst),
 		      GET_COLOR(VB->SecondaryColorPtr[1], src) );
@@ -395,7 +393,7 @@ void fxFreeVB( GLcontext *ctx )
    }
 
    if (fxMesa->UbyteColor.Ptr) {
-      ALIGN_FREE(fxMesa->UbyteColor.Ptr);
+      ALIGN_FREE((void *)fxMesa->UbyteColor.Ptr);
       fxMesa->UbyteColor.Ptr = 0;
    }
 }
