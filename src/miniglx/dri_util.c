@@ -696,6 +696,8 @@ __driUtilCreateScreen(Display *dpy, int scrn, __DRIscreen *psc,
     __DRIscreenPrivate *psp;
     char *driverName;
 
+    fprintf(stderr, "%s\n", __FUNCTION__);
+
     psp = (__DRIscreenPrivate *)calloc(1, sizeof(__DRIscreenPrivate));
     if (!psp) 
 	return NULL;

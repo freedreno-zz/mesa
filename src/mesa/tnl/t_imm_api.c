@@ -1,4 +1,4 @@
-/* $Id: t_imm_api.c,v 1.35 2002/10/29 20:29:01 brianp Exp $ */
+/* $Id: t_imm_api.c,v 1.35.4.1 2002/12/12 14:22:04 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -606,8 +606,6 @@ static void
 _tnl_Normal3fv( const GLfloat *v )
 {
    NORMALF( v[0], v[1], v[2] );
-/*     struct immediate *IM = (struct immediate *)(((GLcontext *) _glapi_Context)->swtnl_im); */
-/*     IM->Flag[IM->Count] = VERT_NORM; */
 }
 
 

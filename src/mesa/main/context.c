@@ -1,4 +1,4 @@
-/* $Id: context.c,v 1.188.2.1 2002/11/19 15:25:16 brianp Exp $ */
+/* $Id: context.c,v 1.188.2.1.2.1 2002/12/12 14:22:02 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -2203,6 +2203,8 @@ _mesa_make_current2( GLcontext *newCtx, GLframebuffer *drawBuffer,
    if (MESA_VERBOSE)
       _mesa_debug(newCtx, "_mesa_make_current2()\n");
 
+   fprintf(stderr, "%s\n", __FUNCTION__);
+
    /* Check that the context's and framebuffer's visuals are compatible.
     * We could do a lot more checking here but this'll catch obvious
     * problems.
@@ -2245,13 +2247,14 @@ _mesa_make_current2( GLcontext *newCtx, GLframebuffer *drawBuffer,
             /* ask device driver for size of output buffer */
             (*newCtx->Driver.GetBufferSize)( drawBuffer, &bufWidth, &bufHeight );
 
-            if (drawBuffer->Width == bufWidth && drawBuffer->Height == bufHeight)
-               return; /* size is as expected */
+            if (drawBuffer->Width != bufWidth || 
+		drawBuffer->Height != bufHeight) {
 
-            drawBuffer->Width = bufWidth;
-            drawBuffer->Height = bufHeight;
+	       drawBuffer->Width = bufWidth;
+	       drawBuffer->Height = bufHeight;
 
-            newCtx->Driver.ResizeBuffers( drawBuffer );
+	       newCtx->Driver.ResizeBuffers( drawBuffer );
+	    }
          }
 
          if (readBuffer != drawBuffer &&
@@ -2262,17 +2265,21 @@ _mesa_make_current2( GLcontext *newCtx, GLframebuffer *drawBuffer,
             /* ask device driver for size of output buffer */
             (*newCtx->Driver.GetBufferSize)( readBuffer, &bufWidth, &bufHeight );
 
-            if (readBuffer->Width == bufWidth && readBuffer->Height == bufHeight)
-               return; /* size is as expected */
+            if (readBuffer->Width != bufWidth ||
+		readBuffer->Height != bufHeight) {
 
-            readBuffer->Width = bufWidth;
-            readBuffer->Height = bufHeight;
+	       readBuffer->Width = bufWidth;
+	       readBuffer->Height = bufHeight;
 
-            newCtx->Driver.ResizeBuffers( readBuffer );
+	       newCtx->Driver.ResizeBuffers( readBuffer );
+	    }
          }
       }
 
-      /* This is only for T&L - a bit out of place, or misnamed (BP) */
+      /* Alert the driver - usually passed on to the sw t&l module,
+       * but also used to detect threaded cases in the radeon codegen
+       * hw t&l module.
+       */
       if (newCtx->Driver.MakeCurrent)
 	 newCtx->Driver.MakeCurrent( newCtx, drawBuffer, readBuffer );
 

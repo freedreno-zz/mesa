@@ -11,55 +11,40 @@ dri_util.h
 
 	- Previously part of the driver.so file.
 	- Contains a lot of window-system specific code, but has only
-	  a single entrypoint.  Better located in libGL.so?
+	  a single entrypoint.  By moving this to live in libGL.so,
+	  these details are made more "private" to libGL.so.  We'd
+	  probably have to reproduce an unfeasible amount of X's
+	  clientside internals to keep this in the driver.so file.
 
-
-glxclient.h
-	- removed
-
-glxext.c
-	- removed
 
 miniglx.c
 
-	- Miniglx bindings.  Not currently referenced by the makefile.
+	- Miniglx bindings.  Includes things like XOpenDisplay as well
+          as more standard GLX fare.
 
 miniglxP.h 
 	
 	- Cut down version of glxclient.h
 
-
-SERVER-SIDE CODE
-----------------
-
-dri.c
-	- Code from the X server for
-	       - kernel module loading & initialization.
-	       - responses to driver.so queries (see XF86dri.c)
-
-dri.h
-dristruct.h
-	- Structs for dri.c
-
-
-
-XF86dri.c
-
-	- The XF86DRI* commands.  In normal dri, these send protocol
-          requests to the server.  Here they can talk directly to
-          dri.c.  In fact they should probably be pulled directly into
-          dri.c
+drm.h
+sarea.h
+	- kernel interfaces.  Note that not all drivers will talk to a
+	  kernel module
 
 xf86drm.c
 
 	- The drm* commands.  These are also currently present in the
-	  loadable driver.  Some of these are called by dri.c via
-	  radeon_dri.c.  May be possible to load the driver.so module
-	  before calling any of these, or else to remove them from the
-	  driver.so module and have them live here (** compatibility
-	  concerns).
+	  loadable driver.  Some of these are called by dri_util.c.
+	  May be possible to load the driver.so module before calling
+	  any of these, or else to remove them from the driver.so
+	  module and have them live here (** compatibility concerns).
 
 xf86drm.h
 	- Interfaces for xf86drm.c.
 
 
+These build a libGL.so which can load binary modules for an fbdev
+environment.  Those binary modules *could* work with X11, but
+currently are incompatible with the X11 modules due to the movement of
+shared code into libGL.so -- in particular dri_util.c and xf86drm.c
+which were previously part of the loadable driver.

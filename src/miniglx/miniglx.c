@@ -1,4 +1,4 @@
-/* $Id: miniglx.c,v 1.1.4.10 2002/12/09 22:33:09 brianp Exp $ */
+/* $Id: miniglx.c,v 1.1.4.11 2002/12/12 14:22:03 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -532,7 +532,7 @@ XOpenDisplay( const char *display_name )
       return NULL;
    }
 
-#if 0
+#if 1
    /* this effectively initializes the DRI driver - just an idea */
    dpy->driScreen.private = (*dpy->createScreen)(dpy, 0, &(dpy->driScreen),
                                                  dpy->numConfigs,
@@ -993,10 +993,11 @@ glXMakeCurrent( Display *dpy, GLXDrawable drawable, GLXContext ctx)
       ctx->drawBuffer = drawable;
       ctx->curBuffer = drawable;
    }
-   else {
+   else if (ctx && dpy) {
       /* unbind */
       (*ctx->driContext.bindContext)(dpy, 0, 0, 0);
    }
+
    return True;
 }
 
