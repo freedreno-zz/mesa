@@ -107,24 +107,20 @@ static void _tnl_copy_to_current( GLcontext *ctx )
 
    _mesa_debug( 0, "%s\n", __FUNCTION__); 
 
-   for (i = _TNL_ATTRIB_POS+1 ; i < _TNL_ATTRIB_INDEX ; i++) 
-      switch (tnl->vtx.attrsz[i]) {
-      case 4: tnl->vtx.current[i][3] = tnl->vtx.attrptr[i][3];
-      case 3: tnl->vtx.current[i][2] = tnl->vtx.attrptr[i][2];
-      case 2: tnl->vtx.current[i][1] = tnl->vtx.attrptr[i][1];
-      case 1: tnl->vtx.current[i][0] = tnl->vtx.attrptr[i][0];
-	 break;
+   for (i = _TNL_ATTRIB_POS+1 ; i <= _TNL_ATTRIB_INDEX ; i++) 
+      if (tnl->vtx.attrsz[i]) {
+	 ASSIGN_4V( tnl->vtx.current[i], 0, 0, 0, 1 );
+	 COPY_SZ_4V(tnl->vtx.current[i], 
+		    tnl->vtx.attrsz[i], 
+		    tnl->vtx.attrptr[i]);
       }
 
-   /* Edgeflag and Index require special treatment:
+   /* Edgeflag requires special treatment:
     */
-   if (tnl->vtx.attrsz[_TNL_ATTRIB_INDEX]) 
-      ctx->Current.Index = tnl->vtx.attrptr[_TNL_ATTRIB_INDEX][0];
-
    if (tnl->vtx.attrsz[_TNL_ATTRIB_EDGEFLAG]) 
-      ctx->Current.EdgeFlag = (tnl->vtx.attrptr[_TNL_ATTRIB_EDGEFLAG][0] == 1.0);
+      ctx->Current.EdgeFlag = 
+	 (tnl->vtx.attrptr[_TNL_ATTRIB_EDGEFLAG][0] == 1.0);
    
-
    ctx->Driver.NeedFlush &= ~FLUSH_UPDATE_CURRENT;
 }
 
@@ -136,7 +132,7 @@ static void _tnl_copy_from_current( GLcontext *ctx )
 
    _mesa_debug( 0, "%s\n", __FUNCTION__); 
 
-   for (i = _TNL_ATTRIB_POS+1 ; i < _TNL_ATTRIB_INDEX ; i++) 
+   for (i = _TNL_ATTRIB_POS+1 ; i <= _TNL_ATTRIB_INDEX ; i++) 
       switch (tnl->vtx.attrsz[i]) {
       case 4: tnl->vtx.attrptr[i][3] = tnl->vtx.current[i][3];
       case 3: tnl->vtx.attrptr[i][2] = tnl->vtx.current[i][2];
@@ -145,11 +141,8 @@ static void _tnl_copy_from_current( GLcontext *ctx )
 	 break;
       }
 
-   /* Edgeflag and Index require special treatment:
+   /* Edgeflag requires special treatment:
     */
-   if (tnl->vtx.attrsz[_TNL_ATTRIB_INDEX]) 
-      tnl->vtx.attrptr[_TNL_ATTRIB_INDEX][0] = ctx->Current.Index;
-
    if (tnl->vtx.attrsz[_TNL_ATTRIB_EDGEFLAG]) 
       tnl->vtx.attrptr[_TNL_ATTRIB_EDGEFLAG][0] = 
 	 (GLfloat)ctx->Current.EdgeFlag;

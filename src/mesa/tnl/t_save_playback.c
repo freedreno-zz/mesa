@@ -27,9 +27,20 @@
  *    Keith Whitwell <keith@tungstengraphics.com>
  */
 
+#include "imports.h"
 #include "mtypes.h"
+#include "state.h"
 #include "t_pipeline.h"
 #include "t_save_api.h"
+#include "t_vtx_api.h"
+
+static GLint get_size( const GLfloat *f )
+{
+   if (f[3] != 1.0) return 4;
+   if (f[2] != 0.0) return 3;
+   return 2;
+}
+
 
 /* Some nasty stuff still hanging on here.  
  *
@@ -43,6 +54,8 @@ static void _tnl_bind_vertex_list( GLcontext *ctx,
    struct tnl_vertex_arrays *tmp = &tnl->save_inputs;
    GLfloat *data = node->buffer;
    GLuint attr, i;
+
+   _mesa_debug( 0, "%s\n", __FUNCTION__); 
 
    /* Setup constant data in the VB.
     */
@@ -66,7 +79,12 @@ static void _tnl_bind_vertex_list( GLcontext *ctx,
 	 data += node->attrsz[attr];
       }
       else {
-	 VB->AttribPtr[attr] = &tnl->current.Attribs[attr];
+	 tmp->Attribs[attr].count = node->count;
+	 tmp->Attribs[attr].data = (GLfloat (*)[4]) tnl->vtx.current[attr];
+	 tmp->Attribs[attr].start = tnl->vtx.current[attr];
+	 tmp->Attribs[attr].size = get_size( tnl->vtx.current[attr] );
+	 tmp->Attribs[attr].stride = 0;
+	 VB->AttribPtr[attr] = &tmp->Attribs[attr];
       }
    }
 
@@ -103,8 +121,14 @@ void _tnl_playback_vertex_list( GLcontext *ctx, void *data )
    struct tnl_vertex_list *node = (struct tnl_vertex_list *)data;
    TNLcontext *tnl = TNL_CONTEXT(ctx);
 
-   if (!node->prim_count) 
+   _mesa_debug( 0, "%s %d prims %d verts\n", __FUNCTION__,
+		node->prim_count, node->count); 
+
+   if (!node->prim_count || !node->count) 
       return;
+
+   if (ctx->NewState)
+      _mesa_update_state( ctx );
 
    if (tnl->pipeline.build_state_changes)
       _tnl_validate_pipeline( ctx );

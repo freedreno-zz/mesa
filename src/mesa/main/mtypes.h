@@ -2018,6 +2018,27 @@ struct gl_tnl_module {
    /*@}*/
 };
 
+struct mesa_list_state {
+   GLuint CallDepth;		/**< Current recursion calling depth */
+   Node *CurrentListPtr;	/**< Head of list being compiled */
+   GLuint CurrentListNum;	/**< Number of the list being compiled */
+   Node *CurrentBlock;		/**< Pointer to current block of nodes */
+   GLuint CurrentPos;		/**< Index into current block of nodes */
+   GLvertexformat ListVtxfmt;
+
+   GLubyte ActiveAttribSize[VERT_ATTRIB_MAX];
+   GLfloat CurrentAttrib[VERT_ATTRIB_MAX][4];
+   
+   GLubyte ActiveMaterialSize[MAT_ATTRIB_MAX];
+   GLfloat CurrentMaterial[MAT_ATTRIB_MAX][4];
+
+   GLubyte ActiveIndex;
+   GLfloat CurrentIndex;
+   
+   GLubyte ActiveEdgeFlag;
+   GLboolean CurrentEdgeFlag;
+};
+
 
 /**
  * Mesa context
@@ -2049,9 +2070,6 @@ struct __GLcontextRec {
    struct _glapi_table *CurrentDispatch;  /**< == Save or Exec !! */
    /*@}*/
 
-   GLboolean ExecPrefersFloat;	/**< What preference for color conversion? */
-   GLboolean SavePrefersFloat;
-
    GLvisual Visual;
    GLframebuffer *DrawBuffer;	/**< buffer for writing */
    GLframebuffer *ReadBuffer;	/**< buffer for reading */
@@ -2081,16 +2099,10 @@ struct __GLcontextRec {
    GLmatrix _ModelProjectMatrix;
 
    /** \name Display lists */
-   /*@{*/
-   GLuint CallDepth;		/**< Current recursion calling depth */
+   struct mesa_list_state ListState;
+
    GLboolean ExecuteFlag;	/**< Execute GL commands? */
    GLboolean CompileFlag;	/**< Compile GL commands into display list? */
-   Node *CurrentListPtr;	/**< Head of list being compiled */
-   GLuint CurrentListNum;	/**< Number of the list being compiled */
-   Node *CurrentBlock;		/**< Pointer to current block of nodes */
-   GLuint CurrentPos;		/**< Index into current block of nodes */
-   GLvertexformat ListVtxfmt;
-   /*@}*/
 
    /** Extensions */
    struct gl_extensions Extensions;

@@ -114,7 +114,7 @@ enum {
 	_TNL_ATTRIB_MAT_BACK_INDEXES = 27, 
 	_TNL_ATTRIB_INDEX = 28,        
 	_TNL_ATTRIB_EDGEFLAG = 29,     
-	_TNL_ATTRIB_MAX = 31
+	_TNL_ATTRIB_MAX = 30
 } ;
 
 /* Will probably have to revise this scheme fairly shortly, eg. by
@@ -331,6 +331,9 @@ struct tnl_save {
    GLuint opcode_vertex_list;
 
    struct tnl_copied_vtx copied;
+
+   GLfloat *current[_TNL_ATTRIB_MAX]; /* points into ctx->ListState */
+   GLubyte *currentsz[_TNL_ATTRIB_MAX];
 
    void (*tabfv[_TNL_ATTRIB_MAX][4])( const GLfloat * );
 };

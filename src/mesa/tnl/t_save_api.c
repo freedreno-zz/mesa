@@ -77,7 +77,8 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "t_save_api.h"
 
 /*
- * NOTE: Old 'parity' issue is gone.
+ * NOTE: Old 'parity' issue is gone, but copying can still be
+ * wrong-footed on replay.
  */
 static GLuint _save_copy_vertices( GLcontext *ctx, 
 				   struct tnl_vertex_list *node )
@@ -87,9 +88,11 @@ static GLuint _save_copy_vertices( GLcontext *ctx,
    GLuint nr = prim->count;
    GLuint sz = tnl->save.vertex_size;
    GLfloat *src = node->buffer + prim->start * sz;
-   GLfloat *dst = tnl->save.buffer;
+   GLfloat *dst = tnl->save.copied.buffer;
    GLenum mode = prim->mode & PRIM_MODE_MASK;
    GLuint ovf, i;
+
+   _mesa_debug( 0, "%s\n", __FUNCTION__); 
 
    switch( mode )
    {
@@ -163,6 +166,30 @@ static struct tnl_primitive_store *alloc_prim_store( GLcontext *ctx )
    return store;
 }
 
+static void _save_reset_counters( GLcontext *ctx )
+{
+   TNLcontext *tnl = TNL_CONTEXT(ctx);
+
+   _mesa_debug( 0, "%s\n", __FUNCTION__); 
+
+   tnl->save.prim = tnl->save.prim_store->buffer + tnl->save.prim_store->used;
+   tnl->save.buffer = (tnl->save.vertex_store->buffer + 
+		       tnl->save.vertex_store->used);
+
+   if (tnl->save.vertex_size)
+      tnl->save.initial_counter = ((SAVE_BUFFER_SIZE - 
+				    tnl->save.vertex_store->used) / 
+				   tnl->save.vertex_size);
+   else
+      tnl->save.initial_counter = 0;
+
+   tnl->save.counter = tnl->save.initial_counter;
+   tnl->save.prim_count = 0;
+   tnl->save.prim_max = SAVE_PRIM_SIZE - tnl->save.prim_store->used;
+   tnl->save.copied.nr = 0;
+}
+
+
 /* Insert the active immediate struct onto the display list currently
  * being built.
  */
@@ -171,6 +198,12 @@ static void _save_compile_vertex_list( GLcontext *ctx )
    TNLcontext *tnl = TNL_CONTEXT(ctx);
    struct tnl_vertex_list *node;
 
+   _mesa_debug( 0, "%s\n", __FUNCTION__); 
+
+   if (tnl->save.initial_counter == tnl->save.counter) {
+      _save_reset_counters( ctx );
+      return;
+   }
 
    /* Allocate space for this structure in the display list currently
     * being compiled.
@@ -186,7 +219,7 @@ static void _save_compile_vertex_list( GLcontext *ctx )
    memcpy(node->attrsz, tnl->save.attrsz, sizeof(node->attrsz));
    node->vertex_size = tnl->save.vertex_size;
    node->buffer = tnl->save.buffer;
-   node->wrap_count = tnl->save.wrap_count;
+   node->wrap_count = tnl->save.copied.nr;
    node->count = tnl->save.initial_counter - tnl->save.counter;
    node->prim = tnl->save.prim;
    node->prim_count = tnl->save.prim_count;
@@ -207,6 +240,7 @@ static void _save_compile_vertex_list( GLcontext *ctx )
 
       tnl->save.vertex_store->refcount--; /* cannot be zero */
       tnl->save.vertex_store = alloc_vertex_store( ctx );
+      tnl->save.vbptr = tnl->save.vertex_store->buffer;
    } 
 
    if (tnl->save.prim_store->used > SAVE_PRIM_SIZE - 6) {
@@ -216,31 +250,12 @@ static void _save_compile_vertex_list( GLcontext *ctx )
 
    /* Reset our structures for the next run of vertices:
     */
-   tnl->save.prim = tnl->save.prim_store->buffer + tnl->save.prim_store->used;
-   tnl->save.buffer = (tnl->save.vertex_store->buffer + 
-		       tnl->save.vertex_store->used);
+   _save_reset_counters( ctx );
 
-   tnl->save.counter = ((SAVE_BUFFER_SIZE - tnl->save.vertex_store->used) / 
-			tnl->save.vertex_size);
-   tnl->save.initial_counter = tnl->save.counter;
+   /* Copy duplicated vertices 
+    */
+   tnl->save.copied.nr = _save_copy_vertices( ctx, node );
 
-   tnl->save.prim_count = 0;
-   tnl->save.prim_max = SAVE_PRIM_SIZE - tnl->save.prim_store->used;
-
-   if (!(node->prim[node->prim_count-1].mode & PRIM_END)) {
-      /* Copy duplicated vertices -- they can go straight into the new
-       * storage, no need for an intermediate.
-       */
-      tnl->save.wrap_count = _save_copy_vertices( ctx, node );
-      tnl->save.counter -= tnl->save.wrap_count;
-      
-      /* Restart interrupted primitive
-       */
-      tnl->save.prim[0].mode = (node->prim[node->prim_count-1].mode & 
-				PRIM_MODE_MASK);
-      tnl->save.prim[0].start = 0;
-      tnl->save.prim[0].count = 0;
-   }
 
    /* Deal with GL_COMPILE_AND_EXECUTE:
     */
@@ -261,6 +276,8 @@ static void _save_wrap_buffers( GLcontext *ctx )
    GLint i = tnl->save.prim_count - 1;
    GLenum mode;
 
+   _mesa_debug( 0, "%s\n", __FUNCTION__); 
+
    assert(i < TNL_MAX_PRIM);
    assert(i >= 0);
 
@@ -268,19 +285,18 @@ static void _save_wrap_buffers( GLcontext *ctx )
 			     tnl->save.prim[i].start);
    mode = tnl->save.prim[i].mode & ~(PRIM_BEGIN|PRIM_END);
    
+   _mesa_debug( 0, "%s: mode %x\n", __FUNCTION__, mode); 
 
    /* store the copied vertices, and allocate a new list.
     */
    _save_compile_vertex_list( ctx );
 
-   /* Emit a glBegin to start the new list.
+   /* Restart interrupted primitive
     */
-   assert(mode < GL_POLYGON+1);
-   assert(tnl->save.prim_count == 0);
    tnl->save.prim[0].mode = mode;
    tnl->save.prim[0].start = 0;
    tnl->save.prim[0].count = 0;
-   tnl->save.prim_count++;
+   tnl->save.prim_count = 1;
 }
 
 
@@ -301,6 +317,8 @@ static void _save_wrap_filled_vertex( GLcontext *ctx )
    GLfloat *data = tnl->save.copied.buffer;
    int i;
 
+   _mesa_debug( 0, "%s\n", __FUNCTION__); 
+
    /* Emit a glEnd to close off the last vertex list.
     */
    _save_wrap_buffers( ctx );
@@ -315,9 +333,60 @@ static void _save_wrap_filled_vertex( GLcontext *ctx )
       tnl->save.vbptr += tnl->save.vertex_size;
       tnl->save.counter--;
    }
-   
-   tnl->save.copied.nr = 0;
 }
+
+
+static void _save_copy_to_current( GLcontext *ctx )
+{
+   TNLcontext *tnl = TNL_CONTEXT(ctx); 
+   GLuint i;
+
+   _mesa_debug( 0, "%s\n", __FUNCTION__); 
+
+   for (i = _TNL_ATTRIB_POS+1 ; i <= _TNL_ATTRIB_INDEX ; i++) {
+      if (tnl->save.attrsz[i]) {
+	 tnl->save.currentsz[i][0] = tnl->save.attrsz[i];
+	 ASSIGN_4V(tnl->save.current[i], 0, 0, 0, 1);
+	 COPY_SZ_4V(tnl->save.current[i], 
+		    tnl->save.attrsz[i], 
+		    tnl->save.attrptr[i]);
+      }
+   }
+
+   /* Edgeflag requires special treatment:
+    */
+   if (tnl->save.attrsz[_TNL_ATTRIB_EDGEFLAG]) {
+      ctx->ListState.ActiveEdgeFlag = 1;
+      ctx->ListState.CurrentEdgeFlag = 
+	 (tnl->save.attrptr[_TNL_ATTRIB_EDGEFLAG][0] == 1.0);
+   }
+}
+
+
+static void _save_copy_from_current( GLcontext *ctx )
+{
+   TNLcontext *tnl = TNL_CONTEXT(ctx); 
+   GLint i;
+
+   _mesa_debug( 0, "%s\n", __FUNCTION__); 
+
+   for (i = _TNL_ATTRIB_POS+1 ; i <= _TNL_ATTRIB_INDEX ; i++) 
+      switch (tnl->save.attrsz[i]) {
+      case 4: tnl->save.attrptr[i][3] = tnl->save.current[i][3];
+      case 3: tnl->save.attrptr[i][2] = tnl->save.current[i][2];
+      case 2: tnl->save.attrptr[i][1] = tnl->save.current[i][1];
+      case 1: tnl->save.attrptr[i][0] = tnl->save.current[i][0];
+      case 0: break;
+      }
+
+   /* Edgeflag requires special treatment:
+    */
+   if (tnl->save.attrsz[_TNL_ATTRIB_EDGEFLAG]) 
+      tnl->save.attrptr[_TNL_ATTRIB_EDGEFLAG][0] = 
+	 (GLfloat)ctx->ListState.CurrentEdgeFlag;
+}
+
+
 
 
 /* Flush existing data, set new attrib size, replay copied vertices.
@@ -331,11 +400,21 @@ static void _save_upgrade_vertex( GLcontext *ctx,
    GLuint i;
    GLfloat *tmp;
 
+   _mesa_debug( 0, "%s\n", __FUNCTION__); 
+
 
    /* Store the current run of vertices, and emit a GL_END.  Emit a
     * BEGIN in the new buffer.
     */
    _save_wrap_buffers( ctx );
+
+
+   /* Do a COPY_TO_CURRENT to ensure back-copying works for the case
+    * when the attribute already exists in the vertex and is having
+    * its size increased.  
+    */
+   _save_copy_to_current( ctx );
+
 
    /* Fix up sizes:
     */
@@ -359,14 +438,30 @@ static void _save_upgrade_vertex( GLcontext *ctx,
 	 tnl->save.attrptr[i] = 0; /* will not be dereferenced. */
    }
 
+   /* Copy from current to repopulate the vertex with correct values.
+    */
+   _save_copy_from_current( ctx );
+
+
    /* Replay stored vertices to translate them to new format here.
     *
-    *    * -- No need to replay - just copy piecewise
+    * If there are copied vertices and the new (upgraded) attribute
+    * has not been defined before, this list is somewhat degenerate,
+    * and will need fixup at runtime.
     */
+   if (tnl->save.copied.nr)
    {
       GLfloat *data = tnl->save.copied.buffer;
       GLfloat *dest = tnl->save.buffer;
       GLint j;
+
+      /* Need to note this and fix up at runtime (or loopback):
+       */
+      if (tnl->save.currentsz[attr] == 0) {
+	 assert(oldsz == 0);
+	 _mesa_debug(0, "%s: dangling reference attr %d\n", 
+		     __FUNCTION__, attr); 
+      }
 
       for (i = 0 ; i < tnl->save.copied.nr ; i++) {
 	 for (j = 0 ; j < _TNL_ATTRIB_MAX ; j++) {
@@ -389,7 +484,6 @@ static void _save_upgrade_vertex( GLcontext *ctx,
 
       tnl->save.buffer = dest;
       tnl->save.counter -= tnl->save.copied.nr;
-      tnl->save.copied.nr = 0;
    }
 }
 
@@ -411,6 +505,8 @@ static void do_choose( GLuint attr, GLuint sz,
    TNLcontext *tnl = TNL_CONTEXT(ctx); 
    static GLfloat id[4] = { 0, 0, 0, 1 };
    int i;
+
+   _mesa_debug( 0, "%s\n", __FUNCTION__); 
 
    if (tnl->save.attrsz[attr] < sz) {
       /* New size is larger.  Need to flush existing vertices and get
@@ -449,12 +545,14 @@ static void do_choose( GLuint attr, GLuint sz,
  * of the chooser function when switching between Color4f and Color3f.
  */
 #define ATTRFV( ATTR, N )			\
-static void choose_##ATTR##_##N( const GLfloat *v );	\
+static void save_choose_##ATTR##_##N( const GLfloat *v );	\
 							\
-static void attrib_##ATTR##_##N( const GLfloat *v )	\
+static void save_attrib_##ATTR##_##N( const GLfloat *v )	\
 {							\
    GET_CURRENT_CONTEXT( ctx );				\
    TNLcontext *tnl = TNL_CONTEXT(ctx);			\
+							\
+   _mesa_debug( 0, "%s\n", __FUNCTION__);               \
 							\
    if ((ATTR) == 0) {					\
       int i;						\
@@ -481,25 +579,27 @@ static void attrib_##ATTR##_##N( const GLfloat *v )	\
    }							\
 }
 
-#define CHOOSE( ATTR, N )				\
-static void choose_##ATTR##_##N( const GLfloat *v )	\
-{							\
-   do_choose(ATTR, N, 					\
-	     attrib_##ATTR##_##N,			\
-	     choose_##ATTR##_1,				\
-	     choose_##ATTR##_2,				\
-	     choose_##ATTR##_3,				\
-	     choose_##ATTR##_4,				\
-	     v );					\
+#define CHOOSE( ATTR, N )					\
+static void save_choose_##ATTR##_##N( const GLfloat *v )	\
+{								\
+   _mesa_debug( 0, "%s\n", __FUNCTION__);			\
+								\
+   do_choose(ATTR, N,						\
+	     save_attrib_##ATTR##_##N,				\
+	     save_choose_##ATTR##_1,				\
+	     save_choose_##ATTR##_2,				\
+	     save_choose_##ATTR##_3,				\
+	     save_choose_##ATTR##_4,				\
+	     v );						\
 }
 
 #define INIT(ATTR)					\
-static void init_##ATTR( TNLcontext *tnl )		\
+static void save_init_##ATTR( TNLcontext *tnl )		\
 {							\
-   tnl->save.tabfv[ATTR][0] = choose_##ATTR##_1;	\
-   tnl->save.tabfv[ATTR][1] = choose_##ATTR##_2;	\
-   tnl->save.tabfv[ATTR][2] = choose_##ATTR##_3;	\
-   tnl->save.tabfv[ATTR][3] = choose_##ATTR##_4;	\
+   tnl->save.tabfv[ATTR][0] = save_choose_##ATTR##_1;	\
+   tnl->save.tabfv[ATTR][1] = save_choose_##ATTR##_2;	\
+   tnl->save.tabfv[ATTR][2] = save_choose_##ATTR##_3;	\
+   tnl->save.tabfv[ATTR][3] = save_choose_##ATTR##_4;	\
 }
    
 
@@ -538,24 +638,26 @@ ATTRS( 14 )
 ATTRS( 15 )
 
 
-static void init_attrfv( TNLcontext *tnl )
+static void save_init_attrfv( TNLcontext *tnl )
 {
-   init_0( tnl );
-   init_1( tnl );
-   init_2( tnl );
-   init_3( tnl );
-   init_4( tnl );
-   init_5( tnl );
-   init_6( tnl );
-   init_7( tnl );
-   init_8( tnl );
-   init_9( tnl );
-   init_10( tnl );
-   init_11( tnl );
-   init_12( tnl );
-   init_13( tnl );
-   init_14( tnl );
-   init_15( tnl );
+   _mesa_debug( 0, "%s\n", __FUNCTION__); 
+
+   save_init_0( tnl );
+   save_init_1( tnl );
+   save_init_2( tnl );
+   save_init_3( tnl );
+   save_init_4( tnl );
+   save_init_5( tnl );
+   save_init_6( tnl );
+   save_init_7( tnl );
+   save_init_8( tnl );
+   save_init_9( tnl );
+   save_init_10( tnl );
+   save_init_11( tnl );
+   save_init_12( tnl );
+   save_init_13( tnl );
+   save_init_14( tnl );
+   save_init_15( tnl );
 }
 
 
@@ -856,7 +958,7 @@ static void _save_VertexAttrib4fvNV( GLuint index, const GLfloat *v )
 #define MAT_ATTR( A, N, params )			\
 do {							\
    if (tnl->save.attrsz[A] < N) {			\
-      _save_upgrade_vertex( ctx, A, N );			\
+      _save_upgrade_vertex( ctx, A, N );		\
    }							\
 							\
    {							\
@@ -923,7 +1025,7 @@ do {							\
    TNLcontext *tnl = TNL_CONTEXT(ctx);			\
 							\
    if (tnl->save.attrsz[A] < 1) {			\
-      _save_upgrade_vertex( ctx, A, 1 );			\
+      _save_upgrade_vertex( ctx, A, 1 );		\
    }							\
 							\
    {							\
@@ -1020,9 +1122,8 @@ static void _save_CallList( GLuint l )
 /* This begin is hooked into ...  Updating of
  * ctx->Driver.CurrentSavePrimitive is already taken care of.
  */
-static void _save_NotifyBegin( GLenum mode )
+static GLboolean _save_NotifyBegin( GLcontext *ctx, GLenum mode )
 {
-   GET_CURRENT_CONTEXT( ctx ); 
    TNLcontext *tnl = TNL_CONTEXT(ctx); 
    int i = tnl->save.prim_count++;
 
@@ -1030,7 +1131,10 @@ static void _save_NotifyBegin( GLenum mode )
    tnl->save.prim[i].start = tnl->save.initial_counter - tnl->save.counter;
    tnl->save.prim[i].count = 0;   
 
+   _mesa_install_save_vtxfmt( ctx, &tnl->save_vtxfmt );
+
    ctx->Driver.SaveNeedFlush = 1;
+   return GL_TRUE;
 }
 
 
@@ -1039,15 +1143,22 @@ static void _save_End( void )
 {
    GET_CURRENT_CONTEXT( ctx ); 
    TNLcontext *tnl = TNL_CONTEXT(ctx); 
-   int i = tnl->save.prim_count;
+   int i = tnl->save.prim_count - 1;
 
    tnl->save.prim[i].mode |= PRIM_END;
    tnl->save.prim[i].count = ((tnl->save.initial_counter - tnl->save.counter) - 
 			      tnl->save.prim[i].start);
 
+   _mesa_debug(0, "%s: prim nr %d  prim %x start %d len %d\n",
+	       __FUNCTION__, i, 
+	       tnl->save.prim[i].mode,
+	       tnl->save.prim[i].start,
+	       tnl->save.prim[i].count);
+
 
    if (i == tnl->save.prim_max)
       _save_compile_vertex_list( ctx );
+
 
    /* Swap out this vertex format while outside begin/end.  Any color,
     * etc. received between here and the next begin will be compiled
@@ -1056,7 +1167,9 @@ static void _save_End( void )
     *   -- Need to ensure that these vertices are flushed in that case.
     *   -- Just use the regular flush mechanism.
     */   
-   _mesa_install_save_vtxfmt( ctx, &tnl->save_vtxfmt );
+   ctx->Driver.CurrentSavePrimitive = PRIM_OUTSIDE_BEGIN_END;
+
+   _mesa_install_save_vtxfmt( ctx, &ctx->ListState.ListVtxfmt );
 }
 
 
@@ -1197,6 +1310,16 @@ void _tnl_NewList( GLcontext *ctx, GLuint list, GLenum mode )
 {
    TNLcontext *tnl = TNL_CONTEXT(ctx);
    assert(tnl->save.vertex_size == 0);
+
+   if (!tnl->save.prim_store)
+      tnl->save.prim_store = alloc_prim_store( ctx );
+
+   if (!tnl->save.vertex_store) {
+      tnl->save.vertex_store = alloc_vertex_store( ctx );
+      tnl->save.vbptr = tnl->save.vertex_store->buffer;
+   }
+   
+   _save_reset_counters( ctx ); 
 }
 
 void _tnl_EndList( GLcontext *ctx )
@@ -1220,9 +1343,13 @@ void _tnl_SaveFlushVertices( GLcontext *ctx )
    TNLcontext *tnl = TNL_CONTEXT(ctx);
    GLint i;
 
+   if (ctx->Driver.CurrentSavePrimitive == PRIM_INSIDE_UNKNOWN_PRIM ||
+       ctx->Driver.CurrentSavePrimitive <= GL_POLYGON)
+      return;
+
    _save_compile_vertex_list( ctx );
    
-   init_attrfv( tnl );
+   save_init_attrfv( tnl );
 
    for (i = 0 ; i < _TNL_ATTRIB_MAX ; i++)
       tnl->save.attrsz[i] = 0;
@@ -1232,8 +1359,7 @@ void _tnl_SaveFlushVertices( GLcontext *ctx )
    ctx->Driver.SaveNeedFlush = 0;
 }
 
-static void
-_tnl_destroy_vertex_list( GLcontext *ctx, void *data )
+static void _tnl_destroy_vertex_list( GLcontext *ctx, void *data )
 {
    struct tnl_vertex_list *node = (struct tnl_vertex_list *)data;
 
@@ -1247,14 +1373,35 @@ _tnl_destroy_vertex_list( GLcontext *ctx, void *data )
 }
 
 
-static void
-_tnl_print_vertex_list( GLcontext *ctx, void *data )
+static void _tnl_print_vertex_list( GLcontext *ctx, void *data )
 {
    struct tnl_vertex_list *node = (struct tnl_vertex_list *)data;
 
    _mesa_debug(ctx, "TNL-VERTEX-LIST, %u vertices %d primitives\n",
                node->count,
 	       node->prim_count);
+}
+
+
+static void _save_current_init( GLcontext *ctx ) 
+{
+   TNLcontext *tnl = TNL_CONTEXT(ctx);
+   GLint i;
+
+   for (i = 0; i < _TNL_ATTRIB_MAT_FRONT_AMBIENT; i++) {
+      tnl->save.currentsz[i] = &ctx->ListState.ActiveAttribSize[i];
+      tnl->save.current[i] = ctx->ListState.CurrentAttrib[i];
+   }
+
+   for (i = _TNL_ATTRIB_MAT_FRONT_AMBIENT; i < _TNL_ATTRIB_INDEX; i++) {
+      tnl->save.currentsz[i] = &ctx->ListState.ActiveMaterialSize[i];
+      tnl->save.current[i] = ctx->ListState.CurrentMaterial[i];
+   }
+
+   tnl->save.currentsz[_TNL_ATTRIB_INDEX] = &ctx->ListState.ActiveIndex;
+   tnl->save.current[_TNL_ATTRIB_INDEX] = &ctx->ListState.CurrentIndex;
+
+   /* Current edgeflag is handled individually */
 }
 
 /**
@@ -1266,7 +1413,7 @@ void _tnl_save_init( GLcontext *ctx )
    struct tnl_vertex_arrays *tmp = &tnl->save_inputs;
    GLuint i;
 
-   init_attrfv( tnl );
+   save_init_attrfv( tnl );
 
    for (i = 0 ; i < _TNL_ATTRIB_MAX ; i++)
       tnl->save.attrsz[i] = 0;
@@ -1284,6 +1431,10 @@ void _tnl_save_init( GLcontext *ctx )
 			  _tnl_playback_vertex_list,
 			  _tnl_destroy_vertex_list,
 			  _tnl_print_vertex_list );
+
+   ctx->Driver.NotifySaveBegin = _save_NotifyBegin;
+
+   _save_current_init( ctx );
 }
 
 

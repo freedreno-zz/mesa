@@ -1422,7 +1422,7 @@ _mesa_initialize_context( GLcontext *ctx,
 
 #if _HAVE_FULL_GL
    _mesa_init_dlist_table(ctx->Save, dispatchSize);
-   _mesa_install_save_vtxfmt( ctx, &ctx->ListVtxfmt );
+   _mesa_install_save_vtxfmt( ctx, &ctx->ListState.ListVtxfmt );
 
 
    /* Neutral tnl module stuff */

@@ -808,9 +808,9 @@ _mesa_alloc_instruction( GLcontext *ctx, int opcode, GLint sz )
    }
 #endif
 
-   if (ctx->CurrentPos + count + 2 > BLOCK_SIZE) {
+   if (ctx->ListState.CurrentPos + count + 2 > BLOCK_SIZE) {
       /* This block is full.  Allocate a new block and chain to it */
-      n = ctx->CurrentBlock + ctx->CurrentPos;
+      n = ctx->ListState.CurrentBlock + ctx->ListState.CurrentPos;
       n[0].opcode = OPCODE_CONTINUE;
       newblock = (Node *) MALLOC( sizeof(Node) * BLOCK_SIZE );
       if (!newblock) {
@@ -818,12 +818,12 @@ _mesa_alloc_instruction( GLcontext *ctx, int opcode, GLint sz )
          return NULL;
       }
       n[1].next = (Node *) newblock;
-      ctx->CurrentBlock = newblock;
-      ctx->CurrentPos = 0;
+      ctx->ListState.CurrentBlock = newblock;
+      ctx->ListState.CurrentPos = 0;
    }
 
-   n = ctx->CurrentBlock + ctx->CurrentPos;
-   ctx->CurrentPos += count;
+   n = ctx->ListState.CurrentBlock + ctx->ListState.CurrentPos;
+   ctx->ListState.CurrentPos += count;
 
    n[0].opcode = (OpCode) opcode;
 
@@ -4593,6 +4593,10 @@ static void save_Attr1f( GLenum attr, GLfloat x )
       n[1].e = attr;
       n[2].f = x;
    }
+
+   ctx->ListState.ActiveAttribSize[attr] = 1;
+   ASSIGN_4V( ctx->ListState.CurrentAttrib[attr], x, 0, 0, 1);
+
    if (ctx->ExecuteFlag) {
       (*ctx->Exec->VertexAttrib1fNV)( attr, x );
    }
@@ -4608,6 +4612,10 @@ static void save_Attr2f( GLenum attr, GLfloat x, GLfloat y )
       n[2].f = x;
       n[3].f = y;
    }
+
+   ctx->ListState.ActiveAttribSize[attr] = 2;
+   ASSIGN_4V( ctx->ListState.CurrentAttrib[attr], x, y, 0, 1);
+
    if (ctx->ExecuteFlag) {
       (*ctx->Exec->VertexAttrib2fNV)( attr, x, y );
    }
@@ -4624,6 +4632,10 @@ static void save_Attr3f( GLenum attr, GLfloat x, GLfloat y, GLfloat z )
       n[3].f = y;
       n[4].f = z;
    }
+
+   ctx->ListState.ActiveAttribSize[attr] = 3;
+   ASSIGN_4V( ctx->ListState.CurrentAttrib[attr], x, y, z, 1);
+
    if (ctx->ExecuteFlag) {
       (*ctx->Exec->VertexAttrib3fNV)( attr, x, y, z );
    }
@@ -4642,6 +4654,10 @@ static void save_Attr4f( GLenum attr, GLfloat x, GLfloat y, GLfloat z,
       n[4].f = z;
       n[5].f = w;
    }
+
+   ctx->ListState.ActiveAttribSize[attr] = 4;
+   ASSIGN_4V( ctx->ListState.CurrentAttrib[attr], x, y, z, w);
+
    if (ctx->ExecuteFlag) {
       (*ctx->Exec->VertexAttrib4fNV)( attr, x, y, z, w );
    }
@@ -4720,6 +4736,10 @@ static void save_Indexf( GLfloat x )
    if (n) {
       n[1].f = x;
    }
+
+   ctx->ListState.ActiveIndex = 1;
+   ctx->ListState.CurrentIndex = x;
+
    if (ctx->ExecuteFlag) {
       (*ctx->Exec->Indexi)( x );
    }
@@ -4738,6 +4758,10 @@ static void save_EdgeFlag( GLboolean x )
    if (n) {
       n[1].b = x;
    }
+
+   ctx->ListState.ActiveEdgeFlag = 1;
+   ctx->ListState.CurrentEdgeFlag = x;
+
    if (ctx->ExecuteFlag) {
       (*ctx->Exec->EdgeFlag)( x );
    }
@@ -4745,15 +4769,7 @@ static void save_EdgeFlag( GLboolean x )
 
 static void save_EdgeFlagv( const GLboolean *v )
 {
-   GET_CURRENT_CONTEXT(ctx);
-   Node *n;
-   n = ALLOC_INSTRUCTION( ctx, OPCODE_EDGEFLAG, 1 );
-   if (n) {
-      n[1].b = v[0];
-   }
-   if (ctx->ExecuteFlag) {
-      (*ctx->Exec->EdgeFlagv)( v );
-   }
+   save_EdgeFlag( v[0] );
 }
 
 static void save_Materialfv( GLenum face, GLenum pname, const GLfloat *param )
@@ -4761,6 +4777,15 @@ static void save_Materialfv( GLenum face, GLenum pname, const GLfloat *param )
    GET_CURRENT_CONTEXT(ctx);
    Node *n;
    int args, i;
+
+   switch (face) {
+   case GL_BACK:
+   case GL_FRONT:
+      break;
+   default:
+      _mesa_compile_error( ctx, GL_INVALID_ENUM, "material(face)" );
+      return;
+   }
 
    switch (pname) {
    case GL_EMISSION:
@@ -4777,7 +4802,7 @@ static void save_Materialfv( GLenum face, GLenum pname, const GLfloat *param )
       args = 3;
       break;
    default:
-      _mesa_compile_error( ctx, GL_INVALID_ENUM, __FUNCTION__ );
+      _mesa_compile_error( ctx, GL_INVALID_ENUM, "material(pname)" );
       return;
    }
 
@@ -4787,6 +4812,15 @@ static void save_Materialfv( GLenum face, GLenum pname, const GLfloat *param )
       n[2].e = pname;
       for (i = 0 ; i < args ; i++)
 	 n[2+i].f = param[i];
+   }
+
+   {
+      GLuint bitmask = _mesa_material_bitmask( ctx, face, pname, ~0, 0 );
+      for (i = 0 ; i < MAT_ATTRIB_MAX ; i++) 
+	 if (bitmask & (1<<i)) {
+	    ctx->ListState.ActiveMaterialSize[i] = args;
+	    COPY_SZ_4V( ctx->ListState.CurrentMaterial[i], args, param );
+	 }
    }
 
    if (ctx->ExecuteFlag) {
@@ -4823,10 +4857,8 @@ static void save_Begin( GLenum mode )
       /* Give the driver an opportunity to hook in an optimized
        * display list compiler.
        */
-#if 0
       if (ctx->Driver.NotifySaveBegin( ctx, mode ))
 	 return;
-#endif
 
       n = ALLOC_INSTRUCTION( ctx, OPCODE_BEGIN, 1 );
       if (n) {
@@ -5191,7 +5223,7 @@ execute_list( GLcontext *ctx, GLuint list )
    if (ctx->Driver.BeginCallList)
       ctx->Driver.BeginCallList( ctx, list );
 
-   ctx->CallDepth++;
+   ctx->ListState.CallDepth++;
 
    n = (Node *) _mesa_HashLookup(ctx->Shared->DisplayList, list);
 
@@ -5241,7 +5273,7 @@ execute_list( GLcontext *ctx, GLuint list )
 	    break;
          case OPCODE_CALL_LIST:
 	    /* Generated by glCallList(), don't add ListBase */
-            if (ctx->CallDepth<MAX_LIST_NESTING) {
+            if (ctx->ListState.CallDepth<MAX_LIST_NESTING) {
                execute_list( ctx, n[1].ui );
             }
             break;
@@ -5251,7 +5283,7 @@ execute_list( GLcontext *ctx, GLuint list )
                /* user specified a bad data type at compile time */
                _mesa_error(ctx, GL_INVALID_ENUM, "glCallLists(type)");
             }
-            else if (ctx->CallDepth < MAX_LIST_NESTING) {
+            else if (ctx->ListState.CallDepth < MAX_LIST_NESTING) {
                execute_list( ctx, ctx->List.ListBase + n[1].ui );
             }
             break;
@@ -5948,7 +5980,7 @@ execute_list( GLcontext *ctx, GLuint list )
 	 }
       }
    }
-   ctx->CallDepth--;
+   ctx->ListState.CallDepth--;
 
    if (ctx->Driver.EndCallList)
       ctx->Driver.EndCallList( ctx );
@@ -6048,6 +6080,8 @@ void
 _mesa_NewList( GLuint list, GLenum mode )
 {
    GET_CURRENT_CONTEXT(ctx);
+   GLint i;
+
    FLUSH_CURRENT(ctx, 0);	/* must be called before assert */
    ASSERT_OUTSIDE_BEGIN_END(ctx);
 
@@ -6065,19 +6099,31 @@ _mesa_NewList( GLuint list, GLenum mode )
       return;
    }
 
-   if (ctx->CurrentListPtr) {
+   if (ctx->ListState.CurrentListPtr) {
       /* already compiling a display list */
       _mesa_error( ctx, GL_INVALID_OPERATION, "glNewList" );
       return;
    }
 
-   /* Allocate new display list */
-   ctx->CurrentListNum = list;
-   ctx->CurrentBlock = (Node *) MALLOC( sizeof(Node) * BLOCK_SIZE );
-   ctx->CurrentListPtr = ctx->CurrentBlock;
-   ctx->CurrentPos = 0;
    ctx->CompileFlag = GL_TRUE;
    ctx->ExecuteFlag = (mode == GL_COMPILE_AND_EXECUTE);
+
+   /* Allocate new display list */
+   ctx->ListState.CurrentListNum = list;
+   ctx->ListState.CurrentBlock = (Node *) MALLOC( sizeof(Node) * BLOCK_SIZE );
+   ctx->ListState.CurrentListPtr = ctx->ListState.CurrentBlock;
+   ctx->ListState.CurrentPos = 0;
+
+   /* Reset acumulated list state:
+    */
+   for (i = 0; i < VERT_ATTRIB_MAX; i++)
+      ctx->ListState.ActiveAttribSize[i] = 0;
+
+   for (i = 0; i < MAT_ATTRIB_MAX; i++)
+      ctx->ListState.ActiveMaterialSize[i] = 0;
+      
+   ctx->ListState.ActiveIndex = 0;
+   ctx->ListState.ActiveEdgeFlag = 0;
 
    ctx->Driver.CurrentSavePrimitive = PRIM_UNKNOWN;
    ctx->Driver.NewList( ctx, list, mode );
@@ -6097,14 +6143,14 @@ void
 _mesa_EndList( void )
 {
    GET_CURRENT_CONTEXT(ctx);
-   FLUSH_CURRENT(ctx, 0);	/* must be called before assert */
+   SAVE_FLUSH_VERTICES(ctx);
    ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx);
 
    if (MESA_VERBOSE&VERBOSE_API)
       _mesa_debug(ctx, "glEndList\n");
 
    /* Check that a list is under construction */
-   if (!ctx->CurrentListPtr) {
+   if (!ctx->ListState.CurrentListPtr) {
       _mesa_error( ctx, GL_INVALID_OPERATION, "glEndList" );
       return;
    }
@@ -6112,16 +6158,16 @@ _mesa_EndList( void )
    (void) ALLOC_INSTRUCTION( ctx, OPCODE_END_OF_LIST, 0 );
 
    /* Destroy old list, if any */
-   _mesa_destroy_list(ctx, ctx->CurrentListNum);
+   _mesa_destroy_list(ctx, ctx->ListState.CurrentListNum);
    /* Install the list */
-   _mesa_HashInsert(ctx->Shared->DisplayList, ctx->CurrentListNum, ctx->CurrentListPtr);
+   _mesa_HashInsert(ctx->Shared->DisplayList, ctx->ListState.CurrentListNum, ctx->ListState.CurrentListPtr);
 
 
    if (MESA_VERBOSE & VERBOSE_DISPLAY_LIST)
-      mesa_print_display_list(ctx->CurrentListNum);
+      mesa_print_display_list(ctx->ListState.CurrentListNum);
 
-   ctx->CurrentListNum = 0;
-   ctx->CurrentListPtr = NULL;
+   ctx->ListState.CurrentListNum = 0;
+   ctx->ListState.CurrentListPtr = NULL;
    ctx->ExecuteFlag = GL_TRUE;
    ctx->CompileFlag = GL_FALSE;
 
@@ -7728,16 +7774,16 @@ void _mesa_save_vtxfmt_init( GLvertexformat *vfmt )
 void _mesa_init_display_list( GLcontext * ctx )
 {
    /* Display list */
-   ctx->CallDepth = 0;
+   ctx->ListState.CallDepth = 0;
    ctx->ExecuteFlag = GL_TRUE;
    ctx->CompileFlag = GL_FALSE;
-   ctx->CurrentListPtr = NULL;
-   ctx->CurrentBlock = NULL;
-   ctx->CurrentListNum = 0;
-   ctx->CurrentPos = 0;
+   ctx->ListState.CurrentListPtr = NULL;
+   ctx->ListState.CurrentBlock = NULL;
+   ctx->ListState.CurrentListNum = 0;
+   ctx->ListState.CurrentPos = 0;
 
    /* Display List group */
    ctx->List.ListBase = 0;
 
-   _mesa_save_vtxfmt_init( &ctx->ListVtxfmt );
+   _mesa_save_vtxfmt_init( &ctx->ListState.ListVtxfmt );
 }
