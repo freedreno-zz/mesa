@@ -27,6 +27,7 @@
  */
 
 
+#include "api_arrayelt.h"
 #include "glheader.h"
 #include "imports.h"
 #include "macros.h"
@@ -90,6 +91,11 @@ _tnl_CreateContext( GLcontext *ctx )
    _tnl_array_init( ctx );
    _tnl_vtx_init( ctx );
    _tnl_install_pipeline( ctx, _tnl_default_pipeline );
+
+   /* Initialize the arrayelt helper
+    */
+   if (!_ae_create_context( ctx ))
+      return GL_FALSE;
 
 
    tnl->NeedNdcCoords = GL_TRUE;
