@@ -4588,6 +4588,7 @@ static void save_Attr1f( GLenum attr, GLfloat x )
 {
    GET_CURRENT_CONTEXT(ctx);
    Node *n;
+   SAVE_FLUSH_VERTICES( ctx );
    n = ALLOC_INSTRUCTION( ctx, OPCODE_ATTR_1F, 2 );
    if (n) {
       n[1].e = attr;
@@ -4606,6 +4607,7 @@ static void save_Attr2f( GLenum attr, GLfloat x, GLfloat y )
 {
    GET_CURRENT_CONTEXT(ctx);
    Node *n;
+   SAVE_FLUSH_VERTICES( ctx );
    n = ALLOC_INSTRUCTION( ctx, OPCODE_ATTR_2F, 3 );
    if (n) {
       n[1].e = attr;
@@ -4625,6 +4627,7 @@ static void save_Attr3f( GLenum attr, GLfloat x, GLfloat y, GLfloat z )
 {
    GET_CURRENT_CONTEXT(ctx);
    Node *n;
+   SAVE_FLUSH_VERTICES( ctx );
    n = ALLOC_INSTRUCTION( ctx, OPCODE_ATTR_3F, 4 );
    if (n) {
       n[1].e = attr;
@@ -4646,6 +4649,7 @@ static void save_Attr4f( GLenum attr, GLfloat x, GLfloat y, GLfloat z,
 {
    GET_CURRENT_CONTEXT(ctx);
    Node *n;
+   SAVE_FLUSH_VERTICES( ctx );
    n = ALLOC_INSTRUCTION( ctx, OPCODE_ATTR_4F, 5 );
    if (n) {
       n[1].e = attr;
@@ -4667,6 +4671,7 @@ static void save_EvalCoord1f( GLfloat x )
 {
    GET_CURRENT_CONTEXT(ctx);
    Node *n;
+   SAVE_FLUSH_VERTICES( ctx );
    n = ALLOC_INSTRUCTION( ctx, OPCODE_EVAL_C1, 1 );
    if (n) {
       n[1].f = x;
@@ -4685,6 +4690,7 @@ static void save_EvalCoord2f( GLfloat x, GLfloat y )
 {
    GET_CURRENT_CONTEXT(ctx);
    Node *n;
+   SAVE_FLUSH_VERTICES( ctx );
    n = ALLOC_INSTRUCTION( ctx, OPCODE_EVAL_C2, 2 );
    if (n) {
       n[1].f = x;
@@ -4705,6 +4711,7 @@ static void save_EvalPoint1( GLint x )
 {
    GET_CURRENT_CONTEXT(ctx);
    Node *n;
+   SAVE_FLUSH_VERTICES( ctx );
    n = ALLOC_INSTRUCTION( ctx, OPCODE_EVAL_P1, 1 );
    if (n) {
       n[1].i = x;
@@ -4718,6 +4725,7 @@ static void save_EvalPoint2( GLint x, GLint y )
 {
    GET_CURRENT_CONTEXT(ctx);
    Node *n;
+   SAVE_FLUSH_VERTICES( ctx );
    n = ALLOC_INSTRUCTION( ctx, OPCODE_EVAL_P2, 2 );
    if (n) {
       n[1].i = x;
@@ -4732,6 +4740,7 @@ static void save_Indexf( GLfloat x )
 {
    GET_CURRENT_CONTEXT(ctx);
    Node *n;
+   SAVE_FLUSH_VERTICES( ctx );
    n = ALLOC_INSTRUCTION( ctx, OPCODE_INDEX, 1 );
    if (n) {
       n[1].f = x;
@@ -4754,6 +4763,7 @@ static void save_EdgeFlag( GLboolean x )
 {
    GET_CURRENT_CONTEXT(ctx);
    Node *n;
+   SAVE_FLUSH_VERTICES( ctx );
    n = ALLOC_INSTRUCTION( ctx, OPCODE_EDGEFLAG, 1 );
    if (n) {
       n[1].b = x;
@@ -4777,6 +4787,8 @@ static void save_Materialfv( GLenum face, GLenum pname, const GLfloat *param )
    GET_CURRENT_CONTEXT(ctx);
    Node *n;
    int args, i;
+
+   SAVE_FLUSH_VERTICES( ctx );
 
    switch (face) {
    case GL_BACK:
@@ -4811,7 +4823,7 @@ static void save_Materialfv( GLenum face, GLenum pname, const GLfloat *param )
       n[1].e = face;
       n[2].e = pname;
       for (i = 0 ; i < args ; i++)
-	 n[2+i].f = param[i];
+	 n[3+i].f = param[i];
    }
 
    {
@@ -4860,6 +4872,7 @@ static void save_Begin( GLenum mode )
       if (ctx->Driver.NotifySaveBegin( ctx, mode ))
 	 return;
 
+      SAVE_FLUSH_VERTICES( ctx );
       n = ALLOC_INSTRUCTION( ctx, OPCODE_BEGIN, 1 );
       if (n) {
 	 n[1].e = mode;
@@ -4874,6 +4887,7 @@ static void save_Begin( GLenum mode )
 static void save_End( void )
 {
    GET_CURRENT_CONTEXT(ctx);
+   SAVE_FLUSH_VERTICES( ctx );
    ALLOC_INSTRUCTION( ctx, OPCODE_END, 0 );
    ctx->Driver.CurrentSavePrimitive = PRIM_OUTSIDE_BEGIN_END;
    if (ctx->ExecuteFlag) {
@@ -4886,6 +4900,7 @@ static void save_Rectf( GLfloat a, GLfloat b,
 {
    GET_CURRENT_CONTEXT(ctx);
    Node *n;
+   SAVE_FLUSH_VERTICES( ctx );
    n = ALLOC_INSTRUCTION( ctx, OPCODE_RECTF, 4 );
    if (n) {
       n[1].f = a;
