@@ -1,4 +1,4 @@
-/* $Id: s_blend.c,v 1.9.2.1 2001/12/13 16:14:17 brianp Exp $ */
+/* $Id: s_blend.c,v 1.9.2.2 2002/02/12 16:36:36 kschultz Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -52,7 +52,7 @@ static void _BLENDAPI
 blend_noop( GLcontext *ctx, GLuint n, const GLubyte mask[],
             GLchan rgba[][4], CONST GLchan dest[][4] )
 {
-   int i;
+   GLuint i;
    ASSERT(ctx->Color.BlendEquation==GL_FUNC_ADD_EXT);
    ASSERT(ctx->Color.BlendSrcRGB==GL_ZERO);
    ASSERT(ctx->Color.BlendDstRGB==GL_ONE);
