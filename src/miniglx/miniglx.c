@@ -1,4 +1,4 @@
-/* $Id: miniglx.c,v 1.1.4.6 2002/11/29 16:07:58 brianp Exp $ */
+/* $Id: miniglx.c,v 1.1.4.7 2002/12/04 15:25:37 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -928,6 +928,13 @@ WRAP(XFreeColormap)( Display *dpy, Colormap cmap )
    FREE(cmap);
 }
 
+void
+WRAP(XFree)( void *pointer )
+{
+   FREE(pointer);
+}
+
+
 
 XVisualInfo*
 WRAP(glXChooseVisual)( Display *dpy, int screen, int *attribs )
@@ -1335,3 +1342,13 @@ WRAP(glXGetProcAddress)( const GLubyte *procName )
    }
    return _glapi_get_proc_address((const char *) procName);
 }
+
+
+Bool
+WRAP(glXQueryVersion)( Display *dpy, int *major, int *minor )
+{
+   (void) dpy;
+   *major = 1;
+   *minor = 0;
+}
+
