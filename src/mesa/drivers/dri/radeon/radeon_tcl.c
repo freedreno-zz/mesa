@@ -563,3 +563,14 @@ void radeonTclFallback( GLcontext *ctx, GLuint bit, GLboolean mode )
       fprintf(stderr, "Warning: hit nonexistant fallback path!\n");
 }
 #endif
+
+
+void radeonSubsetVtxEnableTCL( radeonContextPtr rmesa,
+			       GLboolean flag )
+{
+   if (flag)
+      rmesa->tcl.tcl_flag = RADEON_CP_VC_CNTL_TCL_ENABLE;
+   else
+      rmesa->tcl.tcl_flag = 0;
+      
+}

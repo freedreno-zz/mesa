@@ -329,6 +329,8 @@ radeonCreateContext( const __GLcontextModes *glVisual,
 
    rmesa->swtcl.RenderIndex = ~0;
    rmesa->lost_context = 1;
+   
+   rmesa->tcl.tcl_flag = RADEON_CP_VC_CNTL_TCL_ENABLE;
 
    /* KW: Set the maximum texture size small enough that we can
     * guarentee that both texture units can bind a maximal texture

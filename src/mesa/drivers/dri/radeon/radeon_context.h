@@ -503,6 +503,7 @@ struct radeon_tcl_info {
    GLuint vertex_format;
    GLint last_offset;
    GLuint hw_primitive;
+   GLuint tcl_flag;
 
    struct radeon_dma_region *aos_components[8];
    GLuint nr_aos_components;

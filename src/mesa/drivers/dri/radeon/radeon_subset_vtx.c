@@ -61,7 +61,6 @@ void radeon_copy_to_current( GLcontext *ctx )
 {
    radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
 
-   assert(ctx->Driver.NeedFlush & FLUSH_UPDATE_CURRENT);
    assert(vb.context == ctx);
 
    ctx->Current.Attrib[VERT_ATTRIB_COLOR0][0] = vb.floatcolorptr[0];
@@ -75,8 +74,6 @@ void radeon_copy_to_current( GLcontext *ctx )
       ctx->Current.Attrib[VERT_ATTRIB_TEX0][2] = 0.0F;
       ctx->Current.Attrib[VERT_ATTRIB_TEX0][3] = 1.0F;
    }
-
-   ctx->Driver.NeedFlush &= ~FLUSH_UPDATE_CURRENT;
 }
 
 
@@ -322,8 +319,8 @@ static void radeonVtxfmtValidate( GLcontext *ctx )
 
    /* Would prefer to use ubyte floats in the vertex:
     */
-   vb.vertex_size += 4;
    vb.floatcolorptr = &vb.vertex[vb.vertex_size].f;
+   vb.vertex_size += 4;
    vb.floatcolorptr[0] = ctx->Current.Attrib[VERT_ATTRIB_COLOR0][0];
    vb.floatcolorptr[1] = ctx->Current.Attrib[VERT_ATTRIB_COLOR0][1];
    vb.floatcolorptr[2] = ctx->Current.Attrib[VERT_ATTRIB_COLOR0][2];
@@ -339,6 +336,7 @@ static void radeonVtxfmtValidate( GLcontext *ctx )
       vb.texcoordptr[0] = ctx->Current.Attrib[VERT_ATTRIB_TEX0];
 
    rmesa->vb.recheck = GL_FALSE;
+   ctx->Driver.NeedFlush = FLUSH_UPDATE_CURRENT;
 }
 
 
@@ -434,7 +432,6 @@ static void radeonFlushVertices( GLcontext *ctx, GLuint flags )
    if (RADEON_DEBUG & DEBUG_VFMT)
       fprintf(stderr, "%s\n", __FUNCTION__);
 
-   assert(rmesa->vb.installed);
    assert(vb.context == ctx);
 
    if (flags & FLUSH_UPDATE_CURRENT) {
@@ -442,7 +439,6 @@ static void radeonFlushVertices( GLcontext *ctx, GLuint flags )
       if (RADEON_DEBUG & DEBUG_VFMT)
 	 fprintf(stderr, "reinstall on update_current\n");
       _mesa_install_exec_vtxfmt( ctx, &rmesa->vb.vtxfmt );
-      ctx->Driver.NeedFlush &= ~FLUSH_UPDATE_CURRENT;
    }
 
    if (flags & FLUSH_STORED_VERTICES) {
@@ -468,9 +464,9 @@ static __inline__ void radeon_Vertex3f( GLfloat x, GLfloat y, GLfloat z )
    *vb.dmaptr++ = *(int *)&y;
    *vb.dmaptr++ = *(int *)&z;
 
-   for (i = 3; i < vb.vertex_size; i++)
+   for (i = 3; i < vb.vertex_size; i++) 
       *vb.dmaptr++ = vb.vertex[i].i;
-   
+
    if (--vb.counter == 0)
       vb.notify();
 }
@@ -549,6 +545,7 @@ void radeonVtxfmtInit( GLcontext *ctx )
    exec->Vertex3fv = radeon_Vertex3fv;
    exec->Begin = radeon_Begin;
    exec->End = radeon_End;
+   exec->Rectf = _mesa_noop_Rectf; /* is this supported? */
 
 
    vb.context = ctx;
@@ -556,10 +553,9 @@ void radeonVtxfmtInit( GLcontext *ctx )
    rmesa->vb.prim = &ctx->Driver.CurrentExecPrimitive;
    rmesa->vb.primflags = 0;
 
-
+   ctx->Driver.FlushVertices = radeonFlushVertices;
    ctx->Driver.CurrentExecPrimitive = PRIM_OUTSIDE_BEGIN_END;
    radeonVtxfmtValidate( ctx );
-   assert( rmesa->vb.installed );
 }
 
 

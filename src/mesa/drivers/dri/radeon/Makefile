@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.1.2.15 2003/01/22 16:19:42 keithw Exp $
+# $Id: Makefile,v 1.1.2.16 2003/01/22 18:16:33 keithw Exp $
 
 # Mesa 3-D graphics library
 # Version:  5.0
@@ -45,7 +45,7 @@ DRIVER_SOURCES = server/radeon_dri.c \
 SUBSET_DRIVER_SOURCES = \
 		radeon_subset_bitmap.c \
 		radeon_subset_tcl.c \
-		radeon_subset_vtx.c
+		radeon_subset_vtx.c 
 
 FULL_DRIVER_SOURCES = 	\
 		 radeon_tcl.c \
@@ -86,6 +86,9 @@ default: radeon_dri.so install
 
 radeon_dri.so:  $(COREMESA) $(OBJECTS) Makefile
 	rm -f $@ && gcc -o $@ -shared $(OBJECTS) $(COREMESA) -L$(MESA)/src/miniglx -lGL -lc -lm
+#	wc -l $(DRIVER_SOURCES)
+#	wc -l $(SUBSET_DRIVER_SOURCES)
+#	wc -l $(FULL_DRIVER_SOURCES)
 
 install:
 	rm -f $(MESA)/lib/radeon_dri.so && \

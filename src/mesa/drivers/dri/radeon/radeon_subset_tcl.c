@@ -46,13 +46,15 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "radeon_tcl.h"
 
 
-
-
-/*
- * Render unclipped vertex buffers by emitting vertices directly to
- * dma buffers.  Use strip/fan hardware primitives where possible.
- * Try to simulate missing primitives with indexed vertices.
+/* KW: Import a version of radeon_tcl.c plus t_dd_dmatmp2.h here.
+ *
+ * This is all just to support radeon_subset_vtx.c, and is pretty
+ * heavyweight for that purpose -- it shouldn't be hard to get the
+ * code there to turn quads into triangles, etc, in a lot less code.
  */
+
+
+
 #define HAVE_POINTS      1
 #define HAVE_LINES       1
 #define HAVE_LINE_LOOP   0
@@ -278,11 +280,11 @@ static void TAG(render_line_loop_verts)( GLcontext *ctx,
 
    if (flags & PRIM_END) {
 
-      if (start+1 >= count)
-	 return;
-
       int dmasz = GET_SUBSEQUENT_VB_MAX_ELTS();
       int currentsz;
+
+      if (start+1 >= count)
+	 return;
 
       ELT_INIT( GL_LINE_STRIP, HW_LINE_STRIP );
 
@@ -515,4 +517,39 @@ void radeonTclFallback( GLcontext *ctx, GLuint bit, GLboolean mode )
 {
    if (mode)
       fprintf(stderr, "Warning: hit nonexistant fallback path!\n");
+}
+
+void radeonTclPrimitive( GLcontext *ctx, 
+			 GLenum prim,
+			 int hw_prim )
+{
+   radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
+   GLuint se_cntl;
+   GLuint newprim = hw_prim | rmesa->tcl.tcl_flag;
+
+   RADEON_NEWPRIM( rmesa );
+   rmesa->tcl.hw_primitive = newprim;
+
+   se_cntl = rmesa->hw.set.cmd[SET_SE_CNTL];
+   se_cntl &= ~RADEON_FLAT_SHADE_VTX_LAST;
+
+   if (prim == GL_POLYGON && (ctx->_TriangleCaps & DD_FLATSHADE)) 
+      se_cntl |= RADEON_FLAT_SHADE_VTX_0;
+   else
+      se_cntl |= RADEON_FLAT_SHADE_VTX_LAST;
+
+   if (se_cntl != rmesa->hw.set.cmd[SET_SE_CNTL]) {
+      RADEON_STATECHANGE( rmesa, set );
+      rmesa->hw.set.cmd[SET_SE_CNTL] = se_cntl;
+   }
+}
+
+void radeonSubsetVtxEnableTCL( radeonContextPtr rmesa,
+			       GLboolean flag )
+{
+   if (flag)
+      rmesa->tcl.tcl_flag = RADEON_CP_VC_CNTL_TCL_ENABLE;
+   else
+      rmesa->tcl.tcl_flag = 0;
+      
 }
