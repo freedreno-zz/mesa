@@ -1,4 +1,4 @@
-$Id: VERSIONS,v 1.13 1999/09/19 20:09:00 tanner Exp $
+$Id: VERSIONS,v 1.13.2.1 1999/11/12 15:45:45 brianp Exp $
 
 
 Mesa Version History
@@ -659,3 +659,12 @@ Mesa Version History
 	- New library numbering: libGL.so.1.2.310
 	- New subdirectories:  docs/ and bin/
 	- New Makefile-system (autoconf,automake,libtool)
+
+
+3.1 final  November ??, 1999
+    New:
+	- added demos/gloss.c
+	- added xdemos/glxdpyinfo.c
+    Bug fixes:
+	- several vertex array bug fixes
+
