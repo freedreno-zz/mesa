@@ -1,10 +1,10 @@
-/* $Id: fxdd.c,v 1.84.2.2 2002/06/14 03:49:09 brianp Exp $ */
+/* $Id: fxdd.c,v 1.84.2.3 2002/06/24 17:37:53 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  4.0
+ * Version:  4.0.3
  *
- * Copyright (C) 1999-2001  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -47,6 +47,7 @@
 #include "extensions.h"
 #include "texstore.h"
 #include "swrast/swrast.h"
+#include "swrast/s_context.h"
 #include "swrast_setup/swrast_setup.h"
 #include "tnl/tnl.h"
 #include "tnl/t_context.h"
@@ -292,8 +293,6 @@ fxDDSetDrawBuffer(GLcontext * ctx, GLenum mode)
 
 
 
-
-
 static void
 fxDDDrawBitmap(GLcontext * ctx, GLint px, GLint py,
 	       GLsizei width, GLsizei height,
@@ -305,6 +304,7 @@ fxDDDrawBitmap(GLcontext * ctx, GLint px, GLint py,
    FxU16 color;
    const struct gl_pixelstore_attrib *finalUnpack;
    struct gl_pixelstore_attrib scissoredUnpack;
+   SWcontext *swrast = SWRAST_CONTEXT(ctx);
 
    /* check if there's any raster operations enabled which we can't handle */
    if (ctx->Color.AlphaEnabled ||
@@ -315,11 +315,10 @@ fxDDDrawBitmap(GLcontext * ctx, GLint px, GLint py,
        ctx->Stencil.Enabled ||
        ctx->Scissor.Enabled ||
        (ctx->DrawBuffer->UseSoftwareAlphaBuffers &&
-	ctx->Color.ColorMask[ACOMP]) || ctx->Color.MultiDrawBuffer) {
+	ctx->Color.ColorMask[ACOMP]) || (swrast->_RasterMask & MULTI_DRAW_BIT)) {
       _swrast_Bitmap(ctx, px, py, width, height, unpack, bitmap);
       return;
    }
-
 
    if (ctx->Scissor.Enabled) {
       /* This is a bit tricky, but by carefully adjusting the px, py,
@@ -822,12 +821,13 @@ GLboolean
 fx_check_IsInHardware(GLcontext * ctx)
 {
    fxMesaContext fxMesa = (fxMesaContext) ctx->DriverCtx;
+   SWcontext *swrast = SWRAST_CONTEXT(ctx);
 
    if (ctx->RenderMode != GL_RENDER)
       return GL_FALSE;
 
    if (ctx->Stencil.Enabled ||
-       ctx->Color.MultiDrawBuffer ||
+       (swrast->_RasterMask & MULTI_DRAW_BIT) ||
        ((ctx->Color.BlendEnabled)
 	&& (ctx->Color.BlendEquation != GL_FUNC_ADD_EXT))
        || ((ctx->Color.ColorLogicOpEnabled)
