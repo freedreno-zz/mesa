@@ -66,59 +66,6 @@
 
 #if !defined(FXMESA_USE_ARGB) 
 
-/* KW: Rearranged the args in the call to grLfbWriteRegion().
- */
-#define LFB_WRITE_SPAN_MESA(dst_buffer,		\
-			    dst_x,		\
-			    dst_y,		\
-			    src_width,		\
-			    src_stride,		\
-			    src_data)		\
-  writeRegionClipped(fxMesa, dst_buffer,	\
-		   dst_x,			\
-		   dst_y,			\
-		   GR_LFB_SRC_FMT_8888,		\
-		   src_width,			\
-		   1,				\
-		   src_stride,			\
-		   src_data)			\
-
-
-#else /* defined(FXMESA_USE_RGBA) */
-
-#define MESACOLOR_TO_ARGB(c) (				\
-             ( ((unsigned int)(c[ACOMP]))<<24 ) |	\
-             ( ((unsigned int)(c[RCOMP]))<<16 ) |	\
-             ( ((unsigned int)(c[GCOMP]))<<8 )  |	\
-             (  (unsigned int)(c[BCOMP])) )
-  
-void LFB_WRITE_SPAN_MESA(GrBuffer_t dst_buffer, 
-			 FxU32 dst_x, 
-			 FxU32 dst_y, 
-			 FxU32 src_width,
-			 FxI32 src_stride, 
-			 void *src_data )
-{
-   /* Covert to ARGB */
-   GLubyte (*rgba)[4] = src_data;
-   GLuint argb[MAX_WIDTH];
-   int i;
-   
-   for (i = 0; i < src_width; i++)
-   {
-      argb[i] = MESACOLOR_TO_ARGB(rgba[i]);
-   }
-   writeRegionClipped(fxMesa, dst_buffer,
-		       dst_x,
-		       dst_y,
-		       GR_LFB_SRC_FMT_8888,
-		       src_width,
-		       1,
-		       src_stride,
-		       (void*)argb);
-}
-
-#endif
 
 #if defined(FX_GLIDE3) && defined(XF86DRI)
 
@@ -172,6 +119,66 @@ FxBool writeRegionClipped(fxMesaContext fxMesa, GrBuffer_t dst_buffer,
   FX_grLfbWriteRegion(dst_buffer,dst_x,dst_y,src_format,src_width,src_height,src_stride,src_data)
 
 #endif
+
+
+/* KW: Rearranged the args in the call to grLfbWriteRegion().
+ */
+#define LFB_WRITE_SPAN_MESA(dst_buffer,		\
+			    dst_x,		\
+			    dst_y,		\
+			    src_width,		\
+			    src_stride,		\
+			    src_data)		\
+  writeRegionClipped(fxMesa, dst_buffer,	\
+		   dst_x,			\
+		   dst_y,			\
+		   GR_LFB_SRC_FMT_8888,		\
+		   src_width,			\
+		   1,				\
+		   src_stride,			\
+		   src_data)			\
+
+
+#else /* !defined(FXMESA_USE_RGBA) */
+
+#define writeRegionClipped(fxm,dst_buffer,dst_x,dst_y,src_format,src_width,src_height,src_stride,src_data)		\
+  FX_grLfbWriteRegion(dst_buffer,dst_x,dst_y,src_format,src_width,src_height,src_stride,src_data)
+
+
+#define MESACOLOR_TO_ARGB(c) (				\
+             ( ((unsigned int)(c[ACOMP]))<<24 ) |	\
+             ( ((unsigned int)(c[RCOMP]))<<16 ) |	\
+             ( ((unsigned int)(c[GCOMP]))<<8 )  |	\
+             (  (unsigned int)(c[BCOMP])) )
+  
+inline void LFB_WRITE_SPAN_MESA(GrBuffer_t dst_buffer, 
+			 FxU32 dst_x, 
+			 FxU32 dst_y, 
+			 FxU32 src_width,
+			 FxI32 src_stride, 
+			 void *src_data )
+{
+   /* Covert to ARGB */
+   GLubyte (*rgba)[4] = src_data;
+   GLuint argb[MAX_WIDTH];
+   int i;
+   
+   for (i = 0; i < src_width; i++)
+   {
+      argb[i] = MESACOLOR_TO_ARGB(rgba[i]);
+   }
+   writeRegionClipped( /*fxMesa,*/ NULL, dst_buffer,
+		       dst_x,
+		       dst_y,
+		       GR_LFB_SRC_FMT_8888,
+		       src_width,
+		       1,
+		       src_stride,
+		       (void*)argb);
+}
+ 
+#endif /* !defined(FXMESA_USE_RGBA) */
+
 
 /************************************************************************/
 /*****                    Span functions                            *****/
