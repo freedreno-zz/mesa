@@ -109,6 +109,10 @@ int APIENTRY glutCreateWindow (const char *title)
       exit(1);
    }
 
+   if (!(g_display_mode & GLUT_DOUBLE))
+      glDrawBuffer( GL_FRONT );
+      
+
    XMapWindow( dpy, win );
 
 #if !USE_MINI_GLX
