@@ -1,4 +1,4 @@
-/* $Id: readpix.c,v 1.4 2000/10/16 21:24:39 brianp Exp $ */
+/* $Id: readpix.c,v 1.4.2.1 2002/05/01 14:53:52 alanh Exp $ */
 
 /*
  * glReadPixels and glCopyPixels test
@@ -8,6 +8,13 @@
 
 /*
  * $Log: readpix.c,v $
+ * Revision 1.4.2.1  2002/05/01 14:53:52  alanh
+ * glutSwapBuffers implicitly does a glFinish when swapping back to the front
+ * buffer. We now issue a glFinish when not issuing SwapBuffers to ensure
+ * the pipeline is complete.
+ *
+ * (Problem found with Chromium).
+ *
  * Revision 1.4  2000/10/16 21:24:39  brianp
  * use gray background, memset TempImage to white to help with debugging
  *
@@ -173,6 +180,8 @@ Display( void )
 
    if (!DrawFront)
       glutSwapBuffers();
+   else
+      glFinish();
 }
 
 
