@@ -1,8 +1,8 @@
-/* $Id: glu.h,v 1.14.2.1 2000/03/31 20:07:56 brianp Exp $ */
+/* $Id: glu.h,v 1.14.2.2 2000/07/11 01:45:56 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.2
+ * Version:  3.2.1
  * Copyright (C) 1995-2000  Brian Paul
  *
  * This library is free software; you can redistribute it and/or
@@ -71,7 +71,6 @@ extern "C" {
 
 
 #define GLU_VERSION_1_1		1
-#define GLU_VERSION_1_2		1
 
 
 #define GLU_TRUE   GL_TRUE
@@ -130,6 +129,7 @@ enum {
 	GLU_TESS_ERROR6 = 100156,  /* */
 	GLU_TESS_ERROR7 = 100157,  /* */
 	GLU_TESS_ERROR8 = 100158,  /* */
+	GLU_TESS_ERROR9 = 100159,  /* not coplanar contours */
 
 	/* NURBS */
 	GLU_AUTO_LOAD_MATRIX	= 100200,
@@ -217,20 +217,25 @@ enum {
 };
 
 
-/*
- * These are the GLU 1.1 typedefs.  GLU 1.3 has different ones!
- */
 #if defined(__BEOS__)
     /* The BeOS does something funky and makes these typedefs in one
      * of its system headers.
      */
 #else
+
+#if defined GLU_VERSION_1_2
     typedef struct GLUquadric GLUquadricObj;
     typedef struct GLUnurbs GLUnurbsObj;
-
     /* FIXME: We need to implement the other 1.3 typedefs - GH */
     typedef struct GLUtesselator GLUtesselator;
     typedef GLUtesselator GLUtriangulatorObj;
+#else
+    /* GLU 1.1 and older */
+    typedef struct GLUquadric GLUquadricObj;
+    typedef struct GLUtriangulatorObj GLUtriangulatorObj;
+    typedef struct GLUnurbs GLUnurbsObj;
+#endif
+
 #endif
 
 
@@ -411,6 +416,8 @@ GLUAPI void GLAPIENTRY gluNurbsCallback( GLUnurbsObj *nobj, GLenum which,
  *
  */
 
+#ifdef GLU_VERSION_1_2
+
 GLUAPI GLUtesselator* GLAPIENTRY gluNewTess( void );
 
 GLUAPI void GLAPIENTRY gluDeleteTess( GLUtesselator *tobj );
@@ -439,17 +446,26 @@ GLUAPI void GLAPIENTRY gluTessCallback( GLUtesselator *tobj, GLenum which,
 GLUAPI void GLAPIENTRY gluGetTessProperty( GLUtesselator *tobj, GLenum which,
 					   GLdouble *value );
 
-/*
- *
- * Obsolete 1.0 tessellation functions
- *
- */
+#else
 
-GLUAPI void GLAPIENTRY gluBeginPolygon( GLUtesselator *tobj );
+GLUAPI GLUtriangulatorObj* GLAPIENTRY gluNewTess( void );
 
-GLUAPI void GLAPIENTRY gluNextContour( GLUtesselator *tobj, GLenum type );
+GLUAPI void GLAPIENTRY gluTessCallback( GLUtriangulatorObj *tobj, GLenum which,
+                                        void (GLCALLBACK *fn)() );
 
-GLUAPI void GLAPIENTRY gluEndPolygon( GLUtesselator *tobj );
+GLUAPI void GLAPIENTRY gluDeleteTess( GLUtriangulatorObj *tobj );
+
+GLUAPI void GLAPIENTRY gluBeginPolygon( GLUtriangulatorObj *tobj );
+
+GLUAPI void GLAPIENTRY gluEndPolygon( GLUtriangulatorObj *tobj );
+
+GLUAPI void GLAPIENTRY gluNextContour( GLUtriangulatorObj *tobj, GLenum type );
+
+GLUAPI void GLAPIENTRY gluTessVertex( GLUtriangulatorObj *tobj, GLdouble v[3],
+                                      void *data );
+
+#endif
+
 
 
 
@@ -469,8 +485,12 @@ GLUAPI const GLubyte* GLAPIENTRY gluGetString( GLenum name );
  *
  */
 
+#ifdef GLU_VERSION_1_3
+
 GLUAPI GLboolean GLAPIENTRY
 gluCheckExtension( const char *extName, const GLubyte *extString );
+
+#endif
 
 
 
