@@ -1,8 +1,8 @@
-/* $Id: extensions.c,v 1.11 1999/11/11 01:22:26 brianp Exp $ */
+/* $Id: extensions.c,v 1.10.2.1 1999/11/19 15:29:51 miklos Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.3
+ * Version:  3.1
  * 
  * Copyright (C) 1999  Brian Paul   All Rights Reserved.
  * 
@@ -25,16 +25,15 @@
  */
 
 
-#ifdef PC_HEADER
-#include "all.h"
+#ifndef XFree86Server
+#include <stdlib.h>
 #else
-#include "glheader.h"
+#include "GL/xf86glx.h"
+#endif
 #include "context.h"
 #include "extensions.h"
-#include "mem.h"
 #include "simple_list.h"
 #include "types.h"
-#endif
 
 
 #define MAX_EXT_NAMELEN 80
@@ -132,6 +131,24 @@ int gl_extensions_disable( GLcontext *ctx, const char *name )
    return 1;
 }
       
+
+/*
+ * Test if the named extension is enabled in this context.
+ */
+GLboolean gl_extension_is_enabled( GLcontext *ctx, const char *name)
+{
+   struct extension *i;
+   foreach( i, ctx->Extensions.ext_list )
+      if (strncmp(i->name, name, MAX_EXT_NAMELEN) == 0) {
+         if (i->enabled)
+            return GL_TRUE;
+         else
+            return GL_FALSE;
+      }
+
+   return GL_FALSE;
+}
+
 
 void gl_extensions_dtr( GLcontext *ctx )
 {
@@ -289,7 +306,7 @@ void (*gl_get_proc_address( const GLubyte *procName ))()
       { "glTexSubImage3DEXT", (gl_function) glTexSubImage3DEXT },
       { "glCopyTexSubImage3DEXT", (gl_function) glCopyTexSubImage3DEXT },
 
-      /* GL_EXT_color_table */
+      /* GL_EXT_paletted_texture */
       { "glColorTableEXT", (gl_function) glColorTableEXT },
       { "glColorSubTableEXT", (gl_function) glColorSubTableEXT },
       { "glGetColorTableEXT", (gl_function) glGetColorTableEXT },
