@@ -1,4 +1,4 @@
-/* $Id: t_imm_dlist.c,v 1.29.2.10 2002/04/09 12:13:08 keithw Exp $ */
+/* $Id: t_imm_dlist.c,v 1.29.2.11 2002/04/19 01:10:49 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -76,7 +76,7 @@ static void build_normal_lengths( struct immediate *IM )
    GLuint count = IM->Count - IM->Start;
 
    if (!dest) {
-      dest = IM->NormalLengthPtr = ALIGN_MALLOC( IMM_SIZE*sizeof(GLfloat), 32 );
+      dest = IM->NormalLengthPtr = (GLfloat *) ALIGN_MALLOC( IMM_SIZE*sizeof(GLfloat), 32 );
       if (!dest) return;
    }
    dest += IM->Start;

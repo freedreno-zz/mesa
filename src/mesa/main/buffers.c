@@ -1,8 +1,8 @@
-/* $Id: buffers.c,v 1.31.2.1 2002/03/16 00:50:11 brianp Exp $ */
+/* $Id: buffers.c,v 1.31.2.2 2002/04/19 01:10:48 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  4.0.2
+ * Version:  4.0.3
  *
  * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
  *
@@ -364,8 +364,7 @@ _mesa_ResizeBuffersMESA( void )
          (*ctx->Driver.GetBufferSize)( buffer, &buf_width, &buf_height );
 
          /* see if size of device driver's color buffer (window) has changed */
-         if (buffer->Width == (GLint) buf_width &&
-             buffer->Height == (GLint) buf_height)
+         if (buffer->Width == buf_width && buffer->Height == buf_height)
             return; /* size is as expected */
 
          buffer->Width = buf_width;
@@ -382,8 +381,7 @@ _mesa_ResizeBuffersMESA( void )
          (*ctx->Driver.GetBufferSize)( buffer, &buf_width, &buf_height );
 
          /* see if size of device driver's color buffer (window) has changed */
-         if (buffer->Width == (GLint) buf_width &&
-             buffer->Height == (GLint) buf_height)
+         if (buffer->Width == buf_width && buffer->Height == buf_height)
             return; /* size is as expected */
 
          buffer->Width = buf_width;

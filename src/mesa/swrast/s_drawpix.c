@@ -1,8 +1,8 @@
-/* $Id: s_drawpix.c,v 1.22.2.2 2002/02/15 03:38:29 brianp Exp $ */
+/* $Id: s_drawpix.c,v 1.22.2.3 2002/04/19 01:10:48 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  4.0.2
+ * Version:  4.0.3
  *
  * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
  *
@@ -763,8 +763,8 @@ draw_rgba_pixels( GLcontext *ctx, GLint x, GLint y,
 
 
    if (SWRAST_CONTEXT(ctx)->_RasterMask == 0 && !zoom && x >= 0 && y >= 0
-       && x + width <= ctx->DrawBuffer->Width
-       && y + height <= ctx->DrawBuffer->Height) {
+       && x + width <= (GLint) ctx->DrawBuffer->Width
+       && y + height <= (GLint) ctx->DrawBuffer->Height) {
       quickDraw = GL_TRUE;
    }
    else {

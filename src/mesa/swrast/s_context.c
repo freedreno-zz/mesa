@@ -1,10 +1,10 @@
-/* $Id: s_context.c,v 1.25 2001/07/28 19:28:49 keithw Exp $ */
+/* $Id: s_context.c,v 1.25.2.1 2002/04/19 01:10:48 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.5
+ * Version:  4.0.3
  *
- * Copyright (C) 1999-2001  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -75,9 +75,9 @@ _swrast_update_rasterflags( GLcontext *ctx )
       RasterMask |= ALPHABUF_BIT;
 
    if (   ctx->Viewport.X < 0
-       || ctx->Viewport.X + ctx->Viewport.Width > ctx->DrawBuffer->Width
+       || ctx->Viewport.X + ctx->Viewport.Width > (GLint) ctx->DrawBuffer->Width
        || ctx->Viewport.Y < 0
-       || ctx->Viewport.Y + ctx->Viewport.Height > ctx->DrawBuffer->Height) {
+       || ctx->Viewport.Y + ctx->Viewport.Height > (GLint) ctx->DrawBuffer->Height) {
       RasterMask |= WINCLIP_BIT;
    }
 

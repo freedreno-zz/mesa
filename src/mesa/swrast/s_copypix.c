@@ -1,8 +1,8 @@
-/* $Id: s_copypix.c,v 1.24.2.1 2002/03/14 22:09:05 brianp Exp $ */
+/* $Id: s_copypix.c,v 1.24.2.2 2002/04/19 01:10:48 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  4.0.2
+ * Version:  4.0.3
  *
  * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
  *
@@ -128,7 +128,7 @@ copy_conv_rgba_pixels(GLcontext *ctx, GLint srcx, GLint srcy,
    if (SWRAST_CONTEXT(ctx)->_RasterMask == 0
        && !zoom
        && destx >= 0
-       && destx + width <= ctx->DrawBuffer->Width) {
+       && destx + width <= (GLint) ctx->DrawBuffer->Width) {
       quick_draw = GL_TRUE;
    }
    else {
@@ -286,7 +286,7 @@ copy_conv_rgba_pixels(GLcontext *ctx, GLint srcx, GLint srcy,
       /* write row to framebuffer */
 
       dy = desty + row;
-      if (quick_draw && dy >= 0 && dy < ctx->DrawBuffer->Height) {
+      if (quick_draw && dy >= 0 && dy < (GLint) ctx->DrawBuffer->Height) {
          (*swrast->Driver.WriteRGBASpan)( ctx, width, destx, dy,
 				       (const GLchan (*)[4])rgba, NULL );
       }
@@ -366,7 +366,7 @@ copy_rgba_pixels(GLcontext *ctx, GLint srcx, GLint srcy,
    if (SWRAST_CONTEXT(ctx)->_RasterMask == 0
        && !zoom
        && destx >= 0
-       && destx + width <= ctx->DrawBuffer->Width) {
+       && destx + width <= (GLint) ctx->DrawBuffer->Width) {
       quick_draw = GL_TRUE;
    }
    else {
@@ -556,7 +556,7 @@ copy_rgba_pixels(GLcontext *ctx, GLint srcx, GLint srcy,
          UNDEFARRAY(q);
       }
 
-      if (quick_draw && dy >= 0 && dy < ctx->DrawBuffer->Height) {
+      if (quick_draw && dy >= 0 && dy < (GLint) ctx->DrawBuffer->Height) {
          (*swrast->Driver.WriteRGBASpan)( ctx, width, destx, dy,
 				       (const GLchan (*)[4])rgba, NULL );
       }

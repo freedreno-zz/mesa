@@ -1,10 +1,10 @@
-/* $Id: s_readpix.c,v 1.12.2.1 2002/01/12 16:12:42 brianp Exp $ */
+/* $Id: s_readpix.c,v 1.12.2.2 2002/04/19 01:10:48 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.5
+ * Version:  4.0.3
  *
- * Copyright (C) 1999-2001  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -251,8 +251,8 @@ read_fast_rgba_pixels( GLcontext *ctx,
          readWidth += srcX;
          srcX = 0;
       }
-      if (srcX + readWidth > ctx->ReadBuffer->Width)
-         readWidth -= (srcX + readWidth - ctx->ReadBuffer->Width);
+      if (srcX + readWidth > (GLint) ctx->ReadBuffer->Width)
+         readWidth -= (srcX + readWidth - (GLint) ctx->ReadBuffer->Width);
       if (readWidth <= 0)
          return GL_TRUE;
 
@@ -262,8 +262,8 @@ read_fast_rgba_pixels( GLcontext *ctx,
          readHeight += srcY;
          srcY = 0;
       }
-      if (srcY + readHeight > ctx->ReadBuffer->Height)
-         readHeight -= (srcY + readHeight - ctx->ReadBuffer->Height);
+      if (srcY + readHeight > (GLint) ctx->ReadBuffer->Height)
+         readHeight -= (srcY + readHeight - (GLint) ctx->ReadBuffer->Height);
       if (readHeight <= 0)
          return GL_TRUE;
 

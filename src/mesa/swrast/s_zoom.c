@@ -1,10 +1,10 @@
-/* $Id: s_zoom.c,v 1.6 2001/05/15 21:30:27 brianp Exp $ */
+/* $Id: s_zoom.c,v 1.6.2.1 2002/04/19 01:10:48 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.5
+ * Version:  4.0.3
  *
- * Copyright (C) 1999-2001  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -87,7 +87,8 @@ _mesa_write_zoomed_rgba_span( GLcontext *ctx,
       /* below window */
       return;
    }
-   if (r0>=ctx->DrawBuffer->Height && r1>=ctx->DrawBuffer->Height) {
+   if (r0 >= (GLint) ctx->DrawBuffer->Height &&
+       r1 >= (GLint) ctx->DrawBuffer->Height) {
       /* above window */
       return;
    }
@@ -191,7 +192,8 @@ _mesa_write_zoomed_rgb_span( GLcontext *ctx,
       /* below window */
       return;
    }
-   if (r0>=ctx->DrawBuffer->Height && r1>=ctx->DrawBuffer->Height) {
+   if (r0 >= (GLint) ctx->DrawBuffer->Height &&
+       r1 >= (GLint) ctx->DrawBuffer->Height) {
       /* above window */
       return;
    }
@@ -304,7 +306,8 @@ _mesa_write_zoomed_index_span( GLcontext *ctx,
       /* below window */
       return;
    }
-   if (r0>=ctx->DrawBuffer->Height && r1>=ctx->DrawBuffer->Height) {
+   if (r0 >= (GLint) ctx->DrawBuffer->Height &&
+       r1 >= (GLint) ctx->DrawBuffer->Height) {
       /* above window */
       return;
    }
@@ -408,7 +411,8 @@ _mesa_write_zoomed_stencil_span( GLcontext *ctx,
       /* below window */
       return;
    }
-   if (r0>=ctx->DrawBuffer->Height && r1>=ctx->DrawBuffer->Height) {
+   if (r0 >= (GLint) ctx->DrawBuffer->Height &&
+       r1 >= (GLint) ctx->DrawBuffer->Height) {
       /* above window */
       return;
    }

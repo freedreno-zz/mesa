@@ -1,10 +1,10 @@
-/* $Id: t_array_api.c,v 1.19.2.3 2002/04/09 12:13:08 keithw Exp $ */
+/* $Id: t_array_api.c,v 1.19.2.4 2002/04/19 01:10:49 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.5
+ * Version:  4.0.3
  *
- * Copyright (C) 1999-2001  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -124,7 +124,7 @@ _tnl_DrawArrays(GLenum mode, GLint start, GLsizei count)
    if (ctx->CompileFlag) {
       fallback_drawarrays( ctx, mode, start, start + count );
    }    
-   else if (!ctx->Array.LockCount && count < thresh) {
+   else if (!ctx->Array.LockCount && (GLuint) count < thresh) {
       /* Small primitives: attempt to share a vb (at the expense of
        * using the immediate interface).
       */

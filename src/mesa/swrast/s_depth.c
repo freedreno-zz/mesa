@@ -1,10 +1,10 @@
-/* $Id: s_depth.c,v 1.9.2.2 2002/03/19 16:42:41 brianp Exp $ */
+/* $Id: s_depth.c,v 1.9.2.3 2002/04/19 01:10:48 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.5
+ * Version:  4.0.3
  *
- * Copyright (C) 1999-2001  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -1338,8 +1338,8 @@ _mesa_read_depth_span( GLcontext *ctx,
 {
    SWcontext *swrast = SWRAST_CONTEXT(ctx);
 
-   if (y < 0 || y >= ctx->DrawBuffer->Height ||
-       x + (GLint) n <= 0 || x >= ctx->DrawBuffer->Width) {
+   if (y < 0 || y >= (GLint) ctx->DrawBuffer->Height ||
+       x + n <= 0 || x >= (GLint) ctx->DrawBuffer->Width) {
       /* span is completely outside framebuffer */
       GLint i;
       for (i = 0; i < n; i++)
@@ -1356,8 +1356,8 @@ _mesa_read_depth_span( GLcontext *ctx,
       n -= dx;
       depth += dx;
    }
-   if (x + n > ctx->DrawBuffer->Width) {
-      GLint dx = x + n - ctx->DrawBuffer->Width;
+   if (x + n > (GLint) ctx->DrawBuffer->Width) {
+      GLint dx = x + n - (GLint) ctx->DrawBuffer->Width;
       GLint i;
       for (i = 0; i < dx; i++)
          depth[n - i - 1] = 0;
@@ -1412,8 +1412,8 @@ _mesa_read_depth_span_float( GLcontext *ctx,
    SWcontext *swrast = SWRAST_CONTEXT(ctx);
    const GLfloat scale = 1.0F / ctx->DepthMaxF;
 
-   if (y < 0 || y >= ctx->DrawBuffer->Height ||
-       x + (GLint) n <= 0 || x >= ctx->DrawBuffer->Width) {
+   if (y < 0 || y >= (GLint) ctx->DrawBuffer->Height ||
+       x + n <= 0 || x >= (GLint) ctx->DrawBuffer->Width) {
       /* span is completely outside framebuffer */
       GLint i;
       for (i = 0; i < n; i++)
@@ -1429,8 +1429,8 @@ _mesa_read_depth_span_float( GLcontext *ctx,
       n -= dx;
       x = 0;
    }
-   if (x + n > ctx->DrawBuffer->Width) {
-      GLint dx = x + n - ctx->DrawBuffer->Width;
+   if (x + n > (GLint) ctx->DrawBuffer->Width) {
+      GLint dx = x + n - (GLint) ctx->DrawBuffer->Width;
       GLint i;
       for (i = 0; i < dx; i++)
          depth[n - i - 1] = 0.0F;

@@ -1,10 +1,10 @@
-/* $Id: ss_vbtmp.h,v 1.17 2001/07/17 19:39:32 keithw Exp $ */
+/* $Id: ss_vbtmp.h,v 1.17.2.1 2002/04/19 01:10:48 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.5
+ * Version:  4.0.3
  *
- * Copyright (C) 1999-2001  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -84,14 +84,14 @@ static void TAG(emit)(GLcontext *ctx, GLuint start, GLuint end,
       if (VB->ColorPtr[0]->Type != CHAN_TYPE)
 	 import_float_colors( ctx );
 
-      color = VB->ColorPtr[0]->Ptr;
+      color = (GLchan *) VB->ColorPtr[0]->Ptr;
       color_stride = VB->ColorPtr[0]->StrideB;
    }
    if (IND & SPEC) {
       if (VB->SecondaryColorPtr[0]->Type != CHAN_TYPE)
 	 import_float_spec_colors( ctx );
 
-      spec = VB->SecondaryColorPtr[0]->Ptr;
+      spec = (GLchan *) VB->SecondaryColorPtr[0]->Ptr;
       spec_stride = VB->SecondaryColorPtr[0]->StrideB;
    }
    if (IND & INDEX) {

@@ -1790,7 +1790,11 @@ Fake_glXGetFBConfigAttrib( Display *dpy, GLXFBConfig config,
          *value = False; /* XXX ??? */
          break;
       case GLX_X_VISUAL_TYPE:
+#if defined(__cplusplus) || defined(c_plusplus)
+         switch (v->vishandle->c_class) {
+#else
          switch (v->vishandle->class) {
+#endif
             case GrayScale:
                *value = GLX_GRAY_SCALE;
                break;

@@ -1,8 +1,8 @@
-/* $Id: s_stencil.c,v 1.12.2.3 2002/03/19 16:42:42 brianp Exp $ */
+/* $Id: s_stencil.c,v 1.12.2.4 2002/04/19 01:10:48 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  4.0.2
+ * Version:  4.0.3
  *
  * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
  *
@@ -1014,8 +1014,8 @@ _mesa_read_stencil_span( GLcontext *ctx,
                          GLint n, GLint x, GLint y, GLstencil stencil[] )
 {
    SWcontext *swrast = SWRAST_CONTEXT(ctx);
-   if (y < 0 || y >= ctx->DrawBuffer->Height ||
-       x + n <= 0 || x >= ctx->DrawBuffer->Width) {
+   if (y < 0 || y >= (GLint) ctx->DrawBuffer->Height ||
+       x + n <= 0 || x >= (GLint) ctx->DrawBuffer->Width) {
       /* span is completely outside framebuffer */
       return; /* undefined values OK */
    }
@@ -1026,8 +1026,8 @@ _mesa_read_stencil_span( GLcontext *ctx,
       n -= dx;
       stencil += dx;
    }
-   if (x + n > ctx->DrawBuffer->Width) {
-      GLint dx = x + n - ctx->DrawBuffer->Width;
+   if (x + n > (GLint) ctx->DrawBuffer->Width) {
+      GLint dx = x + n - (GLint) ctx->DrawBuffer->Width;
       n -= dx;
    }
    if (n <= 0) {
@@ -1067,8 +1067,8 @@ _mesa_write_stencil_span( GLcontext *ctx, GLint n, GLint x, GLint y,
    SWcontext *swrast = SWRAST_CONTEXT(ctx);
    const GLstencil *ssrc = stencil;
 
-   if (y < 0 || y >= ctx->DrawBuffer->Height ||
-       x + n <= 0 || x >= ctx->DrawBuffer->Width) {
+   if (y < 0 || y >= (GLint) ctx->DrawBuffer->Height ||
+       x + n <= 0 || x >= (GLint) ctx->DrawBuffer->Width) {
       /* span is completely outside framebuffer */
       return; /* undefined values OK */
    }
@@ -1079,8 +1079,8 @@ _mesa_write_stencil_span( GLcontext *ctx, GLint n, GLint x, GLint y,
       n -= dx;
       ssrc += dx;
    }
-   if (x + n > ctx->DrawBuffer->Width) {
-      GLint dx = x + n - ctx->DrawBuffer->Width;
+   if (x + n > (GLint) ctx->DrawBuffer->Width) {
+      GLint dx = x + n - (GLint) ctx->DrawBuffer->Width;
       n -= dx;
    }
    if (n <= 0) {
