@@ -1,0 +1,8 @@
+fbdev.conf
+.deps
+.libs
+Makefile
+Makefile.in
+*.lo
+*.o
+*.la
