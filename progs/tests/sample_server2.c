@@ -1,4 +1,4 @@
-/* $Id: sample_server2.c,v 1.1.2.3 2003/04/29 08:21:44 keithw Exp $ */
+/* $Id: sample_server2.c,v 1.1.2.4 2003/04/29 09:41:01 keithw Exp $ */
 
 /*
  * Sample server that just keeps first available window mapped.
@@ -50,6 +50,10 @@ int main( int argc, char *argv[] )
 {
    Display *dpy;
    XEvent ev;
+   int autostart = 0;
+
+   if (argc == 2 && strcmp(argv[1], "-autostart") == 0)
+      autostart = 1;
 
    dpy = __miniglx_StartServer(NULL);
    if (!dpy) {
@@ -193,6 +197,10 @@ int main( int argc, char *argv[] )
 	       mapped_client = c;
 	       break;
 	    }
+	 }
+	 if (!clients && autostart) {
+	    system("nohup ./texline &");
+	    system("nohup ./manytex &");
 	 }
       }
       else if (bored) {
