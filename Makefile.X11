@@ -1,4 +1,4 @@
-# $Id: Makefile.X11,v 1.56.2.6 2002/03/11 14:59:12 brianp Exp $
+# $Id: Makefile.X11,v 1.56.2.7 2002/03/29 14:42:29 brianp Exp $
 
 # Mesa 3-D graphics library
 # Version:  4.0.2
@@ -400,6 +400,7 @@ LIB_FILES =	\
 	$(DIRECTORY)/include/GL/xmesa_x.h				\
 	$(DIRECTORY)/include/GL/xmesa_xf86.h				\
 	$(DIRECTORY)/include/GLView.h					\
+	$(DIRECTORY)/include/dmesadxe.h					\
 	$(DIRECTORY)/include/Makefile.in				\
 	$(DIRECTORY)/include/Makefile.am				\
 	$(DIRECTORY)/src/Makefile*					\
