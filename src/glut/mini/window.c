@@ -257,12 +257,10 @@ void APIENTRY glutMainLoop (void)
 	 idle        = GL_FALSE;
 	 g_redisplay = GL_FALSE;
 
-	 fprintf(stderr, "calling display_func()\n");
 	 display_func();
       }
 
       if (idle && idle_func) {
-	 fprintf(stderr, "calling idle_func()\n");
 	 idle_func();
       }
    }
