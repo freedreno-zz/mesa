@@ -1,4 +1,4 @@
-$Id: VERSIONS,v 1.118.2.14 2003/02/08 15:44:37 brianp Exp $
+$Id: VERSIONS,v 1.118.2.15 2003/02/13 15:58:56 brianp Exp $
 
 
 Mesa Version History
@@ -1105,4 +1105,5 @@ Mesa Version History
 	- use glPolygonOffset in gloss demo to avoid z-fighting artifacts
 	- updated winpos and pointblast demos to use ARB extensions
 	- disable SPARC normal transformation code (bug 673938)
+	- GLU fixes for OS/2 (Evgeny Kotsuba)
 
