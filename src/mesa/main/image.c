@@ -1,10 +1,10 @@
-/* $Id: image.c,v 1.63.2.2 2002/09/13 19:34:39 brianp Exp $ */
+/* $Id: image.c,v 1.63.2.3 2002/09/14 16:49:42 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.5
+ * Version:  4.0.4
  *
- * Copyright (C) 1999-2001  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -203,6 +203,9 @@ GLint _mesa_sizeof_packed_type( GLenum type )
          return sizeof(GLuint);
       case GL_UNSIGNED_INT_2_10_10_10_REV:
          return sizeof(GLuint);
+      case GL_UNSIGNED_SHORT_8_8_APPLE:
+      case GL_UNSIGNED_SHORT_8_8_REV_APPLE:
+         return sizeof(GLushort);      
       default:
          return -1;
    }
@@ -245,6 +248,8 @@ GLint _mesa_components_in_format( GLenum format )
 	 return 4;
       case GL_ABGR_EXT:
          return 4;
+      case GL_YCBCR_MESA:
+         return 2;
       default:
          return -1;
    }
@@ -301,6 +306,12 @@ GLint _mesa_bytes_per_pixel( GLenum format, GLenum type )
       case GL_UNSIGNED_INT_2_10_10_10_REV:
          if (format == GL_RGBA || format == GL_BGRA || format == GL_ABGR_EXT)
             return sizeof(GLuint);
+         else
+            return -1;
+      case GL_UNSIGNED_SHORT_8_8_APPLE:
+      case GL_UNSIGNED_SHORT_8_8_REV_APPLE:
+         if (format == GL_YCBCR_MESA)
+            return sizeof(GLushort);
          else
             return -1;
       default:
