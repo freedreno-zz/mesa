@@ -1029,7 +1029,7 @@ void radeonUpdateWindow( GLcontext *ctx )
    RADEON_FIREVERTICES( rmesa );
    RADEON_STATECHANGE( rmesa, vpt );
 
-   fprintf(stderr, "%s: %f %f %f %f\n", __FUNCTION__, sx, tx, sy, ty);
+   if (0) fprintf(stderr, "%s: %f %f %f %f\n", __FUNCTION__, sx, tx, sy, ty);
 
    rmesa->hw.vpt.cmd[VPT_SE_VPORT_XSCALE]  = *(GLuint *)&sx;
    rmesa->hw.vpt.cmd[VPT_SE_VPORT_XOFFSET] = *(GLuint *)&tx;
