@@ -1,4 +1,4 @@
-/* $Id: multiarb.c,v 1.10.2.1 2002/09/12 17:04:22 kschultz Exp $ */
+/* $Id: multiarb.c,v 1.10.2.2 2002/09/13 18:15:09 brianp Exp $ */
 
 /*
  * GL_ARB_multitexture demo
@@ -8,76 +8,6 @@
  *
  *
  * Brian Paul  November 1998  This program is in the public domain.
- */
-
-/*
- * $Log: multiarb.c,v $
- * Revision 1.10.2.1  2002/09/12 17:04:22  kschultz
- * Add #define GL_GLEXT_PROTOTYPES since this demo uses ARB extensions.
- * Windows needs them for correct linkage.
- *
- * Revision 1.10  2001/06/20 19:12:30  brianp
- * also print GL_MAX_TEXTURE_SIZE
- *
- * Revision 1.9  2001/06/13 14:33:16  brianp
- * moved glTexEnvi calls to better logical locations
- *
- * Revision 1.8  2000/12/24 22:53:54  pesco
- * * demos/Makefile.am (INCLUDES): Added -I$(top_srcdir)/util.
- * * demos/Makefile.X11, demos/Makefile.BeOS-R4, demos/Makefile.cygnus:
- * Essentially the same.
- * Program files updated to include "readtex.c", not "../util/readtex.c".
- * * demos/reflect.c: Likewise for "showbuffer.c".
- *
- *
- * * Makefile.am (EXTRA_DIST): Added top-level regular files.
- *
- * * include/GL/Makefile.am (INC_X11): Added glxext.h.
- *
- *
- * * src/GGI/include/ggi/mesa/Makefile.am (EXTRA_HEADERS): Include
- * Mesa GGI headers in dist even if HAVE_GGI is not given.
- *
- * * configure.in: Look for GLUT and demo source dirs in $srcdir.
- *
- * * src/swrast/Makefile.am (libMesaSwrast_la_SOURCES): Set to *.[ch].
- * More source list updates in various Makefile.am's.
- *
- * * Makefile.am (dist-hook): Remove CVS directory from distribution.
- * (DIST_SUBDIRS): List all possible subdirs here.
- * (SUBDIRS): Only list subdirs selected for build again.
- * The above two applied to all subdir Makefile.am's also.
- *
- * Revision 1.7  2000/11/01 16:02:01  brianp
- * print number of texture units
- *
- * Revision 1.6  2000/05/23 23:21:00  brianp
- * set default window pos
- *
- * Revision 1.5  2000/02/02 17:31:45  brianp
- * changed > to >=
- *
- * Revision 1.4  2000/02/02 01:07:21  brianp
- * limit Drift to [0, 1]
- *
- * Revision 1.3  1999/10/21 16:40:32  brianp
- * added -info command line option
- *
- * Revision 1.2  1999/10/13 12:02:13  brianp
- * use texture objects now
- *
- * Revision 1.1.1.1  1999/08/19 00:55:40  jtg
- * Imported sources
- *
- * Revision 1.3  1999/03/28 18:20:49  brianp
- * minor clean-up
- *
- * Revision 1.2  1998/11/05 04:34:04  brianp
- * moved image files to ../images/ directory
- *
- * Revision 1.1  1998/11/03 01:36:33  brianp
- * Initial revision
- *
  */
 
 
