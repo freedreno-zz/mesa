@@ -128,17 +128,6 @@ static int RADEONDRIAgpInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info)
    }
    fprintf(stderr, "[agp] ring handle = 0x%08lx\n", info->ringHandle);
     
-#if 0
-   if (drmMap(dpy->drmFD, info->ringHandle, info->ringMapSize,
-	      (drmAddressPtr)&info->ring) < 0) {
-      fprintf(stderr, "[agp] Could not map ring\n");
-      return 0;
-   }
-    
-   fprintf(stderr,
-	   "[agp] Ring mapped at 0x%08lx\n",
-	   (unsigned long)info->ring);    
-#endif
 
    if (drmAddMap(dpy->drmFD, info->ringReadOffset, info->ringReadMapSize,
 		 DRM_AGP, DRM_READ_ONLY, &info->ringReadPtrHandle) < 0) {
@@ -151,18 +140,6 @@ static int RADEONDRIAgpInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info)
 	   "[agp] ring read ptr handle = 0x%08lx\n",
 	   info->ringReadPtrHandle);
     
-#if 0
-   if (drmMap(dpy->drmFD, info->ringReadPtrHandle, info->ringReadMapSize,
-	      (drmAddressPtr)&info->ringReadPtr) < 0) {
-      fprintf(stderr,
-	      "[agp] Could not map ring read ptr\n");
-      return 0;
-   }
-   fprintf(stderr,
-	   "[agp] Ring read ptr mapped at 0x%08lx\n",
-	   (unsigned long)info->ringReadPtr);
-#endif
-
    if (drmAddMap(dpy->drmFD, info->bufStart, info->bufMapSize,
 		 DRM_AGP, 0, &info->bufHandle) < 0) {
       fprintf(stderr,
@@ -173,18 +150,6 @@ static int RADEONDRIAgpInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info)
 	   "[agp] vertex/indirect buffers handle = 0x%08lx\n",
 	   info->bufHandle);
 
-#if 0    
-   if (drmMap(dpy->drmFD, info->bufHandle, info->bufMapSize,
-	      (drmAddressPtr)&info->buf) < 0) {
-      fprintf(stderr,
-	      "[agp] Could not map vertex/indirect buffers\n");
-      return 0;
-   }
-   fprintf(stderr,
-	   "[agp] Vertex/indirect buffers mapped at 0x%08lx\n",
-	   (unsigned long)info->buf);
-#endif
-
    if (drmAddMap(dpy->drmFD, info->agpTexStart, info->agpTexMapSize,
 		 DRM_AGP, 0, &info->agpTexHandle) < 0) {
       fprintf(stderr,
@@ -194,18 +159,6 @@ static int RADEONDRIAgpInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info)
    fprintf(stderr,
 	   "[agp] AGP texture map handle = 0x%08lx\n",
 	   info->agpTexHandle);
-
-#if 0    
-   if (drmMap(dpy->drmFD, info->agpTexHandle, info->agpTexMapSize,
-	      (drmAddressPtr)&info->agpTex) < 0) {
-      fprintf(stderr,
-	      "[agp] Could not map AGP texture map\n");
-      return 0;
-   }
-   fprintf(stderr,
-	   "[agp] AGP Texture map mapped at 0x%08lx\n",
-	   (unsigned long)info->agpTex);
-#endif
 
    /* Initialize Radeon's AGP registers */
    /* Ring buffer is at AGP offset 0 */
@@ -310,18 +263,6 @@ static int RADEONDRIBufInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
 	   "[drm] Added %d %d byte vertex/indirect buffers\n",
 	   info->bufNumBufs, RADEON_BUFFER_SIZE);
    
-#if 0
-   if (!(info->buffers = drmMapBufs(dpy->drmFD))) {
-      fprintf(stderr,
-	      "[drm] Failed to map vertex/indirect buffers list\n");
-      return 0;
-   }
-
-   fprintf(stderr,
-	   "[drm] Mapped %d vertex/indirect buffers\n",
-	   info->buffers->count);
-#endif
-
    return 1;
 }
 
@@ -860,12 +801,6 @@ int __driInitFBDev( struct MiniGLXDisplayRec *dpy )
    
    if (!RADEONScreenInit( dpy, info ))
       return 0;
-
-#if 0   
-   fprintf(stderr, "Now closing drmFD\n");
-   drmClose(dpy->drmFD);
-   dpy->drmFD = 0;
-#endif
 
    return 1;
 }
