@@ -1,4 +1,4 @@
-/* $Id: tess.c,v 1.20.2.2 1999/11/16 11:07:22 gareth Exp $ */
+/* $Id: tess.c,v 1.20.2.3 1999/11/20 02:37:20 gareth Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -264,7 +264,6 @@ void GLAPIENTRY gluTessVertex( GLUtesselator *tobj, GLdouble coords[3],
 	last_vertex->coords[Z] = coords[Z];
 
 	last_vertex->edge_flag = GL_TRUE;
-	last_vertex->hull_flag = GL_FALSE;
 
 	last_vertex->side = 0.0;
 	last_vertex->label = 0;
@@ -293,7 +292,6 @@ void GLAPIENTRY gluTessVertex( GLUtesselator *tobj, GLdouble coords[3],
 	vertex->coords[Z] = coords[Z];
 
 	vertex->edge_flag = GL_TRUE;
-	vertex->hull_flag = GL_FALSE;
 
 	vertex->side = 0.0;
 	vertex->label = 0;
