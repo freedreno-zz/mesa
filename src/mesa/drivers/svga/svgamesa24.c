@@ -1,3 +1,32 @@
+/* $Id: svgamesa24.c,v 1.1.2.2 2000/01/22 20:05:28 brianp Exp $ */
+
+/*
+ * Mesa 3-D graphics library
+ * Version:  3.2
+ * Copyright (C) 1995-2000  Brian Paul
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Library General Public
+ * License as published by the Free Software Foundation; either
+ * version 2 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Library General Public License for more details.
+ *
+ * You should have received a copy of the GNU Library General Public
+ * License along with this library; if not, write to the Free
+ * Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ */
+
+
+/*
+ * SVGA driver for Mesa.
+ * Original author:  Brian Paul
+ * Additional authors:  Slawomir Szczyrba <steev@hot.pl>  (Mesa 3.2)
+ */
+
 
 #include "svgapix.h"
 
