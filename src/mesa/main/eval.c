@@ -1,4 +1,4 @@
-/* $Id: eval.c,v 1.24.4.2 2003/03/20 09:20:38 keithw Exp $ */
+/* $Id: eval.c,v 1.24.4.3 2003/03/21 11:35:15 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -845,6 +845,8 @@ init_2d_map( struct gl_2d_map *map, int n, const float *initial )
 
 void _mesa_init_eval( GLcontext *ctx )
 {
+   int i;
+
    /* Evaluators group */
    ctx->Eval.Map1Color4 = GL_FALSE;
    ctx->Eval.Map1Index = GL_FALSE;

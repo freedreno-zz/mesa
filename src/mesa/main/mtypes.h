@@ -29,7 +29,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: mtypes.h,v 1.97.4.5 2003/03/20 19:38:42 jrfonseca Exp $ */
+/* $Id: mtypes.h,v 1.97.4.6 2003/03/21 11:35:19 keithw Exp $ */
 
 
 #ifndef TYPES_H
@@ -1112,6 +1112,7 @@ struct gl_texture_attrib {
 
    GLuint _EnabledUnits;        /**< \brief one bit set for each really-enabled unit */
    GLuint _GenFlags;  /**< \brief for texgen */
+   GLuint _NeedEyeCoords;
    GLuint _TexGenEnabled;
    GLuint _TexMatEnabled;
    /**@}*/
@@ -1791,10 +1792,6 @@ struct matrix_stack
 #define _IMAGE_NEW_TRANSFER_STATE         (_NEW_PIXEL | _NEW_COLOR_MATRIX)
 
 
-/* Bits for ctx->_NeedNormals */
-#define NEED_NORMALS_TEXGEN      0x1
-#define NEED_NORMALS_LIGHT       0x2
-
 /* Bits for ctx->_NeedEyeCoords */
 #define NEED_EYE_TEXGEN          0x1
 #define NEED_EYE_LIGHT           0x2
@@ -1991,7 +1988,7 @@ struct __GLcontextRec {
    GLfloat _EyeZDir[3];
    GLfloat _ModelViewInvScale;
    GLuint _NeedEyeCoords;
-   GLuint _NeedNormals;    /**< \brief Are vertex normal vectors needed? */
+   GLuint _ForceEyeCoords; 
 
    struct gl_shine_tab *_ShineTable[2]; /**< \brief Active shine tables */
    struct gl_shine_tab *_ShineTabList;  /**< \brief Mru list of inactive shine tables */

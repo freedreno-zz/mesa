@@ -28,7 +28,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: context.c,v 1.188.2.1.2.12 2003/03/20 09:20:13 keithw Exp $ */
+/* $Id: context.c,v 1.188.2.1.2.13 2003/03/21 11:35:14 keithw Exp $ */
 
 /**
  * \mainpage Mesa Core Module
@@ -92,6 +92,7 @@
 #include "get.h"
 #include "glthread.h"
 #include "histogram.h"
+#include "hint.h"
 #include "hash.h"
 #include "light.h"
 #include "lines.h"
@@ -956,6 +957,7 @@ init_attrib_groups( GLcontext *ctx )
    _mesa_init_feedback( ctx );
    _mesa_init_fog( ctx );
    _mesa_init_histogram( ctx );
+   _mesa_init_hint( ctx );
    _mesa_init_line( ctx );
    _mesa_init_lighting( ctx );
    _mesa_init_matrix( ctx );

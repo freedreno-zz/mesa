@@ -1,4 +1,4 @@
-/* $Id: colortab.c,v 1.46.4.1 2003/03/20 09:20:08 keithw Exp $ */
+/* $Id: colortab.c,v 1.46.4.2 2003/03/21 11:35:14 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -1246,10 +1246,10 @@ void _mesa_init_colortable( GLcontext * ctx )
 
 void _mesa_free_colortable_data( GLcontext *ctx )
 {
-   _mesa_free_colortable_data( &ctx->ColorTable );
-   _mesa_free_colortable_data( &ctx->ProxyColorTable );
-   _mesa_free_colortable_data( &ctx->PostConvolutionColorTable );
-   _mesa_free_colortable_data( &ctx->ProxyPostConvolutionColorTable );
-   _mesa_free_colortable_data( &ctx->PostColorMatrixColorTable );
-   _mesa_free_colortable_data( &ctx->ProxyPostColorMatrixColorTable );
+   _mesa_free_one_colortable( &ctx->ColorTable );
+   _mesa_free_one_colortable( &ctx->ProxyColorTable );
+   _mesa_free_one_colortable( &ctx->PostConvolutionColorTable );
+   _mesa_free_one_colortable( &ctx->ProxyPostConvolutionColorTable );
+   _mesa_free_one_colortable( &ctx->PostColorMatrixColorTable );
+   _mesa_free_one_colortable( &ctx->ProxyPostColorMatrixColorTable );
 }

@@ -1,4 +1,4 @@
-/* $Id: state.c,v 1.97.4.7 2003/03/20 09:21:10 keithw Exp $ */
+/* $Id: state.c,v 1.97.4.8 2003/03/21 11:35:21 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -628,7 +628,7 @@ void _mesa_update_state( GLcontext *ctx )
     * light positions & normal transforms for other reasons.
     */
    if (new_state & _MESA_NEW_NEED_EYE_COORDS) 
-      _mesa_update_tnl_spaces( ctx );
+      _mesa_update_tnl_spaces( ctx, new_state );
 
    /*
     * Here the driver sets up all the ctx->Driver function pointers

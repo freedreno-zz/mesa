@@ -1,4 +1,4 @@
-/* $Id: varray.c,v 1.47.4.1 2003/03/20 09:21:17 keithw Exp $ */
+/* $Id: varray.c,v 1.47.4.2 2003/03/21 11:35:24 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -841,6 +841,8 @@ _mesa_MultiDrawElementsEXT( GLenum mode, const GLsizei *count, GLenum type,
 
 void _mesa_init_varray( GLcontext * ctx )
 {
+   int i;
+
    /* Vertex arrays */
    ctx->Array.Vertex.Size = 4;
    ctx->Array.Vertex.Type = GL_FLOAT;

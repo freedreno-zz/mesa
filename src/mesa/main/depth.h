@@ -1,4 +1,4 @@
-/* $Id: depth.h,v 1.11.8.1 2003/03/20 09:20:29 keithw Exp $ */
+/* $Id: depth.h,v 1.11.8.2 2003/03/21 11:35:15 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -45,8 +45,8 @@ extern void
 _mesa_DepthMask( GLboolean flag );
 
 
-exern void 
-_mesa_init_depth( GLcontext * ctx )
+extern void 
+_mesa_init_depth( GLcontext * ctx );
 #else
 #define _mesa_init_depth( c ) ((void)0)
 #endif

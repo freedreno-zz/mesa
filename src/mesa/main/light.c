@@ -1,4 +1,4 @@
-/* $Id: light.c,v 1.54.4.1 2003/03/20 09:20:54 keithw Exp $ */
+/* $Id: light.c,v 1.54.4.2 2003/03/21 11:35:18 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -1149,13 +1149,10 @@ _mesa_update_lighting( GLcontext *ctx )
 {
    struct gl_light *light;
    ctx->_NeedEyeCoords &= ~NEED_EYE_LIGHT;
-   ctx->_NeedNormals &= ~NEED_NORMALS_LIGHT;
    ctx->Light._Flags = 0;
 
    if (!ctx->Light.Enabled)
       return;
-
-   ctx->_NeedNormals |= NEED_NORMALS_LIGHT;
 
    foreach(light, &ctx->Light.EnabledList) {
       ctx->Light._Flags |= light->_Flags;
@@ -1223,7 +1220,7 @@ _mesa_update_lighting( GLcontext *ctx )
  * Update on (_NEW_MODELVIEW | _NEW_LIGHT) when lighting is enabled.
  * Also update on lighting space changes.
  */
-void
+static void
 _mesa_compute_light_positions( GLcontext *ctx )
 {
    struct gl_light *light;
@@ -1327,7 +1324,7 @@ void _mesa_update_tnl_spaces( GLcontext *ctx, GLuint new_state )
 			  ctx->Point._Attenuated ||
 			  (ctx->Light.Enabled &&
 			   !TEST_MAT_FLAGS( ctx->ModelviewMatrixStack.Top, 
-					    MAT_FLAGS_LENGTH_PRESERVING));
+					    MAT_FLAGS_LENGTH_PRESERVING)));
       
    /* Check if the truth-value interpretations of the bitfields have
     * changed:
@@ -1442,6 +1439,8 @@ init_material( struct gl_material *m )
 
 void _mesa_init_lighting( GLcontext *ctx )
 {
+   int i;
+
    /* Constants, may be overriden by device drivers */
    ctx->Const.MaxLights = MAX_LIGHTS;
 

@@ -1,4 +1,4 @@
-/* $Id: debug.c,v 1.14.4.1 2003/03/20 09:20:22 keithw Exp $ */
+/* $Id: debug.c,v 1.14.4.2 2003/03/21 11:35:14 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -28,6 +28,7 @@
 #include "context.h"
 #include "imports.h"
 #include "debug.h"
+#include "get.h"
 
 /**
  * \brief Primitive names
@@ -226,6 +227,8 @@ static void add_debug_flags( const char *debug )
 void 
 _mesa_init_debug( GLcontext *ctx )
 {
+   char *c;
+
    /* For debug/development only */
    ctx->NoRaster = _mesa_getenv("MESA_NO_RASTER") ? GL_TRUE : GL_FALSE;
    ctx->FirstTimeCurrent = GL_TRUE;

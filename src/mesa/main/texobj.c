@@ -27,7 +27,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: texobj.c,v 1.62.4.4 2003/03/20 19:38:48 jrfonseca Exp $ */
+/* $Id: texobj.c,v 1.62.4.5 2003/03/21 11:35:22 keithw Exp $ */
 
 #include "glheader.h"
 #include "colortab.h"
@@ -110,7 +110,9 @@ _mesa_alloc_texture_object( struct gl_shared_state *shared,
       obj->CompareFunc = GL_LEQUAL;       /* ARB_shadow */
       obj->DepthMode = GL_LUMINANCE;      /* ARB_depth_texture */
       obj->ShadowAmbient = 0.0F;          /* ARB/SGIX_shadow_ambient */
-      _mesa_init_colortable(&obj->Palette);
+#if _HAVE_FULL_GL
+      _mesa_init_one_colortable(&obj->Palette);
+#endif
 
       /* insert into linked list */
       if (shared) {
@@ -172,7 +174,9 @@ void _mesa_free_texture_object( struct gl_shared_state *shared,
       _mesa_HashRemove(shared->TexObjects, t->Name);
    }
 
-   _mesa_free_colortable_data(&t->Palette);
+#if _HAVE_FULL_GL
+   _mesa_free_one_colortable(&t->Palette);
+#endif
 
    /* free the texture images */
    {

@@ -1,4 +1,4 @@
-/* $Id: rastpos.c,v 1.39.4.3 2003/03/20 09:21:07 keithw Exp $ */
+/* $Id: rastpos.c,v 1.39.4.4 2003/03/21 11:35:20 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -533,7 +533,7 @@ _mesa_RasterPos4sv(const GLshort *v)
 /***           GL_ARB_window_pos / GL_MESA_window_pos               ***/
 /**********************************************************************/
 
-#if FEATURE_window_pos
+#if FEATURE_windowpos
 
 static void
 window_pos3f(GLfloat x, GLfloat y, GLfloat z)

@@ -27,7 +27,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: light.h,v 1.15.4.3 2003/03/20 19:38:40 jrfonseca Exp $ */
+/* $Id: light.h,v 1.15.4.4 2003/03/21 11:35:19 keithw Exp $ */
 
 
 #ifndef LIGHT_H
@@ -110,7 +110,7 @@ extern void _mesa_validate_all_lighting_tables( GLcontext *ctx );
 
 extern void _mesa_update_lighting( GLcontext *ctx );
 
-extern void _mesa_update_tnl_spaces( GLcontext *ctx );
+extern void _mesa_update_tnl_spaces( GLcontext *ctx, GLuint new_state );
 
 extern void _mesa_update_material( GLcontext *ctx,
                                    const struct gl_material src[2],
@@ -137,7 +137,7 @@ extern void _mesa_allow_light_in_model( GLcontext *ctx, GLboolean flag );
 #define _mesa_init_lighting( c ) ((void)0)
 #define _mesa_free_lighting_data( c ) ((void)0)
 #define _mesa_update_lighting( c ) ((void)0)
-#define _mesa_update_tnl_spaces( c ) ((void)0)
+#define _mesa_update_tnl_spaces( c, n ) ((void)0)
 #define GET_SHINE_TAB_ENTRY( table, dp, result )  ((result)=0)
 #endif
 

@@ -1,4 +1,4 @@
-/* $Id: hint.h,v 1.4 2002/06/15 02:38:15 brianp Exp $ */
+/* $Id: hint.h,v 1.4.6.1 2003/03/21 11:35:18 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -31,9 +31,14 @@
 
 #include "mtypes.h"
 
-
+#if _HAVE_FULL_GL
 extern void
 _mesa_Hint( GLenum target, GLenum mode );
 
+extern void 
+_mesa_init_hint( GLcontext * ctx );
+#else
+#define _mesa_init_hint( c ) ((void) 0)
+#endif
 
 #endif

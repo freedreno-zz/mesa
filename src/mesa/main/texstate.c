@@ -1,4 +1,4 @@
-/* $Id: texstate.c,v 1.87.4.2 2003/03/20 09:21:15 keithw Exp $ */
+/* $Id: texstate.c,v 1.87.4.3 2003/03/21 11:35:22 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -27,6 +27,7 @@
 
 #include "glheader.h"
 #include "colormac.h"
+#include "colortab.h"
 #include "context.h"
 #include "enums.h"
 #include "extensions.h"
@@ -2907,7 +2908,7 @@ GLboolean _mesa_init_texture( GLcontext * ctx )
    for (i=0; i<MAX_TEXTURE_UNITS; i++)
       init_texture_unit( ctx, i );
    ctx->Texture.SharedPalette = GL_FALSE;
-   _mesa_init_colortable(&ctx->Texture.Palette);
+   _mesa_init_one_colortable(&ctx->Texture.Palette);
 
    /* Constants, may be overriden by device drivers */
    ctx->Const.MaxTextureLevels = MAX_TEXTURE_LEVELS;
@@ -2934,5 +2935,5 @@ void _mesa_free_texture_data( GLcontext *ctx )
    _mesa_free_texture_object( NULL, ctx->Texture.ProxyCubeMap );
    _mesa_free_texture_object( NULL, ctx->Texture.ProxyRect );
 
-   _mesa_free_colortable_data( &ctx->Texture.Palette );
+   _mesa_free_one_colortable( &ctx->Texture.Palette );
 }

@@ -1,4 +1,4 @@
-/* $Id: pixel.c,v 1.37.4.3 2003/03/20 09:21:01 keithw Exp $ */
+/* $Id: pixel.c,v 1.37.4.4 2003/03/21 11:35:19 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -1399,7 +1399,7 @@ update_image_transfer_state(GLcontext *ctx)
 }
 
 
-void _mesa_update_pixel( GLcontext *ctx, GLuint newstate )
+void _mesa_update_pixel( GLcontext *ctx, GLuint new_state )
 {
    if (new_state & _NEW_COLOR_MATRIX)
       _math_matrix_analyse( ctx->ColorMatrixStack.Top );
@@ -1511,7 +1511,7 @@ void _mesa_init_pixel( GLcontext * ctx )
    ctx->Unpack.SwapBytes = GL_FALSE;
    ctx->Unpack.LsbFirst = GL_FALSE;
 
-   if (ctx->Visual->doubleBufferMode) {
+   if (ctx->Visual.doubleBufferMode) {
       ctx->Pixel.ReadBuffer = GL_BACK;
       ctx->Pixel._ReadSrcMask = BACK_LEFT_BIT;
    }

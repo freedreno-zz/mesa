@@ -1,4 +1,4 @@
-/* $Id: eval.h,v 1.6.8.1 2003/03/20 09:20:40 keithw Exp $ */
+/* $Id: eval.h,v 1.6.8.2 2003/03/21 11:35:15 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -32,7 +32,7 @@
 #include "mtypes.h"
 
 #if _HAVE_FULL_GL
-extern void _mesa_init_eval( void );
+extern void _mesa_init_eval( GLcontext *ctx );
 extern void _mesa_free_eval_data( GLcontext *ctx );
 
 
