@@ -30,7 +30,7 @@
  * \author Rickard E. (Rik) Faith <faith@valinux.com>
  *
  * \par Acknowledgements:
- * Dec 1999, Richard Henderson <rth@twiddle.net>, move to generic cmpxchg.
+ * Dec 1999, Richard Henderson <rth@twiddle.net>, move to generic \c cmpxchg.
  *
  */
 

@@ -1,6 +1,7 @@
 /**
  * \file sarea.h 
- *
+ * \brief SAREA definitions.
+ * 
  * Copyright 1998-1999 Precision Insight, Inc., Cedar Park, Texas.
  * Copyright 2000 VA Linux Systems, Inc.
  * All Rights Reserved.
@@ -51,11 +52,21 @@
 
 #define SAREA_DRAWABLE_CLAIMED_ENTRY	0x80000000
 
+/**
+ * \brief SAREA per drawable information.
+ *
+ * \sa _XF86DRISAREA.
+ */
 typedef struct _XF86DRISAREADrawable {
     unsigned int	stamp;
     unsigned int	flags;
 } XF86DRISAREADrawableRec, *XF86DRISAREADrawablePtr;
 
+/**
+ * \brief SAREA frame information.
+ *
+ * \sa  _XF86DRISAREA.
+ */
 typedef struct _XF86DRISAREAFrame {
     unsigned int        x;
     unsigned int        y;
@@ -64,10 +75,13 @@ typedef struct _XF86DRISAREAFrame {
     unsigned int        fullscreen;
 } XF86DRISAREAFrameRec, *XF86DRISAREAFramePtr;
 
+/**
+ * \brief SAREA definition.
+ */
 typedef struct _XF86DRISAREA {
-    /** first thing is always the drm locking structure */
+    /** first thing is always the DRM locking structure */
     drmLock			lock;
-		/* NOT_DONE: Use readers/writer lock for drawable_lock */
+    /** \todo Use readers/writer lock for drawable_lock */
     drmLock			drawable_lock;
     XF86DRISAREADrawableRec	drawableTable[SAREA_MAX_DRAWABLES];
     XF86DRISAREAFrameRec        frame;

@@ -1,4 +1,4 @@
-/* $Id: glapi.c,v 1.67.4.1 2002/12/21 19:06:06 jrfonseca Exp $ */
+/* $Id: glapi.c,v 1.67.4.2 2003/01/18 13:42:06 jrfonseca Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -24,7 +24,6 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-
 /**
  * \file glapi.c
  * \brief Manages the OpenGL API dispatch layer.
@@ -40,10 +39,8 @@
  * based libGL.so, and perhaps the SGI SI.
  *
  * \note There are no dependencies on Mesa in this code.
- */
-
-/*
- * Versions (API changes):
+ *
+ * \par Versions (API changes):
  *   2000/02/23  - original version for Mesa 3.3 and XFree86 4.0
  *   2001/01/16  - added dispatch override feature for Mesa 3.5
  *   2002/06/28  - added _glapi_set_warning_func(), Mesa 4.1.
@@ -67,12 +64,29 @@
  */
 /*@{*/
 
+/**
+ * \brief Whether to print warning messages or not.
+ *
+ * Defaults to false.
+ *
+ * \sa Set by _glapi_noop_enable_warnings().
+ */
 static GLboolean WarnFlag = GL_FALSE;
+/**
+ * \brief Callback function for reporting errors.
+ *
+ * \sa Set by _glapi_noop_enable_warnings().
+ */
 static _glapi_warning_func warning_func;
 
 
 /**
  * \brief Enable/disable printing of warning messages.
+ *
+ * \param enable whether to print warning messages or not.
+ *
+ * \internal
+ * Sets the value of the static variable WarnFlag to the supplied parameter.
  */
 void
 _glapi_noop_enable_warnings(GLboolean enable)
@@ -82,6 +96,11 @@ _glapi_noop_enable_warnings(GLboolean enable)
 
 /**
  * \brief Register a callback function for reporting errors.
+ *
+ * \param func callback function.
+ *
+ * \internal
+ * Sets the value of the static variable warning_func to the supplied function.
  */
 void
 _glapi_set_warning_func( _glapi_warning_func func )
@@ -89,6 +108,17 @@ _glapi_set_warning_func( _glapi_warning_func func )
    warning_func = func;
 }
 
+/**
+ * \brief Utility function to decide whether warning messages should be printed
+ * or not.
+ *
+ * \return GL_TRUE if warning messages should be printed, GL_FALSE otherwise.
+ *
+ * \internal
+ * Checks if either WarnFlag, the \c MESA_DEBUG or \c LIBGL_DEBUG environment
+ * variables is set, and assures that callback function for reporting errors
+ * has been set.
+ */
 static GLboolean
 warn(void)
 {
@@ -143,7 +173,7 @@ static int NoOpUnused(void)
 /**
  * \name Thread-safe dispatch.
  *
- * if we support thread-safety, build a special dispatch table for use
+ * If we support thread-safety, build a special dispatch table for use
  * in thread-safety mode (ThreadSafe == GL_TRUE).  Each entry in the
  * dispatch table will call _glthread_GetTSD() to get the actual dispatch
  * table bound to the current thread, then jump through that table.
@@ -197,7 +227,7 @@ static int _ts_Unused(void)
 struct _glapi_table *_glapi_Dispatch = (struct _glapi_table *) __glapi_noop_table;
 struct _glapi_table *_glapi_RealDispatch = (struct _glapi_table *) __glapi_noop_table;
 
-/** Used when thread safety disabled */
+/** Used when thread safety is disabled. */
 void *_glapi_Context = NULL;
 
 
@@ -206,8 +236,18 @@ static GLboolean DispatchOverride = GL_FALSE;
 
 
 /**
+ * \brief \c strdup functionality.
+ * 
+ * \param str string.
+ *
+ * \return a pointer to an allocated copy of \p str if sucessful, or NULL if
+ * not enough memory.
+ * 
  * strdup() is actually not a standard ANSI C or POSIX routine.
  * Irix will not define it if ANSI mode is in effect.
+ *
+ * \internal
+ * Allocates via malloc() memory enough to hold the string and copies it.
  */
 static char *
 str_dup(const char *str)
@@ -223,8 +263,23 @@ str_dup(const char *str)
 
 
 /**
+ * \brief Check for the presence of multiple threads.
+ * 
  * We should call this periodically from a function such as glXMakeCurrent()
  * in order to test if multiple threads are being used.
+ *
+ * \internal
+ * Determines the presence of multiple thread by comparing the current thread
+ * ID with the thread ID of the first call which is store in a local static
+ * variable.
+ * 
+ * If more than one thread is detected then permanently sets ThreadSafe to
+ * true.
+ *
+ * Once ThreadSafe is true, it make sure that the calling thread's disptach
+ * pointer isn't null.
+ * 
+ * \note Is a no-op if not compiled with threads support.
  */
 void
 _glapi_check_multithread(void)
@@ -257,6 +312,14 @@ _glapi_check_multithread(void)
  *
  * The context pointer is an opaque type which should be cast to
  * void from the real context pointer type.
+ *
+ * \param context context pointer.
+ *
+ * \sa _glapi_get_context().
+ *
+ * \internal
+ * If ThreadSafe is set then the context is stored on the thread local storage, otherwise it's stored in the 
+ * global variable _glapi_Context.
  */
 void
 _glapi_set_context(void *context)
@@ -279,6 +342,14 @@ _glapi_set_context(void *context)
  *
  * The context pointer is an opaque type which should be cast from
  * void to the real context pointer type.
+ *
+ * \return the context pointer.
+ * 
+ * \sa _glapi_get_context().
+ *
+ * \internal
+ *
+ * \sa See _glapi_set_context() for details.
  */
 void *
 _glapi_get_context(void)
@@ -299,6 +370,19 @@ _glapi_get_context(void)
 
 /**
  * \brief Set the global or per-thread dispatch table pointer.
+ *
+ * \param dispatch dispatch table pointer.
+ *
+ * \sa _glapi_get_dispatch().
+ *
+ * \internal
+ * If the dispatch table is being overriden then set the the real dispatch
+ * table pointer (_glapi_RealDispatch) instead of the current dispatch table
+ * pointer (_glapi_Dispatch).
+ *
+ * If compiled with thread support the thread-specific variables
+ * (RealDispatchTSD and DispatchTSD) are set instead of the global one, which
+ * are set to a thread safe dispatch table (__glapi_threadsafe_table).
  */
 void
 _glapi_set_dispatch(struct _glapi_table *dispatch)
@@ -342,7 +426,14 @@ _glapi_set_dispatch(struct _glapi_table *dispatch)
 
 
 /**
+ * \brief Get the current dispatch table.
+ * 
  * \return pointer to current dispatch table for calling thread.
+ *
+ * \sa _glapi_set_dispatch().
+ *
+ * \internal
+ * See _glapi_set_dispatch() for details.
  */
 struct _glapi_table *
 _glapi_get_dispatch(void)
@@ -373,7 +464,7 @@ _glapi_get_dispatch(void)
 
 
 /**
- * \brief Dispatch override
+ * \brief Begin dispatch override.
  *
  * \note Dispatch override allows an external agent to hook into the GL
  * dispatch mechanism before execution goes into the core rendering library.
@@ -389,7 +480,19 @@ _glapi_get_dispatch(void)
  * \c _glapi_get_override_dispatch(layer) will return the dispatch table for a
  * given override layer.  \c layer = 0 will be the "real" dispatch table.
  *
+ * \param override override dispatch table.
+ * 
  * \return dispatch override layer number.
+ *
+ * \sa _glapi_end_dispatch_override(), _glapi_get_override_dispatch().
+ *
+ * \internal
+ * Sets the DispatchOverride flag to true and stores the current dispatch table
+ * as the real one.  Then sets points the current dispatch table to the given
+ * one.
+ *
+ * If compile with thread support this is done with the per-thread variables
+ * instead of the global ones.
  */
 int
 _glapi_begin_dispatch_override(struct _glapi_table *override)
@@ -414,6 +517,11 @@ _glapi_begin_dispatch_override(struct _glapi_table *override)
 }
 
 
+/**
+ * \brief End dispatch override.
+ *
+ * \sa _glapi_begin_dispatch_override().
+ */
 void
 _glapi_end_dispatch_override(int layer)
 {
@@ -429,6 +537,11 @@ _glapi_end_dispatch_override(int layer)
 }
 
 
+/**
+ * \brief Get override dispatch table.
+ *
+ * \sa _glapi_begin_dispatch_override().
+ */
 struct _glapi_table *
 _glapi_get_override_dispatch(int layer)
 {
@@ -450,10 +563,13 @@ _glapi_get_override_dispatch(int layer)
 }
 
 
+/**
+ * \brief Structure of the functions table.
+ */
 struct name_address_offset {
-   const char *Name;
-   GLvoid *Address;
-   GLuint Offset;
+   const char *Name;	/**< function name */
+   GLvoid *Address;	/**< function address */
+   GLuint Offset;	/**< offset of the function if the dispatch table */
 };
 
 
@@ -463,8 +579,16 @@ struct name_address_offset {
 
 
 /**
- * \return dispatch table offset of the named static (built-in) function, or -1
- * if function not found.
+ * \brief Get dispatch table offset of a static (built-in) function.
+ *
+ * \param name of the function.
+ *
+ * \return dispatch table offset of the function, or -1 if function not found.
+ *
+ * \internal
+ * Walks through a static functions table until find a match.
+ *
+ * \sa name_address_offset.
  */
 static GLint
 get_static_proc_offset(const char *funcName)
@@ -480,8 +604,16 @@ get_static_proc_offset(const char *funcName)
 
 
 /**
- * \return dispatch function address the named static (built-in) function, or
- * NULL if function not found.
+ * \brief Get address of a static (built-in) function.
+ *
+ * \param name of the function.
+ *
+ * \return address of the function, or NULL if function not found.
+ *
+ * \internal
+ * Walks through a static functions table until find a match.
+ *
+ * \sa name_address_offset.
  */
 static GLvoid *
 get_static_proc_address(const char *funcName)
@@ -510,9 +642,9 @@ get_static_proc_address(const char *funcName)
 
 
 /**
- * \brief Disptach table size (number of entries).
+ * \brief Dispatch table size (number of entries).
  *
- * The size of the #_glapi_table struct plus the number of dynamic entries we
+ * The size of the _glapi_table structure plus the number of dynamic entries we
  * can add.  The extra slots can be filled in by DRI drivers that register new
  * extension functions.
  */
@@ -529,7 +661,16 @@ extern void __glapi_sparc_icache_flush(unsigned int *);
 /**
  * Generate a dispatch function (entrypoint) which jumps through
  * the given slot number (offset) in the current dispatch table.
+ *
+ * \param functionOffset dispatch table offset.
+ *
+ * \return address to the generated function, or NULL if not enough memory.
+ * 
+ * \internal
  * We need assembly language in order to accomplish this.
+ * 
+ * The function body is generated in dinamically allocated memory from a static
+ * machine instruction template specific to the target processor.
  */
 static void *
 generate_entrypoint(GLuint functionOffset)
@@ -628,7 +769,15 @@ generate_entrypoint(GLuint functionOffset)
 
 /**
  * This function inserts a new dispatch offset into the assembly language
- * stub that was generated with the preceeding function.
+ * stub that was generated with generate_entrypoint().
+ *
+ * \param entrypoint address to the function as returned by
+ * generate_entrypoint().
+ * \param offset dispatch table offset.
+ *
+ * \internal
+ * Same as generate_entrypoint(), but without allocating the stuv and copying
+ * the template.
  */
 static void
 fill_in_entrypoint_offset(void *entrypoint, GLuint offset)
@@ -662,7 +811,17 @@ fill_in_entrypoint_offset(void *entrypoint, GLuint offset)
 /**
  * \brief Add a new extension function entrypoint.
  * 
- * \return GL_TRUE if successful or GL_FALSE otherwise.
+ * \param funcName name of the extension function. It must begin with "gl".
+ * \param offset dispatch table offset.
+ *
+ * \return GL_TRUE on success, or GL_FALSE otherwise.
+ *
+ * \internal
+ * Verifies that the function follows the required name convention and isn't
+ * already statically present. Checks if the function has already been
+ * dynamically added with the same offset or if it needs to patch-up the
+ * dispatch code, via fill_in_entrypoint_offset(). If it is a new function then
+ * tries to add it, via generate_entrypoint().
  */
 GLboolean
 _glapi_add_entrypoint(const char *funcName, GLuint offset)
@@ -730,7 +889,15 @@ _glapi_add_entrypoint(const char *funcName, GLuint offset)
 
 
 /**
- * \return offset of entrypoint for named function within dispatch table.
+ * \brief Get dispatch table offset of a function.
+ *
+ * \param name of the function.
+ *
+ * \return dispatch table offset of the function, or -1 if function not found.
+ *
+ * \internal
+ * Walks through an extension functions table until find a match, or calls
+ * get_static_proc_offset() if not found.
  */
 GLint
 _glapi_get_proc_offset(const char *funcName)
@@ -750,7 +917,15 @@ _glapi_get_proc_offset(const char *funcName)
 
 
 /**
- * \return entrypoint for named function.
+ * \brief Get address of a function.
+ *
+ * \param name of the function.
+ *
+ * \return address of the function, or NULL if function not found.
+ *
+ * \internal
+ * Walks through an extension functions table until find a match, or calls
+ * get_static_proc_address().
  */
 const GLvoid *
 _glapi_get_proc_address(const char *funcName)
@@ -770,16 +945,17 @@ _glapi_get_proc_address(const char *funcName)
          return func;
    }
 
-   /* generate new entrypoint - use a temporary dispatch offset of
-    * ~0 (i.e. -1).  Later, when the driver calls _glapi_add_entrypoint()
-    * we'll put in the proper offset.  If that never happens, and the
-    * user calls this function, he'll segfault.  That's what you get
-    * when you try calling a GL function that doesn't really exist.
+   /**
+    * Generate new entrypoint when not found - use a temporary dispatch offset
+    * of ~0 (i.e. -1).  Later, when the driver calls _glapi_add_entrypoint()
+    * we'll put in the proper offset.  If that never happens, and the user
+    * calls this function, he'll segfault.  That's what you get when you try
+    * calling a GL function that doesn't really exist.
     */
    if (NumExtEntryPoints < MAX_EXTENSION_FUNCS) {
       GLvoid *entrypoint = generate_entrypoint(~0);
       if (!entrypoint)
-         return GL_FALSE;
+         return NULL;
 
       ExtEntryTable[NumExtEntryPoints].Name = str_dup(funcName);
       ExtEntryTable[NumExtEntryPoints].Offset = ~0;
@@ -797,6 +973,10 @@ _glapi_get_proc_address(const char *funcName)
 
 
 /**
+ * \brief Get function name.
+ * 
+ * \param offset dispatch table offset.
+ *
  * \return the name of the function at the given dispatch offset.
  * 
  * \note This is only intended for debugging.
@@ -825,7 +1005,12 @@ _glapi_get_proc_name(GLuint offset)
 
 
 /**
- * \return the size of dispatch table struct as number of functions (or slots).
+ * \brief Get dispatch table size.
+ * 
+ * \return the size of dispatch table as number of functions (or slots).
+ *
+ * \internal
+ * Alias for DISPATCH_TABLE_SIZE.
  */
 GLuint
 _glapi_get_dispatch_table_size(void)
@@ -837,6 +1022,8 @@ _glapi_get_dispatch_table_size(void)
 
 /**
  * \brief Get API dispatcher version string.
+ *
+ * \return version string in "YYYYMMDD" format.
  */
 const char *
 _glapi_get_version(void)
@@ -849,7 +1036,15 @@ _glapi_get_version(void)
 /**
  * \brief Make sure there are no \c NULL pointers in the given dispatch table.
  * 
+ * 
+ * 
  * \note Intended for debugging purposes.
+ *
+ * \internal
+ * Asserts all entries are non null.
+ *
+ * \note A no-op if the DEBUG macro is undefined.
+ *
  */
 void
 _glapi_check_table(const struct _glapi_table *table)
@@ -862,7 +1057,8 @@ _glapi_check_table(const struct _glapi_table *table)
       assert(tab[i]);
    }
 
-   /* Do some spot checks to be sure that the dispatch table
+   /**
+    * Do some spot checks to be sure that the dispatch table
     * slots are assigned correctly.
     */
    {
