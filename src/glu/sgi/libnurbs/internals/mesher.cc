@@ -35,8 +35,8 @@
 /*
  * mesher.c++
  *
- * $Date: 2001/08/07 17:34:11 $ $Revision: 1.2 $
- * $Header: /home/krh/git/sync/mesa-cvs-repo/Mesa/src/glu/sgi/libnurbs/internals/mesher.cc,v 1.2 2001/08/07 17:34:11 brianp Exp $
+ * $Date: 2001/11/29 16:38:27 $ $Revision: 1.2.2.1 $
+ * $Header: /home/krh/git/sync/mesa-cvs-repo/Mesa/src/glu/sgi/libnurbs/internals/mesher.cc,v 1.2.2.1 2001/11/29 16:38:27 kschultz Exp $
  */
 
 #include "glimports.h"
@@ -82,7 +82,7 @@ Mesher::init( unsigned int npts )
 inline void
 Mesher::push( GridTrimVertex *gt )
 {
-    assert( itop+1 != stacksize );
+    assert( itop+1 != (int)stacksize );
     vdata[++itop] = gt;
 }
 
