@@ -404,7 +404,6 @@ do {	register unsigned int __old __asm("o0");		\
 
 #define DRM_LOCK(fd,lock,context,flags)                                \
 	do {                                                           \
-                fprintf(stderr, "DRM_LOCK(%d,%p,%d) in %s\n",fd,lock,context, __FUNCTION__); \
 		if (flags) drmGetLock(fd,context,flags);               \
 		else       DRM_LIGHT_LOCK(fd,lock,context);            \
 	} while(0)
@@ -412,7 +411,6 @@ do {	register unsigned int __old __asm("o0");		\
 #define DRM_UNLOCK(fd,lock,context)                                    \
 	do {                                                           \
                 DRM_CAS_RESULT(__ret);                                 \
-                fprintf(stderr, "DRM_UNLOCK in %s\n", __FUNCTION__); \
 		DRM_CAS(lock,DRM_LOCK_HELD|context,context,__ret);     \
                 if (__ret) drmUnlock(fd,context);                      \
         } while(0)
