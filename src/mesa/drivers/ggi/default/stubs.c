@@ -33,6 +33,7 @@
 #include "swrast/s_context.h"
 #include "swrast/s_depth.h"
 #include "swrast/s_triangle.h"
+#include "swrast/s_trispan.h"
 
 /**********************************************************************/
 /*****            Write spans of pixels                           *****/
@@ -303,7 +304,7 @@ static swrast_tri_func ggimesa_stubs_get_triangle_func(GLcontext *ctx);
 int GGIsetup_driver(GGIMesaContext ggictx, struct ggi_mesa_info *info)
 {
 	GLcontext *ctx = ggictx->gl_ctx;
-
+#if 0
 	ctx->Driver.WriteRGBASpan	= GGIwrite_rgba_span;
 	ctx->Driver.WriteRGBSpan	= GGIwrite_rgb_span;
 	ctx->Driver.WriteRGBAPixels     = GGIwrite_rgba_pixels;
@@ -316,13 +317,15 @@ int GGIsetup_driver(GGIMesaContext ggictx, struct ggi_mesa_info *info)
 	ctx->Driver.ReadRGBASpan	= GGIread_rgba_span;
 	ctx->Driver.ReadCI32Pixels	= GGIread_ci32_pixels;
 	ctx->Driver.ReadRGBAPixels	= GGIread_rgba_pixels;
-	
+#endif
 	return 0;
 }
 
 void GGIupdate_state(GLcontext *ctx)
 {
+#if 0
 	ctx->Driver.TriangleFunc = _swsetup_Triangle;
+#endif
 }
 
 

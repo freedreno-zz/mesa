@@ -295,7 +295,7 @@ void GGIread_rgba_pixels(const GLcontext *ctx,
 int GGIsetup_driver(GGIMesaContext ggictx, struct ggi_mesa_info *info)
 {
 	GLcontext *ctx = ggictx->gl_ctx;
-
+#if 0
 	ctx->Driver.WriteRGBASpan	= GGIwrite_rgba_span;
 	ctx->Driver.WriteRGBSpan	= GGIwrite_rgb_span;
 //	ctx->Driver.WriteMonoRGBASpan	= GGIwrite_mono_span;
@@ -312,7 +312,7 @@ int GGIsetup_driver(GGIMesaContext ggictx, struct ggi_mesa_info *info)
 	ctx->Driver.ReadRGBASpan = GGIread_rgba_span;
 	ctx->Driver.ReadCI32Pixels = GGIread_ci32_pixels;
 	ctx->Driver.ReadRGBAPixels = GGIread_rgba_pixels;
-
+#endif
 	info->red_bits = R;
 	info->green_bits =G;
 	info->blue_bits = B;

@@ -224,6 +224,7 @@ static void gl_ggiSetupPointers(GLcontext *ctx)
 	ctx->Driver.ColorMask = gl_ggiColorMask;
 	ctx->Driver.Enable = gl_ggiEnable;
 	
+#if 0
 	ctx->Driver.SetDrawBuffer = gl_ggiSetDrawBuffer;
 	ctx->Driver.SetReadBuffer = gl_ggiSetReadBuffer;
 	
@@ -239,7 +240,7 @@ static void gl_ggiSetupPointers(GLcontext *ctx)
 	ctx->Driver.LineFunc = _swsetup_Line;
 	ctx->Driver.TriangleFunc = _swsetup_Triangle;
 	ctx->Driver.QuadFunc = _swsetup_Quad;
-	
+#endif
 }
 
 static int gl_ggiInitInfo(GGIMesaContext ctx, struct ggi_mesa_info *info)
