@@ -22,7 +22,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: miniglx_events.c,v 1.1.2.10 2003/04/28 11:30:14 keithw Exp $ */
+/* $Id: miniglx_events.c,v 1.1.2.11 2003/04/28 13:21:10 keithw Exp $ */
 
 
 /**
@@ -78,7 +78,18 @@ enum msgs {
    _RepaintPlease,
 };
 
-
+/**
+ * \brief Allocate an XEvent structure on the event queue.
+ *
+ * \param dpy the display handle.
+ *
+ * \return Pointer to the queued event struct or NULL on failure.
+ * 
+ * \internal 
+ * If there is space on the XEvent queue, return a pointer
+ * to the next free event and increment the eventqueue tail value.
+ * Otherwise return null.
+ */
 static XEvent *queue_event( Display *dpy )
 {
    int incr = (dpy->eventqueue.tail + 1) & MINIGLX_EVENT_QUEUE_MASK;
@@ -92,6 +103,19 @@ static XEvent *queue_event( Display *dpy )
    }
 }
 
+/**
+ * \brief Dequeue an XEvent and copy it into provided storage.
+ *
+ * \param dpy the display handle.
+ * \param event_return pointer to copy the queued event to.
+ *
+ * \return True or False depending on success.
+ * 
+ * \internal 
+ * If there is a queued XEvent on the queue, copy it to the provided
+ * pointer and increment the eventqueue head value.  Otherwise return
+ * null.
+ */
 static int dequeue_event( Display *dpy, XEvent *event_return )
 {
    if (dpy->eventqueue.tail == dpy->eventqueue.head) {
@@ -105,18 +129,22 @@ static int dequeue_event( Display *dpy, XEvent *event_return )
    }
 }
 
-
+/**
+ * \brief Shutdown a socket connection.
+ *
+ * \param dpy the display handle.
+ * \param i the index in dpy->fd of the socket connection.
+ *
+ * \internal 
+ * Shutdown and close the file descriptor.  If this is the special
+ * connection in fd[0], issue an error message and exit - there's been
+ * some sort of failure somewhere.  Otherwise, let the application
+ * know about whats happened by issuing a DestroyNotify event.
+ */
 static void shut_fd( Display *dpy, int i )
 {
-   XEvent *er;
-
    if (dpy->fd[i].fd < 0) 
       return;
-
-   if (i == 0) {
-      fprintf(stderr, "server connection lost\n");
-      exit(1);
-   }
 
    shutdown (dpy->fd[i].fd, SHUT_RDWR);
    close (dpy->fd[i].fd);
@@ -124,17 +152,36 @@ static void shut_fd( Display *dpy, int i )
    dpy->fd[i].readbuf_count = 0;
    dpy->fd[i].writebuf_count = 0;
 
-   /* Pass this to the application as a DestroyNotify event.
-    */
-   er = queue_event(dpy);
-   if (!er) return;
-   er->xdestroywindow.type = DestroyNotify;
-   er->xdestroywindow.serial = 0;
-   er->xdestroywindow.send_event = 0;
-   er->xdestroywindow.display = dpy;
-   er->xdestroywindow.window = (Window)i;	
+   if (i == 0) {
+      fprintf(stderr, "server connection lost\n");
+      exit(1);
+   }
+   else {
+      /* Pass this to the application as a DestroyNotify event.
+       */
+      XEvent *er = queue_event(dpy);
+      if (!er) return;
+      er->xdestroywindow.type = DestroyNotify;
+      er->xdestroywindow.serial = 0;
+      er->xdestroywindow.send_event = 0;
+      er->xdestroywindow.display = dpy;
+      er->xdestroywindow.window = (Window)i;	
+   }
 }
 
+/**
+ * \brief Send a message to a socket connection.
+ *
+ * \param dpy the display handle.
+ * \param i the index in dpy->fd of the socket connection.
+ * \param msg the message to send.
+ * \param sz the size of the message
+ *
+ * \internal 
+ * Copy the message to the writebuffer for the nominated connection.
+ * This will be actually sent to that file discriptor from
+ * __miniglx_Select().
+ */
 static int send_msg( Display *dpy, int i,
 		     const void *msg, size_t sz )
 {
@@ -149,11 +196,34 @@ static int send_msg( Display *dpy, int i,
    return True;
 }
 
+/**
+ * \brief Send a message to a socket connection.
+ *
+ * \param dpy the display handle.
+ * \param i the index in dpy->fd of the socket connection.
+ * \param msg the message to send.
+ *
+ * \internal 
+ * Use send_msg() to send a one-byte message to a socket.
+ */
 static int send_char_msg( Display *dpy, int i, char msg )
 {
    return send_msg( dpy, i, &msg, sizeof(char));
 }
 
+
+/**
+ * \brief Block and recieve a message from a socket connection.
+ *
+ * \param dpy the display handle.
+ * \param connection the index in dpy->fd of the socket connection.
+ * \param msg storage for the recieved message.
+ * \param msg_size the number of bytes to read.
+ *
+ * \internal Block and read from the connection's file descriptor
+ * until msg_size bytes have been received.  Only called from
+ * welcome_message_part().
+ */
 static int blocking_read( Display *dpy, int connection, 
 			  char *msg, size_t msg_size )
 {
@@ -210,7 +280,23 @@ static int welcome_message( Display *dpy, int i )
 }
 
 
-
+/**
+ * \brief Do the first part of setting up the framebuffer device.
+ *
+ * \param dpy the display handle.
+ *
+ * \return GL_TRUE on success, or GL_FALSE on failure.
+ * 
+ * \sa This is called during XOpenDisplay().
+ *
+ * \internal
+ * Gets the VT number, opens the respective console TTY device. Saves its state
+ * to restore when exiting and goes into graphics mode.
+ *
+ * Opens the framebuffer device and make a copy of the original variable screen
+ * information and gets the fixed screen information.  Maps the framebuffer and
+ * MMIO region into the process address space.
+ */
 static int handle_new_client( Display *dpy )
 {
    struct sockaddr_un client_address;
@@ -715,11 +801,11 @@ XMapWindow( Display *dpy, Window w )
  * \param display the display handle as returned by XOpenDisplay().
  * \param w the window handle.
  * 
- * Should clients be allowed to unmap their own windows?  Probably, as
- * it is impossible to force them to keep updating their contents & at
- * least this way there is notification that they've stopped.
- * 
- * The entrypoint is required for the server in any case.
+ * Called from the client:  Lets the server know that the window won't
+ * be updated anymore.
+ *
+ * Called from the server:  Tells the specified client that it no longer
+ * holds the focus.
  */
 void
 XUnmapWindow( Display *dpy, Window w )
@@ -736,6 +822,14 @@ XUnmapWindow( Display *dpy, Window w )
 }
 
 
+/**
+ * \brief Block and wait for next X event.
+ *
+ * \param display the display handle as returned by XOpenDisplay().
+ * \param event_return a pointer to an XEvent struct for the returned data.
+ *
+ * Wait until there is a new XEvent pending.
+ **/
 int XNextEvent(Display *dpy, XEvent *event_return)
 {
    for (;;) {
@@ -746,6 +840,16 @@ int XNextEvent(Display *dpy, XEvent *event_return)
    }
 }
 
+/**
+ * \brief Non-blocking check for next X event.
+ *
+ * \param display the display handle as returned by XOpenDisplay().
+ * \param event_mask IGNORED
+ * \param event_return a pointer to an XEvent struct for the returned data.
+ *
+ * Check if there is a new XEvent pending.  Note that event_mask is
+ * ignored and any pending event will be returned.
+ **/
 Bool XCheckMaskEvent(Display *dpy, long event_mask, XEvent *event_return)
 {
    if ( dpy->eventqueue.head != dpy->eventqueue.tail )
@@ -757,14 +861,6 @@ Bool XCheckMaskEvent(Display *dpy, long event_mask, XEvent *event_return)
 }
 
 
-Bool XCheckWindowEvent(Display *dpy, Window w, long event_mask, 
-		       XEvent *event_return)
-{
-   if (!w || w != dpy->TheWindow) 
-      return False;
-
-   return XCheckMaskEvent( dpy, event_mask, event_return );
-}
 
 
 
