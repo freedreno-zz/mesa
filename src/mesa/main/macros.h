@@ -1,4 +1,4 @@
-/* $Id: macros.h,v 1.24.2.3 2002/06/05 16:40:21 brianp Exp $ */
+/* $Id: macros.h,v 1.24.2.4 2002/06/12 00:28:55 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -454,20 +454,8 @@ do {						\
 
 
 
-/* Byte swapping
- */
-
-#if defined(BYTE_ORDER) && defined(BIG_ENDIAN) && BYTE_ORDER == BIG_ENDIAN
-#include <byteswap.h>
-#define CPU_TO_LE32( x )	bswap_32( x )
-#else
-#define CPU_TO_LE32( x )	( x )
-#endif
-
-#define LE32_TO_CPU( x )	CPU_TO_LE32( x )
-
-
-/* Generic color packing macros
+/* Generic color packing macros.
+ * XXX We may move these into texutil.h at some point.
  */
 
 #define PACK_COLOR_8888( a, b, c, d )					\
@@ -493,7 +481,7 @@ do {						\
    (((a) & 0xe0) | (((b) & 0xe0) >> 3) | (((c) & 0xc0) >> 6))
 
 
-#if defined(BYTE_ORDER) && defined(BIG_ENDIAN) && BYTE_ORDER == BIG_ENDIAN
+#ifdef MESA_BIG_ENDIAN
 
 #define PACK_COLOR_8888_LE( a, b, c, d )	PACK_COLOR_8888( d, c, b, a )
 

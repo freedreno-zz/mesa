@@ -1,10 +1,10 @@
-/* $Id: glheader.h,v 1.23.2.3 2002/03/16 01:00:43 brianp Exp $ */
+/* $Id: glheader.h,v 1.23.2.4 2002/06/12 00:28:55 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.5
+ * Version:  4.0.3
  *
- * Copyright (C) 1999-2001  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -162,6 +162,27 @@ typedef struct tagPIXELFORMATDESCRIPTOR PIXELFORMATDESCRIPTOR, *PPIXELFORMATDESC
 #endif
 
 
+/*
+ * Either define MESA_BIG_ENDIAN or MESA_LITTLE_ENDIAN.
+ * Do not use them unless absolutely necessary!
+ * Try to use a runtime test instead.
+ * For now, only used by some DRI hardware drivers for color/texel packing.
+ */
+#if defined(BYTE_ORDER) && defined(BIG_ENDIAN) && BYTE_ORDER == BIG_ENDIAN
+#if defined(__linux__)
+#include <byteswap.h>
+#define CPU_TO_LE32( x )	bswap_32( x )
+#else /*__linux__*/
+#define CPU_TO_LE32( x )	( x )  /* fix me for non-Linux big-endian! */
+#endif /*__linux__*/
+#define MESA_BIG_ENDIAN 1
+#else
+#define CPU_TO_LE32( x )	( x )
+#define MESA_LITTLE_ENDIAN 1
+#endif
+#define LE32_TO_CPU( x )	CPU_TO_LE32( x )
+
+
 /* This is a macro on IRIX */
 #ifdef _P
 #undef _P
@@ -262,11 +283,4 @@ typedef union { GLfloat f; GLint i; } fi_type;
 
 
                                                        
-#ifndef GL_MIRRORED_REPEAT_ARB
-#define GL_MIRRORED_REPEAT_ARB  0x8370
-#endif
-#ifndef GL_ARB_texture_mirrored_repeat
-#define GL_ARB_texture_mirrored_repeat 1
-#endif
-
 #endif /* GLHEADER_H */
