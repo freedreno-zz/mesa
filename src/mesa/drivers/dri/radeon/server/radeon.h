@@ -64,6 +64,9 @@
 #define PCI_CHIP_R200_Ql		0x516C
 
 
+/**
+ * \brief Chip families.
+ */
 typedef enum {
     CHIP_FAMILY_UNKNOW,
     CHIP_FAMILY_LEGACY,
@@ -80,39 +83,45 @@ typedef enum {
     CHIP_FAMILY_R300
 } RADEONChipFamily;
 
+
 typedef unsigned long memType;
 
 
 /**
- * \brief Radeon driver private data.
+ * \brief Radeon DDX driver private data.
  */
 typedef struct {
-   int               Chipset;
-   RADEONChipFamily  ChipFamily;
+   int               Chipset;          /**< \brief Chipset number */
+   RADEONChipFamily  ChipFamily;       /**< \brief Chip family */
 
    unsigned long     LinearAddr;       /**< \brief Frame buffer physical address */
 
 
-   drmSize           registerSize;
-   drmHandle         registerHandle;
+   drmSize           registerSize;     /**< \brief MMIO register map size */
+   drmHandle         registerHandle;   /**< \brief MMIO register map handle */
 
-   drmSize           agpSize;
-   drmHandle         agpMemHandle;     /**< \brief Handle from drmAgpAlloc */
-   unsigned long     agpOffset;
-   int               agpMode;
+   /**
+    * \name AGP
+    */
+   /*@{*/
+   drmSize           agpSize;          /**< \brief AGP map size */
+   drmHandle         agpMemHandle;     /**< \brief AGP map handle */
+   unsigned long     agpOffset;        /**< \brief AGP offset */
+   int               agpMode;          /**< \brief AGP mode */
    int               agpFastWrite;
+   /*@}*/
 
    /**
     * \name CP ring buffer data
     */
    /*@{*/
    unsigned long     ringStart;        /**< \brief Offset into AGP space */
-   drmHandle         ringHandle;       /**< \brief Handle from drmAddMap */
+   drmHandle         ringHandle;       /**< \brief Handle from drmAddMap() */
    drmSize           ringMapSize;      /**< \brief Size of map */
    int               ringSize;         /**< \brief Size of ring (in MB) */
 
-   unsigned long     ringReadOffset;   /**< \brief Offset into AGP space */
-   drmHandle         ringReadPtrHandle;/**< \brief Handle from drmAddMap */
+   unsigned long     ringReadOffset;   /**< \brief Read offset into AGP space */
+   drmHandle         ringReadPtrHandle;/**< \brief Handle from drmAddMap() */
    drmSize           ringReadMapSize;  /**< \brief Size of map */
    /*@}*/
 
@@ -121,7 +130,7 @@ typedef struct {
     */
    /*@{*/
    unsigned long     bufStart;         /**< \brief Offset into AGP space */
-   drmHandle         bufHandle;        /**< \brief Handle from drmAddMap */
+   drmHandle         bufHandle;        /**< \brief Handle from drmAddMap() */
    drmSize           bufMapSize;       /**< \brief Size of map */
    int               bufSize;          /**< \brief Size of buffers (in MB) */
    int               bufNumBufs;       /**< \brief Number of buffers */
@@ -132,29 +141,29 @@ typedef struct {
     */
    /*@{*/
    unsigned long     agpTexStart;      /**< \brief Offset into AGP space */
-   drmHandle         agpTexHandle;     /**< \brief Handle from drmAddMap */
+   drmHandle         agpTexHandle;     /**< \brief Handle from drmAddMap() */
    drmSize           agpTexMapSize;    /**< \brief Size of map */
    int               agpTexSize;       /**< \brief Size of AGP tex space (in MB) */
    int               log2AGPTexGran;
    /*@}*/
 
-   int               drmMinor;
+   int               drmMinor;         /**< \brief DRM device minor number */
 
-   int               frontOffset;
-   int               frontPitch;
-   int               backOffset;
-   int               backPitch;
-   int               depthOffset;
-   int               depthPitch;
-   int               textureOffset;
-   int               textureSize;
-   int               log2TexGran;
+   int               frontOffset;      /**< \brief Front color buffer offset */
+   int               frontPitch;       /**< \brief Front color buffer pitch */
+   int               backOffset;       /**< \brief Back color buffer offset */
+   int               backPitch;        /**< \brief Back color buffer pitch */
+   int               depthOffset;      /**< \brief Depth buffer offset */
+   int               depthPitch;       /**< \brief Depth buffer pitch */
+   int               textureOffset;    /**< \brief Texture area offset */
+   int               textureSize;      /**< \brief Texture area size */
+   int               log2TexGran;      /**< \brief Texture granularity in base 2 log */
 
    unsigned int      frontPitchOffset;
    unsigned int      backPitchOffset;
-   unsigned int      depthPitchOffset;
+   unsigned int      depthPitchOffset
 
-   int               irq;
+   int               irq;              /**< \brief IRQ number */
    unsigned int      gen_int_cntl;
    unsigned int      crtc_offset_cntl;
 

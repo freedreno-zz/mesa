@@ -62,53 +62,53 @@ typedef struct {
      * \name DRI screen private data
      */
     /*@{*/
-    int           deviceID;	/**< \brief PCI device ID */
-    int           width;	/**< \brief width in pixels of display */
-    int           height;	/**< \brief height in scanlines of display */
-    int           depth;	/**< \brief depth of display (8, 15, 16, 24) */
-    int           bpp;		/**< \brief bit depth of display (8, 16, 24, 32) */
+    int           deviceID;	 /**< \brief PCI device ID */
+    int           width;	 /**< \brief width in pixels of display */
+    int           height;	 /**< \brief height in scanlines of display */
+    int           depth;	 /**< \brief depth of display (8, 15, 16, 24) */
+    int           bpp;		 /**< \brief bit depth of display (8, 16, 24, 32) */
 
-    int           IsPCI;	/**< \brief current card is a PCI card */
-    int           AGPMode;	/**< \brief AGP mode */
+    int           IsPCI;	 /**< \brief is current card a PCI card? */
+    int           AGPMode;	 /**< \brief AGP mode */
 
-    int           frontOffset;  /**< \brief front buffer offset */
-    int           frontPitch;	/**< \brief front buffer pitch */
-    int           backOffset;   /**< \brief shared back buffer offset */
-    int           backPitch;    /**< \brief shared back buffer pitch */
-    int           depthOffset;  /**< \brief shared depth buffer offset */
-    int           depthPitch;   /**< \brief shared depth buffer pitch */
-    int           textureOffset;/**< \brief start of texture data in frame buffer */
-    int           textureSize;  /**< \brief size of texture date */
-    int           log2TexGran;  /**< \brief log2 texture granularity */
+    int           frontOffset;   /**< \brief front buffer offset */
+    int           frontPitch;	 /**< \brief front buffer pitch */
+    int           backOffset;    /**< \brief shared back buffer offset */
+    int           backPitch;     /**< \brief shared back buffer pitch */
+    int           depthOffset;   /**< \brief shared depth buffer offset */
+    int           depthPitch;    /**< \brief shared depth buffer pitch */
+    int           textureOffset; /**< \brief start of texture data in frame buffer */
+    int           textureSize;   /**< \brief size of texture date */
+    int           log2TexGran;   /**< \brief log2 texture granularity */
     /*@}*/
 
     /**
      * \name MMIO register data
      */
     /*@{*/
-    drmHandle     registerHandle;
-    drmSize       registerSize;
+    drmHandle     registerHandle; /**< \brief MMIO register map size */
+    drmSize       registerSize;   /**< \brief MMIO register map handle */
     /*@}*/
 
     /**
      * \name CP in-memory status information
      */
     /*@{*/
-    drmHandle     statusHandle;
-    drmSize       statusSize;
+    drmHandle     statusHandle;   /**< \brief status map handle */
+    drmSize       statusSize;     /**< \brief status map size */
     /*@}*/
 
     /**
      * \name CP AGP Texture data
      */
     /*@{*/
-    drmHandle     agpTexHandle;
-    drmSize       agpTexMapSize;
-    int           log2AGPTexGran;
-    int           agpTexOffset;
+    drmHandle     agpTexHandle;   /**< \brief AGP texture area map handle */
+    drmSize       agpTexMapSize;  /**< \brief AGP texture area map size */
+    int           log2AGPTexGran; /**< \brief AGP texture granularity in log base 2 */
+    int           agpTexOffset;   /**< \brief AGP texture area offset in AGP space */
     /*@}*/
 
-    unsigned int  sarea_priv_offset;
+    unsigned int  sarea_priv_offset; /**< \brief offset of the private SAREA data*/
 } RADEONDRIRec, *RADEONDRIPtr;
 
 #endif

@@ -497,10 +497,12 @@ radeonCreateContext( const __GLcontextModes *glVisual,
  *
  * \param driContextPriv DRI specific context data.
  *
- * If destroying the currently bound context, fires the vertices and unbinds it first.
+ * If destroying the currently bound context, fires the vertices and unbinds it
+ * first.
  *
- * Frees the radeon context resources, freeing the Mesa context. Frees the private texture object from
- * the shared context data if its reference count reaches zero.
+ * Frees the radeon context resources, freeing the Mesa context. Frees the
+ * private texture object from the shared context data if its reference count
+ * reaches zero.
  */
 static void
 radeonDestroyContext( __DRIcontextPrivate *driContextPriv )
@@ -576,8 +578,6 @@ radeonDestroyContext( __DRIcontextPrivate *driContextPriv )
 }
 
 
-
-
 /**
  * \brief Create and initialize the Mesa and device specific pixmap buffer
  * data.
@@ -586,6 +586,8 @@ radeonDestroyContext( __DRIcontextPrivate *driContextPriv )
  * \param driDrawPriv DRI specific drawable data.
  * \param mesaVis visual.
  * \param isPixmap must be GL_FALSE. Not implemented.
+ *
+ * Calls _mesa_create_framebuffer() to create the framebuffer.
  */
 static GLboolean
 radeonCreateBuffer( __DRIscreenPrivate *driScrnPriv,
@@ -625,7 +627,7 @@ radeonCreateBuffer( __DRIscreenPrivate *driScrnPriv,
  *
  * \param driDrawPriv DRI specific drawable data.
  *
- * Destroys Mesa framebuffer.
+ * Calls _mesa_destroy_framebuffer() to destroy Mesa framebuffer.
  */
 static void
 radeonDestroyBuffer(__DRIdrawablePrivate *driDrawPriv)
@@ -673,12 +675,15 @@ radeonSwapBuffers( __DRIdrawablePrivate *dPriv )
  * \brief Set the current context.
  * 
  * \param driContextPriv DRI specific context data to be activated. 
- * \param driDrawPriv DRI specific drawable data, to which the context is to be associated for writing.
- * \param driReadPriv DRI specific drawable data, to which the context is to be associated for reading.
+ * \param driDrawPriv DRI specific drawable data, to which the context is to be
+ * associated for writing.
+ * \param driReadPriv DRI specific drawable data, to which the context is to be
+ * associated for reading.
  *
  * \return GL_TRUE on success, or GL_FALSE on failure.
  *
- * 
+ * If drawables differ form the current ones then update the window and
+ * viewport information.  Calls _mesa_make_current2() to set the context.
  */
 static GLboolean
 radeonMakeCurrent( __DRIcontextPrivate *driContextPriv,
@@ -726,6 +731,10 @@ radeonMakeCurrent( __DRIcontextPrivate *driContextPriv,
 
 /**
  * \brief Unbind context from its buffer.
+ *
+ * \param driContextPriv DRI specifc context data.
+ *
+ * \returns always GL_TRUE.
  *
  * Calls radeonVtxfmtUnbindContext().
  */

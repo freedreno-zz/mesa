@@ -141,7 +141,7 @@ void radeonAgeTextures( radeonContextPtr rmesa, int heap )
  * \param height sub-imate height.
  *
  * Fills in a drmRadeonTexture and drmRadeonTexImage structures and uploads the
- * texture via the DRM_RADEON_TEXTURE IOCTL, aborting in case of failure.
+ * texture via the DRM_RADEON_TEXTURE ioctl, aborting in case of failure.
  */
 static void radeonUploadSubImage( radeonContextPtr rmesa,
 				  radeonTexObjPtr t, GLint level,

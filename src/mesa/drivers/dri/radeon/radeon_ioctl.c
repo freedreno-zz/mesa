@@ -502,6 +502,16 @@ void radeonRefillCurrentDmaRegion( radeonContextPtr rmesa )
    rmesa->dma.current.ptr = 0;
 }
 
+/**
+ * \brief Release DMA region.
+ *
+ * \param rmesa Radeon context.
+ * \param region ragion to be released.
+ * \param caller caller's name for debugging purposes.
+ *
+ * Decreases the region reference count, and if it reaches zero sends the
+ * RADEON_CMD_DMA_DISCARD with its buffer index.
+ */
 void radeonReleaseDmaRegion( radeonContextPtr rmesa,
 			     struct radeon_dma_region *region,
 			     const char *caller )
@@ -538,11 +548,12 @@ void radeonReleaseDmaRegion( radeonContextPtr rmesa,
  * \brief Allocates a new region from rmesa->dma.current.
  *
  * \param rmesa Radeon context.
- * \param region will received the allocated region.
- * \param bytes size
- * \param alignment
+ * \param region region will received the allocated region.
+ * \param bytes size.
+ * \param alignment alignment.
  * 
- * If there isn't enough space incurrent, grab a new buffer (and discard what was left of current).
+ * If there isn't enough space in current, grab a new buffer (and discard what
+ * was left of current).
  */
 void radeonAllocDmaRegion( radeonContextPtr rmesa, 
 			   struct radeon_dma_region *region,
@@ -886,9 +897,9 @@ void radeonPageFlip( const __DRIdrawablePrivate *dPriv )
  * \param ch clearing rectangle height.
  *
  * First emits the current state, fires the vertices and calculate the clearing
- * flags to pass to the clear IOCTL later.
+ * flags to pass to the clear ioctl later.
  *
- * Locks the hardware and throttles the number of clear IOCTLS done, allowing
+ * Locks the hardware and throttles the number of clear ioctl's done, allowing
  * up to #RADEON_MAX_CLEARS. For each set of cliprects, intersects them with
  * the clearing rectangle (if not clearing all) and uploads them to the SAREA,
  * setups a drmRadeonClearType structure sends it to the DRM_RADEON_CLEAR

@@ -116,6 +116,9 @@
 #endif /* __RADEON_SAREA_DEFINES__ */
 
 
+/**
+ * \brief Color register format.
+ */
 typedef struct {
     unsigned int red;
     unsigned int green;
@@ -231,7 +234,7 @@ typedef struct {
  *
  * If you think you own a region of texture memory, and it has an age different
  * to the one you set, then you are mistaken and it has been stolen by another
- * client.  If global texAge hasn't changed, there is no need to walk the list.
+ * client.  If global RADEONSAREAPriv::texAge hasn't changed, there is no need to walk the list.
  *
  * These regions can be used as a proxy for the fine-grained texture
  * information of other clients - by maintaining them in the same LRU which is
@@ -243,9 +246,10 @@ typedef struct {
  * \sa RADEONSAREAPriv::texList.
  */
 typedef struct {
-    unsigned char next, prev;	/**< indices to form a circular LRU  */
-    unsigned char in_use;	/**< owned by a client, or free? */
-    int age;			/**< tracked by clients to update local LRU's */
+    unsigned char next; 	/**< \brief indices to form a circular LRU */
+    unsigned prev;		/**< \brief indices to form a circular LRU */
+    unsigned char in_use;	/**< \brief owned by a client, or free? */
+    int age;			/**< \brief tracked by clients to update local LRU's */
 } radeon_tex_region_t;
 
 
@@ -256,26 +260,28 @@ typedef struct {
  * on firing a vertex buffer.
  */
 typedef struct {
-    /** \brief Context registers */
-    radeon_context_regs_t ContextState;
-    /** \brief Texture registers */
+    radeon_context_regs_t ContextState; /** \brief Context registers */
     radeon_texture_regs_t TexState[RADEON_MAX_TEXTURE_UNITS];
-    unsigned int dirty;
-    unsigned int vertsize;
-    unsigned int vc_format;
+                                        /**< \brief Texture registers */
+    unsigned int dirty; 
+    unsigned int vertsize;              /**< \brief vertex size */
+    unsigned int vc_format;             /**< \brief vertex format */
 
     /**
      * \name Cliprects 
-     * The current cliprects, or a subset thereof 
+     *
+     * The current cliprects, or a subset thereof.
      */
     /*@{*/
-    XF86DRIClipRectRec boxes[RADEON_NR_SAREA_CLIPRECTS];
-    unsigned int nbox;
+    XF86DRIClipRectRec boxes[RADEON_NR_SAREA_CLIPRECTS]; 
+                       /**< \brief cliprects */
+    unsigned int nbox; /**< \brief number of cliprects */
     /*@}*/
 
     /**
      * \name Counters
-     * Counters for throttling of rendering clients
+     *
+     * Counters for throttling rendering of clients.
      */
     /*@{*/
     unsigned int last_frame;
@@ -287,7 +293,9 @@ typedef struct {
      * \name LRU
      */
     /*@{*/
-    /** Last elt is sentinal */
+    /** \brief Texture regions. 
+     * Last element is sentinal
+     */
     radeon_tex_region_t texList[RADEON_NR_TEX_HEAPS][RADEON_NR_TEX_REGIONS+1];
     /** \brief last time texture was uploaded */
     int texAge[RADEON_NR_TEX_HEAPS];

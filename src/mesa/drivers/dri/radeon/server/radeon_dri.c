@@ -88,6 +88,8 @@ static unsigned int RADEONINPLL( struct MiniGLXDisplayRec *dpy, int addr)
  * \brief Reset graphics card to known state.
  *
  * \param dpy display handle.
+ *
+ * Resets the values of several Radeon registers.
  */
 static void RADEONEngineReset( struct MiniGLXDisplayRec *dpy )
 {
@@ -153,6 +155,15 @@ static void RADEONEngineReset( struct MiniGLXDisplayRec *dpy )
    OUTPLL(RADEON_MCLK_CNTL, mclk_cntl);
 }
 
+/**
+ * \brief Restore the drawing engine.
+ *
+ * \param dpy display handle
+ * \param info driver private data.
+ *
+ * Resets the graphics card and sets initial values for several registers of
+ * the card's drawing engine.
+ */
 static void RADEONEngineRestore( struct MiniGLXDisplayRec *dpy,
 				 RADEONInfoPtr info )
 
@@ -899,7 +910,6 @@ static void get_chipfamily_from_chipset( RADEONInfoPtr info )
 	info->ChipFamily = CHIP_FAMILY_RADEON;
     }
 }
-
 
 
 /**

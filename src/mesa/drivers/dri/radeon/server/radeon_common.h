@@ -87,33 +87,43 @@
 #define RADEON_CLEAR_DEPTH     4
 
 
+/**
+ * \brief DRM_RADEON_CP_INIT ioctl argument type.
+ */
 typedef struct {
+   /** \brief request */
    enum {
-      DRM_RADEON_INIT_CP    = 0x01,
-      DRM_RADEON_CLEANUP_CP = 0x02,
-      DRM_RADEON_INIT_R200_CP = 0x03
+      DRM_RADEON_INIT_CP    = 0x01,  /**< \brief initialize CP */
+      DRM_RADEON_CLEANUP_CP = 0x02,  /**< \brief clean up CP */
+      DRM_RADEON_INIT_R200_CP = 0x03 /**< \brief initialize R200 CP */
    } func;
-   unsigned long sarea_priv_offset;
-   int is_pci;
-   int cp_mode;
-   int agp_size;
-   int ring_size;
-   int usec_timeout;
+   unsigned long sarea_priv_offset;   /**< \brief SAREA private offset */
+   int is_pci;                        /**< \brief is current card a PCI card? */
+   int cp_mode;                       /**< \brief CP mode */
+   int agp_size;                      /**< \brief AGP space size */
+   int ring_size;                     /**< \brief CP ring buffer size */
+   int usec_timeout;                  /**< \brief timeout for DRM operations in usecs */
 
-   unsigned int fb_bpp;
-   unsigned int front_offset, front_pitch;
-   unsigned int back_offset, back_pitch;
-   unsigned int depth_bpp;
-   unsigned int depth_offset, depth_pitch;
+   unsigned int fb_bpp;               
+   unsigned int front_offset;         /**< \brief front color buffer offset */
+   unsigned int front_pitch;          /**< \brief front color buffer pitch */
+   unsigned int back_offset;          /**< \brief back color buffer offset */
+   unsigned int back_pitch;           /**< \brief back color buffer pitch*/
+   unsigned int depth_bpp;            /**< \brief depth buffer bits-per-pixel */
+   unsigned int depth_offset;         /**< \brief depth buffer offset */
+   unsigned int depth_pitch;          /**< \brief depth buffer pitch */
 
-   unsigned long fb_offset;
-   unsigned long mmio_offset;
-   unsigned long ring_offset;
-   unsigned long ring_rptr_offset;
-   unsigned long buffers_offset;
-   unsigned long agp_textures_offset;
+   unsigned long fb_offset;           /**< \brief framebuffer offset */
+   unsigned long mmio_offset;         /**< \brief MMIO register offset */
+   unsigned long ring_offset;         /**< \brief CP ring buffer offset */
+   unsigned long ring_rptr_offset;    /**< \brief CP ring buffer read pointer offset */
+   unsigned long buffers_offset;      /**< \brief vertex buffers offset */
+   unsigned long agp_textures_offset; /**< \brief AGP textures offset */
 } drmRadeonInit;
 
+/**
+ * \brief DRM_RADEON_CP_STOP ioctl argument type.
+ */
 typedef struct {
    int flush;
    int idle;
@@ -131,6 +141,9 @@ typedef union drmRadeonClearR {
         unsigned int ui[5];
 } drmRadeonClearRect;
 
+/**
+ * \brief DRM_RADEON_CLEAR ioctl argument type.
+ */
 typedef struct drmRadeonClearT {
         unsigned int flags;
         unsigned int clear_color;
@@ -147,6 +160,9 @@ typedef struct drmRadeonFullscreenT {
         } func;
 } drmRadeonFullscreenType;
 
+/**
+ * \brief DRM_RADEON_STIPPLE ioctl argument type.
+ */
 typedef struct {
         unsigned int *mask;
 } drmRadeonStipple;
@@ -159,17 +175,21 @@ typedef struct {
         const void *data;
 } drmRadeonTexImage;
 
+/**
+ * \brief DRM_RADEON_TEXTURE ioctl argument type.
+ */
 typedef struct {
-        int offset;
-        int pitch;
-        int format;
-        int width;                      /* Texture image coordinates */
-        int height;
-        drmRadeonTexImage *image;
+        int offset;               /**< \brief texture offset */
+        int pitch;                /**< \brief texture pitch */
+        int format;               /**< \brief pixel format */
+        int width;                /**< \brief texture width */
+        int height;               /**< \brief texture height */
+	drmRadeonTexImage *image; /**< \brief image */
 } drmRadeonTexture;
 
 
 #define RADEON_MAX_TEXTURE_UNITS 3
+
 
 /* Layout matches drm_radeon_state_t in linux drm_radeon.h.  
  */
@@ -240,13 +260,16 @@ typedef struct {
 	unsigned int dirty;
 } drmRadeonState;
 
-/* 1.1 vertex ioctl.  Used in compatibility modes.
+/**
+ * \brief DRM 1.1 vertex ioctl.
+ *
+ * Used in compatibility modes.
  */
 typedef struct {
-	int prim;
-	int idx;			/* Index of vertex buffer */
-	int count;			/* Number of vertices in buffer */
-	int discard;			/* Client finished with buffer? */
+	int prim;			/**< \brief Primitive number */
+	int idx;			/**< \brief Index of vertex buffer */
+	int count;			/**< \brief Number of vertices in buffer */
+	int discard;			/**< \brief Client finished with buffer? */
 } drmRadeonVertex;
 
 typedef struct {
@@ -254,13 +277,13 @@ typedef struct {
 	unsigned int finish;
 	unsigned int prim:8;
 	unsigned int stateidx:8;
-	unsigned int numverts:16; /* overloaded as offset/64 for elt prims */
+	unsigned int numverts:16;	/**< overloaded as offset/64 for elt prims */
         unsigned int vc_format;
 } drmRadeonPrim;
 
 typedef struct {
-        int idx;                        /* Index of vertex buffer */
-        int discard;                    /* Client finished with buffer? */
+        int idx;                        /**< \brief Index of vertex buffer */
+        int discard;                    /**< \brief Client finished with buffer? */
         int nr_states;
         drmRadeonState *state;
         int nr_prims;
@@ -270,22 +293,27 @@ typedef struct {
 #define RADEON_MAX_STATES 16
 #define RADEON_MAX_PRIMS  64
 
-/* Command buffer.  Replace with true dma stream?
- */
-typedef struct {
-	int bufsz;
-	char *buf;
-	int nbox;
-        drmClipRect *boxes;
-} drmRadeonCmdBuffer;
 
 /**
- * \brief New style per-packet identifiers for use in cmd_buffer IOCTL with
- * the RADEON_EMIT_PACKET command.  
+ * \brief Command buffer.  
+ *
+ * \todo Replace with true dma stream?
+ */
+typedef struct {
+	int bufsz;          /**< \brief buffer size */
+	char *buf;          /**< \brief buffer */
+	int nbox;           /**< \brief number of cliprects */
+        drmClipRect *boxes; /**< \brief cliprects */
+} drmRadeonCmdBuffer;
+
+
+/**
+ * \brief Per-packet identifiers for use with the ::RADEON_CMD_PACKET command
+ * in the DRM_RADEON_CMDBUF ioctl.  
  *
  * \note Comments relate new packets to old state bits and the packet size.
  */
-enum {
+enum drmRadeonCmdPkt {
    RADEON_EMIT_PP_MISC                       = 0, /* context/7 */
    RADEON_EMIT_PP_CNTL                       = 1, /* context/3 */
    RADEON_EMIT_RB3D_COLORPITCH               = 2, /* context/1 */
@@ -364,25 +392,25 @@ enum {
 
 
 /**
- * \brief Command types understood by cmd_buffer IOCTL.  
+ * \brief Command types understood by the DRM_RADEON_CMDBUF ioctl.  
  * 
  * More can be added but obviously these can't be removed or changed.
  *
  * \sa drmRadeonCmdHeader.
  */
 enum drmRadeonCmdType {
-   RADEON_CMD_PACKET       = 1, /**< \brief emit one of the register packets above */
+   RADEON_CMD_PACKET       = 1, /**< \brief emit one of the ::drmRadeonCmdPkt register packets */
    RADEON_CMD_SCALARS      = 2, /**< \brief emit scalar data */
    RADEON_CMD_VECTORS      = 3, /**< \brief emit vector data */
    RADEON_CMD_DMA_DISCARD  = 4, /**< \brief discard current DMA buffer */
-   RADEON_CMD_PACKET3      = 5, /**< \brief emit hw packet */
-   RADEON_CMD_PACKET3_CLIP = 6, /**< \brief emit hw packet wrapped in cliprects */
+   RADEON_CMD_PACKET3      = 5, /**< \brief emit hardware packet */
+   RADEON_CMD_PACKET3_CLIP = 6, /**< \brief emit hardware packet wrapped in cliprects */
    RADEON_CMD_SCALARS2     = 7, /**< \brief R200 stopgap */
    RADEON_CMD_WAIT         = 8  /**< \brief synchronization */
 } ;
 
 /**
- * \brief Commands understood by cmd_buffer IOCTL.
+ * \brief Commands understood by the DRM_RADEON_CMDBUF ioctl.
  *
  * \sa drmRadeonCmdType.
  */
@@ -424,10 +452,12 @@ typedef union {
 #define RADEON_WAIT_2D  0x1
 #define RADEON_WAIT_3D  0x2
 
-
+/**
+ * \brief DRM_RADEON_GETPARAM ioctl argument type.
+ */
 typedef struct drm_radeon_getparam {
-	int param;
-	int *value;
+	int param;  /**< \brief parameter number */
+	int *value; /**< \brief parameter value */
 } drmRadeonGetParam;
 
 #define RADEON_PARAM_AGP_BUFFER_OFFSET 1
@@ -459,12 +489,20 @@ typedef struct drm_radeon_mem_init_heap {
 	int start;	
 } drmRadeonMemInitHeap;
 
-/* 1.6: Userspace can request & wait on irq's:
+/**
+ * \brief DRM_RADEON_IRQ_EMIT ioctl argument type.
+ *
+ * New in DRM 1.6: userspace can request and wait on IRQ's.
  */
 typedef struct drm_radeon_irq_emit {
 	int *irq_seq;
 } drmRadeonIrqEmit;
 
+/**
+ * \brief DRM_RADEON_IRQ_WAIT ioctl argument type.
+ *
+ * New in DRM 1.6: userspace can request and wait on IRQ's.
+ */
 typedef struct drm_radeon_irq_wait {
 	int irq_seq;
 } drmRadeonIrqWait;
