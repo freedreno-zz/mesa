@@ -1,4 +1,4 @@
-/* $Id: t_array_api.c,v 1.19.2.2 2001/11/29 15:15:11 keithw Exp $ */
+/* $Id: t_array_api.c,v 1.19.2.3 2002/04/09 12:13:08 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -50,10 +50,9 @@ static void fallback_drawarrays( GLcontext *ctx, GLenum mode, GLint start,
 {
    if (_tnl_hard_begin( ctx, mode )) {
       GLint i;
-      for (i = start; i < count; i++) {
-	 _tnl_array_element( ctx, i );
-      }
-      _tnl_end( ctx );
+      for (i = start; i < count; i++) 
+	 glArrayElement( i );
+      glEnd();
    }
 }
 
@@ -61,13 +60,11 @@ static void fallback_drawarrays( GLcontext *ctx, GLenum mode, GLint start,
 static void fallback_drawelements( GLcontext *ctx, GLenum mode, GLsizei count,
 				   const GLuint *indices)
 {
-   /* Simple version of the above code.
-    */
    if (_tnl_hard_begin(ctx, mode)) {
       GLint i;
       for (i = 0 ; i < count ; i++)
-	 _tnl_array_element( ctx, indices[i] );
-      _tnl_end( ctx );
+	 glArrayElement( indices[i] );
+      glEnd();
    }
 }
 
@@ -79,6 +76,10 @@ static void _tnl_draw_range_elements( GLcontext *ctx, GLenum mode,
 {
    TNLcontext *tnl = TNL_CONTEXT(ctx);
    FLUSH_CURRENT( ctx, 0 );
+   
+   /*  fprintf(stderr, "%s\n", __FUNCTION__); */
+   if (tnl->pipeline.build_state_changes)
+      _tnl_validate_pipeline( ctx );
 
    _tnl_vb_bind_arrays( ctx, start, end );
 
@@ -107,8 +108,10 @@ _tnl_DrawArrays(GLenum mode, GLint start, GLsizei count)
    GET_CURRENT_CONTEXT(ctx);
    TNLcontext *tnl = TNL_CONTEXT(ctx);
    struct vertex_buffer *VB = &tnl->vb;
-
-/*     fprintf(stderr, "%s %d %d\n", __FUNCTION__, start, count); */
+   GLuint thresh = (ctx->Driver.NeedFlush & FLUSH_STORED_VERTICES) ? 30 : 10;
+   
+   if (MESA_VERBOSE & VERBOSE_API)
+      fprintf(stderr, "_tnl_DrawArrays %d %d\n", start, count); 
    
    /* Check arguments, etc.
     */
@@ -121,9 +124,14 @@ _tnl_DrawArrays(GLenum mode, GLint start, GLsizei count)
    if (ctx->CompileFlag) {
       fallback_drawarrays( ctx, mode, start, start + count );
    }    
+   else if (!ctx->Array.LockCount && count < thresh) {
+      /* Small primitives: attempt to share a vb (at the expense of
+       * using the immediate interface).
+      */
+      fallback_drawarrays( ctx, mode, start, start + count );
+   } 
    else if (count < (GLint) ctx->Const.MaxArrayLockSize) {
-
-      /* Small primitives which can fit in a single vertex buffer:
+      /* Moderate primitives which can fit in a single vertex buffer:
        */
       FLUSH_CURRENT( ctx, 0 );
 
@@ -212,10 +220,6 @@ _tnl_DrawArrays(GLenum mode, GLint start, GLsizei count)
 
       FLUSH_CURRENT( ctx, 0 );
 
-/*        fprintf(stderr, "start %d count %d min %d modulo %d skip %d\n", */
-/*  	      start, count, minimum, modulo, skip); */
-
-      
       bufsz -= bufsz % modulo;
       bufsz -= minimum;
       count += start;
@@ -223,8 +227,6 @@ _tnl_DrawArrays(GLenum mode, GLint start, GLsizei count)
       for (j = start + minimum ; j < count ; j += nr + skip ) {
 
 	 nr = MIN2( bufsz, count - j );
-
-/*  	 fprintf(stderr, "%d..%d\n", j - minimum, j+nr); */
 
 	 _tnl_vb_bind_arrays( ctx, j - minimum, j + nr );
 
@@ -245,19 +247,16 @@ _tnl_DrawRangeElements(GLenum mode,
 		       GLsizei count, GLenum type, const GLvoid *indices)
 {
    GET_CURRENT_CONTEXT(ctx);
-   TNLcontext *tnl = TNL_CONTEXT(ctx);
    GLuint *ui_indices;
-   
-/*     fprintf(stderr, "%s\n", __FUNCTION__); */
+
+   if (MESA_VERBOSE & VERBOSE_API)
+      fprintf(stderr, "_tnl_DrawRangeElements %d %d %d\n", start, end, count); 
 
    /* Check arguments, etc.
     */
    if (!_mesa_validate_DrawRangeElements( ctx, mode, start, end, count,
                                           type, indices ))
       return;
-
-   if (tnl->pipeline.build_state_changes)
-      _tnl_validate_pipeline( ctx );
 
    ui_indices = (GLuint *)_ac_import_elements( ctx, GL_UNSIGNED_INT,
 					       count, type, indices );
@@ -312,18 +311,15 @@ _tnl_DrawElements(GLenum mode, GLsizei count, GLenum type,
 		  const GLvoid *indices)
 {
    GET_CURRENT_CONTEXT(ctx);
-   TNLcontext *tnl = TNL_CONTEXT(ctx);
    GLuint *ui_indices;
 
-/*     fprintf(stderr, "%s\n", __FUNCTION__); */
+   if (MESA_VERBOSE & VERBOSE_API)
+      fprintf(stderr, "_tnl_DrawElements %d\n", count); 
 
    /* Check arguments, etc.
     */
    if (!_mesa_validate_DrawElements( ctx, mode, count, type, indices ))
       return;
-
-   if (tnl->pipeline.build_state_changes)
-      _tnl_validate_pipeline( ctx );
 
    ui_indices = (GLuint *)_ac_import_elements( ctx, GL_UNSIGNED_INT,
 					       count, type, indices );

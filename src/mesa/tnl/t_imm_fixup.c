@@ -1,4 +1,4 @@
-/* $Id: t_imm_fixup.c,v 1.26.2.5 2002/04/06 16:35:18 brianp Exp $ */
+/* $Id: t_imm_fixup.c,v 1.26.2.6 2002/04/09 12:13:09 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -357,6 +357,7 @@ void _tnl_fixup_input( GLcontext *ctx, struct immediate *IM )
 				    vulnerable );
 
 
+	++i;
       } while (vulnerable);
    }
 }
@@ -636,6 +637,7 @@ void _tnl_fixup_compiled_cassette( GLcontext *ctx, struct immediate *IM )
 				    vulnerable );
 
 
+	 ++i;
       } while (vulnerable);
    }
 }

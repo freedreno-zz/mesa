@@ -1,4 +1,4 @@
-/* $Id: t_vb_vertex.c,v 1.9 2001/05/30 10:01:41 keithw Exp $ */
+/* $Id: t_vb_vertex.c,v 1.9.2.1 2002/04/09 12:13:09 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -140,7 +140,8 @@ static GLboolean run_vertex_stage( GLcontext *ctx,
    if (stage->changed_inputs) {
 
       if (ctx->_NeedEyeCoords) {
-	 /* Separate modelview and project transformations:
+	 /* Separate modelview transformation:
+	  * Use combined ModelProject to avoid some depth artifacts
 	  */
 	 if (ctx->ModelView.type == MATRIX_IDENTITY)
 	    VB->EyePtr = VB->ObjPtr;
@@ -151,8 +152,8 @@ static GLboolean run_vertex_stage( GLcontext *ctx,
 	 if (ctx->ProjectionMatrix.type == MATRIX_IDENTITY)
 	    VB->ClipPtr = VB->EyePtr;
 	 else
-	    VB->ClipPtr = TransformRaw( &store->clip, &ctx->ProjectionMatrix,
-					VB->EyePtr );
+	    VB->ClipPtr = TransformRaw( &store->clip, &ctx->_ModelProjectMatrix,
+					VB->ObjPtr );
       }
       else {
 	 /* Combined modelviewproject transform:

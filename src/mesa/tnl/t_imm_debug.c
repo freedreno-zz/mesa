@@ -1,4 +1,4 @@
-/* $Id: t_imm_debug.c,v 1.4 2001/08/01 05:10:42 keithw Exp $ */
+/* $Id: t_imm_debug.c,v 1.4.2.1 2002/04/09 12:13:08 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -80,87 +80,90 @@ void _tnl_print_cassette( struct immediate *IM )
       _tnl_print_vert_flags("Contains a full complement of", andflag);
 
       fprintf(stderr, "Final begin/end state %s/%s, errors %s/%s\n",
-	     (state & VERT_BEGIN_0) ? "in" : "out",
-	     (state & VERT_BEGIN_1) ? "in" : "out",
-	     (state & VERT_ERROR_0) ? "y" : "n",
-	     (state & VERT_ERROR_1) ? "y" : "n");
+	      (state & VERT_BEGIN_0) ? "in" : "out",
+	      (state & VERT_BEGIN_1) ? "in" : "out",
+	      (state & VERT_ERROR_0) ? "y" : "n",
+	      (state & VERT_ERROR_1) ? "y" : "n");
 
    }
 
-   for (i = IM->CopyStart ; i <= IM->Count ; i++) {
-      fprintf(stderr, "%u: ", i);
-      if (req & VERT_OBJ_234) {
-	 if (flags[i] & VERT_EVAL_C1)
-	    fprintf(stderr, "EvalCoord %f ", IM->Obj[i][0]);
-	 else if (flags[i] & VERT_EVAL_P1)
-	    fprintf(stderr, "EvalPoint %.0f ", IM->Obj[i][0]);
-	 else if (flags[i] & VERT_EVAL_C2)
-	    fprintf(stderr, "EvalCoord %f %f ", IM->Obj[i][0], IM->Obj[i][1]);
-	 else if (flags[i] & VERT_EVAL_P2)
-	    fprintf(stderr, "EvalPoint %.0f %.0f ", IM->Obj[i][0], IM->Obj[i][1]);
-	 else if (i < IM->Count && (flags[i]&VERT_OBJ_234)) {
-	    fprintf(stderr, "Obj %f %f %f %f",
-		   IM->Obj[i][0], IM->Obj[i][1], IM->Obj[i][2], IM->Obj[i][3]);
-	 }
-      }
-
-      if (req & flags[i] & VERT_ELT)
-	 fprintf(stderr, " Elt %u\t", IM->Elt[i]);
-
-      if (req & flags[i] & VERT_NORM)
-	 fprintf(stderr, " Norm %f %f %f ",
-		IM->Normal[i][0], IM->Normal[i][1], IM->Normal[i][2]);
-
-      if (req & flags[i] & VERT_TEX_ANY) {
-	 GLuint j;
-	 for (j = 0 ; j < MAX_TEXTURE_UNITS ; j++) {
-	    if (req & flags[i] & VERT_TEX(j)) {
-	       fprintf(stderr,
-		       "TC%d %f %f %f %f",
-		       j,
-		       IM->TexCoord[j][i][0], IM->TexCoord[j][i][1],
-		       IM->TexCoord[j][i][2], IM->TexCoord[j][i][2]);
+   if ((MESA_VERBOSE & VERBOSE_IMMEDIATE) &&
+       (MESA_VERBOSE & VERBOSE_VERTS)) {
+      for (i = IM->CopyStart ; i <= IM->Count ; i++) {
+	 fprintf(stderr, "%u: ", i);
+	 if (req & VERT_OBJ_234) {
+	    if (flags[i] & VERT_EVAL_C1)
+	       fprintf(stderr, "EvalCoord %f ", IM->Obj[i][0]);
+	    else if (flags[i] & VERT_EVAL_P1)
+	       fprintf(stderr, "EvalPoint %.0f ", IM->Obj[i][0]);
+	    else if (flags[i] & VERT_EVAL_C2)
+	       fprintf(stderr, "EvalCoord %f %f ", IM->Obj[i][0], IM->Obj[i][1]);
+	    else if (flags[i] & VERT_EVAL_P2)
+	       fprintf(stderr, "EvalPoint %.0f %.0f ", IM->Obj[i][0], IM->Obj[i][1]);
+	    else if (i < IM->Count && (flags[i]&VERT_OBJ_234)) {
+	       fprintf(stderr, "Obj %f %f %f %f",
+		       IM->Obj[i][0], IM->Obj[i][1], IM->Obj[i][2], IM->Obj[i][3]);
 	    }
 	 }
+
+	 if (req & flags[i] & VERT_ELT)
+	    fprintf(stderr, " Elt %u\t", IM->Elt[i]);
+
+	 if (req & flags[i] & VERT_NORM)
+	    fprintf(stderr, " Norm %f %f %f ",
+		    IM->Normal[i][0], IM->Normal[i][1], IM->Normal[i][2]);
+
+	 if (req & flags[i] & VERT_TEX_ANY) {
+	    GLuint j;
+	    for (j = 0 ; j < MAX_TEXTURE_UNITS ; j++) {
+	       if (req & flags[i] & VERT_TEX(j)) {
+		  fprintf(stderr,
+			  "TC%d %f %f %f %f",
+			  j,
+			  IM->TexCoord[j][i][0], IM->TexCoord[j][i][1],
+			  IM->TexCoord[j][i][2], IM->TexCoord[j][i][2]);
+	       }
+	    }
+	 }
+
+	 if (req & flags[i] & VERT_RGBA)
+	    fprintf(stderr, " Rgba %f %f %f %f ",
+		    IM->Color[i][0], IM->Color[i][1],
+		    IM->Color[i][2], IM->Color[i][3]);
+
+	 if (req & flags[i] & VERT_SPEC_RGB)
+	    fprintf(stderr, " Spec %f %f %f ",
+		    IM->SecondaryColor[i][0], IM->SecondaryColor[i][1],
+		    IM->SecondaryColor[i][2]);
+
+	 if (req & flags[i] & VERT_FOG_COORD)
+	    fprintf(stderr, " Fog %f ", IM->FogCoord[i]);
+
+	 if (req & flags[i] & VERT_INDEX)
+	    fprintf(stderr, " Index %u ", IM->Index[i]);
+
+	 if (req & flags[i] & VERT_EDGE)
+	    fprintf(stderr, " Edgeflag %d ", IM->EdgeFlag[i]);
+
+	 if (req & flags[i] & VERT_MATERIAL)
+	    fprintf(stderr, " Material ");
+
+
+	 /* The order of these two is not easily knowable, but this is
+	  * the usually correct way to look at them.
+	  */
+	 if (req & flags[i] & VERT_END)
+	    fprintf(stderr, " END ");
+
+	 if (req & flags[i] & VERT_BEGIN)
+	    fprintf(stderr, " BEGIN(%s) (%s%s%s%s)",
+		    _mesa_prim_name[IM->Primitive[i] & PRIM_MODE_MASK],
+		    (IM->Primitive[i] & PRIM_LAST) ? "LAST," : "",
+		    (IM->Primitive[i] & PRIM_BEGIN) ? "BEGIN," : "",
+		    (IM->Primitive[i] & PRIM_END) ? "END," : "",
+		    (IM->Primitive[i] & PRIM_PARITY) ? "PARITY," : "");
+
+	 fprintf(stderr, "\n");
       }
-
-      if (req & flags[i] & VERT_RGBA)
-	 fprintf(stderr, " Rgba %f %f %f %f ",
-		IM->Color[i][0], IM->Color[i][1],
-		IM->Color[i][2], IM->Color[i][3]);
-
-      if (req & flags[i] & VERT_SPEC_RGB)
-	 fprintf(stderr, " Spec %f %f %f ",
-		IM->SecondaryColor[i][0], IM->SecondaryColor[i][1],
-		IM->SecondaryColor[i][2]);
-
-      if (req & flags[i] & VERT_FOG_COORD)
-	 fprintf(stderr, " Fog %f ", IM->FogCoord[i]);
-
-      if (req & flags[i] & VERT_INDEX)
-	 fprintf(stderr, " Index %u ", IM->Index[i]);
-
-      if (req & flags[i] & VERT_EDGE)
-	 fprintf(stderr, " Edgeflag %d ", IM->EdgeFlag[i]);
-
-      if (req & flags[i] & VERT_MATERIAL)
-	 fprintf(stderr, " Material ");
-
-
-      /* The order of these two is not easily knowable, but this is
-       * the usually correct way to look at them.
-       */
-      if (req & flags[i] & VERT_END)
-	 fprintf(stderr, " END ");
-
-      if (req & flags[i] & VERT_BEGIN)
-	 fprintf(stderr, " BEGIN(%s) (%s%s%s%s)",
-		 _mesa_prim_name[IM->Primitive[i] & PRIM_MODE_MASK],
-		 (IM->Primitive[i] & PRIM_LAST) ? "LAST," : "",
-		 (IM->Primitive[i] & PRIM_BEGIN) ? "BEGIN," : "",
-		 (IM->Primitive[i] & PRIM_END) ? "END," : "",
-		 (IM->Primitive[i] & PRIM_PARITY) ? "PARITY," : "");
-
-      fprintf(stderr, "\n");
    }
 }

@@ -1,4 +1,4 @@
-/* $Id: t_vb_lighttmp.h,v 1.19.2.2 2002/02/12 17:37:26 keithw Exp $ */
+/* $Id: t_vb_lighttmp.h,v 1.19.2.3 2002/04/09 12:13:09 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -116,8 +116,8 @@ static void TAG(light_rgba_spec)( GLcontext *ctx,
    (void) vstride;
 
 
-
-/*     fprintf(stderr, "%s\n", __FUNCTION__ );   */
+   if (MESA_VERBOSE & VERBOSE_LIGHTING)
+      fprintf(stderr, "%s\n", __FUNCTION__ );   
 
    spec[0] = Fspec;
    spec[1] = Bspec;
@@ -327,7 +327,9 @@ static void TAG(light_rgba)( GLcontext *ctx,
    GLuint *new_material_mask = VB->MaterialMask;
    GLuint nr = VB->Count;
 
-/*     fprintf(stderr, "%s\n", __FUNCTION__ );  */
+   if (MESA_VERBOSE & VERBOSE_LIGHTING)
+      fprintf(stderr, "%s\n", __FUNCTION__ );   
+
    (void) flags;
    (void) nstride;
    (void) vstride;
@@ -535,7 +537,9 @@ static void TAG(light_fast_rgba_single)( GLcontext *ctx,
    GLfloat base[2][3];
    GLuint nr = VB->Count;
 
-/*     fprintf(stderr, "%s\n", __FUNCTION__ );  */
+   if (MESA_VERBOSE & VERBOSE_LIGHTING)
+      fprintf(stderr, "%s\n", __FUNCTION__ );   
+
    (void) input;		/* doesn't refer to Eye or Obj */
    (void) flags;
    (void) nr;
@@ -659,7 +663,10 @@ static void TAG(light_fast_rgba)( GLcontext *ctx,
    GLuint nr = VB->Count;
    struct gl_light *light;
 
-/*     fprintf(stderr, "%s\n", __FUNCTION__ );  */
+   if (MESA_VERBOSE & VERBOSE_LIGHTING)
+      fprintf(stderr, "%s\n", __FUNCTION__ );   
+
+
    (void) flags;
    (void) input;
    (void) nr;
@@ -796,7 +803,9 @@ static void TAG(light_ci)( GLcontext *ctx,
    GLuint *new_material_mask = VB->MaterialMask;
    GLuint nr = VB->Count;
 
-/*     fprintf(stderr, "%s\n", __FUNCTION__ );  */
+   if (MESA_VERBOSE & VERBOSE_LIGHTING)
+      fprintf(stderr, "%s\n", __FUNCTION__ );   
+
    (void) flags;
    (void) nstride;
    (void) vstride;

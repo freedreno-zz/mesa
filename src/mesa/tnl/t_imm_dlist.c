@@ -1,4 +1,4 @@
-/* $Id: t_imm_dlist.c,v 1.29.2.9 2002/04/06 16:35:17 brianp Exp $ */
+/* $Id: t_imm_dlist.c,v 1.29.2.10 2002/04/09 12:13:08 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -127,6 +127,9 @@ _tnl_compile_cassette( GLcontext *ctx, struct immediate *IM )
    TNLcontext *tnl = TNL_CONTEXT(ctx);
    TNLvertexcassette *node;
    GLuint new_beginstate;
+
+   if (MESA_VERBOSE & VERBOSE_DISPLAY_LIST)
+      fprintf(stderr, "_tnl_compiled_cassette IM: %d\n", IM->id); 
 
    if (IM->FlushElt) {
       ASSERT (IM->FlushElt == FLUSH_ELT_LAZY); 
@@ -293,7 +296,8 @@ execute_compiled_cassette( GLcontext *ctx, void *data )
    TNLvertexcassette *node = (TNLvertexcassette *)data;
    struct immediate *IM = node->IM;
 
-/*     fprintf(stderr, "%s IM: %d\n", __FUNCTION__, IM->id);  */
+   if (MESA_VERBOSE & VERBOSE_DISPLAY_LIST)
+      fprintf(stderr, "execute_compiled_cassette IM: %d\n", IM->id); 
 
    IM->Start = node->Start;
    IM->CopyStart = node->Start;

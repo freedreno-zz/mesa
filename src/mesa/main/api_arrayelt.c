@@ -1,4 +1,4 @@
-/* $Id: api_arrayelt.c,v 1.3.2.2 2002/01/15 20:17:59 brianp Exp $ */
+/* $Id: api_arrayelt.c,v 1.3.2.3 2002/04/09 12:13:06 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -63,7 +63,7 @@ typedef struct {
 
 static void (*colorfuncs[2][8])( const void * ) = {
    { (array_func)glColor3bv,
-     (array_func)glColor3ub,
+     (array_func)glColor3ubv,
      (array_func)glColor3sv,
      (array_func)glColor3usv,
      (array_func)glColor3iv,
@@ -72,7 +72,7 @@ static void (*colorfuncs[2][8])( const void * ) = {
      (array_func)glColor3dv },
 
    { (array_func)glColor4bv,
-     (array_func)glColor4ub,
+     (array_func)glColor4ubv,
      (array_func)glColor4sv,
      (array_func)glColor4usv,
      (array_func)glColor4iv,

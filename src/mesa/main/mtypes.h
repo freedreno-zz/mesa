@@ -1,4 +1,4 @@
-/* $Id: mtypes.h,v 1.51.2.3 2002/03/16 00:50:12 brianp Exp $ */
+/* $Id: mtypes.h,v 1.51.2.4 2002/04/09 12:13:08 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -1609,6 +1609,9 @@ struct __GLcontextRec {
 /* The string names for GL_POINT, GL_LINE_LOOP, etc */
 extern const char *_mesa_prim_name[GL_POLYGON+4];
 
+#ifndef MESA_DEBUG
+#define MESA_DEBUG
+#endif
 
 #ifdef MESA_DEBUG
 extern int MESA_VERBOSE;
@@ -1630,8 +1633,10 @@ enum _verbose {
    VERBOSE_DRIVER		= 0x0010,
    VERBOSE_STATE		= 0x0020,
    VERBOSE_API			= 0x0040,
-   VERBOSE_DISPLAY_LIST		= 0x0200,
-   VERBOSE_LIGHTING		= 0x0400
+   VERBOSE_DISPLAY_LIST		= 0x0100,
+   VERBOSE_LIGHTING		= 0x0200,
+   VERBOSE_PRIMS		= 0x0400,
+   VERBOSE_VERTS		= 0x0800
 };
 
 
@@ -1643,22 +1648,28 @@ enum _debug {
 
 #define Elements(x) sizeof(x)/sizeof(*(x))
 
-
+#ifndef __GNUC__
+#define __FUNCTION__ "some function"
+#endif
 
 /* Eventually let the driver specify what statechanges require a flush:
  */
-#define FLUSH_VERTICES(ctx, newstate)					\
-do {									\
-   if (ctx->Driver.NeedFlush & FLUSH_STORED_VERTICES)			\
-      ctx->Driver.FlushVertices(ctx, FLUSH_STORED_VERTICES);		\
-   ctx->NewState |= newstate;						\
+#define FLUSH_VERTICES(ctx, newstate)				\
+do {								\
+   if (MESA_VERBOSE & VERBOSE_STATE)				\
+      fprintf(stderr, "FLUSH_VERTICES in %s\n", __FUNCTION__);	\
+   if (ctx->Driver.NeedFlush & FLUSH_STORED_VERTICES)		\
+      ctx->Driver.FlushVertices(ctx, FLUSH_STORED_VERTICES);	\
+   ctx->NewState |= newstate;					\
 } while (0)
 
-#define FLUSH_CURRENT(ctx, newstate)					\
-do {									\
-   if (ctx->Driver.NeedFlush & FLUSH_UPDATE_CURRENT)			\
-      ctx->Driver.FlushVertices(ctx, FLUSH_UPDATE_CURRENT);		\
-   ctx->NewState |= newstate;						\
+#define FLUSH_CURRENT(ctx, newstate)				\
+do {								\
+   if (MESA_VERBOSE & VERBOSE_STATE)				\
+      fprintf(stderr, "FLUSH_CURRENT in %s\n", __FUNCTION__);	\
+   if (ctx->Driver.NeedFlush & FLUSH_UPDATE_CURRENT)		\
+      ctx->Driver.FlushVertices(ctx, FLUSH_UPDATE_CURRENT);	\
+   ctx->NewState |= newstate;					\
 } while (0)
 
 #define ASSERT_OUTSIDE_BEGIN_END_WITH_RETVAL(ctx, retval)		\
