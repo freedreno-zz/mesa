@@ -1,4 +1,4 @@
-/* $Id: t_vb_lighttmp.h,v 1.19 2001/10/20 00:13:45 keithw Exp $ */
+/* $Id: t_vb_lighttmp.h,v 1.19.2.1 2001/12/03 17:40:43 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -560,7 +560,6 @@ static void TAG(light_fast_rgba_single)( GLcontext *ctx,
    do {
       
       if ( CHECK_COLOR_MATERIAL(j) ) {
-/*  	 fprintf(stderr, "colormaterial at %d (%p)\n", j, CMcolor); */
 	 _mesa_update_color_material( ctx, CMcolor );
       }
 
@@ -589,13 +588,6 @@ static void TAG(light_fast_rgba_single)( GLcontext *ctx,
 
       do {
 	 GLfloat n_dot_VP = DOT3(normal, light->_VP_inf_norm);
-
-/*  	 if (j < 5) */
-/*  	    fprintf(stderr, "light normal %d: %f %f %f\n",  */
-/*  		    j,  */
-/*  		    normal[0], */
-/*  		    normal[1], */
-/*  		    normal[2]); */
 
 	 if (n_dot_VP < 0.0F) {
 	    if (IDX & LIGHT_TWOSIDE) {
@@ -639,14 +631,6 @@ static void TAG(light_fast_rgba_single)( GLcontext *ctx,
 	 COPY_CHAN4(Fcolor[j], Fcolor[j-1]);
 	 if (IDX & LIGHT_TWOSIDE)
 	    COPY_CHAN4(Bcolor[j], Bcolor[j-1]);
-
-/*  	 if (j < 5) */
-/*  	    fprintf(stderr, "skip normal %d: %f %f %f\n",  */
-/*  		    j,  */
-/*  		    normal[0], */
-/*  		    normal[1], */
-/*  		    normal[2]); */
-
       }
 
    } while (!CHECK_END_VB(j));
