@@ -1029,6 +1029,8 @@ void radeonUpdateWindow( GLcontext *ctx )
    RADEON_FIREVERTICES( rmesa );
    RADEON_STATECHANGE( rmesa, vpt );
 
+   fprintf(stderr, "%s: %f %f %f %f\n", __FUNCTION__, sx, tx, sy, ty);
+
    rmesa->hw.vpt.cmd[VPT_SE_VPORT_XSCALE]  = *(GLuint *)&sx;
    rmesa->hw.vpt.cmd[VPT_SE_VPORT_XOFFSET] = *(GLuint *)&tx;
    rmesa->hw.vpt.cmd[VPT_SE_VPORT_YSCALE]  = *(GLuint *)&sy;
@@ -1053,23 +1055,9 @@ void radeonUpdateWindow( GLcontext *ctx )
  * 
  * Fires the vertices and updates the window.
  */
-static void radeonViewport( GLint x, GLint y, GLsizei width, GLsizei height )
+static void radeonViewport( GLcontext *ctx,
+			    GLint x, GLint y, GLsizei width, GLsizei height )
 {
-   GET_CURRENT_CONTEXT(ctx);
-   ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx);
-
-   if (width < 0 || height < 0) {
-      _mesa_error( ctx,  GL_INVALID_VALUE,
-                   "glViewport(%d, %d, %d, %d)", x, y, width, height );
-      return;
-   }
-
-   /* Save viewport - note: Not taking rotation into account here*/
-   ctx->Viewport.X = x;
-   ctx->Viewport.Width = width;
-   ctx->Viewport.Y = y;
-   ctx->Viewport.Height = height;
-
    /* Don't pipeline viewport changes, conflict with window offset
     * setting below.  Could apply deltas to rescue pipelined viewport
     * values, or keep the originals hanging around.
@@ -1807,9 +1795,7 @@ void radeonInitStateFuncs( GLcontext *ctx )
    ctx->Driver.StencilFunc		= radeonStencilFunc;
    ctx->Driver.StencilMask		= radeonStencilMask;
    ctx->Driver.StencilOp		= radeonStencilOp;
-/*    ctx->Driver.Viewport			= radeonViewport; */
-
-   ctx->Exec->Viewport = radeonViewport;
+   ctx->Driver.Viewport			= radeonViewport; 
 }
 
 /*@}*/
