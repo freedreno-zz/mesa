@@ -1,8 +1,8 @@
-/* $Id: stencil.c,v 1.16 2000/04/11 21:26:57 brianp Exp $ */
+/* $Id: stencil.c,v 1.16.4.1 2000/11/28 21:30:44 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.3
+ * Version:  3.4
  * 
  * Copyright (C) 1999-2000  Brian Paul   All Rights Reserved.
  * 
@@ -1351,11 +1351,11 @@ clear_hardware_stencil_buffer( GLcontext *ctx )
             const GLstencil clearVal = (ctx->Stencil.Clear & mask);
             GLstencil stencil[MAX_WIDTH];
             GLint i;
-            (*ctx->Driver.ReadStencilSpan)(ctx, x, y, width, stencil);
+            (*ctx->Driver.ReadStencilSpan)(ctx, width, x, y, stencil);
             for (i = 0; i < width; i++) {
                stencil[i] = (stencil[i] & invMask) | clearVal;
             }
-            (*ctx->Driver.WriteStencilSpan)(ctx, x, y, width, stencil, NULL);
+            (*ctx->Driver.WriteStencilSpan)(ctx, width, x, y, stencil, NULL);
          }
       }
       else {
@@ -1366,7 +1366,7 @@ clear_hardware_stencil_buffer( GLcontext *ctx )
             stencil[i] = ctx->Stencil.Clear;
          }
          for (y = ctx->DrawBuffer->Ymin; y <= ctx->DrawBuffer->Ymax; y++) {
-            (*ctx->Driver.WriteStencilSpan)(ctx, x, y, width, stencil, NULL);
+            (*ctx->Driver.WriteStencilSpan)(ctx, width, x, y, stencil, NULL);
          }
       }
    }
@@ -1384,11 +1384,11 @@ clear_hardware_stencil_buffer( GLcontext *ctx )
          for (y = 0; y < height; y++) {
             GLstencil stencil[MAX_WIDTH];
             GLuint i;
-            (*ctx->Driver.ReadStencilSpan)(ctx, x, y, width, stencil);
+            (*ctx->Driver.ReadStencilSpan)(ctx, width, x, y, stencil);
             for (i = 0; i < width; i++) {
                stencil[i] = (stencil[i] & invMask) | clearVal;
             }
-            (*ctx->Driver.WriteStencilSpan)(ctx, x, y, width, stencil, NULL);
+            (*ctx->Driver.WriteStencilSpan)(ctx, width, x, y, stencil, NULL);
          }
       }
       else {
@@ -1402,7 +1402,7 @@ clear_hardware_stencil_buffer( GLcontext *ctx )
             stencil[i] = ctx->Stencil.Clear;
          }
          for (y = 0; y < height; y++) {
-            (*ctx->Driver.WriteStencilSpan)(ctx, x, y, width, stencil, NULL);
+            (*ctx->Driver.WriteStencilSpan)(ctx, width, x, y, stencil, NULL);
          }
       }
    }
