@@ -1,6 +1,6 @@
 /**
  * \file mm.c
- * \brief Memory management.
+ * \brief Memory block management.
  */
 
 /*
@@ -37,9 +37,9 @@
  */
 
 /**
- * \brief Dump memmory information about the heap.
+ * \brief Dump memory information about the heap.
  *
- * \param heap memmory heap.
+ * \param heap memory heap.
  *
  * \note For debugging purposes.
  *
@@ -67,7 +67,7 @@ void mmDumpMemInfo( memHeap_t *heap )
 
 
 /**
- * \brief Memmory heap initialization.
+ * \brief Memory heap initialization.
  * 
  * \param offset offset in bytes.
  * \param size total size in bytes
@@ -98,20 +98,20 @@ memHeap_t *mmInit(int ofs,
 
 
 /**
- * \brief Slice a free memmory block.
+ * \brief Slice a free memory block.
  *
- * \param p memmory block.
- * \param startofs start offset to slice.
- * \param size of the slice.
- * \param reserved flag.
- * \param alignment block alignment.
+ * \param p memory block.
+ * \param startofs slice start offset.
+ * \param size slice size.
+ * \param reserved reserved flag.
+ * \param alignment slice alignment.
  *
  * \return pointer to the slice block on success, or NULL on failure.
  * 
  * \internal
- * Creates a new block to the left with the remaining memory before the slice
- * start (if any), a block to the right with the remaing memmory after the
- * slice (if any), and the reduced memmory block itself as the slice.
+ * Creates a new block to the left with the memory before the slice start (if
+ * any), a block to the right with the memory after the slice (if any), and
+ * returns the reduced memory block itself as the slice.
  */
 static TMemBlock* SliceBlock(TMemBlock *p, 
 			     int startofs, int size, 
@@ -155,23 +155,24 @@ static TMemBlock* SliceBlock(TMemBlock *p,
 
 
 /**
- * \brief Allocate a memmory block.
+ * \brief Allocate a memory block.
  *
- * Allocate \p size bytes with \p 2^align2 bytes alignment,
- * restrict the search to free memory after \p startSearch.
- * Depth and back buffers should be in different 4MB banks
- * to get better page hits if possible.
+ * Allocate \p size bytes with a \p 2^align2 bytes alignment, restricting the
+ * search to free memory after \p startSearch.  Depth and back buffers should
+ * be in different 4MB banks to get better page hits if possible.
  * 
- * \param heap memmory heap.
+ * \param heap memory heap.
  * \param size size to allocate in bytes.
- * \param align2 base 2 log of the alignment in bytes.
- * \param startSearch linear offset from start of the heap to begin the search.
+ * \param align2 base 2 log of the block alignment in bytes.
+ * \param startSearch linear offset from start of the heap to begin the
+ * search.
  * 
  * \return pointer to the allocated block on success, or NULL on failure.
  *
  * \internal
  * Walks through the free blocks on the heap and if it finds one above
- * startSearch and large enough slices it via SliceBlock() and returns the result.
+ * \p startSearch and large enough slices it via SliceBlock() and returns the
+ * result.
  */
 PMemBlock mmAllocMem( memHeap_t *heap, int size, int align2, int startSearch)
 {
@@ -204,9 +205,9 @@ PMemBlock mmAllocMem( memHeap_t *heap, int size, int align2, int startSearch)
 
 
 /**
- * \brief Join two successive free memmory blocks.
+ * \brief Join two successive free memory blocks.
  *
- * \param p pointer to first memmory block.
+ * \param p pointer to first memory block.
  *
  * \return 1 on success, or 0 on failure.
  *
@@ -227,7 +228,7 @@ static __inline__ int Join2Blocks(TMemBlock *p)
 
 
 /**
- * \brief Free a memmory block.
+ * \brief Free a memory block.
  * 
  * \param pointer to a block.
  *
@@ -271,9 +272,9 @@ int mmFreeMem(PMemBlock b)
 
 
 /**
- * \brief Destroy the memmory heap.
+ * \brief Destroy the memory heap.
  * 
- * \param heap memmory heap.
+ * \param heap memory heap.
  *
  * \internal
  * Frees each block in the heap.

@@ -53,37 +53,56 @@ typedef struct radeon_context *radeonContextPtr;
 #include "radeon_swtcl.h"
 #endif
 
+/**
+ * \brief Color buffer state.
+ */
 struct radeon_colorbuffer_state {
-   GLuint clear;
-   GLint drawOffset, drawPitch;
+   GLuint clear;	/**< \brief Clear value */	
+   GLint drawOffset;	/**< \brief Drawing offset */
+   Glint drawPitch;	/**< \brief Drawing pitch */
 };
 
-
+/**
+ * \brief Depth buffer state.
+ */
 struct radeon_depthbuffer_state {
-   GLuint clear;
-   GLfloat scale;
+   GLuint clear;	/**< \brief Clear value */
+   GLfloat scale;	/**< \brief Depth scale */
 };
 
+/**
+ * \brief Pixel state.
+ */
 struct radeon_pixel_state {
-   GLint readOffset, readPitch;
+   GLint readOffset;	/**< \brief Reading offset */
+   Glint readPitch;	/**< \brief Reading pitch */
 };
 
+/**
+ * \brief Scissor state.
+ */
 struct radeon_scissor_state {
    XF86DRIClipRectRec rect;
-   GLboolean enabled;
+   GLboolean enabled;			/**< \brief Whether scissoring enable */
 
-   GLuint numClipRects;			/**< \brief Cliprects active */
-   GLuint numAllocedClipRects;		/**< \brief Cliprects available */
-   XF86DRIClipRectPtr pClipRects;
+   GLuint numClipRects;			/**< \brief Number of active cliprects */
+   GLuint numAllocedClipRects;		/**< \brief Number of available cliprects */
+   XF86DRIClipRectPtr pClipRects;	/**< \brief Cliprects */
 };
 
+/**
+ * \brief Stencil buffer state.
+ */
 struct radeon_stencilbuffer_state {
-   GLboolean hwBuffer;
+   GLboolean hwBuffer;			/**< \brief Hardware buffer available? */
    GLuint clear;			/**< \brief rb3d_stencilrefmask value */
 };
 
+/**
+ * \brief Stipple state.
+ */
 struct radeon_stipple_state {
-   GLuint mask[32];
+   GLuint mask[32];	/**< \brief Mask */
 };
 
 
@@ -92,7 +111,10 @@ struct radeon_stipple_state {
 #define TEX_1   0x2
 #define TEX_ALL 0x3
 
-typedef struct radeon_tex_obj radeonTexObj, *radeonTexObjPtr;
+
+typedef struct radeon_tex_obj radeonTexObj;	/**< \brief Alias for radeon_tex_obj. */
+typedef struct radeon_tex_obj *radeonTexObjPtr;	/**< \brief Alias for radeon_tex_obj. */
+
 
 /**
  * \brief Texture object in locally shared texture space.
@@ -110,23 +132,25 @@ struct radeon_tex_obj {
    GLuint bufAddr;
    
    /**
-    * Flags for whether or not images need to be uploaded to local or AGP
+    * \brief Flags for whether or not images need to be uploaded to local or AGP
     * texture space
     */
    GLuint dirty_images;			
 
    /**
-    * Flags (1 per texunit) for whether or not this texobj has dirty hardware
-    * state (pp_*) that needs to be brought into the texunit.
+    * \brief Flags (one per texture unit) for whether or not this texture
+    * object has dirty hardware state (\c pp_*) that needs to be brought into
+    * the texunit.
     */
    GLuint dirty_state;
 
    /** \brief Texture heap currently stored in */
    GLint heap;				
 
+   /** \brief Texture images */
    drmRadeonTexImage image[RADEON_MAX_TEXTURE_LEVELS];
 
-   /* Total size of the texture including all mipmap levels */
+   /** \brief Total size of the texture including all mipmap levels */
    GLint totalSize;
 
    /**
@@ -151,15 +175,20 @@ struct radeon_tex_obj {
    /*@}*/
 };
 
-
+/**
+ * \brief Texture environment state.
+ */
 struct radeon_texture_env_state {
-   radeonTexObjPtr texobj;
-   GLenum format;
-   GLenum envMode;
+   radeonTexObjPtr texobj; /**< \brief texture object */
+   GLenum format;          /**< \brief format */
+   GLenum envMode;         /**< \brief environment mode */
 };
 
+/**
+ * \brief Texture state
+ */
 struct radeon_texture_state {
-   struct radeon_texture_env_state unit[RADEON_MAX_TEXTURE_UNITS];
+   struct radeon_texture_env_state unit[RADEON_MAX_TEXTURE_UNITS]; /**< \brief for each unit */
 };
 
 
@@ -168,12 +197,12 @@ struct radeon_texture_state {
  */
 struct radeon_state_atom {
    struct radeon_state_atom *next, *prev;
-   const char *name;		         /**< \brief for debug */
+   const char *name;		         /**< \brief for debugging purposes */
    int cmd_size;		         /**< \brief size in bytes */
-   GLuint is_tcl;
+   GLuint is_tcl;                        /**< \brief whether is associated with TCL */
    int *cmd;			         /**< \brief one or more cmd's */
    int *lastcmd;			 /**< \brief one or more cmd's */
-   GLboolean (*check)( GLcontext * );    /**< \brief is this state active? */
+   GLboolean (*check)( GLcontext * );    /**< \brief callback to determin whether this state is active */
 };
    
 
@@ -376,9 +405,9 @@ struct radeon_state_atom {
 #define SHN_STATE_SIZE     2
 
 
-
-
-
+/**
+ * \brief Hardware state management.
+ */
 struct radeon_hw_state {
    /**
     * \name State
@@ -423,13 +452,13 @@ struct radeon_hw_state {
  * \brief Derived state for internal purposes:
  */
 struct radeon_state {
-   struct radeon_colorbuffer_state color;
-   struct radeon_depthbuffer_state depth;
-   struct radeon_pixel_state pixel;
-   struct radeon_scissor_state scissor;
-   struct radeon_stencilbuffer_state stencil;
-   struct radeon_stipple_state stipple;
-   struct radeon_texture_state texture;
+   struct radeon_colorbuffer_state color;	/**< \brief Color buffer */
+   struct radeon_depthbuffer_state depth;	/**< \brief Depth buffer */
+   struct radeon_pixel_state pixel;		/**< \brief Pixel */
+   struct radeon_scissor_state scissor;		/**< \brief Scissor */
+   struct radeon_stencilbuffer_state stencil;	/**< \brief Stencil buffer */
+   struct radeon_stipple_state stipple;		/**< \brief Stipple */
+   struct radeon_texture_state texture;		/**< \brief Textures */
 };
 
 /**
@@ -437,7 +466,7 @@ struct radeon_state {
  */
 struct radeon_texture {
    radeonTexObj objects[RADEON_NR_TEX_HEAPS];	/**< \brief texture objects */
-   radeonTexObj swapped;			/**< \brief swapped texture lists */
+   radeonTexObj swapped;			/**< \brief swapped texture  */
 
    memHeap_t *heap[RADEON_NR_TEX_HEAPS];	/**< \brief texture heaps */
    GLint age[RADEON_NR_TEX_HEAPS];		/**< \brief aging */
@@ -470,12 +499,14 @@ struct radeon_dma_buffer {
  * e.g. vertices for indexed vertices.
  */
 struct radeon_dma_region {
-   struct radeon_dma_buffer *buf;
-   char *address;		/**< \brief buf->address */
-   int start, end, ptr;		/**< \brief offsets from start of radeon_dma_region::buf */
-   int aos_start;		/**< \brief array of structures start */
-   int aos_stride;		/**< \brief array of structures stride */
-   int aos_size;		/**< \brief array of structures size */
+   struct radeon_dma_buffer *buf;	/**< \brief DMA buffer */
+   char *address;			/**< \brief buf->address */
+   int start;				/**< \brief start offset from start of radeon_dma_region::buf */
+   int end;				/**< \brief end offset from start of radeon_dma_region::buf */
+   int ptr;				/**< \brief offsets from start of radeon_dma_region::buf */
+   int aos_start;			/**< \brief array of structures start */
+   int aos_stride;			/**< \brief array of structures stride */
+   int aos_size;			/**< \brief array of structures size */
 };
 
 
@@ -484,11 +515,11 @@ struct radeon_dma_region {
  */
 struct radeon_dma {
    /**
-    * \brief Active dma region.  
+    * \brief Active DMA region.  
     *
     * Allocations for vertices and retained regions come from here.  Also used
     * for emitting random vertices, these may be flushed by calling
-    * radeon_dma::flush_current.
+    * radeon_dma::flush.
     */
    struct radeon_dma_region current;
    
@@ -497,7 +528,7 @@ struct radeon_dma {
     */
    void (*flush)( radeonContextPtr );
 
-   char *buf0_address;		/**< \brief start of buf[0], for index calcs */
+   char *buf0_address;		/**< \brief start of buf[0], for index calculations */
    GLuint nr_released_bufs;	/**< \brief flush after so many buffers released */
 };
 
@@ -532,13 +563,14 @@ struct radeon_store {
 };
 
 
-/* radeon_tcl.c
+/**
+ * \brief TCL information.
  */
 struct radeon_tcl_info {
    GLuint vertex_format;
    GLint last_offset;
    GLuint hw_primitive;
-   GLuint tcl_flag;
+   GLuint tcl_flag;			/**< \brief Whether TCL is inabled */
 
    struct radeon_dma_region *aos_components[8];
    GLuint nr_aos_components;
@@ -556,10 +588,12 @@ struct radeon_tcl_info {
 
 
 
-
+/**
+ * \brief Retained buffer.
+ */
 struct radeon_ioctl {
-   GLuint vertex_offset;
-   GLuint vertex_size;
+   GLuint vertex_offset; /**< \brief offset of the vertex buffer */
+   GLuint vertex_size;   /**< \brief size of the vertex buffer */
 };
 
 
@@ -577,8 +611,8 @@ struct radeon_context {
     * \name Driver and hardware state management
     */
    /*@{*/
-   struct radeon_hw_state hw;
-   struct radeon_state state;
+   struct radeon_hw_state hw; /**< \brief Hardware state */
+   struct radeon_state state; /**< \brief Internal state */
    /*@}*/
 
    /**
@@ -608,7 +642,7 @@ struct radeon_context {
     * \name Vertex buffers
     */
    /*@{*/
-   struct radeon_ioctl ioctl; 
+   struct radeon_ioctl ioctl; /**< \brief Retained vertex buffer */
    struct radeon_dma dma;     /**< \brief DMA information */
    struct radeon_store store; /**< \brief Command buffer */
    /*@}*/
@@ -624,7 +658,8 @@ struct radeon_context {
    /*@{*/
    GLuint do_usleeps;
    GLuint do_irqs;		/**< \brief Do IRQs */
-   GLuint irqsEmitted;
+   GLuint irqsEmitted;		/**< \brief IRQ transition counter.
+				  * \sa radeonWaitForFrameCompletion(). */
    drmRadeonIrqWait iw;
    /*@}*/
 
@@ -635,7 +670,7 @@ struct radeon_context {
    GLuint numClipRects;			/**< \brief Number of cliprects */
    XF86DRIClipRectPtr pClipRects;	/**< \brief cliprects for the draw buffer */
    unsigned int lastStamp;
-   GLboolean lost_context;
+   GLboolean lost_context;		/**< \brief re-emit all state */
    radeonScreenPtr radeonScreen;	/**< \brief Screen private DRI data */
    RADEONSAREAPrivPtr sarea;		/**< \brief Private SAREA data */
    /*@}*/
@@ -688,7 +723,7 @@ struct radeon_context {
 /** 
  * \brief Pack color.
  *
- * \param cpp desired characters (bytes) per pixel. Either 2 or 4.
+ * \param cpp desired characters (bytes) per pixel. Shouble be either 2 or 4.
  * \param r red color component.
  * \param r green color component.
  * \param b blue color component.

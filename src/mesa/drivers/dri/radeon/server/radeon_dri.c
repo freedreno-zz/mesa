@@ -3,8 +3,8 @@
  * \brief File to perform the device-specific initialization tasks typically
  * done in the X server.
  *
- * Here they are converted to run in the client (or perhaps a
- * standalone process), and to work with fbdev rather than the X
+ * Here they are converted to run in the client (or perhaps a standalone
+ * process), and to work with the frambe buffer device rather than the X
  * server infrastructure.
  */
 
@@ -42,7 +42,7 @@
  * \param entries number of free entries to wait.
  *
  * It polls the free entries from the chip until it reaches the requested value
- * or a timeout (3000 tries) occurs. Aborts the program if the FIFO timesout.
+ * or a timeout (3000 tries) occurs. Aborts the program if the FIFO times out.
  */
 static void RADEONWaitForFifo( struct MiniGLXDisplayRec *dpy,
 			       int entries )
@@ -429,7 +429,7 @@ static int RADEONDRIKernelInit(struct MiniGLXDisplayRec *dpy,
  * \param info driver private data.
  *
  * This function is a wrapper around the DRM_RADEON_INIT_HEAP command, passing
- * all the parameters in a drmRadeonMemInitHeap structure.
+ * all the parameters in a drm_radeon_mem_init_heap structure.
  */
 static void RADEONDRIAgpHeapInit(struct MiniGLXDisplayRec *dpy,
 				 RADEONInfoPtr info)
@@ -526,6 +526,15 @@ static void RADEONDRIIrqInit(struct MiniGLXDisplayRec *dpy,
  * \param info driver private data.
  *
  * \return non-zero on sucess, or zero on failure.
+ *
+ * Performs static frame buffer allocation. Opens the DRM device and add maps
+ * to the SAREA, framebuffer and MMIO regions. Fills in \p info with more
+ * information. Creates a \e server context to grab the lock for the
+ * initialization ioctls and calls the other initliaztion functions in this
+ * file. Starts the CP engine via the DRM_RADEON_CP_START command.
+ *
+ * Setups a RADEONDRIRec structure to be passed to radeon_dri.so for its
+ * initialization.
  */
 static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
 {
@@ -1003,7 +1012,7 @@ static int __driInitScreenConfigs( struct MiniGLXDisplayRec *dpy,
  *
  * \return one on success, or zero on failure.
  *
- * Saves some registers and returns one.
+ * Saves some registers and returns 1.
  *
  * \sa __driValidateMode().
  */
@@ -1026,7 +1035,7 @@ static int __driValidateMode( struct MiniGLXDisplayRec *dpy )
  *
  * \return one on success, or zero on failure.
  *
- * Restores registers that fbdev has clobbered and returns one.
+ * Restores registers that fbdev has clobbered and returns 1.
  *
  * \sa __driValidateMode().
  */
@@ -1048,6 +1057,11 @@ static int __driPostValidateMode( struct MiniGLXDisplayRec *dpy )
  * \param dpy display handle.
  *
  * \return one on success, or zero on failure.
+ *
+ * Fills in \p info with some default values and some information from \p dpy
+ * and then calls RADEONScreenInit() for the screen initialization.
+ * 
+ * Before exiting clears the framebuffer memomry accessing it directly.
  */
 static int __driInitFBDev( struct MiniGLXDisplayRec *dpy )
 {
@@ -1102,10 +1116,14 @@ static int __driInitFBDev( struct MiniGLXDisplayRec *dpy )
 }
 
 
-/* The screen is being closed, so clean up any state and free any
+/**
+ * \brief The screen is being closed, so clean up any state and free any
  * resources used by the DRI.
  *
  * \param dpy display handle.
+ *
+ * Unmaps the SAREA, closes the DRM device file descriptor and frees the driver
+ * private data.
  */
 static void __driHaltFBDev( struct MiniGLXDisplayRec *dpy )
 {
@@ -1120,7 +1138,7 @@ static void __driHaltFBDev( struct MiniGLXDisplayRec *dpy )
 
 
 /**
- * \brief Exported driver interface.
+ * \brief Exported driver interface for Mini GLX.
  *
  * \sa MiniGLXDriverRec.
  */

@@ -1,6 +1,6 @@
 /**
  * \file mm.h
- * \brief Memory management.
+ * \brief Memory block management.
  */
 
 /*
@@ -30,7 +30,7 @@
 #define MM_INC
 
 /**
- * \brief Memmory block/heap.
+ * \brief Memory block/heap.
  */
 struct mem_block_t {
   struct mem_block_t *next; /**< \brief pointer to next block in the heap */
@@ -43,30 +43,30 @@ struct mem_block_t {
 };
 
 /**
- * \brief Memmory block.
+ * \brief Memory block.
  */
 typedef struct mem_block_t TMemBlock;
 
 /**
- * \brief Memmory block pointer.
+ * \brief Memory block pointer.
  */
 typedef struct mem_block_t *PMemBlock;
 
 /**
- * \brief Memmory heap.
+ * \brief Memory heap.
  * 
  * \note A heap is just the first block in a chain 
  */
 typedef struct mem_block_t memHeap_t;
 
 /**
- * \brief Get Memmory block size.
+ * \brief Get Memory block size.
  */
 static __inline__ int mmBlockSize(PMemBlock b)
 { return b->size; }
 
 /**
- * \brief Get Memmory block offset.
+ * \brief Get Memory block offset.
  */
 static __inline__ int mmOffset(PMemBlock b)
 { return b->ofs; }

@@ -161,7 +161,7 @@ typedef struct {
 
    unsigned int      frontPitchOffset;
    unsigned int      backPitchOffset;
-   unsigned int      depthPitchOffset
+   unsigned int      depthPitchOffset;
 
    int               irq;              /**< \brief IRQ number */
    unsigned int      gen_int_cntl;

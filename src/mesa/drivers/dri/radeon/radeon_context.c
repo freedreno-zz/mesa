@@ -208,8 +208,8 @@ static const char * const radeon_extensions[] =
  *
  * \param ctx GL context.
  *
- * Enables the imaging extensions and every extension specified in in the
- * radeon_extensions table.
+ * Enables the imaging extensions plus every extension specified in in the
+ * ::radeon_extensions table.
  */
 static void radeonInitExtensions( GLcontext *ctx )
 {
@@ -270,7 +270,10 @@ static void radeonInitDriverFuncs( GLcontext *ctx )
  * __DRIscreenPrivateRec::private, such as the SAREA pointer, DMA buffers
  * addresses and texture heaps.
  *
- * Calls the radeonInit* functions to populate the driver callback functions.
+ * Calls the \c radeonInit* functions to populate the driver callback
+ * functions. Among these are radeonInitState(), radeonInitExtensions(),
+ * radeonInitDriverFuncs(), radeonInitIoctlFuncs(), radeonInitStateFuncs(),
+ * radeonInitTextureFuncs() and radeonInitSelect().
  *
  * If compiled with debug support, reads the RADEON_DEBUG environment variable
  * and sets the debugging flags accordingly.
@@ -641,8 +644,8 @@ radeonDestroyBuffer(__DRIdrawablePrivate *driDrawPriv)
  *
  * \param dPriv DRI specific drawable data.
  *
- * If in double buffer mode it dispatches the call, either to
- * radeonCopyBuffer() or radeonPageFlip() if page flipping is enabled.
+ * If in double buffer mode then it dispatches the call to radeonCopyBuffer()
+ * or radeonPageFlip() if page flipping is also enabled.
  */
 static void
 radeonSwapBuffers( __DRIdrawablePrivate *dPriv )
@@ -754,12 +757,12 @@ radeonUnbindContext( __DRIcontextPrivate *driContextPriv )
 /**
  * \brief Open/close fullscreen mode.
  * 
- * Fullscreen mode isn't used for much -- could be a way to shrink
- * front/back buffers & get more texture memory if the client has
- * changed the video resolution.
+ * \note Fullscreen mode isn't used for much - it could be a way to shrink
+ * front/back buffers and get more texture memory if the client has changed the
+ * video resolution.
  * 
- * Pageflipping is now done automatically whenever there is a single
- * 3d client.
+ * \par
+ * Pageflipping is now done automatically whenever there is a single 3D client.
  * 
  * \param driContextPriv DRI specific context data. Not used.
  * 
@@ -790,7 +793,8 @@ __driRegisterExtensions( void )
  * 
  * \return GL_TRUE on success or GL_FALSE on faillure.
  * 
- * Called as callback from __driCreateScreen below.
+ * Calls radeonCreateScreen() and if it fails calls radeonDestroyScreen()
+ * before returning.
  */
 static GLboolean
 radeonInitDriver( __DRIscreenPrivate *sPriv )
@@ -807,6 +811,8 @@ radeonInitDriver( __DRIscreenPrivate *sPriv )
 
 /**
  * \brief Driver interface structure
+ *
+ * Holds the DRI driver callbacks.
  */
 static struct __DriverAPIRec radeonAPI = {
    radeonInitDriver,
@@ -827,9 +833,11 @@ static struct __DriverAPIRec radeonAPI = {
 /**
  * \brief Bootstrap function for the driver.
  *
- * The __driCreateScreen name is the symbol that libGL.so fetches.
+ * The \e __driCreateScreen name is the symbol that libGL.so fetches.
  * 
- * \return pointer to a __DRIscreenPrivate.
+ * \return pointer to a ::__DRIscreenPrivate structure.
+ *
+ * Calls __driUtilCreateScreen() with ::radeonAPI.
  */
 void *__driCreateScreen(Display *dpy, int scrn, __DRIscreen *psc,
                         int numConfigs, __GLXvisualConfig *config)

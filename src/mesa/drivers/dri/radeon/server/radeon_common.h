@@ -2,6 +2,9 @@
  * \file server/radeon_common.h 
  * \brief Common header definitions for Radeon 2D/3D/DRM driver suite.
  *
+ * \note Some of these structures are meant for backward compatability and
+ * aren't used by the subset driver.
+ *
  * \author Gareth Hughes <gareth@valinux.com>
  * \author Kevin E. Martin <martin@valinux.com>
  * \author Keith Whitwell <keith@tungstengraphics.com>
@@ -91,12 +94,11 @@
  * \brief DRM_RADEON_CP_INIT ioctl argument type.
  */
 typedef struct {
-   /** \brief request */
    enum {
-      DRM_RADEON_INIT_CP    = 0x01,  /**< \brief initialize CP */
-      DRM_RADEON_CLEANUP_CP = 0x02,  /**< \brief clean up CP */
-      DRM_RADEON_INIT_R200_CP = 0x03 /**< \brief initialize R200 CP */
-   } func;
+      DRM_RADEON_INIT_CP    = 0x01,   /**< \brief initialize CP */
+      DRM_RADEON_CLEANUP_CP = 0x02,   /**< \brief clean up CP */
+      DRM_RADEON_INIT_R200_CP = 0x03  /**< \brief initialize R200 CP */
+   } func;                            /**< \brief request */
    unsigned long sarea_priv_offset;   /**< \brief SAREA private offset */
    int is_pci;                        /**< \brief is current card a PCI card? */
    int cp_mode;                       /**< \brief CP mode */
@@ -145,12 +147,13 @@ typedef union drmRadeonClearR {
  * \brief DRM_RADEON_CLEAR ioctl argument type.
  */
 typedef struct drmRadeonClearT {
-        unsigned int flags;
-        unsigned int clear_color;
-        unsigned int clear_depth;
-        unsigned int color_mask;
-        unsigned int depth_mask;   /* misnamed field:  should be stencil */
-        drmRadeonClearRect *depth_boxes;
+        unsigned int flags;              /**< \brief bitmask of the planes to clear */
+        unsigned int clear_color;        /**< \brief color buffer clear value */
+        unsigned int clear_depth;        /**< \brief depth buffer clear value */
+        unsigned int color_mask;         /**< \brief color buffer clear mask */
+        unsigned int depth_mask;         /**< \brief stencil buffer clear value
+					   *  \todo Misnamed field. */
+        drmRadeonClearRect *depth_boxes; /**< \brief depth buffer cliprects */
 } drmRadeonClearType;
 
 typedef struct drmRadeonFullscreenT {
@@ -297,7 +300,7 @@ typedef struct {
 /**
  * \brief Command buffer.  
  *
- * \todo Replace with true dma stream?
+ * \todo Replace with true DMA stream?
  */
 typedef struct {
 	int bufsz;          /**< \brief buffer size */
@@ -483,10 +486,13 @@ typedef struct drm_radeon_mem_free {
 	int region_offset;
 } drmRadeonMemFree;
 
+/**
+ * \brief DRM_RADEON_INIT_HEAP argument type.
+ */
 typedef struct drm_radeon_mem_init_heap {
-	int region;
-	int size;
-	int start;	
+	int region; /**< \brief region type */
+	int size;   /**< \brief region size */
+	int start;  /**< \brief region start offset */
 } drmRadeonMemInitHeap;
 
 /**

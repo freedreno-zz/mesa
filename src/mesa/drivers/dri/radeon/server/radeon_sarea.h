@@ -284,9 +284,9 @@ typedef struct {
      * Counters for throttling rendering of clients.
      */
     /*@{*/
-    unsigned int last_frame;
+    unsigned int last_frame;    /**< \brief last emmited frame */
     unsigned int last_dispatch;
-    unsigned int last_clear;
+    unsigned int last_clear;    /**< \brief last emmited clear */
     /*@}*/
 
     /**

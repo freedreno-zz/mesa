@@ -122,8 +122,10 @@ static void radeon_emit_state_list( radeonContextPtr rmesa,
  *
  * If radeon_context::lost_context is set then all state is emited by moving
  * everything in radeon_hw_state::dirty prior to the radeon_emit_state_list()
- * call. For woring around a Quake3 lock-up radeon_hw_state::zbs is always made
- * \e dirty.
+ * call. 
+ *
+ * \note For working around a Quake3 lock-up radeon_hw_state::zbs is always
+ * made \e dirty.
  */
 void radeonEmitState( radeonContextPtr rmesa )
 {
@@ -426,7 +428,7 @@ void radeonFlushCmdBuf( radeonContextPtr rmesa, const char *caller )
  * DMA buffer as the new current DMA region. 
  *
  * In case of failure in the first try to get a new DMA buffer, flushes any
- * previously released buffers, wait's for engine idle and tries once more,
+ * previously released buffers, waits for engine is idle and tries once more,
  * aborting if it fails.
  */
 void radeonRefillCurrentDmaRegion( radeonContextPtr rmesa )
@@ -545,15 +547,15 @@ void radeonReleaseDmaRegion( radeonContextPtr rmesa,
 }
 
 /**
- * \brief Allocates a new region from rmesa->dma.current.
+ * \brief Allocates a new region from radeon_dma::current.
  *
  * \param rmesa Radeon context.
  * \param region region will received the allocated region.
  * \param bytes size.
  * \param alignment alignment.
  * 
- * If there isn't enough space in current, grab a new buffer (and discard what
- * was left of current).
+ * If there isn't enough space in the current DMA buffer, grab a new buffer
+ * (and discard what was left of it).
  */
 void radeonAllocDmaRegion( radeonContextPtr rmesa, 
 			   struct radeon_dma_region *region,
@@ -618,7 +620,7 @@ void radeonAllocDmaRegionVerts( radeonContextPtr rmesa,
  *
  * \param rmesa Radeon context.
  *
- * \return last frame number on success, or a nec
+ * \return last frame number.
  * 
  * Gets the last frame number via the DRM_RADEON_GETPARAM command in recent
  * DRMs, or via the RADEON_LAST_FRAME_REG register.
@@ -702,14 +704,48 @@ static void radeonWaitIrq( radeonContextPtr rmesa )
  *
  * \param rmesa Radeon context.
  *
- * Waits until the number of processed frames reaches the one specifies in the
+ * Waits until the number of processed frames reaches RADEONSAREAPriv::last_frame in the
  * SAREA.
  *
- * If IRQs are enabled and one has been emited then wait on the IRQ and send
- * one afterwards.
+ * The idea is to only emit IRQ's if the graphics card is the bottleneck -- ie
+ * only do it if we find that the previous frame hasn't completed. When the
+ * card is the bottlneck one'd like to do something like:
  *
- * It assumes that the hardware was locked prior to the call but all waits are
- * internally done with the hardware unlocked.
+ *\code
+ * render frame 0
+ * swap buffers
+ * emit IRQ 0
+ * render frame 1
+ * wait on IRQ 0 (i.e. wait for last frame to complete)
+ * swap buffers
+ * emit IRQ 1,
+ * ...
+ * \endcode
+ *
+ * But, if there's no need to wait for hardware (i.e., the application/driver
+ * is bottleneck), then one'd prefer:
+ *
+ * \code
+ * render frame 0
+ * swapbuffers
+ * render frame 1
+ * swapbuffers
+ * ...
+ * \endcode
+ *
+ * without any doing any IRQ or waiting.
+ *
+ * The radeon_context::irqsEmitted determines transition between these modes.
+ * It is set to 10 if it ever has to wait, and decremented otherwise.  If it
+ * finds it has to wait, checks radeon_context::irqsEmitted to determine if
+ * there is an IRQ pending that we can wait on -- otherwise do busy wait.
+ * Finally, after the waiting/not-waiting is over, checks
+ * radeon_context::irqsEmitted, if non-zero, emits an IRQ.
+ *
+ * If IRQ's aren't supported for whatever reason, it always busy waits.
+ *
+ * This function assumes that the hardware was locked prior to the call but
+ * all waits are internally done with the hardware unlocked.
  */
 static void radeonWaitForFrameCompletion( radeonContextPtr rmesa )
 {
@@ -902,7 +938,7 @@ void radeonPageFlip( const __DRIdrawablePrivate *dPriv )
  * Locks the hardware and throttles the number of clear ioctl's done, allowing
  * up to #RADEON_MAX_CLEARS. For each set of cliprects, intersects them with
  * the clearing rectangle (if not clearing all) and uploads them to the SAREA,
- * setups a drmRadeonClearType structure sends it to the DRM_RADEON_CLEAR
+ * setups a drmRadeonClearT structure sends it to the DRM_RADEON_CLEAR
  * command.
  */
 static void radeonClear( GLcontext *ctx, GLbitfield mask, GLboolean all,
