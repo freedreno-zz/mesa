@@ -1,7 +1,7 @@
-# $Id: Makefile.X11,v 1.12.2.11 2000/06/05 14:40:09 brianp Exp $
+# $Id: Makefile.X11,v 1.12.2.12 2000/07/17 19:26:04 brianp Exp $
 
 # Mesa 3-D graphics library
-# Version:  3.2
+# Version:  3.2.1
 # 
 # Copyright (C) 1999-2000  Brian Paul   All Rights Reserved.
 # 
@@ -321,9 +321,9 @@ realclean: clean
 
 
 
-DIRECTORY = Mesa-3.2
-LIB_NAME = MesaLib-3.2
-DEMO_NAME = MesaDemos-3.2
+DIRECTORY = Mesa-3.2.1
+LIB_NAME = MesaLib-3.2.1
+DEMO_NAME = MesaDemos-3.2.1
 
 
 LIB_FILES =	\
@@ -343,7 +343,6 @@ LIB_FILES =	\
 	$(DIRECTORY)/missing					\
 	$(DIRECTORY)/mkinstalldirs				\
 	$(DIRECTORY)/stamp-h.in					\
-	$(DIRECTORY)/configure					\
 	$(DIRECTORY)/docs/CONFIG				\
 	$(DIRECTORY)/docs/CONFORM				\
 	$(DIRECTORY)/docs/COPYING				\
@@ -368,7 +367,6 @@ LIB_FILES =	\
 	$(DIRECTORY)/mesawin32.mak				\
 	$(DIRECTORY)/Names.win					\
 	$(DIRECTORY)/win32-openstep.sh				\
-	$(DIRECTORY)/Makefile.dja				\
 	$(DIRECTORY)/common.dja					\
 	$(DIRECTORY)/include/GL/Makefile.in			\
 	$(DIRECTORY)/include/GL/Makefile.am			\
