@@ -660,6 +660,7 @@ static void radeon_End( void )
 }
 
 
+
 /**
  * \brief Flush vertices.
  *
@@ -812,40 +813,6 @@ static void radeon_TexCoord2fv( const GLfloat *v )
    radeon_TexCoord2f( v[0], v[1] );
 }
 
-/**
- * \brief Setup the GL context callbacks.
- * 
- * \param ctx GL context.
- * 
- * Setups the GL context callbacks and links _glapi_table entries related to
- * the glBegin()/glEnd() pairs to the functions in this module.
- * 
- * Called by radeonCreateContext() and radeonRenderMode().
- */
-void radeonVtxfmtInit( GLcontext *ctx )
-{
-   struct _glapi_table *exec = ctx->Exec;
-
-   exec->Color3f = radeon_Color3f;
-   exec->Color3fv = radeon_Color3fv;
-   exec->Color4f = radeon_Color4f;
-   exec->Color4fv = radeon_Color4fv;
-   exec->TexCoord2f = radeon_TexCoord2f;
-   exec->TexCoord2fv = radeon_TexCoord2fv;
-   exec->Vertex2f = radeon_Vertex2f;
-   exec->Vertex2fv = radeon_Vertex2fv;
-   exec->Vertex3f = radeon_Vertex3f;
-   exec->Vertex3fv = radeon_Vertex3fv;
-   exec->Begin = radeon_Begin;
-   exec->End = radeon_End;
-
-   vb.context = ctx;
-   
-   ctx->Driver.FlushVertices = radeonFlushVertices;
-   ctx->Driver.CurrentExecPrimitive = GL_POLYGON+1;
-   radeonVtxfmtValidate( ctx );
-   notify_noop();
-}
 
 /**
  * No-op.
@@ -910,3 +877,132 @@ void radeonSubsetVtxEnableTCL( radeonContextPtr rmesa, GLboolean flag )
 {
    rmesa->tcl.tcl_flag = flag ? RADEON_CP_VC_CNTL_TCL_ENABLE : 0;
 }
+
+
+
+/**********************************************************************/
+/** \name        Noop mode for operation without focus                */
+/**********************************************************************/
+/*@{*/
+
+
+/**
+ * \brief Process glBegin().
+ *
+ * \param mode primitive.
+ */ 
+static void radeon_noop_Begin(GLenum mode)
+{
+   GET_CURRENT_CONTEXT(ctx);
+
+   if (mode > GL_POLYGON) {
+      _mesa_error( ctx, GL_INVALID_ENUM, "glBegin" );
+      return;
+   }
+
+   if (ctx->Driver.CurrentExecPrimitive != GL_POLYGON+1) {
+      _mesa_error( ctx, GL_INVALID_OPERATION, "glBegin" );
+      return;
+   }
+
+   ctx->Driver.CurrentExecPrimitive = mode;
+}
+
+/**
+ * \brief Process glEnd().
+ */
+static void radeon_noop_End(void)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   ctx->Driver.CurrentExecPrimitive = GL_POLYGON+1;
+}
+
+
+/**
+ * \brief Install the noop callbacks.
+ *
+ * \param ctx GL context.
+ *
+ * Installs the noop callbacks into the glapi table.  These functions
+ * will not attempt to emit any DMA vertices, but will keep internal
+ * GL state uptodate.  Borrows heavily from the select code.
+ */
+static void radeon_noop_Install( GLcontext *ctx )
+{
+   ctx->Exec->Begin = radeon_noop_Begin;
+   ctx->Exec->End = radeon_noop_End;
+
+   vb.texcoordptr = ctx->Current.Attrib[VERT_ATTRIB_TEX0];
+   vb.floatcolorptr = ctx->Current.Attrib[VERT_ATTRIB_COLOR0];
+
+   notify_noop();
+}
+
+
+/**
+ * \brief Setup the GL context callbacks.
+ * 
+ * \param ctx GL context.
+ * 
+ * Setups the GL context callbacks and links _glapi_table entries related to
+ * the glBegin()/glEnd() pairs to the functions in this module.
+ * 
+ * Called by radeonCreateContext() and radeonRenderMode().
+ */
+void radeonVtxfmtInit( GLcontext *ctx )
+{
+   radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
+   struct _glapi_table *exec = ctx->Exec;
+
+   exec->Color3f = radeon_Color3f;
+   exec->Color3fv = radeon_Color3fv;
+   exec->Color4f = radeon_Color4f;
+   exec->Color4fv = radeon_Color4fv;
+   exec->TexCoord2f = radeon_TexCoord2f;
+   exec->TexCoord2fv = radeon_TexCoord2fv;
+   exec->Vertex2f = radeon_Vertex2f;
+   exec->Vertex2fv = radeon_Vertex2fv;
+   exec->Vertex3f = radeon_Vertex3f;
+   exec->Vertex3fv = radeon_Vertex3fv;
+   exec->Begin = radeon_Begin;
+   exec->End = radeon_End;
+
+   vb.context = ctx;
+   
+   ctx->Driver.FlushVertices = radeonFlushVertices;
+   ctx->Driver.CurrentExecPrimitive = GL_POLYGON+1;
+
+   if (rmesa->radeonScreen->buffers) {
+      radeonVtxfmtValidate( ctx );
+      notify_noop();
+   }
+   else 
+      radeon_noop_Install( ctx );
+}
+
+
+/*@}*/
+
+
+void radeonVtxfmtNotifyFocus( int have_focus )
+{
+   GET_CURRENT_CONTEXT(ctx);
+   radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
+
+   fprintf(stderr, "%s: %d\n", __FUNCTION__, have_focus);
+
+   if (ctx->Driver.CurrentExecPrimitive != GL_POLYGON+1) 
+      radeon_End();
+   
+   if (have_focus && !rmesa->radeonScreen->buffers) {
+      rmesa->radeonScreen->buffers = drmMapBufs( rmesa->dri.fd );
+   } 
+   else if (!have_focus && rmesa->radeonScreen->buffers) {
+      RADEON_FIREVERTICES( rmesa );
+      drmUnmapBufs( rmesa->radeonScreen->buffers );
+      rmesa->radeonScreen->buffers = 0;
+   }
+
+   radeonVtxfmtInit( ctx );
+}
+

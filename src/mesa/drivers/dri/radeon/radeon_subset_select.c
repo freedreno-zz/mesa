@@ -27,7 +27,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: radeon_subset_select.c,v 1.1.2.6 2003/04/25 11:22:34 keithw Exp $ */
+/* $Id: radeon_subset_select.c,v 1.1.2.7 2003/04/27 14:21:22 keithw Exp $ */
 
 
 #include "glheader.h"
@@ -958,102 +958,6 @@ void radeon_select_Install( GLcontext *ctx )
 /*@}*/
 
 
-/**********************************************************************/
-/** \name        Noop mode for operation without focus                */
-/**********************************************************************/
-/*@{*/
-
-
-/**
- * \brief Process glBegin().
- *
- * \param mode primitive.
- */ 
-static void radeon_noop_Begin(GLenum mode)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
-
-   if (mode > GL_POLYGON) {
-      _mesa_error( ctx, GL_INVALID_ENUM, "glBegin" );
-      return;
-   }
-
-   if (ctx->Driver.CurrentExecPrimitive != GL_POLYGON+1) {
-      _mesa_error( ctx, GL_INVALID_OPERATION, "glBegin" );
-      return;
-   }
-
-   if (rmesa->dri.drawable->numClipRects) {
-      radeonVtxfmtInit( ctx );
-      ctx->Exec->Begin( mode );
-      return;
-   }
-
-   fprintf(stderr, "%s\n", __FUNCTION__);
-   ctx->Driver.CurrentExecPrimitive = mode;
-}
-
-/**
- * \brief Process glEnd().
- */
-static void radeon_noop_End(void)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   ctx->Driver.CurrentExecPrimitive = GL_POLYGON+1;
-}
-
-/**
- * \brief Discards all arguments.
- */
-static void radeon_noop_Vertex2f(GLfloat x, GLfloat y)
-{
-}
-
-/**
- * \brief Discards all arguments.
- */
-static void radeon_noop_Vertexfv(const GLfloat * v)
-{
-}
-
-/**
- * \brief Discards all arguments.
- */
-static void radeon_noop_Vertex3f(GLfloat x, GLfloat y, GLfloat z)
-{
-}
-
-/**
- * \brief Install the noop callbacks.
- *
- * \param ctx GL context.
- *
- * Installs the noop callbacks into the glapi table.  These functions
- * will not attempt to emit any DMA vertices, but will keep internal
- * GL state uptodate.  Borrows heavily from the select code.
- */
-static void radeon_noop_Install( GLcontext *ctx )
-{
-   struct _glapi_table *exec = ctx->Exec;
-
-   exec->Color3f = radeon_select_Color3f;
-   exec->Color3fv = radeon_select_Color3fv;
-   exec->Color4f = radeon_select_Color4f;
-   exec->Color4fv = radeon_select_Color4fv;
-   exec->TexCoord2f = radeon_select_TexCoord2f;
-   exec->TexCoord2fv = radeon_select_TexCoord2fv;
-   exec->Vertex2f = radeon_noop_Vertex2f;
-   exec->Vertex2fv = radeon_noop_Vertexfv;
-   exec->Vertex3f = radeon_noop_Vertex3f;
-   exec->Vertex3fv = radeon_noop_Vertexfv;
-   exec->Begin = radeon_noop_Begin;
-   exec->End = radeon_noop_End;
-
-   ctx->Driver.FlushVertices = radeonSelectFlushVertices;
-}
-
-/*@}*/
 
 /**
  * \brief Set rasterization mode.
@@ -1068,14 +972,9 @@ static void radeon_noop_Install( GLcontext *ctx )
  */
 static void radeonRenderMode( GLcontext *ctx, GLenum mode )
 {
-   radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
-
    switch (mode) {
    case GL_RENDER:
-      if (rmesa->dri.drawable->numClipRects) 
-	 radeonVtxfmtInit( ctx );
-      else
-	 radeon_noop_Install( ctx );
+      radeonVtxfmtInit( ctx );
       break;
    case GL_SELECT:
       radeon_select_Install( ctx );

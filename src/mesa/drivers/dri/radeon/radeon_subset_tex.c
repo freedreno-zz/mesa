@@ -96,6 +96,8 @@ void radeonDestroyTexObj( radeonContextPtr rmesa, radeonTexObjPtr t )
  */
 static void radeonSwapOutTexObj( radeonContextPtr rmesa, radeonTexObjPtr t )
 {
+   fprintf(stderr, "%s memblock: %p\n", __FUNCTION__, t->memBlock);
+   
    if ( t->memBlock ) {
       mmFreeMem( t->memBlock );
       t->memBlock = NULL;
@@ -210,6 +212,10 @@ static void radeonSetTexImages( radeonContextPtr rmesa,
    GLint firstLevel, lastLevel, numLevels;
    GLint log2Width, log2Height;
    GLuint txformat = 0;
+
+   /* This code cannot be reached once we have lost focus
+    */
+   assert(rmesa->radeonScreen->buffers);
 
    /* Set the hardware texture format
     */

@@ -1066,6 +1066,8 @@ static void radeonViewport( GLcontext *ctx,
    radeonUpdateWindow( ctx );
 }
 
+
+#if _HAVE_FULL_GL
 /**
  * \brief Specify the depth range.
  *
@@ -1082,6 +1084,7 @@ static void radeonDepthRange( GLcontext *ctx, GLclampd nearval,
 {
    radeonUpdateWindow( ctx );
 }
+#endif
 
 /*@}*/
 

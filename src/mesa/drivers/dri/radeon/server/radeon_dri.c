@@ -782,7 +782,6 @@ static int RADEONScreenInit( struct DRIDriverContextRec *ctx, RADEONInfoPtr info
       return 0;
    }
 
-     
    if (drmAddMap( ctx->drmFD,
 		  0,
 		  ctx->shared.SAREASize,
@@ -814,12 +813,17 @@ static int RADEONScreenInit( struct DRIDriverContextRec *ctx, RADEONInfoPtr info
 		  (drmHandle)ctx->FBStart,
 		  ctx->FBSize,
 		  DRM_FRAME_BUFFER,
+#if _HAVE_FULL_GL
 		  0,
+#else
+		  DRM_READ_ONLY,
+#endif
 		  &ctx->shared.hFrameBuffer) < 0)
    {
       fprintf(stderr, "[drm] drmAddMap framebuffer failed\n");
       return 0;
    }
+
    fprintf(stderr, "[drm] framebuffer handle = 0x%08lx\n",
 	   ctx->shared.hFrameBuffer);
 
@@ -883,12 +887,6 @@ static int RADEONScreenInit( struct DRIDriverContextRec *ctx, RADEONInfoPtr info
    /* Initialize kernel agp memory manager */
    RADEONDRIAgpHeapInit(ctx, info);
 
-   fprintf(stderr, "calling RADEONEngineRestore from %s\n", __FUNCTION__);
-   if (0 && !RADEONEngineRestore( ctx )) {
-      DRM_UNLOCK(ctx->drmFD, ctx->pSAREA, ctx->serverContext);
-      return 0;
-   }
-
    /* Initialize the SAREA private data structure */
    {
       RADEONSAREAPrivPtr pSAREAPriv;
@@ -903,17 +901,14 @@ static int RADEONScreenInit( struct DRIDriverContextRec *ctx, RADEONInfoPtr info
     * the clear ioctl to do this, but would need to setup hw state
     * first.
     */
-   memset(ctx->FBAddress + info->frontOffset,
+   memset((char *)ctx->FBAddress + info->frontOffset,
 	  0,
 	  info->frontPitch * ctx->cpp * ctx->shared.virtualHeight );
 
-   memset(ctx->FBAddress + info->backOffset,
+   memset((char *)ctx->FBAddress + info->backOffset,
 	  0,
 	  info->backPitch * ctx->cpp * ctx->shared.virtualHeight );
 
-
-   /* Can release the lock now */
-/*    DRM_UNLOCK(ctx->drmFD, ctx->pSAREA, ctx->serverContext); */
 
    /* This is the struct passed to radeon_dri.so for its initialization */
    ctx->driverClientMsg = malloc(sizeof(RADEONDRIRec));
@@ -944,6 +939,8 @@ static int RADEONScreenInit( struct DRIDriverContextRec *ctx, RADEONInfoPtr info
    pRADEONDRI->log2AGPTexGran    = info->log2AGPTexGran;
    pRADEONDRI->agpTexOffset      = info->agpTexStart;
    pRADEONDRI->sarea_priv_offset = sizeof(XF86DRISAREARec);
+
+   /* Don't release the lock now - let the VT switch handler do it. */
 
    return 1;
 }
@@ -1231,18 +1228,20 @@ static void radeonHaltFBDev( struct DRIDriverContextRec *ctx )
 }
 
 
+extern void radeonVtxfmtNotifyFocus( int );
 
 /**
  * \brief Exported driver interface for Mini GLX.
  *
  * \sa DRIDriverRec.
  */
-struct DRIDriverRec __driDRIDriver = {
+struct DRIDriverRec __driDriver = {
    radeonInitScreenConfigs,
    radeonValidateMode,
    radeonPostValidateMode,
    radeonInitFBDev,
    radeonHaltFBDev,
    RADEONEngineShutdown,
-   RADEONEngineRestore
+   RADEONEngineRestore,  
+   radeonVtxfmtNotifyFocus, 
 };
