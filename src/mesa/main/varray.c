@@ -1,4 +1,4 @@
-/* $Id: varray.c,v 1.14 1999/11/11 01:22:28 brianp Exp $ */
+/* $Id: varray.c,v 1.13.2.1 1999/11/18 23:54:25 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -27,8 +27,15 @@
 #ifdef PC_HEADER
 #include "all.h"
 #else
-#include "glheader.h"
+#ifndef XFree86Server
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#else
+#include "GL/xf86glx.h"
+#endif
 #include "context.h"
+#include "api.h"
 #include "cva.h"
 #include "enable.h"
 #include "enums.h"
@@ -47,14 +54,24 @@
 #include "vbindirect.h"
 #include "vbxform.h"
 #include "xform.h"
+#ifdef XFree86Server
+#include "GL/xf86glx.h"
+#endif
+#endif
+
+#if defined(GLX_DIRECT_RENDERING) && !defined(XFree86Server) && !defined(GLX_USE_DLOPEN)
+#define NEED_MESA_FUNCS_WRAPPED
+#include "mesa_api.h"
 #endif
 
 
-
-void
-_mesa_VertexPointer(GLint size, GLenum type, GLsizei stride, const GLvoid *ptr)
+void GLAPIENTRY glVertexPointer(CTX_ARG GLint size, GLenum type, GLsizei stride,
+                                 const GLvoid *ptr )
 {
-   GET_CURRENT_CONTEXT(ctx);
+   GLcontext *ctx;
+   GET_CONTEXT;
+   CHECK_CONTEXT;
+   ctx = CC;
    
    if (size<2 || size>4) {
       gl_error( ctx, GL_INVALID_VALUE, "glVertexPointer(size)" );
@@ -103,10 +120,13 @@ _mesa_VertexPointer(GLint size, GLenum type, GLsizei stride, const GLvoid *ptr)
 
 
 
-void
-_mesa_NormalPointer(GLenum type, GLsizei stride, const GLvoid *ptr )
+void GLAPIENTRY glNormalPointer(CTX_ARG GLenum type, GLsizei stride,
+                                 const GLvoid *ptr )
 {
-   GET_CURRENT_CONTEXT(ctx);
+   GLcontext *ctx;
+   GET_CONTEXT;
+   CHECK_CONTEXT;
+   ctx = CC;
    
    if (stride<0) {
       gl_error( ctx, GL_INVALID_VALUE, "glNormalPointer(stride)" );
@@ -152,11 +172,13 @@ _mesa_NormalPointer(GLenum type, GLsizei stride, const GLvoid *ptr )
 
 
 
-void
-_mesa_ColorPointer(GLint size, GLenum type, GLsizei stride, const GLvoid *ptr)
+void GLAPIENTRY glColorPointer(CTX_ARG GLint size, GLenum type, GLsizei stride,
+                                const GLvoid *ptr )
 {
-   GET_CURRENT_CONTEXT(ctx);
-
+   GLcontext *ctx;
+   GET_CONTEXT;
+   CHECK_CONTEXT;
+   ctx = CC;
    if (size<3 || size>4) {
       gl_error( ctx, GL_INVALID_VALUE, "glColorPointer(size)" );
       return;
@@ -215,10 +237,13 @@ _mesa_ColorPointer(GLint size, GLenum type, GLsizei stride, const GLvoid *ptr)
 
 
 
-void
-_mesa_IndexPointer(GLenum type, GLsizei stride, const GLvoid *ptr)
+void GLAPIENTRY glIndexPointer(CTX_ARG GLenum type, GLsizei stride,
+                                const GLvoid *ptr )
 {
-   GET_CURRENT_CONTEXT(ctx);
+   GLcontext *ctx;
+   GET_CONTEXT;
+   CHECK_CONTEXT;
+   ctx = CC;
    
    if (stride<0) {
       gl_error( ctx, GL_INVALID_VALUE, "glIndexPointer(stride)" );
@@ -259,11 +284,15 @@ _mesa_IndexPointer(GLenum type, GLsizei stride, const GLvoid *ptr)
 
 
 
-void
-_mesa_TexCoordPointer(GLint size, GLenum type, GLsizei stride, const GLvoid *ptr)
+void GLAPIENTRY glTexCoordPointer(CTX_ARG GLint size, GLenum type,
+                                   GLsizei stride, const GLvoid *ptr )
 {
-   GET_CURRENT_CONTEXT(ctx);
    GLuint texUnit;
+   
+   GLcontext *ctx;
+   GET_CONTEXT;
+   CHECK_CONTEXT;
+   ctx = CC;
    
    texUnit = ctx->Array.ActiveTexture;
 
@@ -317,11 +346,14 @@ _mesa_TexCoordPointer(GLint size, GLenum type, GLsizei stride, const GLvoid *ptr
 
 
 
-void
-_mesa_EdgeFlagPointer(GLsizei stride, const void *vptr)
+void GLAPIENTRY glEdgeFlagPointer(CTX_ARG GLsizei stride, const void *vptr )
 {
-   GET_CURRENT_CONTEXT(ctx);
    const GLboolean *ptr = (GLboolean *)vptr;
+   
+   GLcontext *ctx;
+   GET_CONTEXT;
+   CHECK_CONTEXT;
+   ctx = CC;
 
    if (stride<0) {
       gl_error( ctx, GL_INVALID_VALUE, "glEdgeFlagPointer(stride)" );
@@ -438,42 +470,8 @@ void gl_exec_array_elements( GLcontext *ctx, struct immediate *IM,
 
 
 
-/* Enough funny business going on in here it might be quicker to use a
- * function pointer.
- */
-#define ARRAY_ELT( IM, i )					\
-{								\
-   GLuint count = IM->Count;					\
-   IM->Elt[count] = i;						\
-   IM->Flag[count] = ((IM->Flag[count] & IM->ArrayAndFlags) |	\
-		      VERT_ELT);				\
-   IM->FlushElt |= IM->ArrayEltFlush;				\
-   IM->Count = count += IM->ArrayIncr;				\
-   if (count == VB_MAX)						\
-      IM->maybe_transform_vb( IM );				\
-}
-
-
-void
-_mesa_ArrayElement( GLint i )
+void gl_DrawArrays( GLcontext *ctx, GLenum mode, GLint start, GLsizei count )
 {
-   GET_IMMEDIATE;
-   ARRAY_ELT( IM, i );
-}
-
-
-void gl_ArrayElement( GLcontext *CC, GLint i )
-{
-   struct immediate *im = CC->input;
-   ARRAY_ELT( im, i );
-}
-
-
-
-void
-_mesa_DrawArrays(GLenum mode, GLint start, GLsizei count)
-{
-   GET_CURRENT_CONTEXT(ctx);
    struct vertex_buffer *VB = ctx->VB;
    GLint i;
 
@@ -587,6 +585,8 @@ _mesa_DrawArrays(GLenum mode, GLint start, GLsizei count)
       VB->Material = IM->Material;
       VB->BoundsPtr = 0;
 
+      IM->v.Obj.size = ctx->Array.Vertex.Size;  /* added by Andree Borrmann */
+
       while (remaining > 0) {
          GLint vbspace = VB_MAX - VB_START;
 	 GLuint count, n;
@@ -673,6 +673,7 @@ _mesa_DrawArrays(GLenum mode, GLint start, GLsizei count)
          /* Transform and render.
 	  */
          gl_run_pipeline( VB );
+         gl_flush_vb( ctx, "DrawArrays" );  /* added by Andree Borrmann */
 	 gl_reset_vb( VB );
 
 	 ctx->Array.Flag[count] = ctx->Array.Flags;
@@ -783,13 +784,16 @@ static GLuint natural_stride[0x10] =
    0				/* f */
 };
 
-
-void
-_mesa_DrawElements(GLenum mode, GLsizei count, GLenum type, const GLvoid *indices)
+void GLAPIENTRY glDrawElements(CTX_ARG GLenum mode, GLsizei count,
+                                GLenum type, const GLvoid *indices )
 {
-   GET_CURRENT_CONTEXT(ctx);
+   GLcontext *ctx;
    struct gl_cva *cva;
       
+   GET_CONTEXT;
+   CHECK_CONTEXT;
+   ctx = CC;
+
    cva = &ctx->CVA;
    ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx, "glDrawElements");
 
@@ -899,10 +903,10 @@ _mesa_DrawElements(GLenum mode, GLsizei count, GLenum type, const GLvoid *indice
 
 
 
-void
-_mesa_InterleavedArrays(GLenum format, GLsizei stride, const GLvoid *pointer)
+void GLAPIENTRY glInterleavedArrays(CTX_ARG GLenum format, GLsizei stride,
+                                     const GLvoid *pointer )
 {
-   GET_CURRENT_CONTEXT(ctx);
+   GLcontext *ctx;
    GLboolean tflag, cflag, nflag;  /* enable/disable flags */
    GLint tcomps, ccomps, vcomps;   /* components per texcoord, color, vertex */
 
@@ -912,6 +916,11 @@ _mesa_InterleavedArrays(GLenum format, GLsizei stride, const GLvoid *pointer)
    GLint c, f;
    GLint coordUnitSave;
    
+   GET_CONTEXT;
+   CHECK_CONTEXT;
+   ctx = CC;
+
+
    f = sizeof(GLfloat);
    c = f * ((4*sizeof(GLubyte) + (f-1)) / f);
 
@@ -1035,8 +1044,8 @@ _mesa_InterleavedArrays(GLenum format, GLsizei stride, const GLvoid *pointer)
       stride = defstride;
    }
 
-   _mesa_DisableClientState( GL_EDGE_FLAG_ARRAY );
-   _mesa_DisableClientState( GL_INDEX_ARRAY );
+   gl_DisableClientState( ctx, GL_EDGE_FLAG_ARRAY );
+   gl_DisableClientState( ctx, GL_INDEX_ARRAY );
 
    /* Texcoords */
    coordUnitSave = ctx->Array.ActiveTexture;
@@ -1044,61 +1053,63 @@ _mesa_InterleavedArrays(GLenum format, GLsizei stride, const GLvoid *pointer)
       GLint i;
       GLint factor = ctx->Array.TexCoordInterleaveFactor;
       for (i = 0; i < factor; i++) {
-         _mesa_ClientActiveTextureARB( (GLenum) (GL_TEXTURE0_ARB + i) );
-         _mesa_EnableClientState( GL_TEXTURE_COORD_ARRAY );
-         glTexCoordPointer( tcomps, GL_FLOAT, stride,
+         gl_ClientActiveTexture( ctx, (GLenum) (GL_TEXTURE0_ARB + i) );
+         gl_EnableClientState( ctx, GL_TEXTURE_COORD_ARRAY );
+         glTexCoordPointer(CTX_PRM  tcomps, GL_FLOAT, stride,
                              (GLubyte *) pointer + i * coffset );
       }
       for (i = factor; i < ctx->Const.MaxTextureUnits; i++) {
-         _mesa_ClientActiveTextureARB( (GLenum) (GL_TEXTURE0_ARB + i) );
-         _mesa_DisableClientState( GL_TEXTURE_COORD_ARRAY );
+         gl_ClientActiveTexture( ctx, (GLenum) (GL_TEXTURE0_ARB + i) );
+         gl_DisableClientState( ctx, GL_TEXTURE_COORD_ARRAY );
       }
    }
    else {
       GLint i;
       for (i = 0; i < ctx->Const.MaxTextureUnits; i++) {
-         _mesa_ClientActiveTextureARB( (GLenum) (GL_TEXTURE0_ARB + i) );
-         _mesa_DisableClientState( GL_TEXTURE_COORD_ARRAY );
+         gl_ClientActiveTexture( ctx, (GLenum) (GL_TEXTURE0_ARB + i) );
+         gl_DisableClientState( ctx, GL_TEXTURE_COORD_ARRAY );
       }
    }
    /* Restore texture coordinate unit index */
-   _mesa_ClientActiveTextureARB( (GLenum) (GL_TEXTURE0_ARB + coordUnitSave) );
+   gl_ClientActiveTexture( ctx, (GLenum) (GL_TEXTURE0_ARB + coordUnitSave) );
 
 
    /* Color */
    if (cflag) {
-      _mesa_EnableClientState( GL_COLOR_ARRAY );
-      glColorPointer( ccomps, ctype, stride,
+      gl_EnableClientState( ctx, GL_COLOR_ARRAY );
+      glColorPointer(CTX_PRM ccomps, ctype, stride,
                        (GLubyte*) pointer + coffset );
    }
    else {
-      _mesa_DisableClientState( GL_COLOR_ARRAY );
+      gl_DisableClientState( ctx, GL_COLOR_ARRAY );
    }
 
 
    /* Normals */
    if (nflag) {
-      _mesa_EnableClientState( GL_NORMAL_ARRAY );
-      glNormalPointer( GL_FLOAT, stride,
+      gl_EnableClientState( ctx, GL_NORMAL_ARRAY );
+      glNormalPointer(CTX_PRM GL_FLOAT, stride,
                         (GLubyte*) pointer + noffset );
    }
    else {
-      _mesa_DisableClientState( GL_NORMAL_ARRAY );
+      gl_DisableClientState( ctx, GL_NORMAL_ARRAY );
    }
 
-   _mesa_EnableClientState( GL_VERTEX_ARRAY );
-   glVertexPointer( vcomps, GL_FLOAT, stride,
+   gl_EnableClientState( ctx, GL_VERTEX_ARRAY );
+   glVertexPointer(CTX_PRM vcomps, GL_FLOAT, stride,
                      (GLubyte *) pointer + voffset );
 }
 
 
 
-void
-_mesa_DrawRangeElements(GLenum mode, GLuint start,
-                        GLuint end, GLsizei count,
-                        GLenum type, const GLvoid *indices)
+void GLAPIENTRY glDrawRangeElements(CTX_ARG GLenum mode, GLuint start,
+                                     GLuint end, GLsizei count,
+                                     GLenum type, const GLvoid *indices )
 {
-   GET_CURRENT_CONTEXT(ctx);
+   GLcontext *ctx;
+   GET_CONTEXT;
+   CHECK_CONTEXT;
+   ctx = CC;
 
    if (end < start) {
       gl_error(ctx, GL_INVALID_VALUE, "glDrawRangeElements( end < start )");
@@ -1106,11 +1117,11 @@ _mesa_DrawRangeElements(GLenum mode, GLuint start,
    }
 
    if (!ctx->Array.LockCount && 2*count > (GLint) 3*(end-start)) {
-      glLockArraysEXT( start, end );
-      glDrawElements( mode, count, type, indices );
-      glUnlockArraysEXT();
+      glLockArraysEXT(CTX_PRM start, end );
+      glDrawElements(CTX_PRM mode, count, type, indices );
+      glUnlockArraysEXT(CTX_VPRM );
    } else {
-      glDrawElements( mode, count, type, indices );
+      glDrawElements(CTX_PRM mode, count, type, indices );
    }
 }
 
