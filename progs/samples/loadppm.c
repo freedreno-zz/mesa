@@ -1,6 +1,6 @@
 
 typedef struct {
-    int sizeX, sizeY;
+    size_t sizeX, sizeY;
     GLubyte *data;
 } PPMImage;
 
@@ -59,7 +59,8 @@ static PPMImage *LoadPPM(const char *filename)
 	exit(1);
     }
 
-    if (fread(result->data, 3 * result->sizeX, result->sizeY, fp) != result->sizeY)
+    if (fread(result->data, 3 * result->sizeX, result->sizeY, fp) != 
+	result->sizeY)
     {
 	fprintf(stderr, "Error loading image `%s'\n", filename);
 	exit(1);
