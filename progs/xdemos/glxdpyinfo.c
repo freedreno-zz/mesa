@@ -37,7 +37,9 @@ in this Software without prior written authorization from The Open Group.
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/Xproto.h> /* for CARD32 */
+#ifdef HAVE_MULTIBUF
 #include <X11/extensions/multibuf.h>
+#endif
 #ifdef HAVE_XIE
 #include <X11/extensions/XIElib.h>
 #endif /* HAVE_XIE */
@@ -45,7 +47,9 @@ in this Software without prior written authorization from The Open Group.
 #include <X11/extensions/XTest.h>
 #endif /* HAVE_XTEST */
 #include <X11/extensions/sync.h>
+#ifdef HAVE_DBE
 #include <X11/extensions/Xdbe.h>
+#endif
 #ifdef HAVE_XRECORD
 #include <X11/extensions/record.h>
 #endif /* HAVE_XRECORD */
@@ -675,6 +679,7 @@ print_standard_extension_info(dpy, extname, majorrev, minorrev)
     printf("\n");
 }
 
+#ifdef HAVE_MULTIBUF
 int
 print_multibuf_info(dpy, extname)
     Display *dpy;
@@ -717,6 +722,7 @@ print_multibuf_info(dpy, extname)
     }
     return 1;
 } /* end print_multibuf_info */
+#endif
 
 
 /* XIE stuff */
@@ -805,6 +811,7 @@ print_xtest_info(dpy, extname)
 }
 #endif /* HAVE_XTEST */
 
+#ifdef HAVE_SYNC
 int
 print_sync_info(dpy, extname)
     Display *dpy;
@@ -830,7 +837,10 @@ print_sync_info(dpy, extname)
     XSyncFreeSystemCounterList(syscounters);
     return 1;
 }
+#endif
 
+
+#ifdef HAVE_SHAPE
 int
 print_shape_info(dpy, extname)
     Display *dpy;
@@ -843,6 +853,7 @@ print_shape_info(dpy, extname)
     print_standard_extension_info(dpy, extname, majorrev, minorrev);
     return 1;
 }
+#endif
 
 #ifdef MITSHM
 int
@@ -870,6 +881,7 @@ print_mitshm_info(dpy, extname)
 }
 #endif /* MITSHM */
 
+#ifdef HAVE_DBE
 int
 print_dbe_info(dpy, extname)
     Display *dpy;
@@ -899,6 +911,7 @@ print_dbe_info(dpy, extname)
     XdbeFreeVisualInfo(svi);
     return 1;
 }
+#endif
 
 #ifdef HAVE_XRECORD
 int
@@ -935,16 +948,24 @@ ExtensionPrintInfo known_extensions[] =
 #ifdef MITSHM
     {"MIT-SHM",	print_mitshm_info, False},
 #endif /* MITSHM */
+#ifdef HAVE_MULTIBUF
     {MULTIBUFFER_PROTOCOL_NAME,	print_multibuf_info, False},
+#endif
+#ifdef HAVE_SHAPE
     {"SHAPE", print_shape_info, False},
+#endif
+#ifdef HAVE_SYNC
     {SYNC_NAME, print_sync_info, False},
+#endif
 #ifdef HAVE_XIE
     {xieExtName, print_xie_info, False},
 #endif /* HAVE_XIE */
 #ifdef HAVE_XTEST
     {XTestExtensionName, print_xtest_info, False},
 #endif /* HAVE_XTEST */
+#ifdef HAVE_DBE
     {"DOUBLE-BUFFER", print_dbe_info, False},
+#endif
 #ifdef HAVE_XRECORD
     {"RECORD", print_record_info, False}    
 #endif /* HAVE_XRECORD */
