@@ -1,4 +1,4 @@
-/* $Id: s_points.c,v 1.15 2001/03/12 00:48:42 gareth Exp $ */
+/* $Id: s_points.c,v 1.15.2.1 2002/09/13 17:34:27 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -46,7 +46,6 @@
 #define SPECULAR   0x8
 #define LARGE     0x10
 #define ATTENUATE 0x20
-#define SPRITE    0x40
 
 
 /*
@@ -145,19 +144,6 @@
 #include "s_pointtemp.h"
 
 
-/*
- * Sprite (textured point)
- */
-#define FLAGS (RGBA | TEXTURE | SPRITE)
-#define NAME sprite_point
-#include "s_pointtemp.h"
-
-
-#define FLAGS (RGBA | ATTENUATE | TEXTURE | SPRITE)
-#define NAME atten_sprite_point
-#include "s_pointtemp.h"
-
-
 
 void _swrast_add_spec_terms_point( GLcontext *ctx,
 				   const SWvertex *v0 )
@@ -202,14 +188,7 @@ _swrast_choose_point( GLcontext *ctx )
    GLboolean rgbMode = ctx->Visual.rgbMode;
 
    if (ctx->RenderMode==GL_RENDER) {
-      if (ctx->Point.SpriteMode) {
-         /* XXX this might not be good enough */
-         if (ctx->Point._Attenuated)
-            USE(atten_sprite_point);
-         else
-            USE(sprite_point);
-      }
-      else if (ctx->Point.SmoothFlag) {
+      if (ctx->Point.SmoothFlag) {
          /* Smooth points */
          if (rgbMode) {
             if (ctx->Point._Attenuated) {

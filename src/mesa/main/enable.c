@@ -1,4 +1,4 @@
-/* $Id: enable.c,v 1.50.2.4 2002/08/28 01:13:34 brianp Exp $ */
+/* $Id: enable.c,v 1.50.2.5 2002/09/13 17:34:07 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -793,7 +793,7 @@ void _mesa_set_enable( GLcontext *ctx, GLenum cap, GLboolean state )
       ctx->Multisample.SampleCoverageInvert = state;
       break;
 
-      /* GL_IBM_rasterpos_clip */
+   /* GL_IBM_rasterpos_clip */
    case GL_RASTER_POSITION_UNCLIPPED_IBM:
       if (!ctx->Extensions.IBM_rasterpos_clip) {
          _mesa_error(ctx, GL_INVALID_ENUM, state ? "glEnable" : "glDisable");
@@ -805,36 +805,24 @@ void _mesa_set_enable( GLcontext *ctx, GLenum cap, GLboolean state )
       ctx->Transform.RasterPositionUnclipped = state;
       break;
 
-      /* GL_MESA_sprite_point */
-   case GL_SPRITE_POINT_MESA:
-      if (!ctx->Extensions.MESA_sprite_point) {
-	 _mesa_error(ctx, GL_INVALID_ENUM, state ? "glEnable" : "glDisable");
-	 return;
-      }
-      if (ctx->Point.SpriteMode == state)
-	 return;
-      FLUSH_VERTICES(ctx, _NEW_POINT);
-      ctx->Point.SpriteMode = state;
-      break;
-
-      /* GL_NV_texture_rectangle */
-      case GL_TEXTURE_RECTANGLE_NV:
-         {
-            const GLuint curr = ctx->Texture.CurrentUnit;
-            struct gl_texture_unit *texUnit = &ctx->Texture.Unit[curr];
-            GLuint newenabled = texUnit->Enabled & ~TEXTURE0_RECT;
-            if (!ctx->Extensions.NV_texture_rectangle) {
-               _mesa_error(ctx, GL_INVALID_ENUM, state ? "glEnable" : "glDisable");
-               return;
-            }
-            if (state)
-               newenabled |= TEXTURE0_RECT;
-            if (!ctx->Visual.rgbMode || texUnit->Enabled == newenabled)
-               return;
-            FLUSH_VERTICES(ctx, _NEW_TEXTURE);
-            texUnit->Enabled = newenabled;
+   /* GL_NV_texture_rectangle */
+   case GL_TEXTURE_RECTANGLE_NV:
+      {
+         const GLuint curr = ctx->Texture.CurrentUnit;
+         struct gl_texture_unit *texUnit = &ctx->Texture.Unit[curr];
+         GLuint newenabled = texUnit->Enabled & ~TEXTURE0_RECT;
+         if (!ctx->Extensions.NV_texture_rectangle) {
+            _mesa_error(ctx, GL_INVALID_ENUM, state ? "glEnable" : "glDisable");
+            return;
          }
-         break;
+         if (state)
+            newenabled |= TEXTURE0_RECT;
+         if (!ctx->Visual.rgbMode || texUnit->Enabled == newenabled)
+            return;
+         FLUSH_VERTICES(ctx, _NEW_TEXTURE);
+         texUnit->Enabled = newenabled;
+      }
+      break;
 
       default:
          _mesa_error(ctx, GL_INVALID_ENUM, state ? "glEnable" : "glDisable");
@@ -1135,10 +1123,6 @@ _mesa_IsEnabled( GLenum cap )
             _mesa_error(ctx, GL_INVALID_ENUM, "glIsEnabled");
             return GL_FALSE;
          }
-
-      /* GL_MESA_sprite_point */
-      case GL_SPRITE_POINT_MESA:
-         return ctx->Point.SpriteMode;
 
       /* GL_NV_texture_rectangle */
       case GL_TEXTURE_RECTANGLE_NV:

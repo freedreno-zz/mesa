@@ -1,4 +1,4 @@
-/* $Id: mtypes.h,v 1.51.2.7 2002/08/28 01:13:35 brianp Exp $ */
+/* $Id: mtypes.h,v 1.51.2.8 2002/09/13 17:34:21 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -614,7 +614,6 @@ struct gl_pixel_attrib {
 
 struct gl_point_attrib {
    GLboolean SmoothFlag;	/* True if GL_POINT_SMOOTH is enabled */
-   GLboolean SpriteMode;	/* GL_MESA_sprite_point extension */
    GLfloat Size;		/* User-specified point size */
    GLfloat _Size;		/* Size clamped to Const.Min/MaxPointSize */
    GLfloat Params[3];		/* GL_EXT_point_parameters */
@@ -1247,7 +1246,6 @@ struct gl_extensions {
    GLboolean INGR_blend_func_separate;
    GLboolean MESA_window_pos;
    GLboolean MESA_resize_buffers;
-   GLboolean MESA_sprite_point;
    GLboolean NV_blend_square;
    GLboolean NV_texgen_reflection;
    GLboolean NV_texture_rectangle;

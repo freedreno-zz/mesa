@@ -1,4 +1,4 @@
-/* $Id: get.c,v 1.69.2.9 2002/09/06 13:01:00 brianp Exp $ */
+/* $Id: get.c,v 1.69.2.10 2002/09/13 17:34:17 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -1392,17 +1392,6 @@ _mesa_GetBooleanv( GLenum pname, GLboolean *params )
          }
          break;
 
-      /* GL_MESA_sprite_point */
-      case GL_SPRITE_POINT_MESA:
-         if (ctx->Extensions.MESA_sprite_point) {
-            *params = ctx->Point.SpriteMode;
-         }
-         else {
-            _mesa_error( ctx, GL_INVALID_ENUM, "glGetBooleanv" );
-            return;
-         }
-         break;
-
       /* GL_SGIS_generate_mipmap */
       case GL_GENERATE_MIPMAP_HINT_SGIS:
          if (ctx->Extensions.SGIS_generate_mipmap) {
@@ -2704,17 +2693,6 @@ _mesa_GetDoublev( GLenum pname, GLdouble *params )
          }
          break;
 
-      /* GL_MESA_sprite_point */
-      case GL_SPRITE_POINT_MESA:
-         if (ctx->Extensions.MESA_sprite_point) {
-            *params = (GLdouble) ctx->Point.SpriteMode;
-         }
-         else {
-            _mesa_error( ctx, GL_INVALID_ENUM, "glGetDoublev" );
-            return;
-         }
-         break;
-
       /* GL_SGIS_generate_mipmap */
       case GL_GENERATE_MIPMAP_HINT_SGIS:
          if (ctx->Extensions.SGIS_generate_mipmap) {
@@ -3990,17 +3968,6 @@ _mesa_GetFloatv( GLenum pname, GLfloat *params )
       case GL_RASTER_POSITION_UNCLIPPED_IBM:
          if (ctx->Extensions.IBM_rasterpos_clip) {
             *params = (GLfloat) ctx->Transform.RasterPositionUnclipped;
-         }
-         else {
-            GET_FLOAT_ERROR;
-            return;
-         }
-         break;
-
-      /* GL_MESA_sprite_point */
-      case GL_SPRITE_POINT_MESA:
-         if (ctx->Extensions.MESA_sprite_point) {
-            *params = (GLfloat) ctx->Point.SpriteMode;
          }
          else {
             GET_FLOAT_ERROR;
@@ -5328,17 +5295,6 @@ _mesa_GetIntegerv( GLenum pname, GLint *params )
          }
          else {
             _mesa_error(ctx, GL_INVALID_ENUM, "glGetIntegerv");
-            return;
-         }
-         break;
-
-      /* GL_MESA_sprite_point */
-      case GL_SPRITE_POINT_MESA:
-         if (ctx->Extensions.MESA_sprite_point) {
-            *params = (GLint) ctx->Point.SpriteMode;
-         }
-         else {
-            _mesa_error( ctx, GL_INVALID_ENUM, "glGetIntegerv" );
             return;
          }
          break;
