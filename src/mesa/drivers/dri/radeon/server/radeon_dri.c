@@ -477,7 +477,6 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
    }
 
    if ((err = drmSetBusid(dpy->drmFD, dpy->pciBusID)) < 0) {
-      drmClose(dpy->drmFD);
       fprintf(stderr, "[drm] drmSetBusid failed (%d, %s), %s\n",
 	      dpy->drmFD, dpy->pciBusID, strerror(-err));
       return 0;
@@ -493,7 +492,6 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
 		  DRM_CONTAINS_LOCK,
 		  &dpy->hSAREA) < 0)
    {
-      drmClose(dpy->drmFD);
       fprintf(stderr, "[drm] drmAddMap failed\n");
       return 0;
    }
@@ -505,7 +503,6 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
 	       dpy->SAREASize,
 	       (drmAddressPtr)(&dpy->pSAREA)) < 0)
    {
-      drmClose(dpy->drmFD);
       fprintf(stderr, "[drm] drmMap failed\n");
       return 0;
    }
@@ -515,34 +512,33 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
    
    /* Need to AddMap the framebuffer and mmio regions here:
     */
-    if (drmAddMap( dpy->drmFD,
-		   (drmHandle)dpy->FixedInfo.smem_start,
-		   dpy->FixedInfo.smem_len,
-		   DRM_FRAME_BUFFER,
-		   0,
-		   &dpy->hFrameBuffer) < 0)
-    {
-	drmClose(dpy->drmFD);
-        fprintf(stderr, "[drm] drmAddMap framebuffer failed\n");
-	return 0;
-    }
-    fprintf(stderr, "[drm] framebuffer handle = 0x%08lx\n",
-	      dpy->hFrameBuffer);
+   if (drmAddMap( dpy->drmFD,
+		  (drmHandle)dpy->FixedInfo.smem_start,
+		  dpy->FixedInfo.smem_len,
+		  DRM_FRAME_BUFFER,
+		  0,
+		  &dpy->hFrameBuffer) < 0)
+   {
+      fprintf(stderr, "[drm] drmAddMap framebuffer failed\n");
+      return 0;
+   }
+   fprintf(stderr, "[drm] framebuffer handle = 0x%08lx\n",
+	   dpy->hFrameBuffer);
 
 
 
-    info->registerSize = dpy->FixedInfo.mmio_len;
-    if (drmAddMap(dpy->drmFD, 
-		  dpy->FixedInfo.mmio_start,
-		  dpy->FixedInfo.mmio_len,
-		  DRM_REGISTERS, 
-		  DRM_READ_ONLY, 
-		  &info->registerHandle) < 0) {
-       fprintf(stderr, "[drm] drmAddMap mmio failed\n");	
-       return 0;
-    }
-    fprintf(stderr,
-	       "[drm] register handle = 0x%08lx\n", info->registerHandle);
+   info->registerSize = dpy->FixedInfo.mmio_len;
+   if (drmAddMap(dpy->drmFD, 
+		 dpy->FixedInfo.mmio_start,
+		 dpy->FixedInfo.mmio_len,
+		 DRM_REGISTERS, 
+		 DRM_READ_ONLY, 
+		 &info->registerHandle) < 0) {
+      fprintf(stderr, "[drm] drmAddMap mmio failed\n");	
+      return 0;
+   }
+   fprintf(stderr,
+	   "[drm] register handle = 0x%08lx\n", info->registerHandle);
 
    /* Check the radeon DRM version */
    version = drmGetVersion(dpy->drmFD);
@@ -920,9 +916,13 @@ static int __driInitFBDev( struct MiniGLXDisplayRec *dpy )
  */
 static void __driHaltFBDev( struct MiniGLXDisplayRec *dpy )
 {
+    drmUnmap( dpy->pSAREA, dpy->SAREASize );
     drmClose(dpy->drmFD);
-    free(dpy->driverInfo);
-    dpy->driverInfo = 0;
+
+    if (dpy->driverInfo) {
+       free(dpy->driverInfo);
+       dpy->driverInfo = 0;
+    }
 }
 
 

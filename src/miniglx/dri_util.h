@@ -394,4 +394,7 @@ extern void
 __driRegisterExtensions( void );
 
 
+extern void
+__driUtilInitScreen( Display *dpy, int scrn, __DRIscreen *psc );
+
 #endif /* _DRI_UTIL_H_ */

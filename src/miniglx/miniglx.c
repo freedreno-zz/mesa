@@ -22,7 +22,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: miniglx.c,v 1.1.4.31 2003/01/13 15:31:43 keithw Exp $ */
+/* $Id: miniglx.c,v 1.1.4.32 2003/01/14 16:52:47 keithw Exp $ */
 
 
 /**
@@ -115,6 +115,8 @@
 #define FREE(P)   free(P)
 #define STRCMP(A, B)  strcmp(A, B)
 
+extern void
+__driUtilInitScreen( Display *dpy, int scrn, __DRIscreen *psc );
 
 
 /**
@@ -686,6 +688,11 @@ XOpenDisplay( const char *display_name )
     */
    dpy->driver->initScreenConfigs( &dpy->numConfigs, &dpy->configs );
 
+
+   /* Setup some callbacks in the screen private.
+    */
+   __driUtilInitScreen( dpy, 0, &(dpy->driScreen) );
+
    return dpy;
 }
 
@@ -707,9 +714,13 @@ XOpenDisplay( const char *display_name )
 void
 XCloseDisplay( Display *display )
 {
-   if (display->NumWindows) {
+   GLXContext *ctx;
+
+   glXMakeCurrent( display, NULL, NULL);
+
+   if (display->NumWindows) 
       XDestroyWindow( display, display->TheWindow );
-   }
+
    dlclose(display->dlHandle);
    CloseFBDev(display);
    FREE(display);
@@ -1060,7 +1071,7 @@ XGetVisualInfo( Display *dpy, long vinfo_mask, XVisualInfo *vinfo_template, int 
       visResults[i].glxConfig = dpy->configs + i;
       visResults[i].visInfo = results + i;
       visResults[i].dpy = dpy;
-      visResults[i].pixelFormat = 0;
+      visResults[i].pixelFormat = PF_B8G8R8A8; /* XXX: FIX ME */
       results[i].visual = visResults + i;
       results[i].visualid = dpy->configs[i].vid;
       results[i].class = TrueColor;
@@ -1378,7 +1389,6 @@ glXCreateContext( Display *dpy, XVisualInfo *vis,
       return NULL;
    }
 
-
    return ctx;
 }
 
@@ -1399,10 +1409,11 @@ glXDestroyContext( Display *dpy, GLXContext ctx )
 {
    GLXContext glxctx = glXGetCurrentContext();
 
-   if (glxctx) {
+   if (ctx) {
       if (glxctx == ctx) {
          /* destroying current context */
          (*ctx->driContext.bindContext)(dpy, 0, 0, 0);
+	 CurrentContext = 0;
       }
       (*ctx->driContext.destroyContext)(dpy, 0, ctx->driContext.private);
       FREE(ctx);
@@ -1457,6 +1468,9 @@ glXMakeCurrent( Display *dpy, GLXDrawable drawable, GLXContext ctx)
    else if (ctx && dpy) {
       /* unbind */
       (*ctx->driContext.bindContext)(dpy, 0, 0, 0);
+   }
+   else if (dpy) {
+      CurrentContext = 0;	/* kw:  this seems to be intended??? */
    }
 
    return True;

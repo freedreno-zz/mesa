@@ -472,11 +472,6 @@ __driUtilCreateScreen(Display *dpy, int scrn, __DRIscreen *psc,
       }
    }
 
-   psc->destroyScreen  = driDestroyScreen;
-   psc->createContext  = driCreateContext;
-   psc->createDrawable = driCreateDrawable;
-   psc->getDrawable    = driGetDrawable;
-
    return psp;
 }
 
@@ -529,12 +524,22 @@ __driUtilCreateScreenNoDRM(Display *dpy, int scrn, __DRIscreen *psc,
 	}
     }
 
+    return psp;
+}
+
+
+/* These can be put in place and safely used prior to
+ * __driUtilCreateScreen being called.  This allows glXCreateContext
+ * to be called prior to XCreateWindow, but still allows XCreateWindow
+ * to deterimine the virtual resolution (a screen parameter as far as
+ * the driver is concerned).
+ */
+void
+__driUtilInitScreen( Display *dpy, int scrn, __DRIscreen *psc )
+{
     psc->destroyScreen  = driDestroyScreen;
     psc->createContext  = driCreateContext;
     psc->createDrawable = driCreateDrawable;
     psc->getDrawable    = driGetDrawable;
-
-    return psp;
 }
-
 

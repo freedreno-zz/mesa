@@ -96,7 +96,7 @@ drmMsg(const char *format, ...)
     va_list	ap;
 
     const char *env;
-/*     if ((env = getenv("LIBGL_DEBUG")) && strstr(env, "verbose")) */
+    if ((env = getenv("LIBGL_DEBUG")) && strstr(env, "verbose")) 
     {
 	va_start(ap, format);
 	vfprintf(stderr, format, ap);
@@ -182,6 +182,7 @@ static int drmOpenDevice(long dev, int minor)
     fd = open(buf, O_RDWR, 0);
     drmMsg("drmOpenDevice: open result is %d, (%s)\n",
 		fd, fd < 0 ? strerror(errno) : "OK");
+    if (fd >= 0) return fd;
 
     drmMsg("drmOpenDevice: Open failed\n");
     remove(buf);
@@ -210,6 +211,8 @@ static int drmOpenMinor(int minor, int create)
     
     sprintf(buf, DRM_DEV_NAME, DRM_DIR_NAME, minor);
     if ((fd = open(buf, O_RDWR, 0)) >= 0) return fd;
+    drmMsg("drmOpenMinor: open result is %d, (%s)\n",
+		fd, fd < 0 ? strerror(errno) : "OK");
     return -errno;
 }
 
@@ -241,6 +244,7 @@ int drmAvailable(void)
 	drmFreeVersion(version);
     }
     close(fd);
+    drmMsg("close %d\n", fd);
 
     return retval;
 }
@@ -278,6 +282,7 @@ static int drmOpenByBusid(const char *busid)
 	    }
 	    if (buf) drmFreeBusid(buf);
 	    close(fd);
+	    drmMsg("close %d\n", fd);
 	}
     }
     return -1;
@@ -295,9 +300,6 @@ static int drmOpenByBusid(const char *busid)
  * Opens the first minor number that matches the driver name and isn't already
  * in use.  If it's in use it then it will already have a bus ID assigned.
  * 
- * For Linux backward-compatibility /proc support also reads
- * /proc/dri/.../name.
- *
  * \sa drmOpenMinor(), drmGetVersion() and drmGetBusid().
  */
 static int drmOpenByName(const char *name)
@@ -340,40 +342,9 @@ static int drmOpenByName(const char *name)
 		}
 	    }
 	    close(fd);
+	    drmMsg("close %d\n", fd);
 	}
     }
-
-#ifdef __linux__
-				/* Backward-compatibility /proc support */
-    for (i = 0; i < 8; i++) {
-	char proc_name[64], buf[512];
-	char *driver, *pt, *devstring;
-	int  retcode;
-	
-	sprintf(proc_name, "/proc/dri/%d/name", i);
-	if ((fd = open(proc_name, 0, 0)) >= 0) {
-	    retcode = read(fd, buf, sizeof(buf)-1);
-	    close(fd);
-	    if (retcode) {
-		buf[retcode-1] = '\0';
-		for (driver = pt = buf; *pt && *pt != ' '; ++pt)
-		    ;
-		if (*pt) {	/* Device is next */
-		    *pt = '\0';
-		    if (!strcmp(driver, name)) { /* Match */
-			for (devstring = ++pt; *pt && *pt != ' '; ++pt)
-			    ;
-			if (*pt) { /* Found busid */
-			    return drmOpenByBusid(++pt);
-			} else {	/* No busid */
-			    return drmOpenDevice(strtol(devstring, NULL, 0),i);
-			}
-		    }
-		}
-	    }
-	}
-    }
-#endif
 
     return -1;
 }
@@ -763,6 +734,7 @@ int drmFreeBufs(int fd, int count, int *list)
  */
 int drmClose(int fd)
 {
+    drmMsg("close %d\n", fd);
     return close(fd);
 }
 

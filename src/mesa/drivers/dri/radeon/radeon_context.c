@@ -617,19 +617,6 @@ radeonDestroyContext( __DRIcontextPrivate *driContextPriv )
 }
 
 
-/* Initialize the driver specific screen private data.
- */
-static GLboolean
-radeonInitDriver( __DRIscreenPrivate *sPriv )
-{
-   sPriv->private = (void *) radeonCreateScreen( sPriv );
-   if ( !sPriv->private ) {
-      radeonDestroyScreen( sPriv );
-      return GL_FALSE;
-   }
-
-   return GL_TRUE;
-}
 
 
 /* Create and initialize the Mesa and driver specific pixmap buffer
@@ -773,6 +760,23 @@ void
 __driRegisterExtensions( void )
 {
    /* See r200 driver for info */
+}
+
+
+
+/* Initialize the driver specific screen private data.  (Called as
+ * callback from __driUtilCreateScreen below).
+ */
+static GLboolean
+radeonInitDriver( __DRIscreenPrivate *sPriv )
+{
+   sPriv->private = (void *) radeonCreateScreen( sPriv );
+   if ( !sPriv->private ) {
+      radeonDestroyScreen( sPriv );
+      return GL_FALSE;
+   }
+
+   return GL_TRUE;
 }
 
 
