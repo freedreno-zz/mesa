@@ -1,4 +1,4 @@
-/* $Id: config.h,v 1.42.4.1 2003/03/05 14:04:19 keithw Exp $ */
+/* $Id: config.h,v 1.42.4.2 2003/03/05 14:27:33 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -203,8 +203,10 @@
  */
 #if _HAVE_FULL_GL
 #define FEATURE_NV_vertex_program 1
+#define FEATURE_userclip 1
 #else
 #define FEATURE_NV_vertex_program 0
+#define FEATURE_userclip 0
 #endif
 
 
