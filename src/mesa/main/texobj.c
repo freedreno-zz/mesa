@@ -1,4 +1,4 @@
-/* $Id: texobj.c,v 1.23.4.6 2000/10/24 02:52:36 brianp Exp $ */
+/* $Id: texobj.c,v 1.23.4.7 2000/11/11 20:23:23 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -70,6 +70,7 @@ gl_alloc_texture_object( struct gl_shared_state *shared, GLuint name,
       obj->Priority = 1.0F;
       obj->WrapS = GL_REPEAT;
       obj->WrapT = GL_REPEAT;
+      obj->WrapR = GL_REPEAT;
       obj->MinFilter = GL_NEAREST_MIPMAP_LINEAR;
       obj->MagFilter = GL_LINEAR;
       obj->MinLod = -1000.0;
