@@ -375,7 +375,7 @@ static void TAG(VertexAttrib2fNV)( GLuint index, GLfloat x, GLfloat y )
 static void TAG(VertexAttrib2fvNV)( GLuint index, const GLfloat *v )
 {
    PRE_LOOPBACK( VertexAttrib2fvNV );
-   _glapi_Dispatch->VertexAttrib4fvNV( index, v );
+   _glapi_Dispatch->VertexAttrib2fvNV( index, v );
 }
 
 static void TAG(VertexAttrib3fNV)( GLuint index, GLfloat x, GLfloat y, GLfloat z )
