@@ -22,7 +22,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: miniglx.c,v 1.1.4.27 2002/12/30 15:20:37 keithw Exp $ */
+/* $Id: miniglx.c,v 1.1.4.28 2003/01/09 15:16:35 keithw Exp $ */
 
 
 /**
@@ -262,10 +262,23 @@ OpenFBDev( Display *dpy )
 static GLboolean
 SetupFBDev( Display *dpy, Window win )
 {
-   const int width = win->w;
-   const int height = win->h;
+   int width = win->w;
+   int height = win->h;
 
    assert(dpy);
+
+   /* Bump size up to next supported mode.
+    */
+   if (width <= 800 && height <= 600) {
+      width = 800; height = 600;
+   } 
+   else if (width <= 1024 && height <= 768) {
+      width = 1024; height = 768;
+   }
+   else if (width <= 1280 && height <= 1024) {
+      width = 1280; height = 1024;
+   }
+
 
    /* set the depth, resolution, etc */
    dpy->VarInfo = dpy->OrigVarInfo;
@@ -851,7 +864,6 @@ XCreateWindow( Display *display, Window parent, int x, int y,
     *
     * Need to shut down drm and free dri data in XDestroyWindow, too.
     */
-#if 1
    display->driScreen.private = (*display->createScreen)(display, 0, 
                                                          &(display->driScreen),
                                                          display->numConfigs,
@@ -874,18 +886,11 @@ XCreateWindow( Display *display, Window parent, int x, int y,
       return NULL;
    }
 
-#endif
 
    display->NumWindows++;
    display->TheWindow = win;
 
-   if (0) {
-      fprintf(stderr, "Now, destroy it!\n");
-      XDestroyWindow( display, win );
-      return NULL;
-   } 
-   else
-      return win; 
+   return win; 
 }
 
 
@@ -1206,11 +1211,11 @@ glXChooseVisual( Display *dpy, int screen, int *attribList )
          stencilBits = attrib[1];
          attrib++;
          break;
-#if 0
       case GLX_DEPTH_SIZE:
          depthBits = attrib[1];
          attrib++;
          break;
+#if 0
       case GLX_ACCUM_RED_SIZE:
          accumRedBits = attrib[1];
          attrib++;
@@ -1255,7 +1260,7 @@ glXChooseVisual( Display *dpy, int screen, int *attribList )
           config->greenSize >= greenBits &&
           config->blueSize >= blueBits &&
           config->alphaSize >= alphaBits &&
-          /*config->depthSize >= depthBits &&*/
+          config->depthSize >= depthBits &&
           config->stencilSize >= stencilBits) {
          /* found it */
          visInfo->visualid = config->vid;
