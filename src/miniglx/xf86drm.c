@@ -86,7 +86,7 @@ drmMsg(const char *format, ...)
     va_list	ap;
 
     const char *env;
-    if ((env = getenv("LIBGL_DEBUG")) && strstr(env, "verbose"))
+/*     if ((env = getenv("LIBGL_DEBUG")) && strstr(env, "verbose")) */
     {
 	va_start(ap, format);
 	vfprintf(stderr, format, ap);

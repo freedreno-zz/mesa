@@ -439,10 +439,8 @@ __driUtilCreateScreen(Display *dpy, int scrn, __DRIscreen *psc,
    psp->display = dpy;
    psp->myNum = scrn;
 
-   /* XXX */
-
-   hSAREA = 0xe090c000;
-   BusID = "PCI:1:0:0";
+   hSAREA = dpy->hSAREA;
+   BusID = dpy->pciBusID;
    
    printf("hSAREA = 0x%x  BusID = %s\n", (int) hSAREA, BusID);
 

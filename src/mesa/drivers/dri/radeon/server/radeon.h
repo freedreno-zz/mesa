@@ -89,8 +89,6 @@ typedef struct {
    unsigned char     *FB;              /* Map of frame buffer               */
 
 
-   int               drmFD;
-
    drmHandle         fbHandle;
 
    drmSize           registerSize;

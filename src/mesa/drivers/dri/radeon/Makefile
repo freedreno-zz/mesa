@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.1.2.4 2002/12/19 10:16:18 keithw Exp $
+# $Id: Makefile,v 1.1.2.5 2002/12/19 12:26:15 keithw Exp $
 
 # Mesa 3-D graphics library
 # Version:  5.0
@@ -8,7 +8,6 @@
 
 MESA = ../../..
 MESABUILDDIR = $(MESA)/src
-INSTALLDIR = /home/XF4/xc-trunk
 
 INCLUDES = -I$(MESABUILDDIR) -I$(MESA)/include -I. -I../common \
 	   -I$(MESABUILDDIR)/miniglx -Iserver
@@ -69,10 +68,9 @@ OBJECTS = $(C_SOURCES:.c=.o) \
 default: radeon_dri.so
 
 radeon_dri.so:  $(COREMESA) $(OBJECTS) Makefile
-	rm -f $@ && gcc -o $@ -shared $(OBJECTS) $(COREMESA) -L$(MESA)/src/miniglx -lGL -lc -lm
-
-install: radeon_dri.so
-	install -C radeon_dri.so $(INSTALLDIR)/lib/modules/dri
+	rm -f $@ && gcc -o $@ -shared $(OBJECTS) $(COREMESA) -L$(MESA)/src/miniglx -lGL -lc -lm && \
+	rm -f $(MESA)/lib/fb_dri.so && \
+	install -C radeon_dri.so $(MESA)/lib/radeon_dri.so
 
 clean:
 	-rm -f *.o *~ *.d .\#* *.so

@@ -1,9 +1,11 @@
 #include <stdio.h>
+#include <errno.h>
 
 #include "miniglxP.h"
 
 #include "radeon.h"
 #include "radeon_dri.h"
+#include "radeon_macros.h"
 #include "radeon_reg.h"
 #include "radeon_sarea.h"
 #include "sarea.h"
@@ -43,7 +45,7 @@ static int RADEONMinBits(int val)
 /* Initialize the AGP state.  Request memory for use in AGP space, and
  * initialize the Radeon registers to point to that memory.
  */
-static int RADEONDRIAgpInit(RADEONInfoPtr info)
+static int RADEONDRIAgpInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info)
 {
    unsigned char *RADEONMMIO = info->MMIO;
    unsigned long  mode;
@@ -51,7 +53,7 @@ static int RADEONDRIAgpInit(RADEONInfoPtr info)
    int            ret;
    int            s, l;
 
-   if (drmAgpAcquire(info->drmFD) < 0) {
+   if (drmAgpAcquire(dpy->drmFD) < 0) {
       fprintf(stderr, "[agp] AGP not available\n");
       return 0;
    }
@@ -63,9 +65,9 @@ static int RADEONDRIAgpInit(RADEONInfoPtr info)
    /* Modify the mode if the default mode is not appropriate for this
     * particular combination of graphics card and AGP chipset.
     */
-   mode   = drmAgpGetMode(info->drmFD);	/* Default mode */
-   vendor = drmAgpVendorId(info->drmFD);
-   device = drmAgpDeviceId(info->drmFD);
+   mode   = drmAgpGetMode(dpy->drmFD);	/* Default mode */
+   vendor = drmAgpVendorId(dpy->drmFD);
+   device = drmAgpDeviceId(dpy->drmFD);
 
    /* Disable fast write entirely - too many lockups.
     */
@@ -76,29 +78,29 @@ static int RADEONDRIAgpInit(RADEONInfoPtr info)
    case 1: default: mode |= RADEON_AGP_1X_MODE;
    }
 
-   if (drmAgpEnable(info->drmFD, mode) < 0) {
+   if (drmAgpEnable(dpy->drmFD, mode) < 0) {
       fprintf(stderr, "[agp] AGP not enabled\n");
-      drmAgpRelease(info->drmFD);
+      drmAgpRelease(dpy->drmFD);
       return 0;
    }
     
    info->agpOffset = 0;
 
-   if ((ret = drmAgpAlloc(info->drmFD, info->agpSize*1024*1024, 0, NULL,
+   if ((ret = drmAgpAlloc(dpy->drmFD, info->agpSize*1024*1024, 0, NULL,
 			  &info->agpMemHandle)) < 0) {
       fprintf(stderr, "[agp] Out of memory (%d)\n", ret);
-      drmAgpRelease(info->drmFD);
+      drmAgpRelease(dpy->drmFD);
       return 0;
    }
    fprintf(stderr,
 	   "[agp] %d kB allocated with handle 0x%08x\n",
 	   info->agpSize*1024, info->agpMemHandle);
     
-   if (drmAgpBind(info->drmFD,
+   if (drmAgpBind(dpy->drmFD,
 		  info->agpMemHandle, info->agpOffset) < 0) {
       fprintf(stderr, "[agp] Could not bind\n");
-      drmAgpFree(info->drmFD, info->agpMemHandle);
-      drmAgpRelease(info->drmFD);
+      drmAgpFree(dpy->drmFD, info->agpMemHandle);
+      drmAgpRelease(dpy->drmFD);
       return 0;
    }
 
@@ -122,14 +124,14 @@ static int RADEONDRIAgpInit(RADEONInfoPtr info)
    info->agpTexMapSize   = (s >> l) << l;
    info->log2AGPTexGran  = l;
 
-   if (drmAddMap(info->drmFD, info->ringStart, info->ringMapSize,
+   if (drmAddMap(dpy->drmFD, info->ringStart, info->ringMapSize,
 		 DRM_AGP, DRM_READ_ONLY, &info->ringHandle) < 0) {
       fprintf(stderr, "[agp] Could not add ring mapping\n");
       return 0;
    }
    fprintf(stderr, "[agp] ring handle = 0x%08lx\n", info->ringHandle);
     
-   if (drmMap(info->drmFD, info->ringHandle, info->ringMapSize,
+   if (drmMap(dpy->drmFD, info->ringHandle, info->ringMapSize,
 	      (drmAddressPtr)&info->ring) < 0) {
       fprintf(stderr, "[agp] Could not map ring\n");
       return 0;
@@ -139,7 +141,7 @@ static int RADEONDRIAgpInit(RADEONInfoPtr info)
 	   "[agp] Ring mapped at 0x%08lx\n",
 	   (unsigned long)info->ring);
     
-   if (drmAddMap(info->drmFD, info->ringReadOffset, info->ringReadMapSize,
+   if (drmAddMap(dpy->drmFD, info->ringReadOffset, info->ringReadMapSize,
 		 DRM_AGP, DRM_READ_ONLY, &info->ringReadPtrHandle) < 0) {
       fprintf(stderr,
 	      "[agp] Could not add ring read ptr mapping\n");
@@ -150,7 +152,7 @@ static int RADEONDRIAgpInit(RADEONInfoPtr info)
 	   "[agp] ring read ptr handle = 0x%08lx\n",
 	   info->ringReadPtrHandle);
     
-   if (drmMap(info->drmFD, info->ringReadPtrHandle, info->ringReadMapSize,
+   if (drmMap(dpy->drmFD, info->ringReadPtrHandle, info->ringReadMapSize,
 	      (drmAddressPtr)&info->ringReadPtr) < 0) {
       fprintf(stderr,
 	      "[agp] Could not map ring read ptr\n");
@@ -160,7 +162,7 @@ static int RADEONDRIAgpInit(RADEONInfoPtr info)
 	   "[agp] Ring read ptr mapped at 0x%08lx\n",
 	   (unsigned long)info->ringReadPtr);
     
-   if (drmAddMap(info->drmFD, info->bufStart, info->bufMapSize,
+   if (drmAddMap(dpy->drmFD, info->bufStart, info->bufMapSize,
 		 DRM_AGP, 0, &info->bufHandle) < 0) {
       fprintf(stderr,
 	      "[agp] Could not add vertex/indirect buffers mapping\n");
@@ -170,7 +172,7 @@ static int RADEONDRIAgpInit(RADEONInfoPtr info)
 	   "[agp] vertex/indirect buffers handle = 0x%08lx\n",
 	   info->bufHandle);
     
-   if (drmMap(info->drmFD, info->bufHandle, info->bufMapSize,
+   if (drmMap(dpy->drmFD, info->bufHandle, info->bufMapSize,
 	      (drmAddressPtr)&info->buf) < 0) {
       fprintf(stderr,
 	      "[agp] Could not map vertex/indirect buffers\n");
@@ -180,7 +182,7 @@ static int RADEONDRIAgpInit(RADEONInfoPtr info)
 	   "[agp] Vertex/indirect buffers mapped at 0x%08lx\n",
 	   (unsigned long)info->buf);
     
-   if (drmAddMap(info->drmFD, info->agpTexStart, info->agpTexMapSize,
+   if (drmAddMap(dpy->drmFD, info->agpTexStart, info->agpTexMapSize,
 		 DRM_AGP, 0, &info->agpTexHandle) < 0) {
       fprintf(stderr,
 	      "[agp] Could not add AGP texture map mapping\n");
@@ -190,7 +192,7 @@ static int RADEONDRIAgpInit(RADEONInfoPtr info)
 	   "[agp] AGP texture map handle = 0x%08lx\n",
 	   info->agpTexHandle);
     
-   if (drmMap(info->drmFD, info->agpTexHandle, info->agpTexMapSize,
+   if (drmMap(dpy->drmFD, info->agpTexHandle, info->agpTexMapSize,
 	      (drmAddressPtr)&info->agpTex) < 0) {
       fprintf(stderr,
 	      "[agp] Could not map AGP texture map\n");
@@ -215,6 +217,7 @@ static int RADEONDRIKernelInit(struct MiniGLXDisplayRec *dpy,
 {
    int cpp = dpy->bpp / 8;
    drmRadeonInit  drmInfo;
+   int ret;
 
    memset(&drmInfo, 0, sizeof(drmRadeonInit));
 
@@ -247,11 +250,10 @@ static int RADEONDRIKernelInit(struct MiniGLXDisplayRec *dpy,
    drmInfo.buffers_offset      = info->bufHandle;
    drmInfo.agp_textures_offset = info->agpTexHandle;
 
-   if (drmCommandWrite(info->drmFD, DRM_RADEON_CP_INIT,
-		       &drmInfo, sizeof(drmRadeonInit)) < 0)
-      return 0;
+   ret = drmCommandWrite(dpy->drmFD, DRM_RADEON_CP_INIT, &drmInfo, 
+			 sizeof(drmRadeonInit));
 
-   return 1;
+   return ret < 0;
 }
 
 static void RADEONDRIAgpHeapInit(struct MiniGLXDisplayRec *dpy,
@@ -265,7 +267,7 @@ static void RADEONDRIAgpHeapInit(struct MiniGLXDisplayRec *dpy,
       drmHeap.start  = 0;
       drmHeap.size   = info->agpTexMapSize;
     
-      if (drmCommandWrite(info->drmFD, DRM_RADEON_INIT_HEAP,
+      if (drmCommandWrite(dpy->drmFD, DRM_RADEON_INIT_HEAP,
 			  &drmHeap, sizeof(drmHeap))) {
 	 fprintf(stderr,
 		 "[drm] Failed to initialized agp heap manager\n");
@@ -284,10 +286,10 @@ static void RADEONDRIAgpHeapInit(struct MiniGLXDisplayRec *dpy,
 /* Add a map for the vertex buffers that will be accessed by any
  * DRI-based clients.
  */
-static int RADEONDRIBufInit(RADEONInfoPtr info )
+static int RADEONDRIBufInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
 {
    /* Initialize vertex buffers */
-   info->bufNumBufs = drmAddBufs(info->drmFD,
+   info->bufNumBufs = drmAddBufs(dpy->drmFD,
 				 info->bufMapSize / RADEON_BUFFER_SIZE,
 				 RADEON_BUFFER_SIZE,
 				 DRM_AGP_BUFFER,
@@ -302,7 +304,7 @@ static int RADEONDRIBufInit(RADEONInfoPtr info )
 	   "[drm] Added %d %d byte vertex/indirect buffers\n",
 	   info->bufNumBufs, RADEON_BUFFER_SIZE);
    
-   if (!(info->buffers = drmMapBufs(info->drmFD))) {
+   if (!(info->buffers = drmMapBufs(dpy->drmFD))) {
       fprintf(stderr,
 	      "[drm] Failed to map vertex/indirect buffers list\n");
       return 0;
@@ -320,12 +322,12 @@ static void RADEONDRIIrqInit(struct MiniGLXDisplayRec *dpy,
 {
    if (!info->irq) {
       info->irq = drmGetInterruptFromBusID(
-	 info->drmFD,
+	 dpy->drmFD,
 	 dpy->pciBus,
 	 dpy->pciDevice,
 	 dpy->pciFunc);
 
-      if ((drmCtlInstHandler(info->drmFD, info->irq)) != 0) {
+      if ((drmCtlInstHandler(dpy->drmFD, info->irq)) != 0) {
 	 fprintf(stderr,
 		 "[drm] failure adding irq handler, "
 		 "there is a device already using that irq\n"
@@ -347,16 +349,21 @@ static void RADEONDRIIrqInit(struct MiniGLXDisplayRec *dpy,
 
 
 /* Initialize the CP state, and start the CP (if used by the X server) */
-static void RADEONDRICPInit(RADEONInfoPtr info)
+static void RADEONDRICPInit(struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info)
 {
    /* Make sure the CP is on for the X server */
-   int _ret = drmCommandNone(info->drmFD, DRM_RADEON_CP_START);
+   int _ret = drmCommandNone(dpy->drmFD, DRM_RADEON_CP_START);
    if (_ret) {
       fprintf(stderr, "%s: CP start %d\n", __FUNCTION__, _ret);
    }
 /*     info->CPStarted = 1; */
 }
 
+void *
+DRIGetSAREAPrivate( struct MiniGLXDisplayRec *dpy )
+{
+    return (void *)(((char*)dpy->pSAREA)+sizeof(XF86DRISAREARec));
+}
 
 
 /* Will fbdev set a pitch appropriate for 3d?
@@ -382,6 +389,25 @@ static int RADEONSetPitch (struct MiniGLXDisplayRec *dpy)
     return 1;
 }
 
+
+/* Create a 'server' context so we can grab the lock for initialization ioctls.
+ */
+static int DRIFinishScreenInit( struct MiniGLXDisplayRec *dpy )
+{
+   int ret;
+   if ((ret = drmCreateContext(dpy->drmFD, &dpy->serverContext)) != 0) {
+      fprintf(stderr, "%s: drmCreateContext failed %d\n", __FUNCTION__,
+	      ret);
+      return 0;
+   }
+
+   DRM_LOCK(dpy->drmFD,
+	    dpy->pSAREA,
+	    dpy->serverContext,
+	    0);
+
+   return 1;
+}
 
 
 /* Called at the start of each server generation. */
@@ -466,7 +492,7 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
 
 
    /* Check the radeon DRM version */
-   version = drmGetVersion(info->drmFD);
+   version = drmGetVersion(dpy->drmFD);
    if (version) {
       int req_minor, req_patch;
 
@@ -497,7 +523,7 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
 		 req_minor,
 		 req_patch);
 	 drmFreeVersion(version);
-	 RADEONDRICloseScreen(info);
+/* 	 RADEONDRICloseScreen(info); */
 	 return 0;
       }
 
@@ -506,8 +532,8 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
    }
 
    /* Initialize AGP */
-   if (!RADEONDRIAgpInit(info)) {
-      RADEONDRICloseScreen(info);
+   if (!RADEONDRIAgpInit(dpy, info)) {
+/*       RADEONDRICloseScreen(info); */
       return 0;
    }
 
@@ -606,20 +632,22 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
     * the X server, and the first time the hardware lock is grabbed is
     * in DRIFinishScreenInit.
     */
-   if (!DRIFinishScreenInit()) {
-      RADEONDRICloseScreen(info);
+   if (!DRIFinishScreenInit( dpy )) {
+/*       RADEONDRICloseScreen(info); */
       return 0;
    }
 
    /* Initialize the kernel data structures */
    if (!RADEONDRIKernelInit(dpy, info)) {
-      RADEONDRICloseScreen(info);
+      DRM_UNLOCK(dpy->drmFD, dpy->pSAREA, dpy->serverContext);
+/*       RADEONDRICloseScreen(info); */
       return 0;
    }
 
    /* Initialize the vertex buffers list */
-   if (!RADEONDRIBufInit(info)) {
-      RADEONDRICloseScreen(info);
+   if (!RADEONDRIBufInit(dpy, info)) {
+      DRM_UNLOCK(dpy->drmFD, dpy->pSAREA, dpy->serverContext);
+/*       RADEONDRICloseScreen(info); */
       return 0;
    }
 
@@ -630,14 +658,18 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
    RADEONDRIAgpHeapInit(dpy, info);
 
    /* Initialize and start the CP if required */
-   RADEONDRICPInit( info );
+   RADEONDRICPInit( dpy, info );
 
    /* Initialize the SAREA private data structure */
    {
       RADEONSAREAPrivPtr pSAREAPriv;
-      pSAREAPriv = (RADEONSAREAPrivPtr)DRIGetSAREAPrivate();
+      pSAREAPriv = (RADEONSAREAPrivPtr)DRIGetSAREAPrivate( dpy );
       memset(pSAREAPriv, 0, sizeof(*pSAREAPriv));
    }
+
+   /* Can release the lock now */
+   DRM_UNLOCK(dpy->drmFD, dpy->pSAREA, dpy->serverContext);
+
     
    /* This is the struct passed to radeon_dri.so for its initialization */
    dpy->driverInfo = malloc(sizeof(RADEONDRIRec));
@@ -762,12 +794,55 @@ int __driInitFBDev( struct MiniGLXDisplayRec *dpy )
       return 0;
 
    
-   /* Jump to cut down code from X driver */
    if (!RADEONScreenInit( dpy, info ))
       return 0;
 
    return 1;
 }
+
+
+/* Stop the CP */
+int RADEONCPStop( struct MiniGLXDisplayRec *dpy )
+{
+    drmRadeonCPStop  stop;
+    int              ret, i;
+
+    stop.flush = 1;
+    stop.idle  = 1;
+
+    ret = drmCommandWrite(dpy->drmFD, DRM_RADEON_CP_STOP, &stop, 
+			  sizeof(drmRadeonCPStop));
+
+    if (ret == 0) {
+	return 0;
+    } else if (errno != EBUSY) {
+	return -errno;
+    }
+
+    stop.flush = 0;
+ 
+    i = 0;
+    do {
+	ret = drmCommandWrite(dpy->drmFD, DRM_RADEON_CP_STOP, &stop, 
+			      sizeof(drmRadeonCPStop));
+    } while (ret && errno == EBUSY && i++ < 16);
+
+    if (ret == 0) {
+	return 0;
+    } else if (errno != EBUSY) {
+	return -errno;
+    }
+
+    stop.idle = 0;
+
+    if (drmCommandWrite(dpy->drmFD, DRM_RADEON_CP_STOP,
+			&stop, sizeof(drmRadeonCPStop))) {
+	return -errno;
+    } else {
+	return 0;
+    }
+}
+
 
 
 /* The screen is being closed, so clean up any state and free any
@@ -782,10 +857,10 @@ void __driHaltFBDev( struct MiniGLXDisplayRec *dpy )
        return;
 
 				/* Stop the CP */
-    RADEONCP_STOP(dpy, info);
+    RADEONCPStop(dpy);
 
     if (info->irq) {
-	drmCtlUninstHandler(info->drmFD);
+	drmCtlUninstHandler(dpy->drmFD);
 	info->irq = 0;
     }
 
@@ -798,7 +873,7 @@ void __driHaltFBDev( struct MiniGLXDisplayRec *dpy )
 				/* De-allocate all kernel resources */
     memset(&drmInfo, 0, sizeof(drmRadeonInit));
     drmInfo.func = DRM_RADEON_CLEANUP_CP;
-    drmCommandWrite(info->drmFD, DRM_RADEON_CP_INIT,
+    drmCommandWrite(dpy->drmFD, DRM_RADEON_CP_INIT,
 		    &drmInfo, sizeof(drmRadeonInit));
 
 				/* De-allocate all AGP resources */
@@ -819,10 +894,10 @@ void __driHaltFBDev( struct MiniGLXDisplayRec *dpy )
 	info->ring = NULL;
     }
     if (info->agpMemHandle) {
-	drmAgpUnbind(info->drmFD, info->agpMemHandle);
-	drmAgpFree(info->drmFD, info->agpMemHandle);
+	drmAgpUnbind(dpy->drmFD, info->agpMemHandle);
+	drmAgpFree(dpy->drmFD, info->agpMemHandle);
 	info->agpMemHandle = 0;
-	drmAgpRelease(info->drmFD);
+	drmAgpRelease(dpy->drmFD);
     }
 
 				/* De-allocate all DRI resources */

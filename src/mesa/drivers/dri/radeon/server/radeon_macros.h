@@ -50,10 +50,21 @@
 #ifndef _RADEON_MACROS_H_
 #define _RADEON_MACROS_H_
 
-#ifdef XFree86Module
-#include "xf86_ansic.h"
-#endif
-/* #include "compiler.h" */
+
+
+#  define MMIO_IN8(base, offset) \
+	*(volatile unsigned char *)(((unsigned char*)(base)) + (offset))
+#  define MMIO_IN16(base, offset) \
+	*(volatile unsigned short *)(void *)(((unsigned char*)(base)) + (offset))
+#  define MMIO_IN32(base, offset) \
+	*(volatile unsigned int *)(void *)(((unsigned char*)(base)) + (offset))
+#  define MMIO_OUT8(base, offset, val) \
+	*(volatile unsigned char *)(((unsigned char*)(base)) + (offset)) = (val)
+#  define MMIO_OUT16(base, offset, val) \
+	*(volatile unsigned short *)(void *)(((unsigned char*)(base)) + (offset)) = (val)
+#  define MMIO_OUT32(base, offset, val) \
+	*(volatile unsigned int *)(void *)(((unsigned char*)(base)) + (offset)) = (val)
+
 
 				/* Memory mapped register access macros */
 #define INREG8(addr)        MMIO_IN8(RADEONMMIO, addr)

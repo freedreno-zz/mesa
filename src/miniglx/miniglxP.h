@@ -282,6 +282,7 @@ struct MiniGLXDisplayRec {
     */
    int drmFD;
    unsigned long hSAREA;
+   unsigned int serverContext;	/* temporary drm context -- make an auto var? */
    int SAREASize;
    void *pSAREA;
 
