@@ -78,10 +78,9 @@ radeonPointsBitmap(  GLsizei width, GLsizei height,
    GLint row, col;
    GLuint orig_se_cntl;
    GLuint h;
-   GLfloat pfz = ctx->Current.RasterPos[3];
    const struct gl_pixelstore_attrib *unpack = &ctx->Unpack;
-   GLint skipRows = 0;
-   GLint skipPixels = 0;
+   GLint skipRows = unpack->SkipRows;
+   GLint skipPixels = unpack->SkipPixels;
    GLint px = IFLOOR(ctx->Current.RasterPos[0] - xorig);
    GLint py = IFLOOR(ctx->Current.RasterPos[1] - yorig);
 
@@ -93,11 +92,15 @@ radeonPointsBitmap(  GLsizei width, GLsizei height,
       return;
    }
 
-   if (!ctx->Current.RasterPosValid || ctx->RenderMode != GL_RENDER)
+   if (!ctx->Current.RasterPosValid)
       return;
 
    if (ctx->NewState) 
       _mesa_update_state(ctx);
+
+   /* update raster position */
+   ctx->Current.RasterPos[0] += xmove;
+   ctx->Current.RasterPos[1] += ymove;
 
    /* horizontal clipping */
    if (px < 0) {
@@ -158,7 +161,7 @@ radeonPointsBitmap(  GLsizei width, GLsizei height,
       GLubyte mask = 128U >> (unpack->SkipPixels & 0x7);
       for (col=0; col<width; col++) {
 	 if (*src & mask) {
-	    glVertex3f( px+col, y, pfz );
+	    glVertex2f( px+col, y );
 	 }
 	 src += mask & 1;
 	 mask = ((mask << 7) & 0xff) | (mask >> 1);
@@ -178,7 +181,4 @@ radeonPointsBitmap(  GLsizei width, GLsizei height,
    rmesa->hw.set.cmd[SET_SE_CNTL] = orig_se_cntl;
    radeonSubsetVtxEnableTCL( rmesa, GL_TRUE );
 
-   /* update raster position */
-   ctx->Current.RasterPos[0] += xmove;
-   ctx->Current.RasterPos[1] += ymove;
 }
