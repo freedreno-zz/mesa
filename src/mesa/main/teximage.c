@@ -1,4 +1,4 @@
-/* $Id: teximage.c,v 1.39.4.8 2000/11/05 21:24:01 brianp Exp $ */
+/* $Id: teximage.c,v 1.39.4.9 2000/11/20 21:20:02 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -2487,6 +2487,8 @@ read_color_image( GLcontext *ctx, GLint x, GLint y,
 
    /* XXX TODO we have to apply pixel transfer ops here! */
 
+   RENDER_START(ctx);
+
    dst = image;
    stride = width * 4 * sizeof(GLubyte);
    for (i = 0; i < height; i++) {
@@ -2494,6 +2496,8 @@ read_color_image( GLcontext *ctx, GLint x, GLint y,
                          (GLubyte (*)[4]) dst );
       dst += stride;
    }
+
+   RENDER_FINISH(ctx);
 
    /* Read from draw buffer (the default) */
    (*ctx->Driver.SetReadBuffer)( ctx, ctx->DrawBuffer,
