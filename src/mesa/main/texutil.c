@@ -1,4 +1,4 @@
-/* $Id: texutil.c,v 1.25.2.1 2002/02/21 15:11:15 brianp Exp $ */
+/* $Id: texutil.c,v 1.25.2.2 2002/03/15 17:57:42 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -527,7 +527,7 @@ CONVERT_ARGB1555( texsubimage3d )
 
 #define CONVERT_TEXEL_DWORD( dst, src )					\
 	dst = ((PACK_COLOR_88( src[3], src[0] )) |			\
-	       (PACK_COLOR_88( src[7], src[1] ) << 16))
+	       (PACK_COLOR_88( src[7], src[4] ) << 16))
 
 #define SRC_TEXEL_BYTES		4
 
