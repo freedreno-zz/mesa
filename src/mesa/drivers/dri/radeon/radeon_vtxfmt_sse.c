@@ -37,7 +37,7 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "simple_list.h" 
 #include "radeon_vtxfmt.h"
 
-#if defined(USE_SSE_ASM)
+#if defined(USE_SSE_ASM) && _HAVE_CODEGEN
 #include "X86/common_x86_asm.h"
 
 /* Build specialized versions of the immediate calls on the fly for

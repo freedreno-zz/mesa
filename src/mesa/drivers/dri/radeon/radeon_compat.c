@@ -33,6 +33,8 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
  *
  */
 
+#if _HAVE_SWTNL
+
 #include "glheader.h"
 #include "imports.h"
 
@@ -302,3 +304,4 @@ void radeonCompatEmitPrimitive( radeonContextPtr rmesa,
    UNLOCK_HARDWARE( rmesa );
 }
 
+#endif
