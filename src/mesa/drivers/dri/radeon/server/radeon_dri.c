@@ -169,6 +169,7 @@ static void RADEONEngineReset( struct MiniGLXDisplayRec *dpy )
  */
 static int RADEONEngineRestore( struct MiniGLXDisplayRec *dpy )
 {
+   RADEONInfoPtr info = dpy->driverInfo;
    unsigned char *RADEONMMIO = dpy->MMIOAddress;
    int pitch64, datatype, dp_gui_master_cntl, err;
 
@@ -217,6 +218,10 @@ static int RADEONEngineRestore( struct MiniGLXDisplayRec *dpy )
 
 /*    RADEONWaitForIdleMMIO(dpy); */
    usleep(100); 
+
+
+   OUTREG(RADEON_GEN_INT_CNTL, info->gen_int_cntl);
+   OUTREG(RADEON_CRTC_OFFSET_CNTL, info->crtc_offset_cntl);
 
 
    /* Initialize and start the CP if required */
