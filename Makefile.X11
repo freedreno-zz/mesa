@@ -1,4 +1,4 @@
-# $Id: Makefile.X11,v 1.12.2.8 2000/03/23 00:14:28 brianp Exp $
+# $Id: Makefile.X11,v 1.12.2.9 2000/04/24 14:47:11 brianp Exp $
 
 # Mesa 3-D graphics library
 # Version:  3.2
@@ -352,7 +352,7 @@ LIB_FILES =	\
 	$(DIRECTORY)/docs/INSTALL.GNU				\
 	$(DIRECTORY)/docs/README				\
 	$(DIRECTORY)/docs/README.*				\
-	$(DIRECTORY)/docs/RELNOTES				\
+	$(DIRECTORY)/docs/RELNOTES*				\
 	$(DIRECTORY)/docs/VERSIONS				\
 	$(DIRECTORY)/docs/*.spec				\
 	$(DIRECTORY)/bin/README					\
