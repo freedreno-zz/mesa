@@ -54,7 +54,7 @@ static void RADEONWaitForFifo( struct MiniGLXDisplayRec *dpy,
    exit(1);
 }
 
-unsigned int RADEONINPLL( struct MiniGLXDisplayRec *dpy, int addr)
+static unsigned int RADEONINPLL( struct MiniGLXDisplayRec *dpy, int addr)
 {
     unsigned char *RADEONMMIO = dpy->MMIOAddress;
     unsigned int data;
@@ -66,7 +66,7 @@ unsigned int RADEONINPLL( struct MiniGLXDisplayRec *dpy, int addr)
 }
 
 /* Reset graphics card to known state */
-void RADEONEngineReset( struct MiniGLXDisplayRec *dpy )
+static void RADEONEngineReset( struct MiniGLXDisplayRec *dpy )
 {
    unsigned char *RADEONMMIO = dpy->MMIOAddress;
    unsigned int clock_cntl_index;
@@ -361,7 +361,6 @@ static int RADEONDRIKernelInit(struct MiniGLXDisplayRec *dpy,
    ret = drmCommandWrite(dpy->drmFD, DRM_RADEON_CP_INIT, &drmInfo, 
 			 sizeof(drmRadeonInit));
 
-   fprintf(stderr, "DRM_RADEON_CP_INIT: %d\n", ret);
    return ret >= 0;
 }
 
@@ -455,7 +454,6 @@ static void RADEONDRICPInit(struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info)
    if (_ret) {
       fprintf(stderr, "%s: CP start %d\n", __FUNCTION__, _ret);
    }
-/*     info->CPStarted = 1; */
 }
 
 
@@ -484,29 +482,6 @@ static int RADEONSetPitch (struct MiniGLXDisplayRec *dpy)
 }
 
 
-/* Create a 'server' context so we can grab the lock for initialization ioctls.
- */
-static int DRIFinishScreenInit( struct MiniGLXDisplayRec *dpy )
-{
-   int ret;
-   if ((ret = drmCreateContext(dpy->drmFD, &dpy->serverContext)) != 0) {
-      fprintf(stderr, "%s: drmCreateContext failed %d\n", __FUNCTION__,
-	      ret);
-      return 0;
-   }
-
-   fprintf(stderr, "DRM_LOCK( %d %p %d )\n", 
-	   dpy->drmFD,
-	   dpy->pSAREA,
-	   dpy->serverContext);
-
-   DRM_LOCK(dpy->drmFD,
-	    dpy->pSAREA,
-	    dpy->serverContext,
-	    0);
-
-   return 1;
-}
 
 
 /* Called at the start of each server generation. */
@@ -516,11 +491,6 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
    int            major, minor, patch;
    drmVersionPtr  version;
    int err;
-
-
-/*    info->FBDev        = 1; */
-/*    info->CPInUse      = 0; */
-/*    info->CPStarted    = 0; */
 
    {
       int  width_bytes = (dpy->VarInfo.xres_virtual * dpy->cpp);
@@ -601,7 +571,6 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
 		   0,
 		   &dpy->hFrameBuffer) < 0)
     {
-/* 	drmUnmap(dpy->pSAREA, dpy->SAREASize); */
 	drmClose(dpy->drmFD);
         fprintf(stderr, "[drm] drmAddMap framebuffer failed\n");
 	return 0;
@@ -656,7 +625,6 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
 		 req_minor,
 		 req_patch);
 	 drmFreeVersion(version);
-/* 	 RADEONDRICloseScreen(info); */
 	 return 0;
       }
 
@@ -666,7 +634,6 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
 
    /* Initialize AGP */
    if (!RADEONDRIAgpInit(dpy, info)) {
-/*       RADEONDRICloseScreen(info); */
       return 0;
    }
 
@@ -760,22 +727,20 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
 				(info->depthOffset >> 10));
    } 
 
-   /* NOTE: DRIFinishScreenInit must be called before *DRIKernelInit
-    * because *DRIKernelInit requires that the hardware lock is held by
-    * the X server, and the first time the hardware lock is grabbed is
-    * in DRIFinishScreenInit.
+   /* Create a 'server' context so we can grab the lock for
+    * initialization ioctls.
     */
-   if (!DRIFinishScreenInit( dpy )) {
-/*       RADEONDRICloseScreen(info); */
-      fprintf(stderr, "DRIFinishScreenInit failed\n");
+   if ((err = drmCreateContext(dpy->drmFD, &dpy->serverContext)) != 0) {
+      fprintf(stderr, "%s: drmCreateContext failed %d\n", __FUNCTION__, err);
       return 0;
    }
+
+   DRM_LOCK(dpy->drmFD, dpy->pSAREA, dpy->serverContext, 0); 
 
    /* Initialize the kernel data structures */
    if (!RADEONDRIKernelInit(dpy, info)) {
       fprintf(stderr, "RADEONDRIKernelInit failed\n");
       DRM_UNLOCK(dpy->drmFD, dpy->pSAREA, dpy->serverContext);
-/*       RADEONDRICloseScreen(info); */
       return 0;
    }
 
@@ -783,24 +748,19 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
    if (!RADEONDRIBufInit(dpy, info)) {
       fprintf(stderr, "RADEONDRIBufInit failed\n");
       DRM_UNLOCK(dpy->drmFD, dpy->pSAREA, dpy->serverContext);
-/*       RADEONDRICloseScreen(info); */
       return 0;
    }
 
    /* Initialize IRQ */
    RADEONDRIIrqInit(dpy, info);
-   fprintf(stderr, "RADEONDRIIrqInit finished\n");
 
    /* Initialize kernel agp memory manager */
    RADEONDRIAgpHeapInit(dpy, info);
-   fprintf(stderr, "RADEONDRIAgpHeapInit finished\n");
-
 
    RADEONEngineRestore( dpy, info );
 
    /* Initialize and start the CP if required */
    RADEONDRICPInit( dpy, info );
-   fprintf(stderr, "RADEONDRICPInit finished\n");
 
    /* Initialize the SAREA private data structure */
    {
@@ -813,22 +773,7 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
 
    /* Can release the lock now */
    DRM_UNLOCK(dpy->drmFD, dpy->pSAREA, dpy->serverContext);
-   fprintf(stderr, "DRM_UNLOCK finished\n");
 
-
-   {
-      int i;
-      for (i = 0 ; i < 5 ; i++) {
-	 fprintf(stderr, "%s: locking\n", __FUNCTION__);
-	 DRM_LOCK(dpy->drmFD, dpy->pSAREA, dpy->serverContext, 0); 
-	 fprintf(stderr, "%s: locked\n", __FUNCTION__); 
-
-	 DRM_UNLOCK(dpy->drmFD, dpy->pSAREA, dpy->serverContext);
-	 fprintf(stderr, "DRM_UNLOCK finished\n");
-      }
-   }
-
-    
    /* This is the struct passed to radeon_dri.so for its initialization */
    dpy->driverClientMsg = malloc(sizeof(RADEONDRIRec));
    dpy->driverClientMsgSize = sizeof(RADEONDRIRec);
@@ -859,7 +804,6 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
    pRADEONDRI->agpTexOffset      = info->agpTexStart;
    pRADEONDRI->sarea_priv_offset = sizeof(XF86DRISAREARec);
 
-   fprintf(stderr, "%s succeeded\n", __FUNCTION__);
    return 1;
 }
 
@@ -962,12 +906,10 @@ int __driInitFBDev( struct MiniGLXDisplayRec *dpy )
 
 
 /* Stop the CP */
-int RADEONCPStop( struct MiniGLXDisplayRec *dpy )
+static int RADEONCPStop( struct MiniGLXDisplayRec *dpy )
 {
     drmRadeonCPStop  stop;
     int              ret, i;
-
-    fprintf(stderr, "%s\n", __FUNCTION__);
 
     stop.flush = 1;
     stop.idle  = 1;
@@ -1015,23 +957,13 @@ void __driHaltFBDev( struct MiniGLXDisplayRec *dpy )
     drmRadeonInit  drmInfo;
     RADEONInfoPtr info = (RADEONInfoPtr) dpy->driverInfo;
 
-
-    fprintf(stderr, "%s\n", __FUNCTION__); 
-
-    if (!info) {
-       fprintf(stderr, "no driverInfo\n");
+/* All this should be automatic:
+ */
+#if 0
+    if (!info) 
        return;
-    }
 
-    fprintf(stderr, "DRM_LOCK( %d %p %d )\n", 
-	    dpy->drmFD,
-	    dpy->pSAREA,
-	    dpy->serverContext); 
-
-
-    fprintf(stderr, "%s: locking\n", __FUNCTION__);
     DRM_LOCK(dpy->drmFD, dpy->pSAREA, dpy->serverContext, 0); 
-    fprintf(stderr, "%s: locked\n", __FUNCTION__); 
 
 
     if (RADEONCPStop(dpy)) {
@@ -1040,44 +972,21 @@ void __driHaltFBDev( struct MiniGLXDisplayRec *dpy )
        return;
     }
 
-    fprintf(stderr, "%s: cp stoped\n", __FUNCTION__); 
-    if (info->irq) {
-	drmCtlUninstHandler(dpy->drmFD);
-	info->irq = 0;
-    }
-
-				/* De-allocate vertex buffers */
-    if (info->buffers) {
-	drmUnmapBufs(info->buffers);
-	info->buffers = NULL;
-    }
-
 				/* De-allocate all kernel resources */
-
-    fprintf(stderr, "%s: calling DRM_RADEON_CLEANUP_CP\n", __FUNCTION__);
     memset(&drmInfo, 0, sizeof(drmRadeonInit));
     drmInfo.func = DRM_RADEON_CLEANUP_CP;
     drmCommandWrite(dpy->drmFD, DRM_RADEON_CP_INIT,
 		    &drmInfo, sizeof(drmRadeonInit));
 
 
-				/* De-allocate all AGP resources */
-    if (info->agpTex) {
-	drmUnmap(info->agpTex, info->agpTexMapSize);
-	info->agpTex = NULL;
+
+    if (info->irq) {
+	drmCtlUninstHandler(dpy->drmFD);
+	info->irq = 0;
     }
-    if (info->buf) {
-	drmUnmap(info->buf, info->bufMapSize);
-	info->buf = NULL;
-    }
-    if (info->ringReadPtr) {
-	drmUnmap(info->ringReadPtr, info->ringReadMapSize);
-	info->ringReadPtr = NULL;
-    }
-    if (info->ring) {
-	drmUnmap(info->ring, info->ringMapSize);
-	info->ring = NULL;
-    }
+
+			
+    /* De-allocate all AGP resources */
     if (info->agpMemHandle) {
 	drmAgpUnbind(dpy->drmFD, info->agpMemHandle);
 	drmAgpFree(dpy->drmFD, info->agpMemHandle);
@@ -1090,8 +999,12 @@ void __driHaltFBDev( struct MiniGLXDisplayRec *dpy )
 /*        drmRemoveSIGIOHandler(dpy->drmFD); */
 
     DRM_UNLOCK(dpy->drmFD, dpy->pSAREA, dpy->serverContext);
-    
+
+
     drmUnmap(dpy->pSAREA, dpy->SAREASize);
+#endif
+
+
     drmClose(dpy->drmFD);
 
     free(info);
