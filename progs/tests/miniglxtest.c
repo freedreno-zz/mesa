@@ -1,4 +1,4 @@
-/* $Id: miniglxtest.c,v 1.1.4.7 2003/02/21 22:18:24 keithw Exp $ */
+/* $Id: miniglxtest.c,v 1.1.4.8 2003/03/24 15:40:34 keithw Exp $ */
 
 /*
  * Test the mini GLX interface.
@@ -161,7 +161,6 @@ int foo( )
 
    XMapWindow( dpy, win );
 
-#if !USE_MINI_GLX
    {
       XEvent e;
       while (1) {
@@ -171,8 +170,6 @@ int foo( )
 	 }
       }
    }
-#endif
-
 
    event_loop( dpy, win );
 
