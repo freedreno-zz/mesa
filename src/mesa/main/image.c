@@ -1,4 +1,4 @@
-/* $Id: image.c,v 1.63.2.6 2002/09/21 17:21:44 brianp Exp $ */
+/* $Id: image.c,v 1.63.2.7 2002/09/21 17:36:08 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -572,6 +572,8 @@ _mesa_image_row_stride( const struct gl_pixelstore_attrib *packing,
       remainder = bytesPerRow % packing->Alignment;
       if (remainder > 0)
          bytesPerRow += (packing->Alignment - remainder);
+      if (packing->Invert)
+         bytesPerRow = -bytesPerRow;
       return bytesPerRow;
    }
 }
