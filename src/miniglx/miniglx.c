@@ -22,7 +22,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: miniglx.c,v 1.1.4.44 2003/01/20 10:53:35 keithw Exp $ */
+/* $Id: miniglx.c,v 1.1.4.45 2003/01/20 15:01:39 brianp Exp $ */
 
 
 /**
@@ -47,6 +47,10 @@
  * Programs written to the Mini GLX specification should run unchanged on
  * systems with the X Window System and the GLX extension. The intention is to
  * allow flexibility for prototyping and testing.
+ *
+ * The files in the src/miniglx/ directory are compiled to build the
+ * libGL.so library.  This is the library which applications link with.
+ * libGL.so in turn, loads the hardware-specific device driver.
  *
  *
  * \section miniglxDoxygen About Doxygen
