@@ -1,4 +1,4 @@
-/* $Id: light.c,v 1.8.2.9 2000/07/13 19:50:04 brianp Exp $ */
+/* $Id: light.c,v 1.8.2.10 2000/07/17 12:49:56 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -1007,26 +1007,9 @@ static void compute_shine_table( struct gl_shine_tab *tab, GLfloat shininess )
       double dp = i/(GLfloat)(SHINE_TABLE_SIZE-1);
       double t = pow( dp, shininess );
       if (t < 1e-20) t = 0;
-      m[i*2] = (GLfloat) t;
-
-      /* Also calculate the derivative of dp^shininess at this point,
-	 scaling for table lookup. (Actually, given f'(x0), it's easy
-	 to calculate f(x0), so maybe we only need this)
-      */
-      if (dp == 0.0)
-         m[i*2+1] = pow((i+1) / (GLfloat)(SHINE_TABLE_SIZE-1), shininess);
-      else
-         m[i*2+1] = shininess * t / (dp * (SHINE_TABLE_SIZE-1) );
+      m[i] = (GLfloat) t;
    }      
 
-   tab->shininess = shininess;
-}
-
-static void reset_shine_table( struct gl_shine_tab *tab, GLfloat shininess )
-{
-   int i;
-   for ( i = 0 ; i < SHINE_TABLE_SIZE ; i++)
-      tab->tab[i] = -1;
    tab->shininess = shininess;
 }
 
