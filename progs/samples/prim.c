@@ -126,18 +126,18 @@ static void Point(void)
 
     glBegin(GL_POINTS);
 	SetColor(COLOR_WHITE);
-	glVertex2i(0, 0);
+	glVertex2f(0, 0);
 	for (i = 1; i < 8; i++) {
 	    GLint j = i * 2;
 	    SetColor(COLOR_BLACK+i);
-	    glVertex2i(-j, -j);
-	    glVertex2i(-j, 0);
-	    glVertex2i(-j, j);
-	    glVertex2i(0, j);
-	    glVertex2i(j, j);
-	    glVertex2i(j, 0);
-	    glVertex2i(j, -j);
-	    glVertex2i(0, -j);
+	    glVertex2f(-j, -j);
+	    glVertex2f(-j, 0);
+	    glVertex2f(-j, j);
+	    glVertex2f(0, j);
+	    glVertex2f(j, j);
+	    glVertex2f(j, 0);
+	    glVertex2f(j, -j);
+	    glVertex2f(0, -j);
 	}
     glEnd();
 }
@@ -152,8 +152,8 @@ static void Lines(void)
     for (i = 1; i < 8; i++) {
 	SetColor(COLOR_BLACK+i);
 	glBegin(GL_LINES);
-	    glVertex2i(-boxW/4, -boxH/4);
-	    glVertex2i(boxW/4, boxH/4);
+	    glVertex2f(-boxW/4, -boxH/4);
+	    glVertex2f(boxW/4, boxH/4);
 	glEnd();
 	glTranslatef(4, 0, 0);
     }
@@ -161,7 +161,7 @@ static void Lines(void)
     glPopMatrix();
 
     glBegin(GL_LINES);
-	glVertex2i(0, 0);
+	glVertex2f(0, 0);
     glEnd();
 }
 
@@ -180,7 +180,7 @@ static void LineStrip(void)
     glEnd();
 
     glBegin(GL_LINE_STRIP);
-	glVertex2i(0, 0);
+	glVertex2f(0, 0);
     glEnd();
 }
 
@@ -218,11 +218,11 @@ static void LineLoop(void)
 
     SetColor(COLOR_GREEN);
     glBegin(GL_POINTS);
-	glVertex2i(0, 0);
+	glVertex2f(0, 0);
     glEnd();
 
     glBegin(GL_LINE_LOOP);
-	glVertex2i(0, 0);
+	glVertex2f(0, 0);
     glEnd();
 }
 
@@ -231,16 +231,16 @@ static void Bitmap(void)
 
     glBegin(GL_LINES);
 	SetColor(COLOR_GREEN);
-	glVertex2i(-boxW/2, 0);
-	glVertex2i(boxW/2, 0);
-	glVertex2i(0, -boxH/2);
-	glVertex2i(0, boxH/2);
+	glVertex2f(-boxW/2, 0);
+	glVertex2f(boxW/2, 0);
+	glVertex2f(0, -boxH/2);
+	glVertex2f(0, boxH/2);
 	SetColor(COLOR_RED);
-	glVertex2i(0, -3);
-	glVertex2i(0, -3+OPENGL_HEIGHT);
+	glVertex2f(0, -3);
+	glVertex2f(0, -3+OPENGL_HEIGHT);
 	SetColor(COLOR_BLUE);
-	glVertex2i(0, -3);
-	glVertex2i(OPENGL_WIDTH, -3);
+	glVertex2f(0, -3);
+	glVertex2f(OPENGL_WIDTH, -3);
     glEnd();
 
     SetColor(COLOR_GREEN);
@@ -257,23 +257,23 @@ static void Triangles(void)
 
     glBegin(GL_TRIANGLES);
 	SetColor(COLOR_GREEN);
-	glVertex2i(-boxW/4, -boxH/4);
+	glVertex2f(-boxW/4, -boxH/4);
 	SetColor(COLOR_RED);
-	glVertex2i(-boxW/8, -boxH/16);
+	glVertex2f(-boxW/8, -boxH/16);
 	SetColor(COLOR_BLUE);
-	glVertex2i(boxW/8, -boxH/16);
+	glVertex2f(boxW/8, -boxH/16);
 
 	SetColor(COLOR_GREEN);
-	glVertex2i(-boxW/4, boxH/4);
+	glVertex2f(-boxW/4, boxH/4);
 	SetColor(COLOR_RED);
-	glVertex2i(-boxW/8, boxH/16);
+	glVertex2f(-boxW/8, boxH/16);
 	SetColor(COLOR_BLUE);
-	glVertex2i(boxW/8, boxH/16);
+	glVertex2f(boxW/8, boxH/16);
     glEnd();
 
     glBegin(GL_TRIANGLES);
-	glVertex2i(0, 0);
-	glVertex2i(-100, 100);
+	glVertex2f(0, 0);
+	glVertex2f(-100, 100);
     glEnd();
 }
 
@@ -282,28 +282,28 @@ static void TriangleStrip(void)
 
     glBegin(GL_TRIANGLE_STRIP);
 	SetColor(COLOR_GREEN);
-	glVertex2i(-boxW/4, -boxH/4);
+	glVertex2f(-boxW/4, -boxH/4);
 	SetColor(COLOR_RED);
-	glVertex2i(-boxW/4, boxH/4);
+	glVertex2f(-boxW/4, boxH/4);
 	SetColor(COLOR_BLUE);
-	glVertex2i(0, -boxH/4);
+	glVertex2f(0, -boxH/4);
 	SetColor(COLOR_WHITE);
-	glVertex2i(0, boxH/4);
+	glVertex2f(0, boxH/4);
 	SetColor(COLOR_CYAN);
-	glVertex2i(boxW/4, -boxH/4);
+	glVertex2f(boxW/4, -boxH/4);
 	SetColor(COLOR_YELLOW);
-	glVertex2i(boxW/4, boxH/4);
+	glVertex2f(boxW/4, boxH/4);
     glEnd();
 
     glBegin(GL_TRIANGLE_STRIP);
-	glVertex2i(0, 0);
-	glVertex2i(-100, 100);
+	glVertex2f(0, 0);
+	glVertex2f(-100, 100);
     glEnd();
 }
 
 static void TriangleFan(void)
 {
-    GLint vx[8][2];
+    GLfloat vx[8][2];
     GLint x0, y0, x1, y1, x2, y2, x3, y3;
     GLint i;
 
@@ -327,16 +327,16 @@ static void TriangleFan(void)
 
     glBegin(GL_TRIANGLE_FAN);
 	SetColor(COLOR_WHITE);
-	glVertex2i(0, 0);
+	glVertex2f(0, 0);
 	for (i = 0; i < 8; i++) {
 	    SetColor(COLOR_WHITE-i);
-	    glVertex2iv(vx[i]);
+	    glVertex2fv(vx[i]);
 	}
     glEnd();
 
     glBegin(GL_TRIANGLE_FAN);
-	glVertex2i(0, 0);
-	glVertex2i(-100, 100);
+	glVertex2f(0, 0);
+	glVertex2f(-100, 100);
     glEnd();
 }
 
@@ -349,7 +349,7 @@ static void Rect(void)
 
 static void PolygonFunc(void)
 {
-    GLint vx[8][2];
+    GLfloat vx[8][2];
     GLint x0, y0, x1, y1, x2, y2, x3, y3;
     GLint i;
 
@@ -374,13 +374,13 @@ static void PolygonFunc(void)
     glBegin(GL_POLYGON);
 	for (i = 0; i < 8; i++) {
 	    SetColor(COLOR_WHITE-i);
-	    glVertex2iv(vx[i]);
+	    glVertex2fv(vx[i]);
 	}
     glEnd();
 
     glBegin(GL_POLYGON);
-	glVertex2i(0, 0);
-	glVertex2i(100, 100);
+	glVertex2f(0, 0);
+	glVertex2f(100, 100);
     glEnd();
 }
 
@@ -389,28 +389,28 @@ static void Quads(void)
 
     glBegin(GL_QUADS);
 	SetColor(COLOR_GREEN);
-	glVertex2i(-boxW/4, -boxH/4);
+	glVertex2f(-boxW/4, -boxH/4);
 	SetColor(COLOR_RED);
-	glVertex2i(-boxW/8, -boxH/16);
+	glVertex2f(-boxW/8, -boxH/16);
 	SetColor(COLOR_BLUE);
-	glVertex2i(boxW/8, -boxH/16);
+	glVertex2f(boxW/8, -boxH/16);
 	SetColor(COLOR_WHITE);
-	glVertex2i(boxW/4, -boxH/4);
+	glVertex2f(boxW/4, -boxH/4);
 
 	SetColor(COLOR_GREEN);
-	glVertex2i(-boxW/4, boxH/4);
+	glVertex2f(-boxW/4, boxH/4);
 	SetColor(COLOR_RED);
-	glVertex2i(-boxW/8, boxH/16);
+	glVertex2f(-boxW/8, boxH/16);
 	SetColor(COLOR_BLUE);
-	glVertex2i(boxW/8, boxH/16);
+	glVertex2f(boxW/8, boxH/16);
 	SetColor(COLOR_WHITE);
-	glVertex2i(boxW/4, boxH/4);
+	glVertex2f(boxW/4, boxH/4);
     glEnd();
 
     glBegin(GL_QUADS);
-	glVertex2i(0, 0);
-	glVertex2i(100, 100);
-	glVertex2i(-100, 100);
+	glVertex2f(0, 0);
+	glVertex2f(100, 100);
+	glVertex2f(-100, 100);
     glEnd();
 }
 
@@ -419,23 +419,23 @@ static void QuadStrip(void)
 
     glBegin(GL_QUAD_STRIP);
 	SetColor(COLOR_GREEN);
-	glVertex2i(-boxW/4, -boxH/4);
+	glVertex2f(-boxW/4, -boxH/4);
 	SetColor(COLOR_RED);
-	glVertex2i(-boxW/4, boxH/4);
+	glVertex2f(-boxW/4, boxH/4);
 	SetColor(COLOR_BLUE);
-	glVertex2i(0, -boxH/4);
+	glVertex2f(0, -boxH/4);
 	SetColor(COLOR_WHITE);
-	glVertex2i(0, boxH/4);
+	glVertex2f(0, boxH/4);
 	SetColor(COLOR_CYAN);
-	glVertex2i(boxW/4, -boxH/4);
+	glVertex2f(boxW/4, -boxH/4);
 	SetColor(COLOR_YELLOW);
-	glVertex2i(boxW/4, boxH/4);
+	glVertex2f(boxW/4, boxH/4);
     glEnd();
 
     glBegin(GL_QUAD_STRIP);
-	glVertex2i(0, 0);
-	glVertex2i(100, 100);
-	glVertex2i(-100, 100);
+	glVertex2f(0, 0);
+	glVertex2f(100, 100);
+	glVertex2f(-100, 100);
     glEnd();
 }
 
