@@ -1,4 +1,4 @@
-/* $Id: texutil.c,v 1.25.2.6 2002/09/13 19:34:41 brianp Exp $ */
+/* $Id: texutil.c,v 1.25.2.7 2002/09/14 16:50:24 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -26,6 +26,14 @@
  * Authors:
  *    Gareth Hughes <gareth@valinux.com>
  */
+
+/*
+ * Description:
+ * Functions for texture image conversion.  This takes care of converting
+ * typical GL_RGBA/GLubyte textures into hardware-specific formats.
+ * We can handle non-standard row strides and pixel unpacking parameters.
+ */
+
 
 #ifdef PC_HEADER
 #include "all.h"

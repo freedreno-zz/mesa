@@ -1,8 +1,8 @@
-/* $Id: texutil_tmp.h,v 1.8.2.2 2002/09/13 19:34:42 brianp Exp $ */
+/* $Id: texutil_tmp.h,v 1.8.2.3 2002/09/14 16:50:24 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  4.0.2
+ * Version:  4.0.4
  *
  * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
  *
@@ -34,7 +34,17 @@
  *  - conversion with pixel unpacking and standard stride
  *  - conversion with pixel unpacking and non-standard stride
  *
- * NOTE: All 3D teximage code is untested and most definitely broken...
+ *
+ * Macros which need to be defined before including this file:
+ *  TAG(x)  - the function name wrapper
+ *  DST_TYPE - the destination texel datatype (GLuint, GLushort, etc)
+ *  DST_TEXELS_PER_DWORD - number of dest texels that'll fit in 4 bytes
+ *  CONVERT_TEXEL - code to convert from source to dest texel
+ *  CONVER_TEXEL_DWORD - if multiple texels fit in 4 bytes, this macros
+ *                       will convert/store multiple texels at once
+ *  CONVERT_DIRECT - if defined, just memcpy texels from src to dest
+ *  SRC_TEXEL_BYTES - bytes per source texel
+ *  PRESERVE_DST_TYPE - if defined, don't undefined these macros at end
  */
 
 
