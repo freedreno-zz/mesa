@@ -1,4 +1,4 @@
-/* $Id: glxapi.c,v 1.4 1999/10/27 09:50:10 brianp Exp $ */
+/* $Id: glxapi.c,v 1.4.2.1 1999/12/10 13:45:39 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -419,8 +419,7 @@ GLboolean glXSet3DfxModeMESA( GLint mode )
 
 
 
-#if 0  /* spec for this not finalized yet */
-void (*glXGetProcAddressEXT( const GLubyte *procName ))()
+void (*glXGetProcAddressARB( const GLubyte *procName ))()
 {
 #ifdef REALGLX
    return NULL;
@@ -428,4 +427,4 @@ void (*glXGetProcAddressEXT( const GLubyte *procName ))()
    return Fake_glXGetProcAddress( procName );
 #endif
 }
-#endif
+

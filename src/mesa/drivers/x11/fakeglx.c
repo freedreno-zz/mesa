@@ -1,4 +1,4 @@
-/* $Id: fakeglx.c,v 1.12.2.2 1999/11/22 22:19:50 brianp Exp $ */
+/* $Id: fakeglx.c,v 1.12.2.3 1999/12/10 13:46:10 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -1518,37 +1518,62 @@ GLboolean Fake_glXSet3DfxModeMESA( GLint mode )
 
 
 
-#if 0
-/*GLfunction Fake_glXGetProcAddress( const GLubyte *procName )*/
 void (*Fake_glXGetProcAddress( const GLubyte *procName ))()
 {
-   typedef void (*GLfunction)();
+   typedef void (*gl_function)();
    struct proc {
       const char *name;
-      GLfunction address;
+      gl_function address;
    };
    static struct proc procTable[] = {
-      { "glXGetProcAddressEXT", (GLfunction) glXGetProcAddressEXT },
-      { "glXCreateGLXPixmapMESA", (GLfunction) glXCreateGLXPixmapMESA },
-      { "glXReleaseBuffersMESA", (GLfunction) glXReleaseBuffersMESA },
-      { "glXCopySubBufferMESA", (GLfunction) glXCopySubBufferMESA },
-      { "glXSet3DfxModeMESA", (GLfunction) glXSet3DfxModeMESA },
-      /* NOTE: GLX_SGI_video_sync not implemented in Mesa */
+      /* GLX 1.0 functions */
+      { "glXChooseVisual", (gl_function) glXChooseVisual },
+      { "glXCopyContext", (gl_function) glXCopyContext },
+      { "glXCreateContext", (gl_function) glXCreateContext },
+      { "glXCreateGLXPixmap", (gl_function) glXCreateGLXPixmap },
+      { "glXDestroyContext", (gl_function) glXDestroyContext },
+      { "glXDestroyGLXPixmap", (gl_function) glXDestroyGLXPixmap },
+      { "glXGetConfig", (gl_function) glXGetConfig },
+      { "glXGetCurrentContext", (gl_function) glXGetCurrentContext },
+      { "glXGetCurrentDrawable", (gl_function) glXGetCurrentDrawable },
+      { "glXIsDirect", (gl_function) glXIsDirect },
+      { "glXMakeCurrent", (gl_function) glXMakeCurrent },
+      { "glXQueryExtension", (gl_function) glXQueryExtension },
+      { "glXQueryVersion", (gl_function) glXQueryVersion },
+      { "glXSwapBuffers", (gl_function) glXSwapBuffers },
+      { "glXUseXFont", (gl_function) glXUseXFont },
+      { "glXWaitGL", (gl_function) glXWaitGL },
+      { "glXWaitX", (gl_function) glXWaitX },
+
+      /* GLX 1.1 functions */
+      { "glXGetClientString", (gl_function) glXGetClientString },
+      { "glXQueryExtensionsString", (gl_function) glXQueryExtensionsString },
+      { "glXQueryServerString", (gl_function) glXQueryServerString },
+
+      /* Extensions */
+      { "glXGetProcAddressARB", (gl_function) glXGetProcAddressARB },
+      { "glXCreateGLXPixmapMESA", (gl_function) glXCreateGLXPixmapMESA },
+      { "glXReleaseBuffersMESA", (gl_function) glXReleaseBuffersMESA },
+      { "glXCopySubBufferMESA", (gl_function) glXCopySubBufferMESA },
+      { "glXSet3DfxModeMESA", (gl_function) glXSet3DfxModeMESA },
+      { "glXGetVideoSyncSGI", (gl_function) glXGetVideoSyncSGI },
+      { "glXWaitVideoSyncSGI", (gl_function) glXWaitVideoSyncSGI },
+
       { NULL, NULL }  /* end of list token */
    };
    GLuint i;
 
    /* First, look for core library functions */
-   GLfunction f = (GLfunction) gl_get_proc_address(procName);
+   gl_function f = (gl_function) gl_get_proc_address(procName);
    if (f)
       return f;
 
    /* Second, look for GLX funtion */
    for (i = 0; procTable[i].address; i++) {
       if (strcmp((const char *) procName, procTable[i].name) == 0)
-	  return (GLfunction) procTable[i].address;
+	  return procTable[i].address;
    }
 
    return NULL;
 }
-#endif
+
