@@ -991,6 +991,20 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
       pSAREAPriv->pfAllowPageFlip = 1;
    }
 
+
+   /* Quick hack to clear the front & back buffers.  Could also use
+    * the clear ioctl to do this, but would need to setup hw state
+    * first.
+    */
+   memset(dpy->FrameBuffer + info->frontOffset,
+	  0,
+	  info->frontPitch * dpy->cpp * dpy->virtualHeight );
+
+   memset(dpy->FrameBuffer + info->backOffset,
+	  0,
+	  info->backPitch * dpy->cpp * dpy->virtualHeight );
+
+
    /* Can release the lock now */
    DRM_UNLOCK(dpy->drmFD, dpy->pSAREA, serverContext);
 
@@ -1286,18 +1300,6 @@ static int __driInitFBDev( struct MiniGLXDisplayRec *dpy )
    if (!RADEONScreenInit( dpy, info ))
       return 0;
 
-
-   /* Quick hack to clear the front & back buffers.  Could also use
-    * the clear ioctl to do this, but would need to setup hw state
-    * first.
-    */
-   memset(dpy->FrameBuffer + info->frontOffset,
-	  0,
-	  info->frontPitch * dpy->cpp * dpy->virtualHeight );
-
-   memset(dpy->FrameBuffer + info->backOffset,
-	  0,
-	  info->backPitch * dpy->cpp * dpy->virtualHeight );
 
    return 1;
 }
