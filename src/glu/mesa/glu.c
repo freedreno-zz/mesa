@@ -1,9 +1,9 @@
-/* $Id: glu.c,v 1.16.2.2 1999/11/22 22:18:13 brianp Exp $ */
+/* $Id: glu.c,v 1.16.2.3 2000/01/27 16:43:00 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.1
- * Copyright (C) 1995-1999  Brian Paul
+ * Version:  3.2
+ * Copyright (C) 1995-2000  Brian Paul
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -18,105 +18,6 @@
  * You should have received a copy of the GNU Library General Public
  * License along with this library; if not, write to the Free
  * Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- */
-
-
-/*
- * $Log: glu.c,v $
- * Revision 1.16.2.2  1999/11/22 22:18:13  brianp
- * removed GLU_EXT_get_proc_address from ext string
- *
- * Revision 1.16.2.1  1999/11/19 21:22:07  brianp
- * replace encounteed with encountered
- *
- * Revision 1.16  1999/10/27 09:47:41  brianp
- * disabled gluGetProcAddressEXT
- *
- * Revision 1.15  1999/09/19 02:03:19  tjump
- * More Win32 build compliance fixups
- *
- * Revision 1.14  1999/09/17 12:21:53  brianp
- * glGetProcAddressEXT changes to accomodate Win32 and non-Win32
- *
- * Revision 1.13  1999/09/17 03:17:18  tjump
- * Patch error fixup
- *
- * Revision 1.12  1999/09/17 03:07:28  tjump
- * Win32 build req't updates
- *
- * Revision 1.11  1999/09/17 01:00:38  brianp
- * fixed typo
- *
- * Revision 1.10  1999/09/17 00:06:14  brianp
- * gluGetProcAddressEXT change for C++ / BeOS
- *
- * Revision 1.9  1999/09/16 22:37:56  brianp
- * added some casts in gluGetProcAddressEXT()
- *
- * Revision 1.8  1999/09/16 16:53:28  brianp
- * clean-up of GLU_EXT_get_proc_address
- *
- * Revision 1.7  1999/09/14 00:11:40  brianp
- * added gluCheckExtension()
- *
- * Revision 1.6  1999/09/13 14:31:32  joukj
- *
- * strcmp needs the string.h
- *
- * Revision 1.5  1999/09/11 12:04:54  brianp
- * added 1.2 function to gluGetProcAddressEXT()
- *
- * Revision 1.4  1999/09/11 11:36:26  brianp
- * added GLU_EXT_get_proc_address
- *
- * Revision 1.3  1999/09/10 04:32:10  gareth
- * Fixed triangle output, recovery process termination.
- *
- * Revision 1.2  1999/09/10 02:03:31  gareth
- * Added GLU 1.3 tessellation (except winding rule code).
- *
- * Revision 1.1.1.1  1999/08/19 00:55:42  jtg
- * Imported sources
- *
- * Revision 1.13  1999/03/31 19:07:28  brianp
- * added GL_EXT_abgr to extensions
- *
- * Revision 1.12  1999/02/06 06:12:41  brianp
- * updated version string to 3.1
- *
- * Revision 1.11  1999/01/03 03:23:15  brianp
- * now using GLAPIENTRY and GLCALLBACK keywords (Ted Jump)
- *
- * Revision 1.10  1998/04/22 00:35:50  brianp
- * changed version to 3.0
- *
- * Revision 1.9  1997/12/09 03:03:32  brianp
- * changed version to 2.6
- *
- * Revision 1.8  1997/10/04 01:30:20  brianp
- * changed version to 2.5
- *
- * Revision 1.7  1997/08/13 01:25:21  brianp
- * changed version string to 2.4
- *
- * Revision 1.6  1997/07/24 01:28:44  brianp
- * changed precompiled header symbol from PCH to PC_HEADER
- *
- * Revision 1.5  1997/07/13 22:59:11  brianp
- * added const to viewport parameter of gluPickMatrix()
- *
- * Revision 1.4  1997/05/28 02:29:38  brianp
- * added support for precompiled headers (PCH), inserted APIENTRY keyword
- *
- * Revision 1.3  1997/04/12 16:19:02  brianp
- * changed version to 2.3
- *
- * Revision 1.2  1997/03/11 00:58:34  brianp
- * changed version to 2.2
- *
- * Revision 1.1  1996/09/27 01:19:39  brianp
- * Initial revision
- *
  */
 
 
@@ -374,7 +275,7 @@ const GLubyte* GLAPIENTRY gluErrorString( GLenum errorCode )
 const GLubyte* GLAPIENTRY gluGetString( GLenum name )
 {
    static char *extensions = "GL_EXT_abgr";
-   static char *version = "1.2 Mesa 3.1";
+   static char *version = "1.2 Mesa 3.2";
 
    switch (name) {
       case GLU_EXTENSIONS:
