@@ -100,8 +100,9 @@ static void _tnl_draw_range_elements( GLcontext *ctx, GLenum mode,
 
    tnl->vb.Elts = (GLuint *)indices;
 
-   for (i = 0 ; i < count ; i++)
-      indices[i] -= start;
+   if (start)
+      for (i = 0 ; i < count ; i++)
+	 indices[i] -= start;
 
    if (ctx->Array.LockCount)
       tnl->Driver.RunPipeline( ctx );
@@ -113,8 +114,9 @@ static void _tnl_draw_range_elements( GLcontext *ctx, GLenum mode,
       tnl->pipeline.run_input_changes |= ctx->Array._Enabled;
    }
 
-   for (i = 0 ; i < count ; i++)
-      indices[i] += start;
+   if (start)
+      for (i = 0 ; i < count ; i++)
+	 indices[i] += start;
 }
 
 
