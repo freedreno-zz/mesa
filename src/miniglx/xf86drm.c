@@ -1441,6 +1441,8 @@ int drmGetInterruptFromBusID(int fd, int busnum, int devnum, int funcnum)
  * \return zero on sucess, or a negative value on failure.
  * 
  * \internal
+ * Issues a ioctl given by 
+ * \code DRM_COMMAND_BASE + drmCommandIndex \endcode.
  */
 int drmCommandNone(int fd, unsigned long drmCommandIndex)
 {
@@ -1465,8 +1467,10 @@ int drmCommandNone(int fd, unsigned long drmCommandIndex)
  * \param size size of the data to be read.
  * 
  * \return zero on sucess, or a negative value on failure.
- * 
+ *
  * \internal
+ * Issues a read ioctl given by 
+ * \code DRM_COMMAND_BASE + drmCommandIndex \endcode.
  */
 int drmCommandRead(int fd, unsigned long drmCommandIndex,
                    void *data, unsigned long size )
@@ -1494,6 +1498,8 @@ int drmCommandRead(int fd, unsigned long drmCommandIndex,
  * \return zero on sucess, or a negative value on failure.
  * 
  * \internal
+ * Issues a write ioctl given by 
+ * \code DRM_COMMAND_BASE + drmCommandIndex \endcode.
  */
 int drmCommandWrite(int fd, unsigned long drmCommandIndex,
                    void *data, unsigned long size )
@@ -1521,6 +1527,8 @@ int drmCommandWrite(int fd, unsigned long drmCommandIndex,
  * \return zero on sucess, or a negative value on failure.
  * 
  * \internal
+ * Issues a read-write ioctl given by 
+ * \code DRM_COMMAND_BASE + drmCommandIndex \endcode.
  */
 int drmCommandWriteRead(int fd, unsigned long drmCommandIndex,
                    void *data, unsigned long size )

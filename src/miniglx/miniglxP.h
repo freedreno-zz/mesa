@@ -52,9 +52,9 @@ typedef struct __GLXvisualConfigRec {
 } __GLXvisualConfig;
 
 
-typedef struct __DRIscreenRec   __DRIscreen;
-typedef struct __DRIcontextRec  __DRIcontext;
-typedef struct __DRIdrawableRec __DRIdrawable;
+typedef struct __DRIscreenRec   __DRIscreen;   /**< \copydoc __DRIscreenRec */
+typedef struct __DRIcontextRec  __DRIcontext;  /**< \copydoc __DRIcontextRec */
+typedef struct __DRIdrawableRec __DRIdrawable; /**< \copydoc __DRIdrawableRec */
 
 
 typedef void *(*CreateScreenFunc)(Display *dpy, int scrn, __DRIscreen *psc,
@@ -65,7 +65,6 @@ typedef void *(*CreateScreenFunc)(Display *dpy, int scrn, __DRIscreen *psc,
 /**
  * \brief Screen dependent methods.
  *
- * \internal
  * This structure is initialized during the MiniGLXDisplayRec::createScreen
  * call.
  */
@@ -113,7 +112,6 @@ struct __DRIscreenRec {
 /**
  * \brief Context dependent methods. 
  * 
- * \internal
  * This structure is initialized during the __DRIscreenRec::createContext call.
  */
 struct __DRIcontextRec {
@@ -149,7 +147,6 @@ struct __DRIcontextRec {
 /**
  * \brief Drawable dependent methods.
  *
- * \internal
  * This structure is initialized during the __DRIscreenRec::createDrawable call.
  *
  * __DRIscreenRec::createDrawable is not called by libGL at this time.  It's
@@ -178,17 +175,31 @@ struct __DRIdrawableRec {
 /**
  * \brief Interface to driver.
  *
- * \internal
- * This structure is retrieved from the loadable driver by dlsym
- * "__driMiniGLXDriver" to access the miniglx-specific hardware
+ * This structure is retrieved from the loadable driver by the \e
+ * __driMiniGLXDriver symbol to access the MiniGLX-specific hardware
  * initalization and takedown routines.
  */
 struct MiniGLXDriverRec { 
+   /**
+    * \brief Get the list of supported configs.
+    */
    int (*initScreenConfigs)( struct MiniGLXDisplayRec *dpy,
 			     int *numConfigs, __GLXvisualConfig **configs );
+   /**
+    * \brief Validate the framebuffer device mode
+    */
    int (*validateMode)( struct MiniGLXDisplayRec *dpy );
+
    int (*postValidateMode)( struct MiniGLXDisplayRec *dpy );
+
+   /**
+    * \brief Initialize the framebuffer device.
+    */
    int (*initFBDev)( struct MiniGLXDisplayRec *dpy );
+
+   /**
+    * \brief Halt the framebuffer device.
+    */
    void (*haltFBDev)( struct MiniGLXDisplayRec *dpy );
 };
 
@@ -196,14 +207,13 @@ struct MiniGLXDriverRec {
 
 /**
  * \brief Supported pixel formats.
- * \enum pixelFormat
  */
 enum PixelFormat {
-   PF_B8G8R8,    /**< 24-bit BGR */
-   PF_B8G8R8A8,  /**< 32-bit BGRA */
-   PF_B5G6R5,    /**< 16-bit BGR */
-   PF_B5G5R5,    /**< 15-bit BGR */
-   PF_CI8        /**< 8-bit color index */
+   PF_B8G8R8,    /**< \brief 24-bit BGR */
+   PF_B8G8R8A8,  /**< \brief 32-bit BGRA */
+   PF_B5G6R5,    /**< \brief 16-bit BGR */
+   PF_B5G5R5,    /**< \brief 15-bit BGR */
+   PF_CI8        /**< \brief 8-bit color index */
 };
 
 
@@ -288,8 +298,8 @@ struct MiniGLXDisplayRec {
     * \name From __GLXdisplayPrivate
     */
    /*@{*/
-   CreateScreenFunc createScreen;
-   __DRIscreen driScreen;
+   CreateScreenFunc createScreen; /**< \brief \e __driCreateScreen hook */
+   __DRIscreen driScreen;         /**< \brief Screen dependent methods */
    void *dlHandle;                /**<
 				   * \brief handle to the client dynamic
 				   * library 
@@ -306,8 +316,7 @@ struct MiniGLXDisplayRec {
    /**
     * \name Configuration details
     *
-    * \todo Will come from a file, hardcoded for now 
-    * \todo Can we get chipset from fbdev?  -- kindof, see fbdevhw.c
+    * They are read from a configuration file by __read_config_file().
     */
    /*@{*/
    const char *fbdevDevice;

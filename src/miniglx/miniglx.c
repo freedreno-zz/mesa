@@ -22,7 +22,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: miniglx.c,v 1.1.4.38 2003/01/18 12:25:57 keithw Exp $ */
+/* $Id: miniglx.c,v 1.1.4.39 2003/01/19 12:18:08 jrfonseca Exp $ */
 
 
 /**
@@ -132,14 +132,26 @@ static void SwitchDisplay(int i_signal)
 }
 
 /**********************************************************************/
-/** \name FBdev functions                                             */
+/** \name Framebuffer device functions                                */
 /**********************************************************************/
 /*@{*/
 
 /**
- * \brief Do first part of setting up fbdev.
+ * \brief Do the first part of setting up the framebuffer device.
  *
+ * \param dpy the display handle.
+ *
+ * \return GL_TRUE on success, or GL_FALSE on failure.
+ * 
  * \sa This is called during XOpenDisplay().
+ *
+ * \internal
+ * Gets the VT number, opens the respective console TTY device. Saves its state
+ * to restore when exiting and goes into graphics mode.
+ *
+ * Opens the framebuffer device and make a copy of the original variable screen
+ * information and gets the fixed screen information.  Maps the framebuffer and
+ * MMIO region into the process address space.
  */
 static GLboolean
 OpenFBDev( Display *dpy )
@@ -154,7 +166,7 @@ OpenFBDev( Display *dpy )
       return GL_FALSE;
    }
 
-   /* open /dev/tty0 and get the vt number */
+   /* open /dev/tty0 and get the VT number */
    if ((fd = open("/dev/tty0", O_WRONLY, 0)) < 0) {
       fprintf(stderr, "error opening /dev/tty0\n");
       return GL_FALSE;
@@ -305,9 +317,24 @@ OpenFBDev( Display *dpy )
 
 
 /**
- * \brief Setup up our desired fbdev framebuffer mode.  
+ * \brief Setup up the desired framebuffer device mode.  
  *
+ * \param dpy the display handle.
+ * \param win the window handle, from which the screen size is taken.
+ * 
+ * \return GL_TRUE on success, or GL_FALSE on failure.
+ * 
  * \sa This is called during XCreateWindow().
+ *
+ * \internal
+ * Bumps the size of the window the the next supported mode. Sets the variable
+ * screen information according to the desired mode and asks the driver to
+ * validate the mode. Certifies that a TrueColor visual is used from the
+ * updated fixed screen information.
+ *
+ * Attempts to draws a bitmap with a gradient.
+ *
+ * \todo Timings are hardcoded in the code for a set of supported modes.
  */
 static GLboolean
 SetupFBDev( Display *dpy, Window win )
@@ -505,10 +532,18 @@ SetupFBDev( Display *dpy, Window win )
 
 
 /**
- * \brief Restore framebuffer to state it was in before we started
- * (undoes work done in SetupFBDev).
+ * \brief Restore the framebuffer device to state it was in before we started
+ *
+ * Undoes the work done by SetupFBDev().
+ * 
+ * \param dpy the display handle.
+ *
+ * \return GL_TRUE on success, or GL_FALSE on failure.
  * 
  * \sa Called from XDestroyWindow().
+ *
+ * \internal
+ * Restores the original variable screen info.
  */
 static GLboolean
 RestoreFBDev( Display *dpy )
@@ -526,9 +561,15 @@ RestoreFBDev( Display *dpy )
 
 
 /**
- * \brief Close FBDev.  
+ * \brief Close the framebuffer device.  
  *
+ * \param dpy the display handle.
+ * 
  * \sa Called from XCloseDisplay().
+ *
+ * \internal
+ * Unmaps the framebuffer and MMIO region.  Restores the text mode and the
+ * original virtual terminal. Closes the console and framebuffer devices.
  */
 static void
 CloseFBDev( Display *dpy )
@@ -565,6 +606,17 @@ CloseFBDev( Display *dpy )
 /**********************************************************************/
 /*@{*/
 
+/**
+ * \brief Find the DRI screen dependent methods associated with the display.
+ *
+ * \param dpy a display handle, as returned by XOpenDisplay().
+ * \param scrn the screen number. Not referenced.
+ * 
+ * \returns a pointer to a __DRIscreenRec structure.
+ * 
+ * \internal
+ * Returns the MiniGLXDisplayRec::driScreen attribute.
+ */
 __DRIscreen *
 __glXFindDRIScreen(Display *dpy, int scrn)
 {
@@ -572,6 +624,16 @@ __glXFindDRIScreen(Display *dpy, int scrn)
    return &(dpy->driScreen);
 }
 
+/**
+ * \brief Validate a drawable.
+ *
+ * \param dpy a display handle, as returned by XOpenDisplay().
+ * \param draw drawable to validate.
+ * 
+ * \internal
+ * Since Mini GLX only supports one window, compares the specified drawable with
+ * the MiniGLXDisplayRec::TheWindow attribute.
+ */
 Bool
 __glXWindowExists(Display *dpy, GLXDrawable draw)
 {
@@ -581,6 +643,14 @@ __glXWindowExists(Display *dpy, GLXDrawable draw)
       return False;
 }
 
+/**
+ * \brief Get current thread ID.
+ *
+ * \return thread ID.
+ *
+ * \internal
+ * Always returns 0. 
+ */
 unsigned long
 _glthread_GetID(void)
 {
@@ -638,9 +708,19 @@ static int get_chipset_from_busid( Display *dpy )
 /**
  * \brief Read settings from a configuration file.
  * 
- * \return non-zeros on success, zero otherwise.
+ * The configuration file is usually "/etc/minigilx.conf", but can be overriden
+ * with the MINIGLX_CONF environment variable. 
+ *
+ * The format consists in \code option = value \endcode lines. The option names 
+ * corresponds to the fields in MiniGLXDisplayRec.
+ * 
+ * \param dpy the display handle as.
+ *
+ * \return non-zero on success, zero otherwise.
  * 
  * \internal 
+ * Sets some defaults. Opens and parses the the Mini GLX configuration file and
+ * fills in the MiniGLXDisplayRec field that corresponds for each option.
  */
 static int __read_config_file( Display *dpy )
 {
@@ -749,8 +829,18 @@ static int __read_config_file( Display *dpy )
  * the graphics system, NULL otherwise.
  * 
  * \internal
+ * Allocates a MiniGLXDisplayRec structure and fills in with information from a
+ * configuration file. 
  *
- * \attention This function not stable.
+ * Opens and initializes the fbdev device.
+ *
+ * Loads the DRI driver and pulls in MiniGLX-specific hooks into a
+ * MiniGLXDriverRec structure, and the standard DRI \e __driCreateScreen hook.
+ * Asks the driver for a list of supported visuals.  Performs the client-side
+ * initialization - has to be done this here as it depends on the chosen
+ * display resolution, which in this window system depends on the size of the
+ * \e window created. Also setups the callbacks in the screen private
+ * information.
  */
 Display *
 XOpenDisplay( const char *display_name )
@@ -834,7 +924,7 @@ XOpenDisplay( const char *display_name )
     * Clearly there is a limit of one on the number of windows in
     * existence at any time.
     *
-    * Need to shut down drm and free dri data in XDestroyWindow, too.
+    * Need to shut down DRM and free DRI data in XDestroyWindow(), too.
     */
    dpy->driScreen.private = (*dpy->createScreen)(dpy, 0, 
 						 &(dpy->driScreen),
@@ -867,9 +957,12 @@ XOpenDisplay( const char *display_name )
  * 
  * \internal 
  * This function frees the \p display structure, after calling the
- * __DRIscreenRec::destroyScreen method pointed by MiniGLXDisplayRec::driScreen
- * attribute of \p display, closing the dynamic library handle
- * MiniGLXDisplayRec::dlHandle and calling CleanupFBDev() to close the fbdev.
+ * __DRIscreenRec::destroyScreen method pointed by
+ * MiniGLXDisplayRec::driScreen attribute of \p display, closing the dynamic
+ * library handle MiniGLXDisplayRec::dlHandle and calling CloseFBDev() to
+ * close the fbdev.
+ *
+ * Also destroy the window and halt the framebuffer device.
  */
 void
 XCloseDisplay( Display *display )
@@ -901,7 +994,7 @@ XCloseDisplay( Display *display )
 /**
  * \brief Window creation.
  *
- * \param display a #Display pointer, as returned by XOpenDisplay().
+ * \param display a display handle, as returned by XOpenDisplay().
  * \param parent the parent window for the new window. For Mini GLX this should
  * be 
  * \code RootWindow(display, 0) \endcode
@@ -911,8 +1004,8 @@ XCloseDisplay( Display *display )
  * screen width such as 1024 or 1280. 
  * \param height the window height. For Mini GLX, this specifies the desired
  * screen height such as 768 or 1024.
- * \param border_width This parameter should be zero.
- * \param depth the window pixel depth. For Mini GLX this should be the depth
+ * \param border_width the border sith. For Mini GLX, it should be zero.
+ * \param depth the window pixel depth. For Mini GLX, this should be the depth
  * found in the #XVisualInfo object returned by glXChooseVisual() 
  * \param class the window class. For Mini GLX this value should be
  * #InputOutput.
@@ -1103,8 +1196,8 @@ XMapWindow( Display *display, Window w )
  * \return the color map.
  * 
  * \internal
- * This function is only provided to ease porting.  Practically a no-op. 
- * Returns a pointer to an one-byte chunk of memory allocated with #MALLOC.
+ * This function is only provided to ease porting.  Practically a no-op -
+ * returns a pointer to a dinamically allocated chunk of memory (one byte).
  */
 Colormap
 XCreateColormap( Display *dpy, Window w, Visual *visual, int alloc )
@@ -1436,7 +1529,8 @@ glXChooseVisual( Display *dpy, int screen, int *attribList )
  * invalid.
  *
  * \internal
- * Returns the appropriate attribute of ::__GLXvisualConfig pointed by MiniGLXVisualRec::glxConfig of XVisualInfo::visual.
+ * Returns the appropriate attribute of ::__GLXvisualConfig pointed by
+ * MiniGLXVisualRec::glxConfig of XVisualInfo::visual.
  *
  * \sa datatypes.
  */
@@ -1588,7 +1682,7 @@ glXDestroyContext( Display *dpy, GLXContext ctx )
  * __DRIcontextRec::unbindContext and binds the new one via
  * __DRIcontextRec::bindContext.
  *
- * If /p drawable is zero it unbinds the GLX context by calling
+ * If \p drawable is zero it unbinds the GLX context by calling
  * __DRIcontextRec::bindContext with zeros.
  */
 Bool
