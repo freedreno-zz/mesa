@@ -1,4 +1,4 @@
-/* $Id: fakeglx.c,v 1.34.4.1 2000/07/31 13:47:21 brianp Exp $ */
+/* $Id: fakeglx.c,v 1.34.4.2 2000/08/08 16:19:32 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -65,7 +65,7 @@
 #define SERVER_MINOR_VERSION 3
 
 /* This is appended onto the glXGetClient/ServerString version strings. */
-#define MESA_GLX_VERSION "Mesa 3.3"
+#define MESA_GLX_VERSION "Mesa 3.4"
 
 /* Who implemented this GLX? */
 #define VENDOR "Brian Paul"
