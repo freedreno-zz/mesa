@@ -1,4 +1,4 @@
-/* $Id: glthread.h,v 1.11 2002/03/07 21:50:41 brianp Exp $ */
+/* $Id: glthread.h,v 1.11.6.1 2002/11/21 15:45:55 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -65,6 +65,8 @@
 #ifndef GLTHREAD_H
 #define GLTHREAD_H
 
+#undef PTHREADS
+#undef XTHREADS
 
 #if defined(PTHREADS) || defined(SOLARIS_THREADS) || defined(WIN32_THREADS) || defined(XTHREADS)
 #define THREADS
