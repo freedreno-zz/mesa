@@ -1,14 +1,14 @@
-/* $Id: miniglxtest.c,v 1.1.4.5 2003/01/02 18:44:41 keithw Exp $ */
+/* $Id: miniglxtest.c,v 1.1.4.6 2003/01/20 11:25:50 keithw Exp $ */
 
 /*
  * Test the mini GLX interface.
  */
 
-#define USE_MINI_GLX 1
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <GL/gl.h>
+#define USE_MINI_GLX 1
 #if USE_MINI_GLX
 #include <GL/miniglx.h>
 #else
@@ -16,18 +16,28 @@
 #endif
 
 #define FRONTBUFFER 1
-#define NR          10
-#define DO_SLEEPS   0
+#define NR          6
+#define DO_SLEEPS   1
+#define NR_DISPLAYS 2
+
+GLXContext ctx;
 
 static void redraw( Display *dpy, Window w, int rot )
 {
    printf("Redraw event\n");
 
 #if FRONTBUFFER
-   glDrawBuffer( GL_FRONT );
+    glDrawBuffer( GL_FRONT ); 
+#else
+/*     glDrawBuffer( GL_BACK );    */
 #endif
-   glClearColor( 0, 1, 0, 1 );
-   glClear( GL_COLOR_BUFFER_BIT );
+
+   glClearColor( rand()/(float)RAND_MAX, 
+		 rand()/(float)RAND_MAX, 
+		 rand()/(float)RAND_MAX,
+		 1);
+
+   glClear( GL_COLOR_BUFFER_BIT ); 
 
 #if 1
    glColor3f( rand()/(float)RAND_MAX, 
@@ -56,14 +66,15 @@ static Window make_rgb_db_window( Display *dpy,
 		    GLX_RED_SIZE, 1,
 		    GLX_GREEN_SIZE, 1,
 		    GLX_BLUE_SIZE, 1,
+#if !FRONT_BUFFER
  		    GLX_DOUBLEBUFFER, 
+#endif
 		    None };
    int scrnum;
    XSetWindowAttributes attr;
    unsigned long mask;
    Window root;
    Window win;
-   GLXContext ctx;
    XVisualInfo *visinfo;
 
    scrnum = 0;
@@ -72,6 +83,12 @@ static Window make_rgb_db_window( Display *dpy,
    visinfo = glXChooseVisual( dpy, scrnum, attrib );
    if (!visinfo) {
       printf("Error: couldn't get an RGB, Double-buffered visual\n");
+      exit(1);
+   }
+
+   ctx = glXCreateContext( dpy, visinfo, NULL, True );
+   if (!ctx) {
+      printf("Error: glXCreateContext failed\n");
       exit(1);
    }
 
@@ -87,12 +104,6 @@ static Window make_rgb_db_window( Display *dpy,
 		        visinfo->visual, mask, &attr );
    if (!win) {
       printf("Error: XCreateWindow failed\n");
-      exit(1);
-   }
-
-   ctx = glXCreateContext( dpy, visinfo, NULL, True );
-   if (!ctx) {
-      printf("Error: glXCreateContext failed\n");
       exit(1);
    }
 
@@ -117,7 +128,7 @@ static void event_loop( Display *dpy, Window win )
 }
 
 
-int main( int argc, char *argv[] )
+int foo( )
 {
    Display *dpy;
    Window win;
@@ -137,11 +148,37 @@ int main( int argc, char *argv[] )
 
    XMapWindow( dpy, win );
 
+#if !USE_MINI_GLX
+   {
+      XEvent e;
+      while (1) {
+	 XNextEvent( dpy, &e );
+	 if (e.type == MapNotify && e.xmap.window == win) {
+	    break;
+	 }
+      }
+   }
+#endif
+
+
    event_loop( dpy, win );
 
+   glXDestroyContext( dpy, ctx );
    XDestroyWindow( dpy, win );
 
    XCloseDisplay( dpy );
+
+   return 0;
+}
+
+
+int main()
+{
+   int i;
+   for (i = 0 ; i < NR_DISPLAYS ; i++) {
+      if (foo() != 0)
+	 break;
+   }
 
    return 0;
 }
