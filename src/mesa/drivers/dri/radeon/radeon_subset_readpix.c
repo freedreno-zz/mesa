@@ -149,6 +149,12 @@ void radeonReadPixels( GLint x, GLint y,
    GLint rowLength;
    ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx);
 
+   {
+      GLint tmp, tmps;
+      tmp = x; x = y; y = tmp;
+      tmps = width; width = height; height = tmps;
+   }
+
    if (width < 0 || height < 0) {
       _mesa_error( ctx, GL_INVALID_VALUE,
                    "glReadPixels(width=%d height=%d)", width, height );

@@ -38,6 +38,7 @@
 #include "api_arrayelt.h"
 #include "mmath.h"
 #include "enums.h"
+#include "context.h"
 #include "colormac.h"
 
 #if _HAVE_SWTNL
@@ -475,16 +476,25 @@ void radeonUpdateScissor( GLcontext *ctx )
 
    if ( rmesa->dri.drawable ) {
       __DRIdrawablePrivate *dPriv = rmesa->dri.drawable;
+      int x1,x2,y1,y2;
 
-      int x = ctx->Scissor.X;
-      int y = dPriv->h - ctx->Scissor.Y - ctx->Scissor.Height;
-      int w = ctx->Scissor.X + ctx->Scissor.Width - 1;
-      int h = dPriv->h - ctx->Scissor.Y - 1;
+      if (ctx->_RotateMode) {
+	  x1 = dPriv->w - ctx->Scissor.Y - ctx->Scissor.Height;
+	  x2 = dPriv->w - ctx->Scissor.Y;
+	  y1 = dPriv->h - ctx->Scissor.X - ctx->Scissor.Width;
+	  y2 = dPriv->h - ctx->Scissor.X;
+      }
+      else {
+	  x1 = ctx->Scissor.X;
+	  x2 = ctx->Scissor.X + ctx->Scissor.Width;
+	  y1 = dPriv->h - ctx->Scissor.Y - ctx->Scissor.Height;
+	  y2 = dPriv->h - ctx->Scissor.Y;
+      }
 
-      rmesa->state.scissor.rect.x1 = x + dPriv->x;
-      rmesa->state.scissor.rect.y1 = y + dPriv->y;
-      rmesa->state.scissor.rect.x2 = w + dPriv->x + 1;
-      rmesa->state.scissor.rect.y2 = h + dPriv->y + 1;
+      rmesa->state.scissor.rect.x1 = x1 + dPriv->x;
+      rmesa->state.scissor.rect.x2 = x2 + dPriv->x;
+      rmesa->state.scissor.rect.y1 = y1 + dPriv->y;
+      rmesa->state.scissor.rect.y2 = y2 + dPriv->y;
 
       radeonRecalcScissorRects( rmesa );
    }
@@ -986,16 +996,36 @@ void radeonUpdateWindow( GLcontext *ctx )
 {
    radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
    __DRIdrawablePrivate *dPriv = rmesa->dri.drawable;
-   GLfloat xoffset = (GLfloat)dPriv->x;
-   GLfloat yoffset = (GLfloat)dPriv->y + dPriv->h;
-   const GLfloat *v = ctx->Viewport._WindowMap.m;
+   const GLfloat n = ctx->Viewport.Near;
+   const GLfloat f = ctx->Viewport.Far;
+   const GLfloat x = (GLfloat) ctx->Viewport.X;
+   const GLfloat y = (GLfloat) ctx->Viewport.Y;
+   const GLfloat width = (GLfloat) ctx->Viewport.Width;
+   const GLfloat height = (GLfloat) ctx->Viewport.Height;
+   GLfloat wx = (GLfloat)dPriv->x;
+   GLfloat ww = (GLfloat)dPriv->w;
+   GLfloat wy = (GLfloat)dPriv->y;
+   GLfloat wh = (GLfloat)dPriv->h;
+   GLfloat sx,sy,sz, tx,ty,tz;
 
-   GLfloat sx = v[MAT_SX];
-   GLfloat tx = v[MAT_TX] + xoffset + SUBPIXEL_X;
-   GLfloat sy = - v[MAT_SY];
-   GLfloat ty = (- v[MAT_TY]) + yoffset + SUBPIXEL_Y;
-   GLfloat sz = v[MAT_SZ] * rmesa->state.depth.scale;
-   GLfloat tz = v[MAT_TZ] * rmesa->state.depth.scale;
+   if (ctx->_RotateMode) {
+      sx = height / 2.0F;
+      tx = wx - sx + ww - y + SUBPIXEL_X;
+      sy = - width / 2.0F;
+      ty = wy + sy + wh - x + SUBPIXEL_Y;
+      sz = ctx->DepthMaxF * ((f - n) / 2.0F) * rmesa->state.depth.scale;
+      tz = ctx->DepthMaxF * ((f - n) / 2.0F + n) * rmesa->state.depth.scale;
+   }
+   else {
+
+      sx = width / 2.0F;
+      tx = wx + sx + x + SUBPIXEL_X;
+      sy = -height / 2.0F;
+      ty = wy + sy + wh - y + SUBPIXEL_Y;
+      sz = ctx->DepthMaxF * ((f - n) / 2.0F) * rmesa->state.depth.scale;
+      tz = ctx->DepthMaxF * ((f - n) / 2.0F + n) * rmesa->state.depth.scale;
+   }
+
    RADEON_FIREVERTICES( rmesa );
    RADEON_STATECHANGE( rmesa, vpt );
 
@@ -1005,13 +1035,13 @@ void radeonUpdateWindow( GLcontext *ctx )
    rmesa->hw.vpt.cmd[VPT_SE_VPORT_YOFFSET] = *(GLuint *)&ty;
    rmesa->hw.vpt.cmd[VPT_SE_VPORT_ZSCALE]  = *(GLuint *)&sz;
    rmesa->hw.vpt.cmd[VPT_SE_VPORT_ZOFFSET] = *(GLuint *)&tz;
+
 }
 
 
 /**
  * \brief Set the viewport.
  *
- * \param ctx GL context.
  * \param x \e x position of the lower left corner of the viewport rectangle.
  * Not used.
  * \param y \e y position of the lower left corner of the viewport rectangle.
@@ -1023,9 +1053,23 @@ void radeonUpdateWindow( GLcontext *ctx )
  * 
  * Fires the vertices and updates the window.
  */
-static void radeonViewport( GLcontext *ctx, GLint x, GLint y,
-			    GLsizei width, GLsizei height )
+static void radeonViewport( GLint x, GLint y, GLsizei width, GLsizei height )
 {
+   GET_CURRENT_CONTEXT(ctx);
+   ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx);
+
+   if (width < 0 || height < 0) {
+      _mesa_error( ctx,  GL_INVALID_VALUE,
+                   "glViewport(%d, %d, %d, %d)", x, y, width, height );
+      return;
+   }
+
+   /* Save viewport - note: Not taking rotation into account here*/
+   ctx->Viewport.X = x;
+   ctx->Viewport.Width = width;
+   ctx->Viewport.Y = y;
+   ctx->Viewport.Height = height;
+
    /* Don't pipeline viewport changes, conflict with window offset
     * setting below.  Could apply deltas to rescue pipelined viewport
     * values, or keep the originals hanging around.
@@ -1613,6 +1657,31 @@ void radeonUploadMatrixTranspose( radeonContextPtr rmesa, GLfloat *src,
 }
 
 
+#define A(row,col)  a[(col<<2)+row]
+#define B(row,col)  b[(col<<2)+row]
+#define P(row,col)  product[(col<<2)+row]
+
+
+static void matmul4( GLfloat *product, const GLfloat *a, const GLfloat *b )
+{
+   GLint i;
+   for (i = 0; i < 4; i++) {
+      const GLfloat ai0=A(i,0),  ai1=A(i,1),  ai2=A(i,2),  ai3=A(i,3);
+      P(i,0) = ai0 * B(0,0) + ai1 * B(1,0) + ai2 * B(2,0) + ai3 * B(3,0);
+      P(i,1) = ai0 * B(0,1) + ai1 * B(1,1) + ai2 * B(2,1) + ai3 * B(3,1);
+      P(i,2) = ai0 * B(0,2) + ai1 * B(1,2) + ai2 * B(2,2) + ai3 * B(3,2);
+      P(i,3) = ai0 * B(0,3) + ai1 * B(1,3) + ai2 * B(2,3) + ai3 * B(3,3);
+   }
+}
+
+static const GLfloat rot[16] = {
+   0, 1, 0, 0,
+   -1, 0, 0, 0,
+   0, 0, 1, 0,
+   0, 0, 0, 1 
+};
+
+
 void radeonValidateState( GLcontext *ctx )
 {
    radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
@@ -1625,8 +1694,16 @@ void radeonValidateState( GLcontext *ctx )
 
    /* Need an event driven matrix update?
     */
-   if (new_state & (_NEW_MODELVIEW|_NEW_PROJECTION)) 
-      radeonUploadMatrix( rmesa, ctx->_ModelProjectMatrix.m, MODEL_PROJ );
+   if (new_state & (_NEW_MODELVIEW|_NEW_PROJECTION)) {
+      if (ctx->_RotateMode) {
+	 GLfloat tmp[16];
+	 matmul4( tmp, rot, ctx->_ModelProjectMatrix.m );
+	 radeonUploadMatrix( rmesa, tmp, MODEL_PROJ );
+      }
+      else {
+	 radeonUploadMatrix( rmesa, ctx->_ModelProjectMatrix.m, MODEL_PROJ );
+      }
+   }
 
    /* Need these for lighting (shouldn't upload otherwise)
     */
@@ -1730,8 +1807,9 @@ void radeonInitStateFuncs( GLcontext *ctx )
    ctx->Driver.StencilFunc		= radeonStencilFunc;
    ctx->Driver.StencilMask		= radeonStencilMask;
    ctx->Driver.StencilOp		= radeonStencilOp;
-   ctx->Driver.Viewport			= radeonViewport;
+/*    ctx->Driver.Viewport			= radeonViewport; */
 
+   ctx->Exec->Viewport = radeonViewport;
 }
 
 /*@}*/

@@ -73,17 +73,14 @@ radeonPointsBitmap(  GLsizei width, GLsizei height,
 		     const GLubyte *bitmap )
 {
    GET_CURRENT_CONTEXT(ctx);
+   GLsizei bmwidth = width, bmheight = height;   
+   GLint px, py;
    radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
    GLfloat saved_color[4], saved_tex0[2];
    GLint row, col;
    GLuint orig_se_cntl;
-   GLuint h;
+   GLuint w, h;
    const struct gl_pixelstore_attrib *unpack = &ctx->Unpack;
-   GLint skipRows = unpack->SkipRows;
-   GLint skipPixels = unpack->SkipPixels;
-   GLint px = IFLOOR(ctx->Current.RasterPos[0] - xorig);
-   GLint py = IFLOOR(ctx->Current.RasterPos[1] - yorig);
-
 
    ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx);
 
@@ -98,31 +95,26 @@ radeonPointsBitmap(  GLsizei width, GLsizei height,
    if (ctx->NewState) 
       _mesa_update_state(ctx);
 
-   /* update raster position */
-   ctx->Current.RasterPos[0] += xmove;
-   ctx->Current.RasterPos[1] += ymove;
 
-   /* horizontal clipping */
-   if (px < 0) {
-      skipPixels -= px;
-      width += px;
-      px = 0;
-   }
-   if (px + width > (GLint) ctx->ReadBuffer->Width)
-      width -= (px + width - (GLint) ctx->ReadBuffer->Width);
-   if (width <= 0)
-      return;
+   if (ctx->_RotateMode) {
+      __DRIdrawablePrivate *dPriv = rmesa->dri.drawable;
+      GLfloat tmp;
+      width = bmheight; height = bmwidth;
 
-   /* vertical clipping */
-   if (py < 0) {
-      skipRows -= py;
-      height += py;
-      py = 0;
+      px = IFLOOR(ctx->Current.RasterPos[0] + yorig);
+      py = IFLOOR(ctx->Current.RasterPos[1] + xorig);
+
+      ctx->Current.RasterPos[0] += ymove;
+      ctx->Current.RasterPos[1] += xmove;
    }
-   if (py + height > (GLint) ctx->ReadBuffer->Height)
-      height -= (py + height - (GLint) ctx->ReadBuffer->Height);
-   if (height <= 0)
-      return;
+   else {
+      px = IFLOOR(ctx->Current.RasterPos[0] - xorig);
+      py = IFLOOR(ctx->Current.RasterPos[1] - yorig);
+
+      ctx->Current.RasterPos[0] += xmove;
+      ctx->Current.RasterPos[1] += ymove;
+   }
+
 
 
    /* Turn off tcl and the hw viewport transformation so that we can
@@ -138,6 +130,7 @@ radeonPointsBitmap(  GLsizei width, GLsizei height,
    /* Adjust for window coordinates, flip y values:
     */
    h = rmesa->dri.drawable->h + rmesa->dri.drawable->y - 1;
+   w = rmesa->dri.drawable->w;
    px += rmesa->dri.drawable->x;
 
    /* Save current color, texcoord to restore later:
@@ -151,26 +144,48 @@ radeonPointsBitmap(  GLsizei width, GLsizei height,
    glColor4fv( ctx->Current.RasterColor );
    glTexCoord2fv( ctx->Current.RasterTexCoords[0] );
 
-   for (row=0; row<height; row++) {
-      GLuint y = h - (py + row);
-      const GLubyte *src = (const GLubyte *) 
-	 _mesa_image_address( unpack, bitmap, width, height, 
-			      GL_COLOR_INDEX, GL_BITMAP, 0, row, 0 );
 
-      /* Msb first */
-      GLubyte mask = 128U >> (unpack->SkipPixels & 0x7);
+   if (ctx->_RotateMode) {
       for (col=0; col<width; col++) {
-	 if (*src & mask) {
-	    glVertex2f( px+col, y );
+	 const GLubyte *src = (const GLubyte *) 
+	    _mesa_image_address( unpack, bitmap, height, width, 
+				 GL_COLOR_INDEX, GL_BITMAP, 0, col, 0 );
+	    
+	 /* Msb first */
+	 GLubyte mask = 128U >> (unpack->SkipPixels & 0x7);
+	 for (row=0; row<height; row++) {
+	    if (*src & mask) {
+	       glVertex2f( px-col, h - (py + row) );
+	    }
+	    src += mask & 1;
+	    mask = ((mask << 7) & 0xff) | (mask >> 1);
 	 }
-	 src += mask & 1;
-	 mask = ((mask << 7) & 0xff) | (mask >> 1);
+	 /* get ready for next row */
+	 if (mask != 128)
+	    src++;
       }
-      /* get ready for next row */
-      if (mask != 128)
-	 src++;
    }
-   
+   else {
+      for (row=0; row<height; row++) {
+	 const GLubyte *src = (const GLubyte *) 
+	    _mesa_image_address( unpack, bitmap, width, height, 
+				 GL_COLOR_INDEX, GL_BITMAP, 0, row, 0 );
+	    
+	 /* Msb first */
+	 GLubyte mask = 128U >> (unpack->SkipPixels & 0x7);
+	 for (col=0; col<width; col++) {
+	    if (*src & mask) {
+	       glVertex2f( px+col, h - (py + row) );
+	    }
+	    src += mask & 1;
+	    mask = ((mask << 7) & 0xff) | (mask >> 1);
+	 }
+	 /* get ready for next row */
+	 if (mask != 128)
+	    src++;
+      }
+   }
+
    glEnd();
    glColor4fv( saved_color );
    glTexCoord2fv( saved_tex0 );
@@ -180,5 +195,5 @@ radeonPointsBitmap(  GLsizei width, GLsizei height,
    RADEON_STATECHANGE( rmesa, set );
    rmesa->hw.set.cmd[SET_SE_CNTL] = orig_se_cntl;
    radeonSubsetVtxEnableTCL( rmesa, GL_TRUE );
-
 }
+

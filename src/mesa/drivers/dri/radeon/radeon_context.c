@@ -275,6 +275,8 @@ radeonCreateContext( const __GLcontextModes *glVisual,
    rmesa->dri.hwLock = &sPriv->pSAREA->lock;
    rmesa->dri.fd = sPriv->fd;
 
+   rmesa->glCtx->_RotateMode = radeonScreen->driScreen->display->rotateMode;
+
    /* If we don't have 1.3, fallback to the 1.1 interfaces.
     */
    if (getenv("RADEON_COMPAT") || sPriv->drmMinor < 3 ) 
