@@ -1,4 +1,4 @@
-/* $Id: state.c,v 1.21.4.5 2000/11/05 21:24:01 brianp Exp $ */
+/* $Id: state.c,v 1.21.4.6 2000/12/09 19:21:01 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -926,9 +926,12 @@ void gl_update_state( GLcontext *ctx )
       ctx->NewState |= NEW_TEXTURING | NEW_RASTER_OPS;
    }
 
+   /* XXX this is a hack, gone in 3.5 */
    if (ctx->NewState & NEW_TEXTURE_ENV) {
       if (ctx->Texture.Unit[0].EnvMode == ctx->Texture.Unit[0].LastEnvMode &&
-	  ctx->Texture.Unit[1].EnvMode == ctx->Texture.Unit[1].LastEnvMode)
+	  ctx->Texture.Unit[1].EnvMode == ctx->Texture.Unit[1].LastEnvMode &&
+          ctx->Texture.Unit[0].EnvMode != GL_COMBINE_EXT &&
+          ctx->Texture.Unit[1].EnvMode != GL_COMBINE_EXT)
 	 ctx->NewState &= ~NEW_TEXTURE_ENV;
       ctx->Texture.Unit[0].LastEnvMode = ctx->Texture.Unit[0].EnvMode;
       ctx->Texture.Unit[1].LastEnvMode = ctx->Texture.Unit[1].EnvMode;
