@@ -1,4 +1,4 @@
-/* $Id: varray.c,v 1.13.2.1 1999/11/18 23:54:25 brianp Exp $ */
+/* $Id: varray.c,v 1.13.2.2 1999/11/19 00:00:09 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -503,14 +503,23 @@ void gl_DrawArrays( GLcontext *ctx, GLenum mode, GLint start, GLsizei count )
        * rendering to keep it turned on.
        */
       relock = ctx->CompileCVAFlag;
-      ctx->CompileCVAFlag = 0;
 
-      if (!elt->pipeline_valid || relock)
+      if (relock) {
+	 ctx->CompileCVAFlag = 0;
+	 elt->pipeline_valid = 0;
+      }
+
+      if (!elt->pipeline_valid)
 	 gl_build_immediate_pipeline( ctx );
 
       required = elt->inputs;
       fallback = (elt->inputs & ~ctx->Array.Summary);
 
+      /* The translate function doesn't do anything about size.  It
+       * just ensures that type and stride come out right.
+       */
+      IM->v.Obj.size = ctx->Array.Vertex.Size;
+      
       if (required & VERT_RGBA) 
       {
 	 Color = &ctx->Array.Color;
@@ -583,9 +592,7 @@ void gl_DrawArrays( GLcontext *ctx, GLenum mode, GLint start, GLsizei count )
       VB->NextPrimitive = IM->NextPrimitive; 
       VB->MaterialMask = IM->MaterialMask;
       VB->Material = IM->Material;
-      VB->BoundsPtr = 0;
-
-      IM->v.Obj.size = ctx->Array.Vertex.Size;  /* added by Andree Borrmann */
+      VB->BoundsPtr = 0;      
 
       while (remaining > 0) {
          GLint vbspace = VB_MAX - VB_START;
@@ -673,7 +680,6 @@ void gl_DrawArrays( GLcontext *ctx, GLenum mode, GLint start, GLsizei count )
          /* Transform and render.
 	  */
          gl_run_pipeline( VB );
-         gl_flush_vb( ctx, "DrawArrays" );  /* added by Andree Borrmann */
 	 gl_reset_vb( VB );
 
 	 ctx->Array.Flag[count] = ctx->Array.Flags;
@@ -683,7 +689,12 @@ void gl_DrawArrays( GLcontext *ctx, GLenum mode, GLint start, GLsizei count )
          remaining -= n;
       }
 
-      ctx->CompileCVAFlag = relock;
+      gl_reset_input( ctx );
+
+      if (relock) {
+	 ctx->CompileCVAFlag = relock;
+	 elt->pipeline_valid = 0;
+      }
    }
    else if (ctx->Array.Vertex.Enabled) 
    {
