@@ -1,40 +1,27 @@
-/* $Id: fxmesa.h,v 1.1 1999/08/19 00:55:40 jtg Exp $ */
+/* $Id: fxmesa.h,v 1.1.1.1.2.1 1999/11/24 18:38:52 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
  * Version:  3.1
- * Copyright (C) 1995-1999  Brian Paul
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Library General Public
- * License as published by the Free Software Foundation; either
- * version 2 of the License, or (at your option) any later version.
+ * Copyright (C) 1999  Brian Paul   All Rights Reserved.
  *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Library General Public License for more details.
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
  *
- * You should have received a copy of the GNU Library General Public
- * License along with this library; if not, write to the Free
- * Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- */
-
-
-/*
- * $Log: fxmesa.h,v $
- * Revision 1.1  1999/08/19 00:55:40  jtg
- * Initial revision
+ * The above copyright notice and this permission notice shall be included
+ * in all copies or substantial portions of the Software.
  *
- * Revision 3.2  1999/01/03 02:46:31  brianp
- * now using GLAPI and GLAPIENTRY keywords (Ted Jump)
- *
- * Revision 3.1  1998/04/01 03:00:28  brianp
- * updated for v0.24 of 3Dfx/Glide driver
- *
- * Revision 3.0  1998/02/20 05:04:45  brianp
- * initial rev
- *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+ * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+ * BRIAN PAUL BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+ * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
 
@@ -58,7 +45,7 @@ extern "C" {
 
 
 #define FXMESA_MAJOR_VERSION 3
-#define FXMESA_MINOR_VERSION 0
+#define FXMESA_MINOR_VERSION 1
 
 
 /*
