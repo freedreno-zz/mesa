@@ -1,4 +1,24 @@
-/* $XFree86: xc/programs/Xserver/hw/xfree86/drivers/ati/radeon_reg.h,v 1.20 2002/10/12 01:38:07 martin Exp $ */
+/**
+ * \file server/radeon_reg.h
+ * \brief Registers and register definitions for the Radeon.
+ * 
+ * \authors Kevin E. Martin <martin@xfree86.org>
+ * \authors Rickard E. Faith <faith@valinux.com>
+ * \authors Alan Hourihane <alanh@fairlite.demon.co.uk>
+ *
+ * \par References
+ *
+ * - RAGE 128 VR/ RAGE 128 GL Register Reference Manual (Technical
+ *   Reference Manual P/N RRG-G04100-C Rev. 0.04), ATI Technologies: April
+ *   1999.
+ * - RAGE 128 Software Development Manual (Technical Reference Manual P/N
+ *   SDK-G04000 Rev. 0.01), ATI Technologies: June 1999.
+ *
+ * \note !!!! FIXME !!!! THIS FILE HAS BEEN CONVERTED FROM r128_reg.h
+ * AND CONTAINS REGISTERS AND REGISTER DEFINITIONS THAT ARE NOT CORRECT
+ * ON THE RADEON.  A FULL AUDIT OF THIS CODE IS NEEDED!
+ */
+
 /*
  * Copyright 2000 ATI Technologies Inc., Markham, Ontario, and
  *                VA Linux Systems Inc., Fremont, California.
@@ -27,28 +47,7 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-/*
- * Authors:
- *   Kevin E. Martin <martin@xfree86.org>
- *   Rickard E. Faith <faith@valinux.com>
- *   Alan Hourihane <alanh@fairlite.demon.co.uk>
- *
- * References:
- *
- * !!!! FIXME !!!!
- *   RAGE 128 VR/ RAGE 128 GL Register Reference Manual (Technical
- *   Reference Manual P/N RRG-G04100-C Rev. 0.04), ATI Technologies: April
- *   1999.
- *
- * !!!! FIXME !!!!
- *   RAGE 128 Software Development Manual (Technical Reference Manual P/N
- *   SDK-G04000 Rev. 0.01), ATI Technologies: June 1999.
- *
- */
-
-/* !!!! FIXME !!!!  NOTE: THIS FILE HAS BEEN CONVERTED FROM r128_reg.h
- * AND CONTAINS REGISTERS AND REGISTER DEFINITIONS THAT ARE NOT CORRECT
- * ON THE RADEON.  A FULL AUDIT OF THIS CODE IS NEEDED!  */
+/* $XFree86: xc/programs/Xserver/hw/xfree86/drivers/ati/radeon_reg.h,v 1.20 2002/10/12 01:38:07 martin Exp $ */
 
 #ifndef _RADEON_REG_H_
 #define _RADEON_REG_H_

@@ -1,3 +1,13 @@
+/**
+ * \file server/radeon_dri.c
+ * \brief File to perform the device-specific initialization tasks typically
+ * done in the X server.
+ *
+ * Here they are converted to run in the client (or perhaps a
+ * standalone process), and to work with fbdev rather than the X
+ * server infrastructure.
+ */
+
 #include <stdio.h>
 #include <errno.h>
 
@@ -14,14 +24,6 @@
 
 
 
-/* File to perform the device-specfic initialization tasks typically
- * done in the X server.
- *
- * Here they are converted to run in the client (or perhaps a
- * standalone process), and to work with fbdev rather than the X
- * server infrastructure.
- */
-
 /* HACK - for now, put this here... */
 /* Alpha - this may need to be a variable to handle UP1x00 vs TITAN */
 #if defined(__alpha__)
@@ -33,7 +35,15 @@
 #endif
 
 
-
+/**
+ * \brief Wait for free FIFO entries.
+ *
+ * \param dpy display handle.
+ * \param entries number of free entries to wait.
+ *
+ * It polls the free entries from the chip until it reaches the requested value
+ * or a timeout (3000 tries) occurs. Aborts the program if the FIFO timesout.
+ */
 static void RADEONWaitForFifo( struct MiniGLXDisplayRec *dpy,
 			       int entries )
 {
@@ -55,6 +65,14 @@ static void RADEONWaitForFifo( struct MiniGLXDisplayRec *dpy,
    exit(1);
 }
 
+/**
+ * \brief Read a PLL register.
+ *
+ * \param dpy display handle.
+ * \param addr PLL register index.
+ *
+ * \return value of the PLL register.
+ */
 static unsigned int RADEONINPLL( struct MiniGLXDisplayRec *dpy, int addr)
 {
     unsigned char *RADEONMMIO = dpy->MMIOAddress;
@@ -66,7 +84,11 @@ static unsigned int RADEONINPLL( struct MiniGLXDisplayRec *dpy, int addr)
     return data;
 }
 
-/* Reset graphics card to known state */
+/**
+ * \brief Reset graphics card to known state.
+ *
+ * \param dpy display handle.
+ */
 static void RADEONEngineReset( struct MiniGLXDisplayRec *dpy )
 {
    unsigned char *RADEONMMIO = dpy->MMIOAddress;
@@ -183,7 +205,13 @@ static void RADEONEngineRestore( struct MiniGLXDisplayRec *dpy,
    usleep(100); 
 }
 
-/* Compute log base 2 of val */
+/**
+ * \brief Compute base 2 logarithm.
+ *
+ * \param val value.
+ * 
+ * \return base 2 logarithm of \p val.
+ */
 static int RADEONMinBits(int val)
 {
    int  bits;
@@ -193,8 +221,17 @@ static int RADEONMinBits(int val)
    return bits;
 }
 
-/* Initialize the AGP state.  Request memory for use in AGP space, and
- * initialize the Radeon registers to point to that memory.
+/**
+ * \brief Initialize the AGP state
+ *
+ * \param dpy display handle.
+ * \param info driver private data.
+ *
+ * \return one on sucess, or zero on failure.
+ * 
+ * Acquires and enables the AGP device. Reserves memory in the AGP space for
+ * the ring buffer, vertex buffers and textures. Initialize the Radeon
+ * registers to point to that memory and add client mappings.
  */
 static int RADEONDRIAgpInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info)
 {
@@ -318,8 +355,17 @@ static int RADEONDRIAgpInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info)
 }
 
 
-
-/* Initialize the kernel data structures */
+/**
+ * \brief Initialize the kernel data structures and enable the CP engine.
+ *
+ * \param dpy display handle.
+ * \param info driver private data.
+ *
+ * \return non-zero on sucess, or zero on failure.
+ *
+ * This function is a wrapper around the DRM_RADEON_CP_INIT command, passing
+ * all the parameters in a drmRadeonInit structure.
+ */
 static int RADEONDRIKernelInit(struct MiniGLXDisplayRec *dpy,
 			       RADEONInfoPtr info)
 {
@@ -364,6 +410,16 @@ static int RADEONDRIKernelInit(struct MiniGLXDisplayRec *dpy,
    return ret >= 0;
 }
 
+
+/**
+ * \brief Initialize the AGP heap.
+ *
+ * \param dpy display handle.
+ * \param info driver private data.
+ *
+ * This function is a wrapper around the DRM_RADEON_INIT_HEAP command, passing
+ * all the parameters in a drmRadeonMemInitHeap structure.
+ */
 static void RADEONDRIAgpHeapInit(struct MiniGLXDisplayRec *dpy,
 				 RADEONInfoPtr info)
 {
@@ -385,8 +441,16 @@ static void RADEONDRIAgpHeapInit(struct MiniGLXDisplayRec *dpy,
    }
 }
 
-/* Add a map for the vertex buffers that will be accessed by any
+/**
+ * \brief Add a map for the vertex buffers that will be accessed by any
  * DRI-based clients.
+ * 
+ * \param dpy display handle.
+ * \param info driver private data.
+ *
+ * \return one on sucess, or zero on failure.
+ *
+ * Calls drmAddBufs() with the previously allocated vertex buffers.
  */
 static int RADEONDRIBufInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
 {
@@ -409,6 +473,15 @@ static int RADEONDRIBufInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
    return 1;
 }
 
+/**
+ * \brief Install an IRQ handler.
+ * 
+ * \param dpy display handle.
+ * \param info driver private data.
+ *
+ * Attemps to install an IRQ handler via drmCtlInstHandler(), falling back to
+ * IRQ-free operation on failure.
+ */
 static void RADEONDRIIrqInit(struct MiniGLXDisplayRec *dpy,
 			     RADEONInfoPtr info)
 {
@@ -435,7 +508,14 @@ static void RADEONDRIIrqInit(struct MiniGLXDisplayRec *dpy,
 
 
 
-/* Called at the start of each server generation. */
+/**
+ * Called at the start of each server generation.
+ *
+ * \param dpy display handle.
+ * \param info driver private data.
+ *
+ * \return non-zero on sucess, or zero on failure.
+ */
 static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
 {
    RADEONDRIPtr   pRADEONDRI;
@@ -754,6 +834,14 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
 }
 
 
+/**
+ * \brief Get Radeon chip family from chipset number.
+ * 
+ * \param driver private data.
+ *
+ * Called by __driInitFBDev() to set RADEONInfoRec::ChipFamily according to the
+ * value of RADEONInfoRec::Chipset.
+ */
 static void get_chipfamily_from_chipset( RADEONInfoPtr info )
 {
     switch (info->Chipset) {
@@ -814,10 +902,20 @@ static void get_chipfamily_from_chipset( RADEONInfoPtr info )
 
 
 
-
 /**
- * Establish the set of visuals available for the display.
- * Requires the ::__GLXvisualConfig data type.
+ * \brief Establish the set of visuals available for the display.
+ *
+ * \param dpy display handle.
+ * \param numConfigs will receive the number of supported visuals.
+ * \param configs will point to the list of supported visuals.
+ *
+ * \return one on sucess, or zero on failure.
+ * 
+ * \note Requires the ::__GLXvisualConfig data type.
+ *
+ * Allocates a single visual and fills it with information according to the
+ * display bit depth. Supports only 16 and 32 bpp bit depths, aborting
+ * otherwise.
  */
 static int __driInitScreenConfigs( struct MiniGLXDisplayRec *dpy,
 				   int *numConfigs, __GLXvisualConfig **configs)
@@ -887,13 +985,23 @@ static int __driInitScreenConfigs( struct MiniGLXDisplayRec *dpy,
    return 1;
 }
 
+
+/**
+ * \brief Validate the fbdev mode.
+ * 
+ * \param dpy display handle.
+ *
+ * \return one on success, or zero on failure.
+ *
+ * Saves some registers and returns one.
+ *
+ * \sa __driValidateMode().
+ */
 static int __driValidateMode( struct MiniGLXDisplayRec *dpy )
 {
    unsigned char *RADEONMMIO = dpy->MMIOAddress;
    RADEONInfoPtr info = dpy->driverInfo;
 
-   /* Save some regs here:
-    */
    info->gen_int_cntl = INREG(RADEON_GEN_INT_CNTL);
    info->crtc_offset_cntl = INREG(RADEON_CRTC_OFFSET_CNTL);
 
@@ -901,20 +1009,35 @@ static int __driValidateMode( struct MiniGLXDisplayRec *dpy )
 }
 
 
+/**
+ * \brief Examine mode returned by fbdev.
+ * 
+ * \param dpy display handle.
+ *
+ * \return one on success, or zero on failure.
+ *
+ * Restores registers that fbdev has clobbered and returns one.
+ *
+ * \sa __driValidateMode().
+ */
 static int __driPostValidateMode( struct MiniGLXDisplayRec *dpy )
 {
    unsigned char *RADEONMMIO = dpy->MMIOAddress;
    RADEONInfoPtr info = dpy->driverInfo;
 
-   /* Restore registers that fbdev has clobbered.
-    */
    OUTREG(RADEON_GEN_INT_CNTL, info->gen_int_cntl);
    OUTREG(RADEON_CRTC_OFFSET_CNTL, info->crtc_offset_cntl);
 
    return 1;
 }
 
-/*
+
+/**
+ * \brief Initialize the framebuffer device mode
+ *
+ * \param dpy display handle.
+ *
+ * \return one on success, or zero on failure.
  */
 static int __driInitFBDev( struct MiniGLXDisplayRec *dpy )
 {
@@ -969,9 +1092,10 @@ static int __driInitFBDev( struct MiniGLXDisplayRec *dpy )
 }
 
 
-
 /* The screen is being closed, so clean up any state and free any
  * resources used by the DRI.
+ *
+ * \param dpy display handle.
  */
 static void __driHaltFBDev( struct MiniGLXDisplayRec *dpy )
 {
@@ -985,7 +1109,11 @@ static void __driHaltFBDev( struct MiniGLXDisplayRec *dpy )
 }
 
 
-
+/**
+ * \brief Exported driver interface.
+ *
+ * \sa MiniGLXDriverRec.
+ */
 struct MiniGLXDriverRec __driMiniGLXDriver = {
    __driInitScreenConfigs,
    __driValidateMode,
@@ -993,4 +1121,3 @@ struct MiniGLXDriverRec __driMiniGLXDriver = {
    __driInitFBDev,
    __driHaltFBDev
 };
-

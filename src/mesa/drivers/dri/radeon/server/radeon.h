@@ -1,4 +1,8 @@
-/* $XFree86: xc/programs/Xserver/hw/xfree86/drivers/ati/radeon.h,v 1.29 2002/10/12 01:38:07 martin Exp $ */
+/**
+ * \file server/radeon.h
+ * \brief Radeon 2D driver data strucures.
+ */
+
 /*
  * Copyright 2000 ATI Technologies Inc., Markham, Ontario, and
  *                VA Linux Systems Inc., Fremont, California.
@@ -26,6 +30,8 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  */
+
+/* $XFree86: xc/programs/Xserver/hw/xfree86/drivers/ati/radeon.h,v 1.29 2002/10/12 01:38:07 martin Exp $ */
 
 #ifndef _RADEON_H_
 #define _RADEON_H_
@@ -77,45 +83,60 @@ typedef enum {
 typedef unsigned long memType;
 
 
+/**
+ * \brief Radeon driver private data.
+ */
 typedef struct {
    int               Chipset;
    RADEONChipFamily  ChipFamily;
 
-   unsigned long     LinearAddr;       /* Frame buffer physical address     */
+   unsigned long     LinearAddr;       /**< \brief Frame buffer physical address */
 
 
    drmSize           registerSize;
    drmHandle         registerHandle;
 
    drmSize           agpSize;
-   drmHandle         agpMemHandle;     /* Handle from drmAgpAlloc */
+   drmHandle         agpMemHandle;     /**< \brief Handle from drmAgpAlloc */
    unsigned long     agpOffset;
    int               agpMode;
    int               agpFastWrite;
 
-   /* CP ring buffer data */
-   unsigned long     ringStart;        /* Offset into AGP space */
-   drmHandle         ringHandle;       /* Handle from drmAddMap */
-   drmSize           ringMapSize;      /* Size of map */
-   int               ringSize;         /* Size of ring (in MB) */
+   /**
+    * \name CP ring buffer data
+    */
+   /*@{*/
+   unsigned long     ringStart;        /**< \brief Offset into AGP space */
+   drmHandle         ringHandle;       /**< \brief Handle from drmAddMap */
+   drmSize           ringMapSize;      /**< \brief Size of map */
+   int               ringSize;         /**< \brief Size of ring (in MB) */
 
-   unsigned long     ringReadOffset;   /* Offset into AGP space */
-   drmHandle         ringReadPtrHandle; /* Handle from drmAddMap */
-   drmSize           ringReadMapSize;  /* Size of map */
+   unsigned long     ringReadOffset;   /**< \brief Offset into AGP space */
+   drmHandle         ringReadPtrHandle;/**< \brief Handle from drmAddMap */
+   drmSize           ringReadMapSize;  /**< \brief Size of map */
+   /*@}*/
 
-   /* CP vertex/indirect buffer data */
-   unsigned long     bufStart;         /* Offset into AGP space */
-   drmHandle         bufHandle;        /* Handle from drmAddMap */
-   drmSize           bufMapSize;       /* Size of map */
-   int               bufSize;          /* Size of buffers (in MB) */
-   int               bufNumBufs;       /* Number of buffers */
+   /**
+    * \name CP vertex/indirect buffer data
+    */
+   /*@{*/
+   unsigned long     bufStart;         /**< \brief Offset into AGP space */
+   drmHandle         bufHandle;        /**< \brief Handle from drmAddMap */
+   drmSize           bufMapSize;       /**< \brief Size of map */
+   int               bufSize;          /**< \brief Size of buffers (in MB) */
+   int               bufNumBufs;       /**< \brief Number of buffers */
+   /*@}*/
 
-   /* CP AGP Texture data */
-   unsigned long     agpTexStart;      /* Offset into AGP space */
-   drmHandle         agpTexHandle;     /* Handle from drmAddMap */
-   drmSize           agpTexMapSize;    /* Size of map */
-   int               agpTexSize;       /* Size of AGP tex space (in MB) */
+   /**
+    * \name CP AGP Texture data
+    */
+   /*@{*/
+   unsigned long     agpTexStart;      /**< \brief Offset into AGP space */
+   drmHandle         agpTexHandle;     /**< \brief Handle from drmAddMap */
+   drmSize           agpTexMapSize;    /**< \brief Size of map */
+   int               agpTexSize;       /**< \brief Size of AGP tex space (in MB) */
    int               log2AGPTexGran;
+   /*@}*/
 
    int               drmMinor;
 
@@ -129,13 +150,13 @@ typedef struct {
    int               textureSize;
    int               log2TexGran;
 
-   unsigned int            frontPitchOffset;
-   unsigned int            backPitchOffset;
-   unsigned int            depthPitchOffset;
+   unsigned int      frontPitchOffset;
+   unsigned int      backPitchOffset;
+   unsigned int      depthPitchOffset;
 
    int               irq;
-   unsigned int            gen_int_cntl;
-   unsigned int            crtc_offset_cntl;
+   unsigned int      gen_int_cntl;
+   unsigned int      crtc_offset_cntl;
 
 } RADEONInfoRec, *RADEONInfoPtr;
 

@@ -1,5 +1,16 @@
-/* radeon_common.h -- common header definitions for Radeon 2D/3D/DRM suite
+/**
+ * \file server/radeon_common.h 
+ * \brief Common header definitions for Radeon 2D/3D/DRM suite.
  *
+ * \author Gareth Hughes <gareth@valinux.com>
+ * \author Kevin E. Martin <martin@valinux.com>
+ * \author Keith Whitwell <keith@tungstengraphics.com>
+ * 
+ * \author Converted to common header format by
+ * Jens Owen <jens@tungstengraphics.com>
+ */
+
+/*
  * Copyright 2000 VA Linux Systems, Inc., Fremont, California.
  * Copyright 2002 Tungsten Graphics, Inc., Cedar Park, Texas.
  * All Rights Reserved.
@@ -22,18 +33,9 @@
  * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- *
- * Author:
- *   Gareth Hughes <gareth@valinux.com>
- *   Kevin E. Martin <martin@valinux.com>
- *   Keith Whitwell <keith@tungstengraphics.com>
- *
- * Converted to common header format:
- *   Jens Owen <jens@tungstengraphics.com>
- *
- * $XFree86: xc/programs/Xserver/hw/xfree86/os-support/xf86drmRadeon.h,v 1.6 2001/04/16 15:02:13 tsi Exp $
- *
  */
+
+/* $XFree86: xc/programs/Xserver/hw/xfree86/os-support/xf86drmRadeon.h,v 1.6 2001/04/16 15:02:13 tsi Exp $ */
 
 #ifndef _RADEON_COMMON_H_
 #define _RADEON_COMMON_H_

@@ -1,4 +1,12 @@
-/* $XFree86: xc/programs/Xserver/hw/xfree86/drivers/ati/radeon_reg.h,v 1.20 2002/10/12 01:38:07 martin Exp $ */
+/**
+ * \file server/radeon_macros.h
+ * \brief Macros for Radeon MMIO operation.
+ *
+ * \authors Kevin E. Martin <martin@xfree86.org>
+ * \authors Rickard E. Faith <faith@valinux.com>
+ * \authors Alan Hourihane <alanh@fairlite.demon.co.uk>
+ */
+
 /*
  * Copyright 2000 ATI Technologies Inc., Markham, Ontario, and
  *                VA Linux Systems Inc., Fremont, California.
@@ -27,25 +35,7 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-/*
- * Authors:
- *   Kevin E. Martin <martin@xfree86.org>
- *   Rickard E. Faith <faith@valinux.com>
- *   Alan Hourihane <alanh@fairlite.demon.co.uk>
- *
- * References:
- *
- * !!!! FIXME !!!!
- *   RAGE 128 VR/ RAGE 128 GL Register Reference Manual (Technical
- *   Reference Manual P/N RRG-G04100-C Rev. 0.04), ATI Technologies: April
- *   1999.
- *
- * !!!! FIXME !!!!
- *   RAGE 128 Software Development Manual (Technical Reference Manual P/N
- *   SDK-G04000 Rev. 0.01), ATI Technologies: June 1999.
- *
- */
-
+/* $XFree86: xc/programs/Xserver/hw/xfree86/drivers/ati/radeon_reg.h,v 1.20 2002/10/12 01:38:07 martin Exp $ */
 
 #ifndef _RADEON_MACROS_H_
 #define _RADEON_MACROS_H_
