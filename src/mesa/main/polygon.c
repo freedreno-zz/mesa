@@ -1,4 +1,4 @@
-/* $Id: polygon.c,v 1.25.4.1 2003/01/10 21:57:41 brianp Exp $ */
+/* $Id: polygon.c,v 1.25.4.2 2003/03/17 15:18:16 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -143,7 +143,7 @@ _mesa_PolygonMode( GLenum face, GLenum mode )
    }
 }
 
-
+#if _HAVE_FULL_GL
 
 void
 _mesa_PolygonStipple( const GLubyte *pattern )
@@ -176,7 +176,6 @@ _mesa_GetPolygonStipple( GLubyte *dest )
 }
 
 
-
 void
 _mesa_PolygonOffset( GLfloat factor, GLfloat units )
 {
@@ -206,3 +205,5 @@ _mesa_PolygonOffsetEXT( GLfloat factor, GLfloat bias )
    GET_CURRENT_CONTEXT(ctx);
    _mesa_PolygonOffset(factor, bias * ctx->DepthMaxF );
 }
+
+#endif

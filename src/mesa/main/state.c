@@ -1,4 +1,4 @@
-/* $Id: state.c,v 1.97.4.4 2003/03/05 14:22:25 keithw Exp $ */
+/* $Id: state.c,v 1.97.4.5 2003/03/17 15:18:17 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -132,17 +132,9 @@ _mesa_init_exec_table(struct _glapi_table *exec, GLuint tableSize)
    exec->Flush = _mesa_Flush;
    exec->FrontFace = _mesa_FrontFace;
    exec->Frustum = _mesa_Frustum;
-   exec->GetBooleanv = _mesa_GetBooleanv;
    exec->GetError = _mesa_GetError;
    exec->GetFloatv = _mesa_GetFloatv;
-   exec->GetIntegerv = _mesa_GetIntegerv;
    exec->GetString = _mesa_GetString;
-   exec->GetTexEnvfv = _mesa_GetTexEnvfv;
-   exec->GetTexEnviv = _mesa_GetTexEnviv;
-   exec->GetTexLevelParameterfv = _mesa_GetTexLevelParameterfv;
-   exec->GetTexLevelParameteriv = _mesa_GetTexLevelParameteriv;
-   exec->GetTexParameterfv = _mesa_GetTexParameterfv;
-   exec->GetTexParameteriv = _mesa_GetTexParameteriv;
    exec->InitNames = _mesa_InitNames;
    exec->LineStipple = _mesa_LineStipple;
    exec->LineWidth = _mesa_LineWidth;
@@ -203,7 +195,9 @@ _mesa_init_exec_table(struct _glapi_table *exec, GLuint tableSize)
    exec->Fogiv = _mesa_Fogiv;
    exec->GenLists = _mesa_GenLists;
    exec->GetClipPlane = _mesa_GetClipPlane;
+   exec->GetBooleanv = _mesa_GetBooleanv;
    exec->GetDoublev = _mesa_GetDoublev;
+   exec->GetIntegerv = _mesa_GetIntegerv;
    exec->GetLightfv = _mesa_GetLightfv;
    exec->GetLightiv = _mesa_GetLightiv;
    exec->GetMapdv = _mesa_GetMapdv;
@@ -215,6 +209,12 @@ _mesa_init_exec_table(struct _glapi_table *exec, GLuint tableSize)
    exec->GetPixelMapuiv = _mesa_GetPixelMapuiv;
    exec->GetPixelMapusv = _mesa_GetPixelMapusv;
    exec->GetPolygonStipple = _mesa_GetPolygonStipple;
+   exec->GetTexEnvfv = _mesa_GetTexEnvfv;
+   exec->GetTexEnviv = _mesa_GetTexEnviv;
+   exec->GetTexLevelParameterfv = _mesa_GetTexLevelParameterfv;
+   exec->GetTexLevelParameteriv = _mesa_GetTexLevelParameteriv;
+   exec->GetTexParameterfv = _mesa_GetTexParameterfv;
+   exec->GetTexParameteriv = _mesa_GetTexParameteriv;
    exec->GetTexGendv = _mesa_GetTexGendv;
    exec->GetTexGenfv = _mesa_GetTexGenfv;
    exec->GetTexGeniv = _mesa_GetTexGeniv;

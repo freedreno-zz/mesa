@@ -28,7 +28,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: context.c,v 1.188.2.1.2.8 2003/03/16 00:27:12 jrfonseca Exp $ */
+/* $Id: context.c,v 1.188.2.1.2.9 2003/03/17 15:18:16 keithw Exp $ */
 
 /**
  * \mainpage Mesa Core Module
@@ -215,6 +215,8 @@ _mesa_shareContext(__GLcontext *gc, __GLcontext *gcShare)
    }
 }
 
+
+#if _HAVE_FULL_GL
 /**
  * \brief Copy context callback.
  */
@@ -229,6 +231,7 @@ _mesa_copyContext(__GLcontext *dst, const __GLcontext *src, GLuint mask)
       return GL_FALSE;
    }
 }
+#endif
 
 /** No-op. */
 GLboolean
@@ -319,6 +322,7 @@ _mesa_endDispatchOverride(__GLcontext *gc)
 static void
 _mesa_init_default_exports(__GLexports *exports)
 {
+#if _HAVE_FULL_GL
     exports->destroyContext = _mesa_destroyContext;
     exports->loseCurrent = _mesa_loseCurrent;
     exports->makeCurrent = _mesa_makeCurrent;
@@ -331,6 +335,7 @@ _mesa_init_default_exports(__GLexports *exports)
     exports->dispatchExec = _mesa_dispatchExec;
     exports->beginDispatchOverride = _mesa_beginDispatchOverride;
     exports->endDispatchOverride = _mesa_endDispatchOverride;
+#endif
 }
 
 /**
@@ -2268,6 +2273,7 @@ _mesa_destroy_context( GLcontext *ctx )
    }
 }
 
+#if _HAVE_FULL_GL
 /**
  * \brief Copy attribute groups from one context to another.
  * 
@@ -2386,6 +2392,7 @@ _mesa_copy_context( const GLcontext *src, GLcontext *dst, GLuint mask )
     */
    dst->NewState = _NEW_ALL;
 }
+#endif
 
 /**
  * \brief Print information about this Mesa version and build options.

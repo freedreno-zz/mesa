@@ -1,4 +1,4 @@
-/* $Id: image.c,v 1.69.4.2 2003/03/09 10:52:20 jrfonseca Exp $ */
+/* $Id: image.c,v 1.69.4.3 2003/03/17 15:18:16 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -572,6 +572,7 @@ _mesa_image_row_stride( const struct gl_pixelstore_attrib *packing,
    }
 }
 
+#if _HAVE_FULL_GL
 
 
 /*
@@ -3941,3 +3942,5 @@ _mesa_unpack_image( GLsizei width, GLsizei height, GLsizei depth,
       return destBuffer;
    }
 }
+
+#endif

@@ -999,8 +999,6 @@ void radeonInitTextureFuncs( GLcontext *ctx )
    ctx->Driver.ChooseTextureFormat	= radeonChooseTextureFormat;
    ctx->Driver.TexImage2D		= radeonTexImage2D;
 
-   ctx->Driver.TestProxyTexImage	= _mesa_test_proxy_teximage;
-
    ctx->Driver.BindTexture		= radeonBindTexture;
    ctx->Driver.CreateTexture		= NULL; /* FIXME: Is this used??? */
    ctx->Driver.DeleteTexture		= radeonDeleteTexture;
