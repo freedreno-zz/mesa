@@ -1,10 +1,10 @@
-/* $Id: attrib.c,v 1.10.2.4 2000/03/10 22:11:15 brianp Exp $ */
+/* $Id: attrib.c,v 1.10.2.5 2000/07/19 18:34:03 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.1
+ * Version:  3.2.1
  * 
- * Copyright (C) 1999  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2000  Brian Paul   All Rights Reserved.
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -473,11 +473,14 @@ void gl_PopAttrib( GLcontext* ctx )
             break;
          case GL_DEPTH_BUFFER_BIT:
             {
+               GLboolean oldDepthTest = ctx->Depth.Test;
                GLenum oldDepthFunc = ctx->Depth.Func;
                GLboolean oldDepthMask = ctx->Depth.Mask;
                GLfloat oldDepthClear = ctx->Depth.Clear;
                MEMCPY( &ctx->Depth, attr->data,
                        sizeof(struct gl_depthbuffer_attrib) );
+               if (ctx->Depth.Test != oldDepthTest && ctx->Driver.Enable)
+                  (*ctx->Driver.Enable)( ctx, GL_DEPTH_TEST, ctx->Depth.Test);
                if (ctx->Depth.Func != oldDepthFunc && ctx->Driver.DepthFunc)
                   (*ctx->Driver.DepthFunc)( ctx, ctx->Depth.Func );
                if (ctx->Depth.Mask != oldDepthMask && ctx->Driver.DepthMask)
