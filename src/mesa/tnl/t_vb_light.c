@@ -54,6 +54,7 @@ struct material_cursor {
 };
 
 struct light_stage_data {
+   GLvector4f Input;
    GLvector4f LitColor[2];
    GLvector4f LitSecondary[2];
    GLvector4f LitIndex[2];
@@ -174,18 +175,33 @@ static GLboolean run_lighting( GLcontext *ctx, struct tnl_pipeline_stage *stage 
    GLuint idx;
 
    /* Make sure we can talk about position x,y and z:
-    *
-    * FIXME!
     */
-#if 0
    if (stage->changed_inputs & _TNL_BIT_POS) {
       if (input->size <= 2 && input == VB->ObjPtr) {
-	 input = _mesa_vector4f_clean_elem(VB->ObjPtr, some_storage,
-					   VB->Count, 2);
+
+	 _math_trans_4f( store->Input.data,
+			 VB->ObjPtr->data,
+			 VB->ObjPtr->stride,
+			 GL_FLOAT,
+			 VB->ObjPtr->size,
+			 0,
+			 VB->Count );
+
+	 if (input->size <= 2) {
+	    /* Clean z.
+	     */
+	    _mesa_vector4f_clean_elem(&store->Input, VB->Count, 2);
+	 }
+	 
+	 if (input->size <= 1) {
+	    /* Clean y.
+	     */
+	    _mesa_vector4f_clean_elem(&store->Input, VB->Count, 1);
+	 }
+
+	 input = &store->Input;
       }
    }
-#endif
-
    
    idx = 0;
 
@@ -262,6 +278,7 @@ static GLboolean run_init_lighting( GLcontext *ctx,
     */
    init_lighting();
 
+   _mesa_vector4f_alloc( &store->Input, 0, size, 32 );
    _mesa_vector4f_alloc( &store->LitColor[0], 0, size, 32 );
    _mesa_vector4f_alloc( &store->LitColor[1], 0, size, 32 );
    _mesa_vector4f_alloc( &store->LitSecondary[0], 0, size, 32 );
@@ -305,6 +322,7 @@ static void dtr( struct tnl_pipeline_stage *stage )
    struct light_stage_data *store = LIGHT_STAGE_DATA(stage);
 
    if (store) {
+      _mesa_vector4f_free( &store->Input );
       _mesa_vector4f_free( &store->LitColor[0] );
       _mesa_vector4f_free( &store->LitColor[1] );
       _mesa_vector4f_free( &store->LitSecondary[0] );
