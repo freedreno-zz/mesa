@@ -51,9 +51,6 @@
 #include "radeon_context.h"
 #include "radeon_ioctl.h"
 #include "radeon_state.h"
-#include "radeon_tcl.h"
-#include "radeon_tex.h"
-#include "radeon_vtxfmt.h"
 
 
 /**
@@ -179,6 +176,7 @@ TCL_CHECK( tcl_tex0, ctx->Texture.Unit[0]._ReallyEnabled )
 TCL_CHECK( tcl_tex1, ctx->Texture.Unit[1]._ReallyEnabled )
 TCL_CHECK( tcl_lighting, ctx->Light.Enabled )
 TCL_CHECK( tcl_eyespace_or_lighting, ctx->_NeedEyeCoords || ctx->Light.Enabled )
+#if _HAVE_LIGHTING
 TCL_CHECK( tcl_lit0, ctx->Light.Enabled && ctx->Light.Light[0].Enabled )
 TCL_CHECK( tcl_lit1, ctx->Light.Enabled && ctx->Light.Light[1].Enabled )
 TCL_CHECK( tcl_lit2, ctx->Light.Enabled && ctx->Light.Light[2].Enabled )
@@ -187,12 +185,15 @@ TCL_CHECK( tcl_lit4, ctx->Light.Enabled && ctx->Light.Light[4].Enabled )
 TCL_CHECK( tcl_lit5, ctx->Light.Enabled && ctx->Light.Light[5].Enabled )
 TCL_CHECK( tcl_lit6, ctx->Light.Enabled && ctx->Light.Light[6].Enabled )
 TCL_CHECK( tcl_lit7, ctx->Light.Enabled && ctx->Light.Light[7].Enabled )
+#endif
+#if _HAVE_USERCLIP
 TCL_CHECK( tcl_ucp0, (ctx->Transform.ClipPlanesEnabled & 0x1) )
 TCL_CHECK( tcl_ucp1, (ctx->Transform.ClipPlanesEnabled & 0x2) )
 TCL_CHECK( tcl_ucp2, (ctx->Transform.ClipPlanesEnabled & 0x4) )
 TCL_CHECK( tcl_ucp3, (ctx->Transform.ClipPlanesEnabled & 0x8) )
 TCL_CHECK( tcl_ucp4, (ctx->Transform.ClipPlanesEnabled & 0x10) )
 TCL_CHECK( tcl_ucp5, (ctx->Transform.ClipPlanesEnabled & 0x20) )
+#endif
 TCL_CHECK( tcl_eyespace_or_fog, ctx->_NeedEyeCoords || ctx->Fog.Enabled ) 
 
 
@@ -324,12 +325,15 @@ void radeonInitState( radeonContextPtr rmesa )
    ALLOC_STATE( mat[2], tcl_eyespace_or_lighting, MAT_STATE_SIZE, "MAT/it-modelview", 1 );
    ALLOC_STATE( mat[3], tcl_tex0, MAT_STATE_SIZE, "MAT/texmat0", 1 );
    ALLOC_STATE( mat[4], tcl_tex1, MAT_STATE_SIZE, "MAT/texmat1", 1 );
+#if _HAVE_USERCLIP
    ALLOC_STATE( ucp[0], tcl_ucp0, UCP_STATE_SIZE, "UCP/userclip-0", 1 );
    ALLOC_STATE( ucp[1], tcl_ucp1, UCP_STATE_SIZE, "UCP/userclip-1", 1 );
    ALLOC_STATE( ucp[2], tcl_ucp2, UCP_STATE_SIZE, "UCP/userclip-2", 1 );
    ALLOC_STATE( ucp[3], tcl_ucp3, UCP_STATE_SIZE, "UCP/userclip-3", 1 );
    ALLOC_STATE( ucp[4], tcl_ucp4, UCP_STATE_SIZE, "UCP/userclip-4", 1 );
    ALLOC_STATE( ucp[5], tcl_ucp5, UCP_STATE_SIZE, "UCP/userclip-5", 1 );
+#endif
+#if _HAVE_LIGHTING
    ALLOC_STATE( lit[0], tcl_lit0, LIT_STATE_SIZE, "LIT/light-0", 1 );
    ALLOC_STATE( lit[1], tcl_lit1, LIT_STATE_SIZE, "LIT/light-1", 1 );
    ALLOC_STATE( lit[2], tcl_lit2, LIT_STATE_SIZE, "LIT/light-2", 1 );
@@ -338,7 +342,7 @@ void radeonInitState( radeonContextPtr rmesa )
    ALLOC_STATE( lit[5], tcl_lit5, LIT_STATE_SIZE, "LIT/light-5", 1 );
    ALLOC_STATE( lit[6], tcl_lit6, LIT_STATE_SIZE, "LIT/light-6", 1 );
    ALLOC_STATE( lit[7], tcl_lit7, LIT_STATE_SIZE, "LIT/light-7", 1 );
-
+#endif
 
    /* Fill in the packet headers:
     */
@@ -374,17 +378,21 @@ void radeonInitState( radeonContextPtr rmesa )
 	 cmdvec( RADEON_VS_MATRIX_0_ADDR + i*4, 1, 16);
    }
 
+#if _HAVE_LIGHTING
    for (i = 0 ; i < 8; i++) {
       rmesa->hw.lit[i].cmd[LIT_CMD_0] = 
 	 cmdvec( RADEON_VS_LIGHT_AMBIENT_ADDR + i, 8, 24 );
       rmesa->hw.lit[i].cmd[LIT_CMD_1] = 
 	 cmdscl( RADEON_SS_LIGHT_DCD_ADDR + i, 8, 6 );
    }
+#endif
 
+#if _HAVE_USERCLIP
    for (i = 0 ; i < 6; i++) {
       rmesa->hw.ucp[i].cmd[UCP_CMD_0] = 
 	 cmdvec( RADEON_VS_UCP_ADDR + i, 1, 4 );
    }
+#endif
 
    rmesa->last_ReallyEnabled = -1;
 
