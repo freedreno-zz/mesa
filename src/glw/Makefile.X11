@@ -40,14 +40,23 @@ default:
 clean:
 	-rm *.o *~
 
-targets: $(LIBDIR)/$(GLW_LIB)
+targets: $(LIBDIR)/$(GLW_LIB) message
 
 
 # Make the library
 $(LIBDIR)/$(GLW_LIB): $(OBJECTS)
 	$(MAKELIB) $(GLW_LIB) $(MAJOR) $(MINOR) $(TINY) $(OBJECTS)
+	ls -l $(GLW_LIB)
 	mv $(GLW_LIB)* $(LIBDIR)
 	-mv *.a $(LIBDIR)
+
+
+message:
+	@echo
+	@echo "************************************************************************"
+	@echo "*** Edit widgets-sgi/Makefile.X11 to enable Motif support, if needed ***"
+	@echo "************************************************************************"
+	@echo
 
 
 include ../Make-config
