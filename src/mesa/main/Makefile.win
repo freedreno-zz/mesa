@@ -158,7 +158,7 @@ CFLAGS	= $(cvarsdll) $(CFLAGS) -D_OPENGL32_ -DBUILD_GL32 -DNO_PARALLEL -DNO_STER
 !IFNDEF NODEBUG
 CFLAGS = $(CFLAGS) -DMESA_DEBUG
 !ENDIF
-LFLAGS	= $(dlllflags) $(lcommon) $(LFLAGS) /MAP
+LFLAGS	= $(dlllflags) $(lcommon) $(LFLAGS)
 
 OBJS	= $(ASM_SRCS:.S=.obj) $(CORE_SRCS:.c=.obj) $(DRIVER_SRCS:.c=.obj)
 LIBS	= winmm.lib $(guilibsdll)
