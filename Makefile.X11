@@ -1,4 +1,4 @@
-# $Id: Makefile.X11,v 1.69.2.3 2003/02/20 15:52:59 brianp Exp $
+# $Id: Makefile.X11,v 1.69.2.4 2003/03/11 15:34:29 brianp Exp $
 
 # Mesa 3-D graphics library
 # Version:  5.0.1
@@ -486,6 +486,7 @@ LIB_FILES =	\
 	$(DIRECTORY)/si-glu/Makefile.in					\
 	$(DIRECTORY)/si-glu/Makefile.X11				\
 	$(DIRECTORY)/si-glu/Makefile.win				\
+	$(DIRECTORY)/si-glu/Makefile.DJ					\
 	$(DIRECTORY)/si-glu/glu.def					\
 	$(DIRECTORY)/si-glu/dummy.cc					\
 	$(DIRECTORY)/si-glu/descrip.mms					\
