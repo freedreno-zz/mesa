@@ -1,20 +1,20 @@
-# $Id: Makefile.X11,v 1.32.2.2 2000/08/02 20:14:25 brianp Exp $
+# $Id: Makefile.X11,v 1.32.2.3 2000/10/22 23:10:48 gareth Exp $
 
 # Mesa 3-D graphics library
 # Version:  3.4
-# 
+#
 # Copyright (C) 1999-2000  Brian Paul   All Rights Reserved.
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
 # to deal in the Software without restriction, including without limitation
 # the rights to use, copy, modify, merge, publish, distribute, sublicense,
 # and/or sell copies of the Software, and to permit persons to whom the
 # Software is furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included
 # in all copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
 # OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
@@ -76,10 +76,8 @@ default:
 	@echo "  make linux-386-glide      for Linux w/ 3Dfx Glide driver, Intel assembly"
 	@echo "  make linux-386-opt-glide  for Linux with 3Dfx Voodoo1 for GLQuake"
 	@echo "  make linux-386-opt-V2-glide  for Linux with 3Dfx Voodoo2 for GLQuake"
-	@echo "  make linux-3dnow          for Linux on AMD w/ 3DNow!"
-	@echo "  make linux-3dnow-glide    for Linux on AMD w/ 3DNow! for Glide"
-	@echo "  make linux-katmai         for Linux on PentiumIII w/ SSE"
-	@echo "  make linux-katmai-glide   for Linux on PentiumIII w/ SSE for Glide"
+	@echo "  make linux-x86            for Linux w/ all x86 asm"
+	@echo "  make linux-x86-glide      for Linux w/ all x86 asm for Glide"
 	@echo "  make linux-alpha          for Linux on Alpha systems"
 	@echo "  make linux-alpha-static   for Linux on Alpha systems, static libs"
 	@echo "  make linux-ppc            for Linux on PowerPC systems"
@@ -139,13 +137,10 @@ aix aix-sl amix bsdos bsdos4 dgux freebsd freebsd-386 gcc \
 hpux9 hpux9-sl hpux9-gcc hpux9-gcc-sl \
 hpux10 hpux10-sl hpux10-gcc hpux10-gcc-sl \
 irix4 irix5 irix5-gcc irix5-dso irix6-o32 irix6-o32-dso \
-linux-static-debug linux-elf-debug linux-prof linux-glide-debug \
-linux linux-static \
-linux-386 linux-386-static \
+linux linux-static linux-debug linux-static-debug linux-prof \
+linux-x86 linux-x86-static linux-x86-debug \
 linux-glide linux-386-glide linux-386-opt-glide \
-linux-386-opt-V2-glide \
-linux-3dnow linux-3dnow-glide \
-linux-katmai linux-katmai-glide \
+linux-386-opt-V2-glide linux-x86-glide linux-glide-debug linux-glide-prof \
 linux-alpha-static linux-alpha \
 linux-ppc-static linux-ppc \
 linux-sparc \

@@ -1,4 +1,4 @@
-/* $Id: x86.h,v 1.1.1.1.6.1 2000/10/22 23:10:51 gareth Exp $ */
+/* $Id: common_x86_asm.h,v 1.1.2.1 2000/10/22 23:10:51 gareth Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -25,13 +25,39 @@
  */
 
 /*
- * Intel x86 assembly code by Josh Vanderhoof
+ * Check CPU capabilities & initialize optimized funtions for this particular
+ * processor.
+ *
+ * Written by Holger Waechtler <holger@akaflieg.extern.tu-berlin.de>
+ * Changed by Andre Werthmann <wertmann@cs.uni-potsdam.de> for using the
+ * new Katmai functions
+ *
+ * Reimplemented by Gareth Hughes <gareth@valinux.com> in a more
+ * future-proof manner, based on code in the Linux kernel.
  */
 
-#ifndef __X86_H__
-#define __X86_H__
+#ifndef __COMMON_X86_ASM_H__
+#define __COMMON_X86_ASM_H__
 
-extern void gl_init_x86_transform_asm( void );
-extern void gl_init_x86_vertex_asm( void );
+#include "common_x86_features.h"
+
+#ifdef HAVE_CONFIG_H
+#include "conf.h"
+#endif
+
+#ifdef USE_X86_ASM
+#include "x86.h"
+#ifdef USE_3DNOW_ASM
+#include "3dnow.h"
+#endif
+#ifdef USE_KATMAI_ASM
+#include "katmai.h"
+#endif
+#endif
+
+extern int gl_x86_cpu_features;
+
+extern void gl_init_all_x86_transform_asm( void );
+extern void gl_init_all_x86_vertex_asm( void );
 
 #endif

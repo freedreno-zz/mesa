@@ -1,21 +1,21 @@
-/* $Id: blend.c,v 1.16.4.1 2000/10/19 18:09:01 brianp Exp $ */
+/* $Id: blend.c,v 1.16.4.2 2000/10/22 23:10:49 gareth Exp $ */
 
 /*
  * Mesa 3-D graphics library
  * Version:  3.4
- * 
+ *
  * Copyright (C) 1999-2000  Brian Paul   All Rights Reserved.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation
  * the rights to use, copy, modify, merge, publish, distribute, sublicense,
  * and/or sell copies of the Software, and to permit persons to whom the
  * Software is furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included
  * in all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
@@ -289,7 +289,7 @@ _mesa_BlendEquation( GLenum mode )
 
    ctx->Color.BlendFunc = NULL;
    ctx->NewState |= NEW_RASTER_OPS;
-   
+
    if (ctx->Driver.BlendEquation)
       ctx->Driver.BlendEquation( ctx, mode );
 }
@@ -811,7 +811,7 @@ blend_general( GLcontext *ctx, GLuint n, const GLubyte mask[],
 
 #if defined(USE_MMX_ASM)
 #include "X86/mmx.h"
-#include "X86/common_x86asm.h"
+#include "X86/common_x86_asm.h"
 #endif
 
 
@@ -831,8 +831,8 @@ static void set_blend_function( GLcontext *ctx )
    /* Hmm.  A table here would have 12^4 == way too many entries.
     * Provide a hook for MMX instead.
     */
-   if (gl_x86_cpu_features & GL_CPU_MMX) {
-      gl_mmx_set_blend_function (ctx);
+   if ( cpu_has_mmx ) {
+      gl_mmx_set_blend_function( ctx );
    }
    else
 #endif
