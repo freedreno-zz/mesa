@@ -3,6 +3,7 @@ array_cache
 core
 math
 miniglx
+radeon_subset
 swrast
 swrast_setup
 tnl
