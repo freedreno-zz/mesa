@@ -13,7 +13,8 @@ Contact
 
 Status
 
-    Shipping (Mesa 4.0.4 and later)
+    Shipping (Mesa 4.0.4 and later.  Only implemented in particular
+    XFree86/DRI drivers.)
 
 Version
 
@@ -31,8 +32,11 @@ Dependencies
 
 Overview
 
-    This extensions provides a way to convert pointers in an AGP memory region
-    into byte offsets into the AGP apeture.
+    This extensions provides a way to convert pointers in an AGP memory
+    region into byte offsets into the AGP aperture.
+    Note, this extension depends on GLX_NV_vertex_array_range, for which
+    no real specification exists.  See GL_NV_vertex_array_range for more
+    information.
 
 IP Status
 
@@ -44,7 +48,7 @@ Issues
 
 New Procedures and Functions
 
-    uint glXGetAGPOffsetMESA( const void *pointer )
+    GLuint glXGetAGPOffsetMESA( const GLvoid *pointer )
 
 New Tokens
 
@@ -54,10 +58,22 @@ Additions to the OpenGL 1.4 Specification
 
     None
 
-Additions to Chapter ??? the GLX 1.4 Specification (??? chapter name)
+Additions to Chapter 3 the GLX 1.4 Specification (Functions and Errors)
 
-    XXX to do
+    Add a new section, 3.6 as follows:
 
+    3.6 AGP Memory Access
+
+    On "PC" computers, AGP memory can be allocated with glXAllocateMemoryNV
+    and freed with glXFreeMemoryNV.  Sometimes it's useful to know where a
+    block of AGP memory is located with respect to the start of the AGP
+    aperature.  The function
+
+        GLuint glXGetAGPOffsetMESA( const GLvoid *pointer )
+
+    Returns the offset of the given memory block from the start of AGP
+    memory in basic machine units (i.e. bytes).  If pointer is invalid
+    the value ~0 will be returned.
 
 GLX Protocol
 
@@ -75,3 +91,4 @@ New State
 Revision History
 
     20 September 2002 - Initial draft
+    2 October 2002 - finished GLX chapter 3 additions
