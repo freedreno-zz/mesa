@@ -1,8 +1,8 @@
-/* $Id: s_triangle.c,v 1.39.2.3 2002/01/09 00:12:37 brianp Exp $ */
+/* $Id: s_triangle.c,v 1.39.2.4 2002/01/09 00:28:53 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  4.0.1
+ * Version:  4.0.2
  *
  * Copyright (C) 1999-2001  Brian Paul   All Rights Reserved.
  *
@@ -430,7 +430,12 @@ affine_span(GLcontext *ctx, struct triangle_span *span,
 
 /* shortcuts */
 
-#define NEAREST_RGB_REPLACE  NEAREST_RGB;REPLACE
+#define NEAREST_RGB_REPLACE		\
+   NEAREST_RGB;				\
+   dest[0] = sample[0];			\
+   dest[1] = sample[1];			\
+   dest[2] = sample[2];			\
+   dest[3] = FixedToInt(span->alpha);
 
 #define NEAREST_RGBA_REPLACE  COPY_CHAN4(dest, tex00)
 
