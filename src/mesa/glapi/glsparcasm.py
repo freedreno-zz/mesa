@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# $Id: glsparcasm.py,v 1.4 2001/08/03 13:16:31 davem69 Exp $
+# $Id: glsparcasm.py,v 1.4.2.1 2001/12/17 19:44:54 brianp Exp $
 
 # Mesa 3-D graphics library
 # Version:  3.5
@@ -45,7 +45,7 @@ def PrintHead():
 	print '#include "glapioffsets.h"'
 	print ''
 	print '#define GL_PREFIX(n) gl##n'
-	print '#define GLOBL_FN(x) .globl x ; .type x,#function'
+	print '#define GLOBL_FN(x) .globl x'
 	print ''
 	print '/* The _glapi_Dispatch symbol addresses get relocated into the'
 	print ' * sethi/or instruction sequences below at library init time.'
@@ -83,6 +83,7 @@ def PrintTail():
 def GenerateDispatchCode(name, offset):
 	print ''
 	print "GLOBL_FN(GL_PREFIX(%s))" % (name)
+	print ".type %s,#function" % (name)
 	print "GL_PREFIX(%s):" % (name)
 	print '#ifdef __sparc_v9__'
 	print '\tsethi\t%hi(0x00000000), %g2'
@@ -100,6 +101,7 @@ def GenerateDispatchCode(name, offset):
 	print "\tld\t[%%g1 + (4 * _gloffset_%s)], %%g3" % (offset)
 	print '#endif'
 	print '\tjmpl\t%g3, %g0'
+	print '\tnop'
 #enddef
 
 
