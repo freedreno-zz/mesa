@@ -1,4 +1,4 @@
-$Id: VERSIONS,v 1.38.2.15 2000/10/31 20:01:16 brianp Exp $
+$Id: VERSIONS,v 1.38.2.16 2000/11/01 20:58:35 brianp Exp $
 
 
 Mesa Version History
@@ -770,6 +770,7 @@ Mesa Version History
 	- glXGetProcAddressARB() didn't always return the right address
 	- gluBuild[12]DMipmaps() didn't grok the GL_BGR pixel format
 	- texture matrix changes weren't always detected (GLUT projtex demo)
+	- fixed random color problem in vertex fog code
     Changes:
 	- finished internal support for compressed textures for DRI
 
