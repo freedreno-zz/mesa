@@ -1,4 +1,4 @@
-/* $Id: swrast.h,v 1.12 2001/03/19 02:25:36 keithw Exp $ */
+/* $Id: swrast.h,v 1.12.2.1 2002/03/16 00:50:14 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -73,7 +73,7 @@ struct swrast_device_driver;
 /* These are the public-access functions exported from swrast.
  */
 extern void
-_swrast_alloc_buffers( GLcontext *ctx );
+_swrast_alloc_buffers( GLframebuffer *buffer );
 
 extern GLboolean
 _swrast_CreateContext( GLcontext *ctx );

@@ -1,4 +1,4 @@
-/* $Id: state.c,v 1.69.2.1 2002/02/12 17:37:26 keithw Exp $ */
+/* $Id: state.c,v 1.69.2.2 2002/03/16 00:50:12 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -955,7 +955,7 @@ void _mesa_update_state( GLcontext *ctx )
    ASSERT(ctx->Driver.ReadPixels);
    ASSERT(ctx->Driver.CopyPixels);
    ASSERT(ctx->Driver.Bitmap);
-   ASSERT(ctx->Driver.ResizeBuffersMESA);
+   ASSERT(ctx->Driver.ResizeBuffers);
    ASSERT(ctx->Driver.TexImage1D);
    ASSERT(ctx->Driver.TexImage2D);
    ASSERT(ctx->Driver.TexImage3D);

@@ -1,4 +1,4 @@
-/* $Id: xmesaP.h,v 1.24.2.2 2002/03/12 21:54:04 brianp Exp $ */
+/* $Id: xmesaP.h,v 1.24.2.3 2002/03/16 00:50:14 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -531,5 +531,7 @@ extern void XMesaReset( void );
 
 extern void xmesa_set_read_buffer( GLcontext *ctx, 
 				   GLframebuffer *buffer, GLenum mode );
+
+extern void xmesa_resize_buffers( GLframebuffer *buffer );
 
 #endif

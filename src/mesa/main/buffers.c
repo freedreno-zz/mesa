@@ -1,10 +1,10 @@
-/* $Id: buffers.c,v 1.31 2001/09/14 21:36:43 brianp Exp $ */
+/* $Id: buffers.c,v 1.31.2.1 2002/03/16 00:50:11 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.5
+ * Version:  4.0.2
  *
- * Copyright (C) 1999-2001  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -341,33 +341,59 @@ _mesa_ReadBuffer( GLenum mode )
 
 /*
  * GL_MESA_resize_buffers extension
+ * When this function is called, we'll ask the window system how large
+ * the current window is.  If it's not what we expect, we'll have to
+ * resize/reallocate the software accum/stencil/depth/alpha buffers.
  */
 void
 _mesa_ResizeBuffersMESA( void )
 {
    GLcontext *ctx = _mesa_get_current_context();
-   GLuint buf_width, buf_height;
-   ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH( ctx );
-
 
    if (MESA_VERBOSE & VERBOSE_API)
       fprintf(stderr, "glResizeBuffersMESA\n");
 
-   /* ask device driver for size of output buffer */
-   (*ctx->Driver.GetBufferSize)( ctx, &buf_width, &buf_height );
+   if (ctx) {
+      ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH( ctx );
 
-   /* see if size of device driver's color buffer (window) has changed */
-   if (ctx->DrawBuffer->Width == (GLint) buf_width &&
-       ctx->DrawBuffer->Height == (GLint) buf_height)
-      return;
+      if (ctx->DrawBuffer) {
+         GLuint buf_width, buf_height;
+         GLframebuffer *buffer = ctx->DrawBuffer;
 
-   ctx->NewState |= _NEW_BUFFERS;  /* to update scissor / window bounds */
+         /* ask device driver for size of output buffer */
+         (*ctx->Driver.GetBufferSize)( buffer, &buf_width, &buf_height );
 
-   /* save buffer size */
-   ctx->DrawBuffer->Width = buf_width;
-   ctx->DrawBuffer->Height = buf_height;
+         /* see if size of device driver's color buffer (window) has changed */
+         if (buffer->Width == (GLint) buf_width &&
+             buffer->Height == (GLint) buf_height)
+            return; /* size is as expected */
 
-   ctx->Driver.ResizeBuffersMESA( ctx );
+         buffer->Width = buf_width;
+         buffer->Height = buf_height;
+
+         ctx->Driver.ResizeBuffers( buffer );
+      }
+
+      if (ctx->ReadBuffer && ctx->ReadBuffer != ctx->DrawBuffer) {
+         GLuint buf_width, buf_height;
+         GLframebuffer *buffer = ctx->DrawBuffer;
+
+         /* ask device driver for size of output buffer */
+         (*ctx->Driver.GetBufferSize)( buffer, &buf_width, &buf_height );
+
+         /* see if size of device driver's color buffer (window) has changed */
+         if (buffer->Width == (GLint) buf_width &&
+             buffer->Height == (GLint) buf_height)
+            return; /* size is as expected */
+
+         buffer->Width = buf_width;
+         buffer->Height = buf_height;
+
+         ctx->Driver.ResizeBuffers( buffer );
+      }
+
+      ctx->NewState |= _NEW_BUFFERS;  /* to update scissor / window bounds */
+   }
 }
 
 

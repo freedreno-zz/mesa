@@ -1,10 +1,10 @@
-/* $Id: context.c,v 1.148.2.1 2001/11/06 15:51:06 brianp Exp $ */
+/* $Id: context.c,v 1.148.2.2 2002/03/16 00:50:12 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.5
+ * Version:  4.0.2
  *
- * Copyright (C) 1999-2001  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -2045,6 +2045,9 @@ _mesa_error( GLcontext *ctx, GLenum error, const char *where )
       }
       fprintf(stderr, "Mesa user error: %s in %s\n", errstr, where);
    }
+
+   if (!ctx)
+      return;
 
    if (ctx->ErrorValue == GL_NO_ERROR) {
       ctx->ErrorValue = error;

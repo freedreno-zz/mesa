@@ -1,4 +1,4 @@
-/* $Id: s_depth.c,v 1.9 2001/03/19 02:25:36 keithw Exp $ */
+/* $Id: s_depth.c,v 1.9.2.1 2002/03/16 00:50:14 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -1484,35 +1484,35 @@ _mesa_read_depth_span_float( GLcontext *ctx,
 /*
  * Allocate a new depth buffer.  If there's already a depth buffer allocated
  * it will be free()'d.  The new depth buffer will be uniniitalized.
- * This function is only called through Driver.alloc_depth_buffer.
  */
 void
-_mesa_alloc_depth_buffer( GLcontext *ctx )
+_mesa_alloc_depth_buffer( GLframebuffer *buffer )
 {
+   GLint bytesPerValue;
+
+   ASSERT(buffer->UseSoftwareDepthBuffer);
+
    /* deallocate current depth buffer if present */
-   if (ctx->DrawBuffer->UseSoftwareDepthBuffer) {
-      GLint bytesPerValue;
+   if (buffer->DepthBuffer) {
+      FREE(buffer->DepthBuffer);
+      buffer->DepthBuffer = NULL;
+   }
 
-      if (ctx->DrawBuffer->DepthBuffer) {
-         FREE(ctx->DrawBuffer->DepthBuffer);
-         ctx->DrawBuffer->DepthBuffer = NULL;
-      }
+   /* allocate new depth buffer, but don't initialize it */
+   if (buffer->Visual.depthBits <= 16)
+      bytesPerValue = sizeof(GLushort);
+   else
+      bytesPerValue = sizeof(GLuint);
 
-      /* allocate new depth buffer, but don't initialize it */
-      if (ctx->Visual.depthBits <= 16)
-         bytesPerValue = sizeof(GLushort);
-      else
-         bytesPerValue = sizeof(GLuint);
+   buffer->DepthBuffer =MALLOC(buffer->Width * buffer->Height * bytesPerValue);
 
-      ctx->DrawBuffer->DepthBuffer = MALLOC( ctx->DrawBuffer->Width
-                                             * ctx->DrawBuffer->Height
-                                             * bytesPerValue );
-
-      if (!ctx->DrawBuffer->DepthBuffer) {
-         /* out of memory */
+   if (!buffer->DepthBuffer) {
+      /* out of memory */
+      GET_CURRENT_CONTEXT(ctx);
+      if (ctx) {
          ctx->Depth.Test = GL_FALSE;
          ctx->NewState |= _NEW_DEPTH;
-         _mesa_error( ctx, GL_OUT_OF_MEMORY, "Couldn't allocate depth buffer" );
+         _mesa_error(ctx, GL_OUT_OF_MEMORY, "Couldn't allocate depth buffer");
       }
    }
 }

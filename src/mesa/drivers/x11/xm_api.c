@@ -1,4 +1,4 @@
-/* $Id: xm_api.c,v 1.29.2.5 2002/03/12 21:54:03 brianp Exp $ */
+/* $Id: xm_api.c,v 1.29.2.6 2002/03/16 00:50:13 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -2628,4 +2628,14 @@ unsigned long XMesaDitherColor( XMesaContext xmesa, GLint x, GLint y,
    return 0;
 }
 
+
+/*
+ * This is typically called when the window size changes and we need
+ * to reallocate the buffer's back/depth/stencil/accum buffers.
+ */
+void XMesaResizeBuffers( XMesaBuffer b )
+{
+   xmesa_resize_buffers( &(b->mesa_buffer) );
+
+}
 
