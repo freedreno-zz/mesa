@@ -1,5 +1,5 @@
 
-                         Mesa 3.3 Unix/X11 Information
+                         Mesa 3.4 Unix/X11 Information
 
 
 
@@ -323,4 +323,4 @@ Summary of X-related environment variables:
 
 
 ----------------------------------------------------------------------
-$Id: README.X11,v 3.5 2000/04/04 15:14:48 brianp Exp $
+$Id: README.X11,v 3.5.4.1 2000/11/02 18:05:34 brianp Exp $

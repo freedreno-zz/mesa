@@ -1,4 +1,4 @@
-/* $Id: xmesa.h,v 1.8 2000/05/02 02:30:01 brianp Exp $ */
+/* $Id: xmesa.h,v 1.8.4.1 2000/11/02 18:08:28 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -89,7 +89,7 @@ extern struct Library *XLibBase;
 
 
 #define XMESA_MAJOR_VERSION 3
-#define XMESA_MINOR_VERSION 3
+#define XMESA_MINOR_VERSION 4
 
 
 
