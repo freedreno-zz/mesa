@@ -1,4 +1,4 @@
-/* $Id: wmesa.c,v 1.22.2.7 2002/06/14 03:49:10 brianp Exp $ */
+/* $Id: wmesa.c,v 1.22.2.8 2002/06/24 20:18:04 kschultz Exp $ */
 
 /*
  * Windows (Win32) device driver for Mesa 3.4
@@ -1432,9 +1432,9 @@ void WMesaMakeCurrent( WMesaContext c )
   if(Current == c)
     return;
   
+  Current = c;
   wmesa_update_state(c->gl_ctx, 0);
   _mesa_make_current(c->gl_ctx, c->gl_buffer);
-  Current = c;
   if (Current->gl_ctx->Viewport.Width==0) {
     /* initialize viewport to window size */
     _mesa_Viewport( 0, 0, Current->width, Current->height );
