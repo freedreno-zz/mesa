@@ -1,4 +1,4 @@
-/* $Id: light.c,v 1.8.2.8 2000/07/13 12:54:07 keithw Exp $ */
+/* $Id: light.c,v 1.8.2.9 2000/07/13 19:50:04 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -1013,7 +1013,10 @@ static void compute_shine_table( struct gl_shine_tab *tab, GLfloat shininess )
 	 scaling for table lookup. (Actually, given f'(x0), it's easy
 	 to calculate f(x0), so maybe we only need this)
       */
-      m[i*2+1] = shininess * t / (dp * (SHINE_TABLE_SIZE-1)); 
+      if (dp == 0.0)
+         m[i*2+1] = pow((i+1) / (GLfloat)(SHINE_TABLE_SIZE-1), shininess);
+      else
+         m[i*2+1] = shininess * t / (dp * (SHINE_TABLE_SIZE-1) );
    }      
 
    tab->shininess = shininess;
