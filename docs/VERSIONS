@@ -1,4 +1,4 @@
-$Id: VERSIONS,v 1.73.2.1 2001/10/25 23:21:52 brianp Exp $
+$Id: VERSIONS,v 1.73.2.2 2001/11/02 00:58:32 brianp Exp $
 
 
 Mesa Version History
@@ -901,3 +901,4 @@ Mesa Version History
 4.0.1 Month, ??, 200?
     Bug fixes:
 	- added missing break statements in glGet*() for multisample cases
+	- fixed uninitialized hash table mutex bug (display lists / texobjs)
