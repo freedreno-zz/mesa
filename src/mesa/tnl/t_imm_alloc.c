@@ -1,8 +1,8 @@
-/* $Id: t_imm_alloc.c,v 1.10 2001/09/07 06:55:59 joukj Exp $ */
+/* $Id: t_imm_alloc.c,v 1.10.2.1 2001/12/15 00:48:41 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.5
+ * Version:  4.0.1
  *
  * Copyright (C) 1999-2001  Brian Paul   All Rights Reserved.
  *
@@ -34,7 +34,7 @@
 #include "t_imm_alloc.h"
 
 
-   static int id = 0;
+static int id = 0;  /* give each struct immediate a unique ID number */
 
 static struct immediate *real_alloc_immediate( GLcontext *ctx )
 {
@@ -129,6 +129,11 @@ void _tnl_free_immediate( struct immediate *IM )
    TNLcontext *tnl = TNL_CONTEXT(IM->backref);
 
    ASSERT(IM->ref_count == 0);
+
+   if (IM->NormalLengthPtr) {
+      ALIGN_FREE(IM->NormalLengthPtr);
+      IM->NormalLengthPtr = NULL;
+   }
 
    if (!tnl) {
       real_free_immediate( IM );
