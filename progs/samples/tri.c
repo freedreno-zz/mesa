@@ -278,11 +278,11 @@ static void Draw(void)
 	EndPrim();
 
 	if (showVerticies) {
-	    (rgb) ? glColor3fv(RGBMap[COLOR_RED]) : glIndexf(color1);
+	    glColor3fv(RGBMap[COLOR_RED]);
 /* 	    glRectf(p0[0]-2, p0[1]-2, p0[0]+2, p0[1]+2); */
-	    (rgb) ? glColor3fv(RGBMap[COLOR_GREEN]) : glIndexf(color2);
+	    glColor3fv(RGBMap[COLOR_GREEN]);
 /* 	    glRectf(p1[0]-2, p1[1]-2, p1[0]+2, p1[1]+2); */
-	    (rgb) ? glColor3fv(RGBMap[COLOR_BLUE]) : glIndexf(color3);
+	    glColor3fv(RGBMap[COLOR_BLUE]);
 /* 	    glRectf(p2[0]-2, p2[1]-2, p2[0]+2, p2[1]+2); */
 	}
 
@@ -314,11 +314,11 @@ static void Draw(void)
 
     SetColor(COLOR_RED);
     BeginPrim();
-	(rgb) ? glColor3fv(RGBMap[COLOR_RED]) : glIndexf(color1);
+	glColor3fv(RGBMap[COLOR_RED]);
 	glVertex3fv(p0);
-	(rgb) ? glColor3fv(RGBMap[COLOR_GREEN]) : glIndexf(color2);
+	glColor3fv(RGBMap[COLOR_GREEN]);
 	glVertex3fv(p1);
-	(rgb) ? glColor3fv(RGBMap[COLOR_BLUE]) : glIndexf(color3);
+	glColor3fv(RGBMap[COLOR_BLUE]);
 	glVertex3fv(p2);
     EndPrim();
 

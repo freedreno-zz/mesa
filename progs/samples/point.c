@@ -153,9 +153,9 @@ static void Draw(void)
 
 /*     glPointSize(size); */
     if (mode) {
-	(rgb) ? glColor3f(1.0, 0.0, 0.0) : glIndexf(CI_ANTI_ALIAS_RED);
+       glColor3f(1.0, 0.0, 0.0);
     } else {
-	(rgb) ? glColor3f(1.0, 0.0, 0.0) : glIndexf(CI_RED);
+       glColor3f(1.0, 0.0, 0.0);
     }
     glBegin(GL_POINTS);
 	glVertex3fv(point);

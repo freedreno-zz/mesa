@@ -141,7 +141,7 @@ static void Draw(void)
     for (i = 0; i < 360; i += 5) {
 	glRotatef(5.0, 0,0,1);
 
-	(rgb) ? glColor3f(1.0, 1.0, 0.0) : glIndexi(ci);
+	glColor3f(1.0, 1.0, 0.0);
 	glBegin(GL_LINE_STRIP);
 	    glVertex3fv(pntA);
 	    glVertex3fv(pntB);
@@ -199,7 +199,7 @@ int main(int argc, char **argv)
 
     glutInitWindowPosition(0, 0); glutInitWindowSize( 300, 300);
 
-    windType = (rgb) ? GLUT_RGB : GLUT_INDEX;
+    windType = GLUT_RGB;
     windType |= (doubleBuffer) ? GLUT_DOUBLE : GLUT_SINGLE;
     glutInitDisplayMode(windType);
 

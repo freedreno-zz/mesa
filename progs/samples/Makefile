@@ -23,6 +23,6 @@ PROGS = prim \
 default: $(PROGS)
 
 
-clean:
-	-rm *.o *~
+clean::
+	rm -f *.o *~ $(PROGS)
 
