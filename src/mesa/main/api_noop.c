@@ -616,7 +616,7 @@ void _mesa_noop_DrawArrays(GLenum mode, GLint start, GLsizei count)
       return;
 
    glBegin(mode);
-   for (i = start ; i <= count ; i++)
+   for (i = start ; i < count ; i++)
       glArrayElement( i );
    glEnd();
 }
