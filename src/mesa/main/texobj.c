@@ -1,4 +1,4 @@
-/* $Id: texobj.c,v 1.23.4.7 2000/11/11 20:23:23 brianp Exp $ */
+/* $Id: texobj.c,v 1.23.4.8 2000/11/17 02:42:32 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -553,6 +553,8 @@ _mesa_BindTexture( GLenum target, GLuint texName )
          return;
    }
 
+   ctx->NewState |= NEW_TEXTURING;
+
    if (oldTexObj->Name == texName)
       return;
 
@@ -613,17 +615,12 @@ _mesa_BindTexture( GLenum target, GLuint texName )
         || (oldTexObj->Image[0] && newTexObj->Image[0] && 
 	   (oldTexObj->Image[0]->Format!=newTexObj->Image[0]->Format))))
    {
-      ctx->NewState |= (NEW_RASTER_OPS | NEW_TEXTURING);
+      ctx->NewState |= NEW_RASTER_OPS;
    }
-
-   if (oldTexObj->Complete != newTexObj->Complete)
-      ctx->NewState |= NEW_TEXTURING;
 
    /* Pass BindTexture call to device driver */
    if (ctx->Driver.BindTexture) {
       (*ctx->Driver.BindTexture)( ctx, target, newTexObj );
-      /* Make sure the Driver.UpdateState() function gets called! */
-      ctx->NewState |= NEW_TEXTURING;
    }
 
    if (oldTexObj->Name > 0) {
