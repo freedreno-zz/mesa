@@ -1,10 +1,10 @@
-/* $Id: imports.h,v 1.8.2.3 2003/03/02 19:35:51 brianp Exp $ */
+/* $Id: imports.h,v 1.8.2.4 2003/03/02 19:38:44 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  5.1
+ * Version:  5.0.1
  *
- * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2003  Brian Paul   All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -33,6 +33,11 @@
 
 #ifndef IMPORTS_H
 #define IMPORTS_H
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 
 #define MALLOC(BYTES)      _mesa_malloc(BYTES)
@@ -198,5 +203,9 @@ extern void
 _mesa_init_default_imports( __GLimports *imports, void *driverCtx );
 
 
-#endif /* IMPORTS_H */
+#ifdef __cplusplus
+}
+#endif
 
+
+#endif /* IMPORTS_H */
