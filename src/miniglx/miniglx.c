@@ -1,4 +1,4 @@
-/* $Id: miniglx.c,v 1.1.4.1 2002/11/20 02:10:37 brianp Exp $ */
+/* $Id: miniglx.c,v 1.1.4.2 2002/11/27 17:02:39 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -68,16 +68,14 @@
 
 
 /*
- * Derived from Mesa's GLvisual class.
+ * This corresponds to X's Visual type.  We're changing it; using it to
+ * store all the OpenGL visual attributes.
  */
-struct MiniGLXVisualRec {
-   GLvisual glvisual;              /* base class */
+struct __VisualRec {
+   GLvisual glvisual;        /* OpenGL attribs */
+   XVisualInfo *visInfo;     /* pointer back to corresponding XVisualInfo */
    Display *dpy;
-#if 0
-   struct fb_fix_screeninfo fix;
-   struct fb_var_screeninfo var;
-#endif
-   int pixelFormat;
+   GLuint pixelFormat;       /* one of PF_* values */
 };
 
 /*
@@ -86,15 +84,16 @@ struct MiniGLXVisualRec {
 struct MiniGLXWindowRec {
    GLframebuffer glframebuffer;    /* base class */
    Visual *visual;
-   void *frontStart;
-   void *backStart;
-   size_t size;
+   int x, y;                       /* pos (always 0,0) */
+   unsigned int w, h;              /* size */
+   void *frontStart;               /* start of front color buffer */
+   void *backStart;                /* start of back color buffer */
+   size_t size;                    /* color buffer size, in bytes */
    GLuint bytesPerPixel;
    GLuint rowStride;               /* in bytes */
    GLubyte *frontBottom;           /* pointer to last row */
    GLubyte *backBottom;            /* pointer to last row */
    GLubyte *curBottom;             /* = frontBottom or backBottom */
-   GLboolean mallocBackBuffer;
 };
 
 /*
@@ -109,16 +108,22 @@ struct MiniGLXContextRec {
 };
 
 
+/*
+ * Per-display info (replaces Xlib's Display type)
+ */
 struct MiniGLXDisplayRec {
    struct fb_fix_screeninfo FixedInfo;
-   struct fb_var_screeninfo VarInfo;
+   struct fb_var_screeninfo OrigVarInfo, VarInfo;
    int DesiredDepth;
    int OriginalVT;
    int ConsoleFD;
    int FrameBufferFD;
-   caddr_t FrameBuffer;
-   int FrameBufferSize;
+   caddr_t FrameBuffer;  /* start of mmap'd framebuffer */
+   int FrameBufferSize;  /* in bytes */
+   caddr_t MMIOAddress;  /* start of mmap'd MMIO region */
+   int MMIOSize;         /* in bytes */
    int NumWindows;
+   Window TheWindow;     /* only allow one window for now */
 };
 
 
@@ -159,12 +164,9 @@ update_state( GLcontext *ctx, GLuint new_state )
 static void
 get_buffer_size( GLframebuffer *buffer, GLuint *width, GLuint *height )
 {
-#if 0
-   const GLXDrawable fbdevbuffer = (GLXDrawable) buffer;
-   *width = fbdevbuffer->var.xres_virtual;
-   *height = fbdevbuffer->var.yres_virtual;
-   /* XXX fix */
-#endif
+   Window win = (Window) buffer;  /* yes, this works */
+   *width = win->w;
+   *height = win->h;
 }
 
 
@@ -331,49 +333,50 @@ init_core_functions( GLcontext *ctx )
 
 
 /**********************************************************************/
-/* Public API functions                                               */
+/* FBdev fucntions                                                    */
 /**********************************************************************/
 
-Display *
-WRAP(XOpenDisplay)( char *display_name )
+
+/*
+ * Do first part of setting up fbdev.  This is called during XOpenDisplay().
+ */
+static GLboolean
+OpenFBDev( Display *dpy )
 {
    char ttystr[1000];
    int fd, vtnumber, ttyfd;
-   Display *d;
 
-   d = (Display *) _mesa_calloc(sizeof(Display));
-   if (!d)
-      return NULL;
+   assert(dpy);
 
    if (geteuid()) {
       fprintf(stderr, "error: you need to be root\n");
-      return NULL;
+      return GL_FALSE;
    }
 
    /* open /dev/tty0 and get the vt number */
    if ((fd = open("/dev/tty0", O_WRONLY, 0)) < 0) {
       fprintf(stderr, "error opening /dev/tty0\n");
-      return NULL;
+      return GL_FALSE;
    }
    if (ioctl(fd, VT_OPENQRY, &vtnumber) < 0 || vtnumber < 0) {
       fprintf(stderr, "error: couldn't get a free vt\n");
-      return NULL;
+      return GL_FALSE;
    }
    close(fd);
 
    /* open the console tty */
    sprintf(ttystr, "/dev/tty%d", vtnumber);  /* /dev/tty1-64 */
-   d->ConsoleFD = open(ttystr, O_RDWR | O_NDELAY, 0);
-   if (d->ConsoleFD < 0) {
+   dpy->ConsoleFD = open(ttystr, O_RDWR | O_NDELAY, 0);
+   if (dpy->ConsoleFD < 0) {
       fprintf(stderr, "error couldn't open console fd\n");
-      return NULL;
+      return GL_FALSE;
    }
 
    /* save current vt number */
    {
       struct vt_stat vts;
-      if (ioctl(d->ConsoleFD, VT_GETSTATE, &vts) == 0)
-         d->OriginalVT = vts.v_active;
+      if (ioctl(dpy->ConsoleFD, VT_GETSTATE, &vts) == 0)
+         dpy->OriginalVT = vts.v_active;
    }
 
    /* disconnect from controlling tty */
@@ -386,179 +389,359 @@ WRAP(XOpenDisplay)( char *display_name )
    /* some magic to restore the vt when we exit */
    {
       struct vt_mode vt;
-      if (ioctl(d->ConsoleFD, VT_ACTIVATE, vtnumber) != 0)
+      if (ioctl(dpy->ConsoleFD, VT_ACTIVATE, vtnumber) != 0)
          printf("ioctl VT_ACTIVATE: %s\n", strerror(errno));
-      if (ioctl(d->ConsoleFD, VT_WAITACTIVE, vtnumber) != 0)
+      if (ioctl(dpy->ConsoleFD, VT_WAITACTIVE, vtnumber) != 0)
          printf("ioctl VT_WAITACTIVE: %s\n", strerror(errno));
 
-      if (ioctl(d->ConsoleFD, VT_GETMODE, &vt) < 0) {
+      if (ioctl(dpy->ConsoleFD, VT_GETMODE, &vt) < 0) {
          fprintf(stderr, "error: ioctl VT_GETMODE: %s\n", strerror(errno));
-         return NULL;
+         return GL_FALSE;
       }
 
       vt.mode = VT_PROCESS;
       vt.relsig = SIGUSR1;
       vt.acqsig = SIGUSR1;
-      if (ioctl(d->ConsoleFD, VT_SETMODE, &vt) < 0) {
+      if (ioctl(dpy->ConsoleFD, VT_SETMODE, &vt) < 0) {
          fprintf(stderr, "error: ioctl(VT_SETMODE) failed: %s\n",
                  strerror(errno));
-         return NULL;
+         return GL_FALSE;
       }
    }
 
    /* go into graphics mode */
-   if (ioctl(d->ConsoleFD, KDSETMODE, KD_GRAPHICS) < 0) {
+   if (ioctl(dpy->ConsoleFD, KDSETMODE, KD_GRAPHICS) < 0) {
       fprintf(stderr, "error: ioctl(KDSETMODE, KD_GRAPHICS) failed: %s\n",
               strerror(errno));
-      return NULL;
+      return GL_FALSE;
    }
 
    /* open the framebuffer device */
-   d->FrameBufferFD = open("/dev/fb0", O_RDWR);
-   if (d->FrameBufferFD < 0) {
+   dpy->FrameBufferFD = open("/dev/fb0", O_RDWR);
+   if (dpy->FrameBufferFD < 0) {
       fprintf(stderr, "Error opening /dev/fb0: %s\n", strerror(errno));
-      return NULL;
+      return GL_FALSE;
    }
 
-  /* get the variable screen info */
-   if (ioctl(d->FrameBufferFD, FBIOGET_VSCREENINFO, &d->VarInfo)) {
+  /* get the original variable screen info */
+   if (ioctl(dpy->FrameBufferFD, FBIOGET_VSCREENINFO, &dpy->OrigVarInfo)) {
       fprintf(stderr, "error: ioctl(FBIOGET_VSCREENINFO) failed: %s\n",
               strerror(errno));
-      return NULL;
+      return GL_FALSE;
    }
 
+   /* make copy */
+   dpy->VarInfo = dpy->OrigVarInfo;  /* structure copy */
+
+   return GL_TRUE;
+}
+
+
+
+/*
+ * Setup up our desired fbdev framebuffer mode.  This is called during
+ * XCreateWindow.
+ */
+static GLboolean
+SetupFBDev( Display *dpy, Window win )
+{
+   const int width = win->glframebuffer.Width;
+   const int height = win->glframebuffer.Height;
+
+   assert(dpy);
+
    /* set the depth, resolution, etc */
-   if (d->DesiredDepth)
-      d->VarInfo.bits_per_pixel = d->DesiredDepth;
-   d->VarInfo.xres_virtual = d->VarInfo.xres;
-   d->VarInfo.yres_virtual = d->VarInfo.yres;
-   d->VarInfo.xoffset = 0;
-   d->VarInfo.yoffset = 0;
-   d->VarInfo.nonstd = 0;
-   d->VarInfo.vmode &= ~FB_VMODE_YWRAP; /* turn off scrolling */
+   dpy->VarInfo = dpy->OrigVarInfo;
+   dpy->VarInfo.bits_per_pixel = win->visual->visInfo->bits_per_rgb;
+   dpy->VarInfo.xres_virtual = width;
+   dpy->VarInfo.yres_virtual = height;
+   dpy->VarInfo.xres = width;
+   dpy->VarInfo.yres = height;
+   dpy->VarInfo.xoffset = 0;
+   dpy->VarInfo.yoffset = 0;
+   dpy->VarInfo.nonstd = 0;
+   dpy->VarInfo.vmode &= ~FB_VMODE_YWRAP; /* turn off scrolling */
+
+   if (dpy->VarInfo.bits_per_pixel == 32) {
+      assert(win->visual->pixelFormat == PF_B8G8R8A8);
+      dpy->VarInfo.red.offset = 16;
+      dpy->VarInfo.green.offset = 8;
+      dpy->VarInfo.blue.offset = 0;
+      dpy->VarInfo.transp.offset = 24;
+      dpy->VarInfo.red.length = 8;
+      dpy->VarInfo.green.length = 8;
+      dpy->VarInfo.blue.length = 8;
+      dpy->VarInfo.transp.length = 8;
+   }
+   else if (dpy->VarInfo.bits_per_pixel == 16) {
+      assert(win->visual->pixelFormat == PF_B5G5R5);
+      dpy->VarInfo.red.offset = 11;
+      dpy->VarInfo.green.offset = 5;
+      dpy->VarInfo.blue.offset = 0;
+      dpy->VarInfo.red.length = 5;
+      dpy->VarInfo.green.length = 6;
+      dpy->VarInfo.blue.length = 5;
+      dpy->VarInfo.transp.offset = 0;
+      dpy->VarInfo.transp.length = 0;
+   }
+   else if (dpy->VarInfo.bits_per_pixel == 8) {
+      assert(win->visual->pixelFormat == PF_CI8);
+   }
+   else {
+      assert(0);
+   }
+
+   if (width == 1280 && height == 1024) {
+      dpy->VarInfo.pixclock = 7408;
+      dpy->VarInfo.left_margin = 248;
+      dpy->VarInfo.right_margin = 16;
+      dpy->VarInfo.upper_margin = 38;
+      dpy->VarInfo.lower_margin = 1;
+      dpy->VarInfo.hsync_len = 144;
+      dpy->VarInfo.vsync_len = 3;
+   }
+   else {
+      /* XXX need timings for other screen sizes */
+      printf("XXXX only 1280 x 1024 windows are supported at this time!\n");
+      assert(0);
+   }
 
    /* set variable screen info */
-   if (ioctl(d->FrameBufferFD, FBIOPUT_VSCREENINFO, &d->VarInfo)) {
-      fprintf(stderr, "Unable to set screen to depth %d\n", d->DesiredDepth);
-      return NULL;
+   if (ioctl(dpy->FrameBufferFD, FBIOPUT_VSCREENINFO, &dpy->VarInfo)) {
+      fprintf(stderr, "Unable to set screen to depth %d\n", dpy->DesiredDepth);
+      return GL_FALSE;
    }
 
    /* Get the fixed screen info */
-   if (ioctl(d->FrameBufferFD, FBIOGET_FSCREENINFO, &d->FixedInfo)) {
+   if (ioctl(dpy->FrameBufferFD, FBIOGET_FSCREENINFO, &dpy->FixedInfo)) {
       fprintf(stderr, "error: ioctl(FBIOGET_FSCREENINFO) failed: %s\n",
               strerror(errno));
-      return NULL;
+      return GL_FALSE;
    }
 
-   if (d->FixedInfo.visual != FB_VISUAL_TRUECOLOR ) {
+   if (dpy->FixedInfo.visual != FB_VISUAL_TRUECOLOR &&
+       dpy->FixedInfo.visual != FB_VISUAL_DIRECTCOLOR) {
       fprintf(stderr, "non-TRUECOLOR visuals not supported by this demo.\n");
-      return NULL;
+      return GL_FALSE;
+   }
+
+   if (dpy->FixedInfo.visual == FB_VISUAL_DIRECTCOLOR) {
+      struct fb_cmap cmap;
+      unsigned short red[256], green[256], blue[256];
+      int i;
+
+      /* we're assuming 256 entries here */
+      cmap.start = 0;
+      cmap.len = 256;
+      cmap.red   = red;
+      cmap.green = green;
+      cmap.blue  = blue;
+      cmap.transp = NULL;
+      for (i = 0; i < cmap.len; i++) {
+         red[i] = green[i] = blue[i] = (i << 8) | i;
+      }
+      if (ioctl(dpy->FrameBufferFD, FBIOPUTCMAP, (void *) &cmap) < 0) {
+         fprintf(stderr, "ioctl(FBIOPUTCMAP) failed [%d]\n", i);
+      }
    }
 
    /* mmap the framebuffer into our address space */
-   d->FrameBufferSize = d->FixedInfo.smem_len;
-   d->FrameBuffer = (caddr_t) mmap(0, /* start */
-                                   d->FrameBufferSize, /* bytes */
-                                   PROT_READ | PROT_WRITE, /* prot */
-                                   MAP_SHARED, /* flags */
-                                   d->FrameBufferFD, /* fd */
-                                   0 /* offset */);
-   if (d->FrameBuffer == (caddr_t) - 1) {
+   dpy->FrameBufferSize = dpy->FixedInfo.smem_len;
+   dpy->FrameBuffer = (caddr_t) mmap(0, /* start */
+                                     dpy->FrameBufferSize, /* bytes */
+                                     PROT_READ | PROT_WRITE, /* prot */
+                                     MAP_SHARED, /* flags */
+                                     dpy->FrameBufferFD, /* fd */
+                                     0 /* offset */);
+   if (dpy->FrameBuffer == (caddr_t) - 1) {
       fprintf(stderr, "error: unable to mmap framebuffer: %s\n",
               strerror(errno));
+      return GL_FALSE;
+   }
+
+   /* mmap the MMIO region into our address space */
+   dpy->MMIOSize = dpy->FixedInfo.mmio_len;
+   dpy->MMIOAddress = (caddr_t) mmap(0, /* start */
+                                     dpy->MMIOSize, /* bytes */
+                                     PROT_READ | PROT_WRITE, /* prot */
+                                     MAP_SHARED, /* flags */
+                                     dpy->FrameBufferFD, /* fd */
+                                     dpy->FixedInfo.smem_len /* offset */);
+   if (dpy->MMIOAddress == (caddr_t) - 1) {
+      fprintf(stderr, "error: unable to mmap mmio region: %s\n",
+              strerror(errno));
+      return GL_FALSE;
+   }
+
+   return GL_TRUE;
+}
+
+
+
+/*
+ * Restore framebuffer to state it was in before we started.
+ * Called from XDestroyWindow().
+ */
+static GLboolean
+RestoreFBDev( Display *dpy, Window win )
+{
+   /* restore original variable screen info */
+   if (ioctl(dpy->FrameBufferFD, FBIOPUT_VSCREENINFO, &dpy->OrigVarInfo)) {
+      fprintf(stderr, "ioctl(FBIOPUT_VSCREENINFO failed): %s\n",
+              strerror(errno));
+      return GL_FALSE;
+   }
+   dpy->VarInfo = dpy->OrigVarInfo;
+   return GL_TRUE;
+}
+
+
+
+/*
+ * Close FBDev.  Called from XCloseDisplay().
+ */
+static void
+CleanupFBDev( Display *dpy )
+{
+   struct vt_mode VT;
+
+   munmap(dpy->FrameBuffer, dpy->FrameBufferSize);
+   munmap(dpy->MMIOAddress, dpy->MMIOSize);
+   close(dpy->FrameBufferFD);
+
+   /* restore text mode */
+   ioctl(dpy->ConsoleFD, KDSETMODE, KD_TEXT);
+
+   /* set vt */
+   if (ioctl(dpy->ConsoleFD, VT_GETMODE, &VT) != -1) {
+      VT.mode = VT_AUTO;
+      ioctl(dpy->ConsoleFD, VT_SETMODE, &VT);
+   }
+
+   /* restore original vt */
+   if (dpy->OriginalVT >= 0) {
+      ioctl(dpy->ConsoleFD, VT_ACTIVATE, dpy->OriginalVT);
+      dpy->OriginalVT = -1;
+   }
+
+   close(dpy->ConsoleFD);
+}
+
+
+
+/**********************************************************************/
+/* Public API functions (Xlib and GLX)                                */
+/**********************************************************************/
+
+Display *
+WRAP(XOpenDisplay)( const char *display_name )
+{
+   Display *dpy;
+
+   dpy = (Display *) _mesa_calloc(sizeof(Display));
+   if (!dpy)
+      return NULL;
+
+   if (!OpenFBDev(dpy)) {
+      _mesa_free(dpy);
       return NULL;
    }
 
-
-
-   return d;
+   return dpy;
 }
 
 
 void
-WRAP(XCloseDisplay)( Display *display )
+WRAP(XCloseDisplay)( Display *dpy )
 {
-   struct vt_mode VT;
-
-   munmap(display->FrameBuffer, display->FrameBufferSize);
-   close(display->FrameBufferFD);
-
-   /* restore text mode */
-   ioctl(display->ConsoleFD, KDSETMODE, KD_TEXT);
-
-   /* set vt */
-   if (ioctl(display->ConsoleFD, VT_GETMODE, &VT) != -1) {
-      VT.mode = VT_AUTO;
-      ioctl(display->ConsoleFD, VT_SETMODE, &VT);
-   }
-
-   /* restore original vt */
-   if (display->OriginalVT >= 0) {
-      ioctl(display->ConsoleFD, VT_ACTIVATE, display->OriginalVT);
-      display->OriginalVT = -1;
-   }
-
-   close(display->ConsoleFD);
-
-   _mesa_free(display);
+   CleanupFBDev(dpy);
+   _mesa_free(dpy);
 }
 
 
+
 Window
-WRAP(XCreateWindow)( Display *display, Window parent, int x, int y,
+WRAP(XCreateWindow)( Display *dpy, Window parent, int x, int y,
                unsigned int width, unsigned int height,
                unsigned int border_width, int depth, unsigned int class,
                Visual *visual, unsigned long valuemask,
                XSetWindowAttributes *attributes )
 {
-   Window w;
-   if (display->NumWindows > 0)
+   Window win;
+
+   /* ignored */
+   (void) x;
+   (void) y;
+   (void) border_width;
+   (void) depth;
+   (void) class;
+   (void) valuemask;
+   (void) attributes;
+
+   if (dpy->NumWindows > 0)
       return NULL;  /* only allow one window */
 
-   w = (struct MiniGLXWindowRec *) _mesa_malloc(sizeof(struct MiniGLXWindowRec));
+   assert(dpy->TheWindow == NULL);
 
-   _mesa_initialize_framebuffer(&w->glframebuffer, &visual->glvisual,
-                                visual->glvisual.haveDepthBuffer,
-                                visual->glvisual.haveStencilBuffer,
-                                visual->glvisual.haveAccumBuffer,
-                                GL_FALSE);
+   win = MALLOC_STRUCT(MiniGLXWindowRec);
+   if (!win)
+      return NULL;
 
-   w->visual = visual;  /* ptr assignment */
-   w->frontStart = display->FrameBuffer;
-   w->size = display->FrameBufferSize;
-   w->bytesPerPixel = display->VarInfo.bits_per_pixel / 8;
-   w->rowStride = display->VarInfo.xres_virtual * w->bytesPerPixel;
-   w->frontBottom = (GLubyte *) w->frontStart
-                    + (display->VarInfo.yres_virtual - 1) * w->rowStride;
+   /* init Mesa framebuffer data */
+   _mesa_initialize_framebuffer(&win->glframebuffer, &visual->glvisual,
+                                visual->glvisual.haveDepthBuffer,   /* sw? */
+                                visual->glvisual.haveStencilBuffer, /* sw? */
+                                visual->glvisual.haveAccumBuffer,   /* sw? */
+                                GL_FALSE /* sw alpha? */
+                                );
+   win->glframebuffer.Width = width;
+   win->glframebuffer.Height = height;
+
+   /* init other per-window fields */
+   win->x = 0;
+   win->y = 0;
+   win->w = width;
+   win->h = height;
+   win->visual = visual;  /* ptr assignment */
+
+   /* do fbdev setup */
+   if (!SetupFBDev(dpy, win)) {
+      _mesa_free(win);
+      return NULL;
+   }
+
+
+   win->bytesPerPixel = dpy->VarInfo.bits_per_pixel / 8;
+   win->rowStride = width * win->bytesPerPixel;
+   win->size = win->rowStride * height * win->bytesPerPixel; /* XXX stride? */
+   win->frontStart = dpy->FrameBuffer;
+   win->frontBottom = (GLubyte *) win->frontStart
+                    + (dpy->VarInfo.yres_virtual - 1) * win->rowStride;
 
    if (visual->glvisual.doubleBufferMode) {
-      w->backStart = _mesa_malloc(display->FrameBufferSize);
-      if (!w->backStart) {
-         _mesa_free_framebuffer_data(&w->glframebuffer);
-         _mesa_free(w);
-         return NULL;
-      }
-      w->mallocBackBuffer = GL_TRUE;
-
-      w->backBottom = (GLubyte *) w->backStart
-                      + (display->VarInfo.yres_virtual - 1) * w->rowStride;
-      w->curBottom = w->backBottom;
+      win->backStart = (GLubyte *) win->frontStart + win->size;
+      win->backBottom = (GLubyte *) win->backStart
+                      + (height - 1) * win->rowStride;
+      win->curBottom = win->backBottom;
    }
    else {
-      w->backStart = NULL;
-      w->mallocBackBuffer = GL_FALSE;
-      w->backBottom = NULL;
-      w->curBottom = w->frontBottom;
+      /* single buffered */
+      win->backStart = NULL;
+      win->backBottom = NULL;
+      win->curBottom = win->frontBottom;
    }
 
-   return w;
+   dpy->NumWindows++;
+   dpy->TheWindow = win;
+
+   return win;
 }
 
 
 int
-WRAP(DefaultScreen)( Display *display )
+WRAP(DefaultScreen)( Display *dpy )
 {
-   (void) display;
+   (void) dpy;
    return 0;
 }
 
@@ -571,22 +754,23 @@ WRAP(RootWindow)( Display *display, int scrNum )
 
 
 void
-WRAP(XDestroyWindow)( Display *display, Window w )
+WRAP(XDestroyWindow)( Display *dpy, Window win )
 {
-   if (w) {
+   assert(dpy);
+   if (win) {
       /* check if destroying the current buffer */
       Window curDraw = WRAP(glXGetCurrentDrawable)();
       Window curRead = WRAP(glXGetCurrentReadDrawable)();
-      if (w == curDraw || w == curRead) {
-         WRAP(glXMakeCurrent)( display, NULL, NULL);
-      }
-      if (w->mallocBackBuffer) {
-         _mesa_free(w->backStart);
+      if (win == curDraw || win == curRead) {
+         WRAP(glXMakeCurrent)( dpy, NULL, NULL);
       }
       /* free the software depth, stencil, accum buffers */
-      _mesa_free_framebuffer_data(&w->glframebuffer);
-      _mesa_free(w);
-      display->NumWindows--;
+      RestoreFBDev(dpy, win);
+      _mesa_free_framebuffer_data(&win->glframebuffer);
+      _mesa_free(win);
+      dpy->NumWindows--;
+      assert(dpy->NumWindows == 0);
+      dpy->TheWindow = NULL;
    }
 }
 
@@ -617,8 +801,8 @@ WRAP(XFreeColormap)( Display *display, Colormap cmap )
 XVisualInfo*
 WRAP(glXChooseVisual)( Display *display, int screen, int *attribs )
 {
-   XVisualInfo *visInfo;
    Visual *vis;
+   XVisualInfo *visInfo;
    const int *attrib;
    GLboolean rgbFlag = GL_FALSE, dbFlag = GL_FALSE, stereoFlag = GL_FALSE;
    GLint redBits = 0, greenBits = 0, blueBits = 0, alphaBits = 0;
@@ -629,19 +813,36 @@ WRAP(glXChooseVisual)( Display *display, int screen, int *attribs )
 
    ASSERT(display);
 
-   vis = (struct MiniGLXVisualRec *) CALLOC_STRUCT(MiniGLXVisualRec);
+   vis = (Visual *) _mesa_calloc(sizeof(Visual));
    if (!vis)
       return NULL;
 
    vis->dpy = display;
 
+   /* parse the attribute list */
    for (attrib = attribs; attrib && *attrib != None; attrib++) {
-      switch (*attrib) {
+      switch (attrib[0]) {
       case GLX_DOUBLEBUFFER:
          dbFlag = GL_TRUE;
          break;
       case GLX_RGBA:
          rgbFlag = GL_TRUE;
+         break;
+      case GLX_RED_SIZE:
+         redBits = attrib[1];
+         attrib++;
+         break;
+      case GLX_GREEN_SIZE:
+         redBits = attrib[1];
+         attrib++;
+         break;
+      case GLX_BLUE_SIZE:
+         redBits = attrib[1];
+         attrib++;
+         break;
+      case GLX_ALPHA_SIZE:
+         redBits = attrib[1];
+         attrib++;
          break;
       case GLX_DEPTH_SIZE:
          depthBits = attrib[1];
@@ -677,65 +878,6 @@ WRAP(glXChooseVisual)( Display *display, int screen, int *attribs )
       }
    }
 
-   if (rgbFlag) {
-      redBits   = display->VarInfo.red.length;
-      greenBits = display->VarInfo.green.length;
-      blueBits  = display->VarInfo.blue.length;
-      alphaBits = display->VarInfo.transp.length;
-
-      if ((display->FixedInfo.visual == FB_VISUAL_TRUECOLOR ||
-           display->FixedInfo.visual == FB_VISUAL_DIRECTCOLOR)
-          && display->VarInfo.bits_per_pixel == 24
-          && display->VarInfo.red.offset == 16
-          && display->VarInfo.green.offset == 8
-          && display->VarInfo.blue.offset == 0) {
-         vis->pixelFormat = PF_B8G8R8;
-      }
-      else if ((display->FixedInfo.visual == FB_VISUAL_TRUECOLOR ||
-                display->FixedInfo.visual == FB_VISUAL_DIRECTCOLOR)
-               && display->VarInfo.bits_per_pixel == 32
-               && display->VarInfo.red.offset == 16
-               && display->VarInfo.green.offset == 8
-               && display->VarInfo.blue.offset == 0
-               && display->VarInfo.transp.offset == 24) {
-         vis->pixelFormat = PF_B8G8R8A8;
-      }
-      else if ((display->FixedInfo.visual == FB_VISUAL_TRUECOLOR ||
-                display->FixedInfo.visual == FB_VISUAL_DIRECTCOLOR)
-               && display->VarInfo.bits_per_pixel == 16
-               && display->VarInfo.red.offset == 11
-               && display->VarInfo.green.offset == 5
-               && display->VarInfo.blue.offset == 0) {
-         vis->pixelFormat = PF_B5G6R5;
-      }
-      else if ((display->FixedInfo.visual == FB_VISUAL_TRUECOLOR ||
-                display->FixedInfo.visual == FB_VISUAL_DIRECTCOLOR)
-               && display->VarInfo.bits_per_pixel == 16
-               && display->VarInfo.red.offset == 10
-               && display->VarInfo.green.offset == 5
-               && display->VarInfo.blue.offset == 0) {
-         vis->pixelFormat = PF_B5G5R5;
-      }
-      else {
-         _mesa_problem(NULL, "Unsupported fbdev RGB visual/bitdepth!\n");
-         _mesa_free(vis);
-         return NULL;
-      }
-   }
-   else {
-      indexBits = display->VarInfo.bits_per_pixel;
-      if ((display->FixedInfo.visual == FB_VISUAL_PSEUDOCOLOR ||
-           display->FixedInfo.visual == FB_VISUAL_STATIC_PSEUDOCOLOR)
-          && display->VarInfo.bits_per_pixel == 8) {
-         vis->pixelFormat = PF_CI8;
-      }
-      else {
-         _mesa_problem(NULL, "Unsupported fbdev CI visual/bitdepth!\n");
-         _mesa_free(vis);
-         return NULL;
-      }
-   }
-
    if (!_mesa_initialize_visual(&vis->glvisual, rgbFlag, dbFlag, stereoFlag,
                                 redBits, greenBits, blueBits, alphaBits,
                                 indexBits, depthBits, stencilBits,
@@ -753,7 +895,23 @@ WRAP(glXChooseVisual)( Display *display, int screen, int *attribs )
       return NULL;
    }
    visInfo->visual = vis;
-   visInfo->depth = display->VarInfo.bits_per_pixel; /* XXX ok? */
+   vis->visInfo = visInfo;
+
+   /* compute depth and bpp */
+   if (rgbFlag) {
+      /* XXX maybe support depth 16 someday */
+      visInfo->class = TrueColor;
+      visInfo->depth = 32;
+      visInfo->bits_per_rgb = 32;
+      vis->pixelFormat = PF_B8G8R8A8;
+   }
+   else {
+      /* color index mode */
+      visInfo->class = PseudoColor;
+      visInfo->depth = 8;
+      visInfo->bits_per_rgb = 8;  /* bits/pixel */
+      vis->pixelFormat = PF_CI8;
+   }
 
    return visInfo;
 }

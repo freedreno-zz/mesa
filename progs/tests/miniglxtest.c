@@ -1,4 +1,4 @@
-/* $Id: miniglxtest.c,v 1.1.4.1 2002/11/20 02:10:37 brianp Exp $ */
+/* $Id: miniglxtest.c,v 1.1.4.2 2002/11/27 17:02:39 brianp Exp $ */
 
 /*
  * Test the mini GLX interface.
@@ -13,14 +13,18 @@
 
 
 
-static void redraw( Display *dpy, Window w )
+static void redraw( Display *dpy, Window w, int rot )
 {
    printf("Redraw event\n");
 
    glClear( GL_COLOR_BUFFER_BIT );
 
    glColor3f( 1.0, 1.0, 0.0 );
-   glRectf( -0.8, -0.8, 0.8, 0.8 );
+   glPushMatrix();
+   glRotatef(rot, 0, 0, 1);
+   glScalef(.5, .5, .5);
+   glRectf( -1, -1, 1, 1 );
+   glPopMatrix();
 
    WRAP(glXSwapBuffers)( dpy, w );
 }
@@ -86,25 +90,18 @@ static Window make_rgb_db_window( Display *dpy,
    return win;
 }
 
-#if 0
-static void event_loop( Display *dpy )
+
+static void event_loop( Display *dpy, Window win )
 {
-   XEvent event;
+   int i;
 
-   while (1) {
-      XNextEvent( dpy, &event );
+   resize(1280, 1024);
 
-      switch (event.type) {
-	 case Expose:
-	    redraw( dpy, event.xany.window );
-	    break;
-	 case ConfigureNotify:
-	    resize( event.xconfigure.width, event.xconfigure.height );
-	    break;
-      }
+   printf("Hang on... drawing 5 frames\n");
+   for (i = 0; i < 5; i++) {
+      redraw( dpy, win, i*10 );
    }
 }
-#endif
 
 
 int main( int argc, char *argv[] )
@@ -114,15 +111,18 @@ int main( int argc, char *argv[] )
 
    dpy = WRAP(XOpenDisplay)(NULL);
 
-   win = make_rgb_db_window( dpy, 300, 300 );
+   win = make_rgb_db_window( dpy, 1280, 1024);
 
    glShadeModel( GL_FLAT );
    glClearColor( 0.5, 0.5, 0.5, 1.0 );
 
-   XMapWindow( dpy, win );
-#if 0
-   event_loop( dpy );
-#endif
+   WRAP(XMapWindow)( dpy, win );
+
+   event_loop( dpy, win );
+
+   WRAP(XDestroyWindow)( dpy, win );
+
+   WRAP(XCloseDisplay)( dpy );
 
    return 0;
 }
