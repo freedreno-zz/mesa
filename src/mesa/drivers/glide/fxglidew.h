@@ -485,16 +485,8 @@ typedef struct
 /*
  * grSstControl stuff
  */
-#if defined(FX_GLIDE3)
-	extern void FX_grSstControl(int par);
-#else
-	#define FX_grSstControl(p)	\
-	do {				\
-	  BEGIN_BOARD_LOCK();		\
-	  grSstControl(p);		\
-	  END_BOARD_LOCK();		\
-	} while (0)
-#endif
+extern FxBool FX_grSstControl(FxU32 code);
+
 /*
  * grGammaCorrectionValue
  */
