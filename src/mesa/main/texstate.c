@@ -1,4 +1,4 @@
-/* $Id: texstate.c,v 1.4.2.3 1999/12/21 17:22:39 keithw Exp $ */
+/* $Id: texstate.c,v 1.4.2.4 2000/02/08 01:48:07 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -145,6 +145,8 @@ void gl_GetTexEnvfv( GLcontext *ctx,
                      GLenum target, GLenum pname, GLfloat *params )
 {
    struct gl_texture_unit *texUnit = &ctx->Texture.Unit[ctx->Texture.CurrentUnit];
+   ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx, "glGetTexEnvfv");
+
    if (target!=GL_TEXTURE_ENV) {
       gl_error( ctx, GL_INVALID_ENUM, "glGetTexEnvfv(target)" );
       return;
@@ -166,6 +168,8 @@ void gl_GetTexEnviv( GLcontext *ctx,
                      GLenum target, GLenum pname, GLint *params )
 {
    struct gl_texture_unit *texUnit = &ctx->Texture.Unit[ctx->Texture.CurrentUnit];
+   ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx, "glGetTexEnviv");
+
    if (target!=GL_TEXTURE_ENV) {
       gl_error( ctx, GL_INVALID_ENUM, "glGetTexEnviv(target)" );
       return;
@@ -199,6 +203,8 @@ void gl_TexParameterfv( GLcontext *ctx,
    struct gl_texture_unit *texUnit = &ctx->Texture.Unit[ctx->Texture.CurrentUnit];
    GLenum eparam = (GLenum) (GLint) params[0];
    struct gl_texture_object *texObj;
+
+   ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx, "glTexParameterfv");
 
    if (MESA_VERBOSE&(VERBOSE_API|VERBOSE_TEXTURE))
       fprintf(stderr, "texPARAM %s %s %d...\n", 
@@ -358,6 +364,8 @@ void gl_GetTexLevelParameteriv( GLcontext *ctx, GLenum target, GLint level,
    const struct gl_texture_image *img = NULL;
    GLuint dimensions;
 
+   ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx, "glGetTexLevelParameterfv");
+
    if (level < 0 || level >= ctx->Const.MaxTextureLevels) {
       gl_error( ctx, GL_INVALID_VALUE, "glGetTexLevelParameter[if]v" );
       return;
@@ -465,6 +473,8 @@ void gl_GetTexParameterfv( GLcontext *ctx,
    struct gl_texture_unit *texUnit = &ctx->Texture.Unit[ctx->Texture.CurrentUnit];
    struct gl_texture_object *obj;
 
+   ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx, "glGetTexParameterfv");
+
    switch (target) {
       case GL_TEXTURE_1D:
          obj = texUnit->CurrentD[1];
@@ -531,6 +541,8 @@ void gl_GetTexParameteriv( GLcontext *ctx,
 {
    struct gl_texture_unit *texUnit = &ctx->Texture.Unit[ctx->Texture.CurrentUnit];
    struct gl_texture_object *obj;
+
+   ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx, "glGetTexParameteriv");
 
    switch (target) {
       case GL_TEXTURE_1D:
