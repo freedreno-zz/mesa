@@ -1,4 +1,4 @@
-/* $Id: image.c,v 1.63.2.5 2002/09/21 17:12:34 brianp Exp $ */
+/* $Id: image.c,v 1.63.2.6 2002/09/21 17:21:44 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -58,7 +58,8 @@ const struct gl_pixelstore_attrib _mesa_native_packing = {
    0,            /* SkipImages */
    GL_FALSE,     /* SwapBytes */
    GL_FALSE,     /* LsbFirst */
-   GL_FALSE      /* ClientStorage */
+   GL_FALSE,     /* ClientStorage */
+   GL_FALSE      /* Invert */
 };
 
 
