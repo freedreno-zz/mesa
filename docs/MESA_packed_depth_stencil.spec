@@ -15,11 +15,11 @@ Contact
 
 Status
 
-    Not yet shipping.
+    OBSOLETE - NEVER SHIPPED (use GL_NV_packed_depth_stencil)
 
 Version
 
-    $Id: MESA_packed_depth_stencil.spec,v 1.1 2000/11/03 14:58:45 brianp Exp $
+    $Id: MESA_packed_depth_stencil.spec,v 1.1.2.1 2002/09/20 19:14:11 brianp Exp $
 
 Number
 

@@ -14,11 +14,11 @@ Contact
 
 Status
 
-    Not yet shipping.
+    OBSOLETE - NEVER SHIPPED (use GL_NV_point_sprite)
 
 Version
 
-    $Id: MESA_sprite_point.spec,v 1.1 2000/12/08 00:21:02 brianp Exp $
+    $Id: MESA_sprite_point.spec,v 1.1.2.1 2002/09/20 19:14:11 brianp Exp $
 
 Number
 
