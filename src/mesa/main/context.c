@@ -1,4 +1,4 @@
-/* $Id: context.c,v 1.18.2.13 2000/07/12 12:02:33 keithw Exp $ */
+/* $Id: context.c,v 1.18.2.14 2000/07/19 21:00:06 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -503,6 +503,11 @@ static void init_texture_unit( GLcontext *ctx, GLuint unit )
    texUnit->GenModeT = GL_EYE_LINEAR;
    texUnit->GenModeR = GL_EYE_LINEAR;
    texUnit->GenModeQ = GL_EYE_LINEAR;
+   texUnit->GenBitS = TEXGEN_EYE_LINEAR;
+   texUnit->GenBitT = TEXGEN_EYE_LINEAR;
+   texUnit->GenBitR = TEXGEN_EYE_LINEAR;
+   texUnit->GenBitQ = TEXGEN_EYE_LINEAR;
+
    /* Yes, these plane coefficients are correct! */
    ASSIGN_4V( texUnit->ObjectPlaneS, 1.0, 0.0, 0.0, 0.0 );
    ASSIGN_4V( texUnit->ObjectPlaneT, 0.0, 1.0, 0.0, 0.0 );
