@@ -18,10 +18,11 @@
 
 
 
-/*
-** Print message to stderr if LIBGL_DEBUG env var is set.
-** (Called from drivers)
-*/
+/**
+ * Print message to stderr if \c LIBGL_DEBUG env var is set.
+ * 
+ * \note Called from drivers.
+ */
 void
 __driUtilMessage(const char *f, ...)
 {
@@ -48,8 +49,8 @@ __driUtilMessage(const char *f, ...)
 
 /*****************************************************************/
 
-/*
- * Return pointer to the __GLXvisualConfig specified by dpy, scrn and vid.
+/**
+ * Return pointer to the #__GLXvisualConfig specified by dpy, scrn and vid.
  * Return NULL if not found.
  */
 static __GLXvisualConfig *
@@ -70,7 +71,8 @@ __driFindGlxConfig(Display *dpy, int scrn, VisualID vid)
 }
 
 
-/* This function comes from programs/Xserver/GL/glx/glxcmds.c
+/**
+ * This function comes from programs/Xserver/GL/glx/glxcmds.c
  */
 static void
 __glXFormatGLModes(__GLcontextModes *modes, const __GLXvisualConfig *config)
@@ -227,7 +229,7 @@ void __driUtilUpdateDrawableInfo(__DRIdrawablePrivate *pdp)
 
 /*****************************************************************/
 
-/*
+/**
  * Called directly from glXSwapBuffers().
  */
 static void driSwapBuffers( Display *dpy, void *drawablePrivate )
@@ -524,7 +526,8 @@ __driUtilCreateScreen(Display *dpy, int scrn, __DRIscreen *psc,
 
 
 
-/* Version for drivers without a drm module:
+/**
+ * Version for drivers without a drm module.
  */
 __DRIscreenPrivate *
 __driUtilCreateScreenNoDRM(Display *dpy, int scrn, __DRIscreen *psc,

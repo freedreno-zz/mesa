@@ -1,4 +1,7 @@
-/* xf86drm.c -- User-level interface to DRM device
+/**
+ * \file xf86drm.c 
+ * \brief User-level interface to DRM device
+ *
  * Created: Tue Jan  5 08:16:21 1999 by faith@precisioninsight.com
  *
  * Copyright 1999 Precision Insight, Inc., Cedar Park, Texas.
@@ -24,12 +27,11 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  *
- * Authors: Rickard E. (Rik) Faith <faith@valinux.com>
- *	    Kevin E. Martin <martin@valinux.com>
- *
- * $XFree86: xc/programs/Xserver/hw/xfree86/os-support/linux/drm/xf86drm.c,v 1.28 2002/10/16 01:26:49 dawes Exp $
- *
+ * \author Rickard E. (Rik) Faith <faith@valinux.com>
+ * \author Kevin E. Martin <martin@valinux.com>
  */
+
+/* $XFree86: xc/programs/Xserver/hw/xfree86/os-support/linux/drm/xf86drm.c,v 1.28 2002/10/16 01:26:49 dawes Exp $ */
 
 # include <stdio.h>
 # include <stdlib.h>
@@ -47,7 +49,7 @@
 # include <stdarg.h>
 # include "drm.h"
 
-/* Not all systems have MAP_FAILED defined */
+/** Not all systems have MAP_FAILED defined */
 #ifndef MAP_FAILED
 #define MAP_FAILED ((void *)-1)
 #endif
@@ -72,7 +74,7 @@
 #endif
 
 #ifndef makedev
-				/* This definition needs to be changed on
+				/** This definition needs to be changed on
                                    some systems if dev_t is a structure.
                                    If there is a header file we can get it
                                    from, there would be best. */
@@ -175,10 +177,11 @@ static int drmOpenMinor(int minor, int create)
     return -errno;
 }
 
-/* drmAvailable looks for (DRM_MAJOR, 0) and returns 1 if it returns
-   information for DRM_IOCTL_VERSION.  For backward compatibility with
-   older Linux implementations, /proc/dri is also checked. */
-
+/**
+ * drmAvailable() looks for (DRM_MAJOR, 0) and returns 1 if it returns
+ * information for DRM_IOCTL_VERSION.  For backward compatibility with
+ * older Linux implementations, /proc/dri is also checked.
+ */
 int drmAvailable(void)
 {
     drmVersionPtr version;
@@ -306,11 +309,12 @@ static int drmOpenByName(const char *name)
     return -1;
 }
 
-/* drmOpen looks up the specified name and busid, and opens the device
-   found.  The entry in /dev/dri is created if necessary (and if root).
-   A file descriptor is returned.  On error, the return value is
-   negative. */
-
+/**
+ * drmOpen() looks up the specified name and busid, and opens the device
+ * found.  The entry in /dev/dri is created if necessary (and if root).
+ *
+ * \return a file descriptor, or a negative value on error.
+ */
 int drmOpen(const char *name, const char *busid)
 {
 
@@ -349,9 +353,11 @@ static void drmCopyVersion(drmVersionPtr d, const drm_version_t *s)
     d->desc               = strdup(s->desc);
 }
 
-/* drmGet Version obtains the driver version information via an ioctl.  Similar
- * information is available via /proc/dri. */
-
+/**
+ * Obtain the driver version information via an ioctl.
+ *
+ * Similar information is available via /proc/dri.
+ */
 drmVersionPtr drmGetVersion(int fd)
 {
     drmVersionPtr retval;
@@ -398,9 +404,11 @@ drmVersionPtr drmGetVersion(int fd)
     return retval;
 }
 
-/* drmGetLibVersion set version information for the drm user space library.
- * this version number is driver indepedent */
-
+/**
+ * Set version information for the DRM user space library.
+ * 
+ * This version number is driver indepedent.
+ */
 drmVersionPtr drmGetLibVersion(int fd)
 {
     drm_version_t *version = malloc(sizeof(*version));

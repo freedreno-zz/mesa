@@ -1,4 +1,4 @@
-/* $Id: glapi.c,v 1.67 2002/10/29 15:03:14 brianp Exp $ */
+/* $Id: glapi.c,v 1.67.4.1 2002/12/21 19:06:06 jrfonseca Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -25,8 +25,10 @@
  */
 
 
-/*
- * This file manages the OpenGL API dispatch layer.
+/**
+ * \file glapi.c
+ * \brief Manages the OpenGL API dispatch layer.
+ * 
  * The dispatch table (struct _glapi_table) is basically just a list
  * of function pointers.
  * There are functions to set/get the current dispatch table for the
@@ -37,8 +39,10 @@
  * flexible enough to be reused in several places:  XFree86, DRI-
  * based libGL.so, and perhaps the SGI SI.
  *
- * NOTE: There are no dependencies on Mesa in this code.
- *
+ * \note There are no dependencies on Mesa in this code.
+ */
+
+/*
  * Versions (API changes):
  *   2000/02/23  - original version for Mesa 3.3 and XFree86 4.0
  *   2001/01/16  - added dispatch override feature for Mesa 3.5
@@ -58,14 +62,17 @@
 #include "glapitable.h"
 #include "glthread.h"
 
-/***** BEGIN NO-OP DISPATCH *****/
+/**
+ * \name No-op dispatch.
+ */
+/*@{*/
 
 static GLboolean WarnFlag = GL_FALSE;
 static _glapi_warning_func warning_func;
 
 
-/*
- * Enable/disable printing of warning messages.
+/**
+ * \brief Enable/disable printing of warning messages.
  */
 void
 _glapi_noop_enable_warnings(GLboolean enable)
@@ -73,8 +80,8 @@ _glapi_noop_enable_warnings(GLboolean enable)
    WarnFlag = enable;
 }
 
-/*
- * Register a callback function for reporting errors.
+/**
+ * \brief Register a callback function for reporting errors.
  */
 void
 _glapi_set_warning_func( _glapi_warning_func func )
@@ -129,23 +136,26 @@ static int NoOpUnused(void)
 
 #include "glapitemp.h"
 
-/***** END NO-OP DISPATCH *****/
+/*@}*/
 
 
 
-/***** BEGIN THREAD-SAFE DISPATCH *****/
-/* if we support thread-safety, build a special dispatch table for use
+/**
+ * \name Thread-safe dispatch.
+ *
+ * if we support thread-safety, build a special dispatch table for use
  * in thread-safety mode (ThreadSafe == GL_TRUE).  Each entry in the
  * dispatch table will call _glthread_GetTSD() to get the actual dispatch
  * table bound to the current thread, then jump through that table.
  */
+/*@{*/
 
 #if defined(THREADS)
 
-static GLboolean ThreadSafe = GL_FALSE;  /* In thread-safe mode? */
-static _glthread_TSD DispatchTSD;        /* Per-thread dispatch pointer */
-static _glthread_TSD RealDispatchTSD;    /* only when using override */
-static _glthread_TSD ContextTSD;         /* Per-thread context pointer */
+static GLboolean ThreadSafe = GL_FALSE;  /**< In thread-safe mode? */
+static _glthread_TSD DispatchTSD;        /**< Per-thread dispatch pointer */
+static _glthread_TSD RealDispatchTSD;    /**< only when using override */
+static _glthread_TSD ContextTSD;         /**< Per-thread context pointer */
 
 
 #define KEYWORD1 static
@@ -180,14 +190,14 @@ static int _ts_Unused(void)
 
 #endif
 
-/***** END THREAD-SAFE DISPATCH *****/
+/*@}*/
 
 
 
 struct _glapi_table *_glapi_Dispatch = (struct _glapi_table *) __glapi_noop_table;
 struct _glapi_table *_glapi_RealDispatch = (struct _glapi_table *) __glapi_noop_table;
 
-/* Used when thread safety disabled */
+/** Used when thread safety disabled */
 void *_glapi_Context = NULL;
 
 
@@ -195,7 +205,8 @@ static GLboolean DispatchOverride = GL_FALSE;
 
 
 
-/* strdup() is actually not a standard ANSI C or POSIX routine.
+/**
+ * strdup() is actually not a standard ANSI C or POSIX routine.
  * Irix will not define it if ANSI mode is in effect.
  */
 static char *
@@ -211,8 +222,8 @@ str_dup(const char *str)
 
 
 
-/*
- * We should call this periodically from a function such as glXMakeCurrent
+/**
+ * We should call this periodically from a function such as glXMakeCurrent()
  * in order to test if multiple threads are being used.
  */
 void
@@ -241,8 +252,9 @@ _glapi_check_multithread(void)
 
 
 
-/*
- * Set the current context pointer for this thread.
+/**
+ * \brief Set the current context pointer for this thread.
+ *
  * The context pointer is an opaque type which should be cast to
  * void from the real context pointer type.
  */
@@ -262,8 +274,9 @@ _glapi_set_context(void *context)
 
 
 
-/*
- * Get the current context pointer for this thread.
+/**
+ * \brief Get the current context pointer for this thread.
+ *
  * The context pointer is an opaque type which should be cast from
  * void to the real context pointer type.
  */
@@ -284,8 +297,8 @@ _glapi_get_context(void)
 
 
 
-/*
- * Set the global or per-thread dispatch table pointer.
+/**
+ * \brief Set the global or per-thread dispatch table pointer.
  */
 void
 _glapi_set_dispatch(struct _glapi_table *dispatch)
@@ -328,8 +341,8 @@ _glapi_set_dispatch(struct _glapi_table *dispatch)
 
 
 
-/*
- * Return pointer to current dispatch table for calling thread.
+/**
+ * \return pointer to current dispatch table for calling thread.
  */
 struct _glapi_table *
 _glapi_get_dispatch(void)
@@ -359,27 +372,24 @@ _glapi_get_dispatch(void)
 }
 
 
-/*
- * Notes on dispatch overrride:
+/**
+ * \brief Dispatch override
  *
- * Dispatch override allows an external agent to hook into the GL dispatch
- * mechanism before execution goes into the core rendering library.  For
- * example, a trace mechanism would insert itself as an overrider, print
+ * \note Dispatch override allows an external agent to hook into the GL
+ * dispatch mechanism before execution goes into the core rendering library.
+ * For example, a trace mechanism would insert itself as an overrider, print
  * logging info for each GL function, then dispatch to the real GL function.
  *
- * libGLS (GL Stream library) is another agent that might use override.
+ * \note libGLS (GL Stream library) is another agent that might use override.
  *
- * We don't allow more than one layer of overriding at this time.
- * In the future we may allow nested/layered override.  In that case
- * _glapi_begin_dispatch_override() will return an override layer,
- * _glapi_end_dispatch_override(layer) will remove an override layer
- * and _glapi_get_override_dispatch(layer) will return the dispatch
- * table for a given override layer.  layer = 0 will be the "real"
- * dispatch table.
- */
-
-/*
- * Return: dispatch override layer number.
+ * \note We don't allow more than one layer of overriding at this time.  In the
+ * future we may allow nested/layered override.  In that case
+ * \c _glapi_begin_dispatch_override() will return an override layer,
+ * \c _glapi_end_dispatch_override(layer) will remove an override layer and
+ * \c _glapi_get_override_dispatch(layer) will return the dispatch table for a
+ * given override layer.  \c layer = 0 will be the "real" dispatch table.
+ *
+ * \return dispatch override layer number.
  */
 int
 _glapi_begin_dispatch_override(struct _glapi_table *override)
@@ -452,9 +462,9 @@ struct name_address_offset {
 
 
 
-/*
- * Return dispatch table offset of the named static (built-in) function.
- * Return -1 if function not found.
+/**
+ * \return dispatch table offset of the named static (built-in) function, or -1
+ * if function not found.
  */
 static GLint
 get_static_proc_offset(const char *funcName)
@@ -469,9 +479,9 @@ get_static_proc_offset(const char *funcName)
 }
 
 
-/*
- * Return dispatch function address the named static (built-in) function.
- * Return NULL if function not found.
+/**
+ * \return dispatch function address the named static (built-in) function, or
+ * NULL if function not found.
  */
 static GLvoid *
 get_static_proc_address(const char *funcName)
@@ -487,21 +497,24 @@ get_static_proc_address(const char *funcName)
 
 
 
-/**********************************************************************
- * Extension function management.
- */
+/**********************************************************************/
+/** \name Extension function management.                              */
+/**********************************************************************/
+/*@{*/
 
-/*
- * Number of extension functions which we can dynamically add at runtime.
+/**
+ * \brief Number of extension functions which we can dynamically add at
+ * runtime.
  */
 #define MAX_EXTENSION_FUNCS 300
 
 
-/*
- * The disptach table size (number of entries) is the sizeof the
- * _glapi_table struct plus the number of dynamic entries we can add.
- * The extra slots can be filled in by DRI drivers that register new extension
- * functions.
+/**
+ * \brief Disptach table size (number of entries).
+ *
+ * The size of the #_glapi_table struct plus the number of dynamic entries we
+ * can add.  The extra slots can be filled in by DRI drivers that register new
+ * extension functions.
  */
 #define DISPATCH_TABLE_SIZE (sizeof(struct _glapi_table) / sizeof(void *) + MAX_EXTENSION_FUNCS)
 
@@ -513,7 +526,7 @@ static GLuint NumExtEntryPoints = 0;
 extern void __glapi_sparc_icache_flush(unsigned int *);
 #endif
 
-/*
+/**
  * Generate a dispatch function (entrypoint) which jumps through
  * the given slot number (offset) in the current dispatch table.
  * We need assembly language in order to accomplish this.
@@ -613,7 +626,7 @@ generate_entrypoint(GLuint functionOffset)
 }
 
 
-/*
+/**
  * This function inserts a new dispatch offset into the assembly language
  * stub that was generated with the preceeding function.
  */
@@ -646,9 +659,10 @@ fill_in_entrypoint_offset(void *entrypoint, GLuint offset)
 }
 
 
-/*
- * Add a new extension function entrypoint.
- * Return: GL_TRUE = success or GL_FALSE = failure
+/**
+ * \brief Add a new extension function entrypoint.
+ * 
+ * \return GL_TRUE if successful or GL_FALSE otherwise.
  */
 GLboolean
 _glapi_add_entrypoint(const char *funcName, GLuint offset)
@@ -715,8 +729,8 @@ _glapi_add_entrypoint(const char *funcName, GLuint offset)
 }
 
 
-/*
- * Return offset of entrypoint for named function within dispatch table.
+/**
+ * \return offset of entrypoint for named function within dispatch table.
  */
 GLint
 _glapi_get_proc_offset(const char *funcName)
@@ -735,8 +749,8 @@ _glapi_get_proc_offset(const char *funcName)
 
 
 
-/*
- * Return entrypoint for named function.
+/**
+ * \return entrypoint for named function.
  */
 const GLvoid *
 _glapi_get_proc_address(const char *funcName)
@@ -782,9 +796,10 @@ _glapi_get_proc_address(const char *funcName)
 
 
 
-/*
- * Return the name of the function at the given dispatch offset.
- * This is only intended for debugging.
+/**
+ * \return the name of the function at the given dispatch offset.
+ * 
+ * \note This is only intended for debugging.
  */
 const char *
 _glapi_get_proc_name(GLuint offset)
@@ -809,9 +824,8 @@ _glapi_get_proc_name(GLuint offset)
 
 
 
-/*
- * Return size of dispatch table struct as number of functions (or
- * slots).
+/**
+ * \return the size of dispatch table struct as number of functions (or slots).
  */
 GLuint
 _glapi_get_dispatch_table_size(void)
@@ -821,8 +835,8 @@ _glapi_get_dispatch_table_size(void)
 
 
 
-/*
- * Get API dispatcher version string.
+/**
+ * \brief Get API dispatcher version string.
  */
 const char *
 _glapi_get_version(void)
@@ -832,9 +846,10 @@ _glapi_get_version(void)
 
 
 
-/*
- * Make sure there are no NULL pointers in the given dispatch table.
- * Intended for debugging purposes.
+/**
+ * \brief Make sure there are no \c NULL pointers in the given dispatch table.
+ * 
+ * \note Intended for debugging purposes.
  */
 void
 _glapi_check_table(const struct _glapi_table *table)
@@ -918,3 +933,5 @@ _glapi_check_table(const struct _glapi_table *table)
    }
 #endif
 }
+
+/*@}*/

@@ -1,4 +1,7 @@
-/* xf86drm.h -- OS-independent header for DRM user-level library interface
+/**
+ * \file xf86drm.h 
+ * \brief OS-independent header for DRM user-level library interface
+ *
  * Created: Tue Jan  5 08:17:23 1999 by faith@precisioninsight.com
  *
  * Copyright 1999, 2000 Precision Insight, Inc., Cedar Park, Texas.
@@ -24,11 +27,10 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  *
- * Author: Rickard E. (Rik) Faith <faith@valinux.com>
- *
- * $XFree86: xc/programs/Xserver/hw/xfree86/os-support/xf86drm.h,v 1.17 2002/10/16 01:26:48 dawes Exp $
- *
+ * \author Rickard E. (Rik) Faith <faith@valinux.com>
  */
+
+/* $XFree86: xc/programs/Xserver/hw/xfree86/os-support/xf86drm.h,v 1.17 2002/10/16 01:26:48 dawes Exp $ */
 
 #ifndef _XF86DRM_H_
 #define _XF86DRM_H_
@@ -51,37 +53,37 @@
 #define DRM_ERR_INVALID    (-1004)
 #define DRM_ERR_NO_FD      (-1005)
 
-typedef unsigned long drmHandle,   *drmHandlePtr;   /* To mapped regions    */
-typedef unsigned int  drmSize,     *drmSizePtr;	    /* For mapped regions   */
-typedef void          *drmAddress, **drmAddressPtr; /* For mapped regions   */
-typedef unsigned int  drmContext,  *drmContextPtr;  /* GLXContext handle    */
-typedef unsigned int  drmDrawable, *drmDrawablePtr; /* Unused               */
-typedef unsigned int  drmMagic,    *drmMagicPtr;    /* Magic for auth       */
+typedef unsigned long drmHandle,   *drmHandlePtr;   /**< To mapped regions */
+typedef unsigned int  drmSize,     *drmSizePtr;	    /**< For mapped regions */
+typedef void          *drmAddress, **drmAddressPtr; /**< For mapped regions */
+typedef unsigned int  drmContext,  *drmContextPtr;  /**< GLXContext handle */
+typedef unsigned int  drmDrawable, *drmDrawablePtr; /**< Unused */
+typedef unsigned int  drmMagic,    *drmMagicPtr;    /**< Magic for auth */
 
 typedef struct _drmVersion {
-    int     version_major;        /* Major version                          */
-    int     version_minor;        /* Minor version                          */
-    int     version_patchlevel;   /* Patch level                            */
-    int     name_len; 	          /* Length of name buffer                  */
-    char    *name;	          /* Name of driver                         */
-    int     date_len;             /* Length of date buffer                  */
-    char    *date;                /* User-space buffer to hold date         */
-    int     desc_len;	          /* Length of desc buffer                  */
-    char    *desc;                /* User-space buffer to hold desc         */
+    int     version_major;        /**< Major version */
+    int     version_minor;        /**< Minor version */
+    int     version_patchlevel;   /**< Patch level */
+    int     name_len; 	          /**< Length of name buffer */
+    char    *name;	          /**< Name of driver */
+    int     date_len;             /**< Length of date buffer */
+    char    *date;                /**< User-space buffer to hold date */
+    int     desc_len;	          /**< Length of desc buffer */
+    char    *desc;                /**< User-space buffer to hold desc */
 } drmVersion, *drmVersionPtr;
 
 typedef struct _drmStats {
-    unsigned long count;	     /* Number of data                      */
+    unsigned long count;	     /**< Number of data */
     struct {
-	unsigned long value;	     /* Value from kernel                   */
-	const char    *long_format;  /* Suggested format for long_name      */
-	const char    *long_name;    /* Long name for value                 */
-	const char    *rate_format;  /* Suggested format for rate_name      */
-	const char    *rate_name;    /* Short name for value per second     */
-	int           isvalue;       /* True if value (vs. counter)         */
-	const char    *mult_names;   /* Multiplier names (e.g., "KGM")      */
-	int           mult;          /* Multiplier value (e.g., 1024)       */
-	int           verbose;       /* Suggest only in verbose output      */
+	unsigned long value;	     /**< Value from kernel */
+	const char    *long_format;  /**< Suggested format for long_name */
+	const char    *long_name;    /**< Long name for value */
+	const char    *rate_format;  /**< Suggested format for rate_name */
+	const char    *rate_name;    /**< Short name for value per second */
+	int           isvalue;       /**< True if value (vs. counter) */
+	const char    *mult_names;   /**< Multiplier names (e.g., "KGM") */
+	int           mult;          /**< Multiplier value (e.g., 1024) */
+	int           verbose;       /**< Suggest only in verbose output */
     } data[15];
 } drmStatsT;
 
@@ -92,38 +94,44 @@ typedef struct _drmStats {
                                    will just copy the flags instead of
                                    translating them.) */
 typedef enum {
-    DRM_FRAME_BUFFER    = 0,      /* WC, no caching, no core dump           */
-    DRM_REGISTERS       = 1,      /* no caching, no core dump               */
-    DRM_SHM             = 2,      /* shared, cached                         */
-    DRM_AGP             = 3,	  /* AGP/GART                               */
-    DRM_SCATTER_GATHER  = 4	  /* PCI scatter/gather                     */
+    DRM_FRAME_BUFFER    = 0,      /**< WC, no caching, no core dump */
+    DRM_REGISTERS       = 1,      /**< no caching, no core dump */
+    DRM_SHM             = 2,      /**< shared, cached */
+    DRM_AGP             = 3,	  /**< AGP/GART */
+    DRM_SCATTER_GATHER  = 4	  /**< PCI scatter/gather */
 } drmMapType;
 
 typedef enum {
-    DRM_RESTRICTED      = 0x0001, /* Cannot be mapped to client-virtual     */
-    DRM_READ_ONLY       = 0x0002, /* Read-only in client-virtual            */
-    DRM_LOCKED          = 0x0004, /* Physical pages locked                  */
-    DRM_KERNEL          = 0x0008, /* Kernel requires access                 */
-    DRM_WRITE_COMBINING = 0x0010, /* Use write-combining, if available      */
-    DRM_CONTAINS_LOCK   = 0x0020, /* SHM page that contains lock            */
-    DRM_REMOVABLE	= 0x0040  /* Removable mapping			    */
+    DRM_RESTRICTED      = 0x0001, /**< Cannot be mapped to client-virtual */
+    DRM_READ_ONLY       = 0x0002, /**< Read-only in client-virtual */
+    DRM_LOCKED          = 0x0004, /**< Physical pages locked */
+    DRM_KERNEL          = 0x0008, /**< Kernel requires access */
+    DRM_WRITE_COMBINING = 0x0010, /**< Use write-combining, if available */
+    DRM_CONTAINS_LOCK   = 0x0020, /**< SHM page that contains lock */
+    DRM_REMOVABLE	= 0x0040  /**< Removable mapping */
 } drmMapFlags;
 
-typedef enum {			 /* These values *MUST* match drm.h         */
-				 /* Flags for DMA buffer dispatch           */
-    DRM_DMA_BLOCK        = 0x01, /* Block until buffer dispatched.  Note,
-				     the buffer may not yet have been
-				     processed by the hardware -- getting a
-				     hardware lock with the hardware
-				     quiescent will ensure that the buffer
-				     has been processed.                    */
-    DRM_DMA_WHILE_LOCKED = 0x02, /* Dispatch while lock held                */
-    DRM_DMA_PRIORITY     = 0x04, /* High priority dispatch                  */
+/**
+ * \warning These values *MUST* match drm.h
+ */
+typedef enum {
+    /* Flags for DMA buffer dispatch */
+    DRM_DMA_BLOCK        = 0x01, /**< 
+				  * Block until buffer dispatched.
+				  * 
+				  * \note the buffer may not yet have been
+				  * processed by the hardware -- getting a
+				  * hardware lock with the hardware quiescent
+				  * will ensure that the buffer has been
+				  * processed.
+				  */
+    DRM_DMA_WHILE_LOCKED = 0x02, /**< Dispatch while lock held */
+    DRM_DMA_PRIORITY     = 0x04, /**< High priority dispatch */
 
-				 /* Flags for DMA buffer request            */
-    DRM_DMA_WAIT         = 0x10, /* Wait for free buffers                   */
-    DRM_DMA_SMALLER_OK   = 0x20, /* Smaller-than-requested buffers ok       */
-    DRM_DMA_LARGER_OK    = 0x40  /* Larger-than-requested buffers ok        */
+    /* Flags for DMA buffer request */
+    DRM_DMA_WAIT         = 0x10, /**< Wait for free buffers */
+    DRM_DMA_SMALLER_OK   = 0x20, /**< Smaller-than-requested buffers ok */
+    DRM_DMA_LARGER_OK    = 0x40  /**< Larger-than-requested buffers ok */
 } drmDMAFlags;
 
 typedef enum {
@@ -133,45 +141,45 @@ typedef enum {
 } drmBufDescFlags;
 
 typedef enum {
-    DRM_LOCK_READY      = 0x01, /* Wait until hardware is ready for DMA */
-    DRM_LOCK_QUIESCENT  = 0x02, /* Wait until hardware quiescent        */
-    DRM_LOCK_FLUSH      = 0x04, /* Flush this context's DMA queue first */
-    DRM_LOCK_FLUSH_ALL  = 0x08, /* Flush all DMA queues first           */
+    DRM_LOCK_READY      = 0x01, /**< Wait until hardware is ready for DMA */
+    DRM_LOCK_QUIESCENT  = 0x02, /**< Wait until hardware quiescent */
+    DRM_LOCK_FLUSH      = 0x04, /**< Flush this context's DMA queue first */
+    DRM_LOCK_FLUSH_ALL  = 0x08, /**< Flush all DMA queues first */
 				/* These *HALT* flags aren't supported yet
                                    -- they will be used to support the
                                    full-screen DGA-like mode. */
-    DRM_HALT_ALL_QUEUES = 0x10, /* Halt all current and future queues   */
-    DRM_HALT_CUR_QUEUES = 0x20  /* Halt all current queues              */
+    DRM_HALT_ALL_QUEUES = 0x10, /**< Halt all current and future queues */
+    DRM_HALT_CUR_QUEUES = 0x20  /**< Halt all current queues */
 } drmLockFlags;
 
 typedef enum {
-    DRM_CONTEXT_PRESERVED = 0x01, /* This context is preserved and
+    DRM_CONTEXT_PRESERVED = 0x01, /**< This context is preserved and
 				     never swapped. */
-    DRM_CONTEXT_2DONLY    = 0x02  /* This context is for 2D rendering only. */
+    DRM_CONTEXT_2DONLY    = 0x02  /**< This context is for 2D rendering only. */
 } drmContextFlags, *drmContextFlagsPtr;
 
 typedef struct _drmBufDesc {
-    int              count;	  /* Number of buffers of this size         */
-    int              size;	  /* Size in bytes                          */
-    int              low_mark;	  /* Low water mark                         */
-    int              high_mark;	  /* High water mark                        */
+    int              count;	  /**< Number of buffers of this size */
+    int              size;	  /**< Size in bytes */
+    int              low_mark;	  /**< Low water mark */
+    int              high_mark;	  /**< High water mark */
 } drmBufDesc, *drmBufDescPtr;
 
 typedef struct _drmBufInfo {
-    int              count;	  /* Number of buffers described in list    */
-    drmBufDescPtr    list;	  /* List of buffer descriptions            */
+    int              count;	  /**< Number of buffers described in list */
+    drmBufDescPtr    list;	  /**< List of buffer descriptions */
 } drmBufInfo, *drmBufInfoPtr;
 
 typedef struct _drmBuf {
-    int              idx;	  /* Index into master buflist              */
-    int              total;	  /* Buffer size                            */
-    int              used;	  /* Amount of buffer in use (for DMA)      */
-    drmAddress       address;	  /* Address                                */
+    int              idx;	  /**< Index into master buflist */
+    int              total;	  /**< Buffer size */
+    int              used;	  /**< Amount of buffer in use (for DMA) */
+    drmAddress       address;	  /**< Address */
 } drmBuf, *drmBufPtr;
 
 typedef struct _drmBufMap {
-    int              count;	  /* Number of buffers mapped               */
-    drmBufPtr        list;	  /* Buffers                                */
+    int              count;	  /**< Number of buffers mapped */
+    drmBufPtr        list;	  /**< Buffers */
 } drmBufMap, *drmBufMapPtr;
 
 typedef struct _drmLock {
@@ -190,19 +198,21 @@ typedef struct _drmLock {
     */
 } drmLock, *drmLockPtr;
 
+/*
+ * Indices here refer to the offset into
+ * list in drmBufInfo
+ */
 typedef struct _drmDMAReq {
-				  /* Indices here refer to the offset into
-				     list in drmBufInfo                     */
-    drmContext    context;  	  /* Context handle                         */
-    int           send_count;     /* Number of buffers to send              */
-    int           *send_list;     /* List of handles to buffers             */
-    int           *send_sizes;    /* Lengths of data to send, in bytes      */
-    drmDMAFlags   flags;          /* Flags                                  */
-    int           request_count;  /* Number of buffers requested            */
-    int           request_size;	  /* Desired size of buffers requested      */
-    int           *request_list;  /* Buffer information                     */
-    int           *request_sizes; /* Minimum acceptable sizes               */
-    int           granted_count;  /* Number of buffers granted at this size */
+    drmContext    context;  	  /**< Context handle */
+    int           send_count;     /**< Number of buffers to send */
+    int           *send_list;     /**< List of handles to buffers */
+    int           *send_sizes;    /**< Lengths of data to send, in bytes */
+    drmDMAFlags   flags;          /**< Flags */
+    int           request_count;  /**< Number of buffers requested */
+    int           request_size;	  /**< Desired size of buffers requested */
+    int           *request_list;  /**< Buffer information */
+    int           *request_sizes; /**< Minimum acceptable sizes */
+    int           granted_count;  /**< Number of buffers granted at this size */
 } drmDMAReq, *drmDMAReqPtr;
 
 typedef struct _drmRegion {
@@ -216,7 +226,7 @@ typedef struct _drmTextureRegion {
     unsigned char next;
     unsigned char prev;
     unsigned char in_use;
-    unsigned char padding;	/* Explicitly pad this out                 */
+    unsigned char padding;	/**< Explicitly pad this out */
     unsigned int  age;
 } drmTextureRegion, *drmTextureRegionPtr;
 
@@ -230,8 +240,8 @@ typedef struct _drmClipRect {
 
 
 typedef enum {
-    DRM_VBLANK_ABSOLUTE = 0x0,	/* Wait for specific vblank sequence number */
-    DRM_VBLANK_RELATIVE = 0x1	/* Wait for given number of vblanks */
+    DRM_VBLANK_ABSOLUTE = 0x0,	/**< Wait for specific vblank sequence number */
+    DRM_VBLANK_RELATIVE = 0x1	/**< Wait for given number of vblanks */
 } drmVBlankSeqType;
 
 typedef struct _drmVBlank {
@@ -245,8 +255,8 @@ typedef struct _drmVBlank {
 
 #define __drm_dummy_lock(lock) (*(__volatile__ unsigned int *)lock)
 
-#define DRM_LOCK_HELD  0x80000000 /* Hardware lock is held                 */
-#define DRM_LOCK_CONT  0x40000000 /* Hardware lock is contended            */
+#define DRM_LOCK_HELD  0x80000000 /**< Hardware lock is held */
+#define DRM_LOCK_CONT  0x40000000 /**< Hardware lock is contended */
 
 #if __GNUC__ >= 2
 # if defined(__i386) || defined(__x86_64__)
@@ -379,8 +389,11 @@ do {	register unsigned int __old __asm("o0");		\
                 if (__ret) drmGetLock(fd,context,0);                   \
         } while(0)
 
-				/* This one counts fast locks -- for
-                                   benchmarking only. */
+/**
+ * \brief Counts fast locks.
+ * 
+ * \note For benchmarking only.
+ */
 #define DRM_LIGHT_LOCK_COUNT(fd,lock,context,count)                    \
 	do {                                                           \
                 DRM_CAS_RESULT(__ret);                                 \
@@ -402,7 +415,9 @@ do {	register unsigned int __old __asm("o0");		\
                 if (__ret) drmUnlock(fd,context);                      \
         } while(0)
 
-				/* Simple spin locks */
+/**
+ * \brief Simple spin locks.
+ */
 #define DRM_SPINLOCK(spin,val)                                         \
 	do {                                                           \
             DRM_CAS_RESULT(__ret);                                     \

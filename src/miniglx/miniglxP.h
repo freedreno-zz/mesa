@@ -1,12 +1,15 @@
-
-#ifndef _mini_GLX_client_h_
-#define _mini_GLX_client_h_
-
 /**
  * \file miniglxP.h
  * \brief Define replacements for some X datatypes and define the DRI-related
  * data structures.
+ *
+ * \note Cut down version of glxclient.h.
+ *
  */
+
+#ifndef _mini_GLX_client_h_
+#define _mini_GLX_client_h_
+
 #include <linux/fb.h>
 
 #include <GL/miniglx.h>

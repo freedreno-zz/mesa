@@ -1,5 +1,3 @@
-/* $Id: miniglx.c,v 1.1.4.21 2002/12/21 02:47:26 jrfonseca Exp $ */
-
 /*
  * Mesa 3-D graphics library
  * Version:  4.1
@@ -23,6 +21,8 @@
  * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
+/* $Id: miniglx.c,v 1.1.4.22 2002/12/21 19:06:07 jrfonseca Exp $ */
 
 
 /**
@@ -55,28 +55,20 @@
  * - XFree86 Man pages, The XFree86 Project, Inc.,
  *   http://www.xfree86.org/current/manindex3.html
  *  
- */
-
-/*
- * Notes on the XVisualInfo, Visual, and __GLXvisualConfig data types:
- *
- * 1. X is kind of silly in that it has two (or three) datatypes which
- *    describe visuals.  In a perfect world there would just be one.
+ * \section notes Notes on the XVisualInfo, Visual, and __GLXvisualConfig data types
  * 
- * 2. We need the __GLXvisualConfig type to augment XVisualInfo and Visual
+ * -# X is kind of silly in that it has two (or three) datatypes which
+ *    describe visuals.  In a perfect world there would just be one.
+ * -# We need the #__GLXvisualConfig type to augment #XVisualInfo and #Visual
  *    because we need to describe the GLX-specific attributes of visuals.
- *
- * 3. In this interface there is a one-to-one-to-one correspondence between
+ * -# In this interface there is a one-to-one-to-one correspondence between
  *    the three types and they're all interconnected.
- *
- * 4. The XVisualInfo type has a pointer to a Visual.  The Visual structure
- *    (aka MiniGLXVisualRec) has a pointer to the __GLXvisualConfig.  The
- *    Visual structure also has a pointer pointing back to the XVisualInfo.
- *
- * 5. The XVisualInfo structure is the only one who's contents are public.
- *
- * 6. The glXChooseVisual and XGetVisualInfo are the only functions that
- *    return XVisualInfo structures.  They can be freed with XFree(), though
+ * -# The #XVisualInfo type has a pointer to a #Visual.  The #Visual structure
+ *    (aka MiniGLXVisualRec) has a pointer to the #__GLXvisualConfig.  The
+ *    #Visual structure also has a pointer pointing back to the #XVisualInfo.
+ * -# The #XVisualInfo structure is the only one who's contents are public.
+ * -# The glXChooseVisual() and XGetVisualInfo() are the only functions that
+ *    return #XVisualInfo structures.  They can be freed with XFree(), though
  *    there is a small memory leak.
  */
 
@@ -497,10 +489,11 @@ _glthread_GetID(void)
 }
 
 
-/*
- * XXX This code might be moved into the driver.
+/**
  * The idea is to establish the set of visuals available for the display.
- * The DRI drivers (or dri_util) requires the __GLXvisualConfig data type.
+ * The DRI drivers (or dri_util.c) requires the __GLXvisualConfig data type.
+ *
+ * \todo XXX This code might be moved into the driver.
  */
 static void
 InitializeScreenConfigs(int *numConfigs, __GLXvisualConfig **configs)
@@ -541,7 +534,8 @@ InitializeScreenConfigs(int *numConfigs, __GLXvisualConfig **configs)
 /**********************************************************************/
 /*@{*/
 
-/* Replace with a config file read at runtime, eventually...
+/**
+ * \todo Replace with a config file read at runtime, eventually...
  */
 int __read_config_file( Display *dpy )
 {

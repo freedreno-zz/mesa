@@ -26,23 +26,20 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 **************************************************************************/
 
-/*
- * Authors:
- *   Brian Paul <brian@precisioninsight.com>
+/**
+ * \file miniglx/dispatch.c
+ * \author Brian Paul <brian@precisioninsight.com>
+ * \brief C-based dispatch of the OpenGL entrypoints (glAccum(), glBegin(),
+ * etc).
+ * 
+ * \note This code IS NOT USED if we're compiling on an x86 system and using
+ * the glapi_x86.S assembly code.
  *
  */
 
 #include <GL/gl.h>
 #include "glapi.h"
 #include "glapitable.h"
-
-
-/*
- * NOTE: this file implements C-based dispatch of the OpenGL entrypoints
- * (glAccum, glBegin, etc).
- * This code IS NOT USED if we're compiling on an x86 system and using
- * the glapi_x86.S assembly code.
- */
 
 
 #if !(defined(USE_X86_ASM) || defined(USE_SPARC_ASM))
