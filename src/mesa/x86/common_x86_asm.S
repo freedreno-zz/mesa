@@ -1,4 +1,4 @@
-/* $Id: common_x86_asm.S,v 1.7.2.2 2002/06/04 21:29:01 brianp Exp $ */
+/* $Id: common_x86_asm.S,v 1.7.2.3 2002/07/11 15:32:00 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -134,6 +134,15 @@ LLBL(cpuid_amd):
 	 * information after we verify that the extended functions are
 	 * supported.
 	 */
+	/* The features we need are almost all in the extended set.  The
+	 * exception is SSE enable, which is in the standard set (0x1).
+	 */
+	MOV_L	( CONST(0x1), EAX )
+	CPUID
+	TEST_L	( EAX, EAX )
+	JZ	( LLBL (cpuid_failed) )
+	MOV_L	( EDX, ESI )
+
 	MOV_L	( CONST(0x80000000), EAX )
 	CPUID
 	TEST_L	( EAX, EAX )
@@ -142,6 +151,10 @@ LLBL(cpuid_amd):
 	MOV_L	( CONST(0x80000001), EAX )
 	CPUID
 	MOV_L	( EDX, EAX )
+	
+	AND_L	( CONST(0x02000000), ESI )	/* OR in the SSE bit */
+	OR_L	( ESI, EAX )
+	
 	JMP	( LLBL (cpuid_done) )
 
 LLBL(cpuid_other):
