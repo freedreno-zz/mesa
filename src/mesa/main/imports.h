@@ -1,4 +1,4 @@
-/* $Id: imports.h,v 1.8 2002/10/30 19:49:29 brianp Exp $ */
+/* $Id: imports.h,v 1.8.2.1 2003/01/14 02:57:30 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -49,6 +49,10 @@
 
 #define MEMCPY( DST, SRC, BYTES)   _mesa_memcpy(DST, SRC, BYTES)
 #define MEMSET( DST, VAL, N )      _mesa_memset(DST, VAL, N)
+extern void _mesa_memset16( GLushort *dst, GLushort val, size_t n );
+
+#define MEMSET16( DST, VAL, N ) \
+        _mesa_memset16( (GLushort *) (DST), (GLushort) (VAL), (size_t) (N) )
 
 
 /* MACs and BeOS don't support static larger than 32kb, so... */
