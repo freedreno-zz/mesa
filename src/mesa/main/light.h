@@ -1,4 +1,4 @@
-/* $Id: light.h,v 1.15 2002/10/25 21:06:30 brianp Exp $ */
+/* $Id: light.h,v 1.15.4.1 2003/03/05 14:04:20 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -31,10 +31,10 @@
 
 #include "mtypes.h"
 
-
 extern void
 _mesa_ShadeModel( GLenum mode );
 
+#if _HAVE_FULL_GL
 extern void
 _mesa_ColorMaterial( GLenum face, GLenum mode );
 
@@ -92,7 +92,6 @@ do {									\
 } while (0)
 
 
-
 extern GLuint _mesa_material_bitmask( GLcontext *ctx,
                                       GLenum face, GLenum pname,
                                       GLuint legal,
@@ -119,5 +118,14 @@ extern void _mesa_copy_material_pairs( struct gl_material dst[2],
 extern void _mesa_update_color_material( GLcontext *ctx,
                                          const GLfloat rgba[4] );
 
+#else
+#define _mesa_update_lighting( c ) ((void)0)
+#define _mesa_update_color_material( c, r ) ((void)0)
+#define _mesa_validate_all_lighting_tables( c ) ((void)0)
+#define _mesa_invalidate_spot_exp_table( l ) ((void)0)
+#define _mesa_material_bitmask( c, f, p, l, s ) 0
+#define _mesa_compute_light_positions( c ) ((void)0)
+#define GET_SHINE_TAB_ENTRY( table, dp, result )  ((result)=0)
+#endif
 
 #endif

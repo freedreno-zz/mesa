@@ -1,4 +1,4 @@
-/* $Id: enums.h,v 1.3 2001/03/12 00:48:37 gareth Exp $ */
+/* $Id: enums.h,v 1.3.8.1 2003/03/05 14:04:19 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -28,7 +28,12 @@
 #ifndef _ENUMS_H_
 #define _ENUMS_H_
 
+#if _HAVE_FULL_GL
 extern const char *_mesa_lookup_enum_by_nr( int nr );
 extern int _mesa_lookup_enum_by_name( const char *symbol );
+#else
+#define _mesa_lookup_enum_by_name( s ) 0
+#define _mesa_lookup_enum_by_nr( n ) "unknown"
+#endif
 
 #endif

@@ -1,4 +1,4 @@
-/* $Id: config.h,v 1.42 2002/10/16 17:57:51 brianp Exp $ */
+/* $Id: config.h,v 1.42.4.1 2003/03/05 14:04:19 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -201,7 +201,11 @@
 /*
  * Enable/disable features (blocks of code) by setting FEATURE_xyz to 0 or 1.
  */
+#if _HAVE_FULL_GL
 #define FEATURE_NV_vertex_program 1
+#else
+#define FEATURE_NV_vertex_program 0
+#endif
 
 
 #endif /* CONFIG_H */

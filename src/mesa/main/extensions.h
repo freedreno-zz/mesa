@@ -1,4 +1,4 @@
-/* $Id: extensions.h,v 1.15 2002/06/29 20:03:13 brianp Exp $ */
+/* $Id: extensions.h,v 1.15.6.1 2003/03/05 14:04:19 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -30,7 +30,7 @@
 
 #include "mtypes.h"
 
-
+#if _HAVE_FULL_GL
 extern void _mesa_enable_sw_extensions(GLcontext *ctx);
 
 extern void _mesa_enable_imaging_extensions(GLcontext *ctx);
@@ -53,5 +53,12 @@ extern void _mesa_extensions_dtr( GLcontext *ctx );
 extern void _mesa_extensions_ctr( GLcontext *ctx );
 
 extern const char *_mesa_extensions_get_string( GLcontext *ctx );
+#else
+#define _mesa_extensions_dtr( ctx ) ((void)0)
+#define _mesa_extensions_ctr( ctx ) ((void)0)
+#define _mesa_extensions_get_string( ctx ) "GL_EXT_texture_object"
+#define _mesa_enable_imaging_extensions( c ) ((void)0)
+#define _mesa_enable_extension( c, n ) ((void)0)
+#endif
 
 #endif

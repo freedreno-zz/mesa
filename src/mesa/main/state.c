@@ -1,4 +1,4 @@
-/* $Id: state.c,v 1.97.4.2 2003/03/04 17:10:39 keithw Exp $ */
+/* $Id: state.c,v 1.97.4.3 2003/03/05 14:04:20 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -69,6 +69,7 @@
 #if FEATURE_NV_vertex_program
 #include "vpstate.h"
 #endif
+#include "debug.h"
 
 #include "math/m_matrix.h"
 #include "math/m_xform.h"
@@ -111,7 +112,9 @@ _mesa_init_exec_table(struct _glapi_table *exec, GLuint tableSize)
    /* first initialize all dispatch slots to no-op */
    _mesa_init_no_op_table(exec, tableSize);
 
+#if _HAVE_FULL_GL
    _mesa_loopback_init_api_table( exec, GL_TRUE );
+#endif
 
    /* load the dispatch slots we understand */
    exec->AlphaFunc = _mesa_AlphaFunc;
@@ -506,7 +509,7 @@ _mesa_init_exec_table(struct _glapi_table *exec, GLuint tableSize)
 #endif
 
    /* 233. GL_NV_vertex_program */
-#if _HAVE_FULL_GL && FEATURE_NV_vertex_program
+#if FEATURE_NV_vertex_program
    exec->BindProgramNV = _mesa_BindProgramNV;
    exec->DeleteProgramsNV = _mesa_DeleteProgramsNV;
    exec->ExecuteProgramNV = _mesa_ExecuteProgramNV;

@@ -1,4 +1,4 @@
-/* $Id: debug.h,v 1.3 2001/03/12 00:48:37 gareth Exp $ */
+/* $Id: debug.h,v 1.3.8.1 2003/03/05 14:04:19 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -27,8 +27,12 @@
 #ifndef _DEBUG_H
 #define _DEBUG_H
 
+#if _HAVE_FULL_GL
 void _mesa_print_tri_caps( const char *name, GLuint flags );
 void _mesa_print_enable_flags( const char *msg, GLuint flags );
 void _mesa_print_state( const char *msg, GLuint state );
+#else
+#define _mesa_print_state( m, s ) ((void)0)
+#endif
 
 #endif

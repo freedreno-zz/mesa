@@ -1,4 +1,4 @@
-/* $Id: colortab.h,v 1.9 2001/03/12 00:48:37 gareth Exp $ */
+/* $Id: colortab.h,v 1.9.8.1 2003/03/05 14:04:18 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -31,7 +31,7 @@
 
 #include "mtypes.h"
 
-
+#if _HAVE_FULL_GL
 extern void
 _mesa_init_colortable( struct gl_color_table *p );
 
@@ -83,5 +83,9 @@ _mesa_GetColorTableParameterfv( GLenum target, GLenum pname, GLfloat *params );
 extern void
 _mesa_GetColorTableParameteriv( GLenum target, GLenum pname, GLint *params );
 
+#else
+#define _mesa_init_colortable( p ) ((void)0)
+#define _mesa_free_colortable_data( p ) ((void)0)
+#endif
 
 #endif
