@@ -38,6 +38,11 @@
 
 #include "xf86drm.h"		/* drmHandle, etc */
 
+#define PCI_CHIP_R200_BB                0x4242
+#define PCI_CHIP_RV250_Id               0x4964
+#define PCI_CHIP_RV250_Ie               0x4965
+#define PCI_CHIP_RV250_If               0x4966
+#define PCI_CHIP_RV250_Ig               0x4967
 #define PCI_CHIP_RADEON_LW		0x4C57
 #define PCI_CHIP_RADEON_LX		0x4C58
 #define PCI_CHIP_RADEON_LY		0x4C59
@@ -62,7 +67,6 @@
 #define PCI_CHIP_RADEON_QY		0x5159
 #define PCI_CHIP_RADEON_QZ		0x515A
 #define PCI_CHIP_R200_Ql		0x516C
-
 
 /**
  * \brief Chip families.
