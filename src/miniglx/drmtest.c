@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <string.h>
 #include "xf86drm.h"
 
 char *pciBusID = "PCI:1:0:0";
@@ -8,7 +9,7 @@ char *pciBusID = "PCI:1:0:0";
 void *pSAREA;
 
 
-int client()
+static int client( void )
 {
    int fd, ret, err;
    drmContext clientContext;
@@ -43,7 +44,7 @@ int client()
    return ret;
 }
 
-int main()
+int main( int argc, char *argv[] )
 {
    char *drmModuleName = "radeon";
    int drmFD;
