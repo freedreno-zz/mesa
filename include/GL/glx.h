@@ -1,4 +1,4 @@
-/* $Id: glx.h,v 1.5.2.1 1999/12/10 13:44:31 brianp Exp $ */
+/* $Id: glx.h,v 1.5.2.2 1999/12/10 14:55:38 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -122,7 +122,6 @@ enum _GLX_CONFIGS {
  * Compile-time extension tests
  */
 #define GLX_EXT_visual_info		1
-#define GLX_EXT_get_proc_address	1
 #define GLX_MESA_pixmap_colormap	1
 #define GLX_MESA_release_buffers	1
 #define GLX_MESA_copy_sub_buffer	1
