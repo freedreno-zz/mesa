@@ -1,4 +1,4 @@
-/* $Id: osmesa.c,v 1.71.2.1 2002/03/01 04:23:16 brianp Exp $ */
+/* $Id: osmesa.c,v 1.71.2.2 2002/03/01 19:37:28 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -1995,7 +1995,13 @@ static const GLubyte *get_string( GLcontext *ctx, GLenum name )
    (void) ctx;
    switch (name) {
       case GL_RENDERER:
+#if CHAN_BITS == 32
+         return (const GLubyte *) "Mesa OffScreen32";
+#elif CHAN_BITS == 16
+         return (const GLubyte *) "Mesa OffScreen16";
+#else
          return (const GLubyte *) "Mesa OffScreen";
+#endif
       default:
          return NULL;
    }
