@@ -1,4 +1,4 @@
-/* $Id: tess.h,v 1.15 1999/11/05 20:37:14 gareth Exp $ */
+/* $Id: tess.h,v 1.15.2.1 1999/11/15 21:21:31 gareth Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -60,11 +60,11 @@ struct GLUtesselator
     GLenum		winding_rule;
     GLdouble		tolerance;
     tess_plane_t	plane;
-    GLuint		contour_count;
+    GLuint		num_contours;
     tess_contour_t	*contours, *last_contour;
     tess_contour_t	*current_contour;
     GLdouble		mins[2], maxs[2];
-    GLuint		vertex_count;
+    GLuint		num_vertices;
     tess_vertex_t	**sorted_vertices;
 #if 0
     tess_grid_t		*grid;			/* Not currently used... */

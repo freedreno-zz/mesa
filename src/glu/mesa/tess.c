@@ -1,4 +1,4 @@
-/* $Id: tess.c,v 1.21 1999/11/11 03:21:43 kendallb Exp $ */
+/* $Id: tess.c,v 1.20.2.1 1999/11/15 21:21:31 gareth Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -33,6 +33,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 #include <GL/glu.h>
 
 #include "tess.h"
@@ -101,13 +102,13 @@ GLUtesselator* GLAPIENTRY gluNewTess( void )
     tobj->plane.normal[Z] = 0.0;
     tobj->plane.dist = 0.0;
 
-    tobj->contour_count = 0;
+    tobj->num_contours = 0;
     tobj->contours = tobj->last_contour = NULL;
     tobj->current_contour = NULL;
 
     CLEAR_BBOX_2DV( tobj->mins, tobj->maxs );
 
-    tobj->vertex_count = 0;
+    tobj->num_vertices = 0;
     tobj->sorted_vertices = NULL;
 #if 0
     tobj->grid = NULL;
@@ -131,7 +132,7 @@ void GLAPIENTRY gluDeleteTess( GLUtesselator *tobj )
 {
     MSG( 15, "-> gluDeleteTess( tobj:%p )\n", tobj );
 
-    if ( ( tobj->error == GLU_NO_ERROR ) && ( tobj->contour_count > 0 ) )
+    if ( ( tobj->error == GLU_NO_ERROR ) && ( tobj->num_contours > 0 ) )
     {
 	/* gluEndPolygon was not called. */
 	tess_error_callback( tobj, GLU_TESS_ERROR3 );
@@ -161,7 +162,7 @@ void GLAPIENTRY gluTessBeginPolygon( GLUtesselator *tobj, void *polygon_data )
 	tess_cleanup( tobj );
     }
 
-    tobj->vertex_count = 0;
+    tobj->num_vertices = 0;
     tobj->data = polygon_data;
     tobj->edge_flag = GL_FALSE;
     tobj->label = 0;
@@ -205,7 +206,7 @@ void GLAPIENTRY gluTessBeginContour( GLUtesselator *tobj )
     CLEAR_BBOX_2DV( tobj->current_contour->mins,
 		    tobj->current_contour->maxs );
 
-    tobj->current_contour->vertex_count = 0;
+    tobj->current_contour->num_vertices = 0;
     tobj->current_contour->vertices =
 	tobj->current_contour->last_vertex = NULL;
 
@@ -237,7 +238,7 @@ void GLAPIENTRY gluTessVertex( GLUtesselator *tobj, GLdouble coords[3],
 	return;
     }
 
-    tobj->vertex_count++;
+    tobj->num_vertices++;
 
     last_vertex = current->last_vertex;
 
@@ -259,14 +260,17 @@ void GLAPIENTRY gluTessVertex( GLUtesselator *tobj, GLdouble coords[3],
 	last_vertex->coords[Y] = coords[Y];
 	last_vertex->coords[Z] = coords[Z];
 
+	last_vertex->edge_flag = GL_TRUE;
+	last_vertex->hull_flag = GL_FALSE;
+
 	last_vertex->side = 0.0;
 	last_vertex->label = 0;
 	last_vertex->mark = 0;
 
 	last_vertex->next = NULL;
-	last_vertex->previous = NULL;
+	last_vertex->prev = NULL;
 
-	current->vertex_count++;
+	current->num_vertices++;
     }
     else
     {
@@ -285,14 +289,17 @@ void GLAPIENTRY gluTessVertex( GLUtesselator *tobj, GLdouble coords[3],
 	vertex->coords[Y] = coords[Y];
 	vertex->coords[Z] = coords[Z];
 
+	vertex->edge_flag = GL_TRUE;
+	vertex->hull_flag = GL_FALSE;
+
 	vertex->side = 0.0;
 	vertex->label = 0;
 	vertex->mark = 0;
 
 	vertex->next = NULL;
-	vertex->previous = last_vertex;
+	vertex->prev = last_vertex;
 
-	current->vertex_count++;
+	current->num_vertices++;
 
 	last_vertex->next = vertex;
 	current->last_vertex = vertex;
@@ -319,7 +326,7 @@ void GLAPIENTRY gluTessEndContour( GLUtesselator *tobj )
 	return;
     }
 
-    if ( tobj->current_contour->vertex_count > 0 ) {
+    if ( tobj->current_contour->num_vertices > 0 ) {
 	inspect_current_contour( tobj );
     } else {
 	delete_contour( &tobj->current_contour );
@@ -351,7 +358,7 @@ void GLAPIENTRY gluTessEndPolygon( GLUtesselator *tobj )
      * Ensure we have at least one contour to tessellate.  If we have none,
      *  clean up and exit gracefully.
      */
-    if ( tobj->contour_count == 0 ) {
+    if ( tobj->num_contours == 0 ) {
 	tess_cleanup( tobj );
 	return;
     }
@@ -359,7 +366,7 @@ void GLAPIENTRY gluTessEndPolygon( GLUtesselator *tobj )
     /* Wrap the contour list. */
 
     tobj->last_contour->next = tobj->contours;
-    tobj->contours->previous = tobj->last_contour;
+    tobj->contours->prev = tobj->last_contour;
 
     TESS_CHECK_ERRORS( tobj );
 
@@ -388,60 +395,60 @@ void GLAPIENTRY gluTessEndPolygon( GLUtesselator *tobj )
  * gluTessCallback
  *****************************************************************************/
 void GLAPIENTRY gluTessCallback( GLUtesselator *tobj, GLenum which,
-				 void (GLCALLBACKP fn)() )
+				 void (GLCALLBACK *fn)() )
 {
     switch ( which )
     {
 	/* Register the begin callbacks. */
     case GLU_TESS_BEGIN:
-	tobj->callbacks.begin = (void (GLCALLBACKP)(GLenum)) fn;
+	tobj->callbacks.begin = (void (GLCALLBACK*)(GLenum)) fn;
 	break;
     case GLU_TESS_BEGIN_DATA:
-	tobj->callbacks.beginData = (void (GLCALLBACKP)(GLenum, void *)) fn;
+	tobj->callbacks.beginData = (void (GLCALLBACK*)(GLenum, void *)) fn;
 	break;
 
 	/* Register the edge flag callbacks. */
     case GLU_TESS_EDGE_FLAG:
-	tobj->callbacks.edgeFlag = (void (GLCALLBACKP)(GLboolean)) fn;
+	tobj->callbacks.edgeFlag = (void (GLCALLBACK*)(GLboolean)) fn;
 	break;
     case GLU_TESS_EDGE_FLAG_DATA:
 	tobj->callbacks.edgeFlagData =
-		(void (GLCALLBACKP)(GLboolean, void *)) fn;
+	    (void (GLCALLBACK*)(GLboolean, void *)) fn;
 	break;
 
 	/* Register the vertex callbacks. */
     case GLU_TESS_VERTEX:
-	tobj->callbacks.vertex = (void (GLCALLBACKP)(void *)) fn;
+	tobj->callbacks.vertex = (void (GLCALLBACK*)(void *)) fn;
 	break;
     case GLU_TESS_VERTEX_DATA:
-	tobj->callbacks.vertexData = (void (GLCALLBACKP)(void *, void *)) fn;
+	tobj->callbacks.vertexData = (void (GLCALLBACK*)(void *, void *)) fn;
 	break;
 
 	/* Register the end callbacks. */
     case GLU_TESS_END:
-	tobj->callbacks.end = (void (GLCALLBACKP)(void)) fn;
+	tobj->callbacks.end = (void (GLCALLBACK*)(void)) fn;
 	break;
     case GLU_TESS_END_DATA:
-	tobj->callbacks.endData = (void (GLCALLBACKP)(void *)) fn;
+	tobj->callbacks.endData = (void (GLCALLBACK*)(void *)) fn;
 	break;
 
 	/* Register the error callbacks. */
     case GLU_TESS_ERROR:
-	tobj->callbacks.error = (void (GLCALLBACKP)(GLenum)) fn;
+	tobj->callbacks.error = (void (GLCALLBACK*)(GLenum)) fn;
 	break;
     case GLU_TESS_ERROR_DATA:
-	tobj->callbacks.errorData = (void (GLCALLBACKP)(GLenum, void *)) fn;
+	tobj->callbacks.errorData = (void (GLCALLBACK*)(GLenum, void *)) fn;
 	break;
 
 	/* Register the combine callbacks. */
     case GLU_TESS_COMBINE:
 	tobj->callbacks.combine =
-		(void (GLCALLBACKP)(GLdouble[3], void *[4],
+	    (void (GLCALLBACK*)(GLdouble[3], void *[4],
 				GLfloat [4], void **)) fn;
 	break;
     case GLU_TESS_COMBINE_DATA:
 	tobj->callbacks.combineData =
-		(void (GLCALLBACKP)(GLdouble[3], void *[4], GLfloat [4],
+	    (void (GLCALLBACK*)(GLdouble[3], void *[4], GLfloat [4],
 				void **, void *)) fn;
 	break;
 
@@ -597,19 +604,19 @@ void tess_error_callback( GLUtesselator *tobj, GLenum errnum )
  *****************************************************************************/
 static void init_callbacks( tess_callbacks_t *callbacks )
 {
-	callbacks->begin        = ( void (GLCALLBACKP)(GLenum) ) NULL;
-	callbacks->beginData    = ( void (GLCALLBACKP)(GLenum, void *) ) NULL;
-	callbacks->edgeFlag     = ( void (GLCALLBACKP)(GLboolean) ) NULL;
-	callbacks->edgeFlagData = ( void (GLCALLBACKP)(GLboolean, void *) ) NULL;
-	callbacks->vertex       = ( void (GLCALLBACKP)(void *) ) NULL;
-	callbacks->vertexData   = ( void (GLCALLBACKP)(void *, void *) ) NULL;
-	callbacks->end          = ( void (GLCALLBACKP)(void) ) NULL;
-	callbacks->endData      = ( void (GLCALLBACKP)(void *) ) NULL;
-	callbacks->error        = ( void (GLCALLBACKP)(GLenum) ) NULL;
-	callbacks->errorData    = ( void (GLCALLBACKP)(GLenum, void *) ) NULL;
-	callbacks->combine      = ( void (GLCALLBACKP)(GLdouble [3], void *[4],
+    callbacks->begin        = ( void (GLCALLBACK*)(GLenum) ) NULL;
+    callbacks->beginData    = ( void (GLCALLBACK*)(GLenum, void *) ) NULL;
+    callbacks->edgeFlag     = ( void (GLCALLBACK*)(GLboolean) ) NULL;
+    callbacks->edgeFlagData = ( void (GLCALLBACK*)(GLboolean, void *) ) NULL;
+    callbacks->vertex       = ( void (GLCALLBACK*)(void *) ) NULL;
+    callbacks->vertexData   = ( void (GLCALLBACK*)(void *, void *) ) NULL;
+    callbacks->end          = ( void (GLCALLBACK*)(void) ) NULL;
+    callbacks->endData      = ( void (GLCALLBACK*)(void *) ) NULL;
+    callbacks->error        = ( void (GLCALLBACK*)(GLenum) ) NULL;
+    callbacks->errorData    = ( void (GLCALLBACK*)(GLenum, void *) ) NULL;
+    callbacks->combine      = ( void (GLCALLBACK*)(GLdouble [3], void *[4],
 						   GLfloat [4], void **) ) NULL;
-	callbacks->combineData  = ( void (GLCALLBACKP)(GLdouble [3], void *[4],
+    callbacks->combineData  = ( void (GLCALLBACK*)(GLdouble [3], void *[4],
 						   GLfloat [4], void **,
 						   void *) ) NULL;
 }
@@ -647,18 +654,18 @@ static void inspect_current_contour( GLUtesselator *tobj )
 
     MSG( 15, "    -> inspect_current_contour( tobj:%p )\n", tobj );
 
-    if ( current->vertex_count < 3 )
+    if ( current->num_vertices < 3 )
     {
-	MSG( 15, "         count %d < 3, deleting\n", current->vertex_count );
+	MSG( 15, "         count %d < 3, deleting\n", current->num_vertices );
 	delete_contour( &tobj->current_contour );
 	return;
     }
 
     current->last_vertex->next = current->vertices;
-    current->vertices->previous = current->last_vertex;
+    current->vertices->prev = current->last_vertex;
 
     if ( ( tobj->contours == NULL ) &&
-	 ( COMPARE_3DV( current->plane.normal, origin ) ) )
+	 ( IS_EQUAL_3DV( current->plane.normal, origin ) ) )
     {
 	/* We haven't been given a normal, so let's take a guess. */
 	if ( find_normal( tobj ) == GLU_ERROR ) {
@@ -699,7 +706,7 @@ static GLenum find_normal( GLUtesselator *tobj )
 
     /* If va and vb are the same point, keep looking for a different vertex. */
 
-    while ( COMPARE_3DV( va->coords, vb->coords ) && ( vb != va ) ) {
+    while ( IS_EQUAL_3DV( va->coords, vb->coords ) && ( vb != va ) ) {
 	vb = vb->next;
     }
 
@@ -714,16 +721,14 @@ static GLenum find_normal( GLUtesselator *tobj )
     {
 	SUB_3V( b, vc->coords, va->coords );
 
-	CROSS3( c, a, b );
+	CROSS_3V( c, a, b );
 
-	if ( ( ABSD( c[X] ) > EQUAL_EPSILON ) ||
-	     ( ABSD( c[Y] ) > EQUAL_EPSILON ) ||
-	     ( ABSD( c[Z] ) > EQUAL_EPSILON ) )
+	if ( ! IS_ZERO_3DV( c ) )
 	{
 	    COPY_3V( contour->plane.normal, c );
 	    NORMALIZE_3DV( contour->plane.normal );
 
-	    contour->plane.dist = - DOT3( contour->plane.normal, va->coords );
+	    contour->plane.dist = - DOT_3V( contour->plane.normal, va->coords );
 
 	    MSG( 15, "      <- find_normal( tobj:%p ) n: (%.2f,%.2f,%.2f)\n", tobj, contour->plane.normal[X], contour->plane.normal[Y], contour->plane.normal[Z] );
 	    return GLU_NO_ERROR;
@@ -760,7 +765,7 @@ static void project_current_contour( GLUtesselator *tobj )
     znormal[Y] = 0.0;
     znormal[Z] = current->plane.normal[Z];
 
-    dot = DOT3( znormal, zaxis );
+    dot = DOT_3V( znormal, zaxis );
     current->roty = roty = acos( dot );
 
     /* Rotate the plane normal around the x-axis. */
@@ -769,11 +774,11 @@ static void project_current_contour( GLUtesselator *tobj )
     xnormal[Y] = znormal[Y];
     xnormal[Z] = sin( roty ) * znormal[X] + cos( roty ) * znormal[Z];
 
-    dot = DOT3( xnormal, zaxis );
+    dot = DOT_3V( xnormal, zaxis );
     current->rotx = rotx = acos( dot );
 
     for ( vertex = current->vertices, i = 0;
-	  i < current->vertex_count; vertex = vertex->next, i++ )
+	  i < current->num_vertices; vertex = vertex->next, i++ )
     {
 	tess_plane_t	*plane = &current->plane;
 	GLdouble	proj[3], yrot[3], xrot[3];
@@ -858,11 +863,11 @@ static GLenum save_current_contour( GLUtesselator *tobj )
     if ( tobj->contours == NULL )
     {
 	tobj->contours = tobj->last_contour = current;
-	current->next = current->previous = NULL;
+	current->next = current->prev = NULL;
     }
     else
     {
-	current->previous = tobj->last_contour;
+	current->prev = tobj->last_contour;
 
 	tobj->last_contour->next = current;
 	tobj->last_contour = current;
@@ -871,7 +876,7 @@ static GLenum save_current_contour( GLUtesselator *tobj )
     }
 
     for ( vertex = current->vertices, i = 0;
-	  i < current->vertex_count; vertex = vertex->next, i++ )
+	  i < current->num_vertices; vertex = vertex->next, i++ )
     {
 	vertex->shadow_vertex = NULL;
 	vertex->edge_flag = GL_TRUE;
@@ -879,7 +884,7 @@ static GLenum save_current_contour( GLUtesselator *tobj )
 
     current->type = GLU_UNKNOWN;
 
-    tobj->contour_count++;
+    tobj->num_contours++;
     tobj->current_contour = NULL;
 
     return GLU_NO_ERROR;
@@ -899,7 +904,7 @@ void delete_contour( tess_contour_t **contour )
 
     vertex = (*contour)->vertices;
 
-    for ( i = 0 ; i < (*contour)->vertex_count ; i++ )
+    for ( i = 0 ; i < (*contour)->num_vertices ; i++ )
     {
 	next = vertex->next;
 	free( vertex );
@@ -922,12 +927,12 @@ static void delete_all_contours( GLUtesselator *tobj )
 	delete_contour( &tobj->current_contour );
     }
 
-    for ( current = tobj->contours, i = 0 ; i < tobj->contour_count ; i++ )
+    for ( current = tobj->contours, i = 0 ; i < tobj->num_contours ; i++ )
     {
 	tess_vertex_t	*vertex = current->vertices, *next_vertex;
 	GLuint		j;
 
-	for ( j = 0 ; j < current->vertex_count ; j ++ )
+	for ( j = 0 ; j < current->num_vertices ; j ++ )
 	{
 	    next_vertex = vertex->next;
 	    free( vertex );
@@ -939,7 +944,7 @@ static void delete_all_contours( GLUtesselator *tobj )
 	current = next_contour;
     }
 
-    tobj->contour_count = tobj->vertex_count = 0;
+    tobj->num_contours = tobj->num_vertices = 0;
     tobj->contours = tobj->last_contour = NULL;
 
     CLEAR_BBOX_2DV( tobj->mins, tobj->maxs );
