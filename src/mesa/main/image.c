@@ -1,4 +1,4 @@
-/* $Id: image.c,v 1.35.4.7 2001/04/04 23:23:19 brianp Exp $ */
+/* $Id: image.c,v 1.35.4.8 2001/05/15 20:17:20 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -2302,9 +2302,6 @@ _mesa_unpack_ubyte_color_span( GLcontext *ctx,
           srcType == GL_UNSIGNED_INT_8_8_8_8_REV ||
           srcType == GL_UNSIGNED_INT_10_10_10_2 ||
           srcType == GL_UNSIGNED_INT_2_10_10_10_REV);
-
-   /* this is intended for RGBA mode only */
-   assert(ctx->Visual->RGBAflag);
 
    applyTransferOps &= (ctx->Pixel.ScaleOrBiasRGBA ||
                         ctx->Pixel.MapColorFlag ||
