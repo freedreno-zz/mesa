@@ -1,4 +1,4 @@
-/* $Id: miniglx.c,v 1.1.4.14 2002/12/16 18:38:29 keithw Exp $ */
+/* $Id: miniglx.c,v 1.1.4.15 2002/12/16 18:55:44 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -79,8 +79,6 @@
 #define FREE(P)   free(P)
 #define STRCMP(A, B)  strcmp(A, B)
 
-
-#define DRIVER_DRI_SO "fb_dri.so"
 
 
 #define PF_B8G8R8     1
@@ -497,6 +495,8 @@ InitializeScreenConfigs(int *numConfigs, __GLXvisualConfig **configs)
 /* Public API functions (Xlib and GLX)                                */
 /**********************************************************************/
 
+/* Jose:  This function not stable
+ */
 Display *
 XOpenDisplay( const char *display_name )
 {
@@ -519,6 +519,7 @@ XOpenDisplay( const char *display_name )
     * We're kind of combining the per-display and per-screen information
     * which was kept separate in XFree86/DRI's libGL.
     */
+#define DRIVER_DRI_SO "fb_dri.so"
    dpy->dlHandle = dlopen(DRIVER_DRI_SO, RTLD_NOW | RTLD_GLOBAL);
    if (!dpy->dlHandle) {
       fprintf(stderr, "Unable to open %s: %s\n", DRIVER_DRI_SO, dlerror());

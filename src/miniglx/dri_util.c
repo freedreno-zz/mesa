@@ -37,33 +37,6 @@ __driUtilMessage(const char *f, ...)
 }
 
 
-static void GetClientDriverName(Display* dpy,
-				int screen,
-				int* ddxDriverMajorVersion,
-				int* ddxDriverMinorVersion,
-				int* ddxDriverPatchVersion,
-				char** clientDriverName)
-{
-    *ddxDriverMajorVersion = 4;
-    *ddxDriverMinorVersion = 0;
-    *ddxDriverPatchVersion = 1;
-
-    fprintf(stderr, "accel: %d\n", dpy->FixedInfo.accel);
-
-    switch (dpy->FixedInfo.accel) {
-/*     case FB_ACCEL_ATI_RADEON: */
-/*        *clientDriverName = "radeon"; */
-/*        break; */
-
-    default:
-       *clientDriverName = "radeon"; 
-       *clientDriverName = "fb";
-       break;
-    }
-}
-
-
-
 
 /* KW: this looks like a reasonable place to hook in the
  *     hardware init lifted from the 2d driver.
@@ -537,15 +510,11 @@ __driUtilCreateScreen(Display *dpy, int scrn, __DRIscreen *psc,
    }
 
    /*
-    * Get device name (like "tdfx") and the ddx version numbers.
-    * We'll check the version in each DRI driver's "createScreen"
-    * function.
+    * Fake the ddx version numbers.
     */
-   GetClientDriverName(dpy, scrn,
-		       &psp->ddxMajor,
-		       &psp->ddxMinor,
-		       &psp->ddxPatch,
-		       &driverName);
+   psp->ddxMajor = 4;
+   psp->ddxMinor = 0;
+   psp->ddxPatch = 1;
 
    /*
     * Fake the DRI X extension version. 

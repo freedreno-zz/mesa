@@ -98,33 +98,9 @@ drmMsg(const char *format, ...)
     }
 }
 
-#if 0
-static void *drmHashTable = NULL; /* Context switch callbacks */
-
-typedef struct drmHashEntry {
-    int      fd;
-    void     (*f)(int, void *, void *);
-    void     *tagTable;
-} drmHashEntry;
-#endif
-
-void *drmMalloc(int size)
-{
-    void *pt;
-    if ((pt = _DRM_MALLOC(size))) memset(pt, 0, size);
-    return pt;
-}
-
-void drmFree(void *pt)
-{
-    if (pt) _DRM_FREE(pt);
-}
-
-static char *drmStrdup(const char *s)
-{
-   return strdup(s);
-}
-
+#define drmMalloc malloc
+#define drmFree free
+#define drmStrdup strdup
 
 static unsigned long drmGetKeyFromFd(int fd)
 {
@@ -135,27 +111,6 @@ static unsigned long drmGetKeyFromFd(int fd)
     return st.st_rdev;
 }
 
-#if 0
-static drmHashEntry *drmGetEntry(int fd)
-{
-    unsigned long key = drmGetKeyFromFd(fd);
-    void          *value;
-    drmHashEntry  *entry;
-
-    if (!drmHashTable) drmHashTable = drmHashCreate();
-
-    if (drmHashLookup(drmHashTable, key, &value)) {
-	entry           = drmMalloc(sizeof(*entry));
-	entry->fd       = fd;
-	entry->f        = NULL;
-	entry->tagTable = drmHashCreate();
-	drmHashInsert(drmHashTable, key, entry);
-    } else {
-	entry = value;
-    }
-    return entry;
-}
-#endif 
 
 static int drmOpenDevice(long dev, int minor)
 {
@@ -546,16 +501,6 @@ int drmAddMap(int fd,
     return 0;
 }
 
-int drmRmMap(int fd, drmHandle handle)
-{
-    drm_map_t map;
-
-    map.handle = (void *)handle;
-
-    if(ioctl(fd, DRM_IOCTL_RM_MAP, &map)) return -errno;
-    return 0;
-}
-
 int drmAddBufs(int fd, int count, int size, drmBufDescFlags flags,
 	       int agp_offset)
 {
@@ -572,40 +517,6 @@ int drmAddBufs(int fd, int count, int size, drmBufDescFlags flags,
     return request.count;
 }
 
-int drmMarkBufs(int fd, double low, double high)
-{
-    drm_buf_info_t info;
-    int            i;
-
-    info.count = 0;
-    info.list  = NULL;
-
-    if (ioctl(fd, DRM_IOCTL_INFO_BUFS, &info)) return -EINVAL;
-
-    if (!info.count) return -EINVAL;
-
-    if (!(info.list = drmMalloc(info.count * sizeof(*info.list))))
-	return -ENOMEM;
-
-    if (ioctl(fd, DRM_IOCTL_INFO_BUFS, &info)) {
-	int retval = -errno;
-	drmFree(info.list);
-	return retval;
-    }
-
-    for (i = 0; i < info.count; i++) {
-	info.list[i].low_mark  = low  * info.list[i].count;
-	info.list[i].high_mark = high * info.list[i].count;
-	if (ioctl(fd, DRM_IOCTL_MARK_BUFS, &info.list[i])) {
-	    int retval = -errno;
-	    drmFree(info.list);
-	    return retval;
-	}
-    }
-    drmFree(info.list);
-
-    return 0;
-}
 
 int drmFreeBufs(int fd, int count, int *list)
 {
@@ -659,41 +570,6 @@ int drmUnmap(drmAddress address, drmSize size)
     return munmap(address, size);
 }
 
-drmBufInfoPtr drmGetBufInfo(int fd)
-{
-    drm_buf_info_t info;
-    drmBufInfoPtr  retval;
-    int            i;
-
-    info.count = 0;
-    info.list  = NULL;
-
-    if (ioctl(fd, DRM_IOCTL_INFO_BUFS, &info)) return NULL;
-
-    if (info.count) {
-	if (!(info.list = drmMalloc(info.count * sizeof(*info.list))))
-	    return NULL;
-
-	if (ioctl(fd, DRM_IOCTL_INFO_BUFS, &info)) {
-	    drmFree(info.list);
-	    return NULL;
-	}
-				/* Now, copy it all back into the
-                                   client-visible data structure... */
-	retval = drmMalloc(sizeof(*retval));
-	retval->count = info.count;
-	retval->list  = drmMalloc(info.count * sizeof(*retval->list));
-	for (i = 0; i < info.count; i++) {
-	    retval->list[i].count     = info.list[i].count;
-	    retval->list[i].size      = info.list[i].size;
-	    retval->list[i].low_mark  = info.list[i].low_mark;
-	    retval->list[i].high_mark = info.list[i].high_mark;
-	}
-	drmFree(info.list);
-	return retval;
-    }
-    return NULL;
-}
 
 drmBufMapPtr drmMapBufs(int fd)
 {
@@ -796,40 +672,6 @@ int drmUnlock(int fd, drmContext context)
     return ioctl(fd, DRM_IOCTL_UNLOCK, &lock);
 }
 
-drmContextPtr drmGetReservedContextList(int fd, int *count)
-{
-    drm_ctx_res_t res;
-    drm_ctx_t     *list;
-    drmContextPtr retval;
-    int           i;
-
-    res.count    = 0;
-    res.contexts = NULL;
-    if (ioctl(fd, DRM_IOCTL_RES_CTX, &res)) return NULL;
-
-    if (!res.count) return NULL;
-
-    if (!(list   = drmMalloc(res.count * sizeof(*list)))) return NULL;
-    if (!(retval = drmMalloc(res.count * sizeof(*retval)))) {
-	drmFree(list);
-	return NULL;
-    }
-
-    res.contexts = list;
-    if (ioctl(fd, DRM_IOCTL_RES_CTX, &res)) return NULL;
-
-    for (i = 0; i < res.count; i++) retval[i] = list[i].handle;
-    drmFree(list);
-
-    *count = res.count;
-    return retval;
-}
-
-void drmFreeReservedContextList(drmContextPtr pt)
-{
-    drmFree(pt);
-}
-
 int drmCreateContext(int fd, drmContextPtr handle)
 {
     drm_ctx_t ctx;
@@ -840,68 +682,12 @@ int drmCreateContext(int fd, drmContextPtr handle)
     return 0;
 }
 
-int drmSwitchToContext(int fd, drmContext context)
-{
-    drm_ctx_t ctx;
-
-    ctx.handle = context;
-    if (ioctl(fd, DRM_IOCTL_SWITCH_CTX, &ctx)) return -errno;
-    return 0;
-}
-
-int drmSetContextFlags(int fd, drmContext context, drmContextFlags flags)
-{
-    drm_ctx_t ctx;
-
-				/* Context preserving means that no context
-                                   switched are done between DMA buffers
-                                   from one context and the next.  This is
-                                   suitable for use in the X server (which
-                                   promises to maintain hardware context,
-                                   or in the client-side library when
-                                   buffers are swapped on behalf of two
-                                   threads. */
-    ctx.handle = context;
-    ctx.flags  = 0;
-    if (flags & DRM_CONTEXT_PRESERVED) ctx.flags |= _DRM_CONTEXT_PRESERVED;
-    if (flags & DRM_CONTEXT_2DONLY)    ctx.flags |= _DRM_CONTEXT_2DONLY;
-    if (ioctl(fd, DRM_IOCTL_MOD_CTX, &ctx)) return -errno;
-    return 0;
-}
-
-int drmGetContextFlags(int fd, drmContext context, drmContextFlagsPtr flags)
-{
-    drm_ctx_t ctx;
-
-    ctx.handle = context;
-    if (ioctl(fd, DRM_IOCTL_GET_CTX, &ctx)) return -errno;
-    *flags = 0;
-    if (ctx.flags & _DRM_CONTEXT_PRESERVED) *flags |= DRM_CONTEXT_PRESERVED;
-    if (ctx.flags & _DRM_CONTEXT_2DONLY)    *flags |= DRM_CONTEXT_2DONLY;
-    return 0;
-}
 
 int drmDestroyContext(int fd, drmContext handle)
 {
     drm_ctx_t ctx;
     ctx.handle = handle;
     if (ioctl(fd, DRM_IOCTL_RM_CTX, &ctx)) return -errno;
-    return 0;
-}
-
-int drmCreateDrawable(int fd, drmDrawablePtr handle)
-{
-    drm_draw_t draw;
-    if (ioctl(fd, DRM_IOCTL_ADD_DRAW, &draw)) return -errno;
-    *handle = draw.handle;
-    return 0;
-}
-
-int drmDestroyDrawable(int fd, drmDrawable handle)
-{
-    drm_draw_t draw;
-    draw.handle = handle;
-    if (ioctl(fd, DRM_IOCTL_RM_DRAW, &draw)) return -errno;
     return 0;
 }
 
@@ -1042,27 +828,6 @@ unsigned int drmAgpDeviceId(int fd)
     return i.id_device;
 }
 
-int drmScatterGatherAlloc(int fd, unsigned long size, unsigned long *handle)
-{
-    drm_scatter_gather_t sg;
-
-    *handle = 0;
-    sg.size   = size;
-    sg.handle = 0;
-    if (ioctl(fd, DRM_IOCTL_SG_ALLOC, &sg)) return -errno;
-    *handle = sg.handle;
-    return 0;
-}
-
-int drmScatterGatherFree(int fd, unsigned long handle)
-{
-    drm_scatter_gather_t sg;
-
-    sg.size   = 0;
-    sg.handle = handle;
-    if (ioctl(fd, DRM_IOCTL_SG_FREE, &sg)) return -errno;
-    return 0;
-}
 
 int drmWaitVBlank(int fd, drmVBlankPtr vbl)
 {
@@ -1075,21 +840,6 @@ int drmWaitVBlank(int fd, drmVBlankPtr vbl)
     return ret;
 }
 
-int drmError(int err, const char *label)
-{
-    switch (err) {
-    case DRM_ERR_NO_DEVICE: fprintf(stderr, "%s: no device\n", label);   break;
-    case DRM_ERR_NO_ACCESS: fprintf(stderr, "%s: no access\n", label);   break;
-    case DRM_ERR_NOT_ROOT:  fprintf(stderr, "%s: not root\n", label);    break;
-    case DRM_ERR_INVALID:   fprintf(stderr, "%s: invalid args\n", label);break;
-    default:
-	if (err < 0) err = -err;
-	fprintf( stderr, "%s: error %d (%s)\n", label, err, strerror(err) );
-	break;
-    }
-
-    return 1;
-}
 
 int drmCtlInstHandler(int fd, int irq)
 {
@@ -1111,21 +861,6 @@ int drmCtlUninstHandler(int fd)
     return 0;
 }
 
-int drmFinish(int fd, int context, drmLockFlags flags)
-{
-    drm_lock_t lock;
-
-    lock.context = context;
-    lock.flags   = 0;
-    if (flags & DRM_LOCK_READY)      lock.flags |= _DRM_LOCK_READY;
-    if (flags & DRM_LOCK_QUIESCENT)  lock.flags |= _DRM_LOCK_QUIESCENT;
-    if (flags & DRM_LOCK_FLUSH)      lock.flags |= _DRM_LOCK_FLUSH;
-    if (flags & DRM_LOCK_FLUSH_ALL)  lock.flags |= _DRM_LOCK_FLUSH_ALL;
-    if (flags & DRM_HALT_ALL_QUEUES) lock.flags |= _DRM_HALT_ALL_QUEUES;
-    if (flags & DRM_HALT_CUR_QUEUES) lock.flags |= _DRM_HALT_CUR_QUEUES;
-    if (ioctl(fd, DRM_IOCTL_FINISH, &lock)) return -errno;
-    return 0;
-}
 
 int drmGetInterruptFromBusID(int fd, int busnum, int devnum, int funcnum)
 {
@@ -1136,59 +871,6 @@ int drmGetInterruptFromBusID(int fd, int busnum, int devnum, int funcnum)
     p.funcnum = funcnum;
     if (ioctl(fd, DRM_IOCTL_IRQ_BUSID, &p)) return -errno;
     return p.irq;
-}
-
-#if 0
-int drmAddContextTag(int fd, drmContext context, void *tag)
-{
-    drmHashEntry  *entry = drmGetEntry(fd);
-
-    if (drmHashInsert(entry->tagTable, context, tag)) {
-	drmHashDelete(entry->tagTable, context);
-	drmHashInsert(entry->tagTable, context, tag);
-    }
-    return 0;
-}
-
-int drmDelContextTag(int fd, drmContext context)
-{
-    drmHashEntry  *entry = drmGetEntry(fd);
-
-    return drmHashDelete(entry->tagTable, context);
-}
-
-void *drmGetContextTag(int fd, drmContext context)
-{
-    drmHashEntry  *entry = drmGetEntry(fd);
-    void          *value;
-
-    if (drmHashLookup(entry->tagTable, context, &value)) return NULL;
-
-    return value;
-}
-#endif 
-
-int drmAddContextPrivateMapping(int fd, drmContext ctx_id, drmHandle handle)
-{
-    drm_ctx_priv_map_t map;
-
-    map.ctx_id = ctx_id;
-    map.handle = (void *)handle;
-
-    if (ioctl(fd, DRM_IOCTL_SET_SAREA_CTX, &map)) return -errno;
-    return 0;
-}
-
-int drmGetContextPrivateMapping(int fd, drmContext ctx_id, drmHandlePtr handle)
-{
-    drm_ctx_priv_map_t map;
-
-    map.ctx_id = ctx_id;
-
-    if (ioctl(fd, DRM_IOCTL_GET_SAREA_CTX, &map)) return -errno;
-    if (handle) *handle = (drmHandle)map.handle;
-
-    return 0;
 }
 
 int drmGetMap(int fd, int idx, drmHandle *offset, drmSize *size,
