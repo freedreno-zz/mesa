@@ -1,4 +1,4 @@
-/* $Id: realglx.h,v 1.1 1999/08/19 00:55:42 jtg Exp $ */
+/* $Id: realglx.h,v 1.1.1.1.2.1 2000/02/23 23:06:55 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -54,7 +54,7 @@ extern void Real_glXDestroyContext( Display *dpy, GLXContext ctx );
 
 
 extern void Real_glXCopyContext( Display *dpy, GLXContext src, GLXContext dst,
-                                 GLuint mask );
+                                 unsigned long mask );
 
 
 extern Bool Real_glXMakeCurrent( Display *dpy, GLXDrawable drawable,

@@ -1,4 +1,4 @@
-/* $Id: fakeglx.c,v 1.12.2.5 2000/02/09 18:54:54 brianp Exp $ */
+/* $Id: fakeglx.c,v 1.12.2.6 2000/02/23 23:06:55 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -1157,12 +1157,12 @@ void Fake_glXDestroyGLXPixmap( Display *dpy, GLXPixmap pixmap )
 
 
 void Fake_glXCopyContext( Display *dpy, GLXContext src, GLXContext dst,
-                          GLuint mask )
+                          unsigned long mask )
 {
    XMesaContext xm_src = (XMesaContext) src;
    XMesaContext xm_dst = (XMesaContext) dst;
    (void) dpy;
-   gl_copy_context( xm_src->gl_ctx, xm_dst->gl_ctx, mask );
+   gl_copy_context( xm_src->gl_ctx, xm_dst->gl_ctx, (GLuint) mask );
 }
 
 

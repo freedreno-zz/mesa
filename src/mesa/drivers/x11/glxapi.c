@@ -1,4 +1,4 @@
-/* $Id: glxapi.c,v 1.4.2.1 1999/12/10 13:45:39 brianp Exp $ */
+/* $Id: glxapi.c,v 1.4.2.2 2000/02/23 23:06:55 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -126,7 +126,7 @@ void glXDestroyContext( Display *dpy, GLXContext ctx )
 
 
 void glXCopyContext( Display *dpy, GLXContext src, GLXContext dst,
-		     GLuint mask )
+		     unsigned long mask )
 {
 #ifdef REALGLX
    if (display_has_glx(dpy))

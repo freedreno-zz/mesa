@@ -1,10 +1,10 @@
-/* $Id: glx.h,v 1.5.2.2 1999/12/10 14:55:38 brianp Exp $ */
+/* $Id: glx.h,v 1.5.2.3 2000/02/23 23:05:07 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.1
+ * Version:  3.2
  * 
- * Copyright (C) 1999  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2000  Brian Paul   All Rights Reserved.
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -156,7 +156,7 @@ extern Bool glXMakeCurrent( Display *dpy, GLXDrawable drawable,
 			    GLXContext ctx);
 
 extern void glXCopyContext( Display *dpy, GLXContext src, GLXContext dst,
-			    GLuint mask );
+			    unsigned long mask );
 
 extern void glXSwapBuffers( Display *dpy, GLXDrawable drawable );
 
