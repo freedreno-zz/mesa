@@ -1,4 +1,4 @@
-/* $Id: glxpixmap.c,v 1.2 2000/07/11 16:05:29 brianp Exp $ */
+/* $Id: glxpixmap.c,v 1.2.6.1 2002/07/12 15:50:46 brianp Exp $ */
 
 
 /*
@@ -10,6 +10,7 @@
 
 
 #include <GL/gl.h>
+#define GLX_GLXEXT_PROTOTYPES
 #include <GL/glx.h>
 #include <stdio.h>
 #include <stdlib.h>

@@ -1,4 +1,4 @@
-/* $Id: shadowtex.c,v 1.4 2001/02/28 18:41:50 brianp Exp $ */
+/* $Id: shadowtex.c,v 1.4.2.1 2002/07/12 15:50:46 brianp Exp $ */
 
 /*
  * Shadow demo using the GL_SGIX_depth_texture, GL_SGIX_shadow and
@@ -257,8 +257,8 @@ Display(void)
     */
    if (DisplayMode == SHOW_DEPTH_MAPPING) {
       /* load depth image as gray-scale luminance texture */
-      GLfloat *depth = malloc(ShadowTexWidth * ShadowTexHeight
-                              * sizeof(GLfloat));
+      GLfloat *depth = (GLfloat *) malloc(ShadowTexWidth * ShadowTexHeight
+                                          * sizeof(GLfloat));
       if (depth) {
          glReadPixels(0, 0, ShadowTexWidth, ShadowTexHeight,
                       GL_DEPTH_COMPONENT, GL_FLOAT, depth);

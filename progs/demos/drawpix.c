@@ -1,4 +1,4 @@
-/* $Id: drawpix.c,v 1.5 2000/12/24 22:53:54 pesco Exp $ */
+/* $Id: drawpix.c,v 1.5.2.1 2002/07/12 15:50:46 brianp Exp $ */
 
 /*
  * glDrawPixels demo/test/benchmark
@@ -8,6 +8,9 @@
 
 /*
  * $Log: drawpix.c,v $
+ * Revision 1.5.2.1  2002/07/12 15:50:46  brianp
+ * Pedantic compiler fixes (Sven Panne)
+ *
  * Revision 1.5  2000/12/24 22:53:54  pesco
  * * demos/Makefile.am (INCLUDES): Added -I$(top_srcdir)/util.
  * * demos/Makefile.X11, demos/Makefile.BeOS-R4, demos/Makefile.cygnus:
@@ -287,7 +290,7 @@ static void Init( GLboolean ciMode )
 
    if (ciMode) {
       /* Convert RGB image to grayscale */
-      GLubyte *indexImage = malloc( ImgWidth * ImgHeight );
+      GLubyte *indexImage = (GLubyte *) malloc( ImgWidth * ImgHeight );
       GLint i;
       for (i=0; i<ImgWidth*ImgHeight; i++) {
          int gray = Image[i*3] + Image[i*3+1] + Image[i*3+2];

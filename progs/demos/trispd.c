@@ -1,4 +1,4 @@
-/* $Id: trispd.c,v 1.2 2000/10/26 15:26:14 brianp Exp $ */
+/* $Id: trispd.c,v 1.2.2.1 2002/07/12 15:50:46 brianp Exp $ */
 
 /*
  * Simple GLUT program to measure triangle strip rendering speed.
@@ -7,6 +7,9 @@
 
 /*
  * $Log: trispd.c,v $
+ * Revision 1.2.2.1  2002/07/12 15:50:46  brianp
+ * Pedantic compiler fixes (Sven Panne)
+ *
  * Revision 1.2  2000/10/26 15:26:14  brianp
  * added a glFinish() call
  *
@@ -158,7 +161,7 @@ static void LoadTex(int comp, int filter)
 {
    GLubyte *pixels;
    int x, y;
-   pixels = malloc(4*256*256);
+   pixels = (GLubyte *) malloc(4*256*256);
    for (y = 0; y < 256; ++y)
       for (x = 0; x < 256; ++x) {
 	 pixels[(y*256+x)*4+0] = (int)(128.5 + 127.0 * cos(0.024544 * x));

@@ -1,4 +1,4 @@
-/* $Id: readpix.c,v 1.4.2.1 2002/05/01 14:53:52 alanh Exp $ */
+/* $Id: readpix.c,v 1.4.2.2 2002/07/12 15:50:46 brianp Exp $ */
 
 /*
  * glReadPixels and glCopyPixels test
@@ -8,6 +8,9 @@
 
 /*
  * $Log: readpix.c,v $
+ * Revision 1.4.2.2  2002/07/12 15:50:46  brianp
+ * Pedantic compiler fixes (Sven Panne)
+ *
  * Revision 1.4.2.1  2002/05/01 14:53:52  alanh
  * glutSwapBuffers implicitly does a glFinish when swapping back to the front
  * buffer. We now issue a glFinish when not issuing SwapBuffers to ensure
@@ -243,7 +246,7 @@ Init( GLboolean ciMode )
 
    if (ciMode) {
       /* Convert RGB image to grayscale */
-      GLubyte *indexImage = malloc( ImgWidth * ImgHeight );
+      GLubyte *indexImage = (GLubyte *) malloc( ImgWidth * ImgHeight );
       GLint i;
       for (i=0; i<ImgWidth*ImgHeight; i++) {
          int gray = Image[i*3] + Image[i*3+1] + Image[i*3+2];
