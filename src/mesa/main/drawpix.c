@@ -1,4 +1,4 @@
-/* $Id: drawpix.c,v 1.5.2.2 2000/02/22 18:10:43 brianp Exp $ */
+/* $Id: drawpix.c,v 1.5.2.3 2000/04/15 03:18:44 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -117,7 +117,7 @@ GLboolean gl_direct_DrawPixels( GLcontext *ctx,
       GLint skipRows = unpack->SkipRows;
       GLint rowLength;
       GLdepth zSpan[MAX_WIDTH];  /* only used when zooming */
-      GLint zoomY0;
+      GLint zoomY0 = 0;
 
       if (unpack->RowLength > 0)
          rowLength = unpack->RowLength;
