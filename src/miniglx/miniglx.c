@@ -22,7 +22,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: miniglx.c,v 1.1.4.25 2002/12/27 11:25:08 keithw Exp $ */
+/* $Id: miniglx.c,v 1.1.4.26 2002/12/30 13:15:56 keithw Exp $ */
 
 
 /**
@@ -578,28 +578,29 @@ InitializeScreenConfigs(int *numConfigs, __GLXvisualConfig **configs)
  */
 int __read_config_file( Display *dpy )
 {
-#if 1
-   dpy->fbdevDevice = "/dev/fb0";
-   dpy->clientDriverName = "radeon_dri.so";
-   dpy->drmModuleName = "radeon";
-   dpy->pciBus = 1;
-   dpy->pciDevice = 0;
-   dpy->pciFunc = 0;
-   dpy->chipset = 0x5144;	/* radeon qd */
-   dpy->pciBusID = malloc(64);
-   sprintf((char *)dpy->pciBusID, "PCI:%d:%d:%d", 
-	   dpy->pciBus, dpy->pciDevice, dpy->pciFunc);
-
-#else 
-   dpy->fbdevDevice = "/dev/fb0";
-   dpy->clientDriverName = "fb_dri.so";
-   dpy->drmModuleName = 0;
-   dpy->pciBus = 0;
-   dpy->pciDevice = 0;
-   dpy->pciFunc = 0;
-   dpy->chipset = 0;   
-   dpy->pciBusID = 0;
-#endif
+   const char *dev = getenv("MINIGLX_DRIVER");
+   if (dev && strcmp(dev, "radeon") == 0) {
+      dpy->fbdevDevice = "/dev/fb0";
+      dpy->clientDriverName = "radeon_dri.so";
+      dpy->drmModuleName = "radeon";
+      dpy->pciBus = 1;
+      dpy->pciDevice = 0;
+      dpy->pciFunc = 0;
+      dpy->chipset = 0x5144;	/* radeon qd */
+      dpy->pciBusID = malloc(64);
+      sprintf((char *)dpy->pciBusID, "PCI:%d:%d:%d", 
+	      dpy->pciBus, dpy->pciDevice, dpy->pciFunc);
+   }
+   else {
+      dpy->fbdevDevice = "/dev/fb0";
+      dpy->clientDriverName = "fb_dri.so";
+      dpy->drmModuleName = 0;
+      dpy->pciBus = 0;
+      dpy->pciDevice = 0;
+      dpy->pciFunc = 0;
+      dpy->chipset = 0;   
+      dpy->pciBusID = 0;
+   }
 
    return 1;
 }

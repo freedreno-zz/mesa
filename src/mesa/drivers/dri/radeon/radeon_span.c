@@ -378,6 +378,7 @@ void radeonInitSpanFuncs( GLcontext *ctx )
       break;
 
    default:
+      assert(0);
       break;
    }
 
@@ -402,6 +403,7 @@ void radeonInitSpanFuncs( GLcontext *ctx )
       break;
 
    default:
+      assert(0);
       break;
    }
 

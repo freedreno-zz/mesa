@@ -32,6 +32,156 @@
 #endif
 
 
+
+static void RADEONWaitForFifo( struct MiniGLXDisplayRec *dpy,
+			       int entries )
+{
+   unsigned char *RADEONMMIO = dpy->MMIOAddress;
+   int i;
+
+   for (i = 0; i < 512; i++) {
+      int fifo_slots =
+	 INREG(RADEON_RBBM_STATUS) & RADEON_RBBM_FIFOCNT_MASK;
+      if (fifo_slots >= entries) return;
+   }
+
+   /* There are recoveries possible, but I haven't seen them work
+    * in practice:
+    */
+   fprintf(stderr, "FIFO timed out: %d entries, stat=0x%08x\n",
+	   INREG(RADEON_RBBM_STATUS) & RADEON_RBBM_FIFOCNT_MASK,
+	   INREG(RADEON_RBBM_STATUS));
+   exit(1);
+}
+
+unsigned int RADEONINPLL( struct MiniGLXDisplayRec *dpy, int addr)
+{
+    unsigned char *RADEONMMIO = dpy->MMIOAddress;
+    unsigned int data;
+
+    OUTREG8(RADEON_CLOCK_CNTL_INDEX, addr & 0x3f);
+    data = INREG(RADEON_CLOCK_CNTL_DATA);
+
+    return data;
+}
+
+/* Reset graphics card to known state */
+void RADEONEngineReset( struct MiniGLXDisplayRec *dpy )
+{
+   unsigned char *RADEONMMIO = dpy->MMIOAddress;
+   unsigned int clock_cntl_index;
+   unsigned int mclk_cntl;
+   unsigned int rbbm_soft_reset;
+   unsigned int host_path_cntl;
+   int i;
+
+   OUTREGP(RADEON_RB2D_DSTCACHE_CTLSTAT,
+	   RADEON_RB2D_DC_FLUSH_ALL,
+	   ~RADEON_RB2D_DC_FLUSH_ALL);
+   for (i = 0; i < 512; i++) {
+      if (!(INREG(RADEON_RB2D_DSTCACHE_CTLSTAT) & RADEON_RB2D_DC_BUSY))
+	 break;
+   }
+
+   clock_cntl_index = INREG(RADEON_CLOCK_CNTL_INDEX);
+
+   mclk_cntl = INPLL(dpy, RADEON_MCLK_CNTL);
+   OUTPLL(RADEON_MCLK_CNTL, (mclk_cntl |
+			     RADEON_FORCEON_MCLKA |
+			     RADEON_FORCEON_MCLKB |
+			     RADEON_FORCEON_YCLKA |
+			     RADEON_FORCEON_YCLKB |
+			     RADEON_FORCEON_MC |
+			     RADEON_FORCEON_AIC));
+
+   /* Soft resetting HDP thru RBBM_SOFT_RESET register can cause some
+    * unexpected behaviour on some machines.  Here we use
+    * RADEON_HOST_PATH_CNTL to reset it.
+    */
+   host_path_cntl = INREG(RADEON_HOST_PATH_CNTL);
+   rbbm_soft_reset = INREG(RADEON_RBBM_SOFT_RESET);
+
+   OUTREG(RADEON_RBBM_SOFT_RESET, (rbbm_soft_reset |
+				   RADEON_SOFT_RESET_CP |
+				   RADEON_SOFT_RESET_HI |
+				   RADEON_SOFT_RESET_SE |
+				   RADEON_SOFT_RESET_RE |
+				   RADEON_SOFT_RESET_PP |
+				   RADEON_SOFT_RESET_E2 |
+				   RADEON_SOFT_RESET_RB));
+   INREG(RADEON_RBBM_SOFT_RESET);
+   OUTREG(RADEON_RBBM_SOFT_RESET, (rbbm_soft_reset & 
+				   (unsigned int) ~(RADEON_SOFT_RESET_CP |
+						    RADEON_SOFT_RESET_HI |
+						    RADEON_SOFT_RESET_SE |
+						    RADEON_SOFT_RESET_RE |
+						    RADEON_SOFT_RESET_PP |
+						    RADEON_SOFT_RESET_E2 |
+						    RADEON_SOFT_RESET_RB)));
+   INREG(RADEON_RBBM_SOFT_RESET);
+
+   OUTREG(RADEON_HOST_PATH_CNTL, host_path_cntl | RADEON_HDP_SOFT_RESET);
+   INREG(RADEON_HOST_PATH_CNTL);
+   OUTREG(RADEON_HOST_PATH_CNTL, host_path_cntl);
+
+   OUTREG(RADEON_RBBM_SOFT_RESET, rbbm_soft_reset);
+
+   OUTREG(RADEON_CLOCK_CNTL_INDEX, clock_cntl_index);
+   OUTPLL(RADEON_MCLK_CNTL, mclk_cntl);
+}
+
+static int RADEONEngineRestore( struct MiniGLXDisplayRec *dpy,
+				RADEONInfoPtr info )
+
+{
+   unsigned char *RADEONMMIO = dpy->MMIOAddress;
+   int pitch64, datatype, dp_gui_master_cntl;
+
+   OUTREG(RADEON_RB3D_CNTL, 0);
+   RADEONEngineReset( dpy );
+
+   switch (dpy->VarInfo.bits_per_pixel) {
+   case 16: datatype = 4; break;
+   case 32: datatype = 6; break;
+   default: return 0;
+   }
+
+   dp_gui_master_cntl =
+      ((datatype << RADEON_GMC_DST_DATATYPE_SHIFT)
+       | RADEON_GMC_CLR_CMP_CNTL_DIS);
+
+   pitch64 = ((dpy->VarInfo.xres_virtual * (dpy->VarInfo.bits_per_pixel / 8) + 0x3f)) >> 6;
+
+   RADEONWaitForFifo(dpy, 1);
+   OUTREG(RADEON_DEFAULT_OFFSET, ((INREG(RADEON_DEFAULT_OFFSET) & 0xC0000000)
+				  | (pitch64 << 22)));
+
+/*    RADEONWaitForFifo(dpy, 1); */
+/*    OUTREG(RADEON_SURFACE_CNTL, info->ModeReg.surface_cntl); */
+
+   RADEONWaitForFifo(dpy, 1);
+   OUTREG(RADEON_DEFAULT_SC_BOTTOM_RIGHT, (RADEON_DEFAULT_SC_RIGHT_MAX
+					   | RADEON_DEFAULT_SC_BOTTOM_MAX));
+
+   RADEONWaitForFifo(dpy, 1);
+   OUTREG(RADEON_DP_GUI_MASTER_CNTL, (dp_gui_master_cntl
+				      | RADEON_GMC_BRUSH_SOLID_COLOR
+				      | RADEON_GMC_SRC_DATATYPE_COLOR));
+
+   RADEONWaitForFifo(dpy, 7);
+   OUTREG(RADEON_DST_LINE_START,    0);
+   OUTREG(RADEON_DST_LINE_END,      0);
+   OUTREG(RADEON_DP_BRUSH_FRGD_CLR, 0xffffffff);
+   OUTREG(RADEON_DP_BRUSH_BKGD_CLR, 0);
+   OUTREG(RADEON_DP_SRC_FRGD_CLR,   0xffffffff);
+   OUTREG(RADEON_DP_SRC_BKGD_CLR,   0);
+   OUTREG(RADEON_DP_WRITE_MASK,     0xffffffff);
+   OUTREG(RADEON_AUX_SC_CNTL,       0);
+
+/*    RADEONWaitForIdleMMIO(dpy); */
+   sleep(2);
+}
+
 /* Compute log base 2 of val */
 static int RADEONMinBits(int val)
 {
@@ -645,6 +795,9 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
    RADEONDRIAgpHeapInit(dpy, info);
    fprintf(stderr, "RADEONDRIAgpHeapInit finished\n");
 
+
+   RADEONEngineRestore( dpy, info );
+
    /* Initialize and start the CP if required */
    RADEONDRICPInit( dpy, info );
    fprintf(stderr, "RADEONDRICPInit finished\n");
@@ -655,6 +808,7 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
       pSAREAPriv = (RADEONSAREAPrivPtr)(((char*)dpy->pSAREA) + 
 					sizeof(XF86DRISAREARec));
       memset(pSAREAPriv, 0, sizeof(*pSAREAPriv));
+      pSAREAPriv->pfAllowPageFlip = 1;
    }
 
    /* Can release the lock now */
@@ -804,6 +958,7 @@ int __driInitFBDev( struct MiniGLXDisplayRec *dpy )
 
    return 1;
 }
+
 
 
 /* Stop the CP */

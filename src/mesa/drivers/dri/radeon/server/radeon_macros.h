@@ -85,7 +85,7 @@ do {									\
     OUTREG(addr, tmp);							\
 } while (0)
 
-#define INPLL(pScrn, addr) RADEONINPLL(pScrn, addr)
+#define INPLL(dpy, addr) RADEONINPLL(dpy, addr)
 
 #define OUTPLL(addr, val)						\
 do {									\
@@ -94,9 +94,9 @@ do {									\
     OUTREG(RADEON_CLOCK_CNTL_DATA, val);				\
 } while (0)
 
-#define OUTPLLP(pScrn, addr, val, mask)					\
+#define OUTPLLP(dpy, addr, val, mask)					\
 do {									\
-    GLuint tmp = INPLL(pScrn, addr);					\
+    GLuint tmp = INPLL(dpy, addr);					\
     tmp &= (mask);							\
     tmp |= (val);							\
     OUTPLL(addr, tmp);							\

@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.1.2.6 2002/12/25 12:51:21 keithw Exp $
+# $Id: Makefile,v 1.1.2.7 2002/12/30 13:15:55 keithw Exp $
 
 # Mesa 3-D graphics library
 # Version:  5.0
@@ -71,7 +71,7 @@ radeon_dri.so:  $(COREMESA) $(OBJECTS) Makefile
 	rm -f $@ && gcc -o $@ -shared $(OBJECTS) $(COREMESA) -L$(MESA)/src/miniglx -lGL -lc -lm
 
 install:
-	rm -f $(MESA)/lib/fb_dri.so && \
+	rm -f $(MESA)/lib/radeon_dri.so && \
 	install -C radeon_dri.so $(MESA)/lib/radeon_dri.so
 
 clean:

@@ -12,11 +12,6 @@
 #include "sarea.h"
 #include "dri_util.h"
 
-#define XF86DRI_MAJOR_VERSION   4
-#define XF86DRI_MINOR_VERSION   1
-#define XF86DRI_PATCH_VERSION   0
-
-
 
 /**
  * \brief Print message to \c stderr if the \c LIBGL_DEBUG environment variable
@@ -37,15 +32,6 @@ __driUtilMessage(const char *f, ...)
         fprintf(stderr, "\n");
     }
 }
-
-
-
-
-
-
-
-
-
 
 
 /*****************************************************************/
@@ -200,32 +186,9 @@ static Bool driBindContext(Display *dpy, int scrn,
 
 void __driUtilUpdateDrawableInfo(__DRIdrawablePrivate *pdp)
 {
-    __DRIscreenPrivate *psp;
-    __DRIcontextPrivate *pcp = pdp->driContextPriv;
-    
-    if (!pcp || (pdp != pcp->driDrawablePriv)) 
-	return;
-
-    psp = pdp->driScreenPriv;
-    if (!psp) 
-	return;
-
-    if (pdp->pClipRects) {
-	free(pdp->pClipRects); 
-    }
-
-    
-    pdp->index = 0;
-    pdp->x = 0;
-    pdp->y = 0;
-    pdp->w = pdp->draw->w;
-    pdp->h = pdp->draw->h;
-    pdp->numClipRects = 1;
-    pdp->pClipRects = (XF86DRIClipRectPtr) malloc(sizeof(XF86DRIClipRectRec));
-    (pdp->pClipRects)[0].x1 = 0;
-    (pdp->pClipRects)[0].y1 = 0;
-    (pdp->pClipRects)[0].x2 = pdp->draw->w;
-    (pdp->pClipRects)[0].y2 = pdp->draw->h;
+   /* nothing to do, should never be called, but is referenced
+    * as an external symbol from client drivers
+    */
 }
 
 /*****************************************************************/
@@ -273,7 +236,7 @@ static void *driCreateDrawable(Display *dpy, int scrn,
 
     pdp->draw = draw;
     pdp->refcount = 0;
-    pdp->pStamp = &pdp->lastStamp;
+    pdp->pStamp = &pdp->lastStamp; /* cliprects will never change */
     pdp->lastStamp = 0;
     pdp->index = 0;
     pdp->numBackClipRects = 0;
@@ -281,6 +244,8 @@ static void *driCreateDrawable(Display *dpy, int scrn,
     pdp->display = dpy;
     pdp->screen = scrn;
 
+    /* Initialize with the invarient window dimensions and cliprects here.
+     */
     pdp->x = 0;
     pdp->y = 0;
     pdp->w = pdp->draw->w;
@@ -380,7 +345,6 @@ static void *driCreateContext(Display *dpy, XVisualInfo *vis,
 	 free(pcp);
 	 return NULL;
       }
-      fprintf(stderr, ">>> drmCreateContext worked: 0x%x\n", (int) pcp->hHWContext);
    }
 
 
@@ -404,7 +368,6 @@ static void *driCreateContext(Display *dpy, XVisualInfo *vis,
    pctx->bindContext    = driBindContext;
    pctx->unbindContext  = driUnbindContext;
 
-   fprintf(stderr, "%s: succeeded\n", __FUNCTION__);
    return pcp;
 }
 
@@ -414,17 +377,12 @@ static void driDestroyScreen(Display *dpy, int scrn, void *screenPrivate)
 {
     __DRIscreenPrivate *psp = (__DRIscreenPrivate *) screenPrivate;
     
-    fprintf(stderr, "%s\n", __FUNCTION__);
-
     if (psp) {
 	if (psp->DriverAPI.DestroyScreen)
 	    (*psp->DriverAPI.DestroyScreen)(psp);
 
-	if (psp->fd) {
-/* 	   (void)drmUnmap((drmAddress)psp->pSAREA, SAREA_MAX); */
-	   fprintf(stderr, "%s: Closing DRM fd\n", __FUNCTION__);
+	if (psp->fd) 
 	   (void)drmClose(psp->fd);
-	}
 
 	free(psp->pDevPriv);
 	free(psp);
@@ -452,7 +410,8 @@ __driUtilCreateScreen(Display *dpy, int scrn, __DRIscreen *psc,
 
    psp->fd = drmOpen(NULL,dpy->pciBusID);
    if (psp->fd < 0) {
-      fprintf(stderr, "libGL error: failed to open DRM: %s\n", strerror(-psp->fd));
+      fprintf(stderr, "libGL error: failed to open DRM: %s\n", 
+	      strerror(-psp->fd));
       free(psp);
       return NULL;
    }
@@ -474,18 +433,14 @@ __driUtilCreateScreen(Display *dpy, int scrn, __DRIscreen *psc,
    }
 
    /*
-    * Fake the ddx version numbers.
+    * Fake various version numbers.
     */
    psp->ddxMajor = 4;
    psp->ddxMinor = 0;
    psp->ddxPatch = 1;
-
-   /*
-    * Fake the DRI X extension version. 
-    */
-   psp->driMajor = XF86DRI_MAJOR_VERSION;
-   psp->driMinor = XF86DRI_MINOR_VERSION;
-   psp->driPatch = XF86DRI_PATCH_VERSION;
+   psp->driMajor = 4;
+   psp->driMinor = 1;
+   psp->driPatch = 0;
 
    /* install driver's callback functions */
    memcpy(&psp->DriverAPI, driverAPI, sizeof(struct __DriverAPIRec));
@@ -511,7 +466,6 @@ __driUtilCreateScreen(Display *dpy, int scrn, __DRIscreen *psc,
    if (psp->DriverAPI.InitDriver) {
       if (!(*psp->DriverAPI.InitDriver)(psp)) {
 	 fprintf(stderr, "libGL error: InitDriver failed\n");
-/* 	 (void)drmUnmap((drmAddress)psp->pSAREA, SAREA_MAX); */
 	 free(psp->pDevPriv);
 	 (void)drmClose(psp->fd);
 	 free(psp);
@@ -540,8 +494,6 @@ __driUtilCreateScreenNoDRM(Display *dpy, int scrn, __DRIscreen *psc,
     __DRIscreenPrivate *psp;
     char *driverName;
 
-    fprintf(stderr, "%s\n", __FUNCTION__);
-
     psp = (__DRIscreenPrivate *)calloc(1, sizeof(__DRIscreenPrivate));
     if (!psp) 
 	return NULL;
@@ -549,9 +501,9 @@ __driUtilCreateScreenNoDRM(Display *dpy, int scrn, __DRIscreen *psc,
     psp->ddxMajor = 4;
     psp->ddxMinor = 0;
     psp->ddxPatch = 1;
-    psp->driMajor = XF86DRI_MAJOR_VERSION;
-    psp->driMinor = XF86DRI_MINOR_VERSION;
-    psp->driPatch = XF86DRI_PATCH_VERSION;
+    psp->driMajor = 4;
+    psp->driMinor = 1;
+    psp->driPatch = 0;
     psp->display = dpy;
     psp->myNum = scrn;
     psp->fd = 0;
