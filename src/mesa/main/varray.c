@@ -1,10 +1,10 @@
-/* $Id: varray.c,v 1.39 2001/03/12 00:48:39 gareth Exp $ */
+/* $Id: varray.c,v 1.39.2.1 2002/04/04 23:57:58 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.5
+ * Version:  4.0.3
  *
- * Copyright (C) 1999-2001  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -141,7 +141,7 @@ _mesa_NormalPointer(GLenum type, GLsizei stride, const GLvoid *ptr )
    ctx->Array.Normal.Stride = stride;
    ctx->Array.Normal.Ptr = (void *) ptr;
    ctx->NewState |= _NEW_ARRAY;
-   ctx->Array.NewState |= _NEW_ARRAY_VERTEX;
+   ctx->Array.NewState |= _NEW_ARRAY_NORMAL;
 
    if (ctx->Driver.NormalPointer)
       ctx->Driver.NormalPointer( ctx, type, stride, ptr );
@@ -206,7 +206,7 @@ _mesa_ColorPointer(GLint size, GLenum type, GLsizei stride, const GLvoid *ptr)
    ctx->Array.Color.Stride = stride;
    ctx->Array.Color.Ptr = (void *) ptr;
    ctx->NewState |= _NEW_ARRAY;
-   ctx->Array.NewState |= _NEW_ARRAY_VERTEX;
+   ctx->Array.NewState |= _NEW_ARRAY_COLOR;
 
    if (ctx->Driver.ColorPointer)
       ctx->Driver.ColorPointer( ctx, size, type, stride, ptr );
@@ -243,7 +243,7 @@ _mesa_FogCoordPointerEXT(GLenum type, GLsizei stride, const GLvoid *ptr)
    ctx->Array.FogCoord.Stride = stride;
    ctx->Array.FogCoord.Ptr = (void *) ptr;
    ctx->NewState |= _NEW_ARRAY;
-   ctx->Array.NewState |= _NEW_ARRAY_VERTEX;
+   ctx->Array.NewState |= _NEW_ARRAY_FOGCOORD;
 
    if (ctx->Driver.FogCoordPointer)
       ctx->Driver.FogCoordPointer( ctx, type, stride, ptr );
@@ -288,7 +288,7 @@ _mesa_IndexPointer(GLenum type, GLsizei stride, const GLvoid *ptr)
    ctx->Array.Index.Stride = stride;
    ctx->Array.Index.Ptr = (void *) ptr;
    ctx->NewState |= _NEW_ARRAY;
-   ctx->Array.NewState |= _NEW_ARRAY_VERTEX;
+   ctx->Array.NewState |= _NEW_ARRAY_INDEX;
 
    if (ctx->Driver.IndexPointer)
       ctx->Driver.IndexPointer( ctx, type, stride, ptr );
@@ -353,7 +353,7 @@ _mesa_SecondaryColorPointerEXT(GLint size, GLenum type,
    ctx->Array.SecondaryColor.Stride = stride;
    ctx->Array.SecondaryColor.Ptr = (void *) ptr;
    ctx->NewState |= _NEW_ARRAY;
-   ctx->Array.NewState |= _NEW_ARRAY_VERTEX;
+   ctx->Array.NewState |= _NEW_ARRAY_SECONDARYCOLOR;
 
    if (ctx->Driver.SecondaryColorPointer)
       ctx->Driver.SecondaryColorPointer( ctx, size, type, stride, ptr );
@@ -409,7 +409,7 @@ _mesa_TexCoordPointer(GLint size, GLenum type, GLsizei stride, const GLvoid *ptr
    ctx->Array.TexCoord[texUnit].Stride = stride;
    ctx->Array.TexCoord[texUnit].Ptr = (void *) ptr;
    ctx->NewState |= _NEW_ARRAY;
-   ctx->Array.NewState |= _NEW_ARRAY_VERTEX;
+   ctx->Array.NewState |= _NEW_ARRAY_TEXCOORD(texUnit);
 
 /*     fprintf(stderr, "%s ptr %p\n", __FUNCTION__, ptr); */
 
@@ -435,7 +435,7 @@ _mesa_EdgeFlagPointer(GLsizei stride, const void *vptr)
    ctx->Array.EdgeFlag.StrideB = stride ? stride : sizeof(GLboolean);
    ctx->Array.EdgeFlag.Ptr = (GLboolean *) ptr;
    ctx->NewState |= _NEW_ARRAY;
-   ctx->Array.NewState |= _NEW_ARRAY_VERTEX;
+   ctx->Array.NewState |= _NEW_ARRAY_EDGEFLAG;
 
    if (ctx->Driver.EdgeFlagPointer)
       ctx->Driver.EdgeFlagPointer( ctx, stride, ptr );
