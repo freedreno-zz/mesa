@@ -11,25 +11,29 @@
 </h1>
 <h2>
 <center>
-<h3>(preliminary - Jan 16, 2003)</h3>
 <h3>Tungsten Graphics, Inc.</h3>
+<h3>January 20, 2003<br>
+</h3>
 </center>
 </h2>
-<p><span style="font-style: italic;">[This is an incomplete,
-preliminary document. &nbsp;All information is subject to change. Please
-see Appendix A for a list of open issues.]<br>
-</span><br>
+<p> Copyright &copy; 2002-2003 by Tungsten Graphics, Inc., Cedar Park,
+Texas. All Rights Reserved. <br>
+<br>
+Permission is granted to make and distribute verbatim copies of this
+document provided the copyright notice and this permission notice are
+preserved on all copies.<br>
 </p>
-<p> This document describes a subset of the OpenGL API implemented by
+<h1>1. Introduction</h1>
+This document describes a subset of the OpenGL API implemented by
 Tungsten Graphics, Inc. for embedded devices. &nbsp;Prior to reading
 this document the reader should be familiar with the OpenGL 1.2.1
 specification dated April 1, 1999 (available from <a
  href="http://www.opengl.org/developers/documentation/specs.html">http://www.opengl.org/developers/documentation/specs.html</a>.)
 &nbsp;Experience with OpenGL programming is highly advisable.<a
  href="http://www.opengl.org/developers/documentation/specs.html"><br>
+</a><br>
+Appendix A contains a list of issues of which some may not be resolved.<br>
 <br>
-</a></p>
-<h1>1. Introduction</h1>
 To summarize, the following major features of OpenGL are omitted from
 the subset:<br>
 <ul>
@@ -1001,12 +1005,12 @@ parameter must be GL_UNSIGNED_BYTE. &nbsp;Pixel component values are
 thus in the range 0 through 255.<br>
 <br>
 If <span style="font-style: italic;">format</span> is GL_INTESITY then
-the image has one byte per pixel which specifies the pixel's red,
-green, blue and alpha values.<span style="font-style: italic;"></span><br>
+the image has one byte per pixel which specifies the pixel's red, green,
+blue and alpha values.<span style="font-style: italic;"></span><br>
 <br>
 If <span style="font-style: italic;">format</span> is GL_RGB then the
-image has three bytes per pixel which specify the pixel's red, green
-and blue values (in that order). &nbsp;The alpha value defaults to 255.<br>
+image has three bytes per pixel which specify the pixel's red, green and
+blue values (in that order). &nbsp;The alpha value defaults to 255.<br>
 <br>
 If <span style="font-style: italic;">format</span> is GL_RGBA then the
 image has four bytes per pixel which specify the pixel's red, green,
@@ -1155,8 +1159,8 @@ The texture magnification filter is set with the <span
  style="font-weight: bold;">glTexParameteri </span><span
  style="font-style: italic;"></span><span style="font-weight: bold;"></span>command
 by setting <span style="font-style: italic;">target</span> to
-GL_TEXTURE_2D, setting <span style="font-style: italic;">pname</span>
-to GL_TEXTURE_MAG_FILTER and setting <span style="font-style: italic;">value</span>
+GL_TEXTURE_2D, setting <span style="font-style: italic;">pname</span> to
+GL_TEXTURE_MAG_FILTER and setting <span style="font-style: italic;">value</span>
 to GL_NEAREST or GL_LINEAR.<br>
 <br>
 GL_NEAREST samples the texel nearest the texture coordinate in the
