@@ -485,7 +485,7 @@ static void _save_upgrade_vertex( GLcontext *ctx,
 	 }
       }
 
-      tnl->save.buffer = dest;
+      tnl->save.vbptr = dest;
       tnl->save.counter -= tnl->save.copied.nr;
    }
 }

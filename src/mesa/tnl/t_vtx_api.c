@@ -215,29 +215,29 @@ static void _tnl_wrap_upgrade_vertex( GLcontext *ctx,
    if (tnl->vtx.copied.nr)
    {
       GLfloat *data = tnl->vtx.copied.buffer;
-      GLfloat *tmp = tnl->vtx.buffer;
+      GLfloat *dest = tnl->vtx.buffer;
       GLuint j;
 
       for (i = 0 ; i < tnl->vtx.copied.nr ; i++) {
-	 for (j = 1 ; j < _TNL_ATTRIB_MAX ; j++) {
+	 for (j = 0 ; j < _TNL_ATTRIB_MAX ; j++) {
 	    if (tnl->vtx.attrsz[j]) {
 	       if (j == attr) {
-		  COPY_SZ_4V( tmp, newsz, tnl->vtx.current[attr] );
-		  COPY_SZ_4V( tmp, oldsz, data );
+		  COPY_SZ_4V( dest, newsz, tnl->vtx.current[j] );
+		  COPY_SZ_4V( dest, oldsz, data );
 		  data += oldsz;
-		  tmp += newsz;
+		  dest += newsz;
 	       }
 	       else {
 		  GLuint sz = tnl->vtx.attrsz[j];
-		  COPY_SZ_4V( tmp, sz, data );
-		  tmp += sz;
+		  COPY_SZ_4V( dest, sz, data );
+		  dest += sz;
 		  data += sz;
 	       }
 	    }
 	 }
       }
 
-      tnl->vtx.vbptr = tmp;
+      tnl->vtx.vbptr = dest;
       tnl->vtx.counter -= tnl->vtx.copied.nr;
       tnl->vtx.copied.nr = 0;
    }
