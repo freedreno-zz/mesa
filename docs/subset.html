@@ -11,7 +11,7 @@
 </h1>
 <h2>
 <center>
-<h3>(preliminary - Jan 9, 2003)</h3>
+<h3>(preliminary - Jan 16, 2003)</h3>
 <h3>Tungsten Graphics, Inc.</h3>
 </center>
 </h2>
@@ -20,9 +20,9 @@ preliminary document. &nbsp;All information is subject to change. Please
 see Appendix A for a list of open issues.]<br>
 </span><br>
 </p>
-<p> This document describes a subset of OpenGL implemented by Tungsten
-Graphics, Inc. for embedded devices. &nbsp;Prior to reading this
-document the reader should be familiar with the OpenGL 1.2.1
+<p> This document describes a subset of the OpenGL API implemented by
+Tungsten Graphics, Inc. for embedded devices. &nbsp;Prior to reading
+this document the reader should be familiar with the OpenGL 1.2.1
 specification dated April 1, 1999 (available from <a
  href="http://www.opengl.org/developers/documentation/specs.html">http://www.opengl.org/developers/documentation/specs.html</a>.)
 &nbsp;Experience with OpenGL programming is highly advisable.<a
@@ -40,7 +40,7 @@ the subset:<br>
   <li>Polygon stipple</li>
   <li>DrawPixels, CopyPixels, PixelZoom</li>
   <li>1-D and 3-D textures</li>
-  <li>CopyTexImage</li>
+  <li>CopyTex[Sub]Image</li>
   <li>Fog</li>
   <li>Depth test</li>
   <li>Color Index mode</li>
@@ -48,6 +48,8 @@ the subset:<br>
   <li>Feedback mode</li>
   <li>Evaluators</li>
   <li>Push/Pop attributes</li>
+  <li>Display lists<br>
+  </li>
 </ul>
 <p>Further reductions are made at a lower level of detail.<br>
 </p>
@@ -104,12 +106,10 @@ The <span style="font-weight: bold;">glVertex</span> commands take two
 or three floating point coordinates, or a pointer to an array of two or
 three floating point coordinates. &nbsp;OpenGL vertices are actually
 4-element homogeneous coordinates. &nbsp;The fourth component,
-unspecified by the <span style="font-weight: bold;">glVertex</span>
+unspecified by the subset's <span style="font-weight: bold;">glVertex</span>
 commands, is one.<br>
 <br>
-<span style="font-weight: bold;">glVertex</span> commands defined by
-OpenGL but not listed above, are omitted from the subset.<br>
-<br>
+<span style="font-weight: bold;"></span>
 <h2>2.2 Other Per-vertex Commands<br>
 </h2>
 The <span style="font-weight: bold;">glColor</span> and <span
@@ -148,14 +148,8 @@ coordinates are actually four-component coordinates: (s, t, r, q).
 set s and t explicitly. &nbsp;The r and q components are zero and one,
 respectively.<br>
 <br>
-<span style="font-weight: bold;">glColor</span> and <span
- style="font-weight: bold;">glTexCoord</span> commands defined by OpenGL
-but not listed above, are omitted from the subset. &nbsp;Furthermore,
-the <span style="font-weight: bold;">glEdgeFlag, glColorIndex</span> and <span
- style="font-weight: bold;">glNormal</span> commands are also omitted
-from the subset.<br>
-<br>
-Only <span style="font-weight: bold;">glVertex, glColor</span> and <span
+<span style="font-weight: bold;"></span>Only <span
+ style="font-weight: bold;">glVertex, glColor</span> and <span
  style="font-weight: bold;">glTexCoord</span> commands are allowed
 between <span style="font-weight: bold;">glBegin</span> and <span
  style="font-weight: bold;">glEnd.</span> &nbsp;Calling any other
@@ -167,7 +161,38 @@ GL_INVALID_OPERATION.<br>
 None of the following OpenGL commands related to primitive
 specification are supported by the subset:<br>
 <br>
-<div style="margin-left: 40px;">Vertex array commands:<br>
+<div style="margin-left: 40px;">Per-Vertex commands:<br>
+</div>
+<div style="margin-left: 40px;">
+<div style="margin-left: 40px;"><span style="font-weight: bold;">glVertex2d,
+glVertex2i, glVertex2s, glVertex3d, glVertex3i, glVertex3s, glVertex4d,
+glVertex4i, glVertex4s, glVertex2dv, glVertex2iv, glVertex2sv,
+glVertex3dv, glVertex3iv, glVertex3sv, glVertex4dv, glVertex4iv,
+glVertex4sv,<br>
+glNormal3b, glNormal3d, glNormal3f, glNormal3i, glNormal3s, </span><span
+ style="font-weight: bold;">glNormal3bv, glNormal3dv, glNormal3fv,
+glNormal3iv, glNormal3sv,<br>
+glIndexd, glIndexf, glIndexi, glIndexs, glIndexub, glIndexdv,
+glIndexfv, glIndexiv, glIndexsv, glIndexubv,<br>
+glColor3b, glColor3d, glColor3i, glColor3s, glColor3ub, glColor3ui,
+glColor3us, </span><span style="font-weight: bold;">glColor3bv,
+glColor3dv, glColor3iv, glColor3sv, glColor3ubv, glColor3uiv,
+glColor3usv,</span><span style="font-weight: bold;"> lColor4b,
+glColor4d, glColor4i, glColor4s, glColor4ub, glColor4ui, glColor4us, </span><span
+ style="font-weight: bold;">glColor4bv, glColor4dv, glColor4iv,
+glColor4sv, glColor4ubv, glColor4uiv, glColor4usv,<br>
+</span><span style="font-weight: bold;">glTexCoord1d, glTexCoord1f,
+glTexCoord1i, glTexCoord1s, glTexCoord2d, glTexCoord2i, glTexCoord2s,
+glTexCoord3d, glTexCoord3f, glTexCoord3i, glTexCoord3s, glTexCoord4d,
+glTexCoord4f, glTexCoord4i, glTexCoord4s, glTexCoord1dv, glTexCoord1fv,
+glTexCoord1iv, glTexCoord1sv, glTexCoord2dv, glTexCoord2iv,
+glTexCoord2sv, glTexCoord3dv, glTexCoord3fv, glTexCoord3iv,
+glTexCoord3sv, glTexCoord4dv, glTexCoord4fv, glTexCoord4iv,
+glTexCoord4sv,<br>
+glEdgeFlag, glEdgeFlagv</span><br style="font-weight: bold;">
+<br>
+</div>
+Vertex array commands:<br>
 <div style="margin-left: 40px;"><span style="font-weight: bold;">glVertexPointer,
 glColorPointer, glIndexPointer, glTexCoordPointer, glEdgeFlagPointer,
 glNormalPointer, glInterleavedArrays, glArrayElement, glDrawArrays,
@@ -184,12 +209,16 @@ glRecti, glRectf, glRectd, glRectsv, glRectiv, glRectfv, glRectdv,<br>
 </div>
 <div style="margin-left: 40px;">Lighting commands:<br>
 </div>
-<div style="margin-left: 80px;"><span style="font-weight: bold;">glMaterial<br>
+<div style="margin-left: 80px;"><span style="font-weight: bold;">glMaterialf,
+glMateriali, glMaterialfv, glMaterialiv<br>
 </span><br>
 </div>
 <div style="margin-left: 40px;"> Evaluator commands:<br>
-<div style="margin-left: 40px;"><span style="font-weight: bold;">glEvalCoord,
-glEvalPoint</span><br>
+<div style="margin-left: 40px;"><span style="font-weight: bold;">glEvalCoord1d,
+glEvalCoord1f, glEvalCoord1dv, glEvalCoord1fv,&nbsp;</span><span
+ style="font-weight: bold;">glEvalCoord2d, glEvalCoord2f,
+glEvalCoord2dv, glEvalCoord2fv,<br>
+</span><span style="font-weight: bold;">glEvalPoint1, glEvalPoint2</span><br>
 <br>
 </div>
 </div>
@@ -222,19 +251,19 @@ glScalef<span style="font-weight: normal;">(GLfloat <span
  style="font-style: italic;">x</span>, GLfloat <span
  style="font-style: italic;">y</span>, GLfloat <span
  style="font-style: italic;">z</span>)<br>
-<span style="font-weight: bold;">glFrustum(</span>GLfloat <span
- style="font-style: italic;">left,</span> GLfloat <span
- style="font-style: italic;">right,</span> GLfloat <span
- style="font-style: italic;">bottom,</span> GLfloat <span
- style="font-style: italic;">top,</span> GLfloat <span
- style="font-style: italic;">near,</span> GLfloat <span
+<span style="font-weight: bold;">glFrustum(</span>GLdouble <span
+ style="font-style: italic;">left,</span> GLdouble <span
+ style="font-style: italic;">right,</span> GLdouble <span
+ style="font-style: italic;">bottom,</span> GLdouble <span
+ style="font-style: italic;">top,</span> GLdouble <span
+ style="font-style: italic;">near,</span> GLdouble <span
  style="font-style: italic;">far</span>)</span><br>
-<span style="font-weight: normal;"><span style="font-weight: bold;">glOrtho(</span>GLfloat<span
- style="font-style: italic;">left,</span> GLfloat <span
- style="font-style: italic;">right,</span> GLfloat <span
- style="font-style: italic;">bottom,</span> GLfloat <span
- style="font-style: italic;">top,</span> GLfloat <span
- style="font-style: italic;">near,</span> GLfloat <span
+<span style="font-weight: normal;"><span style="font-weight: bold;">glOrtho(</span>GLdouble<span
+ style="font-style: italic;"> left,</span> GLdouble <span
+ style="font-style: italic;">right,</span> GLdouble <span
+ style="font-style: italic;">bottom,</span> GLdouble <span
+ style="font-style: italic;">top,</span> GLdouble <span
+ style="font-style: italic;">near,</span> GLdouble <span
  style="font-style: italic;">far</span>)</span><br>
 glViewport<span style="font-weight: normal;">(GLint <span
  style="font-style: italic;">x</span>, GLint <span
@@ -252,7 +281,8 @@ modelview and projection matrices are a modelview matrix stack and
 projection matrix stack.<br>
 <br>
 The <span style="font-weight: bold;">glLoadIdentity</span> command
-replaces the current matrix with the identity matrix.<br>
+replaces the current matrix with the identity matrix. &nbsp;The matrix
+elements are specified in column-major order.<br>
 <br>
 The <span style="font-weight: bold;">glPushMatrix</span> command pushes
 a copy of the current matrix onto either the modelview matrix stack or
@@ -263,7 +293,8 @@ stack. &nbsp;Matrix stacks are useful for traversing and rendering
 heirarchal models.<br>
 <br>
 The <span style="font-weight: bold;">glMultMatrixf</span> command
-post-multiplies the current matrix by the specified matrix.<br>
+post-multiplies the current matrix by the specified matrix. &nbsp;The
+matrix elements are specified in column-major order.<br>
 <br>
 The <span style="font-weight: bold;">glRotatef</span> command
 post-multiplies the current matrix by a rotation matrix defined by the
@@ -271,11 +302,15 @@ angle and rotation axis defined by x, y and z.<br>
 <br>
 The <span style="font-weight: bold;">glTranslatef</span> command
 post-multiplies the current matrix by a translation matrix defined by
-the x, y and z translation parameters.<br>
+the <span style="font-style: italic;">x</span>, <span
+ style="font-style: italic;">y</span> and <span
+ style="font-style: italic;">z</span> translation parameters.<br>
 <span style="font-weight: bold;"></span><br>
 The <span style="font-weight: bold;">glScalef</span> command
-post-multiplies the current matrix by a scaling matrix defined by the x,
-y and z scale factors.<br>
+post-multiplies the current matrix by a scaling matrix defined by the <span
+ style="font-style: italic;">x</span>, <span
+ style="font-style: italic;">y</span> and <span
+ style="font-style: italic;">z</span> scale factors.<br>
 <span style="font-weight: bold;"></span><br>
 The <span style="font-weight: bold;">glFrustum</span> command
 post-multiplies the current matrix by a persperctive projection matrix.
@@ -310,19 +345,6 @@ does not effect the current matrix.<br>
 <br>
 A coordinate transformed to window coordinates is hereafter known as (x<sub>w</sub>,
 y<sub>w</sub>, z<sub>w</sub>).<br>
-<br>
-The following double-precision coordinate transformation commands are
-omitted from the subset:<br>
-<div style="margin-left: 40px;"><span style="font-weight: bold;"><br>
-glLoadMatrixd, glMultMatrixd, glRotated, glTranslated, glScaled</span><br
- style="font-weight: bold;">
-</div>
-<br>
-Furthermore, the <span style="font-weight: bold;">glDepthRange</span>
-command, which maps normalized device coordinates to Z buffer values
-(the Z-axis companion the the X/Y-axis <span style="font-weight: bold;">glViewport</span>
-command) is omitted from the subset. &nbsp;The near and far depth range
-values are always zero and one, respectively.<br>
 <br>
 <h2>3.2 Clipping</h2>
 View-volume clipping automatically discards or trims primitives which
@@ -364,34 +386,58 @@ and subsequent <span style="font-weight: bold;">glBitmap</span> commands
 have no effect.<br>
 <br>
 <span style="font-weight: bold;">glRasterPos</span> also updates the
-current raster color and texture coordinates. &nbsp;The current raster
-color is updated (copied) from the current color (as specified by <span
- style="font-weight: bold;">glColor</span>). &nbsp;The current raster
-texture coordinate is updated (copied) from the current texture
-coordinate (as specified by <span style="font-weight: bold;">glTexCoord</span>).<br>
+current raster color and current raster texture coordinates. &nbsp;The
+current raster color is updated (copied) from the current color (as
+specified by <span style="font-weight: bold;">glColor</span>).
+&nbsp;The current raster texture coordinate is updated (copied) from the
+current texture coordinate (as specified by <span
+ style="font-weight: bold;">glTexCoord</span>).<br>
 <br>
 <h2>3.4 Unsupported Commands</h2>
-OpenGL lighting, automatic texture coordinate generation and
-user-defined clipping planes are not supported by the subset and the
-following commands are omitted.<br>
+The following commands related to vertex transformation are not
+supported by the subset:<br>
 <br>
 <div style="margin-left: 40px;">User-defined clip plane commands:<br>
 <div style="margin-left: 40px;"><span style="font-weight: bold;">glClipPlane</span><br>
 </div>
 <span style="font-weight: bold;"></span></div>
 <br>
-<div style="margin-left: 40px;">Lighting commands:</div>
-<div style="margin-left: 80px;"><span style="font-weight: bold;">glLightModel,
-glLight, glColorMaterial</span><br>
+<div style="margin-left: 40px;">Lighting and material commands:</div>
+<div style="margin-left: 80px;"><span style="font-weight: bold;">glLightModeli,
+glLightModelf,&nbsp;</span><span style="font-weight: bold;">glLightModeliv,
+glLightModelfv,</span><span style="font-weight: bold;"> glLightf,
+glLighti, glLightfv, glLightiv, glColorMaterial</span><br>
 </div>
 <br>
 <div style="margin-left: 40px;">Automatic texture coordinate generation
 commands:<br>
 </div>
 <div style="margin-left: 40px;">
-<div style="margin-left: 40px;"><span style="font-weight: bold;">glTexGen</span><br
+<div style="margin-left: 40px;"><span style="font-weight: bold;">glTexGend,
+glTexGenf, glTexGeni, </span><span style="font-weight: bold;">glTexGendv,
+glTexGenfv, glTexGeniv, </span><br>
+<br style="font-weight: bold;">
+</div>
+Double-valued commands:<br>
+<div style="margin-left: 40px;"><span style="font-weight: bold;">glLoadMatrixd,
+glMultMatrixd, glRotated, glTranslated, glScaled</span><br
  style="font-weight: bold;">
 </div>
+<br>
+Depth Range command:<br>
+<div style="margin-left: 40px;"><span style="font-weight: bold;">glDepthRange</span>
+(the near value is always 0.0 and the far value is always 1.0)<br>
+</div>
+<br>
+Extra RasterPos commands:<br>
+<div style="margin-left: 40px;"><span style="font-weight: bold;">glRasterPos2d,
+glRasterPos2s, glRasterPos3d, glRasterPos3f, glRasterPos3i,
+glRasterPos3s, glRasterPos4d, glRasterPos4f, glRasterPos4i,
+glRasterPos4s, glRasterPos2dv, glRasterPos2sv, glRasterPos3dv,
+glRasterPos3fv, glRasterPos3iv, glRasterPos3sv, glRasterPos4dv,
+glRasterPos4fv, glRasterPos4iv, glRasterPos4sv</span><br>
+</div>
+<br>
 <br>
 </div>
 <h1>4. Rasterization</h1>
@@ -400,10 +446,10 @@ lines, triangles and bitmaps. &nbsp;<span style="font-style: italic;">Rasterizat
 is the term for the process which produces fragments from the geometric
 description of a primitive (a point, line, polygon or bitmap). &nbsp;For
 example, given the two coordinates for the end-points of a line segment,
-rasterization determines which pixels in the frame buffer to modify to <span
- style="font-style: italic;">draw</span> the line. &nbsp;A fragment is a
-tuple which consists of a window coordinate, colors and texture
-coordinates. &nbsp;The fragments produced by rasterization are
+rasterization determines which pixels in the frame buffer are modified
+to <span style="font-style: italic;">draw</span> the line. &nbsp;A
+fragment is a tuple which consists of a window coordinate, colors and
+texture coordinates. &nbsp;The fragments produced by rasterization are
 subsequently processed by the per-fragment operations described later.<br>
 <br>
 <h2>4.1 Point Rasterization</h2>
@@ -609,13 +655,6 @@ The fragment's alpha value is multiplied by the coverage value.
 &nbsp;By enabling the appropriate blending mode, polygon edges will
 appear smoothed.<br>
 <br>
-<h3> 4.3.5 Other Polygon Features</h3>
-Polygon stippling and the <span style="font-weight: bold;">glPolygonStipple</span>
-command are not supported by the subset.<br>
-<br>
-Polygon depth offset and the <span style="font-weight: bold;">glPolygonOffset</span>
-command are not supported by the subset.<br>
-<br>
 <h2>4.4 Shading</h2>
 The command<br>
 <br>
@@ -663,7 +702,7 @@ data.<br>
 If the current raster position is not valid, <span
  style="font-weight: bold;">glBitmap</span> has no effect.<br>
 <br>
-<h3>4.5.1 Unpacking</h3>
+<h3>4.5.1 Bitmap Unpacking</h3>
 The first step in bitmap rendering is <span style="font-style: italic;">unpacking.
 &nbsp;</span>Unpacking is the process of extracting image data from
 client memory subject to byte swapping, non-default row strides, etc.
@@ -698,24 +737,6 @@ pixels.<br>
       </td>
     </tr>
     <tr>
-      <td style="vertical-align: top;">GL_UNPACK_SKIP_PIXELS<br>
-      </td>
-      <td style="vertical-align: top;">Number of pixels to skip
-horizontally in each image row in memory.<br>
-      </td>
-      <td style="vertical-align: top;">0<br>
-      </td>
-    </tr>
-    <tr>
-      <td style="vertical-align: top;">GL_UNPACK_SKIP_ROWS<br>
-      </td>
-      <td style="vertical-align: top;">Number of pixels to skip
-vertically in the image in memory before unpacking.<br>
-      </td>
-      <td style="vertical-align: top;">0<br>
-      </td>
-    </tr>
-    <tr>
       <td style="vertical-align: top;">GL_UNPACK_LSB_FIRST<br>
       </td>
       <td style="vertical-align: top;">GL_FALSE indicates that the most
@@ -730,15 +751,11 @@ byte. <br>
 </table>
 <br>
 <br>
-The GL_UNPACK_ROW_LENGTH, GL_UNPACK_SKIP_PIXELS and GL_UNPACK_SKIP_ROWS
-parameters allow a sub-region of a bitmap image in memory to be drawn,
-rather than the whole image. &nbsp;GL_UNPACK_ROW_LENGTH specifies the
-width of the image in memory. &nbsp;If it's zero, the <span
+The GL_UNPACK_ROW_LENGTH specifies the stride (in pixels) for advancing
+from one row of the image to the next.&nbsp; If it's zero, the <span
  style="font-style: italic;">width</span> parameter to <span
  style="font-weight: bold;">glBitmap</span> specifies the width of the
-image in memory. &nbsp;GL_UNPACK_SKIP_PIXELS and GL_UNPACK_SKIP_ROWS
-specify the (x, y) offset of the image to render within the image in
-memory.<br>
+image in memory.<br>
 <br>
 GL_UNPACK_LSB_FIRST determines whether the least significant or most
 significant bit in each byte is unpacked first. &nbsp;Unpacking occurs
@@ -751,12 +768,12 @@ the image column) is found as follows:<br>
 ? GL_UNPACK_ROW_LENGTH : <span style="font-style: italic;">width</span>;<br>
 <br>
 byte = <span style="font-style: italic;">image</span>[((rowLength + 7)
-/ 8) * (i + GL_SKIP_ROWS) + (j + GL_SKIP_PIXELS) / 8];<br>
+/ 8) * i + j / 8];<br>
 <br>
 if (GL_UNPACK_LSB_FIRST != 0)<br>
-&nbsp;&nbsp;&nbsp; bitMask = 1 &lt;&lt; ((j + GL_SKIP_PIXELS) % 8);<br>
+&nbsp;&nbsp;&nbsp; bitMask = 1 &lt;&lt; (j % 8);<br>
 else<br>
-&nbsp;&nbsp;&nbsp; bitMask = 128 &gt;&gt; ((j + GL_SKIP_PIXELS) % 8);<br>
+&nbsp;&nbsp;&nbsp; bitMask = 128 &gt;&gt; (j % 8);<br>
 <br>
 if (byte &amp; bitMask)<br>
 &nbsp;&nbsp;&nbsp; bit = 1;<br>
@@ -765,7 +782,7 @@ else<br>
 <br>
 </div>
 <span style="font-style: italic;"><span style="font-style: italic;"></span></span>
-<h3>4.4.2 Rasterization</h3>
+<h3>4.5.2 Rasterization</h3>
 If the current raster position is (x<sub>rp</sub>, y<sub>rp</sub>, z<sub>rp</sub>,
 w<sub>rp</sub>), then the bitmap is rasterized according to the
 following algorithm:<br>
@@ -799,8 +816,27 @@ updated as follows:<br>
 y<sub>rp</sub> = y<sub>rp</sub> + <span style="font-style: italic;">yMove</span><br>
 </div>
 <br>
-<h3>4.4.3 Per-fragment Operations</h3>
+<h3>4.5.3 Per-fragment Operations</h3>
 XXX supported? &nbsp;See issue in appendix A.<br>
+<br>
+<h2>4.6 Unsupported Commands</h2>
+The following commands related to rasterization are not supported by
+the subset.<br>
+<br>
+<div style="margin-left: 40px;">Point commands:<br>
+<div style="margin-left: 40px;"><span style="font-weight: bold;">glPointSize</span><br>
+</div>
+<br>
+Polygon commands:<br>
+<div style="margin-left: 40px; font-weight: bold;">glPolygonStipple<br>
+glPolygonOffset<br>
+<br>
+</div>
+</div>
+<div style="margin-left: 40px;">Pixel storage commands:<br>
+</div>
+<div style="font-weight: bold; margin-left: 80px;">glPixelStoref<br>
+</div>
 <br>
 <br>
 <h1>5. Texture Mapping<br>
@@ -808,6 +844,10 @@ XXX supported? &nbsp;See issue in appendix A.<br>
 There are four elements to texture mapping: texture coordinate
 specification, texture image specification, texture sampling and texture
 application.<br>
+<br>
+Texture mapping is enabled and disabled with the commands <span
+ style="font-weight: bold;">glEnable</span>(GL_TEXTURE_2D) and <span
+ style="font-weight: bold;">glDisable</span>(GL_TEXTURE_2D).<br>
 <br>
 <h2>5.1 Texture Image Specification</h2>
 A texture image is specified with the command:<br>
@@ -952,40 +992,83 @@ and the system will behave as if the texturing is disabled.<br>
 <h3>5.1.2 Texture Image Formats and Unpacking</h3>
 The <span style="font-weight: bold;">glTexImage2D</span> command's <span
  style="font-style: italic;"><span style="font-weight: bold;"></span></span><span
- style="font-style: italic;">format</span> parameter indicates the
-number and type of color channels per pixel in the incoming image.&nbsp;
-Accepted values are GL_ALPHA, GL_RGB and GL_RGBA.&nbsp; The <span
- style="font-style: italic;">type</span> parameter indicates the
-datatype for each component of a pixel and must be either
-GL_UNSIGNED_BYTE.<br>
+ style="font-style: italic;">format</span> and <span
+ style="font-style: italic;">type</span> parameters describe the format
+of the incoming texture image.&nbsp; Accepted values for <span
+ style="font-style: italic;">format</span> are GL_INTENSITY, GL_RGB and
+GL_RGBA. &nbsp;The <span style="font-style: italic;">type</span>
+parameter must be GL_UNSIGNED_BYTE. &nbsp;Pixel component values are
+thus in the range 0 through 255.<br>
+<br>
+If <span style="font-style: italic;">format</span> is GL_INTESITY then
+the image has one byte per pixel which specifies the pixel's red,
+green, blue and alpha values.<span style="font-style: italic;"></span><br>
+<br>
+If <span style="font-style: italic;">format</span> is GL_RGB then the
+image has three bytes per pixel which specify the pixel's red, green
+and blue values (in that order). &nbsp;The alpha value defaults to 255.<br>
+<br>
+If <span style="font-style: italic;">format</span> is GL_RGBA then the
+image has four bytes per pixel which specify the pixel's red, green,
+blue and alpha values (in that order).<br>
+<br>
+The command<br>
+<br>
+<div style="margin-left: 40px;">void<span style="font-weight: bold;">
+glPixelStorei</span>(GLenum <span style="font-style: italic;">pname</span>,
+GLint <span style="font-style: italic;">value</span>)<br>
+</div>
+<br>
+controls the unpacking of texture image data from client memory. &nbsp;<span
+ style="font-style: italic;">pname</span> may be GL_UNPACK_ROW_LENGTH to
+indicate the stride, in pixels, between subsquent rows of the image in
+client memory. &nbsp;If GL_UNPACK_ROW_LENGTH is zero (the default) then
+the <span style="font-style: italic;">width</span> parameter to <span
+ style="font-weight: bold;">glTexImage2D </span>determines the stride.<span
+ style="font-style: italic;"></span><br>
+<br>
+<h3>5.1.3 Internal Texture Format</h3>
+<span style="font-weight: bold;">glTexImage2D<span
+ style="font-style: italic;"> </span></span>converts the incoming
+texture image to one of the supported internal texture formats.<br>
 <br>
 The <span style="font-style: italic;">internalFormat</span> parameter
 indicates the desired internal format for the texture and may be either
 GL_INTENSITY8, GL_RGB5 or GL_RGBA8.<br>
 <br>
+If <span style="font-style: italic;">internalFormat</span> is
+GL_INTENSITY8 then the texture has one byte per texel (texture element)
+which indicates the texel's intensity (or brightness). &nbsp;The
+intensity is obtained from the incoming image's red channel.<br>
+<br>
+If <span style="font-style: italic;">internalFormat</span> is GL_RGB5
+then the texture is stored with two bytes per texel: &nbsp;5 bits per
+red value, 5 bits per green value and 5 bits per blue value.<br>
+<br>
+If <span style="font-style: italic;">internalFormat </span>is
+GL_RGBA8 then the texture is stored with four bytes per texel: &nbsp;8
+bits for each of the red, green, &nbsp;blue and alpha values.<br>
+<br>
+The internal format is also significant to texture application (see
+section 5.4).<br>
+<br>
 <h2>5.2 Texture Coordinates</h2>
 Texture coordinates control the mapping from local polygon space to
 texture image space. &nbsp;Texture coordinates are set for each vertex
 with the <span style="font-weight: bold;">glTexCoord</span> commands.
-&nbsp;During line and polygon rasterization the vertex texture
+&nbsp;During line and polygon rasterization the vertex's texture
 coordinates are interpolated across the primitive to produce a texture
 coordinate for each fragment. &nbsp;The fragment texture coordinates are
 used to sample the current texture image.<br>
 <br>
-<h2>5.3 Texture Sampling</h2>
-<h3>5.3.1 Texture Coordinate Wrapping</h3>
-Texture coordinates are normally in the interval [0, 1]. &nbsp;Values
+Texture coordinates are normally in the range [0, 1]. &nbsp;Values
 outside that range are processed according to the <span
  style="font-style: italic;">texture wrap mode</span>. &nbsp;The
-texture wrap mode, and other parameters, are set with the commands<br>
+texture wrap mode is set with the command<br>
 <br>
 <div style="margin-left: 40px;">void <span style="font-weight: bold;">glTexParameteri</span>(GLenum<span
  style="font-style: italic;"> target</span>, GLenum <span
  style="font-style: italic;">pname</span>, GLint <span
- style="font-style: italic;">value</span>)<br>
-void <span style="font-weight: bold;">glTexParameterf</span>(GLenum<span
- style="font-style: italic;"> target</span>, GLenum <span
- style="font-style: italic;">pname</span>, GLfloat <span
  style="font-style: italic;">value</span>)<br>
 <br>
 </div>
@@ -1002,16 +1085,34 @@ For GL_REPEAT, the integer part of texture coordinates is ignored; only
 the fractional part of the texture coordinates is used. &nbsp;This
 allows texture images to repeated or tiled across an object.<br>
 <br>
-<h3>5.3.2 Texture Minification</h3>
+<h2>5.3 Texture Sampling</h2>
+Texture sampling is the process of using texture coordinates to extract
+a color from the texture image. &nbsp;Multiple, weighted samples may be
+taken from the texture and combined during the filtering step.<br>
+<br>
+During texture coordinate interpolation a <span
+ style="font-style: italic;">level of detail</span> value (lambda) is
+computed for each fragment. &nbsp;For a mipmapped texture, lambda
+determines which level (or levels) of the mipmap will be sampled to
+obtain the texture color.<br>
+<br>
+If lambda indicates that multiple texels map to a single screen pixel,
+then the texture <span style="font-style: italic;">minification</span>
+filter will be used. &nbsp;Otherwise, if lambda indicates that a single
+texel maps to multiple screen pixels, then the texture <span
+ style="font-style: italic;">magnification</span> filter will be used.<br>
+<span style="font-weight: bold;"></span><span
+ style="font-style: italic;"></span><br>
+<h3>5.3.1 Texture Minification</h3>
 The texture minification filter is set with the <span
- style="font-weight: bold;">glTexParameteri </span>and<span
- style="font-style: italic;"> </span><span style="font-weight: bold;">glTexParameterf</span><span
- style="font-style: italic;"></span> commands by setting <span
+ style="font-weight: bold;">glTexParameteri </span><span
+ style="font-style: italic;"></span><span style="font-weight: bold;"></span><span
+ style="font-style: italic;"></span> command by setting <span
  style="font-style: italic;">target</span> to GL_TEXTURE_2D, setting <span
  style="font-style: italic;">pname</span> to GL_TEXTURE_MIN_FILTER and
 setting <span style="font-style: italic;">value</span> to GL_NEAREST,
-GL_LINEAR, GL_NEAREST_MIPMAP_NEAREST,
-GL_NEAREST_MIPMAP_LINEAR,&nbsp;GL_LINEAR_MIPMAP_NEAREST, or
+GL_LINEAR, GL_NEAREST_MIPMAP_NEAREST,&nbsp;
+GL_NEAREST_MIPMAP_LINEAR,&nbsp; &nbsp;GL_LINEAR_MIPMAP_NEAREST or
 GL_LINEAR_MIPMAP_LINEAR.<br>
 <br>
 GL_NEAREST samples the texel nearest the texture coordinate in the
@@ -1049,15 +1150,14 @@ Filter modes other than GL_LINEAR and GL_NEAREST requires that the
 texture have a complete set of mipmaps. &nbsp;If the mipmap is
 incomplete, it is as if texturing is disabled.<br>
 &nbsp;<br>
-<h3>5.3.3 Texture Magnification</h3>
+<h3>5.3.2 Texture Magnification</h3>
 The texture magnification filter is set with the <span
- style="font-weight: bold;">glTexParameteri </span>and<span
- style="font-style: italic;"> </span><span style="font-weight: bold;">glTexParameterf</span><span
- style="font-style: italic;"></span> commands by setting <span
- style="font-style: italic;">target</span> to GL_TEXTURE_2D, setting <span
- style="font-style: italic;">pname</span> to GL_TEXTURE_MAG_FILTER and
-setting <span style="font-style: italic;">value</span> to GL_NEAREST or
-GL_LINEAR.<br>
+ style="font-weight: bold;">glTexParameteri </span><span
+ style="font-style: italic;"></span><span style="font-weight: bold;"></span>command
+by setting <span style="font-style: italic;">target</span> to
+GL_TEXTURE_2D, setting <span style="font-style: italic;">pname</span>
+to GL_TEXTURE_MAG_FILTER and setting <span style="font-style: italic;">value</span>
+to GL_NEAREST or GL_LINEAR.<br>
 <br>
 GL_NEAREST samples the texel nearest the texture coordinate in the
 level 0 texture image.<br>
@@ -1066,19 +1166,12 @@ GL_LINEAR samples the four texels around the texture coordinate in the
 level 0 texture image. &nbsp;The four texels are linearly weighted to
 compute the final texel value.<br>
 <br>
-If the texture minification filter is different than the texture
-magnification filter, a level of detail value (lambda) is computed for
-each fragment. &nbsp;The level of detail value determines if the texture
-is being minified (multiple texels map to a single screen pixel) or
-magnified (a single texel maps to multiple screen pixels). &nbsp;Lamda
-is used to compute N (the texture level) for texture minification.<br>
-<br>
 <h2>5.4 Texture Application</h2>
-The sampled texture values are combined with the incoming fragment
-colors to produce a new fragment color. &nbsp;The fragment and texture
-colors are combined according to the texture environment mode and the
-current texture's base internal format. &nbsp;The texture environment
-mode is set with the command<br>
+The sampled texture value is combined with the incoming fragment color
+to produce a new fragment color. &nbsp;The fragment and texture colors
+are combined according to the texture environment mode and the current
+texture's base internal format. &nbsp;The texture environment mode is
+set with the command<br>
 <br>
 <div style="margin-left: 40px;">void<span style="font-weight: bold;">
 glTexEnvi</span>(GLenum <span style="font-style: italic;">target</span>,
@@ -1131,65 +1224,6 @@ intensity. &nbsp;(Rc, Gc, Bc, Ac) is the texture environment color.
       </td>
       <td style="vertical-align: top;">GL_BLEND<br>
       </td>
-    </tr>
-    <tr>
-      <td style="vertical-align: top;">GL_ALPHA<br>
-      </td>
-      <td style="vertical-align: top;">Rv = Rf<br>
-Gv = Gf<br>
-Bfv= Bf<br>
-Av = At<br>
-      </td>
-      <td style="vertical-align: top;">Rv = Rf<br>
-Gv = Gf<br>
-Bv = Bf<br>
-Av = Af * At<br>
-      </td>
-      <td style="vertical-align: top;">undefined<br>
-      </td>
-      <td style="vertical-align: top;">Rv = Rf<br>
-Gv = Gf<br>
-Bv = Bf<br>
-Av = Af * At</td>
-    </tr>
-    <tr>
-      <td style="vertical-align: top;">GL_LUMINANCE<br>
-      </td>
-      <td style="vertical-align: top;">Rv = Lt<br>
-Gv = Lt<br>
-Bv = Lt<br>
-Av = Af<br>
-      </td>
-      <td style="vertical-align: top;">Rv = Rf * Lt<br>
-Gv = Gf * Lt<br>
-Bv = Bf * Lt<br>
-Av = Af<br>
-      </td>
-      <td style="vertical-align: top;">undefined<br>
-      </td>
-      <td style="vertical-align: top;">Rv = Rf*(1-Lt) + Rc*Lt<br>
-Gv = Gf*(1-Lt) + Gc*Lt<br>
-Bv = Bf*(1-Lt) + Bc*Lt<br>
-Av = Af</td>
-    </tr>
-    <tr>
-      <td style="vertical-align: top;">GL_LUMINANCE_ALPHA<br>
-      </td>
-      <td style="vertical-align: top;">Rv = Lt<br>
-Gv = Lt<br>
-Bv = Lt<br>
-Av = At<br>
-      </td>
-      <td style="vertical-align: top;">Rv = Rf * Lt<br>
-Gv = Gf * Lt<br>
-Bv = Bf * Lt<br>
-Av = Af * At</td>
-      <td style="vertical-align: top;">undefined<br>
-      </td>
-      <td style="vertical-align: top;">Rv = Rf*(1-Lt) + Rc*Lt<br>
-Gv = Gf*(1-Lt) + Gc*Lt<br>
-Bv = Bf*(1-Lt) + Bc*Lt<br>
-Av = Af*At</td>
     </tr>
     <tr>
       <td style="vertical-align: top;">GL_INTENSITY<br>
@@ -1258,10 +1292,6 @@ Av = Af*At</td>
 </table>
 <br>
 <br>
-2D texture mapping is enabled and disabled with the commands <span
- style="font-weight: bold;">glEnable</span>(GL_TEXTURE_2D) and <span
- style="font-weight: bold;">glDisable</span>(GL_TEXTURE_2D).<br>
-<br>
 <br>
 <h2>5.5 Texture Objects</h2>
 Texture objects encapsulate a set of texture images (mipmap) and
@@ -1275,7 +1305,7 @@ A texture object is created by binding a new GLuint identifier to the
 GL_TEXTURE_2D target with the command:<br>
 <br>
 <div style="margin-left: 40px;">void <span style="font-weight: bold;">glBindTexture</span>(GLenum<span
- style="font-style: italic;">target</span>, GLuint <span
+ style="font-style: italic;"> target</span>, GLuint <span
  style="font-style: italic;">textureID</span>)<br>
 </div>
 <br>
@@ -1303,68 +1333,20 @@ One or more texture objects may be deleted with the command:<br>
 <span style="font-style: italic;">textureIDs</span> is an array of <span
  style="font-style: italic;">n</span> texture IDs. &nbsp;The named
 texture objects will be deleted. &nbsp;If the current texture object is
-deleted the default texture object (with ID 0) will be bound as the
+deleted the default texture object (number 0) will be bound as the
 current texture object.<br>
 <br>
 <h3>5.5.3 Allocating Texture Object Identifiers</h3>
 A list of new, unused texture IDs can be obtained by calling the command<br>
 <br>
 <div style="margin-left: 40px;">void <span style="font-weight: bold;">glGenTextures</span>(GLsizei<span
- style="font-style: italic;">n</span>, GLuint *<span
+ style="font-style: italic;"> n</span>, GLuint *<span
  style="font-style: italic;">textureIDs</span>)<br>
 </div>
 <br>
 An array of <span style="font-style: italic;">n</span> unused texture
 IDs will be returned in the <span style="font-style: italic;">textureIDs</span>
 array.<br>
-<br>
-<h3>5.5.4 Texture Residency</h3>
-Since hardware texture memory is usually a scarce resource, not all
-textures may be resident in hardware memory at a given time. &nbsp;The
-command<br>
-<br>
-<div style="margin-left: 40px;">GLboolean <span
- style="font-weight: bold;">glAreTexturesResident</span>(GLsizei <span
- style="font-style: italic;">n</span>, const GLuint *<span
- style="font-style: italic;">textureIDs</span>, GLboolean *<span
- style="font-style: italic;">residences</span>)<br>
-</div>
-<br>
-can be used to query whether or not a set of textures are currently
-resident in hardware memory. &nbsp;The <span style="font-style: italic;">textureIDs</span>
-array contains <span style="font-style: italic;">n</span> texture IDs.
-&nbsp;If one or more textures are not resident, then GL_FALSE will be
-returned and the <span style="font-style: italic;">residences</span>
-array will return <span style="font-style: italic;">n</span> GL_TRUE or
-GL_FALSE values to indicate if the corresponding texture is resident or
-not resident, respectively. &nbsp;Otherwise, if all the textures are
-resident, GL_TRUE will be returned and the <span
- style="font-style: italic;">residences</span> array will be unchanged.<br>
-<br>
-The user can influence the system's determination of which textures
-should be resident when hardware texture memory is overcomitted by
-assigning priorities to texture objects. &nbsp;Priorities are set with
-the command:<br>
-<br>
-<div style="margin-left: 40px;">void <span style="font-weight: bold;">glPrioritizeTexture</span>(GLsizei<span
- style="font-style: italic;">n</span>, const GLuint *<span
- style="font-style: italic;">textureIDs</span>, const GLclampf *<span
- style="font-style: italic;">priorities</span>)<br>
-</div>
-<br>
-The <span style="font-style: italic;"><span style="font-style: italic;"></span>textureIDs</span>
-array and <span style="font-style: italic;">priorities</span> array
-contain a list of <span style="font-style: italic;">n</span> texture
-object IDs and desired priorities for those texture objects. &nbsp;Each
-priority is clamped to the range [0, 1]. &nbsp;Zero indicates lowest
-priority and one indicates highest priority. &nbsp;Attempting to set the
-priority of texture object zero (the defaulte texture object) will be
-ignored. &nbsp;The priority for the currently bound texture object may
-also be set with the <span style="font-weight: bold;">glTexParameter</span>
-function if <span style="font-style: italic;">target</span> is set to
-GL_TEXTURE_2D and <span style="font-style: italic;">pname</span> is set
-to GL_TEXTURE_PRIORITY and <span style="font-style: italic;">value</span>
-is the priority.<br>
 <br>
 <br>
 <h1>6. Per-fragment Operations</h1>
@@ -2145,63 +2127,22 @@ greeen, blue, alpha) tuples are then stored as GL_RGB triplets (by
 dropping the alpha component) or GL_RGBA quadruples in client memory.<br>
 <br>
 Image data is <span style="font-style: italic;">packed</span> into
-client memory according to the pixel packing parameters which may be set
-by the command<br>
+client memory according to the pixel packing parameters which are set by
+the command<br>
 <br>
 <div style="margin-left: 40px;">void <span style="font-weight: bold;">glPixelStorei</span>(GLenum<span
- style="font-style: italic;">pname</span>, GLint <span
+ style="font-style: italic;"> pname</span>, GLint <span
  style="font-style: italic;">value</span>)<br>
 </div>
 <br>
-<span style="font-style: italic;">pname</span> may be one of the values
-in the following table:<br>
+<span style="font-style: italic;">pname</span> must be
+GL_PACK_ROW_LENGTH. &nbsp;<span style="font-style: italic;">value</span>
+indiciates the stride (in pixels) between subsequent rows in the
+destination image. &nbsp;If GL_PACK_ROW_LENGTH is zero (the default)
+then the <span style="font-style: italic;">width</span> parameter to <span
+ style="font-weight: bold;">glReadPixels</span> indicates the row stride.<br>
 <br>
-<table cellpadding="2" cellspacing="2" border="1"
- style="text-align: left; width: 90%; margin-left: auto; margin-right: auto;">
-  <tbody>
-    <tr>
-      <td style="vertical-align: top;">Parameter (<span
- style="font-style: italic;">pname</span>)<br>
-      </td>
-      <td style="vertical-align: top;">Value (<span
- style="font-style: italic;">value</span>)<br>
-      </td>
-      <td style="vertical-align: top;">Default<br>
-      </td>
-    </tr>
-    <tr>
-      <td style="vertical-align: top;">GL_PACK_ROW_LENGTH<br>
-      </td>
-      <td style="vertical-align: top;">Width of the image in memory, in
-pixels.<br>
-      </td>
-      <td style="vertical-align: top;">0<br>
-      </td>
-    </tr>
-    <tr>
-      <td style="vertical-align: top;">GL_PACK_SKIP_PIXELS<br>
-      </td>
-      <td style="vertical-align: top;">Number of pixels to skip
-horizontally in each image row in memory.<br>
-      </td>
-      <td style="vertical-align: top;">0<br>
-      </td>
-    </tr>
-    <tr>
-      <td style="vertical-align: top;">GL_PACK_SKIP_ROWS<br>
-      </td>
-      <td style="vertical-align: top;">Number of pixels to skip
-vertically in the image in memory before unpacking.<br>
-      </td>
-      <td style="vertical-align: top;">0<br>
-      </td>
-    </tr>
-  </tbody>
-</table>
-<br>
-These parameters allow the image to be stored within a sub-region of an
-image buffer if desired. &nbsp;The following algorithm is used to pack
-image data into client memory:<br>
+Pixel readback takes place as follows:<br>
 <br>
 <div style="margin-left: 40px;">if (GL_PACK_ROW_LENGTH == 0)<br>
 &nbsp;&nbsp;&nbsp; rowLength = <span style="font-style: italic;">width</span>;<br>
@@ -2213,8 +2154,8 @@ if (<span style="font-style: italic;">format</span> == GL_RGB) {<br>
 i++) {<br>
 &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; for (j = 0; j &lt; <span
  style="font-style: italic;">width</span>; j++) {<br>
-&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; k = ((i +
-GL_PACK_SKIP_ROWS) * rowLength + (j + GL_PACK_SKIP_PIXELS)) * 3;<br>
+&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; k = (i *
+rowLength + j) * 3;<br>
 &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; <span
  style="font-style: italic;">data</span>[k+0] = FrameBuffer(<span
  style="font-style: italic;">x</span> + j, <span
@@ -2236,8 +2177,8 @@ else {<br>
 i++) {<br>
 &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; for (j = 0; j &lt; <span
  style="font-style: italic;">width</span>; j++) {<br>
-&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; k = ((i +
-GL_PACK_SKIP_ROWS) * rowLength + (j + GL_PACK_SKIP_PIXELS)) * 4;<br>
+&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; k = (i *
+rowLength + j) * 4;<br>
 &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; <span
  style="font-style: italic;">data</span>[k+0] = FrameBuffer(<span
  style="font-style: italic;">x</span> + j, <span
@@ -2409,6 +2350,7 @@ command (part of the window system binding library) does an implicit
 flush before swapping the front and back color buffers. &nbsp;The <span
  style="font-weight: bold;">glReadPixels</span> command also does an
 implicit flush before reading pixel data from the frame buffer.<br>
+<br>
 <h1>9. State Queries</h1>
 The current value of nearly all library state variables can be queried.
 &nbsp;This chapter describes the commands used for querying the value of
@@ -2807,22 +2749,6 @@ name stack.<br>
       </td>
     </tr>
     <tr>
-      <td style="vertical-align: top;">GL_PACK_SKIP_PIXELS<br>
-      </td>
-      <td style="vertical-align: top;">1<br>
-      </td>
-      <td style="vertical-align: top;">Pixel packing skip pixels.<br>
-      </td>
-    </tr>
-    <tr>
-      <td style="vertical-align: top;">GL_PACK_SKIP_ROWS<br>
-      </td>
-      <td style="vertical-align: top;">1<br>
-      </td>
-      <td style="vertical-align: top;">Pixel packing skip rows.<br>
-      </td>
-    </tr>
-    <tr>
       <td style="vertical-align: top;">GL_POLYGON_MODE<br>
       </td>
       <td style="vertical-align: top;">2<br>
@@ -3049,22 +2975,6 @@ One if least significant bit is unpacked first for bitmaps.<br>
       </td>
     </tr>
     <tr>
-      <td style="vertical-align: top;">GL_UNPACK_SKIP_PIXELS<br>
-      </td>
-      <td style="vertical-align: top;">1<br>
-      </td>
-      <td style="vertical-align: top;">Pixel unpacking skip pixels.<br>
-      </td>
-    </tr>
-    <tr>
-      <td style="vertical-align: top;">GL_UNPACK_SKIP_ROWS<br>
-      </td>
-      <td style="vertical-align: top;">1<br>
-      </td>
-      <td style="vertical-align: top;">Pixel unpacking skip rows.<br>
-      </td>
-    </tr>
-    <tr>
       <td style="vertical-align: top;">GL_VIEWPORT<br>
       </td>
       <td style="vertical-align: top;">4<br>
@@ -3109,7 +3019,7 @@ table:<br>
       <td style="vertical-align: top;">GL_RENDERER<br>
       </td>
       <td style="vertical-align: top;">The renderer, such as "Mesa DRI
-Radeon". &nbsp; XXX final?<br>
+Radeon".<br>
       </td>
     </tr>
     <tr>
@@ -3250,7 +3160,23 @@ glCopyTexSubImage2D<br>
 Proxy textures are not supported and the GL_PROXY_TEXTURE_2D token is
 not supported by any function.<br>
 <br>
-<h2>10.5 Copy and Draw Pixels<br>
+<br>
+<h2>10.5 Other Texture Commands</h2>
+The following commands related to texture mapping are not supported by
+the subset:<br>
+<br>
+<div style="margin-left: 40px; font-weight: bold;"> glPrioritizeTextures<br>
+glAreTexturesResident<br>
+glIsTexture<br>
+glTexEnviv<br>
+glTexEnvf<br>
+glTexParameterf<br>
+glTexParameteriv<br>
+glTexParameterfv<br>
+</div>
+<br>
+<br>
+<h2>10.6 Copy and Draw Pixels<br>
 </h2>
 The following commands are not supported:<br>
 <br>
@@ -3259,7 +3185,7 @@ glCopyPixels<br>
 glPixelZoom<br>
 <br>
 </span></div>
-<h2>10.6 Color Index Mode<br>
+<h2>10.7 Color Index Mode<br>
 </h2>
 Color index mode and the following related commands are not supported:<br>
 <br>
@@ -3279,7 +3205,7 @@ glIndexMask<br>
 glIndexPointer</span><br style="font-weight: bold;">
 <br>
 </div>
-<h2>10.7 Pixel Transfer Operations</h2>
+<h2>10.8 Pixel Transfer Operations</h2>
 The pixel transfer operations (scale, bias, look-up table, etc) are not
 supported and the following commands are omitted:<br>
 <br style="font-weight: bold;">
@@ -3300,13 +3226,13 @@ supported and the following commands are omitted:<br>
 <span style="font-weight: bold;">glGetPixelMapusv</span><br>
 </div>
 <br>
-<h2>10.8 Hints</h2>
+<h2>10.9 Hints</h2>
 Hints and the following related command is not supported:<br>
 <br>
 <div style="margin-left: 40px;"><span style="font-weight: bold;">glHint<br>
 </span><br>
 </div>
-<h2>10.9 State Query Commands<br>
+<h2>10.10 State Query Commands<br>
 </h2>
 The following state query commands are not supported:<br>
 <br>
@@ -3324,7 +3250,7 @@ glGetTexImage<br>
 glGetClipPlane<br>
 </div>
 <br>
-<h2>10.10 Attribute Stacks</h2>
+<h2>10.11 Attribute Stacks</h2>
 State attribute stacks and the following related commands are not
 supported:<br>
 <br>
@@ -3333,7 +3259,7 @@ supported:<br>
 <span style="font-weight: bold;">glPopAtttrib</span><br>
 <br style="font-weight: bold;">
 </div>
-<h2>10.11 Double-Valued Functions</h2>
+<h2>10.12 Double-Valued Functions</h2>
 All functions which take double-precision floating point values, but
 for which there is an equivalent single-precision valued function, are
 omitted. &nbsp;This includes, but is not limited to:<br>
@@ -3399,7 +3325,7 @@ glRectd<br>
 glRectdv<br>
 </span> <span style="font-weight: bold;"><br>
 </span> </div>
-<h2>10.12 Evaluators</h2>
+<h2>10.13 Evaluators</h2>
 Evaluators and the following related commands are not supported:<br>
 <br>
 <div style="margin-left: 40px;"><span style="font-weight: bold;">glMap1f</span><br
@@ -3448,7 +3374,7 @@ Evaluators and the following related commands are not supported:<br>
  style="font-weight: bold;">
 </div>
 <br>
-<h2>10.13 Display Lists</h2>
+<h2>10.14 Display Lists</h2>
 Display lists and the following related commands are not supported:<br>
 <br>
 <div style="margin-left: 40px; font-weight: bold;">glIsList<br>
@@ -3461,7 +3387,7 @@ glCallLists<br>
 glListBase<br>
 </div>
 <br>
-<h2>10.14 Accumulation Buffer</h2>
+<h2>10.15 Accumulation Buffer</h2>
 The accumulation buffer and the following related commands are not
 supported:<br>
 <br style="font-weight: bold;">
@@ -3470,7 +3396,7 @@ supported:<br>
 <span style="font-weight: bold;">glClearAccum</span><br>
 </div>
 <br>
-<h2>10.15 Fog</h2>
+<h2>10.16 Fog</h2>
 Fog and the following related commands are not supported:<br>
 <br>
 <div style="margin-left: 40px; font-weight: bold;"> glFogi<br>
@@ -3479,7 +3405,7 @@ glFogiv<br>
 glFogfv<br>
 </div>
 <br>
-<h2>10.16 Depth Test</h2>
+<h2>10.17 Depth Test</h2>
 Depth testing and the following related commands are not supported:<br>
 <br>
 <div style="margin-left: 40px;"><span style="font-weight: bold;">glDepthFunc</span><br
@@ -3491,7 +3417,7 @@ Depth testing and the following related commands are not supported:<br>
 <span style="font-weight: bold;">glClearDepth</span><br>
 </div>
 <br>
-<h2>10.17 Imaging Subset</h2>
+<h2>10.18 Imaging Subset</h2>
 The OpenGL imaging subset (which implements features such as
 convolution, histogram, min/max recording, color matrix and color
 tables) is not supported.<br>
@@ -3499,7 +3425,8 @@ tables) is not supported.<br>
 <br>
 <h1>Appendix A: Issues</h1>
 This appendix lists documentation and subset issues with their current
-status.<br>
+status. &nbsp;For items which are still open, the documentation (above)
+follows the recommended solution.<br>
 <br>
 <h2>A.1 Vertex Arrays</h2>
 Should vertex arrays be supported? &nbsp;Is there a performance
@@ -3513,6 +3440,9 @@ Should edge flags be supported for antialiasing?<br>
 <br>
 Edge flags don't effect antialiasing, at least not normally. &nbsp;A
 number of approaches to antialiasing have been summarized in email.<br>
+<br>
+RECOMMENDATION: don't support edge flags. &nbsp;They don't effect
+polygon antialiasing.<br>
 <br>
 RESOLUTION: open<br>
 <br>
@@ -3533,8 +3463,9 @@ Which image formats and types should be supported for <span
  style="font-weight: bold;">glReadPixels</span>?<br>
 <br>
 OpenGL supports a <span style="font-weight: bold;">large</span> variety
-of image formats and data types. &nbsp;Only a few are commonly used.
-&nbsp;We propose a subset.<br>
+of image formats and data types. &nbsp;Only a few are commonly used.<br>
+<br>
+RECOMMENDATION: &nbsp;we propose a subset:<br>
 <br>
 For <span style="font-weight: bold;">glTexImage2D</span> only allow <span
  style="font-style: italic;">type</span>=GL_UNSIGNED_BYTE and <span
@@ -3559,6 +3490,9 @@ Which texure environment modes should be supported? &nbsp;OpenGL 1.2
 has GL_REPLACE, GL_MODULATE, GL_DECAL and GL_BLEND. &nbsp;GL_DECAL isn't
 defined for all base internal texture formats. &nbsp;GL_ADD is another
 useful mode. &nbsp;Perhaps drop GL_DECAL mode and add GL_ADDmode.<br>
+<br>
+RECOMMENDATION: implement the standard modes GL_REPLACE, GL_MODULATE,
+GL_DECAL and GL_BLEND.<br>
 <br>
 RESOLUTION: open<br>
 <br>
@@ -3604,8 +3538,7 @@ These options aren't really needed since the user can adjust the start
 address and GL_PACK/UNPACK_ROW_LENGTH parameters to achive the same
 effect.<br>
 <br>
-RECOMENDATION: &nbsp;They're currently included in this document, but
-we recommend omitting them.<br>
+RECOMENDATION: &nbsp;omit these parameters.<br>
 <br>
 RESOLUTION: open<br>
 <br>
