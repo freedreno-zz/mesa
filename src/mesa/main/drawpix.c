@@ -1,4 +1,4 @@
-/* $Id: drawpix.c,v 1.5.2.1 1999/11/26 16:28:03 brianp Exp $ */
+/* $Id: drawpix.c,v 1.5.2.2 2000/02/22 18:10:43 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -76,6 +76,9 @@ GLboolean gl_direct_DrawPixels( GLcontext *ctx,
    ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH_WITH_RETVAL(ctx, "glDrawPixels", 
 						  GL_FALSE);
 
+
+   if (ctx->RenderMode != GL_RENDER)
+      return GL_FALSE;
 
    if (!ctx->Current.RasterPosValid) {
       /* no-op */
