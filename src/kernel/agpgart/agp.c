@@ -1,5 +1,13 @@
+/**
+ * \file agp.c
+ * \brief AGPGART module version 0.99
+ * 
+ * \author Jeff Hartmann
+ *
+ * \todo Allocate more than order 0 pages to avoid too much linear map splitting.
+ */
+
 /*
- * AGPGART module version 0.99
  * Copyright (C) 1999 Jeff Hartmann
  * Copyright (C) 1999 Precision Insight, Inc.
  * Copyright (C) 1999 Xi Graphics, Inc.
@@ -21,10 +29,9 @@
  * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR 
  * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE 
  * OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
- * TODO: 
- * - Allocate more than order 0 pages to avoid too much linear map splitting.
  */
+
+
 #include <linux/config.h>
 #include <linux/module.h>
 #include <linux/pci.h>
@@ -53,6 +60,16 @@ static int agp_try_unsupported __initdata = 0;
 int agp_memory_reserved;
 __u32 *agp_gatt_table; 
 
+/** 
+ * Acquire the AGP backend. 
+ *
+ * \return zero on success or a negative number on failure.
+ *
+ * If the AGP bridge type is supported tries to atomically set the
+ * agp_bridge_data::agp_in_use in agp_bridge.
+ *
+ * \sa agp_backend_release().
+ */
 int agp_backend_acquire(void)
 {
 	if (agp_bridge.type == NOT_SUPPORTED)
@@ -68,6 +85,14 @@ int agp_backend_acquire(void)
 	return 0;
 }
 
+/** 
+ * Release the AGP backend. 
+ *
+ * If the AGP bridge type is supported atomically resets the
+ * agp_bridge_data::agp_in_use.
+ *
+ * \sa agp_backend_release().
+ */
 void agp_backend_release(void)
 {
 	if (agp_bridge.type == NOT_SUPPORTED)
@@ -77,13 +102,21 @@ void agp_backend_release(void)
 	MOD_DEC_USE_COUNT;
 }
 
-/* 
- * Generic routines for handling agp_memory structures -
- * They use the basic page allocation routines to do the
- * brunt of the work.
+
+/**
+ * \name Generic routines for handling agp_memory structures
+ *
+ * They use the basic page allocation routines to do the brunt of the work.
  */
+/*@{*/
 
-
+/**
+ * Free a key.
+ *
+ * \param key key.
+ * 
+ * Clears the \p key bit from agp_bridge_data::key_list.
+ */
 void agp_free_key(int key)
 {
 
@@ -94,6 +127,14 @@ void agp_free_key(int key)
 		clear_bit(key, agp_bridge.key_list);
 }
 
+/**
+ * Get a key.
+ *
+ * \return a non-negative key number on success, or a negative number on
+ * failure.
+ *
+ * Sets and returns the first zero bit from agp_bridge_data::key_list.
+ */
 static int agp_get_key(void)
 {
 	int bit;
@@ -106,6 +147,15 @@ static int agp_get_key(void)
 	return -1;
 }
 
+/**
+ * Create a agp_memory structure.
+ *
+ * \param scratch_pages number of scratch pages.
+ * \return pointer to agp_memory structure on success, or NULL on failure.
+ * 
+ * Allocates and initializes a agp_memory structure, assigning a key and
+ * allocating the requested number of scratch pages.
+ */
 agp_memory *agp_create_memory(int scratch_pages)
 {
 	agp_memory *new;
@@ -133,6 +183,17 @@ agp_memory *agp_create_memory(int scratch_pages)
 	return new;
 }
 
+/**
+ * Free AGP memory.
+ *
+ * \param curr pointer to the agp_memory resource to free.
+ *
+ * Unbinds the memory if currently bound. If agp_memory::type is not zero then
+ * frees the resources by calling the agp_bridge_data::free_by_type method,
+ * otherwise calls the agp_bridge_data::agp_destroy_page method for each
+ * allocated page, frees the scratch pages, the agp_memory structure itself and
+ * decreases the module use count.
+ */
 void agp_free_memory(agp_memory * curr)
 {
 	int i;
@@ -161,6 +222,18 @@ void agp_free_memory(agp_memory * curr)
 
 #define ENTRIES_PER_PAGE		(PAGE_SIZE / sizeof(unsigned long))
 
+/**
+ * Allocate AGP memory.
+ *
+ * \param page_count number of pages to allocate.
+ * \param type type.
+ *
+ * If \p type is not zero then the call is dispatched to the
+ * agp_bridge_data::alloc_by_type method, otherwise the module use count is
+ * increased, a new agp_memory structure is created, and each requested page is
+ * allocated via the agp_bridge_data::agp_alloc_page method.
+ * flush_agp_mappings() is called before returning.
+ */
 agp_memory *agp_allocate_memory(size_t page_count, u32 type)
 {
 	int scratch_pages;
@@ -211,8 +284,16 @@ agp_memory *agp_allocate_memory(size_t page_count, u32 type)
 	return new;
 }
 
-/* End - Generic routines for handling agp_memory structures */
+/*@}*/
 
+/**
+ * Current allocated size.
+ *
+ * \return
+ *
+ * Returns the \a size field in agp_bridge_data::current_size according with
+ * the size type specified in agp_bridge_data::size_type.
+ */
 static int agp_return_size(void)
 {
 	int current_size;
@@ -244,8 +325,14 @@ static int agp_return_size(void)
 	return current_size;
 }
 
-/* Routine to copy over information structure */
-
+/**
+ * Routine to copy over information structure.
+ *
+ * \param info information structure.
+ * \return zero on success, or a negative number on failure (bridge type not supported).
+ * 
+ * Copies over the information from agp_bridge into \p info.
+ */
 int agp_copy_info(agp_kern_info * info)
 {
 	unsigned long page_mask = 0;
@@ -274,14 +361,25 @@ int agp_copy_info(agp_kern_info * info)
 	return 0;
 }
 
-/* End - Routine to copy over information structure */
-
-/*
- * Routines for handling swapping of agp_memory into the GATT -
+/**
+ * \name Routines for handling swapping of agp_memory into the GATT
+ * 
  * These routines take agp_memory and insert them into the GATT.
  * They call device specific routines to actually write to the GATT.
  */
+/*@{*/
 
+/**
+ * Bind AGP memory.
+ *
+ * \param curr AGP memory to bind.
+ * \param pg_start page start.
+ *
+ * \return zero on success or a negative number on failure.
+ *
+ * Flushes the cache if not done before and calls the
+ * agp_bridge_data::insert_memory() method to insert it into the GATT.
+ */
 int agp_bind_memory(agp_memory * curr, off_t pg_start)
 {
 	int ret_val;
@@ -304,6 +402,16 @@ int agp_bind_memory(agp_memory * curr, off_t pg_start)
 	return 0;
 }
 
+/**
+ * Unbind AGP memory.
+ *
+ * \param curr AGP memory to unbind.
+ *
+ * \return zero on success or a negative number on failure.
+ *
+ * Calls the agp_bridge_data::remove_memory() method to remove the memory from
+ * the GATT.
+ */
 int agp_unbind_memory(agp_memory * curr)
 {
 	int ret_val;
@@ -324,7 +432,7 @@ int agp_unbind_memory(agp_memory * curr)
 	return 0;
 }
 
-/* End - Routines for handling swapping of agp_memory into the GATT */
+/*@}*/
 
 /* 
  * Driver routines - start
@@ -334,8 +442,18 @@ int agp_unbind_memory(agp_memory * curr)
  * and generic support for the SiS chipsets.
  */
 
-/* Generic Agp routines - Start */
+/** 
+ * \name Generic Agp routines 
+ */
+/*@{*/
 
+/**
+ * \sa agp_bridge_data::agp_enable.
+ *
+ * Goes trhough all devices that claim to be AGP devices collecting their data,
+ * and disabling impossible settings. Decides the 4X/2X/1X setting and enable
+ * the AGP bridge device.
+ */
 void agp_generic_agp_enable(u32 mode)
 {
 	struct pci_dev *device = NULL;
@@ -426,6 +544,16 @@ void agp_generic_agp_enable(u32 mode)
 	}
 }
 
+/**
+ * \sa agp_bridge_data::create_gatt_table.
+ *
+ * Determines the GATT size, according to agp_bridge_data::current_size (can't
+ * handle 2 level GATT's) and allocates the table. For the variable apertures,
+ * tries successive aperture sizes until succeding in allocating the table.
+ *
+ * Marks each page in the table as reserved, and points the entries in the
+ * table to the scratch page.
+ */
 int agp_generic_create_gatt_table(void)
 {
 	char *table;
@@ -544,16 +672,31 @@ int agp_generic_create_gatt_table(void)
 	return 0;
 }
 
+/**
+ * \sa agp_bridge_data::suspend.
+ *
+ * No-op.
+ */
 int agp_generic_suspend(void)
 {
 	return 0;
 }
 
+/**
+ * \sa agp_bridge_data::resume.
+ *
+ * No-op.
+ */
 void agp_generic_resume(void)
 {
 	return;
 }
 
+/**
+ * \sa agp_bridge_data::free_gatt_table.
+ *
+ * Clears all reserved page in the table and the table itself.
+ */
 int agp_generic_free_gatt_table(void)
 {
 	int page_order;
@@ -601,6 +744,12 @@ int agp_generic_free_gatt_table(void)
 	return 0;
 }
 
+/**
+ * \sa agp_bridge_data::insert_memory.
+ *
+ * Makes some sanity checks, points each page entry in the GATT table to the
+ * respective page of \p mem, and calls the agp_bridge_data::tbl_flush method.
+ */
 int agp_generic_insert_memory(agp_memory * mem, off_t pg_start, int type)
 {
 	int i, j, num_entries;
@@ -662,6 +811,12 @@ int agp_generic_insert_memory(agp_memory * mem, off_t pg_start, int type)
 	return 0;
 }
 
+/**
+ * \sa agp_bridge_data::insert_memory.
+ *
+ * Points each page entry in the GATT table associated with \p mem to the scratch page
+ * and calls agp_bridge_data:tbl_flush method.
+ */
 int agp_generic_remove_memory(agp_memory * mem, off_t pg_start, int type)
 {
 	int i;
@@ -679,11 +834,21 @@ int agp_generic_remove_memory(agp_memory * mem, off_t pg_start, int type)
 	return 0;
 }
 
+/** 
+ * \sa agp_bridge_data::alloc_by_type.
+ *
+ * No-op. 
+ */
 agp_memory *agp_generic_alloc_by_type(size_t page_count, int type)
 {
 	return NULL;
 }
 
+/**
+ * \sa agp_bridge_data::free_by_type.
+ *
+ * Frees the resources in \p curr and the structure itself.
+ */
 void agp_generic_free_by_type(agp_memory * curr)
 {
 	if (curr->memory != NULL)
@@ -693,14 +858,17 @@ void agp_generic_free_by_type(agp_memory * curr)
 	kfree(curr);
 }
 
-/* 
- * Basic Page Allocation Routines -
- * These routines handle page allocation
- * and by default they reserve the allocated 
- * memory.  They also handle incrementing the
- * current_memory_agp value, Which is checked
- * against a maximum value.
+/*@}*/
+
+/**
+ * \name Basic Page Allocation Routines
+ * 
+ * These routines handle page allocation and by default they reserve the
+ * allocated memory.  They also handle incrementing the
+ * agp_bridge_data::current_memory_agp value, Which is checked against a
+ * maximum value.
  */
+/*@{*/
 
 void *agp_generic_alloc_page(void)
 {
@@ -733,8 +901,15 @@ void agp_generic_destroy_page(void *addr)
 	atomic_dec(&agp_bridge.current_memory_agp);
 }
 
-/* End Basic Page Allocation Routines */
+/*@}*/
 
+/**
+ * Enable the AGP bus.
+ *
+ * \param mode AGP mode.
+ *
+ * Calls agp_bridge_data::agp_enable().
+ */
 void agp_enable(u32 mode)
 {
 	if (agp_bridge.type == NOT_SUPPORTED)
@@ -742,18 +917,24 @@ void agp_enable(u32 mode)
 	agp_bridge.agp_enable(mode);
 }
 
-/* End - Generic Agp routines */
 
-
-/* per-chipset initialization data.
- * note -- all chipsets for a single vendor MUST be grouped together
+/** 
+ * Per-chipset initialization data.
+ * 
+ * \note All chipsets for a single vendor MUST be grouped together
  */
 static struct {
-	unsigned short device_id; /* first, to make table easier to read */
-	unsigned short vendor_id;
-	enum chipset_type chipset;
-	const char *vendor_name;
-	const char *chipset_name;
+	unsigned short device_id;	/**< device id (first, to make table easier to read) */
+	unsigned short vendor_id;	/**< vendor ID */
+	enum chipset_type chipset;	/**< chipset */
+	const char *vendor_name;	/**< vendor name */
+	const char *chipset_name;	/**< chipset name */
+	/**
+	 * Chipset setup function.
+	 *
+	 * \param pdev PCI device.
+	 * \return zero on success, or a negative number on failure.
+	 */
 	int (*chipset_setup) (struct pci_dev *pdev);
 } agp_bridge_info[] __initdata = {
 
@@ -1170,11 +1351,17 @@ static struct {
 	},
 #endif
 
-	{ }, /* dummy final entry, always present */
+	{ }, /**< dummy final entry, always present */
 };
 
 
-/* scan table above for supported devices */
+/** 
+ * Scan table above for supported devices.
+ *
+ * \param pdev PCI device.
+ * \return zero on success, or a negative number on failure.
+ * 
+ */
 static int __init agp_lookup_host_bridge (struct pci_dev *pdev)
 {
 	int i;
@@ -1485,6 +1672,7 @@ static int __init agp_find_max (void)
 #define AGPGART_VERSION_MAJOR 0
 #define AGPGART_VERSION_MINOR 99
 
+/** AGP module version */
 static struct agp_version agp_current_version =
 {
 	.major	= AGPGART_VERSION_MAJOR,

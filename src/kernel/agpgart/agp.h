@@ -1,5 +1,11 @@
+/**
+ * \file agp.c
+ * \brief AGPGART module version 0.99
+ * 
+ * \author Jeff Hartmann
+ */
+
 /*
- * AGPGART module version 0.99
  * Copyright (C) 1999 Jeff Hartmann
  * Copyright (C) 1999 Precision Insight, Inc.
  * Copyright (C) 1999 Xi Graphics, Inc.
@@ -31,7 +37,7 @@
 
 extern struct agp_bridge_data agp_bridge;
 
-/* Generic routines. */
+/** \name Generic routines. @{ */
 void agp_generic_agp_enable(u32 mode);
 int agp_generic_create_gatt_table(void);
 int agp_generic_free_gatt_table(void);
@@ -45,8 +51,9 @@ void agp_generic_destroy_page(void *addr);
 int agp_generic_suspend(void);
 void agp_generic_resume(void);
 void agp_free_key(int key);
+/*@}*/
 
-/* chipset specific init routines. */
+/** \name chipset specific init routines. @{ */
 int __init ali_generic_setup (struct pci_dev *pdev);
 int __init amd_irongate_setup (struct pci_dev *pdev);
 int __init amd_8151_setup (struct pci_dev *pdev);
@@ -65,6 +72,7 @@ int __init intel_860_setup (struct pci_dev *pdev);
 int __init serverworks_setup (struct pci_dev *pdev);
 int __init sis_generic_setup (struct pci_dev *pdev);
 int __init via_generic_setup (struct pci_dev *pdev);
+/*@}*/
 
 #define AGPGART_MODULE_NAME	"agpgart"
 #define PFX			AGPGART_MODULE_NAME ": "
@@ -89,22 +97,28 @@ static void global_cache_flush(void)
 }
 #endif	/* !CONFIG_SMP */
 
+/**
+ * Type of the aperture size fields in agp_bridge_data.
+ */
 enum aper_size_type {
-	U8_APER_SIZE,
-	U16_APER_SIZE,
-	U32_APER_SIZE,
-	LVL2_APER_SIZE,
-	FIXED_APER_SIZE
+	U8_APER_SIZE,	/**< aper_size_info_8 */
+	U16_APER_SIZE,	/**< aper_size_info_16 */
+	U32_APER_SIZE,	/**< aper_size_info_32 */
+	LVL2_APER_SIZE,	/**< aper_size_info_lvl2 */
+	FIXED_APER_SIZE	/**< aper_size_info_fixed */
 };
 
+/**
+ * Totally device specific, for integrated chipsets that 
+ * might have different types of memory masks.  For other
+ * devices this will probably be ignored.
+ */
 struct gatt_mask {
 	unsigned long mask;
 	u32 type;
-	/* totally device specific, for integrated chipsets that 
-	 * might have different types of memory masks.  For other
-	 * devices this will probably be ignored */
 };
 
+/** Aperture size information - u8 */
 struct aper_size_info_8 {
 	int size;
 	int num_entries;
@@ -112,6 +126,7 @@ struct aper_size_info_8 {
 	u8 size_value;
 };
 
+/** Aperture size information - u16 */
 struct aper_size_info_16 {
 	int size;
 	int num_entries;
@@ -119,6 +134,7 @@ struct aper_size_info_16 {
 	u16 size_value;
 };
 
+/** Aperture size information - u32 */
 struct aper_size_info_32 {
 	int size;
 	int num_entries;
@@ -126,18 +142,25 @@ struct aper_size_info_32 {
 	u32 size_value;
 };
 
+/** Aperture size information - 2 level */
 struct aper_size_info_lvl2 {
 	int size;
 	int num_entries;
 	u32 size_value;
 };
 
+/** Aperture size information - fixed */
 struct aper_size_info_fixed {
 	int size;
 	int num_entries;
 	int page_order;
 };
 
+/**
+ * AGP bridge data.
+ *
+ * \sa agp_bridge.
+ */
 struct agp_bridge_data {
 	struct agp_version *version;
 	void *aperture_sizes;
@@ -157,7 +180,7 @@ struct agp_bridge_data {
 	unsigned long *key_list;
 	atomic_t current_memory_agp;
 	atomic_t agp_in_use;
-	int max_memory_agp;	/* in number of pages */
+	int max_memory_agp;	/**< in number of pages */
 	int needs_scratch_page;
 	int aperture_size_idx;
 	int num_aperture_sizes;
@@ -165,26 +188,69 @@ struct agp_bridge_data {
 	int capndx;
 	int cant_use_aperture;
 
-	/* Links to driver specific functions */
-
+	/** \name Links to driver specific functions  @{ */
+	
 	int (*fetch_size) (void);
 	int (*configure) (void);
-	void (*agp_enable) (u32);
+
+	/**
+	 * Enable the AGP bus.
+	 *
+	 * \param mode AGP mode.
+	 */
+	void (*agp_enable) (u32 mode);
+
 	void (*cleanup) (void);
 	void (*tlb_flush) (agp_memory *);
 	unsigned long (*mask_memory) (unsigned long, int);
 	void (*cache_flush) (void);
+
+	/** 
+	 * Create the GATT table 
+	 *
+	 * \return zero on success, or a negative number on failure.
+	 */
 	int (*create_gatt_table) (void);
+
+	/**
+	 * Free the GATT table 
+	 *
+	 * \return zero on success, or a negative number on failure.
+	 */
 	int (*free_gatt_table) (void);
-	int (*insert_memory) (agp_memory *, off_t, int);
-	int (*remove_memory) (agp_memory *, off_t, int);
+
+	/**
+	 * Insert memory into the GATT table.
+	 *
+	 * \param mem memory.
+	 * \param pg_start page start.
+	 * \param type type.
+	 * \return zero on success, or a negative number on failure.
+	 */
+	int (*insert_memory) (agp_memory *mem, off_t pg_start, int type);
+
+	/**
+	 * Remove memory from the GATT table.
+	 *
+	 * \param mem memory.
+	 * \param pg_start page start.
+	 * \param type type.
+	 * \return zero on success, or a negative number on failure.
+	 */
+	int (*remove_memory) (agp_memory *mem, off_t pg_start, int type);
+
 	agp_memory *(*alloc_by_type) (size_t, int);
 	void (*free_by_type) (agp_memory *);
 	void *(*agp_alloc_page) (void);
 	void (*agp_destroy_page) (void *);
+
+	/** Suspend the device */
 	int (*suspend)(void);
-	void (*resume)(void);
 	
+	/** Resume the device */
+	void (*resume)(void);
+
+	/*@}*/
 };
 
 #define OUTREG64(mmap, addr, val)	__raw_writeq((val), (mmap)+(addr))
@@ -216,15 +282,16 @@ struct agp_bridge_data {
 
 #define PGE_EMPTY(p)	(!(p) || (p) == (unsigned long) agp_bridge.scratch_page)
 
-/* intel register */
+/** \name Intel registers @{ */
 #define INTEL_APBASE	0x10
 #define INTEL_APSIZE	0xb4
 #define INTEL_ATTBASE	0xb8
 #define INTEL_AGPCTRL	0xb0
 #define INTEL_NBXCFG	0x50
 #define INTEL_ERRSTS	0x91
+/*@}*/
 
-/* Intel 460GX Registers */
+/** \name Intel 460GX registers @{ */
 #define INTEL_I460_APBASE		0x10
 #define INTEL_I460_BAPBASE		0x98
 #define INTEL_I460_GXBCTL		0xa0
@@ -232,8 +299,9 @@ struct agp_bridge_data {
 #define INTEL_I460_ATTBASE		0xfe200000
 #define INTEL_I460_GATT_VALID		(1UL << 24)
 #define INTEL_I460_GATT_COHERENT	(1UL << 25)
+/*@}*/
 
-/* intel i830 registers */
+/** \name  Intel i830 registers @{ */
 #define I830_GMCH_CTRL			0x52
 #define I830_GMCH_ENABLED		0x4
 #define I830_GMCH_MEM_MASK		0x1
@@ -251,32 +319,39 @@ struct agp_bridge_data {
 
 /* This one is for I830MP w. an external graphic card */
 #define INTEL_I830_ERRSTS	0x92
+/*@}*/
 
-/* intel 815 register */
+/** \name Intel 815 register @{ */
 #define INTEL_815_APCONT	0x51
 #define INTEL_815_ATTBASE_MASK	~0x1FFFFFFF
+/*@}*/
 
-/* intel i820 registers */
+/** \name Intel i820 registers @{ */
 #define INTEL_I820_RDCR		0x51
 #define INTEL_I820_ERRSTS	0xc8
+/*@}*/
 
-/* intel i840 registers */
+/** \name Intel i840 registers @{ */
 #define INTEL_I840_MCHCFG	0x50
 #define INTEL_I840_ERRSTS	0xc8
+/*@}*/
  
-/* intel i845 registers */
+/** \name Intel i845 registers @{ */
 #define INTEL_I845_AGPM		0x51
 #define INTEL_I845_ERRSTS	0xc8
+/*@}*/
 
-/* intel i850 registers */
+/** \name Intel i850 registers @{ */
 #define INTEL_I850_MCHCFG	0x50
 #define INTEL_I850_ERRSTS	0xc8
+/*@}*/
 
-/* intel i860 registers */
+/** \name Intel i860 registers @{ */
 #define INTEL_I860_MCHCFG	0x50
 #define INTEL_I860_ERRSTS	0xc8
+/*@}*/
 
-/* intel i810 registers */
+/** \name Intel i810 registers @{ */
 #define I810_GMADDR		0x10
 #define I810_MMADDR		0x14
 #define I810_PTE_BASE		0x10000
@@ -293,23 +368,26 @@ struct agp_bridge_data {
 #define I810_DRAM_CTL		0x3000
 #define I810_DRAM_ROW_0		0x00000001
 #define I810_DRAM_ROW_0_SDRAM	0x00000001
+/*@}*/
 
 
 
-/* VIA register */
+/** \name VIA register @{ */
 #define VIA_APBASE	0x10
 #define VIA_GARTCTRL	0x80
 #define VIA_APSIZE	0x84
 #define VIA_ATTBASE	0x88
+/*@}*/
 
-/* SiS registers */
+/** \name SiS registers @{ */
 #define SIS_APBASE	0x10
 #define SIS_ATTBASE	0x90
 #define SIS_APSIZE	0x94
 #define SIS_TLBCNTRL	0x97
 #define SIS_TLBFLUSH	0x98
+/*@}*/
 
-/* AMD registers */
+/** \name AMD registers @{ */
 #define AMD_APBASE	0x10
 #define AMD_MMBASE	0x14
 #define AMD_APSIZE	0xac
@@ -335,8 +413,9 @@ struct agp_bridge_data {
 #define AMD_8151_GARTPTR		0xb8
 #define AMD_8151_GTLBEN	1<<7
 #define AMD_8151_APEREN	1<<8
+/*@}*/
 
-/* ALi registers */
+/** \name ALi registers @{ */
 #define ALI_APBASE			0x10
 #define ALI_AGPCTRL			0xb8
 #define ALI_ATTBASE			0xbc
@@ -345,27 +424,31 @@ struct agp_bridge_data {
 #define ALI_CACHE_FLUSH_CTRL		0xD0
 #define ALI_CACHE_FLUSH_ADDR_MASK	0xFFFFF000
 #define ALI_CACHE_FLUSH_EN		0x100
+/*@}*/
 
-/* Serverworks Registers */
+/** \name Serverworks Registers @{ */
 #define SVWRKS_APSIZE		0x10
 #define SVWRKS_SIZE_MASK	0xfe000000
 
 #define SVWRKS_MMBASE		0x14
 #define SVWRKS_CACHING		0x4b
 #define SVWRKS_FEATURE		0x68
+/*@}*/
 
-/* func 1 registers */
+/** \name func 1 registers @{ */
 #define SVWRKS_AGP_ENABLE	0x60
 #define SVWRKS_COMMAND		0x04
+/*@}*/
 
-/* Memory mapped registers */
+/** \name Memory mapped registers @{ */
 #define SVWRKS_GART_CACHE	0x02
 #define SVWRKS_GATTBASE		0x04
 #define SVWRKS_TLBFLUSH		0x10
 #define SVWRKS_POSTFLUSH	0x14
 #define SVWRKS_DIRFLUSH		0x0c
+/*@}*/
 
-/* HP ZX1 SBA registers */
+/** \name HP ZX1 SBA registers @{ */
 #define HP_ZX1_CTRL		0x200
 #define HP_ZX1_IBASE		0x300
 #define HP_ZX1_IMASK		0x308
@@ -373,5 +456,6 @@ struct agp_bridge_data {
 #define HP_ZX1_TCNFG		0x318
 #define HP_ZX1_PDIR_BASE	0x320
 #define HP_ZX1_CACHE_FLUSH	0x428
+/*@}*/
 
 #endif				/* _AGP_BACKEND_PRIV_H */
