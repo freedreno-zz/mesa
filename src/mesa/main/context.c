@@ -1,4 +1,4 @@
-/* $Id: context.c,v 1.188.2.1 2002/11/19 15:25:16 brianp Exp $ */
+/* $Id: context.c,v 1.188.2.2 2002/12/12 13:02:41 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -745,6 +745,8 @@ free_shared_state( GLcontext *ctx, struct gl_shared_state *ss )
    }
    _mesa_DeleteHashTable(ss->VertexPrograms);
 #endif
+
+   _glthread_DESTROY_MUTEX(ss->Mutex);
 
    FREE(ss);
 }
