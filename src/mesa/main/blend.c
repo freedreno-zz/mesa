@@ -1,4 +1,4 @@
-/* $Id: blend.c,v 1.7.2.1 2000/02/21 14:59:41 brianp Exp $ */
+/* $Id: blend.c,v 1.7.2.2 2000/06/29 22:06:24 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -596,7 +596,7 @@ static void blend_general( GLcontext *ctx, GLuint n, const GLubyte mask[],
                dR = dG = dB = ctx->Color.BlendColor[3];
                break;
             case GL_ONE_MINUS_CONSTANT_ALPHA:
-               dR = dG = dB = 1.0F - ctx->Color.BlendColor[3] * ascale;
+               dR = dG = dB = 1.0F - ctx->Color.BlendColor[3];
                break;
             default:
                /* this should never happen */
@@ -640,7 +640,7 @@ static void blend_general( GLcontext *ctx, GLuint n, const GLubyte mask[],
                dA = ctx->Color.BlendColor[3];
                break;
             case GL_ONE_MINUS_CONSTANT_ALPHA:
-               dA = 1.0F - ctx->Color.BlendColor[3] * ascale;
+               dA = 1.0F - ctx->Color.BlendColor[3];
                break;
             default:
                /* this should never happen */
