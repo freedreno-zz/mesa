@@ -12,7 +12,7 @@
 <h2>
 <center>
 <h3>Tungsten Graphics, Inc.</h3>
-<h3>January 23, 2003<br>
+<h3>February 3, 2003<br>
 </h3>
 </center>
 </h2>
@@ -589,7 +589,7 @@ front-facing triangles and quadrilaterals, respectively.<br>
 The command<br>
 <br>
 <div style="margin-left: 40px;">void <span style="font-weight: bold;">glFrontFace</span>(GLenum<span
- style="font-style: italic;">mode</span>)<br>
+ style="font-style: italic;"> mode</span>)<br>
 </div>
 <br>
 specifies whether clockwise or counter-clockwise winding indicates a
@@ -635,15 +635,18 @@ The command<br>
 controls whether polygons are filled, outlined or drawn with a point at
 each vertex.&nbsp; The <span style="font-style: italic;">face</span>
 parameter must be GL_FRONT_AND_BACK. &nbsp;The values GL_FRONT and
-GL_BACK are not permitted by the subset. &nbsp;If <span
- style="font-style: italic;">mode</span> is GL_FILL then the polygon
-will be filled (the default). &nbsp;If <span style="font-style: italic;">mode</span>
-is GL_LINE then the polygon will be rendered as if it were specified by <span
- style="font-weight: bold;">glBegin</span>(GL_LINE_LOOP). &nbsp;If <span
- style="font-style: italic;">mode</span> is GL_POINT then the polygon
-will be rendered as if it were specified with <span
- style="font-weight: bold;">glBegin</span>(GL_POINTS). &nbsp;Any other
-values for <span style="font-style: italic;">face</span> or <span
+GL_BACK are not permitted by the subset.<br>
+<br>
+If <span style="font-style: italic;">mode</span> is GL_FILL then
+triangles, quadrilaterals and triangles will be filled (the default).
+&nbsp;If <span style="font-style: italic;">mode</span> is GL_LINE then
+triangles, quadrilaterals and polygons will be outlined with line
+segments instead of being filled.<span style="font-weight: bold;"></span>
+&nbsp;If <span style="font-style: italic;">mode</span> is GL_POINT then
+triangles, quadrilaterals and polygons will be rendered with a point at
+each vertex instead of being filled.<span style="font-weight: bold;"></span><br>
+<br>
+Any other values for <span style="font-style: italic;">face</span> or <span
  style="font-style: italic;">mode</span> will raise the error
 GL_INVALID_ENUM.<br>
 <br>
@@ -684,9 +687,9 @@ are linearly interpolated to produce the fragment colors.<br>
 <br>
 <h2>4.5 Bitmap Rasterization</h2>
 A bitmap is a monochromatic, binary image in which each image element
-(or pixel) is represented by one bit. &nbsp;Fragments are only
-generated for the bits (pixels) which are set.  &nbsp;Bitmaps are
-commonly used to draw text (glyphs) and markers.<br>
+(or pixel) is represented by one bit. &nbsp;Fragments are only generated
+for the bits (pixels) which are set.  &nbsp;Bitmaps are commonly used
+to draw text (glyphs) and markers.<br>
 <br>
 A bitmap is drawn with the command<br>
 <br>
