@@ -1096,6 +1096,7 @@ static int __driInitFBDev( struct MiniGLXDisplayRec *dpy )
 
    if (!get_chipfamily_from_chipset( info )) {
       fprintf(stderr, "Unknown or non-radeon chipset -- cannot continue\n");
+      fprintf(stderr, "==> Verify PCI BusID is correct in miniglx.conf\n");
       return 0;
    }
 
