@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.1.2.19 2003/01/27 16:55:31 keithw Exp $
+# $Id: Makefile,v 1.1.2.20 2003/01/28 18:28:54 keithw Exp $
 
 # Mesa 3-D graphics library
 # Version:  5.0
@@ -13,13 +13,13 @@ INCLUDES = -I$(MESABUILDDIR) -I$(MESA)/include -I. -I../common \
 	   -I$(MESABUILDDIR)/miniglx -Iserver
 
 DEFINES = \
-	-D_HAVE_SWRAST=1 \
-	-D_HAVE_SWTNL=1 \
-	-D_HAVE_SANITY=1 \
-	-D_HAVE_CODEGEN=1 \
-	-D_HAVE_LIGHTING=1 \
-	-D_HAVE_TEXGEN=1 \
-	-D_HAVE_USERCLIP=1
+	-D_HAVE_SWRAST=0 \
+	-D_HAVE_SWTNL=0 \
+	-D_HAVE_SANITY=0 \
+	-D_HAVE_CODEGEN=0 \
+	-D_HAVE_LIGHTING=0 \
+	-D_HAVE_TEXGEN=0 \
+	-D_HAVE_USERCLIP=0
 
 CFLAGS = $(INCLUDES) $(DEFINES) -g -MD 
 
@@ -51,7 +51,6 @@ DRIVER_SOURCES = server/radeon_dri.c \
 SUBSET_DRIVER_SOURCES = \
 		radeon_subset_bitmap.c \
 		radeon_subset_readpix.c \
-		radeon_subset_tcl.c \
 		radeon_subset_vtx.c 
 
 FULL_DRIVER_SOURCES = 	\
@@ -74,7 +73,7 @@ FULL_DRIVER_SOURCES = 	\
 
 
 C_SOURCES = $(DRIVER_SOURCES) \
-	    $(FULL_DRIVER_SOURCES) \
+	    $(SUBSET_DRIVER_SOURCES) \
 	    $(DRI_SOURCES) 
 
 ASM_SOURCES = 

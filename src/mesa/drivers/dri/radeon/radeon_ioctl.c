@@ -131,11 +131,11 @@ void radeonEmitState( radeonContextPtr rmesa )
    }
 
    if (!(rmesa->radeonScreen->chipset & RADEON_CHIPSET_TCL)) {
-     foreach_s( state, tmp, &(rmesa->hw.dirty) ) {
-       if (state->is_tcl) {
-	 move_to_head( &(rmesa->hw.clean), state );
-       }
-     }
+      foreach_s( state, tmp, &(rmesa->hw.dirty) ) {
+	 if (state->is_tcl) {
+	    move_to_head( &(rmesa->hw.clean), state );
+	 }
+      }
    }
 
    radeon_emit_state_list( rmesa, &rmesa->hw.dirty );

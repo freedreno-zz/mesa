@@ -35,14 +35,12 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "glheader.h"
 #include "imports.h"
 #include "api_noop.h"
-#include "api_arrayelt.h"
 #include "context.h"
 #include "mmath.h"
 #include "mtypes.h"
 #include "enums.h"
 #include "glapi.h"
 #include "colormac.h"
-#include "light.h"
 #include "state.h"
 
 #include "radeon_context.h"
@@ -50,112 +48,165 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "radeon_ioctl.h"
 #include "radeon_tex.h"
 #include "radeon_tcl.h"
-#include "radeon_vtxfmt.h"
 
-struct radeon_vb vb;
+union vertex_dword { float f; int i; radeon_color_t color; };
+#define MAX_VERTEX_DWORDS 10	/* xyzw rgba st */
+
+static struct {
+
+   /* Notification mechanism.  These are treated as a stack to allow
+    * us to do things like build quads in temporary storage and then
+    * emit them as triangles:
+    */
+   struct {
+      GLint vertspace;
+      GLint initial_vertspace;
+      GLint *dmaptr;
+      void (*notify)( void );
+   } stack[2];
+
+   /* Vertex size
+    */
+   GLint vertex_size;
+
+   /* Storage for current vertex:
+    */
+   union vertex_dword vertex[MAX_VERTEX_DWORDS];
+
+   /* Temporary storage for quads, etc:
+    */
+   union vertex_dword vertex_store[MAX_VERTEX_DWORDS * 4];
+
+   /* Pointers to either vertex or ctx->Current.Attrib, depending on
+    * whether color/texture participates in the current vertex:
+    */
+   GLfloat *floatcolorptr;
+   GLfloat *texcoordptr;
+
+   /* Pointer to the context.
+    */
+   GLcontext *context;		
+
+   /* Active prim (may differ from ctx->Driver.CurrentExecPrimitive)
+    */
+   GLenum prim;
+
+   GLuint vertex_format;
+   GLboolean recheck;
+} vb;
 
 static void radeonFlushVertices( GLcontext *, GLuint );
 
 
-void radeon_copy_to_current( GLcontext *ctx ) 
+
+
+void radeonTclPrimitive( GLcontext *ctx, 
+			 GLenum prim,
+			 int hw_prim )
 {
    radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
+   GLuint se_cntl;
+   GLuint newprim = hw_prim | rmesa->tcl.tcl_flag;
 
-   assert(vb.context == ctx);
+   RADEON_NEWPRIM( rmesa );
+   rmesa->tcl.hw_primitive = newprim;
 
-   ctx->Current.Attrib[VERT_ATTRIB_COLOR0][0] = vb.floatcolorptr[0];
-   ctx->Current.Attrib[VERT_ATTRIB_COLOR0][1] = vb.floatcolorptr[1];
-   ctx->Current.Attrib[VERT_ATTRIB_COLOR0][2] = vb.floatcolorptr[2];
-   ctx->Current.Attrib[VERT_ATTRIB_COLOR0][3] = vb.floatcolorptr[3];
+   se_cntl = rmesa->hw.set.cmd[SET_SE_CNTL];
+   se_cntl &= ~RADEON_FLAT_SHADE_VTX_LAST;
 
-   if (rmesa->vb.vertex_format & RADEON_CP_VC_FRMT_ST0) {
-      ctx->Current.Attrib[VERT_ATTRIB_TEX0][0] = vb.texcoordptr[0][0];
-      ctx->Current.Attrib[VERT_ATTRIB_TEX0][1] = vb.texcoordptr[0][1];
-      ctx->Current.Attrib[VERT_ATTRIB_TEX0][2] = 0.0F;
-      ctx->Current.Attrib[VERT_ATTRIB_TEX0][3] = 1.0F;
+   if (prim == GL_POLYGON && (ctx->_TriangleCaps & DD_FLATSHADE)) 
+      se_cntl |= RADEON_FLAT_SHADE_VTX_0;
+   else
+      se_cntl |= RADEON_FLAT_SHADE_VTX_LAST;
+
+   if (se_cntl != rmesa->hw.set.cmd[SET_SE_CNTL]) {
+      RADEON_STATECHANGE( rmesa, set );
+      rmesa->hw.set.cmd[SET_SE_CNTL] = se_cntl;
    }
 }
 
 
-static void flush_prims( radeonContextPtr rmesa )
+
+static struct { int start, incr, hwprim; } prims[GL_POLYGON+1] = {
+   { 1, 1, RADEON_CP_VC_CNTL_PRIM_TYPE_POINT }, /* GL_POINTS */
+   { 2, 2, RADEON_CP_VC_CNTL_PRIM_TYPE_LINE }, /* GL_LINES */
+   { 2, 1, RADEON_CP_VC_CNTL_PRIM_TYPE_LINE_STRIP }, /* GL_LINE_LOOP */
+   { 2, 1, RADEON_CP_VC_CNTL_PRIM_TYPE_LINE_STRIP }, /* GL_LINE_STRIP */
+   { 3, 3, RADEON_CP_VC_CNTL_PRIM_TYPE_TRI_LIST }, /* GL_TRIANGLES */
+   { 3, 1, RADEON_CP_VC_CNTL_PRIM_TYPE_TRI_STRIP }, /* GL_TRIANGLE_STRIP */
+   { 3, 1, RADEON_CP_VC_CNTL_PRIM_TYPE_TRI_FAN }, /* GL_TRIANGLE_FAN */
+   { 4, 4, RADEON_CP_VC_CNTL_PRIM_TYPE_TRI_LIST }, /* GL_QUADS */
+   { 4, 2, RADEON_CP_VC_CNTL_PRIM_TYPE_TRI_STRIP }, /* GL_QUAD_STRIP */
+   { 3, 1, RADEON_CP_VC_CNTL_PRIM_TYPE_TRI_FAN }, /* GL_POLYGON */
+};
+
+static void finish_prim( radeonContextPtr rmesa )
 {
-   int i,j;
-   struct radeon_dma_region tmp = rmesa->dma.current;
+   GLcontext *ctx = vb.context;
+   struct radeon_dma_region tmp = rmesa->dma.current; /* structure copy */
+   GLuint prim = vb.prim;
+   GLuint prim_end = (vb.stack[0].initial_vertspace - vb.stack[0].vertspace);
    
+   /* Too few vertices (eg: 2 vertices for a triangles prim?)
+    */
+   if (prim_end < prims[prim].start) 
+      return;
+
+   /* Drop redundant vertices off end of primitive.  (eg: 5 vertices
+    * for triangles prim?)
+    */
+   prim_end -= (prim_end - prims[prim].start) % prims[prim].incr;
+
    tmp.buf->refcount++;
    tmp.aos_size = vb.vertex_size;
    tmp.aos_stride = vb.vertex_size;
    tmp.aos_start = GET_START(&tmp);
 
    rmesa->dma.current.ptr = rmesa->dma.current.start += 
-      (vb.initial_counter - vb.counter) * vb.vertex_size * 4; 
+      (vb.stack[0].initial_vertspace - vb.stack[0].vertspace)*vb.vertex_size*4; 
 
-   rmesa->tcl.vertex_format = rmesa->vb.vertex_format;
+   rmesa->tcl.vertex_format = vb.vertex_format;
    rmesa->tcl.aos_components[0] = &tmp;
    rmesa->tcl.nr_aos_components = 1;
    rmesa->dma.flush = 0;
 
-   for (i = 0 ; i < rmesa->vb.nrprims; i++) {
-      radeonEmitPrimitive( vb.context,
-			   rmesa->vb.primlist[i].start,
-			   rmesa->vb.primlist[i].end,
-			   rmesa->vb.primlist[i].prim );
-   }
+   radeonTclPrimitive( ctx, prim, prims[prim].hwprim );
+   
+   radeonEmitAOS( rmesa,
+		  rmesa->tcl.aos_components,
+		  rmesa->tcl.nr_aos_components,
+		  0 );
+   
+   radeonEmitVbufPrim( rmesa,
+		       rmesa->tcl.vertex_format,
+		       rmesa->tcl.hw_primitive,
+		       prim_end );
 
-   rmesa->vb.nrprims = 0;
    radeonReleaseDmaRegion( rmesa, &tmp, __FUNCTION__ );
 }
 
-
-static void start_prim( radeonContextPtr rmesa, GLuint mode )
-{
-   if (RADEON_DEBUG & DEBUG_VFMT)
-      fprintf(stderr, "%s %d\n", __FUNCTION__, vb.initial_counter - vb.counter);
-
-   rmesa->vb.primlist[rmesa->vb.nrprims].start = vb.initial_counter-vb.counter;
-   rmesa->vb.primlist[rmesa->vb.nrprims].prim = mode;
-}
-
-static void note_last_prim( radeonContextPtr rmesa, GLuint flags )
-{
-   if (RADEON_DEBUG & DEBUG_VFMT)
-      fprintf(stderr, "%s %d\n", __FUNCTION__, vb.initial_counter - vb.counter);
-
-   if (rmesa->vb.prim[0] != GL_POLYGON+1) {
-      rmesa->vb.primlist[rmesa->vb.nrprims].prim |= flags;
-      rmesa->vb.primlist[rmesa->vb.nrprims].end = (vb.initial_counter - 
-						   vb.counter);
-
-      if (++(rmesa->vb.nrprims) == RADEON_MAX_PRIMS)
-	 flush_prims( rmesa );
-   }
-}
 
 
 static void copy_vertex( radeonContextPtr rmesa, GLuint n, GLfloat *dst )
 {
    GLuint i;
-   GLfloat *src = 
-      (GLfloat *)(rmesa->dma.current.address + 
-		  rmesa->dma.current.ptr + 
-		  (rmesa->vb.primlist[rmesa->vb.nrprims].start + n) * 
-		  vb.vertex_size * 4);
+   GLfloat *src = (GLfloat *)(rmesa->dma.current.address + 
+			      rmesa->dma.current.ptr + 
+			      n * vb.vertex_size * 4);
 
-   for (i = 0 ; i < vb.vertex_size; i++) {
+   for (i = 0 ; i < vb.vertex_size; i++) 
       dst[i] = src[i];
-   }
 }
 
-static GLuint copy_dma_verts( radeonContextPtr rmesa, GLfloat (*tmp)[15] )
+
+static GLuint copy_dma_verts( radeonContextPtr rmesa, 
+			      GLfloat (*tmp)[MAX_VERTEX_DWORDS] )
 {
    GLuint ovf, i;
-   GLuint nr = ((vb.initial_counter - vb.counter) -
-		rmesa->vb.primlist[rmesa->vb.nrprims].start);
+   GLcontext *ctx = vb.context;
+   GLuint nr = vb.stack[0].initial_vertspace - vb.stack[0].vertspace;
 
-   if (RADEON_DEBUG & DEBUG_VFMT)
-      fprintf(stderr, "%s %d verts\n", __FUNCTION__, nr);
-
-   switch( rmesa->vb.prim[0] )
+   switch( ctx->Driver.CurrentExecPrimitive )
    {
    case GL_POINTS:
       return 0;
@@ -166,11 +217,6 @@ static GLuint copy_dma_verts( radeonContextPtr rmesa, GLfloat (*tmp)[15] )
       return i;
    case GL_TRIANGLES:
       ovf = nr%3;
-      for (i = 0 ; i < ovf ; i++)
-	 copy_vertex( rmesa, nr-ovf+i, tmp[i] );
-      return i;
-   case GL_QUADS:
-      ovf = nr&3;
       for (i = 0 ; i < ovf ; i++)
 	 copy_vertex( rmesa, nr-ovf+i, tmp[i] );
       return i;
@@ -198,99 +244,147 @@ static GLuint copy_dma_verts( radeonContextPtr rmesa, GLfloat (*tmp)[15] )
 	 copy_vertex( rmesa, nr-ovf+i, tmp[i] );
       return i;
    case GL_QUAD_STRIP:
-      ovf = MIN2( nr-1, 2 );
-      if (nr > 2) ovf += nr&1;
-      for (i = 0 ; i < ovf ; i++)
-	 copy_vertex( rmesa, nr-ovf+i, tmp[i] );
-      return i;
+   case GL_QUADS:
    default:
-      assert(0);
       return 0;
    }
 }
 
+static void notify_wrap_buffer( void );
 
+static void reset_notify( void )
+{
+   radeonContextPtr rmesa = RADEON_CONTEXT( vb.context );
 
-static void wrap_buffer( void )
+   vb.stack[0].dmaptr = (int *)(rmesa->dma.current.address +
+				rmesa->dma.current.ptr);
+   vb.stack[0].vertspace = ((rmesa->dma.current.end - rmesa->dma.current.ptr) / 
+			    (vb.vertex_size * 4));
+   vb.stack[0].vertspace &= ~1;	/* even numbers only -- avoid tristrip parity */
+   vb.stack[0].initial_vertspace = vb.stack[0].vertspace;
+   vb.stack[0].notify = notify_wrap_buffer;
+}      
+
+static void notify_wrap_buffer( void )
 {
    GLcontext *ctx = vb.context;
    radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
-   GLfloat tmp[3][15];
-   GLuint i, nrverts;
-
-   if (RADEON_DEBUG & (DEBUG_VFMT|DEBUG_PRIMS))
-      fprintf(stderr, "%s %d\n", __FUNCTION__, vb.initial_counter - vb.counter);
-
-   /* Don't wrap buffers on an odd numbered vertex:
-    */
-   if ((((vb.initial_counter - vb.counter) -  
-	 rmesa->vb.primlist[rmesa->vb.nrprims].start) & 1)) {
-      vb.counter++;
-      vb.initial_counter++;
-      return;
-   }
+   GLfloat tmp[3][MAX_VERTEX_DWORDS];
+   GLuint i, nrverts = 0;
 
    /* Copy vertices out of dma:
     */
-   if (rmesa->vb.prim[0] == GL_POLYGON+1) 
-      nrverts = 0;
-   else {
-      nrverts = copy_dma_verts( rmesa, tmp );
-
-      if (RADEON_DEBUG & DEBUG_VFMT)
-	 fprintf(stderr, "%d vertices to copy\n", nrverts);
-   
-      /* Finish the prim at this point:
-       */
-      note_last_prim( rmesa, 0 );
-   }
-
-   /* Fire any buffered primitives
-    */
-   flush_prims( rmesa );
+   nrverts = copy_dma_verts( rmesa, tmp );
+   finish_prim( rmesa );
 
    /* Get new buffer
     */
    radeonRefillCurrentDmaRegion( rmesa );
 
-   /* Reset counter, dmaptr
+   /* Reset vertspace[0], dmaptr
     */
-   vb.dmaptr = (int *)(rmesa->dma.current.ptr + rmesa->dma.current.address);
-   vb.counter = (rmesa->dma.current.end - rmesa->dma.current.ptr) / 
-      (vb.vertex_size * 4);
-   vb.counter--;
-   vb.initial_counter = vb.counter;
-   vb.notify = wrap_buffer;
-
-   rmesa->dma.flush = flush_prims;
-
-   /* Restart wrapped primitive:
-    */
-   if (rmesa->vb.prim[0] != GL_POLYGON+1)
-      start_prim( rmesa, rmesa->vb.prim[0] );
+   reset_notify();
 
    /* Reemit saved vertices
     */
    for (i = 0 ; i < nrverts; i++) {
-      memcpy( vb.dmaptr, tmp[i], vb.vertex_size * 4 );
-      vb.dmaptr += vb.vertex_size;
-      vb.counter--;
+      memcpy( vb.stack[0].dmaptr, tmp[i], vb.vertex_size * 4 );
+      vb.stack[0].dmaptr += vb.vertex_size;
+      vb.stack[0].vertspace--;
    }
 }
 
+static void notify_noop( void )
+{
+   vb.stack[0].dmaptr = (int *)vb.vertex;
+   vb.stack[0].notify = notify_noop;
+   vb.stack[0].vertspace = 1;
+}
 
+static void pop_notify( void )
+{
+   vb.stack[0] = vb.stack[1];
+}
+
+static void push_notify( void (*notify)( void ), int space, 
+			 union vertex_dword *store )
+{
+   vb.stack[1] = vb.stack[0];
+   vb.stack[0].notify = notify;
+   vb.stack[0].initial_vertspace = space;
+   vb.stack[0].vertspace = space;
+   vb.stack[0].dmaptr = (int *)store;
+}
+
+
+/* Emit a stored vertex (in vb.vertex_store) to dma.
+ */
+static void emit_vertex( int v )
+{
+   int i, *tmp = (int *)vb.vertex_store + v * vb.vertex_size;
+   
+   for (i = 0 ; i < vb.vertex_size ; i++) 
+      *vb.stack[0].dmaptr++ = *tmp++;
+
+   if (--vb.stack[0].vertspace == 0)
+      vb.stack[0].notify();
+}
+
+/* Emit a quad (in vb.vertex_store) to dma as two triangles.
+ */
+static void emit_quad( int v0, int v1, int v2, int v3 )
+{
+   emit_vertex( v0 );
+   emit_vertex( v1 );
+   emit_vertex( v3 );
+   emit_vertex( v1 );
+   emit_vertex( v2 );
+   emit_vertex( v3 );
+}
+
+/* Every fourth vertex in a quad primitive, this is called to emit:
+ */
+static void notify_quad( void )
+{
+   pop_notify();
+   emit_quad( 0, 1, 2, 3 );
+   push_notify( notify_quad, 4, vb.vertex_store );
+}
+
+/* After the 4th vertex, emit either a quad or a flipped quad each two
+ * vertices:
+ */
+static void notify_qstrip1( void );
+static void notify_qstrip0( void )
+{
+   pop_notify();
+   emit_quad( 0, 1, 2, 3 );
+   push_notify( notify_qstrip1, 2, vb.vertex_store );
+}
+
+static void notify_qstrip1( void )
+{
+   pop_notify();
+   emit_quad( 3, 2, 0, 1 );
+   push_notify( notify_qstrip0, 2, vb.vertex_store + 2*vb.vertex_size );
+}
+
+/* Emit the saved vertex (but hang on to it for later).  Continue
+ * processing this primitive as a linestrip.
+ */
+static void notify_lineloop0( void )
+{
+   pop_notify();
+   emit_vertex(0);
+}
 
 
 
 void radeonVtxfmtInvalidate( GLcontext *ctx )
 {
    radeonContextPtr rmesa = RADEON_CONTEXT( ctx );
-
-   rmesa->vb.recheck = GL_TRUE;
-   rmesa->vb.fell_back = GL_FALSE;
+   vb.recheck = GL_TRUE;
 }
-
-
 
 
 static void radeonVtxfmtValidate( GLcontext *ctx )
@@ -300,21 +394,14 @@ static void radeonVtxfmtValidate( GLcontext *ctx )
 		 RADEON_CP_VC_FRMT_FPCOLOR | 
 		 RADEON_CP_VC_FRMT_FPALPHA);
 
-   if (RADEON_DEBUG & DEBUG_VFMT)
-      fprintf(stderr, "%s\n", __FUNCTION__);
-
    if (ctx->Driver.NeedFlush)
       ctx->Driver.FlushVertices( ctx, ctx->Driver.NeedFlush );
-	 
+
    if (ctx->Texture.Unit[0]._ReallyEnabled) 
       ind |= RADEON_CP_VC_FRMT_ST0;
 
-   if (RADEON_DEBUG & (DEBUG_VFMT|DEBUG_STATE))
-      fprintf(stderr, "%s: format: 0x%x\n", __FUNCTION__, ind );
-
    RADEON_NEWPRIM(rmesa);
-   rmesa->vb.vertex_format = ind;
-   rmesa->vb.prim = &ctx->Driver.CurrentExecPrimitive;
+   vb.vertex_format = ind;
    vb.vertex_size = 3;
 
    /* Would prefer to use ubyte floats in the vertex:
@@ -327,19 +414,34 @@ static void radeonVtxfmtValidate( GLcontext *ctx )
    vb.floatcolorptr[3] = ctx->Current.Attrib[VERT_ATTRIB_COLOR0][3];
    
    if (ind & RADEON_CP_VC_FRMT_ST0) {
-      vb.texcoordptr[0] = &vb.vertex[vb.vertex_size].f;
+      vb.texcoordptr = &vb.vertex[vb.vertex_size].f;
       vb.vertex_size += 2;
-      vb.texcoordptr[0][0] = ctx->Current.Attrib[VERT_ATTRIB_TEX0][0];
-      vb.texcoordptr[0][1] = ctx->Current.Attrib[VERT_ATTRIB_TEX0][1];   
+      vb.texcoordptr[0] = ctx->Current.Attrib[VERT_ATTRIB_TEX0][0];
+      vb.texcoordptr[1] = ctx->Current.Attrib[VERT_ATTRIB_TEX0][1];   
    } 
    else
-      vb.texcoordptr[0] = ctx->Current.Attrib[VERT_ATTRIB_TEX0];
+      vb.texcoordptr = ctx->Current.Attrib[VERT_ATTRIB_TEX0];
 
-   rmesa->vb.recheck = GL_FALSE;
+   vb.recheck = GL_FALSE;
    ctx->Driver.NeedFlush = FLUSH_UPDATE_CURRENT;
 }
 
 
+#define RESET_STIPPLE() do {			\
+   RADEON_STATECHANGE( rmesa, lin );		\
+   radeonEmitState( rmesa );			\
+} while (0)
+
+#define AUTO_STIPPLE( mode )  do {		\
+   RADEON_STATECHANGE( rmesa, lin );		\
+   if (mode)					\
+      rmesa->hw.lin.cmd[LIN_RE_LINE_PATTERN] |=	\
+	 RADEON_LINE_PATTERN_AUTO_RESET;	\
+   else						\
+      rmesa->hw.lin.cmd[LIN_RE_LINE_PATTERN] &=	\
+	 ~RADEON_LINE_PATTERN_AUTO_RESET;	\
+   radeonEmitState( rmesa );			\
+} while (0)
 
 
 
@@ -350,15 +452,12 @@ static void radeon_Begin( GLenum mode )
    GLcontext *ctx = vb.context;
    radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
    
-   if (RADEON_DEBUG & DEBUG_VFMT)
-      fprintf(stderr, "%s\n", __FUNCTION__);
-
    if (mode > GL_POLYGON) {
       _mesa_error( ctx, GL_INVALID_ENUM, "glBegin" );
       return;
    }
 
-   if (rmesa->vb.prim[0] != GL_POLYGON+1) {
+   if (ctx->Driver.CurrentExecPrimitive != GL_POLYGON+1) {
       _mesa_error( ctx, GL_INVALID_OPERATION, "glBegin" );
       return;
    }
@@ -369,37 +468,54 @@ static void radeon_Begin( GLenum mode )
    if (rmesa->NewGLState)
       radeonValidateState( ctx );
 
-   if (rmesa->vb.recheck) 
+   if (vb.recheck) 
       radeonVtxfmtValidate( ctx );
 
-   if (rmesa->dma.flush && vb.counter < 12) {
-      if (RADEON_DEBUG & DEBUG_VFMT)
-	 fprintf(stderr, "%s: flush almost-empty buffers\n", __FUNCTION__);
-      flush_prims( rmesa );
-   }
 
    /* Do we need to grab a new dma region for the vertices?
     */
-   if (!rmesa->dma.flush) {
-      if (rmesa->dma.current.ptr + 12*vb.vertex_size*4 > 
-	  rmesa->dma.current.end) {
-	 RADEON_NEWPRIM( rmesa );
-	 radeonRefillCurrentDmaRegion( rmesa );
-      }
-
-      vb.dmaptr = (int *)(rmesa->dma.current.address + rmesa->dma.current.ptr);
-      vb.counter = (rmesa->dma.current.end - rmesa->dma.current.ptr) / 
-	 (vb.vertex_size * 4);
-      vb.counter--;
-      vb.initial_counter = vb.counter;
-      vb.notify = wrap_buffer;
-      rmesa->dma.flush = flush_prims;
-      vb.context->Driver.NeedFlush |= FLUSH_STORED_VERTICES;
+   if (rmesa->dma.current.ptr + 12*vb.vertex_size*4 > rmesa->dma.current.end) {
+      RADEON_NEWPRIM( rmesa );
+      radeonRefillCurrentDmaRegion( rmesa );
    }
-   
-   
-   rmesa->vb.prim[0] = mode;
-   start_prim( rmesa, mode | PRIM_BEGIN );
+
+   reset_notify();
+
+   vb.prim = ctx->Driver.CurrentExecPrimitive = mode;
+
+   switch( mode ) {
+   case GL_QUADS:
+      vb.prim = GL_TRIANGLES;
+      push_notify( notify_quad, 4, vb.vertex_store );
+      break;
+   case GL_QUAD_STRIP:
+      /* Need special treatment only for flat shading -- otherwise the
+       * tristrip primitive works fine.
+       */
+      if (ctx->_TriangleCaps & DD_FLATSHADE) {
+	 vb.prim = GL_TRIANGLES;
+	 push_notify( notify_qstrip0, 4, vb.vertex_store );
+      }
+      break;
+   case GL_LINES:
+      if (ctx->Line.StippleFlag) {
+	 RESET_STIPPLE();
+	 AUTO_STIPPLE( GL_TRUE );
+      }
+      break;
+   case GL_LINE_LOOP:
+      if (ctx->Line.StippleFlag)
+	 RESET_STIPPLE();
+      vb.prim = GL_LINE_STRIP;
+      push_notify( notify_lineloop0, 1, vb.vertex_store );
+      break;
+   case GL_LINE_STRIP:
+      if (ctx->Line.StippleFlag)
+	 RESET_STIPPLE();
+      break;
+   default:
+      break;
+   }
 }
 
 
@@ -409,48 +525,51 @@ static void radeon_End( void )
    GLcontext *ctx = vb.context;
    radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
 
-   if (RADEON_DEBUG & DEBUG_VFMT)
-      fprintf(stderr, "%s\n", __FUNCTION__);
-
-   if (rmesa->vb.prim[0] == GL_POLYGON+1) {
+   if (ctx->Driver.CurrentExecPrimitive == GL_POLYGON+1) {
       _mesa_error( ctx, GL_INVALID_OPERATION, "glEnd" );
       return;
    }
+
+   /* Need to finish a line loop?
+    */
+   if (ctx->Driver.CurrentExecPrimitive == GL_LINE_LOOP) 
+      emit_vertex( 0 );
+
+   /* Need to pop off quads/quadstrip/etc notification?
+    */
+   if (vb.stack[0].notify != notify_wrap_buffer)
+      pop_notify();
+
+   finish_prim( rmesa );
+
+   if (ctx->Driver.CurrentExecPrimitive == GL_LINES && ctx->Line.StippleFlag) 
+      AUTO_STIPPLE( GL_FALSE );
 	  
-   note_last_prim( rmesa, PRIM_END );
-   rmesa->vb.prim[0] = GL_POLYGON+1;
+   ctx->Driver.CurrentExecPrimitive = GL_POLYGON+1;
+   notify_noop();
 }
-
-
-
 
 
 static void radeonFlushVertices( GLcontext *ctx, GLuint flags )
 {
    radeonContextPtr rmesa = RADEON_CONTEXT( ctx );
 
-   if (RADEON_DEBUG & DEBUG_VFMT)
-      fprintf(stderr, "%s\n", __FUNCTION__);
-
-   assert(vb.context == ctx);
-
    if (flags & FLUSH_UPDATE_CURRENT) {
-      radeon_copy_to_current( ctx );
-      if (RADEON_DEBUG & DEBUG_VFMT)
-	 fprintf(stderr, "reinstall on update_current\n");
-      _mesa_install_exec_vtxfmt( ctx, &rmesa->vb.vtxfmt );
+      ctx->Current.Attrib[VERT_ATTRIB_COLOR0][0] = vb.floatcolorptr[0];
+      ctx->Current.Attrib[VERT_ATTRIB_COLOR0][1] = vb.floatcolorptr[1];
+      ctx->Current.Attrib[VERT_ATTRIB_COLOR0][2] = vb.floatcolorptr[2];
+      ctx->Current.Attrib[VERT_ATTRIB_COLOR0][3] = vb.floatcolorptr[3];
+
+      if (vb.vertex_format & RADEON_CP_VC_FRMT_ST0) {
+	 ctx->Current.Attrib[VERT_ATTRIB_TEX0][0] = vb.texcoordptr[0];
+	 ctx->Current.Attrib[VERT_ATTRIB_TEX0][1] = vb.texcoordptr[1];
+	 ctx->Current.Attrib[VERT_ATTRIB_TEX0][2] = 0.0F;
+	 ctx->Current.Attrib[VERT_ATTRIB_TEX0][3] = 1.0F;
+      }
    }
 
-   if (flags & FLUSH_STORED_VERTICES) {
-      radeonContextPtr rmesa = RADEON_CONTEXT( ctx );
-      assert (rmesa->dma.flush == 0 ||
-	      rmesa->dma.flush == flush_prims);
-      if (rmesa->dma.flush == flush_prims)
-	 flush_prims( RADEON_CONTEXT( ctx ) );
-      ctx->Driver.NeedFlush &= ~FLUSH_STORED_VERTICES;
-   }
+   ctx->Driver.NeedFlush &= ~FLUSH_STORED_VERTICES;
 }
-
 
 
 /* Code each function once, let the compiler optimize away the inline
@@ -460,15 +579,15 @@ static __inline__ void radeon_Vertex3f( GLfloat x, GLfloat y, GLfloat z )
 {
    int i;
 
-   *vb.dmaptr++ = *(int *)&x;
-   *vb.dmaptr++ = *(int *)&y;
-   *vb.dmaptr++ = *(int *)&z;
+   *vb.stack[0].dmaptr++ = *(int *)&x;
+   *vb.stack[0].dmaptr++ = *(int *)&y;
+   *vb.stack[0].dmaptr++ = *(int *)&z;
 
    for (i = 3; i < vb.vertex_size; i++) 
-      *vb.dmaptr++ = vb.vertex[i].i;
+      *vb.stack[0].dmaptr++ = vb.vertex[i].i;
 
-   if (--vb.counter == 0)
-      vb.notify();
+   if (--vb.stack[0].vertspace == 0)
+      vb.stack[0].notify();
 }
 
 static __inline__  void radeon_Color4f( GLfloat r, GLfloat g,
@@ -483,7 +602,7 @@ static __inline__  void radeon_Color4f( GLfloat r, GLfloat g,
 
 static __inline__ void radeon_TexCoord2f( GLfloat s, GLfloat t )
 {
-   GLfloat *dest = vb.texcoordptr[0];
+   GLfloat *dest = vb.texcoordptr;
    dest[0] = s;
    dest[1] = t;
 }
@@ -526,12 +645,10 @@ static void radeon_TexCoord2fv( const GLfloat *v )
 }
 
 
-
 void radeonVtxfmtInit( GLcontext *ctx )
 {
    radeonContextPtr rmesa = RADEON_CONTEXT( ctx );
    struct _glapi_table *exec = ctx->Exec;
-
 
    exec->Color3f = radeon_Color3f;
    exec->Color3fv = radeon_Color3fv;
@@ -547,15 +664,12 @@ void radeonVtxfmtInit( GLcontext *ctx )
    exec->End = radeon_End;
    exec->Rectf = _mesa_noop_Rectf; /* is this supported? */
 
-
    vb.context = ctx;
-   rmesa->vb.enabled = 1;
-   rmesa->vb.prim = &ctx->Driver.CurrentExecPrimitive;
-   rmesa->vb.primflags = 0;
-
+   
    ctx->Driver.FlushVertices = radeonFlushVertices;
-   ctx->Driver.CurrentExecPrimitive = PRIM_OUTSIDE_BEGIN_END;
+   ctx->Driver.CurrentExecPrimitive = GL_POLYGON+1;
    radeonVtxfmtValidate( ctx );
+   notify_noop();
 }
 
 
@@ -563,13 +677,29 @@ void radeonVtxfmtUnbindContext( GLcontext *ctx )
 {
 }
 
-
 void radeonVtxfmtMakeCurrent( GLcontext *ctx )
 {
 }
-
 
 void radeonVtxfmtDestroy( GLcontext *ctx )
 {
 }
 
+void radeonFallback( GLcontext *ctx, GLuint bit, GLboolean mode )
+{
+   if (mode)
+      fprintf(stderr, "Warning: hit nonexistant fallback path!\n");
+}
+
+void radeonTclFallback( GLcontext *ctx, GLuint bit, GLboolean mode )
+{
+   if (mode)
+      fprintf(stderr, "Warning: hit nonexistant fallback path!\n");
+}
+
+/* Called by radeonPointsBitmap to disable tcl.
+ */
+void radeonSubsetVtxEnableTCL( radeonContextPtr rmesa, GLboolean flag )
+{
+   rmesa->tcl.tcl_flag = flag ? RADEON_CP_VC_CNTL_TCL_ENABLE : 0;
+}

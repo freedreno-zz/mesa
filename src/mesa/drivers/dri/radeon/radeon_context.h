@@ -550,127 +550,6 @@ struct radeon_ioctl {
 
 
 
-#define RADEON_MAX_PRIMS 64
-
-
-/* Want to keep a cache of these around.  Each is parameterized by
- * only a single value which has only a small range.  Only expect a
- * few, so just rescan the list each time?
- */
-struct dynfn {
-   struct dynfn *next, *prev;
-   int key;
-   char *code;
-};
-
-struct dfn_lists {
-   struct dynfn Vertex2f;
-   struct dynfn Vertex2fv;
-   struct dynfn Vertex3f;
-   struct dynfn Vertex3fv;
-   struct dynfn Color4ub;
-   struct dynfn Color4ubv;
-   struct dynfn Color3ub;
-   struct dynfn Color3ubv;
-   struct dynfn Color4f;
-   struct dynfn Color4fv;
-   struct dynfn Color3f;
-   struct dynfn Color3fv;
-   struct dynfn SecondaryColor3ubEXT;
-   struct dynfn SecondaryColor3ubvEXT;
-   struct dynfn SecondaryColor3fEXT;
-   struct dynfn SecondaryColor3fvEXT;
-   struct dynfn Normal3f;
-   struct dynfn Normal3fv;
-   struct dynfn TexCoord2f;
-   struct dynfn TexCoord2fv;
-   struct dynfn TexCoord1f;
-   struct dynfn TexCoord1fv;
-   struct dynfn MultiTexCoord2fARB;
-   struct dynfn MultiTexCoord2fvARB;
-   struct dynfn MultiTexCoord1fARB;
-   struct dynfn MultiTexCoord1fvARB;
-};
-
-struct _vb;
-
-struct dfn_generators {
-   struct dynfn *(*Vertex2f)( GLcontext *, int );
-   struct dynfn *(*Vertex2fv)( GLcontext *, int );
-   struct dynfn *(*Vertex3f)( GLcontext *, int );
-   struct dynfn *(*Vertex3fv)( GLcontext *, int );
-   struct dynfn *(*Color4ub)( GLcontext *, int );
-   struct dynfn *(*Color4ubv)( GLcontext *, int );
-   struct dynfn *(*Color3ub)( GLcontext *, int );
-   struct dynfn *(*Color3ubv)( GLcontext *, int );
-   struct dynfn *(*Color4f)( GLcontext *, int );
-   struct dynfn *(*Color4fv)( GLcontext *, int );
-   struct dynfn *(*Color3f)( GLcontext *, int );
-   struct dynfn *(*Color3fv)( GLcontext *, int );
-   struct dynfn *(*SecondaryColor3ubEXT)( GLcontext *, int );
-   struct dynfn *(*SecondaryColor3ubvEXT)( GLcontext *, int );
-   struct dynfn *(*SecondaryColor3fEXT)( GLcontext *, int );
-   struct dynfn *(*SecondaryColor3fvEXT)( GLcontext *, int );
-   struct dynfn *(*Normal3f)( GLcontext *, int );
-   struct dynfn *(*Normal3fv)( GLcontext *, int );
-   struct dynfn *(*TexCoord2f)( GLcontext *, int );
-   struct dynfn *(*TexCoord2fv)( GLcontext *, int );
-   struct dynfn *(*TexCoord1f)( GLcontext *, int );
-   struct dynfn *(*TexCoord1fv)( GLcontext *, int );
-   struct dynfn *(*MultiTexCoord2fARB)( GLcontext *, int );
-   struct dynfn *(*MultiTexCoord2fvARB)( GLcontext *, int );
-   struct dynfn *(*MultiTexCoord1fARB)( GLcontext *, int );
-   struct dynfn *(*MultiTexCoord1fvARB)( GLcontext *, int );
-};
-
-
-struct radeon_vb {
-   /* Keep these first: referenced from codegen templates:
-    */
-   GLint counter, initial_counter;
-   GLint *dmaptr;
-   void (*notify)( void );
-   GLint vertex_size;
-   union { float f; int i; radeon_color_t color; } vertex[15];
-
-   GLfloat *normalptr;
-   GLfloat *floatcolorptr;
-   radeon_color_t *colorptr;
-   radeon_color_t *specptr;
-   GLfloat *texcoordptr[2];
-
-   GLcontext *context;		/* current context : Single thread only! */
-};
-
-struct radeon_prim {
-   GLuint start;
-   GLuint end;
-   GLuint prim;
-};
-
-struct radeon_vbinfo {
-   GLenum *prim;		/* &ctx->Driver.CurrentExecPrimitive */
-   GLuint primflags;
-   GLboolean enabled;		/* RADEON_NO_VTXFMT//RADEON_NO_TCL env vars */
-   GLboolean installed;
-   GLboolean fell_back;
-   GLboolean recheck;
-   GLint initial_counter;
-   GLint nrverts;
-   GLuint vertex_format;
-
-   GLuint installed_vertex_format;
-   GLuint installed_color_3f_sz;
-
-   struct radeon_prim primlist[RADEON_MAX_PRIMS];
-   int nrprims;
-
-   struct dfn_lists dfn_cache;
-   struct dfn_generators codegen;
-   GLvertexformat vtxfmt;
-};
-
-
 
 
 struct radeon_context {
@@ -748,7 +627,7 @@ struct radeon_context {
 
    /* radeon_vtxfmt.c
     */
-   struct radeon_vbinfo vb;
+/*    struct radeon_vbinfo vb; */
 
    /* Mirrors of some DRI state
     */

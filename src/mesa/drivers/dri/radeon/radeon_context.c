@@ -607,8 +607,8 @@ radeonMakeCurrent( __DRIcontextPrivate *driContextPriv,
 			     driDrawPriv->w, driDrawPriv->h );
       }
 
-      if (newRadeonCtx->vb.enabled)
-	 radeonVtxfmtMakeCurrent( newRadeonCtx->glCtx );
+/*       if (newRadeonCtx->vb.enabled) */
+/* 	 radeonVtxfmtMakeCurrent( newRadeonCtx->glCtx ); */
 
    } else {
       if (RADEON_DEBUG & DEBUG_DRI)
