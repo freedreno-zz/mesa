@@ -36,7 +36,7 @@ GENERATE_TODOLIST      = YES
 GENERATE_TESTLIST      = YES
 GENERATE_BUGLIST       = YES
 ALIASES                = 
-ENABLED_SECTIONS       = 
+ENABLED_SECTIONS       = subset
 MAX_INITIALIZER_LINES  = 30
 OPTIMIZE_OUTPUT_FOR_C  = NO
 SHOW_USED_FILES        = YES
@@ -53,18 +53,29 @@ WARN_LOGFILE           =
 #---------------------------------------------------------------------------
 INPUT                  = ../src/
 FILE_PATTERNS          = \
+			accum.h \
+			attrib.h \
 			blend.[ch] \
 			buffers.[ch] \
 			dd.h \
+			debug.h \
 			depth.h \
+			dlist.h \
 			context.[ch] \
+			config.h \
 			colormac.h \
+			colortab.h \
 			enable.h \
+			enums.h \
+			eval.h \
+			extensions.h \
 			feedback.[ch] \
+			fog.h \
 			get.h \
 			glheader.h \
 			glthread.h \
 			hash.[ch] \
+			hint.h \
 			histogram.h \
 			image.[ch] \
 			imports.[ch] \
@@ -87,7 +98,8 @@ FILE_PATTERNS          = \
 			texstate.h \
 			texstore.h \
 			texobj.[ch] \
-			texutil_tmp.h
+			texutil_tmp.h \
+			varray.h
 RECURSIVE              = NO
 EXCLUDE                = 
 EXCLUDE_PATTERNS       = 
