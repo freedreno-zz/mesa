@@ -56,17 +56,23 @@ FILE_PATTERNS          = \
 			blend.[ch] \
 			buffers.[ch] \
 			dd.h \
+			depth.h \
 			context.[ch] \
+			colormac.h \
 			enable.h \
 			feedback.[ch] \
 			get.h \
+			glheader.h \
+			glthread.h \
 			hash.[ch] \
+			histogram.h \
 			image.[ch] \
 			imports.[ch] \
 			lines.[ch] \
 			light.h \
 			matrix.[ch] \
 			macros.h \
+			mmath.h \
 			mtypes.h \
 			pixel.h \
 			points.[ch] \
@@ -78,7 +84,7 @@ FILE_PATTERNS          = \
 			subset_*.c \
 			texformat.h \
 			teximage.h \
-			textstate.h \
+			texstate.h \
 			texstore.h \
 			texobj.[ch] \
 			texutil_tmp.h
