@@ -1,4 +1,4 @@
-$Id: VERSIONS,v 1.38.2.11 2000/10/19 18:10:13 brianp Exp $
+$Id: VERSIONS,v 1.38.2.12 2000/10/19 20:10:49 brianp Exp $
 
 
 Mesa Version History
@@ -761,10 +761,12 @@ Mesa Version History
 	- glReadPixels with GLushort packed types was broken
 	- fixed a few bugs in the GL_EXT_texture_env_combine texture code
 	- glPush/PopAttrib(GL_ENABLE_BIT) mishandled multi-texture enables
+	- fixed some typos/bugs in the VB code
 	- glDrawPixels(GL_COLOR_INDEX) to RGB window didn't work
 	- optimized glDrawPixels paths weren't being used
 	- per-fragment fog calculation didn't work without a Z buffer
 	- improved blending accuracy, fixes Glean blendFunc test failures
+	- glPixelStore(GL_PACK/UNPACK_SKIP_IMAGES) wasn't handled correctly
     Changes:
 	- finished internal support for compressed textures for DRI
 
