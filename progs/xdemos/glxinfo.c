@@ -1,4 +1,4 @@
-/* $Id: glxinfo.c,v 1.14.2.3 2002/09/06 03:36:43 brianp Exp $ */
+/* $Id: glxinfo.c,v 1.14.2.4 2002/09/06 03:47:54 brianp Exp $ */
 
 /*
  * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
@@ -29,6 +29,7 @@
  *  -v                     print verbose information
  *  -display DisplayName   specify the X display to interogate
  *  -b                     only print ID of "best" visual on screen 0
+ *  -i                     use indirect rendering connection only
  *  -l                     print interesting OpenGL limits (added 5 Sep 2002)
  *
  * Brian Paul  26 January 2000
@@ -473,6 +474,8 @@ print_visual_attribs_short(const struct visual_attribs *attribs)
       caveat = "Slow";
    else if (attribs->visualCaveat == GLX_NON_CONFORMANT_VISUAL_EXT)
       caveat = "Ncon";
+   else
+      caveat = "None";
 #else
    caveat = "None";
 #endif 
