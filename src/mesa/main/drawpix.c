@@ -1,4 +1,4 @@
-/* $Id: drawpix.c,v 1.26.4.3 2000/09/06 17:47:26 brianp Exp $ */
+/* $Id: drawpix.c,v 1.26.4.4 2000/09/12 21:09:48 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -707,6 +707,11 @@ draw_rgba_pixels( GLcontext *ctx, GLint x, GLint y,
    const GLint desty = y;
    GLdepth zspan[MAX_WIDTH];
    GLboolean quickDraw;
+
+   if (!_mesa_is_legal_format_and_type(format, type)) {
+      gl_error(ctx, GL_INVALID_ENUM, "glDrawPixels(format or type)");
+      return;
+   }
 
    /* Try an optimized glDrawPixels first */
    if (simple_DrawPixels(ctx, x, y, width, height, format, type, pixels))
