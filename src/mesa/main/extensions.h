@@ -1,4 +1,12 @@
-/* $Id: extensions.h,v 1.15.6.1 2003/03/05 14:04:19 keithw Exp $ */
+/**
+ * \file extensions.h
+ * \brief Extension handling.
+ * 
+ * \if subset
+ * \brief (No-op.)
+ *
+ * \endif
+ */
 
 /*
  * Mesa 3-D graphics library
@@ -24,6 +32,8 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+/* $Id: extensions.h,v 1.15.6.2 2003/03/23 03:51:34 jrfonseca Exp $ */
+
 
 #ifndef _EXTENSIONS_H_
 #define _EXTENSIONS_H_
@@ -31,6 +41,7 @@
 #include "mtypes.h"
 
 #if _HAVE_FULL_GL
+
 extern void _mesa_enable_sw_extensions(GLcontext *ctx);
 
 extern void _mesa_enable_imaging_extensions(GLcontext *ctx);
@@ -53,12 +64,24 @@ extern void _mesa_extensions_dtr( GLcontext *ctx );
 extern void _mesa_extensions_ctr( GLcontext *ctx );
 
 extern const char *_mesa_extensions_get_string( GLcontext *ctx );
+
 #else
+
+/** \brief No-op */
 #define _mesa_extensions_dtr( ctx ) ((void)0)
+
+/** \brief No-op */
 #define _mesa_extensions_ctr( ctx ) ((void)0)
+
+/** \brief No-op */
 #define _mesa_extensions_get_string( ctx ) "GL_EXT_texture_object"
+
+/** \brief No-op */
 #define _mesa_enable_imaging_extensions( c ) ((void)0)
+
+/** \brief No-op */
 #define _mesa_enable_extension( c, n ) ((void)0)
+
 #endif
 
 #endif

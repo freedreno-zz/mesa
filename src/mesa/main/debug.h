@@ -1,4 +1,12 @@
-/* $Id: debug.h,v 1.3.8.2 2003/03/20 09:20:25 keithw Exp $ */
+/**
+ * \file debug.h
+ * \brief Debugging functions.
+ * 
+ * \if subset
+ * \brief (No-op.)
+ *
+ * \endif
+ */
 
 /*
  * Mesa 3-D graphics library
@@ -24,21 +32,35 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+/* $Id: debug.h,v 1.3.8.3 2003/03/23 03:51:34 jrfonseca Exp $ */
+
+
 #ifndef _DEBUG_H
 #define _DEBUG_H
 
 #if _HAVE_FULL_GL
+
 extern void _mesa_print_tri_caps( const char *name, GLuint flags );
 extern void _mesa_print_enable_flags( const char *msg, GLuint flags );
 extern void _mesa_print_state( const char *msg, GLuint state );
 extern void _mesa_print_info( void );
 extern void _mesa_init_debug( GLcontext *ctx );
 extern void _mesa_check_driver_hooks( GLcontext *ctx );
+
 #else
+
+/** \brief No-op. */
 #define _mesa_print_state( m, s ) ((void)0)
+
+/** \brief No-op. */
 #define _mesa_print_info() ((void)0)
+
+/** \brief No-op. */
 #define _mesa_init_debug( c ) ((void)0)
+
+/** \brief No-op. */
 #define _mesa_check_driver_hooks( c ) ((void)0)
+
 #endif
 
 #endif

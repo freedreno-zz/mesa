@@ -1,6 +1,11 @@
 /**
  * \file histogram.h
  * \brief Histogram.
+ * 
+ * \if subset
+ * \brief (No-op.)
+ *
+ * \endif
  */
 
 /*
@@ -27,7 +32,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: histogram.h,v 1.4.4.2 2003/03/22 16:49:58 jrfonseca Exp $ */
+/* $Id: histogram.h,v 1.4.4.3 2003/03/23 03:51:34 jrfonseca Exp $ */
 
 
 #ifndef HISTOGRAM_H

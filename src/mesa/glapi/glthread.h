@@ -1,6 +1,11 @@
 /**
  * \file glthread.h
- * Thread support for gl dispatch.
+ * \brief Thread support for GL dispatch.
+ * 
+ * \if subset
+ * \brief (No-op.)
+ *
+ * \endif
  *
  * \author Initial version by John Stone (j.stone@acm.org) (johns@cs.umr.edu)
  * and Christoph Poliwoda (poliwoda@volumegraphics.com)
@@ -37,7 +42,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: glthread.h,v 1.11.6.2 2003/03/22 16:49:58 jrfonseca Exp $ */
+/* $Id: glthread.h,v 1.11.6.3 2003/03/23 03:51:34 jrfonseca Exp $ */
 
 
 #ifndef GLTHREAD_H

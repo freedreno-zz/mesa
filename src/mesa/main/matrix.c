@@ -1,6 +1,6 @@
 /**
  * \file matrix.c
- * brief Matrix operations.
+ * \brief Matrix operations.
  *
  * \note
  * -# 4x4 transformation matrices are stored in memory in column major order.
@@ -32,7 +32,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: matrix.c,v 1.45.4.4 2003/03/22 16:49:58 jrfonseca Exp $ */
+/* $Id: matrix.c,v 1.45.4.5 2003/03/23 03:51:34 jrfonseca Exp $ */
 
 
 #include "glheader.h"
@@ -47,7 +47,22 @@
 #include "math/m_matrix.h"
 
 
-
+/**
+ * \brief Apply a perspective projection matrix.
+ *
+ * \param left left clipping plane coordinate.
+ * \param right right clipping plane coordinate.
+ * \param bottom bottom clipping plane coordinate.
+ * \param top top clipping plane coordinate.
+ * \param nearval distance to the near clipping plane.
+ * \param farval distance to the far clipping plane.
+ *
+ * \sa glFrustum().
+ *
+ * Flushes vertices and validates parameters. Calls _math_matrix_frustum() with
+ * the top matrix of the current matrix stack and sets
+ * __GLcontextRec::NewState.
+ */
 void
 _mesa_Frustum( GLdouble left, GLdouble right,
                GLdouble bottom, GLdouble top,
@@ -74,6 +89,22 @@ _mesa_Frustum( GLdouble left, GLdouble right,
 }
 
 
+/**
+ * \brief Apply a orthographic projection matrix.
+ *
+ * \param left left clipping plane coordinate.
+ * \param right right clipping plane coordinate.
+ * \param bottom bottom clipping plane coordinate.
+ * \param top top clipping plane coordinate.
+ * \param nearval distance to the near clipping plane.
+ * \param farval distance to the far clipping plane.
+ *
+ * \sa glOrtho().
+ *
+ * Flushes vertices and validates parameters. Calls _math_matrix_ortho() with
+ * the top matrix of the current matrix stack and sets
+ * __GLcontextRec::NewState.
+ */
 void
 _mesa_Ortho( GLdouble left, GLdouble right,
              GLdouble bottom, GLdouble top,
@@ -102,6 +133,17 @@ _mesa_Ortho( GLdouble left, GLdouble right,
 }
 
 
+/**
+ * \brief Set the current matrix stack.
+ *
+ * \param nome matrix stack.
+ *
+ * \sa glMatrixMode().
+ *
+ * Flushes the vertices, validates the parameter and updates
+ * __GLcontextRec::CurrentStack and __GLcontextRec::MatrixMode with the
+ * specified matrix stack.
+ */
 void
 _mesa_MatrixMode( GLenum mode )
 {
@@ -148,7 +190,15 @@ _mesa_MatrixMode( GLenum mode )
 }
 
 
-
+/**
+ * \brief Push the current matrix stack.
+ *
+ * \sa glPushMatrix().
+ * 
+ * Verifies the current matrix stack is not full, and duplicates the top-most
+ * matrix in the stack. Marks __GLcontexRec::NewState with the stack dirty
+ * flag.
+ */
 void
 _mesa_PushMatrix( void )
 {
@@ -172,7 +222,15 @@ _mesa_PushMatrix( void )
 }
 
 
-
+/**
+ * \brief Pop the current matrix stack.
+ *
+ * \sa glPopMatrix().
+ * 
+ * Flushes the vertices, verifies the current matrix stack is not empty, and
+ * moves the stack head down. Marks __GLcontexRec::NewState with the stack
+ * dirty flag.
+ */
 void
 _mesa_PopMatrix( void )
 {
@@ -194,7 +252,15 @@ _mesa_PopMatrix( void )
 }
 
 
-
+/**
+ * \brief Replace the current matrix with the indentity matrix.
+ *
+ * \sa glLoadIdentity().
+ *
+ * Flushes the vertices and calls _math_matrix_set_identity() with the top-most
+ * matrix in the current stack. Marks __GLcontexRec::NewState with the stack
+ * dirty flag.
+ */
 void
 _mesa_LoadIdentity( void )
 {
@@ -209,6 +275,17 @@ _mesa_LoadIdentity( void )
 }
 
 
+/**
+ * \brief Replace the current matrix with a given matrix.
+ *
+ * \param m matrix.
+ *
+ * \sa glLoadMatrixf().
+ *
+ * Flushes the vertices and calls _math_matrix_loadf() with the top-most matrix
+ * in the current stack and the given matrix. Marks __GLcontexRec::NewState
+ * with the stack dirty flag.
+ */
 void
 _mesa_LoadMatrixf( const GLfloat *m )
 {
@@ -228,9 +305,16 @@ _mesa_LoadMatrixf( const GLfloat *m )
 }
 
 
-
-/*
- * Multiply the active matrix by an arbitary matrix.
+/**
+ * \brief Multiply the current matrix with a given matrix.
+ *
+ * \param m matrix.
+ *
+ * \sa glMultMatrixf().
+ *
+ * Flushes the vertices and calls _math_matrix_mul_floats() with the top-most
+ * matrix in the current stack and the given matrix. Marks
+ * __GLcontexRec::NewState with the stack dirty flag.
  */
 void
 _mesa_MultMatrixf( const GLfloat *m )
@@ -250,9 +334,19 @@ _mesa_MultMatrixf( const GLfloat *m )
 }
 
 
-
-/*
- * Execute a glRotate call
+/**
+ * \brief Multiply the current matrix with a rotation matrix.
+ *
+ * \param angle angle of rotation, in degrees.
+ * \param x rotation vector x coordinate.
+ * \param y rotation vector y coordinate.
+ * \param z rotation vector z coordinate.
+ *
+ * \sa glRotatef().
+ *
+ * Flushes the vertices and calls _math_matrix_rotate() with the top-most
+ * matrix in the current stack and the given parameters. Marks
+ * __GLcontexRec::NewState with the stack dirty flag.
  */
 void
 _mesa_Rotatef( GLfloat angle, GLfloat x, GLfloat y, GLfloat z )
@@ -266,8 +360,18 @@ _mesa_Rotatef( GLfloat angle, GLfloat x, GLfloat y, GLfloat z )
 }
 
 
-/*
- * Execute a glScale call
+/**
+ * \brief Multiply the current matrix with a general scaling matrix.
+ *
+ * \param x x axis scale factor.
+ * \param y y axis scale factor.
+ * \param z z axis scale factor.
+ *
+ * \sa glScalef().
+ *
+ * Flushes the vertices and calls _math_matrix_scale() with the top-most
+ * matrix in the current stack and the given parameters. Marks
+ * __GLcontexRec::NewState with the stack dirty flag.
  */
 void
 _mesa_Scalef( GLfloat x, GLfloat y, GLfloat z )
@@ -279,8 +383,18 @@ _mesa_Scalef( GLfloat x, GLfloat y, GLfloat z )
 }
 
 
-/*
- * Execute a glTranslate call
+/**
+ * \brief Multiply the current matrix with a general scaling matrix.
+ *
+ * \param x translation vector x coordinate.
+ * \param y translation vector y coordinate.
+ * \param z translation vector z coordinate.
+ *
+ * \sa glTranslatef().
+ *
+ * Flushes the vertices and calls _math_matrix_translate() with the top-most
+ * matrix in the current stack and the given parameters. Marks
+ * __GLcontexRec::NewState with the stack dirty flag.
  */
 void
 _mesa_Translatef( GLfloat x, GLfloat y, GLfloat z )
@@ -379,8 +493,18 @@ _mesa_MultTransposeMatrixdARB( const GLdouble *m )
 }
 #endif
 
-/*
- * Called via glViewport or display list execution.
+/**
+ * \brief Set the viewport.
+ * 
+ * \param x ordinate of the lower left corner of the viewport rectangle.
+ * \param y abcissa of the lower left corner of the viewport rectangle.
+ * \param width width of the viewport rectangle.
+ * \param height height of the viewport rectangle.
+ *
+ * \sa Called via glViewport() or display list execution.
+ *
+ * Flushes the vertices and calls _mesa_set_viewport() with the given
+ * parameters.
  */
 void
 _mesa_Viewport( GLint x, GLint y, GLsizei width, GLsizei height )
@@ -390,10 +514,19 @@ _mesa_Viewport( GLint x, GLint y, GLsizei width, GLsizei height )
    _mesa_set_viewport(ctx, x, y, width, height);
 }
 
-
-/*
- * Define a new viewport and reallocate auxillary buffers if the size of
+/**
+ * \brief Define a new viewport and reallocate auxillary buffers if the size of
  * the window (color buffer) has changed.
+ *
+ * \param ctx GL context.
+ * \param x ordinate of the lower left corner of the viewport rectangle.
+ * \param y abcissa of the lower left corner of the viewport rectangle.
+ * \param width width of the viewport rectangle.
+ * \param height height of the viewport rectangle.
+ *
+ * Verifies the parameters, clamps them to the implementation dependent range
+ * and updates __GLcontextRec::Viewport. Computes the scale and bias values for
+ * the drivers and notifies the driver via dd_function_table::Viewport.
  */
 void
 _mesa_set_viewport( GLcontext *ctx, GLint x, GLint y,
@@ -485,14 +618,22 @@ _mesa_DepthRange( GLclampd nearval, GLclampd farval )
 
 
 /**********************************************************************/
-/*****                    State management                        *****/
-/**********************************************************************/
+/** \name State management */
+/*@{*/
 
 
-/* NOTE: This routine references Tranform attribute values to compute
- * userclip positions in clip space, but is only called on
- * _NEW_PROJECTION.  The _mesa_ClipPlane() function keeps these values
- * up to date across changes to the Transform attributes.
+/**
+ * \brief Update the projection matrix stack.
+ *
+ * \param ctx GL context.
+ *
+ * Calls _math_matrix_analyse() with the top-matrix of the projection matrix
+ * stack, and recomputes user clip positions if necessary.
+ * 
+ * \note This routine references __GLcontextRec::Tranform attribute values to
+ * compute userclip positions in clip space, but is only called on
+ * _NEW_PROJECTION.  The _mesa_ClipPlane() function keeps these values up to
+ * date across changes to the __GLcontextRec::Transform attributes.
  */
 static void
 update_projection( GLcontext *ctx )
@@ -517,6 +658,15 @@ update_projection( GLcontext *ctx )
 }
 
 
+/**
+ * \brief Calculate the combined modelview-projection matrix.
+ *
+ * \param ctx GL context.
+ *
+ * Multiplies the top matrices of the projection and model view stacks into
+ * __GLcontextRec::_ModelProjectMatrix via _math_matrix_mul_matrix() and
+ * analyzes the resulting matrix via _math_matrix_analyse().
+ */
 static void
 calculate_model_project_matrix( GLcontext *ctx )
 {
@@ -528,6 +678,17 @@ calculate_model_project_matrix( GLcontext *ctx )
 }
 
 
+/**
+ * \brief Updates the combined modelview-projection matrix.
+ *
+ * \param ctx GL context.
+ * \param new_state new state bit mask.
+ *
+ * If there is a new model view matrix then analyzes it. If there is a new
+ * projection matrix, updates it. Finally calls
+ * calculate_model_project_matrix() to recalculate the modelview-projection
+ * matrix.
+ */
 void _mesa_update_modelview_project( GLcontext *ctx, GLuint new_state )
 {
    if (new_state & _NEW_MODELVIEW)
@@ -542,12 +703,13 @@ void _mesa_update_modelview_project( GLcontext *ctx, GLuint new_state )
    calculate_model_project_matrix(ctx);
 }
 
-
+/*@}*/
 
 
 /**********************************************************************/
-/*****                      Initialization                        *****/
-/**********************************************************************/
+/** Matrix stack initialization */
+/*@{*/
+
 
 /**
  * \brief Initialize a matrix stack.
@@ -597,12 +759,22 @@ free_matrix_stack( struct matrix_stack *stack )
    stack->Stack = stack->Top = NULL;
 }
 
+/*@}*/
+
 
 /**********************************************************************/
-/*****                      Initialization                        *****/
-/**********************************************************************/
+/** \name Initialization */
+/*@{*/
 
 
+/**
+ * \brief Initialize the context matrix data.
+ *
+ * \param ctx GL context.
+ *
+ * Initializes each of the matrix stacks and the combined modelview-projection
+ * matrix.
+ */
 void _mesa_init_matrix( GLcontext * ctx )
 {
    GLint i;
@@ -626,8 +798,14 @@ void _mesa_init_matrix( GLcontext * ctx )
    _math_matrix_ctr( &ctx->_ModelProjectMatrix );
 }
 
-/*
- * Free transformation matrix stacks
+
+/**
+ * \brief Free the context matrix data.
+ * 
+ * \param ctx GL context.
+ *
+ * Frees each of the matrix stacks and the combined modelview-projection
+ * matrix.
  */
 void _mesa_free_matrix_data( GLcontext *ctx )
 {
@@ -646,7 +824,12 @@ void _mesa_free_matrix_data( GLcontext *ctx )
 }
 
 
-/* Todo: move this to a new file with other 'transform' routines.
+/** 
+ * \brief Initialize the context transform attribute group.
+ *
+ * \param ctx GL context.
+ *
+ * \todo Move this to a new file with other 'transform' routines.
  */
 void _mesa_init_transform( GLcontext *ctx )
 {
@@ -667,7 +850,12 @@ void _mesa_init_transform( GLcontext *ctx )
 }
 
 
-/* Todo: move this to a new file with other 'viewport' routines.
+/** 
+ * \brief Initialize the context viewport attribute group.
+ *
+ * \param ctx GL context.
+ * 
+ * \todo Move this to a new file with other 'viewport' routines.
  */
 void _mesa_init_viewport( GLcontext *ctx )
 {
@@ -692,7 +880,16 @@ void _mesa_init_viewport( GLcontext *ctx )
 }
 
 
+/** 
+ * \brief Free the context viewport attribute group data.
+ *
+ * \param ctx GL context.
+ * 
+ * \todo Move this to a new file with other 'viewport' routines.
+ */
 void _mesa_free_viewport_data( GLcontext *ctx )
 {
    _math_matrix_dtr(&ctx->Viewport._WindowMap);
 }
+
+/*@}*/

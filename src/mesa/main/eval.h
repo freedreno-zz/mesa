@@ -1,4 +1,12 @@
-/* $Id: eval.h,v 1.6.8.2 2003/03/21 11:35:15 keithw Exp $ */
+/**
+ * \file eval.h
+ * \brief Eval operations.
+ * 
+ * \if subset
+ * \brief (No-op.)
+ *
+ * \endif
+ */
 
 /*
  * Mesa 3-D graphics library
@@ -24,6 +32,8 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+/* $Id: eval.h,v 1.6.8.3 2003/03/23 03:51:34 jrfonseca Exp $ */
+
 
 #ifndef EVAL_H
 #define EVAL_H
@@ -32,6 +42,7 @@
 #include "mtypes.h"
 
 #if _HAVE_FULL_GL
+
 extern void _mesa_init_eval( GLcontext *ctx );
 extern void _mesa_free_eval_data( GLcontext *ctx );
 
@@ -105,10 +116,15 @@ _mesa_GetMapfv( GLenum target, GLenum query, GLfloat *v );
 
 extern void
 _mesa_GetMapiv( GLenum target, GLenum query, GLint *v );
-#else
-#define _mesa_init_eval( c ) ((void)0)
-#define _mesa_free_eval_data( c ) ((void)0)
-#endif
 
+#else
+
+/** \brief No-op */
+#define _mesa_init_eval( c ) ((void)0)
+
+/** \brief No-op */
+#define _mesa_free_eval_data( c ) ((void)0)
+
+#endif
 
 #endif

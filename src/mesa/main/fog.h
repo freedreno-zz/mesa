@@ -1,4 +1,12 @@
-/* $Id: fog.h,v 1.12.8.1 2003/03/20 09:20:45 keithw Exp $ */
+/**
+ * \file fog.h
+ * \brief Fog operations.
+ * 
+ * \if subset
+ * \brief (No-op.)
+ *
+ * \endif
+ */
 
 /*
  * Mesa 3-D graphics library
@@ -24,6 +32,8 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+/* $Id: fog.h,v 1.12.8.2 2003/03/23 03:51:34 jrfonseca Exp $ */
+
 
 #ifndef FOG_H
 #define FOG_H
@@ -33,25 +43,26 @@
 
 
 #if _HAVE_FULL_GL
+
 extern void
 _mesa_Fogf(GLenum pname, GLfloat param);
-
 
 extern void
 _mesa_Fogi(GLenum pname, GLint param );
 
-
 extern void
 _mesa_Fogfv(GLenum pname, const GLfloat *params );
-
 
 extern void
 _mesa_Fogiv(GLenum pname, const GLint *params );
 
-
 extern void _mesa_init_fog( GLcontext * ctx );
+
 #else
+
+/** \brief No-op */
 #define _mesa_init_fog( c ) ((void)0)
+
 #endif
 
 #endif

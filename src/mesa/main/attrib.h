@@ -1,4 +1,12 @@
-/* $Id: attrib.h,v 1.6.6.1 2003/03/20 09:19:54 keithw Exp $ */
+/**
+ * \file attrib.h
+ * \brief Attribute stacks.
+ * 
+ * \if subset
+ * \brief (No-op.)
+ *
+ * \endif
+ */
 
 /*
  * Mesa 3-D graphics library
@@ -24,6 +32,8 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+/* $Id: attrib.h,v 1.6.6.2 2003/03/23 03:51:34 jrfonseca Exp $ */
+
 
 #ifndef ATTRIB_H
 #define ATTRIB_h
@@ -33,6 +43,7 @@
 
 
 #if _HAVE_FULL_GL
+
 extern void
 _mesa_PushAttrib( GLbitfield mask );
 
@@ -47,8 +58,12 @@ _mesa_PopClientAttrib( void );
 
 extern void 
 _mesa_init_attrib( GLcontext *ctx );
+
 #else
+
+/** \brief No-op */
 #define _mesa_init_attrib( c ) ((void)0)
+
 #endif
 
 #endif

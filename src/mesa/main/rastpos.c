@@ -1,4 +1,7 @@
-/* $Id: rastpos.c,v 1.39.4.6 2003/03/22 14:36:50 keithw Exp $ */
+/**
+ * \file rastpos.c
+ * \brief Raster position operations.
+ */
 
 /*
  * Mesa 3-D graphics library
@@ -23,6 +26,8 @@
  * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
+/* $Id: rastpos.c,v 1.39.4.7 2003/03/23 03:51:34 jrfonseca Exp $ */
 
 
 #include "glheader.h"
@@ -801,9 +806,19 @@ void glWindowPos4fMESA( GLfloat x, GLfloat y, GLfloat z, GLfloat w )
 
 
 /**********************************************************************/
-/*****                      Initialization                        *****/
+/** \name Initialization                                              */
 /**********************************************************************/
+/*@{*/
 
+/**
+ * \brief Initialize the context current raster position information.
+ *
+ * \param ctx GL context.
+ *
+ * Initalize the current raster position information in
+ * __GLcontextRec::Current, and adds the extension entrypoints to the
+ * dispatcher.
+ */
 void _mesa_init_rastpos( GLcontext * ctx )
 {
    int i;
@@ -840,3 +855,5 @@ void _mesa_init_rastpos( GLcontext * ctx )
    _glapi_add_entrypoint("glWindowPos3sARB", 527);
    _glapi_add_entrypoint("glWindowPos3svARB", 528);
 }
+
+/*@}*/

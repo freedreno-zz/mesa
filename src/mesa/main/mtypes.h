@@ -29,7 +29,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: mtypes.h,v 1.97.4.7 2003/03/22 08:43:26 keithw Exp $ */
+/* $Id: mtypes.h,v 1.97.4.8 2003/03/23 03:51:34 jrfonseca Exp $ */
 
 
 #ifndef TYPES_H
@@ -890,8 +890,8 @@ struct gl_stencil_attrib {
  * \param row texel row.
  * \param img texel level.
  * \param texelOut output texel. If \p texImage is color-index, \p texelOut
- * returns <c>GLchan[1]</c>.  If \p texImage is depth, \p texelOut returns
- * <c>GLfloat[1]</c>.  Otherwise, \p texelOut returns <c>GLchan[4]</c>.
+ * returns <tt>GLchan[1]</tt>.  If \p texImage is depth, \p texelOut returns
+ * <tt>GLfloat[1]</tt>.  Otherwise, \p texelOut returns <tt>GLchan[4]</tt>.
  */
 typedef void (*FetchTexelFunc)( const struct gl_texture_image *texImage,
                                 GLint col, GLint row, GLint img,

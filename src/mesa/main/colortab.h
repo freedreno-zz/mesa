@@ -1,4 +1,12 @@
-/* $Id: colortab.h,v 1.9.8.3 2003/03/21 11:35:14 keithw Exp $ */
+/**
+ * \file colortab.h
+ * \brief Color tables.
+ * 
+ * \if subset
+ * \brief (No-op.)
+ *
+ * \endif
+ */
 
 /*
  * Mesa 3-D graphics library
@@ -24,6 +32,8 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+/* $Id: colortab.h,v 1.9.8.4 2003/03/23 03:51:34 jrfonseca Exp $ */
+
 
 #ifndef COLORTAB_H
 #define COLORTAB_H
@@ -33,47 +43,38 @@
 
 #if _HAVE_FULL_GL
 
-
 extern void
 _mesa_ColorTable( GLenum target, GLenum internalformat,
                   GLsizei width, GLenum format, GLenum type,
                   const GLvoid *table );
-
 
 extern void
 _mesa_ColorSubTable( GLenum target, GLsizei start,
                      GLsizei count, GLenum format, GLenum type,
                      const GLvoid *table );
 
-
 extern void
 _mesa_CopyColorSubTable(GLenum target, GLsizei start,
                         GLint x, GLint y, GLsizei width);
-
 
 extern void
 _mesa_CopyColorTable(GLenum target, GLenum internalformat,
                      GLint x, GLint y, GLsizei width);
 
-
 extern void
 _mesa_GetColorTable( GLenum target, GLenum format,
                      GLenum type, GLvoid *table );
-
 
 extern void
 _mesa_ColorTableParameterfv(GLenum target, GLenum pname,
                             const GLfloat *params);
 
-
 extern void
 _mesa_ColorTableParameteriv(GLenum target, GLenum pname,
                             const GLint *params);
 
-
 extern void
 _mesa_GetColorTableParameterfv( GLenum target, GLenum pname, GLfloat *params );
-
 
 extern void
 _mesa_GetColorTableParameteriv( GLenum target, GLenum pname, GLint *params );
@@ -91,9 +92,16 @@ extern void
 _mesa_init_one_colortable( struct gl_color_table *p );
 
 #else
+
+/** \brief No-op */
 #define _mesa_init_one_colortable( p ) ((void)0)
+
+/** \brief No-op */
 #define _mesa_init_colortable( p ) ((void)0)
+
+/** \brief No-op */
 #define _mesa_free_colortable_data( p ) ((void)0)
+
 #endif
 
 #endif

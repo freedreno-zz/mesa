@@ -1,4 +1,12 @@
-/* $Id: hint.h,v 1.4.6.1 2003/03/21 11:35:18 keithw Exp $ */
+/**
+ * \file hint.h
+ * \brief Hints operations.
+ * 
+ * \if subset
+ * \brief (No-op.)
+ *
+ * \endif
+ */
 
 /*
  * Mesa 3-D graphics library
@@ -24,6 +32,8 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+/* $Id: hint.h,v 1.4.6.2 2003/03/23 03:51:34 jrfonseca Exp $ */
+
 
 #ifndef HINT_H
 #define HINT_H
@@ -32,13 +42,18 @@
 #include "mtypes.h"
 
 #if _HAVE_FULL_GL
+
 extern void
 _mesa_Hint( GLenum target, GLenum mode );
 
 extern void 
 _mesa_init_hint( GLcontext * ctx );
+
 #else
+
+/** \brief No-op */
 #define _mesa_init_hint( c ) ((void) 0)
+
 #endif
 
 #endif

@@ -1,4 +1,7 @@
-/* $Id: config.h,v 1.42.4.4 2003/03/21 11:35:14 keithw Exp $ */
+/**
+ * \file config.h
+ * \brief Tunable configuration parameters.
+ */
 
 /*
  * Mesa 3-D graphics library
@@ -24,11 +27,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-
-/*
- * Tunable configuration parameters.
- */
-
+/* $Id: config.h,v 1.42.4.5 2003/03/23 03:51:34 jrfonseca Exp $ */
 
 
 #ifndef CONFIG_H
@@ -39,132 +38,143 @@
 #endif
 
 
-/*
- * OpenGL implementation limits
+/**
+ * \name OpenGL implementation limits
  */
+/*@{*/
 
-/* Maximum modelview matrix stack depth: */
+/** \brief Maximum modelview matrix stack depth */
 #define MAX_MODELVIEW_STACK_DEPTH 32
 
-/* Maximum projection matrix stack depth: */
+/** \brief Maximum projection matrix stack depth */
 #define MAX_PROJECTION_STACK_DEPTH 32
 
-/* Maximum texture matrix stack depth: */
+/** \brief Maximum texture matrix stack depth */
 #define MAX_TEXTURE_STACK_DEPTH 10
 
-/* Maximum color matrix stack depth: */
+/** \brief Maximum color matrix stack depth */
 #define MAX_COLOR_STACK_DEPTH 4
 
-/* Vertex program matrix stacks: */
+/** \brief Vertex program matrices */
 #define MAX_PROGRAM_MATRICES 8
+/** \brief Vertex program stack depth */
 #define MAX_PROGRAM_STACK_DEPTH 4
 
-/* Maximum attribute stack depth: */
+/** \brief Maximum attribute stack depth */
 #define MAX_ATTRIB_STACK_DEPTH 16
 
-/* Maximum client attribute stack depth: */
+/** \brief Maximum client attribute stack depth */
 #define MAX_CLIENT_ATTRIB_STACK_DEPTH 16
 
-/* Maximum recursion depth of display list calls: */
+/** \brief Maximum recursion depth of display list calls */
 #define MAX_LIST_NESTING 64
 
-/* Maximum number of lights: */
+/** \brief Maximum number of lights */
 #define MAX_LIGHTS 8
 
-/* Maximum user-defined clipping planes: */
+/** \brief Maximum user-defined clipping planes */
 #define MAX_CLIP_PLANES 6
 
-/* Maximum pixel map lookup table size: */
+/** \brief Maximum pixel map lookup table size */
 #define MAX_PIXEL_MAP_TABLE 256
 
-/* Number of auxillary color buffers: */
+/** \brief Number of auxillary color buffers */
 #define NUM_AUX_BUFFERS 0
 
-/* Maximum order (degree) of curves: */
+/** \brief Maximum order (degree) of curves */
 #ifdef AMIGA
 #   define MAX_EVAL_ORDER 12
 #else
 #   define MAX_EVAL_ORDER 30
 #endif
 
-/* Maximum Name stack depth */
+/** \brief Maximum Name stack depth */
 #define MAX_NAME_STACK_DEPTH 64
 
-/* Min and Max point sizes and granularity */
+/** \brief Minimum point size */
 #define MIN_POINT_SIZE 1.0
+/** \brief Maximum point size */
 #define MAX_POINT_SIZE 20.0
+/** \brief Point size granularity */
 #define POINT_SIZE_GRANULARITY 0.1
 
-/* Min and Max line widths and granularity */
+/** \brief Minimum line width */
 #define MIN_LINE_WIDTH 1.0
+/** \brief Maximum line width */
 #define MAX_LINE_WIDTH 10.0
+/** \brief Line width granularity */
 #define LINE_WIDTH_GRANULARITY 0.1
 
-/* Max texture palette / color table size */
+/** \brief Max texture palette / color table size */
 #define MAX_COLOR_TABLE_SIZE 256
 
-/* Number of 1D/2D texture mipmap levels */
+/** \brief Number of 1D/2D texture mipmap levels */
 #define MAX_TEXTURE_LEVELS 12
 
-/* Number of 3D texture mipmap levels */
+/** \brief Number of 3D texture mipmap levels */
 #define MAX_3D_TEXTURE_LEVELS 8
 
-/* Number of cube texture mipmap levels - GL_ARB_texture_cube_map */
+/** \brief Number of cube texture mipmap levels - GL_ARB_texture_cube_map */
 #define MAX_CUBE_TEXTURE_LEVELS 12
 
-/* Maximum rectangular texture size - GL_NV_texture_rectangle */
+/** \brief Maximum rectangular texture size - GL_NV_texture_rectangle */
 #define MAX_TEXTURE_RECT_SIZE 2048
 
-/* Number of texture units - GL_ARB_multitexture */
+/** \brief Number of texture units - GL_ARB_multitexture */
 #define MAX_TEXTURE_UNITS 8
 
-/* Maximum viewport/image size: */
+/** \brief Maximum viewport/image width */
 #define MAX_WIDTH 2048
+/** \brief Maximum viewport/image height */
 #define MAX_HEIGHT 2048
 
-/* Maxmimum size for CVA.  May be overridden by the drivers.  */
+/** \brief Maxmimum size for CVA.  May be overridden by the drivers.  */
 #define MAX_ARRAY_LOCK_SIZE 3000
 
-/* Subpixel precision for antialiasing, window coordinate snapping */
+/** \brief Subpixel precision for antialiasing, window coordinate snapping */
 #define SUB_PIXEL_BITS 4
 
-/* Size of histogram tables */
+/** \brief Size of histogram tables */
 #define HISTOGRAM_TABLE_SIZE 256
 
-/* Max convolution filter sizes */
+/** \brief Max convolution filter width */
 #define MAX_CONVOLUTION_WIDTH 9
+/** \brief Max convolution filter height */
 #define MAX_CONVOLUTION_HEIGHT 9
 
-/* GL_ARB_texture_compression */
+/** \brief GL_ARB_texture_compression */
 #define MAX_COMPRESSED_TEXTURE_FORMATS 25
 
-/* GL_EXT_texture_filter_anisotropic */
+/** \brief GL_EXT_texture_filter_anisotropic */
 #define MAX_TEXTURE_MAX_ANISOTROPY 16.0
 
-/* GL_EXT_texture_lod_bias */
+/** \brief GL_EXT_texture_lod_bias */
 #define MAX_TEXTURE_LOD_BIAS 4.0
 
+/*@}*/
 
 
-/*
- * Mesa-specific parameters
+/**
+ * \name Mesa-specific parameters
  */
+/*@{*/
 
 
-/*
- * Bits per accumulation buffer color component:  8, 16 or 32
+/**
+ * \brief Bits per accumulation buffer color component:  8, 16 or 32
  */
 #define ACCUM_BITS 16
 
-
-/*
- * Bits per depth buffer value.  Any reasonable value up to 31 will
- * work.  32 doesn't work because of integer overflow problems in the
- * rasterizer code.
+/**
+ * \brief Bits per depth buffer value.  
+ *
+ * Any reasonable value up to 31 will work.  32 doesn't work because of integer
+ * overflow problems in the rasterizer code.
  */
 #ifndef DEFAULT_SOFTWARE_DEPTH_BITS
 #define DEFAULT_SOFTWARE_DEPTH_BITS 16
 #endif
+/** \brief Depth buffer data type */
 #if DEFAULT_SOFTWARE_DEPTH_BITS <= 16
 #define DEFAULT_SOFTWARE_DEPTH_TYPE GLushort
 #else
@@ -172,15 +182,14 @@
 #endif
 
 
-
-/*
- * Bits per stencil value:  8
+/**
+ * \brief Bits per stencil value: 8
  */
 #define STENCIL_BITS 8
 
 
-/*
- * Bits per color channel:  8, 16 or 32
+/**
+ * \brief Bits per color channel:  8, 16 or 32
  */
 #ifndef CHAN_BITS
 #define CHAN_BITS 8
@@ -189,13 +198,13 @@
 
 /*
  * Color channel component order
- * (changes will almost certainly cause problems at this time)
+ * 
+ * \note Changes will almost certainly cause problems at this time.
  */
 #define RCOMP 0
 #define GCOMP 1
 #define BCOMP 2
 #define ACOMP 3
-
 
 
 /*
@@ -208,5 +217,6 @@
 #define FEATURE_windowpos 1
 #endif
 
+/*@}*/
 
 #endif /* CONFIG_H */

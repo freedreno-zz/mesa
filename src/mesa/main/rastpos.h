@@ -1,4 +1,7 @@
-/* $Id: rastpos.h,v 1.6.6.1 2003/03/20 09:21:09 keithw Exp $ */
+/**
+ * \file rastpos.h
+ * \brief Raster position operations.
+ */
 
 /*
  * Mesa 3-D graphics library
@@ -23,6 +26,8 @@
  * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
+/* $Id: rastpos.h,v 1.6.6.2 2003/03/23 03:51:34 jrfonseca Exp $ */
 
 
 #ifndef RASTPOS_H
@@ -106,8 +111,9 @@ _mesa_RasterPos4sv(const GLshort *v);
 
 
 /**********************************************************************/
-/***                     GL_MESA_window_pos                         ***/
+/** \name GL_MESA_window_pos                                          */
 /**********************************************************************/
+/*@{*/
 
 extern void
 _mesa_WindowPos2dMESA(GLdouble x, GLdouble y);
@@ -183,5 +189,7 @@ _mesa_WindowPos4svMESA(const GLshort *v);
 
 extern void 
 _mesa_init_rastpos( GLcontext * ctx );
+
+/*@}*/
 
 #endif

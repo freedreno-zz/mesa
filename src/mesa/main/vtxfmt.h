@@ -1,4 +1,9 @@
-/* $Id: vtxfmt.h,v 1.5 2002/10/29 20:28:56 brianp Exp $ */
+/**
+ * \file vtxfmt.h
+ * 
+ * \author Keith Whitwell <keith@tungstengraphics.com>
+ * \author Gareth Hughes
+ */
 
 /*
  * Mesa 3-D graphics library
@@ -22,11 +27,10 @@
  * BRIAN PAUL BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
  * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
- * Authors:
- *    Keith Whitwell <keith@tungstengraphics.com>
- *    Gareth Hughes
  */
+
+/* $Id: vtxfmt.h,v 1.5.4.1 2003/03/23 03:51:34 jrfonseca Exp $ */
+
 
 #ifndef _VTXFMT_H_
 #define _VTXFMT_H_

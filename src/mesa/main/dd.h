@@ -27,7 +27,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: dd.h,v 1.74.6.4 2003/03/20 12:56:57 jrfonseca Exp $ */
+/* $Id: dd.h,v 1.74.6.5 2003/03/23 03:51:34 jrfonseca Exp $ */
 
 
 #ifndef DD_INCLUDED
@@ -77,7 +77,7 @@ struct dd_function_table {
     * \param mask a bitmask of the DD_*_BIT values defined above that indicates
     * which buffers need to be cleared.
     * \param all if true then clear the whole buffer, else clear only the
-    * region defined by <c>(x, y, width, height)</c>.
+    * region defined by <tt>(x, y, width, height)</tt>.
     * 
     * This function must obey the glColorMask(), glIndexMask() and glStencilMask()
     * settings!

@@ -1,4 +1,12 @@
-/* $Id: varray.h,v 1.14.6.1 2003/03/20 09:21:18 keithw Exp $ */
+/**
+ * \file varray.h
+ * \brief Vertex arrays.
+ *
+ * \if subset
+ * \brief (No-op.)
+ *
+ * \endif
+ */
 
 /*
  * Mesa 3-D graphics library
@@ -24,6 +32,8 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+/* $Id: varray.h,v 1.14.6.2 2003/03/23 03:51:34 jrfonseca Exp $ */
+
 
 #ifndef VARRAY_H
 #define VARRAY_H
@@ -32,6 +42,7 @@
 #include "mtypes.h"
 
 #if _HAVE_FULL_GL
+
 extern void
 _mesa_VertexPointer(GLint size, GLenum type, GLsizei stride,
                     const GLvoid *ptr);
@@ -123,7 +134,10 @@ extern void
 _mesa_init_varray( GLcontext * ctx );
 
 #else
+
+/** \brief No-op */
 #define _mesa_init_varray( c )  ((void)0)
+
 #endif
 
 #endif

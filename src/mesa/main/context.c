@@ -28,7 +28,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: context.c,v 1.188.2.1.2.14 2003/03/22 14:36:49 keithw Exp $ */
+/* $Id: context.c,v 1.188.2.1.2.15 2003/03/23 03:51:34 jrfonseca Exp $ */
 
 /**
  * \mainpage Mesa Core Module
@@ -78,7 +78,7 @@
 #include "attrib.h"
 #include "blend.h"
 #include "buffers.h"
-#include "clip.h"
+//#include "clip.h"
 #include "colortab.h"
 #include "context.h"
 #include "debug.h"
@@ -934,7 +934,7 @@ static void _mesa_init_current( GLcontext *ctx )
  *
  * \param ctx GL context.
  *
- * Initializes all the attributes, calling the respective <c>init*</c>
+ * Initializes all the attributes, calling the respective <tt>init*</tt>
  * functions for the more complex data structures.
  */
 static GLboolean

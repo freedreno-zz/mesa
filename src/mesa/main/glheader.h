@@ -4,7 +4,7 @@
  * 
  * This is the top-most include file of the Mesa sources.
  * It includes gl.h and all system headers which are needed.
- * Other Mesa source files should _not_ directly include any system
+ * Other Mesa source files should \u not directly include any system
  * headers.  This allows Mesa to be integrated into XFree86 and
  * allows system-dependent hacks/work-arounds to be collected in one place.
  *
@@ -40,12 +40,11 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: glheader.h,v 1.29.4.1 2003/03/02 00:27:35 jrfonseca Exp $ */
+/* $Id: glheader.h,v 1.29.4.2 2003/03/23 03:51:34 jrfonseca Exp $ */
 
 
 #ifndef GLHEADER_H
 #define GLHEADER_H
-
 
 
 
@@ -287,7 +286,7 @@ typedef struct tagPIXELFORMATDESCRIPTOR PIXELFORMATDESCRIPTOR, *PPIXELFORMATDESC
 
 /**
  * Sometimes we treat GLfloats as GLints.  On x86 systems, moving a float
- * as a int (thereby using integer registers instead of fp registers) is
+ * as a int (thereby using integer registers instead of FP registers) is
  * a performance win.  Typically, this can be done with ordinary casts.
  * But with gcc's -fstrict-aliasing flag (which defaults to on in gcc 3.0)
  * these casts generate warnings.

@@ -27,7 +27,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: texobj.c,v 1.62.4.5 2003/03/21 11:35:22 keithw Exp $ */
+/* $Id: texobj.c,v 1.62.4.6 2003/03/23 03:51:34 jrfonseca Exp $ */
 
 #include "glheader.h"
 #include "colortab.h"
@@ -60,7 +60,7 @@
  *
  * Allocate and initalize a gl_texture_object structure, and insert in the
  * shared state texture list while holding its mutex.
- * If <c>name > 0</c> then also insert the new texture object into the hash
+ * If <tt>name > 0</tt> then also insert the new texture object into the hash
  * table.
  * 
  */
