@@ -110,29 +110,40 @@ case $ARCH in
 
     'Linux')
 	LIBNAME="lib${LIBNAME}"     # prefix with "lib"
-	OPTS="-Xlinker -Bsymbolic -shared -Wl,-soname,${LIBNAME}.so.${MAJOR}"
-	VERSION="${MAJOR}.${MINOR}.${PATCH}"
 
-	echo "mklib: Making Linux shared library: " ${LIBNAME}.so.${VERSION}
+        if [ $STATIC = 1 ] ; then
+            echo "mklib: Making Linux static library: " ${LIBNAME}.a
+            LINK="ar"
+            OPTS="-ruv"
+            # make lib
+            ${LINK} ${OPTS} ${LIBNAME}.a ${OBJECTS}
+            # finish up
+            FINAL_LIBS="${LIBNAME}.a"
+        else
+            OPTS="-Xlinker -Bsymbolic -shared -Wl,-soname,${LIBNAME}.so.${MAJOR}"
+            VERSION="${MAJOR}.${MINOR}.${PATCH}"
 
-	if [ $CPLUSPLUS = 1 ] ; then
-	    LINK="g++"
-	else
-	    LINK="gcc"
-	fi
+            echo "mklib: Making Linux shared library: " ${LIBNAME}.so.${VERSION}
 
-	# rm any old libs
-	rm -f ${LIBNAME}.so.${VERSION}
-	rm -f ${LIBNAME}.so.${MAJOR}
-	rm -f ${LIBNAME}.so
+            if [ $CPLUSPLUS = 1 ] ; then
+                LINK="g++"
+            else
+                LINK="gcc"
+            fi
 
-	# make lib
-	${LINK} ${OPTS} -o ${LIBNAME}.so.${VERSION} ${OBJECTS} ${DEPS}
-	# make usual symlinks
-	ln -s ${LIBNAME}.so.${VERSION} ${LIBNAME}.so.${MAJOR}
-	ln -s ${LIBNAME}.so.${MAJOR} ${LIBNAME}.so
-	# finish up
-	FINAL_LIBS="${LIBNAME}.so.${VERSION} ${LIBNAME}.so.${MAJOR} ${LIBNAME}.so"
+            # rm any old libs
+            rm -f ${LIBNAME}.so.${VERSION}
+            rm -f ${LIBNAME}.so.${MAJOR}
+            rm -f ${LIBNAME}.so
+
+            # make lib
+            ${LINK} ${OPTS} -o ${LIBNAME}.so.${VERSION} ${OBJECTS} ${DEPS}
+            # make usual symlinks
+            ln -s ${LIBNAME}.so.${VERSION} ${LIBNAME}.so.${MAJOR}
+            ln -s ${LIBNAME}.so.${MAJOR} ${LIBNAME}.so
+            # finish up
+            FINAL_LIBS="${LIBNAME}.so.${VERSION} ${LIBNAME}.so.${MAJOR} ${LIBNAME}.so"
+        fi
 	;;
 
     'SunOS')
@@ -302,6 +313,13 @@ case $ARCH in
 	FINAL_LIBS=${LIBNAME}
 	;;
 
+    'MorphOS')
+	LIBNAME="lib${LIBNAME}.a"
+	echo "mklib: Making MorphOS library: " ${LIBNAME}
+	ppc-morphos-ar rc ${LIBNAME} ${OBJECTS}
+	FINAL_LIBS="${LIBNAME}"
+	;;
+
     'example')
 	# If you're adding support for a new architecture, you can
 	# start with this:
@@ -317,7 +335,9 @@ case $ARCH in
 	echo "mklib: WARNING: please update the bin/mklib script!"
 	# XXX this is a total hack for Mesa - remove someday
 	# fall-back to an old mklib.* script
-	${MAKELIB} "lib${LIBNAME}.a" ${MAJOR} ${MINOR} ${PATCH} ${OBJECTS}
+	LIBNAME="lib${LIBNAME}.a"
+	${TOP}/${MAKELIB} "lib${LIBNAME}.a" ${MAJOR} ${MINOR} ${PATCH} ${OBJECTS}
+	FINAL_LIBS="${LIBNAME}"
 	;;
 esac
 

@@ -1,4 +1,4 @@
-# $Id: Makefile.X11,v 1.90 2003/10/03 14:03:14 brianp Exp $
+# $Id: Makefile.X11,v 1.89.2.1 2003/11/24 12:01:39 keithw Exp $
 
 # Mesa 3-D graphics library
 # Version:  5.1
@@ -33,69 +33,70 @@ SHELL = /bin/sh
 
 default:
 	@echo "Type one of the following:"
-	@echo "  make aix                  for IBM RS/6000 with AIX"
-	@echo "  make aix-sl               for IBM RS/6000, make shared libs"
-	@echo "  make beos-r4              for BeOS R4"
-	@echo "  make cygnus               for Win95/NT using Cygnus-Win32"
-	@echo "  make cygnus-linux         for Win95/NT using Cygnus-Win32 under Linux"
-	@echo "  make darwin               for Darwin - Mac OS X"
-	@echo "  make freebsd              for FreeBSD systems with GCC"
-	@echo "  make freebsd-386          for FreeBSD systems with GCC, w/ Intel assembly"
-	@echo "  make gcc-sl               for a generic system with GCC for shared libs"
-	@echo "  make hpux9                for HP systems with HPUX 9.x"
-	@echo "  make hpux9-sl             for HP systems with HPUX 9.x, make shared libs"
-	@echo "  make hpux9-gcc            for HP systems with HPUX 9.x using GCC"
-	@echo "  make hpux9-gcc-sl         for HP systems with HPUX 9.x, GCC, make shared libs"
-	@echo "  make hpux10               for HP systems with HPUX 10.x and 11.x"
-	@echo "  make hpux10-sl            for HP systems with HPUX 10.x and 11.x, shared libs"
-	@echo "  make hpux10-gcc           for HP systems with HPUX 10.x w/ GCC"
-	@echo "  make hpux10-gcc-sl        for HP systems with HPUX 10.x w/ GCC, shared libs"
-	@echo "  make irix6-o32            for SGI systems with IRIX 6.x, make o32-bit libs"
-	@echo "  make irix6-o32-dso        for SGI systems with IRIX 6.x, make o32-bit DSOs"
-	@echo "  make irix6-n32            for SGI systems with IRIX 6.x, make n32-bit libs"
-	@echo "  make irix6-n32-dso        for SGI systems with IRIX 6.x, make n32-bit DSOs"
-	@echo "  make irix6-gcc-n32-sl     for SGI systems with IRIX 6.x, GCC, make n32 DSOs"
-	@echo "  make irix6-64             for SGI systems with IRIX 6.x, make 64-bit libs"
-	@echo "  make irix6-64-dso         for SGI systems with IRIX 6.x, make 64-bit DSOs"
+	@echo "  make aix                   for IBM RS/6000 with AIX"
+	@echo "  make aix-sl                for IBM RS/6000, make shared libs"
+	@echo "  make beos-r4               for BeOS R4"
+	@echo "  make cygnus                for Win95/NT using Cygnus-Win32"
+	@echo "  make cygnus-linux          for Win95/NT using Cygnus-Win32 under Linux"
+	@echo "  make darwin                for Darwin - Mac OS X"
+	@echo "  make freebsd               for FreeBSD systems with GCC"
+	@echo "  make freebsd-386           for FreeBSD systems with GCC, w/ Intel assembly"
+	@echo "  make gcc-sl                for a generic system with GCC for shared libs"
+	@echo "  make hpux9                 for HP systems with HPUX 9.x"
+	@echo "  make hpux9-sl              for HP systems with HPUX 9.x, make shared libs"
+	@echo "  make hpux9-gcc             for HP systems with HPUX 9.x using GCC"
+	@echo "  make hpux9-gcc-sl          for HP systems with HPUX 9.x, GCC, make shared libs"
+	@echo "  make hpux10                for HP systems with HPUX 10.x and 11.x"
+	@echo "  make hpux10-sl             for HP systems with HPUX 10.x and 11.x, shared libs"
+	@echo "  make hpux10-gcc            for HP systems with HPUX 10.x w/ GCC"
+	@echo "  make hpux10-gcc-sl         for HP systems with HPUX 10.x w/ GCC, shared libs"
+	@echo "  make irix6-o32             for SGI systems with IRIX 6.x, make o32-bit libs"
+	@echo "  make irix6-o32-dso         for SGI systems with IRIX 6.x, make o32-bit DSOs"
+	@echo "  make irix6-n32             for SGI systems with IRIX 6.x, make n32-bit libs"
+	@echo "  make irix6-n32-dso         for SGI systems with IRIX 6.x, make n32-bit DSOs"
+	@echo "  make irix6-gcc-n32-sl      for SGI systems with IRIX 6.x, GCC, make n32 DSOs"
+	@echo "  make irix6-64              for SGI systems with IRIX 6.x, make 64-bit libs"
+	@echo "  make irix6-64-dso          for SGI systems with IRIX 6.x, make 64-bit DSOs"
 
-	@echo "  make linux                for Linux"
-	@echo "  make linux-x86            for Linux with x86 optimizations"
-	@echo "  make linux-ggi            for Linux with libggi driver"
-	@echo "  make linux-x86-ggi        for Linux with libggi driver and x86 optimizations"
-	@echo "  make linux-glide          for Linux with 3Dfx Glide driver"
-	@echo "  make linux-x86-glide      for Linux with 3Dfx Glide driver and x86 opts"
-	@echo "  make linux-alpha          for Linux with Alpha optimizations"
-	@echo "  make linux-alpha-static   for Linux with Alpha opts, make static libs"
-	@echo "  make linux-ppc            for Linux with PowerPC opts"
-	@echo "  make linux-ppc-static     for Linux with PowerPC opts, make static libs"
-	@echo "  make linux-sparc          for Linux with Sparc optimzations"
-	@echo "  make linux-sparc5         for Linux with Sparc5 optimizations"
-	@echo "  make linux-sparc-ultra    for Linux with UltraSparc optimizations"
-	@echo "  make linux-osmesa16       for 16-bit/channel OSMesa"
-	@echo "  make linux-osmesa32       for 32-bit/channel OSMesa"
-	@echo "  make linux-solo           for Linux standalone with dri drivers"
-	@echo "  make linux-icc            for Linux with the Intel C/C++ compiler"
-	@echo "  make lynxos               for LynxOS systems with GCC"
-	@echo "  make mklinux              for Linux on Power Macintosh"
-	@echo "  make netbsd               for NetBSD 1.0 systems with GCC"
-	@echo "  make openbsd              for OpenBSD systems"
-	@echo "  make openstep             for OpenStep/MacOSX Server systems"
-	@echo "  make osf1                 for DEC Alpha systems with OSF/1"
-	@echo "  make qnx                  for QNX V4 systems with Watcom compiler"
-	@echo "  make solaris-x86          for PCs with Solaris"
-	@echo "  make solaris-x86-gcc      for PCs with Solaris using GCC"
-	@echo "  make sunos4               for Suns with SunOS 4.x"
-	@echo "  make sunos4-sl            for Suns with SunOS 4.x, make shared libs"
-	@echo "  make sunos4-gcc           for Suns with SunOS 4.x and GCC"
-	@echo "  make sunos4-gcc-sl        for Suns with SunOS 4.x, GCC, make shared libs"
-	@echo "  make sunos5               for Suns with SunOS 5.x"
-	@echo "  make sunos5-smp           for Suns with SunOS 5.x, SMP optimization"
-	@echo "  make sunos5-gcc           for Suns with SunOS 5.x and GCC"
-	@echo "  make ultrix-gcc           for DEC systems with Ultrix and GCC"
-	@echo "  make unixware             for PCs running UnixWare"
-	@echo "  make unixware-shared      for PCs running UnixWare, shared libs"
-	@echo "  make clean                remove .o files"
-	@echo "  make realclean            remove .o, library and executable files"
+	@echo "  make linux                 for Linux"
+	@echo "  make linux-x86             for Linux with x86 optimizations"
+	@echo "  make linux-ggi             for Linux with libggi driver"
+	@echo "  make linux-x86-ggi         for Linux with libggi driver and x86 optimizations"
+	@echo "  make linux-glide           for Linux with 3Dfx Glide driver"
+	@echo "  make linux-x86-glide       for Linux with 3Dfx Glide driver and x86 opts"
+	@echo "  make linux-alpha           for Linux with Alpha optimizations"
+	@echo "  make linux-alpha-static    for Linux with Alpha opts, make static libs"
+	@echo "  make linux-ppc             for Linux with PowerPC opts"
+	@echo "  make linux-ppc-static      for Linux with PowerPC opts, make static libs"
+	@echo "  make linux-sparc           for Linux with Sparc optimzations"
+	@echo "  make linux-sparc5          for Linux with Sparc5 optimizations"
+	@echo "  make linux-sparc-ultra     for Linux with UltraSparc optimizations"
+	@echo "  make linux-osmesa16        for 16-bit/channel OSMesa"
+	@echo "  make linux-osmesa16-static for 16-bit/channel OSMesa, make static libs"
+	@echo "  make linux-osmesa32        for 32-bit/channel OSMesa"
+	@echo "  make linux-solo            for Linux standalone with dri drivers"
+	@echo "  make linux-icc             for Linux with the Intel C/C++ compiler"
+	@echo "  make lynxos                for LynxOS systems with GCC"
+	@echo "  make mklinux               for Linux on Power Macintosh"
+	@echo "  make netbsd                for NetBSD 1.0 systems with GCC"
+	@echo "  make openbsd               for OpenBSD systems"
+	@echo "  make openstep              for OpenStep/MacOSX Server systems"
+	@echo "  make osf1                  for DEC Alpha systems with OSF/1"
+	@echo "  make qnx                   for QNX V4 systems with Watcom compiler"
+	@echo "  make solaris-x86           for PCs with Solaris"
+	@echo "  make solaris-x86-gcc       for PCs with Solaris using GCC"
+	@echo "  make sunos4                for Suns with SunOS 4.x"
+	@echo "  make sunos4-sl             for Suns with SunOS 4.x, make shared libs"
+	@echo "  make sunos4-gcc            for Suns with SunOS 4.x and GCC"
+	@echo "  make sunos4-gcc-sl         for Suns with SunOS 4.x, GCC, make shared libs"
+	@echo "  make sunos5                for Suns with SunOS 5.x"
+	@echo "  make sunos5-smp            for Suns with SunOS 5.x, SMP optimization"
+	@echo "  make sunos5-gcc            for Suns with SunOS 5.x and GCC"
+	@echo "  make ultrix-gcc            for DEC systems with Ultrix and GCC"
+	@echo "  make unixware              for PCs running UnixWare"
+	@echo "  make unixware-shared       for PCs running UnixWare, shared libs"
+	@echo "  make clean                 remove .o files"
+	@echo "  make realclean             remove .o, library and executable files"
 
 
 
@@ -224,11 +225,11 @@ linux-ggi-install linux-x86-ggi-install:
 #	echo ".include $(DESTDIR)/etc/ggi/ggimesa.conf" >> $(DESTDIR)/etc/ggi/libggi.conf ; \
 #	fi
 
-linux-osmesa16 linux-osmesa32:
+linux-osmesa16 linux-osmesa16-static linux-osmesa32:
 	-mkdir lib
-	if [ -d src ] ; then touch src/depend ; fi
-	if [ -d src ] ; then cd src ; $(MAKE) -f Makefile.OSMesa16 $@ ; fi
-	
+	if [ -d src/mesa ] ; then touch src/mesa/depend ; fi
+	if [ -d src/mesa ] ; then cd src/mesa ; $(MAKE) -f Makefile.OSMesa16 $@ ; fi
+
 linux-solo:
 	-mkdir lib
 	if [ -d src/mesa     ] ; then touch src/mesa/depend     ; fi
@@ -347,6 +348,10 @@ GLUT_NAME = GLUT-3.7
 LIB_FILES =	\
 	$(DIRECTORY)/Makefile*						\
 	$(DIRECTORY)/Make-config					\
+	$(DIRECTORY)/descrip.mms					\
+	$(DIRECTORY)/mms-config.					\
+	$(DIRECTORY)/Mesa.dsw						\
+	$(DIRECTORY)/bin/mklib*						\
 	$(DIRECTORY)/docs/*.html					\
 	$(DIRECTORY)/docs/COPYING					\
 	$(DIRECTORY)/docs/INSTALL.GNU					\
@@ -354,14 +359,7 @@ LIB_FILES =	\
 	$(DIRECTORY)/docs/RELNOTES*					\
 	$(DIRECTORY)/docs/VERSIONS					\
 	$(DIRECTORY)/docs/*.spec					\
-	$(DIRECTORY)/bin/README						\
-	$(DIRECTORY)/bin/mklib*						\
-	$(DIRECTORY)/descrip.mms					\
-	$(DIRECTORY)/mms-config						\
-	$(DIRECTORY)/xlib.opt						\
 	$(DIRECTORY)/include/GL/internal/glcore.h			\
-	$(DIRECTORY)/include/GL/Makefile.in				\
-	$(DIRECTORY)/include/GL/Makefile.am				\
 	$(DIRECTORY)/include/GL/dmesa.h					\
 	$(DIRECTORY)/include/GL/amesa.h					\
 	$(DIRECTORY)/include/GL/fxmesa.h				\
@@ -384,135 +382,86 @@ LIB_FILES =	\
 	$(DIRECTORY)/include/GL/xmesa.h					\
 	$(DIRECTORY)/include/GL/xmesa_x.h				\
 	$(DIRECTORY)/include/GL/xmesa_xf86.h				\
-	$(DIRECTORY)/include/GLView.h					\
-	$(DIRECTORY)/include/Makefile.in				\
-	$(DIRECTORY)/include/Makefile.am				\
 	$(DIRECTORY)/src/mesa/Makefile*					\
-	$(DIRECTORY)/src/mesa/descrip.mms					\
-	$(DIRECTORY)/src/mesa/mesa.conf						\
-	$(DIRECTORY)/src/mesa/*.def						\
-	$(DIRECTORY)/src/mesa/depend						\
-	$(DIRECTORY)/src/mesa/*.[chS]						\
-	$(DIRECTORY)/src/mesa/array_cache/*.[ch]				\
-	$(DIRECTORY)/src/mesa/array_cache/Makefile*				\
-	$(DIRECTORY)/src/mesa/math/*.[ch]					\
-	$(DIRECTORY)/src/mesa/math/Makefile*					\
-	$(DIRECTORY)/src/mesa/swrast/*.[ch]					\
-	$(DIRECTORY)/src/mesa/swrast/Makefile*					\
-	$(DIRECTORY)/src/mesa/swrast_setup/*.[ch]				\
-	$(DIRECTORY)/src/mesa/swrast_setup/Makefile*				\
-	$(DIRECTORY)/src/mesa/tnl/*.[ch]					\
-	$(DIRECTORY)/src/mesa/tnl/Makefile*					\
-	$(DIRECTORY)/src/mesa/tnl_dd/*.[ch]					\
-	$(DIRECTORY)/src/mesa/tnl_dd/imm/*.[ch]					\
-	$(DIRECTORY)/src/mesa/tnl_dd/imm/NOTES.imm				\
-	$(DIRECTORY)/src/mesa/drivers/windml/*.[ch]				\
-	$(DIRECTORY)/src/mesa/drivers/windml/tornado/*.c			\
-	$(DIRECTORY)/src/mesa/drivers/windml/tornado/*.cdf			\
-	$(DIRECTORY)/src/mesa/drivers/windml/man3/*.3				\
-	$(DIRECTORY)/src/mesa/drivers/windml/man3/*.html			\
-	$(DIRECTORY)/src/mesa/drivers/dos/*.[chS]				\
-	$(DIRECTORY)/src/mesa/drivers/dos/mga/*.[ch]				\
-	$(DIRECTORY)/src/mesa/drivers/beos/*.cpp				\
-	$(DIRECTORY)/src/mesa/drivers/glide/Makefile.am				\
-	$(DIRECTORY)/src/mesa/drivers/glide/Makefile.in				\
-	$(DIRECTORY)/src/mesa/drivers/glide/*.[ch]				\
-	$(DIRECTORY)/src/mesa/drivers/glide/*.def				\
-	$(DIRECTORY)/src/mesa/drivers/glide/X86/Makefile.am			\
-	$(DIRECTORY)/src/mesa/drivers/glide/X86/Makefile.in			\
-	$(DIRECTORY)/src/mesa/drivers/glide/X86/*.[Shc]				\
-	$(DIRECTORY)/src/mesa/drivers/ggi/Makefile.am				\
-	$(DIRECTORY)/src/mesa/drivers/ggi/Makefile.in				\
-	$(DIRECTORY)/src/mesa/drivers/ggi/*.[ch]				\
-	$(DIRECTORY)/src/mesa/drivers/ggi/ggimesa.conf.in			\
-	$(DIRECTORY)/src/mesa/drivers/ggi/default/*.c				\
-	$(DIRECTORY)/src/mesa/drivers/ggi/default/Makefile.am			\
-	$(DIRECTORY)/src/mesa/drivers/ggi/default/Makefile.in			\
-	$(DIRECTORY)/src/mesa/drivers/ggi/default/genkgi.conf.in		\
-	$(DIRECTORY)/src/mesa/drivers/ggi/display/*.c				\
-	$(DIRECTORY)/src/mesa/drivers/ggi/display/Makefile.am			\
-	$(DIRECTORY)/src/mesa/drivers/ggi/display/Makefile.in			\
-	$(DIRECTORY)/src/mesa/drivers/ggi/display/fbdev.conf.in			\
-	$(DIRECTORY)/src/mesa/drivers/ggi/include/Makefile.am			\
-	$(DIRECTORY)/src/mesa/drivers/ggi/include/Makefile.in			\
-	$(DIRECTORY)/src/mesa/drivers/ggi/include/ggi/Makefile.am		\
-	$(DIRECTORY)/src/mesa/drivers/ggi/include/ggi/Makefile.in		\
-	$(DIRECTORY)/src/mesa/drivers/ggi/include/ggi/mesa/Makefile.am		\
-	$(DIRECTORY)/src/mesa/drivers/ggi/include/ggi/mesa/Makefile.in		\
-	$(DIRECTORY)/src/mesa/drivers/ggi/include/ggi/mesa/*.h			\
-  	$(DIRECTORY)/src/mesa/drivers/osmesa/Makefile.am			\
-	$(DIRECTORY)/src/mesa/drivers/osmesa/Makefile.in			\
-	$(DIRECTORY)/src/mesa/drivers/osmesa/Makefile.win			\
-	$(DIRECTORY)/src/mesa/drivers/osmesa/osmesa.def				\
-	$(DIRECTORY)/src/mesa/drivers/osmesa/*.[ch]				\
-	$(DIRECTORY)/src/mesa/sparc/*.[chS]					\
-	$(DIRECTORY)/src/mesa/sparc/Makefile.am					\
-	$(DIRECTORY)/src/mesa/sparc/Makefile.in					\
-	$(DIRECTORY)/src/mesa/drivers/svga/Makefile.am				\
-	$(DIRECTORY)/src/mesa/drivers/svga/Makefile.in				\
-	$(DIRECTORY)/src/mesa/drivers/svga/*.[ch]				\
-	$(DIRECTORY)/src/mesa/drivers/windows/*.[ch]				\
-	$(DIRECTORY)/src/mesa/drivers/windows/*.def				\
-	$(DIRECTORY)/src/mesa/drivers/x11/Makefile.am				\
-	$(DIRECTORY)/src/mesa/drivers/x11/Makefile.in				\
-	$(DIRECTORY)/src/mesa/drivers/x11/*.[ch]				\
-	$(DIRECTORY)/src/mesa/x86/*.[ch]					\
-	$(DIRECTORY)/src/mesa/x86/Makefile.am					\
-	$(DIRECTORY)/src/mesa/x86/Makefile.in					\
-	$(DIRECTORY)/src/mesa/x86/*.S						\
-	$(DIRECTORY)/src/glu/sgi/Makefile.am					\
-	$(DIRECTORY)/src/glu/sgi/Makefile.in					\
-	$(DIRECTORY)/src/glu/sgi/Makefile.X11					\
-	$(DIRECTORY)/src/glu/sgi/Makefile.win					\
-	$(DIRECTORY)/src/glu/sgi/Makefile.DJ					\
-	$(DIRECTORY)/src/glu/sgi/glu.def					\
-	$(DIRECTORY)/src/glu/sgi/dummy.cc					\
-	$(DIRECTORY)/src/glu/sgi/descrip.mms					\
-	$(DIRECTORY)/src/glu/sgi/mesaglu.opt					\
-	$(DIRECTORY)/src/glu/sgi/include/gluos.h				\
-	$(DIRECTORY)/src/glu/sgi/include/Makefile.am				\
-	$(DIRECTORY)/src/glu/sgi/include/Makefile.in				\
-	$(DIRECTORY)/src/glu/sgi/libnurbs/Makefile.am				\
-	$(DIRECTORY)/src/glu/sgi/libnurbs/Makefile.in				\
-	$(DIRECTORY)/src/glu/sgi/libnurbs/interface/*.h				\
-	$(DIRECTORY)/src/glu/sgi/libnurbs/interface/*.cc			\
-	$(DIRECTORY)/src/glu/sgi/libnurbs/interface/Makefile.am			\
-	$(DIRECTORY)/src/glu/sgi/libnurbs/interface/Makefile.in			\
-	$(DIRECTORY)/src/glu/sgi/libnurbs/internals/*.h				\
-	$(DIRECTORY)/src/glu/sgi/libnurbs/internals/*.cc			\
-	$(DIRECTORY)/src/glu/sgi/libnurbs/internals/Makefile.am			\
-	$(DIRECTORY)/src/glu/sgi/libnurbs/internals/Makefile.in			\
-	$(DIRECTORY)/src/glu/sgi/libnurbs/nurbtess/*.h				\
-	$(DIRECTORY)/src/glu/sgi/libnurbs/nurbtess/*.cc				\
-	$(DIRECTORY)/src/glu/sgi/libnurbs/nurbtess/Makefile.am			\
-	$(DIRECTORY)/src/glu/sgi/libnurbs/nurbtess/Makefile.in			\
-	$(DIRECTORY)/src/glu/sgi/libtess/README					\
-	$(DIRECTORY)/src/glu/sgi/libtess/alg-outline				\
-	$(DIRECTORY)/src/glu/sgi/libtess/*.[ch]					\
-	$(DIRECTORY)/src/glu/sgi/libtess/libtess_la_SOURCES			\
-	$(DIRECTORY)/src/glu/sgi/libtess/Makefile.am				\
-	$(DIRECTORY)/src/glu/sgi/libtess/Makefile.in				\
-	$(DIRECTORY)/src/glu/sgi/libutil/*.[ch]					\
-	$(DIRECTORY)/src/glu/sgi/libutil/libutil_la_SOURCES			\
-	$(DIRECTORY)/src/glu/sgi/libutil/Makefile.am				\
-	$(DIRECTORY)/src/glu/sgi/libutil/Makefile.in				\
-	$(DIRECTORY)/src/glu/mesa/README[12]					\
-	$(DIRECTORY)/src/glu/mesa/Makefile*					\
-	$(DIRECTORY)/src/glu/mesa/descrip.mms					\
-	$(DIRECTORY)/src/glu/mesa/mms_depend					\
-	$(DIRECTORY)/src/glu/mesa/*.def						\
-	$(DIRECTORY)/src/glu/mesa/depend					\
-	$(DIRECTORY)/src/glu/mesa/*.[ch]					\
-	$(DIRECTORY)/src/glw/*.[ch]						\
-	$(DIRECTORY)/src/glw/Makefile*						\
-	$(DIRECTORY)/src/glw/README						\
-	$(DIRECTORY)/progs/util/README						\
-	$(DIRECTORY)/progs/util/Makefile.am					\
-	$(DIRECTORY)/progs/util/Makefile.in					\
-	$(DIRECTORY)/progs/util/*.[ch]						\
-	$(DIRECTORY)/progs/util/sampleMakefile					\
-	$(DIRECTORY)/vms/analyze_map.com					\
-	$(DIRECTORY)/vms/xlib.opt						\
+	$(DIRECTORY)/src/mesa/descrip.mms				\
+	$(DIRECTORY)/src/mesa/depend					\
+	$(DIRECTORY)/src/mesa/main/*.[chS]				\
+	$(DIRECTORY)/src/mesa/main/main.dsp				\
+	$(DIRECTORY)/src/mesa/glapi/*.[chS]				\
+	$(DIRECTORY)/src/mesa/glapi/glapi.dsp				\
+	$(DIRECTORY)/src/mesa/array_cache/*.[ch]			\
+	$(DIRECTORY)/src/mesa/array_cache/array_cache.dsp		\
+	$(DIRECTORY)/src/mesa/math/*.[ch]				\
+	$(DIRECTORY)/src/mesa/math/math.dsp				\
+	$(DIRECTORY)/src/mesa/swrast/*.[ch]				\
+	$(DIRECTORY)/src/mesa/swrast/swrast.dsp				\
+	$(DIRECTORY)/src/mesa/swrast_setup/*.[ch]			\
+	$(DIRECTORY)/src/mesa/swrast_setup/swrast_setup.dsp		\
+	$(DIRECTORY)/src/mesa/tnl/*.[ch]				\
+	$(DIRECTORY)/src/mesa/tnl/tnl.dsp				\
+	$(DIRECTORY)/src/mesa/tnl_dd/*.[ch]				\
+	$(DIRECTORY)/src/mesa/tnl_dd/imm/*.[ch]				\
+	$(DIRECTORY)/src/mesa/tnl_dd/imm/NOTES.imm			\
+	$(DIRECTORY)/src/mesa/drivers/common/*.[ch]			\
+	$(DIRECTORY)/src/mesa/drivers/dos/*.[chS]			\
+	$(DIRECTORY)/src/mesa/drivers/dos/mga/*.[ch]			\
+	$(DIRECTORY)/src/mesa/drivers/beos/*.cpp			\
+	$(DIRECTORY)/src/mesa/drivers/glide/*.[ch]			\
+	$(DIRECTORY)/src/mesa/drivers/glide/*.def			\
+	$(DIRECTORY)/src/mesa/drivers/ggi/*.[ch]			\
+	$(DIRECTORY)/src/mesa/drivers/ggi/ggimesa.conf.in		\
+	$(DIRECTORY)/src/mesa/drivers/ggi/default/*.c			\
+	$(DIRECTORY)/src/mesa/drivers/ggi/default/genkgi.conf.in	\
+	$(DIRECTORY)/src/mesa/drivers/ggi/display/*.c			\
+	$(DIRECTORY)/src/mesa/drivers/ggi/display/fbdev.conf.in		\
+	$(DIRECTORY)/src/mesa/drivers/ggi/include/ggi/mesa/*.h		\
+	$(DIRECTORY)/src/mesa/drivers/osmesa/Makefile.win		\
+	$(DIRECTORY)/src/mesa/drivers/osmesa/osmesa.def			\
+	$(DIRECTORY)/src/mesa/drivers/osmesa/osmesa.dsp			\
+	$(DIRECTORY)/src/mesa/drivers/osmesa/*.[ch]			\
+	$(DIRECTORY)/src/mesa/drivers/svga/*.[ch]			\
+	$(DIRECTORY)/src/mesa/drivers/windows/*/*.[ch]			\
+	$(DIRECTORY)/src/mesa/drivers/windows/*/*.def			\
+	$(DIRECTORY)/src/mesa/drivers/windows/*/*.dsp			\
+	$(DIRECTORY)/src/mesa/drivers/x11/*.[ch]			\
+	$(DIRECTORY)/src/mesa/sparc/*.[chS]				\
+	$(DIRECTORY)/src/mesa/x86/*.[ch]				\
+	$(DIRECTORY)/src/mesa/x86/*.S					\
+	$(DIRECTORY)/src/glu/sgi/Makefile.X11				\
+	$(DIRECTORY)/src/glu/sgi/Makefile.win				\
+	$(DIRECTORY)/src/glu/sgi/Makefile.DJ				\
+	$(DIRECTORY)/src/glu/sgi/cc*.txt				\
+	$(DIRECTORY)/src/glu/sgi/glu.def				\
+	$(DIRECTORY)/src/glu/sgi/glu.dsp				\
+	$(DIRECTORY)/src/glu/sgi/dummy.cc				\
+	$(DIRECTORY)/src/glu/sgi/descrip.mms				\
+	$(DIRECTORY)/src/glu/sgi/mesaglu.opt				\
+	$(DIRECTORY)/src/glu/sgi/include/gluos.h			\
+	$(DIRECTORY)/src/glu/sgi/libnurbs/interface/*.h			\
+	$(DIRECTORY)/src/glu/sgi/libnurbs/interface/*.cc		\
+	$(DIRECTORY)/src/glu/sgi/libnurbs/internals/*.h			\
+	$(DIRECTORY)/src/glu/sgi/libnurbs/internals/*.cc		\
+	$(DIRECTORY)/src/glu/sgi/libnurbs/nurbtess/*.h			\
+	$(DIRECTORY)/src/glu/sgi/libnurbs/nurbtess/*.cc			\
+	$(DIRECTORY)/src/glu/sgi/libtess/README				\
+	$(DIRECTORY)/src/glu/sgi/libtess/alg-outline			\
+	$(DIRECTORY)/src/glu/sgi/libtess/*.[ch]				\
+	$(DIRECTORY)/src/glu/sgi/libutil/*.[ch]				\
+	$(DIRECTORY)/src/glu/mesa/README[12]				\
+	$(DIRECTORY)/src/glu/mesa/Makefile*				\
+	$(DIRECTORY)/src/glu/mesa/descrip.mms				\
+	$(DIRECTORY)/src/glu/mesa/mms_depend				\
+	$(DIRECTORY)/src/glu/mesa/*.def					\
+	$(DIRECTORY)/src/glu/mesa/depend				\
+	$(DIRECTORY)/src/glu/mesa/*.[ch]				\
+	$(DIRECTORY)/src/glw/*.[ch]					\
+	$(DIRECTORY)/src/glw/Makefile*					\
+	$(DIRECTORY)/src/glw/README					\
+	$(DIRECTORY)/progs/util/README					\
+	$(DIRECTORY)/progs/util/*.[ch]					\
+	$(DIRECTORY)/progs/util/sampleMakefile				\
+	$(DIRECTORY)/vms/analyze_map.com				\
+	$(DIRECTORY)/vms/xlib.opt					\
 	$(DIRECTORY)/vms/xlib_share.opt
 
 
@@ -524,10 +473,11 @@ DEMO_FILES =	\
 	$(DIRECTORY)/src/glut/glx/*def			\
 	$(DIRECTORY)/src/glut/glx/descrip.mms		\
 	$(DIRECTORY)/src/glut/glx/mms_depend		\
+	$(DIRECTORY)/src/glut/glx/glut.dsp		\
 	$(DIRECTORY)/src/glut/glx/*.[ch]		\
-	$(DIRECTORY)/src/glut/glx.dos/*.[ch]		\
-	$(DIRECTORY)/src/glut/glx.dos/Makefile.DJ	\
-	$(DIRECTORY)/src/glut/glx.dos/PC_HW/*.[chS]	\
+	$(DIRECTORY)/src/glut/dos/*.[ch]		\
+	$(DIRECTORY)/src/glut/dos/Makefile.DJ		\
+	$(DIRECTORY)/src/glut/dos/PC_HW/*.[chS]		\
 	$(DIRECTORY)/progs/images/*			\
 	$(DIRECTORY)/progs/demos/Makefile*		\
 	$(DIRECTORY)/progs/demos/descrip.mms		\
@@ -535,6 +485,7 @@ DEMO_FILES =	\
 	$(DIRECTORY)/progs/demos/*.cxx			\
 	$(DIRECTORY)/progs/demos/*.dat			\
 	$(DIRECTORY)/progs/demos/README			\
+	$(DIRECTORY)/progs/demos/Windows/*		\
 	$(DIRECTORY)/progs/xdemos/Makefile*		\
 	$(DIRECTORY)/progs/xdemos/descrip.mms		\
 	$(DIRECTORY)/progs/xdemos/*.[chf]		\
