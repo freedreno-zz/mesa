@@ -122,7 +122,7 @@ static void ConvertRGBtoYUV(GLint w, GLint h, const GLubyte *src,
          GLfloat y, cr, cb;
          GLint iy, icr, icb;
 
-         y  = r * 65.481 + g * 128.553 + b * 25.966 + 16;
+         y  = r * 65.481 + g * 128.553 + b * 24.966 + 16;
          cb = r * -37.797 + g * -74.203 + b * 112.0 + 128;
          cr = r * 112.0 + g * -93.786 + b * -18.214 + 128;
          /*printf("%f %f %f -> %f %f %f\n", r, g, b, y, cb, cr);*/
@@ -130,13 +130,13 @@ static void ConvertRGBtoYUV(GLint w, GLint h, const GLubyte *src,
          icb = (GLint) CLAMP(cb, 0, 254);
          icr = (GLint) CLAMP(cr, 0, 254);
 
-         if (i & 1) {
+         if (j & 1) {
             /* odd */
-            *dest = (iy << 8) | icb;
+            *dest = (iy << 8) | icr;
          }
          else {
             /* even */
-            *dest = (iy << 8) | icr;
+            *dest = (iy << 8) | icb;
          }
          dest++;
       }
