@@ -1,4 +1,4 @@
-/* $Id: varray.c,v 1.13.2.3 1999/12/01 12:18:47 keithw Exp $ */
+/* $Id: varray.c,v 1.13.2.4 2000/02/05 02:05:21 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -1128,6 +1128,13 @@ void GLAPIENTRY glDrawRangeElements(CTX_ARG GLenum mode, GLuint start,
       return;
    }
 
+#if 0
+   /*
+    * XXX something in locked arrays is broken!  If start = 0,
+    * end = 1 and count = 2 we'll take the LockArrays path and
+    * get incorrect results.  See Scott McMillan's bug of 3 Jan 2000.
+    * For now, don't use locked arrays.
+    */
    if (!ctx->Array.LockCount && 2*count > (GLint) 3*(end-start)) {
       glLockArraysEXT(CTX_PRM start, end );
       glDrawElements(CTX_PRM mode, count, type, indices );
@@ -1135,6 +1142,9 @@ void GLAPIENTRY glDrawRangeElements(CTX_ARG GLenum mode, GLuint start,
    } else {
       glDrawElements(CTX_PRM mode, count, type, indices );
    }
+#else
+   glDrawElements(CTX_PRM mode, count, type, indices );
+#endif
 }
 
 
