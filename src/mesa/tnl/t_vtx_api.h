@@ -51,4 +51,8 @@ extern GLboolean *_tnl_translate_edgeflag( GLcontext *ctx,
 					   const GLfloat *data, 
 					   GLuint count,
 					   GLuint stride );
+
+extern GLboolean *_tnl_import_current_edgeflag( GLcontext *ctx,
+						GLuint count );
+
 #endif

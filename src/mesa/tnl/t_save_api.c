@@ -183,6 +183,9 @@ static void _save_reset_counters( GLcontext *ctx )
    else
       tnl->save.initial_counter = 0;
 
+   if (tnl->save.initial_counter > ctx->Const.MaxArrayLockSize )
+      tnl->save.initial_counter = ctx->Const.MaxArrayLockSize;
+
    tnl->save.counter = tnl->save.initial_counter;
    tnl->save.prim_count = 0;
    tnl->save.prim_max = SAVE_PRIM_SIZE - tnl->save.prim_store->used;

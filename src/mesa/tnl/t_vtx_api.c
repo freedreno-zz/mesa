@@ -186,7 +186,8 @@ static void _tnl_wrap_upgrade_vertex( GLcontext *ctx,
    tnl->vtx.attrsz[attr] = newsz;
 
    tnl->vtx.vertex_size += newsz - oldsz;
-   tnl->vtx.counter = VERT_BUFFER_SIZE / tnl->vtx.vertex_size;
+   tnl->vtx.counter = MIN2( VERT_BUFFER_SIZE / tnl->vtx.vertex_size,
+			    ctx->Const.MaxArrayLockSize );
    tnl->vtx.initial_counter = tnl->vtx.counter;
    tnl->vtx.vbptr = tnl->vtx.buffer;
 

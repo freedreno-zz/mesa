@@ -37,11 +37,33 @@
 GLboolean *_tnl_translate_edgeflag( GLcontext *ctx, const GLfloat *data,
 				    GLuint count, GLuint stride )
 {
-   GLboolean *ef = 0;
+   TNLcontext *tnl = TNL_CONTEXT(ctx);
+   GLboolean *ef = tnl->vtx.edgeflag_tmp;
    GLuint i;
+
+   if (!ef) 
+      ef = tnl->vtx.edgeflag_tmp = MALLOC( tnl->vb.Size );
    
    for (i = 0 ; i < count ; i++, data += stride)
       ef[i] = (data[0] == 1.0);
+
+   return ef;
+}
+
+
+GLboolean *_tnl_import_current_edgeflag( GLcontext *ctx,
+					 GLuint count )
+{
+   TNLcontext *tnl = TNL_CONTEXT(ctx);
+   GLboolean *ef = tnl->vtx.edgeflag_tmp;
+   GLboolean tmp = ctx->Current.EdgeFlag;
+   GLuint i;
+
+   if (!ef) 
+      ef = tnl->vtx.edgeflag_tmp = MALLOC( tnl->vb.Size );
+
+   for (i = 0 ; i < count ; i++)
+      ef[i] = tmp;
 
    return ef;
 }
@@ -103,10 +125,14 @@ static void _tnl_vb_bind_vtx( GLcontext *ctx )
    
    /* Copy and translate EdgeFlag to a contiguous array of GLbooleans
     */
-   if (tnl->vtx.attrsz[_TNL_ATTRIB_EDGEFLAG]) {
-      VB->EdgeFlag = _tnl_translate_edgeflag( ctx, data, count,
-					      tnl->vtx.vertex_size );
-      data++;
+   if (ctx->Polygon.FrontMode != GL_FILL || ctx->Polygon.BackMode != GL_FILL) {
+      if (tnl->vtx.attrsz[_TNL_ATTRIB_EDGEFLAG]) {
+	 VB->EdgeFlag = _tnl_translate_edgeflag( ctx, data, count,
+						 tnl->vtx.vertex_size );
+	 data++;
+      }
+      else 
+	 VB->EdgeFlag = _tnl_import_current_edgeflag( ctx, count );
    }
 
    /* Legacy pointers -- remove one day.

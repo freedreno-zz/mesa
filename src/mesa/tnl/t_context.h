@@ -254,6 +254,7 @@ struct tnl_vtx {
    struct tnl_copied_vtx copied;
    attrfv_func tabfv[_TNL_ATTRIB_MAX][4];
    struct tnl_eval eval;
+   GLboolean *edgeflag_tmp;
 };
 
 

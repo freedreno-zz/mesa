@@ -81,8 +81,7 @@ _tnl_CreateContext( GLcontext *ctx )
 
    /* Initialize the VB.
     */
-   tnl->vb.Size = MAX2( 256,
-			ctx->Const.MaxArrayLockSize + MAX_CLIPPED_VERTICES);
+   tnl->vb.Size = ctx->Const.MaxArrayLockSize + MAX_CLIPPED_VERTICES;
 
 
    /* Initialize tnl state and tnl->vtxfmt.
@@ -105,15 +104,13 @@ _tnl_CreateContext( GLcontext *ctx )
    /* Set a few default values in the driver struct.
     */
    install_driver_callbacks(ctx);
-   ctx->Driver.NeedFlush = FLUSH_UPDATE_CURRENT;
+   ctx->Driver.NeedFlush = 0;
    ctx->Driver.CurrentExecPrimitive = PRIM_OUTSIDE_BEGIN_END;
    ctx->Driver.CurrentSavePrimitive = PRIM_UNKNOWN;
 
    tnl->Driver.Render.PrimTabElts = _tnl_render_tab_elts;
    tnl->Driver.Render.PrimTabVerts = _tnl_render_tab_verts;
    tnl->Driver.NotifyMaterialChange = _mesa_validate_all_lighting_tables;
-
-
    
    return GL_TRUE;
 }
@@ -173,9 +170,9 @@ _tnl_wakeup_exec( GLcontext *ctx )
    tnl->pipeline.run_input_changes = ~0;
 
    if (ctx->Light.ColorMaterialEnabled) {
-      _mesa_update_color_material( ctx, ctx->Current.Attrib[VERT_ATTRIB_COLOR0] );
+      _mesa_update_color_material( ctx, 
+				   ctx->Current.Attrib[VERT_ATTRIB_COLOR0] );
    }
-
 }
 
 

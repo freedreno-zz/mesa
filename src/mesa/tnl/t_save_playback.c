@@ -91,11 +91,15 @@ static void _tnl_bind_vertex_list( GLcontext *ctx,
    
    /* Copy edgeflag to a contiguous array
     */
-   if (node->attrsz[_TNL_ATTRIB_EDGEFLAG]) {
-      VB->EdgeFlag = _tnl_translate_edgeflag( ctx, data, 
-					      node->count,
-					      node->vertex_size );
-      data++;
+   if (ctx->Polygon.FrontMode != GL_FILL || ctx->Polygon.BackMode != GL_FILL) {
+      if (node->attrsz[_TNL_ATTRIB_EDGEFLAG]) {
+	 VB->EdgeFlag = _tnl_translate_edgeflag( ctx, data, 
+						 node->count,
+						 node->vertex_size );
+	 data++;
+      }
+      else 
+	 VB->EdgeFlag = _tnl_import_current_edgeflag( ctx, node->count );
    }
 
    /* Legacy pointers -- remove one day.
