@@ -28,7 +28,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: context.c,v 1.188.2.1.2.9 2003/03/17 15:18:16 keithw Exp $ */
+/* $Id: context.c,v 1.188.2.1.2.10 2003/03/17 21:22:49 keithw Exp $ */
 
 /**
  * \mainpage Mesa Core Module
@@ -725,8 +725,8 @@ one_time_init( GLcontext *ctx )
 
 #if _HAVE_FULL_GL
       _math_init();
-#endif
       _mesa_init_math();
+#endif
 
 #ifdef USE_SPARC_ASM
       _mesa_init_sparc_glapi_relocs();
@@ -2512,7 +2512,7 @@ _mesa_make_current2( GLcontext *newCtx, GLframebuffer *drawBuffer,
 	       drawBuffer->Width = bufWidth;
 	       drawBuffer->Height = bufHeight;
 
-	       newCtx->Driver.ResizeBuffers( drawBuffer );
+ 	       newCtx->Driver.ResizeBuffers( drawBuffer );
 	    }
          }
 

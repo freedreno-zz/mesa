@@ -37,11 +37,13 @@
 #include "glheader.h"
 #include "mtypes.h"
 #include "colormac.h"
+#include "context.h"
 #include "enums.h"
 #include "imports.h"
 #include "image.h"
 #include "mmath.h"
 #include "macros.h"
+#include "state.h"
 
 #include "radeon_context.h"
 #include "radeon_ioctl.h"
@@ -65,23 +67,37 @@
  * restores TCL, viewport, texture and color states.
  */
 void
-radeonPointsBitmap( GLcontext *ctx, GLint px, GLint py,
-		  GLsizei width, GLsizei height,
-		  const struct gl_pixelstore_attrib *unpack,
-		  const GLubyte *bitmap )
+radeonPointsBitmap(  GLsizei width, GLsizei height,
+		     GLfloat xorig, GLfloat yorig, 
+		     GLfloat xmove, GLfloat ymove,
+		     const GLubyte *bitmap )
 {
+   GET_CURRENT_CONTEXT(ctx);
    radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
    GLfloat saved_color[4], saved_tex0[2];
    GLint row, col;
    GLuint orig_se_cntl;
    GLuint h;
    GLfloat pfz = ctx->Current.RasterPos[3];
-   GLint skipRows = unpack->SkipRows;
-   GLint skipPixels = unpack->SkipPixels;
+   const struct gl_pixelstore_attrib *unpack = &ctx->Unpack;
+   GLint skipRows = 0;
+   GLint skipPixels = 0;
+   GLint px = IFLOOR(ctx->Current.RasterPos[0] - xorig);
+   GLint py = IFLOOR(ctx->Current.RasterPos[1] - yorig);
 
 
-   if (!ctx->Current.RasterPosValid)
+   ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx);
+
+   if (width < 0 || height < 0) {
+      _mesa_error( ctx, GL_INVALID_VALUE, "glBitmap(width or height < 0)" );
       return;
+   }
+
+   if (!ctx->Current.RasterPosValid || ctx->RenderMode != GL_RENDER)
+      return;
+
+   if (ctx->NewState) 
+      _mesa_update_state(ctx);
 
    /* horizontal clipping */
    if (px < 0) {
@@ -138,34 +154,18 @@ radeonPointsBitmap( GLcontext *ctx, GLint px, GLint py,
 	 _mesa_image_address( unpack, bitmap, width, height, 
 			      GL_COLOR_INDEX, GL_BITMAP, 0, row, 0 );
 
-      if (unpack->LsbFirst) {
-         /* Lsb first */
-         GLubyte mask = 1U << (unpack->SkipPixels & 0x7);
-         for (col=0; col<width; col++) {
-            if (*src & mask) 
-	       glVertex3f( px+col, y, pfz );
-	    src += (mask >> 7);
-	    mask = ((mask << 1) & 0xff) | (mask >> 7);
-         }
-
-         /* get ready for next row */
-         if (mask != 1)
-            src++;
+      /* Msb first */
+      GLubyte mask = 128U >> (unpack->SkipPixels & 0x7);
+      for (col=0; col<width; col++) {
+	 if (*src & mask) {
+	    glVertex3f( px+col, y, pfz );
+	 }
+	 src += mask & 1;
+	 mask = ((mask << 7) & 0xff) | (mask >> 1);
       }
-      else {
-         /* Msb first */
-         GLubyte mask = 128U >> (unpack->SkipPixels & 0x7);
-         for (col=0; col<width; col++) {
-            if (*src & mask) {
-	       glVertex3f( px+col, y, pfz );
-            }
-	    src += mask & 1;
-	    mask = ((mask << 7) & 0xff) | (mask >> 1);
-         }
-         /* get ready for next row */
-         if (mask != 128)
-            src++;
-      }
+      /* get ready for next row */
+      if (mask != 128)
+	 src++;
    }
    
    glEnd();
@@ -177,4 +177,8 @@ radeonPointsBitmap( GLcontext *ctx, GLint px, GLint py,
    RADEON_STATECHANGE( rmesa, set );
    rmesa->hw.set.cmd[SET_SE_CNTL] = orig_se_cntl;
    radeonSubsetVtxEnableTCL( rmesa, GL_TRUE );
+
+   /* update raster position */
+   ctx->Current.RasterPos[0] += xmove;
+   ctx->Current.RasterPos[1] += ymove;
 }

@@ -36,16 +36,14 @@
 #ifndef __RADEON_SUBSET_H__
 #define __RADEON_SUBSET_H__
 
-extern void radeonPointsBitmap( GLcontext *ctx, GLint px, GLint py,
-				GLsizei width, GLsizei height,
-				const struct gl_pixelstore_attrib *unpack,
+extern void radeonPointsBitmap( GLsizei width, GLsizei height,
+				GLfloat xorig, GLfloat yorig,
+				GLfloat xmove, GLfloat ymove,
 				const GLubyte *bitmap );
 
-extern void radeonReadPixels( GLcontext *ctx,
-			      GLint x, GLint y,
+extern void radeonReadPixels( GLint x, GLint y,
 			      GLsizei width, GLsizei height,
 			      GLenum format, GLenum type,
-			      const struct gl_pixelstore_attrib *packing,
 			      GLvoid *pixels );
 
 extern void radeon_select_Install( GLcontext *ctx );

@@ -205,8 +205,8 @@ static void radeonInitDriverFuncs( GLcontext *ctx )
     ctx->Driver.Error			= NULL;
     ctx->Driver.DrawPixels		= NULL;
 #if !_HAVE_SWRAST
-    ctx->Driver.Bitmap			= radeonPointsBitmap;
-    ctx->Driver.ReadPixels		= radeonReadPixels;
+    ctx->Exec->Bitmap			= radeonPointsBitmap;
+    ctx->Exec->ReadPixels		= radeonReadPixels;
 #endif
 }
 

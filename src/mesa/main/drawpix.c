@@ -1,4 +1,4 @@
-/* $Id: drawpix.c,v 1.63.4.1 2003/03/17 17:03:49 keithw Exp $ */
+/* $Id: drawpix.c,v 1.63.4.2 2003/03/17 21:22:51 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -201,6 +201,7 @@ _mesa_Bitmap( GLsizei width, GLsizei height,
 	 ctx->Driver.Bitmap( ctx, x, y, width, height, &ctx->Unpack, bitmap );
       }
    }
+#if _HAVE_FULL_GL
    else if (ctx->RenderMode==GL_FEEDBACK) {
       if (ctx->Current.RasterPosValid) {
 	 FLUSH_CURRENT(ctx, 0);
@@ -215,6 +216,7 @@ _mesa_Bitmap( GLsizei width, GLsizei height,
    else if (ctx->RenderMode==GL_SELECT) {
       /* Bitmaps don't generate selection hits.  See appendix B of 1.1 spec. */
    }
+#endif
 
    /* update raster position */
    ctx->Current.RasterPos[0] += xmove;

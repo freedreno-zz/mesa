@@ -1,4 +1,4 @@
-/* $Id: state.c,v 1.97.4.5 2003/03/17 15:18:17 keithw Exp $ */
+/* $Id: state.c,v 1.97.4.6 2003/03/17 21:22:54 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -118,7 +118,6 @@ _mesa_init_exec_table(struct _glapi_table *exec, GLuint tableSize)
 
    /* load the dispatch slots we understand */
    exec->AlphaFunc = _mesa_AlphaFunc;
-   exec->Bitmap = _mesa_Bitmap;
    exec->BlendFunc = _mesa_BlendFunc;
    exec->Clear = _mesa_Clear;
    exec->ClearColor = _mesa_ClearColor;
@@ -155,7 +154,6 @@ _mesa_init_exec_table(struct _glapi_table *exec, GLuint tableSize)
    exec->RasterPos2i = _mesa_RasterPos2i;
    exec->RasterPos2iv = _mesa_RasterPos2iv;
    exec->ReadBuffer = _mesa_ReadBuffer;
-   exec->ReadPixels = _mesa_ReadPixels;
    exec->RenderMode = _mesa_RenderMode;
    exec->Rotatef = _mesa_Rotatef;
    exec->Scalef = _mesa_Scalef;
@@ -173,6 +171,7 @@ _mesa_init_exec_table(struct _glapi_table *exec, GLuint tableSize)
    exec->Viewport = _mesa_Viewport;
 #if _HAVE_FULL_GL
    exec->Accum = _mesa_Accum;
+   exec->Bitmap = _mesa_Bitmap;
    exec->CallList = _mesa_CallList;
    exec->CallLists = _mesa_CallLists;
    exec->ClearAccum = _mesa_ClearAccum;
@@ -277,6 +276,7 @@ _mesa_init_exec_table(struct _glapi_table *exec, GLuint tableSize)
    exec->RasterPos4iv = _mesa_RasterPos4iv;
    exec->RasterPos4s = _mesa_RasterPos4s;
    exec->RasterPos4sv = _mesa_RasterPos4sv;
+   exec->ReadPixels = _mesa_ReadPixels;
    exec->Rotated = _mesa_Rotated;
    exec->Scaled = _mesa_Scaled;
    exec->SecondaryColorPointerEXT = _mesa_SecondaryColorPointerEXT;

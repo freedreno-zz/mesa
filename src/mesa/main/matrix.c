@@ -1,4 +1,4 @@
-/* $Id: matrix.c,v 1.45 2002/10/24 23:57:21 brianp Exp $ */
+/* $Id: matrix.c,v 1.45.4.1 2003/03/17 21:22:52 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -228,18 +228,6 @@ _mesa_LoadMatrixf( const GLfloat *m )
 }
 
 
-void
-_mesa_LoadMatrixd( const GLdouble *m )
-{
-   GLint i;
-   GLfloat f[16];
-   if (!m) return;
-   for (i = 0; i < 16; i++)
-      f[i] = (GLfloat) m[i];
-   _mesa_LoadMatrixf(f);
-}
-
-
 
 /*
  * Multiply the active matrix by an arbitary matrix.
@@ -262,22 +250,6 @@ _mesa_MultMatrixf( const GLfloat *m )
 }
 
 
-/*
- * Multiply the active matrix by an arbitary matrix.
- */
-void
-_mesa_MultMatrixd( const GLdouble *m )
-{
-   GLint i;
-   GLfloat f[16];
-   if (!m) return;
-   for (i = 0; i < 16; i++)
-      f[i] = (GLfloat) m[i];
-   _mesa_MultMatrixf( f );
-}
-
-
-
 
 /*
  * Execute a glRotate call
@@ -291,12 +263,6 @@ _mesa_Rotatef( GLfloat angle, GLfloat x, GLfloat y, GLfloat z )
       _math_matrix_rotate( ctx->CurrentStack->Top, angle, x, y, z);
       ctx->NewState |= ctx->CurrentStack->DirtyFlag;
    }
-}
-
-void
-_mesa_Rotated( GLdouble angle, GLdouble x, GLdouble y, GLdouble z )
-{
-   _mesa_Rotatef((GLfloat) angle, (GLfloat) x, (GLfloat) y, (GLfloat) z);
 }
 
 
@@ -313,13 +279,6 @@ _mesa_Scalef( GLfloat x, GLfloat y, GLfloat z )
 }
 
 
-void
-_mesa_Scaled( GLdouble x, GLdouble y, GLdouble z )
-{
-   _mesa_Scalef((GLfloat) x, (GLfloat) y, (GLfloat) z);
-}
-
-
 /*
  * Execute a glTranslate call
  */
@@ -332,14 +291,54 @@ _mesa_Translatef( GLfloat x, GLfloat y, GLfloat z )
    ctx->NewState |= ctx->CurrentStack->DirtyFlag;
 }
 
+ 
+#if _HAVE_FULL_GL
+void
+_mesa_LoadMatrixd( const GLdouble *m )
+{
+   GLint i;
+   GLfloat f[16];
+   if (!m) return;
+   for (i = 0; i < 16; i++)
+      f[i] = (GLfloat) m[i];
+   _mesa_LoadMatrixf(f);
+}
+
+void
+_mesa_MultMatrixd( const GLdouble *m )
+{
+   GLint i;
+   GLfloat f[16];
+   if (!m) return;
+   for (i = 0; i < 16; i++)
+      f[i] = (GLfloat) m[i];
+   _mesa_MultMatrixf( f );
+}
+
+
+void
+_mesa_Rotated( GLdouble angle, GLdouble x, GLdouble y, GLdouble z )
+{
+   _mesa_Rotatef((GLfloat) angle, (GLfloat) x, (GLfloat) y, (GLfloat) z);
+}
+
+
+void
+_mesa_Scaled( GLdouble x, GLdouble y, GLdouble z )
+{
+   _mesa_Scalef((GLfloat) x, (GLfloat) y, (GLfloat) z);
+}
+
 
 void
 _mesa_Translated( GLdouble x, GLdouble y, GLdouble z )
 {
    _mesa_Translatef((GLfloat) x, (GLfloat) y, (GLfloat) z);
 }
+#endif
 
 
+#if _HAVE_FULL_GL
 void
 _mesa_LoadTransposeMatrixfARB( const GLfloat *m )
 {
@@ -378,6 +377,7 @@ _mesa_MultTransposeMatrixdARB( const GLdouble *m )
    _math_transposefd(tm, m);
    _mesa_MultMatrixf(tm);
 }
+#endif
 
 
 /*
@@ -438,7 +438,7 @@ _mesa_set_viewport( GLcontext *ctx, GLint x, GLint y,
    /* Check if window/buffer has been resized and if so, reallocate the
     * ancillary buffers.
     */
-   _mesa_ResizeBuffersMESA();
+/*    _mesa_ResizeBuffersMESA(); */
 
    if (ctx->Driver.Viewport) {
       (*ctx->Driver.Viewport)( ctx, x, y, width, height );
@@ -446,7 +446,7 @@ _mesa_set_viewport( GLcontext *ctx, GLint x, GLint y,
 }
 
 
-
+#if _HAVE_FULL_GL
 void
 _mesa_DepthRange( GLclampd nearval, GLclampd farval )
 {
@@ -481,3 +481,4 @@ _mesa_DepthRange( GLclampd nearval, GLclampd farval )
       (*ctx->Driver.DepthRange)( ctx, nearval, farval );
    }
 }
+#endif

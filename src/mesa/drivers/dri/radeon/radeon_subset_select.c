@@ -27,7 +27,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: radeon_subset_select.c,v 1.1.2.4 2003/02/23 16:50:48 jrfonseca Exp $ */
+/* $Id: radeon_subset_select.c,v 1.1.2.5 2003/03/17 21:23:00 keithw Exp $ */
 
 
 #include "glheader.h"
@@ -912,6 +912,7 @@ static void radeon_select_End(void)
 
    ctx->Driver.CurrentExecPrimitive = GL_POLYGON+1;
 }
+
 
 /**
  * \brief Flush vertices.

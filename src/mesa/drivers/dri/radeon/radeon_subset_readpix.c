@@ -37,10 +37,12 @@
 #include "glheader.h"
 #include "mtypes.h"
 #include "colormac.h"
+#include "context.h"
 #include "enums.h"
 #include "imports.h"
 #include "mmath.h"
 #include "macros.h"
+#include "state.h"
 
 #include "radeon_context.h"
 #include "radeon_ioctl.h"
@@ -131,20 +133,36 @@ static void ReadRGBASpan( const GLcontext *ctx,
  * After asserting the above conditions, compensates for clipping and calls
  * ReadRGBASpan() to read each row.
  */
-void radeonReadPixels( GLcontext *ctx,
-		       GLint x, GLint y,
+void radeonReadPixels( GLint x, GLint y,
 		       GLsizei width, GLsizei height,
 		       GLenum format, GLenum type,
-		       const struct gl_pixelstore_attrib *packing,
 		       GLvoid *pixels )
 {
+   GET_CURRENT_CONTEXT(ctx);
    GLint srcX = x;
    GLint srcY = y;
    GLint readWidth = width;           /* actual width read */
    GLint readHeight = height;         /* actual height read */
+   const struct gl_pixelstore_attrib *packing = &ctx->Pack;
    GLint skipRows = packing->SkipRows;
    GLint skipPixels = packing->SkipPixels;
    GLint rowLength;
+   ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx);
+
+   if (width < 0 || height < 0) {
+      _mesa_error( ctx, GL_INVALID_VALUE,
+                   "glReadPixels(width=%d height=%d)", width, height );
+      return;
+   }
+
+   if (!pixels) {
+      _mesa_error( ctx, GL_INVALID_VALUE, "glReadPixels(pixels)" );
+      return;
+   }
+
+   if (ctx->NewState)
+      _mesa_update_state(ctx);
+
 
    /* can't do scale, bias, mapping, etc */
    assert(!ctx->_ImageTransferState);
