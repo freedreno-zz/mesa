@@ -1,10 +1,10 @@
-/* $Id: s_texture.c,v 1.41 2001/10/17 23:03:34 brianp Exp $ */
+/* $Id: s_texture.c,v 1.41.2.1 2002/03/13 04:45:35 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.5
+ * Version:  4.0.2
  *
- * Copyright (C) 1999-2001  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -2966,24 +2966,25 @@ _swrast_texture_fragments( GLcontext *ctx, GLuint texUnit, GLuint n,
       if (textureUnit->_Current) {   /* XXX need this? */
          GLchan texel[PB_SIZE][4];
 
-	 if (textureUnit->LodBias != 0.0F) {
-	    /* apply LOD bias, but don't clamp yet */
-            GLuint i;
-	    for (i=0;i<n;i++) {
-	       lambda[i] += textureUnit->LodBias;
-	    }
-	 }
+         if (lambda) {
+            if (textureUnit->LodBias != 0.0F) {
+               /* apply LOD bias, but don't clamp yet */
+               GLuint i;
+               for (i=0;i<n;i++) {
+                  lambda[i] += textureUnit->LodBias;
+               }
+            }
 
-         if ((textureUnit->_Current->MinLod != -1000.0
-              || textureUnit->_Current->MaxLod != 1000.0)
-             && lambda) {
-            /* apply LOD clamping to lambda */
-            const GLfloat min = textureUnit->_Current->MinLod;
-            const GLfloat max = textureUnit->_Current->MaxLod;
-            GLuint i;
-            for (i=0;i<n;i++) {
-               GLfloat l = lambda[i];
-               lambda[i] = CLAMP(l, min, max);
+            if (textureUnit->_Current->MinLod != -1000.0 ||
+                textureUnit->_Current->MaxLod != 1000.0) {
+               /* apply LOD clamping to lambda */
+               const GLfloat min = textureUnit->_Current->MinLod;
+               const GLfloat max = textureUnit->_Current->MaxLod;
+               GLuint i;
+               for (i=0;i<n;i++) {
+                  GLfloat l = lambda[i];
+                  lambda[i] = CLAMP(l, min, max);
+               }
             }
          }
 
