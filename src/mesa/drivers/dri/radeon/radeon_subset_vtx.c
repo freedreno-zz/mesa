@@ -229,11 +229,6 @@ static GLuint copy_dma_verts( radeonContextPtr rmesa,
       for (i = 0 ; i < ovf ; i++)
 	 copy_vertex( rmesa, nr-ovf+i, tmp[i] );
       return i;
-   case GL_TRIANGLES:
-      ovf = nr%3;
-      for (i = 0 ; i < ovf ; i++)
-	 copy_vertex( rmesa, nr-ovf+i, tmp[i] );
-      return i;
    case GL_LINE_STRIP:
       if (nr == 0) 
 	 return 0;
@@ -252,10 +247,15 @@ static GLuint copy_dma_verts( radeonContextPtr rmesa,
 	 copy_vertex( rmesa, nr-1, tmp[1] );
 	 return 2;
       }
+   case GL_TRIANGLES:
    case GL_TRIANGLE_STRIP:
    case GL_QUAD_STRIP:
    case GL_QUADS:
-      ovf = MIN2( nr-1, 2 );
+      switch (nr) {
+      case 0: ovf = 0; break;
+      case 1: ovf = 1; break;
+      default: ovf = 2; break;
+      }
       for (i = 0 ; i < ovf ; i++)
 	 copy_vertex( rmesa, nr-ovf+i, tmp[i] );
       return i;
