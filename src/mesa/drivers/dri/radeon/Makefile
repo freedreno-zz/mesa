@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.1.2.16 2003/01/22 18:16:33 keithw Exp $
+# $Id: Makefile,v 1.1.2.17 2003/01/24 15:50:52 keithw Exp $
 
 # Mesa 3-D graphics library
 # Version:  5.0
@@ -16,19 +16,25 @@ DEFINES = \
 	-D_HAVE_SWRAST=0 \
 	-D_HAVE_SWTNL=0 \
 	-D_HAVE_SANITY=0 \
-	-D_HAVE_CODEGEN=0
+	-D_HAVE_CODEGEN=0 \
+	-D_HAVE_LIGHTING=0 \
+	-D_HAVE_TEXGEN=0 \
+	-D_HAVE_USERCLIP=0
 
 CFLAGS = $(INCLUDES) $(DEFINES) -g -MD -DGLX_DIRECT_RENDERING
 
 # The .a files for each mesa module required by this driver:
 #
-COREMESA = 	$(MESABUILDDIR)/swrast_setup/swrast_setup.a \
+FULL_MESA = 	$(MESABUILDDIR)/swrast_setup/swrast_setup.a \
 		$(MESABUILDDIR)/tnl/tnl.a \
 		$(MESABUILDDIR)/math/math.a \
 		$(MESABUILDDIR)/array_cache/array_cache.a \
 		$(MESABUILDDIR)/swrast/swrast.a \
 		$(MESABUILDDIR)/mesa.a \
 		$(MESABUILDDIR)/math/math.a #kludge
+
+SUBSET_MESA = 	$(MESABUILDDIR)/mesa.a \
+		$(MESABUILDDIR)/math/math.a
 
 DRIVER_SOURCES = server/radeon_dri.c \
 		 radeon_context.c \
@@ -48,6 +54,7 @@ SUBSET_DRIVER_SOURCES = \
 		radeon_subset_vtx.c 
 
 FULL_DRIVER_SOURCES = 	\
+		 radeon_light_state.c \
 		 radeon_tcl.c \
 		 radeon_swtcl.c \
 		 radeon_span.c \
@@ -84,11 +91,13 @@ OBJECTS = $(C_SOURCES:.c=.o) \
 
 default: radeon_dri.so install
 
-radeon_dri.so:  $(COREMESA) $(OBJECTS) Makefile
-	rm -f $@ && gcc -o $@ -shared $(OBJECTS) $(COREMESA) -L$(MESA)/src/miniglx -lGL -lc -lm
-#	wc -l $(DRIVER_SOURCES)
-#	wc -l $(SUBSET_DRIVER_SOURCES)
-#	wc -l $(FULL_DRIVER_SOURCES)
+radeon_dri.so:  $(SUBSET_MESA) $(OBJECTS) Makefile
+	rm -f $@ && gcc -o $@ -shared $(OBJECTS) $(SUBSET_MESA) -L$(MESA)/src/miniglx -lGL -lc -lm
+
+loc:
+	wc -l $(DRIVER_SOURCES)
+	wc -l $(SUBSET_DRIVER_SOURCES)
+	wc -l $(FULL_DRIVER_SOURCES)
 
 install:
 	rm -f $(MESA)/lib/radeon_dri.so && \
