@@ -1,4 +1,4 @@
-/* $Id: common_x86_asm.S,v 1.7.2.3 2002/07/11 15:32:00 brianp Exp $ */
+/* $Id: common_x86_asm.S,v 1.7.2.4 2002/09/19 16:06:13 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -77,6 +77,7 @@ GLOBL GLNAME( _mesa_identify_x86_cpu_features )
 GLNAME( _mesa_identify_x86_cpu_features ):
 
 	PUSH_L	( EBX )
+	PUSH_L	( ESI )
 
 	/* Test for the CPUID command.  If the ID Flag bit in EFLAGS
 	 * (bit 21) is writable, the CPUID command is present.
@@ -172,6 +173,7 @@ LLBL(cpuid_failed):
 
 LLBL (cpuid_done):
 
+	POP_L	( ESI )
 	POP_L	( EBX )
 	RET
 
