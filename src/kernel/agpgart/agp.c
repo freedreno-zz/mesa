@@ -1,6 +1,6 @@
 /**
  * \file agp.c
- * \brief AGPGART module generic backend
+ * AGPGART module generic backend
  * \version 0.99
  * 
  * \author Jeff Hartmann
@@ -60,16 +60,21 @@ EXPORT_SYMBOL(agp_enable);
 EXPORT_SYMBOL(agp_backend_acquire);
 EXPORT_SYMBOL(agp_backend_release);
 
+/** Global AGP bridge data structure */
 struct agp_bridge_data agp_bridge = { type: NOT_SUPPORTED };
+/** Whether to try the vendor \e generic bridge backend for unsupported
+ * devices. */
 static int agp_try_unsupported __initdata = 0;
 
 int agp_memory_reserved;
+/** GATT table */
 __u32 *agp_gatt_table; 
 
 /** 
  * Acquire the AGP backend. 
  *
- * \return zero on success or a negative number on failure.
+ * \return zero if the caller owns the AGP backend, or -EBUSY if the AGP is in
+ * use.
  *
  * If the AGP bridge type is supported tries to atomically set the
  * agp_bridge_data::agp_in_use in agp_bridge.
@@ -94,10 +99,13 @@ int agp_backend_acquire(void)
 /** 
  * Release the AGP backend. 
  *
+ * The caller must insure that the graphics
+ * aperture translation table is read for use
+ * by another entity.  (Ensure that all memory
+ * it bound is unbound.)
+ *
  * If the AGP bridge type is supported atomically resets the
  * agp_bridge_data::agp_in_use.
- *
- * \sa agp_backend_release().
  */
 void agp_backend_release(void)
 {
@@ -192,6 +200,12 @@ agp_memory *agp_create_memory(int scratch_pages)
 /**
  * Free AGP memory.
  *
+ * This function frees memory associated with
+ * an agp_memory pointer.  It is the only function
+ * that can be called when the backend is not owned
+ * by the caller.  (So it can free memory on client
+ * death.)
+ *
  * \param curr pointer to the agp_memory resource to free.
  *
  * Unbinds the memory if currently bound. If agp_memory::type is not zero then
@@ -231,8 +245,13 @@ void agp_free_memory(agp_memory * curr)
 /**
  * Allocate AGP memory.
  *
+ * This function allocates a group of pages of
+ * a certain type.
+ * 
  * \param page_count number of pages to allocate.
- * \param type type.
+ * \param type type of memory to be allocated.  Every agp bridge device will
+ * allow you to allocate AGP_NORMAL_MEMORY which maps to physical ram.  Any
+ * other type is device dependant.
  * \return pointer to a agp_memory structure on success, or NULL on failure.
  *
  * If \p type is not zero then the call is dispatched to the
@@ -335,7 +354,12 @@ static int agp_return_size(void)
 /**
  * Routine to copy over information structure.
  *
- * \param info information structure.
+ * This function copies information about the
+ * agp bridge device and the state of the agp
+ * backend into an agp_kern_info pointer.
+ * 
+ * \param info agp_kern_info pointer.  The caller should insure that
+ * this pointer is valid.
  * \return zero on success, or a negative number on failure (bridge type not supported).
  * 
  * Copies over the information from agp_bridge into \p info.
@@ -379,10 +403,13 @@ int agp_copy_info(agp_kern_info * info)
 /**
  * Bind AGP memory.
  *
- * \param curr AGP memory to bind.
- * \param pg_start start page.
- *
- * \return zero on success or a negative number on failure.
+ * This function binds an agp_memory structure
+ * into the graphics aperture translation table.
+ * 
+ * \param curr agp_memory pointer.
+ * \param pg_start offset into the graphics aperture translation table.
+ * \return zero on success, -EINVAL if the pointer is NULL, or -EBUSY if the
+ * area of the table requested is already in use.
  *
  * Flushes the cache if not done before and calls the
  * agp_bridge_data::insert_memory() method to insert it into the GATT.
@@ -412,9 +439,13 @@ int agp_bind_memory(agp_memory * curr, off_t pg_start)
 /**
  * Unbind AGP memory.
  *
- * \param curr AGP memory to unbind.
- *
- * \return zero on success or a negative number on failure.
+ * This function removes an agp_memory structure
+ * from the graphics aperture translation table.
+ * 
+ * \param curr agp_memory pointer.
+ * \return zero on success, -EINVAL if this piece of agp_memory is not
+ * currently bound to the graphics aperture translation table or if the
+ * agp_memory pointer is NULL.
  *
  * Calls the agp_bridge_data::remove_memory() method to remove the memory from
  * the GATT.
@@ -871,7 +902,7 @@ void agp_generic_free_by_type(agp_memory * curr)
 /*@{*/
 
 /**
- * \sa agp_bridge_data::alloc_page.
+ * \sa agp_bridge_data::agp_alloc_page.
  */
 void *agp_generic_alloc_page(void)
 {
@@ -890,7 +921,7 @@ void *agp_generic_alloc_page(void)
 }
 
 /**
- * \sa agp_bridge_data::destroy_page.
+ * \sa agp_bridge_data::agp_destroy_page.
  */
 void agp_generic_destroy_page(void *addr)
 {
@@ -910,9 +941,10 @@ void agp_generic_destroy_page(void *addr)
 /*@}*/
 
 /**
- * Enable the AGP bus.
- *
- * \param mode AGP mode.
+ * This function initializes the agp point-to-point
+ * connection.
+ * 
+ * \param mode AGP mode register.
  *
  * Calls agp_bridge_data::agp_enable().
  */
@@ -929,7 +961,7 @@ void agp_enable(u32 mode)
  * 
  * \note All chipsets for a single vendor MUST be grouped together
  */
-static struct {
+static struct _agp_bridge_info {
 	unsigned short device_id;	/**< device id (first, to make table easier to read) */
 	unsigned short vendor_id;	/**< vendor ID */
 	enum chipset_type chipset;	/**< chipset */
@@ -1367,6 +1399,10 @@ static struct {
  * \param pdev PCI device.
  * \return zero on success, or a negative number on failure.
  * 
+ * Searches agp_bridge_info for a matching vendor and device ID's and calls the
+ * function in _agp_bridge_info::chipset_setup field. If the user requested
+ * (agp_try_unsupported is set) and there is a \e generic bridge entry (zero
+ * device ID) try it.
  */
 static int __init agp_lookup_host_bridge (struct pci_dev *pdev)
 {
@@ -1783,6 +1819,17 @@ static void agp_backend_cleanup(void)
 	}
 }
 
+/**
+ * Power management callback.
+ * 
+ * \param dev power management device structure.
+ * \param rq request.
+ * \param data auxiliary data. (Not referenced.)
+ * \return zero on success or a negative number on failure.
+ *
+ * Calls agp_bridge_data::suspend or agp_bridge_data::resume according with the
+ * request.
+ */
 static int agp_power(struct pm_dev *dev, pm_request_t rq, void *data)
 {
 	switch(rq)
@@ -1799,6 +1846,9 @@ static int agp_power(struct pm_dev *dev, pm_request_t rq, void *data)
 extern int agp_frontend_initialize(void);
 extern void agp_frontend_cleanup(void);
 
+/**
+ * \copydoc drm_agp_t
+ */
 static const drm_agp_t drm_agp = {
 	&agp_free_memory,
 	&agp_allocate_memory,
@@ -1837,6 +1887,9 @@ static int agp_probe (struct pci_dev *dev, const struct pci_device_id *ent)
 	return 0;
 }
 
+/**
+ * PCI device table.  Has a single entry matching any PCI device.
+ */
 static struct pci_device_id agp_pci_table[] __initdata = {
 	{
 	.class		= (PCI_CLASS_BRIDGE_HOST << 8),
@@ -1851,12 +1904,23 @@ static struct pci_device_id agp_pci_table[] __initdata = {
 
 MODULE_DEVICE_TABLE(pci, agp_pci_table);
 
+/**
+ * PCI driver structure.
+ */
 static struct pci_driver agp_pci_driver = {
 	.name		= "agpgart",
 	.id_table	= agp_pci_table,
 	.probe		= agp_probe,
 };
 
+/**
+ * Module initialization.
+ *
+ * \return zero on success or a negative number on failure.
+ *
+ * Calls pci_module_init() with agp_pci_driver, and on failure sets
+ * agp_bridge_data::type as not supported.
+ */
 int __init agp_init(void)
 {
 	int ret_val;
@@ -1872,6 +1936,13 @@ int __init agp_init(void)
 	return 0;
 }
 
+/**
+ * Module exit.
+ *
+ * Unregisters the PCI device and, for supported chips, unregister the power
+ * management callback function, calls the frontend and backend cleanup
+ * routines and unregister the inter module symbol drm_agp.
+ */
 static void __exit agp_cleanup(void)
 {
 	pci_unregister_driver(&agp_pci_driver);

@@ -1,6 +1,6 @@
 /**
  * \file agpgart.h
- * \brief AGPGART module
+ * AGPGART module
  * \version 0.99
  * 
  * \author Jeff Hartmann
@@ -119,8 +119,11 @@ typedef struct _agp_unbind {
 
 #define AGPGART_MINOR 175
 
+/** Unlocks the AGP device */
 #define AGP_UNLOCK()      	up(&(agp_fe.agp_mutex));
+/** Locks the AGP device */
 #define AGP_LOCK()    		down(&(agp_fe.agp_mutex));
+/** Initializes the AGP device lock */
 #define AGP_LOCK_INIT() 	sema_init(&(agp_fe.agp_mutex), 1)
 
 #ifndef _AGP_BACKEND_H
@@ -131,6 +134,7 @@ struct _agp_version {
 
 #endif
 
+/** Information ioctl argument */
 typedef struct _agp_info {
 	struct agp_version version;	/**< version of the driver        */
 	u32 bridge_id;		/**< bridge vendor/device         */
@@ -142,31 +146,35 @@ typedef struct _agp_info {
 	size_t pg_used;		/**< current pages used           */
 } agp_info;
 
+/** Setup ioctl argument */
 typedef struct _agp_setup {
 	u32 agp_mode;		/**< mode info of bridge          */
 } agp_setup;
 
-/*
- * The "prot" down below needs still a "sleep" flag somehow ...
- */
+/** Segment (user). */
 typedef struct _agp_segment {
 	off_t pg_start;		/**< starting page to populate    */
 	size_t pg_count;	/**< number of pages              */
-	int prot;		/**< prot flags for mmap          */
+	int prot;		/**< prot flags for mmap.
+				 * \todo still needs a "sleep" flag somehow...
+				 * */
 } agp_segment;
 
+/** Segment (private) */
 typedef struct _agp_segment_priv {
-	off_t pg_start;
-	size_t pg_count;
-	pgprot_t prot;
+	off_t pg_start;		/**< starting page to populate    */
+	size_t pg_count;	/**< number of pages              */
+	pgprot_t prot;		/**< memory protection flags      */
 } agp_segment_priv;
 
+/** Reserve ioctl argument */
 typedef struct _agp_region {
 	pid_t pid;		/**< pid of process               */
 	size_t seg_count;	/**< number of segments           */
 	struct _agp_segment *seg_list;
 } agp_region;
 
+/** Allocate ioctl argument */
 typedef struct _agp_allocate {
 	int key;		/**< tag of allocation            */
 	size_t pg_count;	/**< number of pages              */
@@ -177,51 +185,60 @@ typedef struct _agp_allocate {
 				 * table)                        */
 } agp_allocate;
 
+/** Bind ioctl argument */
 typedef struct _agp_bind {
 	int key;		/**< tag of allocation            */
 	off_t pg_start;		/**< starting page to populate    */
 } agp_bind;
 
+/** Unbind ioctl argument */
 typedef struct _agp_unbind {
 	int key;		/**< tag of allocation            */
 	u32 priority;		/**< priority for paging out      */
 } agp_unbind;
 
+/** AGP client */
 typedef struct _agp_client {
 	struct _agp_client *next;
 	struct _agp_client *prev;
-	pid_t pid;
-	int num_segments;
-	agp_segment_priv **segments;
+	pid_t pid;		/**< process id */
+	int num_segments;	/**< number of segments */
+	agp_segment_priv **segments;	/**< segment array */
 } agp_client;
 
+/** AGP controller. */
 typedef struct _agp_controller {
 	struct _agp_controller *next;
 	struct _agp_controller *prev;
-	pid_t pid;
-	int num_clients;
-	agp_memory *pool;
-	agp_client *clients;
+	pid_t pid;		/**< process id */
+	int num_clients;	/**< number of clients */
+	agp_memory *pool;	/**< doubly linked memory pool */
+	agp_client *clients;	/**< doubly linked client list */
 } agp_controller;
 
+/** \name File flags */
+/*@{*/
 #define AGP_FF_ALLOW_CLIENT		0
 #define AGP_FF_ALLOW_CONTROLLER 	1
 #define AGP_FF_IS_CLIENT		2
 #define AGP_FF_IS_CONTROLLER		3
 #define AGP_FF_IS_VALID 		4
+/*@}*/
 
+/** File private data. */
 typedef struct _agp_file_private {
 	struct _agp_file_private *next;
 	struct _agp_file_private *prev;
-	pid_t my_pid;
-	long access_flags;	/**< long req'd for set_bit --RR */
+	pid_t my_pid;		/**< process id */
+	long access_flags;	/**< long required for set_bit --RR */
 } agp_file_private;
 
+/** Frontend data. */
 struct agp_front_data {
-	struct semaphore agp_mutex;
+	struct semaphore agp_mutex;	/**< device mutex. \sa #AGP_INIT, #AGP_LOCK and #AGP_UNLOCK */
 	agp_controller *current_controller;
 	agp_controller *controllers;
-	agp_file_private *file_priv_list;
+	agp_file_private *file_priv_list;	/**< file private data doubly linked list */
 	u8 used_by_controller;
 	u8 backend_acquired;
 };

@@ -1,6 +1,6 @@
 /**
  * \file i810_agp.c
- * \brief AGPGART module i810 backend
+ * AGPGART module i810 backend
  * \version 0.99
  * 
  * \author Jeff Hartmann

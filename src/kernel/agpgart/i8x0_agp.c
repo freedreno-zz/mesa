@@ -1,6 +1,6 @@
 /**
  * \file i8x0_agp.c
- * \brief AGPGART module i8x0 backend
+ * AGPGART module i8x0 backend
  * \version 0.99
  * 
  * \author Jeff Hartmann
@@ -39,6 +39,15 @@
 #include "agp.h"
 
 
+/**
+ * Fetch aperture size -- Intel generic.
+ *
+ * \return always zero.
+ *
+ * Reads the aperture size and points agp_bridge_data::previous_size and
+ * agp_bridge_data::current_size to the agp_bridge_data::aperture_sizes entry
+ * with the matching aperture size.
+ */
 static int intel_fetch_size(void)
 {
 	int i;
@@ -60,6 +69,14 @@ static int intel_fetch_size(void)
 	return 0;
 }
 
+/**
+ * Fetch aperture size -- Intel i8xx.
+ *
+ * \return always zero.
+ *
+ * Same as for intel_fetch_size() but with special care for Intel 815 chipsets
+ * which have only one non-reserved bit on the APSIZE register.
+ */
 static int intel_8xx_fetch_size(void)
 {
 	int i;
@@ -87,6 +104,9 @@ static int intel_8xx_fetch_size(void)
 }
 
 
+/**
+ * Flush the table -- Intel generic.
+ */
 static void intel_tlbflush(agp_memory * mem)
 {
 	pci_write_config_dword(agp_bridge.dev, INTEL_AGPCTRL, 0x2200);
@@ -94,6 +114,9 @@ static void intel_tlbflush(agp_memory * mem)
 }
 
 
+/**
+ * Flush the table -- Intel i8xx.
+ */
 static void intel_8xx_tlbflush(agp_memory * mem)
 {
   u32 temp;
@@ -104,6 +127,11 @@ static void intel_8xx_tlbflush(agp_memory * mem)
 }
 
 
+/** 
+ * Backend cleanup -- Intel generic.
+ *
+ * Sets the previous aperture size.
+ */
 static void intel_cleanup(void)
 {
 	u16 temp;
@@ -117,6 +145,11 @@ static void intel_cleanup(void)
 }
 
 
+/** 
+ * Backend cleanup -- Intel i8xx.
+ *
+ * Same as intel_cleanup().
+ */
 static void intel_8xx_cleanup(void)
 {
 	u16 temp;
@@ -130,6 +163,13 @@ static void intel_8xx_cleanup(void)
 }
 
 
+/**
+ * Configure -- Intel generic.
+ *
+ * \return always zero.
+ *
+ * Sets the hardware registers with the information in agp_bridge_data.
+ */
 static int intel_configure(void)
 {
 	u32 temp;
@@ -162,6 +202,11 @@ static int intel_configure(void)
 	return 0;
 }
 
+/**
+ * Configure -- Intel i815.
+ *
+ * Similar to intel_configure()
+ */
 static int intel_815_configure(void)
 {
 	u32 temp, addr;
@@ -200,11 +245,17 @@ static int intel_815_configure(void)
 	return 0;
 }
 
+/** No-op. */
 static void intel_820_tlbflush(agp_memory * mem)
 {
   return;
 }
 
+/** 
+ * Backend cleanup -- Intel i8xx.
+ *
+ * Similar to as intel_cleanup().
+ */
 static void intel_820_cleanup(void)
 {
 	u8 temp;
@@ -219,6 +270,11 @@ static void intel_820_cleanup(void)
 }
 
 
+/**
+ * Configure -- Intel i820.
+ *
+ * Similar to intel_configure()
+ */
 static int intel_820_configure(void)
 {
 	u32 temp;
@@ -253,6 +309,11 @@ static int intel_820_configure(void)
 	return 0;
 }
 
+/**
+ * Configure -- Intel i840.
+ *
+ * Similar to intel_configure()
+ */
 static int intel_840_configure(void)
 {
 	u32 temp;
@@ -285,6 +346,11 @@ static int intel_840_configure(void)
 	return 0;
 }
 
+/**
+ * Configure -- Intel i845.
+ *
+ * Similar to intel_configure()
+ */
 static int intel_845_configure(void)
 {
 	u32 temp;
@@ -317,11 +383,17 @@ static int intel_845_configure(void)
 	return 0;
 }
 
+/** Calls intel_845_configure() */
 static void intel_845_resume(void)
 {
 	intel_845_configure();
 }
 
+/**
+ * Configure -- Intel i850.
+ *
+ * Similar to intel_configure()
+ */
 static int intel_850_configure(void)
 {
 	u32 temp;
@@ -354,6 +426,11 @@ static int intel_850_configure(void)
 	return 0;
 }
 
+/**
+ * Configure -- Intel i860.
+ *
+ * Similar to intel_configure()
+ */
 static int intel_860_configure(void)
 {
 	u32 temp;
@@ -386,6 +463,11 @@ static int intel_860_configure(void)
 	return 0;
 }
 
+/**
+ * Configure -- Intel i830mp.
+ *
+ * Similar to intel_configure()
+ */
 static int intel_830mp_configure(void)
 {
 	u32 temp;
@@ -418,6 +500,9 @@ static int intel_830mp_configure(void)
 	return 0;
 }
 
+/** 
+ * Masks against the first mask in agp_bridge_data::masks.
+ */
 static unsigned long intel_mask_memory(unsigned long addr, int type)
 {
 	/* Memory type is ignored */
@@ -425,23 +510,26 @@ static unsigned long intel_mask_memory(unsigned long addr, int type)
 	return addr | agp_bridge.masks[0].mask;
 }
 
+/** Calls intel_configure() */
 static void intel_resume(void)
 {
 	intel_configure();
 }
 
-/* Setup function */
+/** Setup function */
 static struct gatt_mask intel_generic_masks[] =
 {
 	{mask: 0x00000017, type: 0}
 };
 
+/** Aperture sizes -- Intel i815 */
 static struct aper_size_info_8 intel_815_sizes[2] =
 {
 	{64, 16384, 4, 0},
 	{32, 8192, 3, 8},
 };
 	
+/** Aperture sizes -- Intel i8xx */
 static struct aper_size_info_8 intel_8xx_sizes[7] =
 {
 	{256, 65536, 6, 0},
@@ -453,6 +541,7 @@ static struct aper_size_info_8 intel_8xx_sizes[7] =
 	{4, 1024, 0, 63}
 };
 
+/** Aperture sizes -- Intel generic */
 static struct aper_size_info_16 intel_generic_sizes[7] =
 {
 	{256, 65536, 6, 0},
@@ -464,6 +553,7 @@ static struct aper_size_info_16 intel_generic_sizes[7] =
 	{4, 1024, 0, 63}
 };
 
+/** Aperture sizes -- Intel i830mp */
 static struct aper_size_info_8 intel_830mp_sizes[4] = 
 {
   {256, 65536, 6, 0},
@@ -472,6 +562,15 @@ static struct aper_size_info_8 intel_830mp_sizes[4] =
   {32, 8192, 3, 56}
 };
 
+/**
+ * Setup -- Intel generic.
+ *
+ * \param pdev not referenced.
+ * \return always zero.
+ * 
+ * Initializes the device dependent part agp_bride_data structure in agp_bride,
+ * using the the functions above for the driver callbacks.
+ */
 int __init intel_generic_setup (struct pci_dev *pdev)
 {
 	agp_bridge.masks = intel_generic_masks;
@@ -505,6 +604,11 @@ int __init intel_generic_setup (struct pci_dev *pdev)
 	(void) pdev; /* unused */
 }
 
+/**
+ * Setup -- Intel i815.
+ *
+ * Similar to intel_generic_setup().
+ */
 int __init intel_815_setup (struct pci_dev *pdev)
 {
 	agp_bridge.masks = intel_generic_masks;
@@ -537,6 +641,11 @@ int __init intel_815_setup (struct pci_dev *pdev)
 }
 
 
+/**
+ * Setup -- Intel i820.
+ *
+ * Similar to intel_generic_setup().
+ */
 int __init intel_820_setup (struct pci_dev *pdev)
 {
        agp_bridge.masks = intel_generic_masks;
@@ -570,6 +679,11 @@ int __init intel_820_setup (struct pci_dev *pdev)
        (void) pdev; /* unused */
 }
 
+/**
+ * Setup -- Intel i830mp.
+ *
+ * Similar to intel_generic_setup().
+ */
 int __init intel_830mp_setup (struct pci_dev *pdev)
 {
        agp_bridge.masks = intel_generic_masks;
@@ -603,6 +717,11 @@ int __init intel_830mp_setup (struct pci_dev *pdev)
        (void) pdev; /* unused */
 }
 
+/**
+ * Setup -- Intel i840.
+ *
+ * Similar to intel_generic_setup().
+ */
 int __init intel_840_setup (struct pci_dev *pdev)
 {
 	agp_bridge.masks = intel_generic_masks;
@@ -636,6 +755,11 @@ int __init intel_840_setup (struct pci_dev *pdev)
 	(void) pdev; /* unused */
 }
 
+/**
+ * Setup -- Intel i845.
+ *
+ * Similar to intel_generic_setup().
+ */
 int __init intel_845_setup (struct pci_dev *pdev)
 {
 	agp_bridge.masks = intel_generic_masks;
@@ -669,6 +793,11 @@ int __init intel_845_setup (struct pci_dev *pdev)
 	(void) pdev; /* unused */
 }
 
+/**
+ * Setup -- Intel i850.
+ *
+ * Similar to intel_generic_setup().
+ */
 int __init intel_850_setup (struct pci_dev *pdev)
 {
 	agp_bridge.masks = intel_generic_masks;
@@ -702,6 +831,11 @@ int __init intel_850_setup (struct pci_dev *pdev)
 	(void) pdev; /* unused */
 }
 
+/**
+ * Setup -- Intel i860.
+ *
+ * Similar to intel_generic_setup().
+ */
 int __init intel_860_setup (struct pci_dev *pdev)
 {
 	agp_bridge.masks = intel_generic_masks;
