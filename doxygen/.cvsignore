@@ -1,0 +1,9 @@
+*.tag
+array_cache
+core
+math
+miniglx
+swrast
+swrast_setup
+tnl
+tnl_dd
