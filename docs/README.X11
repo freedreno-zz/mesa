@@ -21,6 +21,7 @@ There are two ways to compile Mesa on Unix/X11 systems:
 
 2. The new way:
     Type './configure' and then 'make'.  This uses GNU autoconfig.
+    See docs/INSTALL for more details.
 
 
 The top-level makefile will execute the makefiles in a number of sub-
@@ -307,4 +308,4 @@ Summary of X-related environment variables:
 
 
 ----------------------------------------------------------------------
-$Id: README.X11,v 3.3.2.1 1999/12/14 07:15:38 brianp Exp $
+$Id: README.X11,v 3.3.2.2 1999/12/14 15:12:52 brianp Exp $
