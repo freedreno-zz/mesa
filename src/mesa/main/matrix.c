@@ -1,4 +1,4 @@
-/* $Id: matrix.c,v 1.18.4.2 2000/11/05 21:24:01 brianp Exp $ */
+/* $Id: matrix.c,v 1.18.4.3 2001/03/19 22:45:31 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -1452,6 +1452,9 @@ _mesa_Viewport( GLint x, GLint y, GLsizei width, GLsizei height )
 void
 gl_Viewport( GLcontext *ctx, GLint x, GLint y, GLsizei width, GLsizei height )
 {
+   const GLfloat n = ctx->Viewport.Near;
+   const GLfloat f = ctx->Viewport.Far;
+
    ASSERT_OUTSIDE_BEGIN_END_AND_FLUSH(ctx, "glViewport");
 
    if (width<0 || height<0) {
@@ -1477,8 +1480,8 @@ gl_Viewport( GLcontext *ctx, GLint x, GLint y, GLsizei width, GLsizei height )
    ctx->Viewport.WindowMap.m[MAT_TX] = ctx->Viewport.WindowMap.m[MAT_SX] + x;
    ctx->Viewport.WindowMap.m[MAT_SY] = (GLfloat) height / 2.0F;
    ctx->Viewport.WindowMap.m[MAT_TY] = ctx->Viewport.WindowMap.m[MAT_SY] + y;
-   ctx->Viewport.WindowMap.m[MAT_SZ] = 0.5 * ctx->Visual->DepthMaxF;
-   ctx->Viewport.WindowMap.m[MAT_TZ] = 0.5 * ctx->Visual->DepthMaxF;
+   ctx->Viewport.WindowMap.m[MAT_SZ] = ctx->Visual->DepthMaxF * ((f - n) / 2.0);
+   ctx->Viewport.WindowMap.m[MAT_TZ] = ctx->Visual->DepthMaxF * ((f - n) / 2.0 + n);
 
    ctx->Viewport.WindowMap.flags = MAT_FLAG_GENERAL_SCALE|MAT_FLAG_TRANSLATION;
    ctx->Viewport.WindowMap.type = MATRIX_3D_NO_ROT;
