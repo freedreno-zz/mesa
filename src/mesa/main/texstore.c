@@ -1,4 +1,4 @@
-/* $Id: texstore.c,v 1.47.2.6 2003/03/04 19:24:20 brianp Exp $ */
+/* $Id: texstore.c,v 1.47.2.7 2003/03/28 22:01:08 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -482,6 +482,7 @@ _mesa_transfer_teximage(GLcontext *ctx, GLuint dimensions,
           baseInternalFormat == GL_ALPHA ||
           baseInternalFormat == GL_RGB ||
           baseInternalFormat == GL_RGBA ||
+          baseInternalFormat == GL_COLOR_INDEX ||
           baseInternalFormat == GL_DEPTH_COMPONENT);
 
    if (transferOps & IMAGE_CONVOLUTION_BIT) {
