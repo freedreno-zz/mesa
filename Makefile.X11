@@ -1,7 +1,7 @@
-# $Id: Makefile.X11,v 1.57 2001/10/22 22:45:18 brianp Exp $
+# $Id: Makefile.X11,v 1.56.2.1 2001/10/30 16:00:20 keithw Exp $
 
 # Mesa 3-D graphics library
-# Version:  4.1
+# Version:  4.0
 # 
 # Copyright (C) 1999-2001  Brian Paul   All Rights Reserved.
 # 
@@ -141,7 +141,7 @@ aix aix-sl amix bsdos bsdos4 dgux freebsd freebsd-386 gcc \
 hpux9 hpux9-sl hpux9-gcc hpux9-gcc-sl \
 hpux10 hpux10-sl hpux10-gcc hpux10-gcc-sl \
 irix4 irix5 irix5-gcc irix5-dso irix6-o32 irix6-o32-dso \
-linux linux-static linux-debug linux-static-debug linux-prof \
+linux linux-static linux-debug linux-x11-debug linux-static-debug linux-prof \
 linux-x86 linux-x86-static linux-x86-debug \
 linux-glide linux-386-glide linux-386-opt-glide \
 linux-x86-glide linux-glide-debug linux-glide-prof \

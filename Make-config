@@ -1,7 +1,7 @@
-# $Id: Make-config,v 1.51 2001/10/22 22:45:18 brianp Exp $
+# $Id: Make-config,v 1.50.2.1 2001/10/30 16:00:20 keithw Exp $
 
 MESA_MAJOR=4
-MESA_MINOR=1
+MESA_MINOR=0
 MESA_TINY=0
 VERSION=$(MESA_MAJOR).$(MESA_MINOR)
 
@@ -1459,6 +1459,24 @@ linux-debug:
 	"GLU_LIB_DEPS = -L../lib -lGL -lm" \
 	"GLUT_LIB_DEPS = -L../lib -lGLU -lGL -L/usr/X11R6/lib -lX11 -lXmu -lXt -lXi -lm" \
 	"APP_LIB_DEPS = -lglut -lGLU -lGL -L/usr/local/glide/lib -lglide2x"
+
+linux-x11-debug:
+	$(MAKE) $(MFLAGS) -f Makefile.X11 targets \
+	"GL_LIB = libGL.so" \
+	"GLU_LIB = libGLU.so" \
+	"GLUT_LIB = libglut.so" \
+	"GLW_LIB = libGLw.so" \
+	"OSMESA_LIB = libOSMesa.so" \
+	"CC = gcc" \
+	"CPLUSPLUS = g++" \
+	"CFLAGS = -g -ansi -pedantic -Wall -Wmissing-prototypes -Wundef -fPIC -ffast-math -D_SVID_SOURCE -D_BSD_SOURCE -I/usr/X11R6/include -DUSE_XSHM -DPTHREADS -DDEBUG -DMESA_DEBUG -DMESA_TRACE" \
+	"CCFLAGS = $(CFLAGS)" \
+	"MAKELIB = ../bin/mklib.linux" \
+	"GL_LIB_DEPS = -L/usr/X11R6/lib -lX11 -lXext -lm -lpthread" \
+	"GLU_LIB_DEPS = -L../lib -lGL -lm" \
+	"GLUT_LIB_DEPS = -L../lib -lGLU -lGL -L/usr/X11R6/lib -lX11 -lXmu -lXt -lXi -lm" \
+	"APP_LIB_DEPS = -lglut -lGLU -lGL"
+
 
 linux-static-debug:
 	$(MAKE) $(MFLAGS) -f Makefile.X11 targets \
