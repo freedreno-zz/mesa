@@ -1,10 +1,10 @@
-/* $Id: gl.h,v 1.59.2.5 2002/08/30 13:52:16 brianp Exp $ */
+/* $Id: gl.h,v 1.59.2.6 2002/09/06 02:57:17 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
  * Version:  4.0.4
  *
- * Copyright (C) 1999-2003  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -2466,20 +2466,6 @@ GLAPI void GLAPIENTRY glResizeBuffersMESA( void );
 #else  /* GL_GLEXT_LEGACY */
 
 #include <GL/glext.h>
-
-/* fix-up known errors in glext.h */
-#ifndef GL_TEXTURE_BINDING_3D
-#define GL_TEXTURE_BINDING_3D		   0x806A
-#endif
-#ifdef GL_IGNORE_BORDER
-#undef GL_IGNORE_BORDER /* invalid! */
-#endif
-#ifdef GL_WRAP_BORDER
-#undef GL_WRAP_BORDER /* invalid! */
-#endif
-#ifndef GL_POST_COLOR_MATRIX_ALPHA_BIAS
-#define GL_POST_COLOR_MATRIX_ALPHA_BIAS    0x80BB
-#endif
 
 #endif  /* GL_GLEXT_LEGACY */
 
