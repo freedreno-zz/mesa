@@ -1,4 +1,4 @@
-$Id: VERSIONS,v 1.118.2.2 2002/11/28 15:53:06 brianp Exp $
+$Id: VERSIONS,v 1.118.2.3 2002/12/03 03:18:19 brianp Exp $
 
 
 Mesa Version History
@@ -1086,5 +1086,8 @@ Mesa Version History
     Bug fixes:
 	- auto mipmap generation for cube maps was broken (bug 641363)
 	- writing/clearing software alpha channels was unreliable
+	- minor compilation fixes for OS/2 (Evgeny Kotsuba)
+	- fixed some bad assertions found with shadowtex demo
     Changes:
 	- use glPolygonOffset in gloss demo to avoid z-fighting artifacts
+	- updated winpos and pointblast demos to use ARB extensions
