@@ -1,4 +1,4 @@
-/* $Id: texline.c,v 1.4 2002/08/17 00:30:36 brianp Exp $ */
+/* $Id: texline.c,v 1.4.6.1 2003/03/22 08:46:22 keithw Exp $ */
 
 /*
  * Test textured lines.
@@ -59,7 +59,7 @@ static void Display( void )
             y = t * 2.0 - 1.0;
             if (!Texture)
                glColor3f(1, 0, 1);
-            glMultiTexCoord2fARB(GL_TEXTURE1_ARB, t, s);
+/*             glMultiTexCoord2fARB(GL_TEXTURE1_ARB, t, s); */
             glTexCoord2f(s, t);
             glVertex2f(x, y);
          }
@@ -73,12 +73,12 @@ static void Display( void )
          if (!Texture)
             glColor3f(1, 0, 1);
          glTexCoord2f(t, 0.0);
-         glMultiTexCoord2fARB(GL_TEXTURE1_ARB, 0.0, t);
+/*          glMultiTexCoord2fARB(GL_TEXTURE1_ARB, 0.0, t); */
          glVertex2f(x, -1.0);
          if (!Texture)
             glColor3f(0, 1, 0);
          glTexCoord2f(t, 1.0);
-         glMultiTexCoord2fARB(GL_TEXTURE1_ARB, 1.0, t);
+/*          glMultiTexCoord2fARB(GL_TEXTURE1_ARB, 1.0, t); */
          glVertex2f(x, 1.0);
       }
       glEnd();
@@ -127,22 +127,22 @@ static void Key( unsigned char key, int x, int y )
          if (Texture > 2)
             Texture = 0;
          if (Texture == 0) {
-            glActiveTextureARB(GL_TEXTURE0_ARB);
+/*             glActiveTextureARB(GL_TEXTURE0_ARB); */
             glDisable(GL_TEXTURE_2D);
-            glActiveTextureARB(GL_TEXTURE1_ARB);
-            glDisable(GL_TEXTURE_2D);
+/*             glActiveTextureARB(GL_TEXTURE1_ARB); */
+/*             glDisable(GL_TEXTURE_2D); */
          }
          else if (Texture == 1) {
-            glActiveTextureARB(GL_TEXTURE0_ARB);
+/*             glActiveTextureARB(GL_TEXTURE0_ARB); */
             glEnable(GL_TEXTURE_2D);
-            glActiveTextureARB(GL_TEXTURE1_ARB);
-            glDisable(GL_TEXTURE_2D);
+/*             glActiveTextureARB(GL_TEXTURE1_ARB); */
+/*             glDisable(GL_TEXTURE_2D); */
          }
          else {
-            glActiveTextureARB(GL_TEXTURE0_ARB);
+/*             glActiveTextureARB(GL_TEXTURE0_ARB); */
             glEnable(GL_TEXTURE_2D);
-            glActiveTextureARB(GL_TEXTURE1_ARB);
-            glEnable(GL_TEXTURE_2D);
+/*             glActiveTextureARB(GL_TEXTURE1_ARB); */
+/*             glEnable(GL_TEXTURE_2D); */
          }
          break;
       case 'w':
@@ -212,8 +212,8 @@ static void SpecialKey( int key, int x, int y )
 static void Init( int argc, char *argv[] )
 {
    GLuint u;
-   for (u = 0; u < 2; u++) {
-      glActiveTextureARB(GL_TEXTURE0_ARB + u);
+   for (u = 0; u < 1; u++) {
+/*       glActiveTextureARB(GL_TEXTURE0_ARB + u); */
       glBindTexture(GL_TEXTURE_2D, 10+u);
       if (u == 0)
          glEnable(GL_TEXTURE_2D);

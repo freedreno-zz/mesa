@@ -1,4 +1,4 @@
-/* $Id: manytex.c,v 1.4 2002/10/18 17:47:36 kschultz Exp $ */
+/* $Id: manytex.c,v 1.4.4.1 2003/03/22 08:46:22 keithw Exp $ */
 
 /*
  * test handling of many texture maps
@@ -191,8 +191,8 @@ static void Init( void )
 
       glBindTexture(GL_TEXTURE_2D, TextureID[i]);
 
-      if (i < LowPriorityCount)
-         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_PRIORITY, 0.5F);
+/*       if (i < LowPriorityCount) */
+/*          glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_PRIORITY, 0.5F); */
 
       if (RandomSize) {
 #if 0
