@@ -1,10 +1,10 @@
-/* $Id: extensions.c,v 1.65.2.1 2002/08/28 01:13:34 brianp Exp $ */
+/* $Id: extensions.c,v 1.65.2.2 2002/09/05 21:18:09 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
  * Version:  4.0.4
  *
- * Copyright (C) 1999-2001  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2002  Brian Paul   All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -101,6 +101,7 @@ static struct {
    { OFF, "GL_EXT_vertex_array_set",           F(EXT_vertex_array_set) },
    { OFF, "GL_HP_occlusion_test",              F(HP_occlusion_test) },
    { ON,  "GL_IBM_rasterpos_clip",             F(IBM_rasterpos_clip) },
+   { OFF, "GL_IBM_texture_mirrored_repeat",    F(ARB_texture_mirrored_repeat)},
    { OFF, "GL_INGR_blend_func_separate",       F(INGR_blend_func_separate) },
    { OFF, "GL_MESA_packed_depth_stencil",      0 },
    { OFF, "GL_MESA_resize_buffers",            F(MESA_resize_buffers) },
@@ -160,6 +161,7 @@ _mesa_enable_sw_extensions(GLcontext *ctx)
       "GL_EXT_texture_env_dot3",
       "GL_EXT_texture_lod_bias",
       "GL_HP_occlusion_test",
+      "GL_IBM_texture_mirrored_repeat",
       "GL_INGR_blend_func_separate",
       "GL_MESA_resize_buffers",
       "GL_NV_blend_square",
