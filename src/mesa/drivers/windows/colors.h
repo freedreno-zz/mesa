@@ -24,8 +24,11 @@
 
 /*
  * $Log: colors.h,v $
- * Revision 1.1  1999/08/19 00:55:42  jtg
- * Initial revision
+ * Revision 1.1.1.1.8.1  2002/01/15 16:12:15  kschultz
+ * Remove trailing CR's from most of the lines.  No logical changes.
+ *
+ * Revision 1.1.1.1  1999/08/19 00:55:42  jtg
+ * Imported sources
  *
  * Revision 1.2  1999/01/03 03:08:57  brianp
  * Ted Jump's changes
@@ -39,8 +42,11 @@
 
 /*
  * $Log: colors.h,v $
- * Revision 1.1  1999/08/19 00:55:42  jtg
- * Initial revision
+ * Revision 1.1.1.1.8.1  2002/01/15 16:12:15  kschultz
+ * Remove trailing CR's from most of the lines.  No logical changes.
+ *
+ * Revision 1.1.1.1  1999/08/19 00:55:42  jtg
+ * Imported sources
  *
  * Revision 1.2  1999/01/03 03:08:57  brianp
  * Ted Jump's changes
@@ -54,8 +60,11 @@
  
 /*
  * $Log: colors.h,v $
- * Revision 1.1  1999/08/19 00:55:42  jtg
- * Initial revision
+ * Revision 1.1.1.1.8.1  2002/01/15 16:12:15  kschultz
+ * Remove trailing CR's from most of the lines.  No logical changes.
+ *
+ * Revision 1.1.1.1  1999/08/19 00:55:42  jtg
+ * Imported sources
  *
  * Revision 1.2  1999/01/03 03:08:57  brianp
  * Ted Jump's changes
@@ -496,4 +505,4 @@ char unsigned const aWinGHalftoneTranslation[216] =
   225,
   226,
   255,
-};
+}
