@@ -1,4 +1,4 @@
-# $Id: Makefile.X11,v 1.72 2002/10/29 23:09:40 brianp Exp $
+# $Id: Makefile.X11,v 1.72.4.1 2002/11/21 14:59:05 brianp Exp $
 
 # Mesa 3-D graphics library
 # Version:  5.0
@@ -144,6 +144,8 @@ CORE_SOURCES = \
 
 
 DRIVER_SOURCES = \
+	fbdev/glfbdev.c \
+	miniglx/miniglx.c \
 	FX/fxapi.c \
 	FX/fxdd.c \
 	FX/fxddspan.c \
