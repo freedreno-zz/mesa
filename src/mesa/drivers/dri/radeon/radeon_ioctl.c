@@ -38,6 +38,13 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "glheader.h"
 #include "imports.h"
 #include "simple_list.h"
+#include "radeon_context.h"
+#include "radeon_state.h"
+#include "radeon_ioctl.h"
+#include "radeon_tcl.h"
+#include "radeon_macros.h"  /* for INREG() */
+#include <unistd.h>  /* for usleep() */
+#include <errno.h>
 
 #if _HAVE_SWRAST
 #include "swrast/swrast.h"
@@ -46,26 +53,9 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "radeon_sanity.h"
 #endif
 
-#include "radeon_context.h"
-#include "radeon_state.h"
-#include "radeon_ioctl.h"
-#include "radeon_tcl.h"
-#include "radeon_macros.h"  /* for INREG() */
-
-#undef usleep
-#include <unistd.h>  /* for usleep() */
-
-#include <errno.h>
-
 #define RADEON_TIMEOUT             512
 #define RADEON_IDLE_RETRY           16
 
-
-static void do_usleep( int nr, const char *caller )
-{
-   if (0) fprintf(stderr, "usleep %d in %s\n", nr, caller );
-   if (1) usleep( nr );
-}
 
 static void radeonWaitForIdle( radeonContextPtr rmesa );
 
@@ -123,9 +113,8 @@ void radeonEmitState( radeonContextPtr rmesa )
 
       rmesa->lost_context = 0;
    }
-   else if (1) {
-      /* This is a darstardly kludge to work around a lockup that I
-       * haven't otherwise figured out.
+   else {
+      /* Work around q3 lockup:
        */
       move_to_tail(&(rmesa->hw.dirty), &(rmesa->hw.zbs) );
    }
@@ -183,6 +172,7 @@ extern void radeonEmitVbufPrim( radeonContextPtr rmesa,
 }
 
 
+#if _HAVE_FULL_GL
 void radeonFlushElts( radeonContextPtr rmesa )
 {
    int *cmd = (int *)(rmesa->store.cmd_buf + rmesa->store.elts_start);
@@ -250,17 +240,6 @@ GLushort *radeonAllocEltsOpenEnded( radeonContextPtr rmesa,
    return retval;
 }
 
-
-
-void radeonEmitVertexAOS( radeonContextPtr rmesa,
-			  GLuint vertex_size,
-			  GLuint offset )
-{
-   rmesa->ioctl.vertex_size = vertex_size;
-   rmesa->ioctl.vertex_offset = offset;
-}
-		       
-
 void radeonEmitAOS( radeonContextPtr rmesa,
 		    struct radeon_dma_region **component,
 		    GLuint nr,
@@ -272,6 +251,19 @@ void radeonEmitAOS( radeonContextPtr rmesa,
    rmesa->ioctl.vertex_offset = 
       (component[0]->aos_start + offset * component[0]->aos_stride * 4);
 }
+#endif
+
+
+
+void radeonEmitVertexAOS( radeonContextPtr rmesa,
+			  GLuint vertex_size,
+			  GLuint offset )
+{
+   rmesa->ioctl.vertex_size = vertex_size;
+   rmesa->ioctl.vertex_offset = offset;
+}
+		       
+
 
 
 static int radeonFlushCmdBufLocked( radeonContextPtr rmesa, 
@@ -318,15 +310,6 @@ static int radeonFlushCmdBufLocked( radeonContextPtr rmesa,
       cmd.boxes = (drmClipRect *)rmesa->pClipRects;
    }
 
-   if (0) {
-      int i;
-      for (i = 0 ; i < cmd.nbox ; i++) 
-	 fprintf(stderr, "Emit box %d/%d %d,%d %d,%d\n",
-		 i, cmd.nbox,
-		 cmd.boxes[i].x1, cmd.boxes[i].y1, 
-		 cmd.boxes[i].x2, cmd.boxes[i].y2);
-   }
-
    ret = drmCommandWrite( rmesa->dri.fd,
 			  DRM_RADEON_CMDBUF,
 			  &cmd, sizeof(cmd) );
@@ -346,14 +329,10 @@ static int radeonFlushCmdBufLocked( radeonContextPtr rmesa,
 void radeonFlushCmdBuf( radeonContextPtr rmesa, const char *caller )
 {
    int ret;
-
-	      
    assert (rmesa->dri.drmMinor >= 3);
 
    LOCK_HARDWARE( rmesa );
-
    ret = radeonFlushCmdBufLocked( rmesa, caller );
-
    UNLOCK_HARDWARE( rmesa );
 
    if (ret) {
@@ -611,7 +590,7 @@ static void radeonWaitForFrameCompletion( radeonContextPtr rmesa )
       while (radeonGetLastFrame (rmesa) < sarea->last_frame) {
 	 UNLOCK_HARDWARE( rmesa ); 
 	 if (rmesa->do_usleeps) 
-	    do_usleep(1, __FUNCTION__); 
+	    usleep(1); 
 	 LOCK_HARDWARE( rmesa ); 
       }
    }
@@ -635,9 +614,7 @@ void radeonCopyBuffer( const __DRIdrawablePrivate *dPriv )
    }
 
    RADEON_FIREVERTICES( rmesa );
-
    LOCK_HARDWARE( rmesa );
-
 
    /* Throttle the frame rate -- only allow one pending swap buffers
     * request at a time.
@@ -829,7 +806,7 @@ static void radeonClear( GLcontext *ctx, GLbitfield mask, GLboolean all,
 
       if ( rmesa->do_usleeps ) {
 	 UNLOCK_HARDWARE( rmesa );
-	 do_usleep(1, __FUNCTION__);
+	 usleep(1);
 	 LOCK_HARDWARE( rmesa );
       }
    }

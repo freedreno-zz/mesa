@@ -47,35 +47,9 @@ typedef struct radeon_context *radeonContextPtr;
 #include "radeon_screen.h"
 #include "mm.h"
 
-/* Flags for software fallback cases */
-/* See correponding strings in radeon_swtcl.c */
-#define RADEON_FALLBACK_TEXTURE		0x0001
-#define RADEON_FALLBACK_DRAW_BUFFER	0x0002
-#define RADEON_FALLBACK_STENCIL		0x0004
-#define RADEON_FALLBACK_RENDER_MODE	0x0008
-#define RADEON_FALLBACK_BLEND_EQ	0x0010
-#define RADEON_FALLBACK_BLEND_FUNC	0x0020
-#define RADEON_FALLBACK_DISABLE 	0x0040
-
-/* Use the templated vertex format:
- */
-#define COLOR_IS_RGBA
-#define TAG(x) radeon##x
-#include "tnl_dd/t_dd_vertex.h"
-#undef TAG
-
-typedef void (*radeon_tri_func)( radeonContextPtr,
-				 radeonVertex *,
-				 radeonVertex *,
-				 radeonVertex * );
-
-typedef void (*radeon_line_func)( radeonContextPtr,
-				  radeonVertex *,
-				  radeonVertex * );
-
-typedef void (*radeon_point_func)( radeonContextPtr,
-				   radeonVertex * );
-
+#if _HAVE_SWTNL
+#include "radeon_swtcl.h"
+#endif
 
 struct radeon_colorbuffer_state {
    GLuint clear;
@@ -443,7 +417,7 @@ struct radeon_dma_buffer {
    drmBufPtr buf;
 };
 
-#define GET_START(rvb) (rmesa->radeonScreen->agp_buffer_offset +			\
+#define GET_START(rvb) (rmesa->radeonScreen->agp_buffer_offset +	\
 			(rvb)->address - rmesa->dma.buf0_address +	\
 			(rvb)->start)
 
@@ -518,29 +492,6 @@ struct radeon_tcl_info {
 };
 
 
-/* radeon_swtcl.c
- */
-struct radeon_swtcl_info {
-   GLuint SetupIndex;
-   GLuint SetupNewInputs;
-   GLuint RenderIndex;
-   GLuint vertex_size;
-   GLuint vertex_stride_shift;
-   GLuint vertex_format;
-   char *verts;
-
-   /* Fallback rasterization functions
-    */
-   radeon_point_func draw_point;
-   radeon_line_func draw_line;
-   radeon_tri_func draw_tri;
-
-   GLuint hw_primitive;
-   GLenum render_primitive;
-   GLuint numverts;
-
-   struct radeon_dma_region indexed_verts;
-};
 
 
 struct radeon_ioctl {
@@ -623,7 +574,9 @@ struct radeon_context {
 
    /* radeon_swtcl.c
     */
+#if _HAVE_SWTNL
    struct radeon_swtcl_info swtcl;
+#endif
 
    /* radeon_vtxfmt.c
     */
@@ -650,8 +603,6 @@ static __inline GLuint radeonPackColor( GLuint cpp,
       return 0;
    }
 }
-
-#define RADEON_OLD_PACKETS 1
 
 /* ================================================================
  * Debugging:

@@ -46,6 +46,7 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "radeon_context.h"
 #include "radeon_ioctl.h"
 #include "radeon_state.h"
+#include "radeon_subset.h"
 #include "radeon_tex.h"
 #include "radeon_tcl.h"
 #include "radeon_vtxfmt.h"
@@ -88,7 +89,7 @@ static const GLubyte *radeonGetString( GLcontext *ctx, GLenum name )
       return (GLubyte *)"Tungsten Graphics, Inc.";
 
    case GL_RENDERER:
-      sprintf( buffer, "Mesa DRI Radeon " RADEON_DATE);
+      sprintf( buffer, "Mesa DRI Radeon SUBSET " RADEON_DATE);
 
       /* Append any chipset-specific information.  None yet.
        */
@@ -153,6 +154,7 @@ static const GLubyte *radeonGetString( GLcontext *ctx, GLenum name )
  */
 static const char * const radeon_extensions[] =
 {
+#if _HAVE_FULL_GL
     "GL_ARB_multisample",
     "GL_ARB_multitexture",
     "GL_ARB_texture_border_clamp",
@@ -175,6 +177,7 @@ static const char * const radeon_extensions[] =
     "GL_NV_blend_square",
     "GL_SGIS_generate_mipmap",
     "GL_SGIS_texture_border_clamp",
+#endif
     NULL
 };
 
@@ -198,19 +201,6 @@ static void ResizeBuffers( GLframebuffer *buffer )
 #endif
 }
 
-
-extern void radeonPointsBitmap( GLcontext *ctx, GLint px, GLint py,
-				GLsizei width, GLsizei height,
-				const struct gl_pixelstore_attrib *unpack,
-				const GLubyte *bitmap );
-
-
-extern void radeonReadPixels( GLcontext *ctx,
-			      GLint x, GLint y,
-			      GLsizei width, GLsizei height,
-			      GLenum format, GLenum type,
-			      const struct gl_pixelstore_attrib *packing,
-			      GLvoid *pixels );
 
 /* Initialize the driver's misc functions.
  */
@@ -238,7 +228,7 @@ radeonCreateContext( const __GLcontextModes *glVisual,
    radeonScreenPtr radeonScreen = (radeonScreenPtr)(sPriv->private);
    radeonContextPtr rmesa;
    GLcontext *ctx, *shareCtx;
-   int i;
+   int i, nr;
 
    assert(glVisual);
    assert(driContextPriv);
@@ -292,7 +282,6 @@ radeonCreateContext( const __GLcontextModes *glVisual,
    rmesa->texture.numHeaps = radeonScreen->numTexHeaps;
    make_empty_list( &rmesa->texture.swapped );
 
-   rmesa->swtcl.RenderIndex = ~0;
    rmesa->lost_context = 1;
    
    rmesa->tcl.tcl_flag = RADEON_CP_VC_CNTL_TCL_ENABLE;
@@ -303,20 +292,27 @@ radeonCreateContext( const __GLcontextModes *glVisual,
     * Test for 2 textures * 4 bytes/texel * size * size.
     */
    ctx = rmesa->glCtx;
-   if (radeonScreen->texSize[RADEON_CARD_HEAP] >= 2 * 4 * 2048 * 2048) {
+
+#if _HAVE_FULL_GL
+   nr = 2;
+#else
+   nr = 1;
+#endif
+
+   ctx->Const.MaxTextureUnits = nr;
+   if (radeonScreen->texSize[RADEON_CARD_HEAP] >= nr * 4 * 2048 * 2048) {
       ctx->Const.MaxTextureLevels = 12; /* 2048x2048 */
    }
-   else if (radeonScreen->texSize[RADEON_CARD_HEAP] >= 2 * 4 * 1024 * 1024) {
+   else if (radeonScreen->texSize[RADEON_CARD_HEAP] >= nr * 4 * 1024 * 1024) {
       ctx->Const.MaxTextureLevels = 11; /* 1024x1024 */
    }
-   else if (radeonScreen->texSize[RADEON_CARD_HEAP] >= 2 * 4 * 512 * 512) {
+   else if (radeonScreen->texSize[RADEON_CARD_HEAP] >= nr * 4 * 512 * 512) {
       ctx->Const.MaxTextureLevels = 10; /* 512x512 */
    }
    else {
       ctx->Const.MaxTextureLevels = 9; /* 256x256 */
    }
 
-   ctx->Const.MaxTextureUnits = 2;
    ctx->Const.MaxTextureMaxAnisotropy = 16.0;
 
    /* No wide points.
@@ -359,6 +355,8 @@ radeonCreateContext( const __GLcontextModes *glVisual,
 #if _HAVE_SWTNL
    radeonInitSwtcl( ctx );
 #endif
+   radeonInitSelect( ctx );
+
 
    rmesa->do_irqs = (rmesa->radeonScreen->irq && !getenv("RADEON_NO_IRQS"));
    rmesa->irqsEmitted = 0;
@@ -408,6 +406,7 @@ radeonCreateContext( const __GLcontextModes *glVisual,
    }
 #endif
 
+#if _HAVE_SWRAST && _HAVE_SWTNL
    if (getenv("RADEON_NO_RAST")) {
       fprintf(stderr, "disabling 3D acceleration\n");
       FALLBACK(rmesa, RADEON_FALLBACK_DISABLE, 1); 
@@ -427,10 +426,12 @@ radeonCreateContext( const __GLcontextModes *glVisual,
    if (rmesa->radeonScreen->chipset & RADEON_CHIPSET_TCL) {
       if (!getenv("RADEON_NO_VTXFMT"))
 	 radeonVtxfmtInit( ctx );
-#if _HAVE_SWTNL
       _tnl_need_dlist_norm_lengths( ctx, GL_FALSE );
-#endif
    }
+#else
+   radeonVtxfmtInit( ctx );
+#endif
+
    return GL_TRUE;
 }
 
@@ -492,9 +493,11 @@ radeonDestroyContext( __DRIcontextPrivate *driContextPriv )
 	 radeonFlushCmdBuf( rmesa, __FUNCTION__ );
       }
 
+#if _HAVE_FULL_GL
       if (!rmesa->TclFallback & RADEON_TCL_FALLBACK_TCL_DISABLE)
 	 if (!getenv("RADEON_NO_VTXFMT"))
 	    radeonVtxfmtDestroy( rmesa->glCtx );
+#endif
 
       /* free the Mesa context */
       rmesa->glCtx->DriverCtx = NULL;
@@ -526,11 +529,18 @@ radeonCreateBuffer( __DRIscreenPrivate *driScrnPriv,
       return GL_FALSE; /* not implemented */
    }
    else {
-      const GLboolean swDepth = GL_FALSE;
-      const GLboolean swAlpha = GL_FALSE;
-      const GLboolean swAccum = mesaVis->accumRedBits > 0;
-      const GLboolean swStencil = mesaVis->stencilBits > 0 &&
-         mesaVis->depthBits != 24;
+      GLboolean swDepth = GL_FALSE;
+      GLboolean swAlpha = GL_FALSE;
+      GLboolean swAccum = mesaVis->accumRedBits > 0;
+      GLboolean swStencil = (mesaVis->stencilBits > 0 &&
+			     mesaVis->depthBits != 24);
+
+#if !_HAVE_SWRAST
+      /* Don't allow these if we don't have fallback support.
+       */
+      swAccum = swStencil = GL_FALSE;
+#endif
+
       driDrawPriv->driverPrivate = (void *)
          _mesa_create_framebuffer( mesaVis,
                                    swDepth,
@@ -607,8 +617,10 @@ radeonMakeCurrent( __DRIcontextPrivate *driContextPriv,
 			     driDrawPriv->w, driDrawPriv->h );
       }
 
-/*       if (newRadeonCtx->vb.enabled) */
-/* 	 radeonVtxfmtMakeCurrent( newRadeonCtx->glCtx ); */
+#if _HAVE_FULL_GL
+      if (newRadeonCtx->vb.enabled) 
+	 radeonVtxfmtMakeCurrent( newRadeonCtx->glCtx ); 
+#endif
 
    } else {
       if (RADEON_DEBUG & DEBUG_DRI)

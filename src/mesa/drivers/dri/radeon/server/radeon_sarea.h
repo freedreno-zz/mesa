@@ -190,6 +190,7 @@ typedef struct {
     int age;			/* tracked by clients to update local LRU's */
 } radeon_tex_region_t;
 
+
 typedef struct {
     /* The channel for communication of state information to the kernel
      * on firing a vertex buffer.

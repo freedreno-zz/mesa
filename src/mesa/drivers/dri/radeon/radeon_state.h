@@ -73,5 +73,10 @@ extern void radeonFallback( GLcontext *ctx, GLuint bit, GLboolean mode );
 extern void radeonUpdateSpecular( GLcontext *ctx );
 extern void radeonClipPlane( GLcontext *ctx, GLenum plane, const GLfloat *eq );
 
+extern void radeonUploadMatrixTranspose( radeonContextPtr rmesa, GLfloat *src, 
+					 int idx );
+extern void radeonUploadMatrix( radeonContextPtr rmesa, GLfloat *src, int idx );
+
+
 
 #endif

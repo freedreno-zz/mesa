@@ -220,6 +220,26 @@ void radeonUpdateTextureMatrix( GLcontext *ctx )
 }
 
 
+/* Need:  
+ *  - Same GEN_MODE for all active bits
+ *  - Same EyePlane/ObjPlane for all active bits when using Eye/Obj
+ *  - STRQ presumably all supported (matrix means incoming R values
+ *    can end up in STQ, this has implications for vertex support,
+ *    presumably ok if maos is used, though?)
+ *  
+ * Basically impossible to do this on the fly - just collect some
+ * basic info & do the checks from ValidateState().
+ */
+static void radeonTexGen( GLcontext *ctx,
+			  GLenum coord,
+			  GLenum pname,
+			  const GLfloat *params )
+{
+   radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
+   GLuint unit = ctx->Texture.CurrentUnit;
+   rmesa->recheck_texgen[unit] = GL_TRUE;
+}
+
 
 void radeonInitTexTransform( GLcontext *ctx )
 {
@@ -231,4 +251,6 @@ void radeonInitTexTransform( GLcontext *ctx )
    _math_matrix_set_identity( &rmesa->TexGenMatrix[0] );
    _math_matrix_set_identity( &rmesa->TexGenMatrix[1] );
    _math_matrix_set_identity( &rmesa->tmpmat );
+
+   ctx->Driver.TexGen                   = radeonTexGen;
 }

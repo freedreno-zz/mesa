@@ -241,6 +241,7 @@ radeonChooseTextureFormat( GLcontext *ctx, GLint internalFormat,
       }
       return do32bpt ? &_mesa_texformat_rgba8888 : &_mesa_texformat_rgb565;
 
+#if _HAVE_FULL_GL
    case GL_RGBA8:
    case GL_RGB10_A2:
    case GL_RGBA12:
@@ -292,6 +293,7 @@ radeonChooseTextureFormat( GLcontext *ctx, GLint internalFormat,
    case GL_LUMINANCE16_ALPHA16:
    case GL_COMPRESSED_LUMINANCE_ALPHA:
       return &_mesa_texformat_al88;
+#endif
 
    case GL_INTENSITY:
    case GL_INTENSITY4:
@@ -310,6 +312,40 @@ radeonChooseTextureFormat( GLcontext *ctx, GLint internalFormat,
 }
 
 
+static void radeonTexImage2D( GLcontext *ctx, GLenum target, GLint level,
+                              GLint internalFormat,
+                              GLint width, GLint height, GLint border,
+                              GLenum format, GLenum type, const GLvoid *pixels,
+                              const struct gl_pixelstore_attrib *packing,
+                              struct gl_texture_object *texObj,
+                              struct gl_texture_image *texImage )
+{
+   radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
+   radeonTexObjPtr t = (radeonTexObjPtr)texObj->DriverData;
+
+/*     fprintf(stderr, "%s\n", __FUNCTION__); */
+
+   if ( t ) {
+      radeonSwapOutTexObj( rmesa, t );
+   }
+   else {
+      t = radeonAllocTexObj( texObj );
+      if (!t) {
+         _mesa_error(ctx, GL_OUT_OF_MEMORY, "glTexImage2D");
+         return;
+      }
+      texObj->DriverData = t;
+   }
+
+   /* Note, this will call radeonChooseTextureFormat */
+   _mesa_store_teximage2d(ctx, target, level, internalFormat,
+                          width, height, border, format, type, pixels,
+                          &ctx->Unpack, texObj, texImage);
+
+   t->dirty_images |= (1 << level);
+}
+
+#if _HAVE_FULL_GL
 static void radeonTexImage1D( GLcontext *ctx, GLenum target, GLint level,
                               GLint internalFormat,
                               GLint width, GLint border,
@@ -375,41 +411,6 @@ static void radeonTexSubImage1D( GLcontext *ctx, GLenum target, GLint level,
    t->dirty_images |= (1 << level);
 }
 
-
-static void radeonTexImage2D( GLcontext *ctx, GLenum target, GLint level,
-                              GLint internalFormat,
-                              GLint width, GLint height, GLint border,
-                              GLenum format, GLenum type, const GLvoid *pixels,
-                              const struct gl_pixelstore_attrib *packing,
-                              struct gl_texture_object *texObj,
-                              struct gl_texture_image *texImage )
-{
-   radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
-   radeonTexObjPtr t = (radeonTexObjPtr)texObj->DriverData;
-
-/*     fprintf(stderr, "%s\n", __FUNCTION__); */
-
-   if ( t ) {
-      radeonSwapOutTexObj( rmesa, t );
-   }
-   else {
-      t = radeonAllocTexObj( texObj );
-      if (!t) {
-         _mesa_error(ctx, GL_OUT_OF_MEMORY, "glTexImage2D");
-         return;
-      }
-      texObj->DriverData = t;
-   }
-
-   /* Note, this will call radeonChooseTextureFormat */
-   _mesa_store_teximage2d(ctx, target, level, internalFormat,
-                          width, height, border, format, type, pixels,
-                          &ctx->Unpack, texObj, texImage);
-
-   t->dirty_images |= (1 << level);
-}
-
-
 static void radeonTexSubImage2D( GLcontext *ctx, GLenum target, GLint level,
                                  GLint xoffset, GLint yoffset,
                                  GLsizei width, GLsizei height,
@@ -443,7 +444,7 @@ static void radeonTexSubImage2D( GLcontext *ctx, GLenum target, GLint level,
 
    t->dirty_images |= (1 << level);
 }
-
+#endif
 
 
 #define SCALED_FLOAT_TO_BYTE( x, scale ) \
@@ -474,6 +475,7 @@ static void radeonTexEnv( GLcontext *ctx, GLenum target,
       break;
    }
 
+#if _HAVE_FULL_GL
    case GL_TEXTURE_LOD_BIAS_EXT: {
       GLfloat bias;
       GLuint b;
@@ -498,6 +500,7 @@ static void radeonTexEnv( GLcontext *ctx, GLenum target,
       }
       break;
    }
+#endif
 
    default:
       return;
@@ -597,6 +600,7 @@ static void radeonDeleteTexture( GLcontext *ctx,
    }
 }
 
+#if _HAVE_FULL_GL
 static GLboolean radeonIsTextureResident( GLcontext *ctx,
 					  struct gl_texture_object *texObj )
 {
@@ -604,6 +608,7 @@ static GLboolean radeonIsTextureResident( GLcontext *ctx,
 
    return ( t && t->memBlock );
 }
+#endif
 
 
 static void radeonInitTextureObjects( GLcontext *ctx )
@@ -639,57 +644,40 @@ static void radeonInitTextureObjects( GLcontext *ctx )
    ctx->Texture.CurrentUnit = tmp;
 }
 
-/* Need:  
- *  - Same GEN_MODE for all active bits
- *  - Same EyePlane/ObjPlane for all active bits when using Eye/Obj
- *  - STRQ presumably all supported (matrix means incoming R values
- *    can end up in STQ, this has implications for vertex support,
- *    presumably ok if maos is used, though?)
- *  
- * Basically impossible to do this on the fly - just collect some
- * basic info & do the checks from ValidateState().
- */
-static void radeonTexGen( GLcontext *ctx,
-			  GLenum coord,
-			  GLenum pname,
-			  const GLfloat *params )
-{
-   radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
-   GLuint unit = ctx->Texture.CurrentUnit;
-   rmesa->recheck_texgen[unit] = GL_TRUE;
-}
-
 
 void radeonInitTextureFuncs( GLcontext *ctx )
 {
    ctx->Driver.ChooseTextureFormat	= radeonChooseTextureFormat;
-   ctx->Driver.TexImage1D		= radeonTexImage1D;
    ctx->Driver.TexImage2D		= radeonTexImage2D;
+
+#if _HAVE_FULL_GL
+   ctx->Driver.TexImage1D		= radeonTexImage1D;
    ctx->Driver.TexImage3D		= _mesa_store_teximage3d;
    ctx->Driver.TexSubImage1D		= radeonTexSubImage1D;
    ctx->Driver.TexSubImage2D		= radeonTexSubImage2D;
    ctx->Driver.TexSubImage3D		= _mesa_store_texsubimage3d;
+   ctx->Driver.IsTextureResident	= radeonIsTextureResident;
+#endif
+
 #if _HAVE_SWRAST
-   /* XXX */
    ctx->Driver.CopyTexImage1D		= _swrast_copy_teximage1d;
    ctx->Driver.CopyTexImage2D		= _swrast_copy_teximage2d;
    ctx->Driver.CopyTexSubImage1D	= _swrast_copy_texsubimage1d;
    ctx->Driver.CopyTexSubImage2D	= _swrast_copy_texsubimage2d;
    ctx->Driver.CopyTexSubImage3D 	= _swrast_copy_texsubimage3d;
 #endif
+
    ctx->Driver.TestProxyTexImage	= _mesa_test_proxy_teximage;
 
    ctx->Driver.BindTexture		= radeonBindTexture;
    ctx->Driver.CreateTexture		= NULL; /* FIXME: Is this used??? */
    ctx->Driver.DeleteTexture		= radeonDeleteTexture;
-   ctx->Driver.IsTextureResident	= radeonIsTextureResident;
    ctx->Driver.PrioritizeTexture	= NULL;
    ctx->Driver.ActiveTexture		= NULL;
    ctx->Driver.UpdateTexturePalette	= NULL;
 
    ctx->Driver.TexEnv			= radeonTexEnv;
    ctx->Driver.TexParameter		= radeonTexParameter;
-   ctx->Driver.TexGen                   = radeonTexGen;
 
    radeonInitTextureObjects( ctx );
 }

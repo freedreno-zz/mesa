@@ -947,6 +947,11 @@ static void radeonFlushVertices( GLcontext *ctx, GLuint flags )
 }
 
 
+static void radeonRenderMode( GLcontext *ctx, GLenum mode )
+{
+   radeonContextPtr rmesa = RADEON_CONTEXT(ctx);
+   FALLBACK( rmesa, RADEON_FALLBACK_RENDER_MODE, (mode != GL_RENDER) );
+}
 
 /* At this point, don't expect very many versions of each function to
  * be generated, so not concerned about freeing them?
@@ -1054,6 +1059,8 @@ void radeonVtxfmtInit( GLcontext *ctx )
    make_empty_list( &rmesa->vb.dfn_cache.MultiTexCoord1fvARB );
 
    radeonInitCodegen( &rmesa->vb.codegen );
+
+   ctx->Driver.RenderMode = radeonRenderMode;
 
 #if !_HAVE_SWTNL
    ctx->Driver.CurrentExecPrimitive = PRIM_OUTSIDE_BEGIN_END;

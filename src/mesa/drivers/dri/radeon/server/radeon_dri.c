@@ -10,6 +10,7 @@
 #include "radeon_sarea.h"
 #include "sarea.h"
 
+#include <unistd.h>
 
 
 
@@ -130,8 +131,8 @@ static void RADEONEngineReset( struct MiniGLXDisplayRec *dpy )
    OUTPLL(RADEON_MCLK_CNTL, mclk_cntl);
 }
 
-static int RADEONEngineRestore( struct MiniGLXDisplayRec *dpy,
-				RADEONInfoPtr info )
+static void RADEONEngineRestore( struct MiniGLXDisplayRec *dpy,
+				 RADEONInfoPtr info )
 
 {
    unsigned char *RADEONMMIO = dpy->MMIOAddress;
@@ -143,7 +144,7 @@ static int RADEONEngineRestore( struct MiniGLXDisplayRec *dpy,
    switch (dpy->bpp) {
    case 16: datatype = 4; break;
    case 32: datatype = 6; break;
-   default: return 0;
+   default: return;
    }
 
    dp_gui_master_cntl =
@@ -241,7 +242,7 @@ static int RADEONDRIAgpInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info)
    }
    fprintf(stderr,
 	   "[agp] %d kB allocated with handle 0x%08x\n",
-	   info->agpSize*1024, info->agpMemHandle);
+	   info->agpSize*1024, (unsigned)info->agpMemHandle);
     
    if (drmAgpBind(dpy->drmFD,
 		  info->agpMemHandle, info->agpOffset) < 0) {
@@ -438,7 +439,6 @@ static void RADEONDRIIrqInit(struct MiniGLXDisplayRec *dpy,
 static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
 {
    RADEONDRIPtr   pRADEONDRI;
-   int            major, minor, patch;
    drmVersionPtr  version;
    int err;
 
@@ -592,7 +592,6 @@ static int RADEONScreenInit( struct MiniGLXDisplayRec *dpy, RADEONInfoPtr info )
 				 + RADEON_BUFFER_ALIGN)
 				& ~RADEON_BUFFER_ALIGN);
       int        l;
-      int        scanlines;
 
       info->frontOffset = 0;
       info->frontPitch = dpy->virtualWidth;

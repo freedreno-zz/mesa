@@ -1,4 +1,4 @@
-/* $Id: radeon_subset_feedback.c,v 1.1.2.1 2003/02/03 21:33:02 keithw Exp $ */
+/* $Id: radeon_subset_select.c,v 1.1.2.1 2003/02/07 20:22:17 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -35,6 +35,7 @@
 #include "feedback.h"
 
 #include "radeon_context.h"
+#include "radeon_subset.h"
 
 typedef struct {
    struct { GLfloat x, y, z, w; } pos, eyePos, clipPos, winPos;
@@ -475,7 +476,6 @@ static void
 radeon_select_Vertex4f(GLfloat x, GLfloat y, GLfloat z, GLfloat w)
 {
    GET_CURRENT_CONTEXT(ctx);
-   struct gl_transform_attrib *t = &(ctx->Transform);
    struct gl_polygon_attrib *p = &(ctx->Polygon);
    vertex *v = vb.vBuffer + vb.vCount;
 
@@ -776,8 +776,15 @@ static void radeon_select_End(void)
    ctx->Driver.CurrentExecPrimitive = GL_POLYGON+1;
 }
 
+/* Nothing much to do here, as we don't buffer anything:
+ */
+static void radeonSelectFlushVertices( GLcontext *ctx, GLuint flags )
+{
+   ctx->Driver.NeedFlush = 0;
+}
 
-void radeon_select_Init( GLcontext *ctx )
+
+void radeon_select_Install( GLcontext *ctx )
 {
    struct _glapi_table *exec = ctx->Exec;
 
@@ -794,6 +801,25 @@ void radeon_select_Init( GLcontext *ctx )
    exec->Begin = radeon_select_Begin;
    exec->End = radeon_select_End;
 
-/*    ctx->Driver.FlushVertices = radeonFlushVertices; */
-/*    ctx->Driver.CurrentExecPrimitive = GL_POLYGON+1; */
+   ctx->Driver.FlushVertices = radeonSelectFlushVertices;
+}
+
+
+static void radeonRenderMode( GLcontext *ctx, GLenum mode )
+{
+   switch (mode) {
+   case GL_RENDER:
+      radeonVtxfmtInit( ctx );
+      break;
+   case GL_SELECT:
+      radeon_select_Install( ctx );
+      break;
+   default:
+      break;
+   }
+}
+
+void radeonInitSelect( GLcontext *ctx )
+{
+   ctx->Driver.RenderMode = radeonRenderMode;
 }

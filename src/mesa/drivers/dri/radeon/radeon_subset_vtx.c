@@ -47,9 +47,9 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "radeon_state.h"
 #include "radeon_ioctl.h"
 #include "radeon_tex.h"
-#include "radeon_tcl.h"
+#include "radeon_subset.h"
 
-union vertex_dword { float f; int i; radeon_color_t color; };
+union vertex_dword { float f; int i; };
 #define MAX_VERTEX_DWORDS 10	/* xyzw rgba st */
 
 static struct {
@@ -189,7 +189,6 @@ static GLuint copy_dma_verts( radeonContextPtr rmesa,
 			      GLfloat (*tmp)[MAX_VERTEX_DWORDS] )
 {
    GLuint ovf, i;
-   GLcontext *ctx = vb.context;
    GLuint nr = vb.stack[0].initial_vertspace - vb.stack[0].vertspace;
 
    switch( vb.prim )
@@ -258,6 +257,8 @@ static void notify_wrap_buffer( void )
    GLfloat tmp[3][MAX_VERTEX_DWORDS];
    GLuint i, nrverts = 0;
 
+   fprintf(stderr, "%s\n", __FUNCTION__);
+
    /* Copy vertices out of dma:
     */
    nrverts = copy_dma_verts( rmesa, tmp );
@@ -319,6 +320,7 @@ static void emit_vertex( int v )
 static void emit_tri( int v0, int v1, int v2 )
 {
    assert (vb.context->Polygon.FrontMode == GL_LINE);
+   assert (vb.prim == GL_LINES);
    emit_vertex( v0 ); emit_vertex( v1 );
    emit_vertex( v1 ); emit_vertex( v2 );
    emit_vertex( v2 ); emit_vertex( v0 );
@@ -430,7 +432,6 @@ static void notify_tri( void )
 
 void radeonVtxfmtInvalidate( GLcontext *ctx )
 {
-   radeonContextPtr rmesa = RADEON_CONTEXT( ctx );
    vb.recheck = GL_TRUE;
 }
 
@@ -631,8 +632,6 @@ static void radeon_End( void )
 
 static void radeonFlushVertices( GLcontext *ctx, GLuint flags )
 {
-   radeonContextPtr rmesa = RADEON_CONTEXT( ctx );
-
    if (flags & FLUSH_UPDATE_CURRENT) {
       ctx->Current.Attrib[VERT_ATTRIB_COLOR0][0] = vb.floatcolorptr[0];
       ctx->Current.Attrib[VERT_ATTRIB_COLOR0][1] = vb.floatcolorptr[1];
@@ -726,7 +725,6 @@ static void radeon_TexCoord2fv( const GLfloat *v )
 
 void radeonVtxfmtInit( GLcontext *ctx )
 {
-   radeonContextPtr rmesa = RADEON_CONTEXT( ctx );
    struct _glapi_table *exec = ctx->Exec;
 
    exec->Color3f = radeon_Color3f;

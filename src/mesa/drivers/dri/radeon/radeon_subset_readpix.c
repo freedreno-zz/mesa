@@ -44,6 +44,7 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "radeon_context.h"
 #include "radeon_ioctl.h"
 #include "radeon_state.h"
+#include "radeon_subset.h"
 
 #define READ_RGBA_16( rgba, ptr )		\
 do {						\
@@ -106,8 +107,6 @@ void radeonReadPixels( GLcontext *ctx,
    GLint skipRows = packing->SkipRows;
    GLint skipPixels = packing->SkipPixels;
    GLint rowLength;
-
-   fprintf(stderr, "%s\n", __FUNCTION__);
 
    /* can't do scale, bias, mapping, etc */
    assert(!ctx->_ImageTransferState);

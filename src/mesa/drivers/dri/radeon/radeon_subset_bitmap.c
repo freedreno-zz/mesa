@@ -43,6 +43,7 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "radeon_context.h"
 #include "radeon_ioctl.h"
 #include "radeon_state.h"
+#include "radeon_subset.h"
 
 /* Cope with depth operations by drawing individual pixels as points??? 
  */
@@ -58,12 +59,38 @@ radeonPointsBitmap( GLcontext *ctx, GLint px, GLint py,
    GLuint orig_se_cntl;
    GLuint h;
    GLfloat pfz = ctx->Current.RasterPos[3];
+   GLint skipRows = unpack->SkipRows;
+   GLint skipPixels = unpack->SkipPixels;
+
 
    if (!ctx->Current.RasterPosValid)
       return;
 
-   /* Turn off tcl and the hw viewport transformation (note: Need to
-    * do rotation here if necessary)
+   /* horizontal clipping */
+   if (px < 0) {
+      skipPixels -= px;
+      width += px;
+      px = 0;
+   }
+   if (px + width > (GLint) ctx->ReadBuffer->Width)
+      width -= (px + width - (GLint) ctx->ReadBuffer->Width);
+   if (width <= 0)
+      return;
+
+   /* vertical clipping */
+   if (py < 0) {
+      skipRows -= py;
+      height += py;
+      py = 0;
+   }
+   if (py + height > (GLint) ctx->ReadBuffer->Height)
+      height -= (py + height - (GLint) ctx->ReadBuffer->Height);
+   if (height <= 0)
+      return;
+
+
+   /* Turn off tcl and the hw viewport transformation so that we can
+    * emit raw pixel coordinates:
     */
    radeonSubsetVtxEnableTCL( rmesa, GL_FALSE );
    RADEON_STATECHANGE( rmesa, set );
@@ -72,16 +99,15 @@ radeonPointsBitmap( GLcontext *ctx, GLint px, GLint py,
 				       RADEON_VPORT_Z_XFORM_ENABLE);
 
 
-   COPY_4V( saved_color, ctx->Current.Attrib[VERT_ATTRIB_COLOR0] );
-   COPY_2V( saved_tex0, ctx->Current.Attrib[VERT_ATTRIB_TEX0] );
-
-   /* Update window height
+   /* Adjust for window coordinates, flip y values:
     */
-   LOCK_HARDWARE( rmesa );
-   UNLOCK_HARDWARE( rmesa );
    h = rmesa->dri.drawable->h + rmesa->dri.drawable->y - 1;
    px += rmesa->dri.drawable->x;
 
+   /* Save current color, texcoord to restore later:
+    */
+   COPY_4V( saved_color, ctx->Current.Attrib[VERT_ATTRIB_COLOR0] );
+   COPY_2V( saved_tex0, ctx->Current.Attrib[VERT_ATTRIB_TEX0] );
 
    /* Just use the GL entrypoints to talk to radeon_subset_vtx.c:
     */
@@ -94,10 +120,6 @@ radeonPointsBitmap( GLcontext *ctx, GLint px, GLint py,
       const GLubyte *src = (const GLubyte *) 
 	 _mesa_image_address( unpack, bitmap, width, height, 
 			      GL_COLOR_INDEX, GL_BITMAP, 0, row, 0 );
-
-      if (y < rmesa->dri.drawable->y ||
-	  y > rmesa->dri.drawable->y + rmesa->dri.drawable->h)
-	 continue;
 
       if (unpack->LsbFirst) {
          /* Lsb first */
@@ -137,6 +159,5 @@ radeonPointsBitmap( GLcontext *ctx, GLint px, GLint py,
     */
    RADEON_STATECHANGE( rmesa, set );
    rmesa->hw.set.cmd[SET_SE_CNTL] = orig_se_cntl;
-
    radeonSubsetVtxEnableTCL( rmesa, GL_TRUE );
 }

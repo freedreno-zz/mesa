@@ -38,7 +38,61 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #include "mtypes.h"
 #include "swrast/swrast.h"
-#include "radeon_context.h"
+
+
+/* Flags for software fallback cases */
+/* See correponding strings in radeon_swtcl.c */
+#define RADEON_FALLBACK_TEXTURE		0x0001
+#define RADEON_FALLBACK_DRAW_BUFFER	0x0002
+#define RADEON_FALLBACK_STENCIL		0x0004
+#define RADEON_FALLBACK_RENDER_MODE	0x0008
+#define RADEON_FALLBACK_BLEND_EQ	0x0010
+#define RADEON_FALLBACK_BLEND_FUNC	0x0020
+#define RADEON_FALLBACK_DISABLE 	0x0040
+
+/* Use the templated vertex format:
+ */
+#define COLOR_IS_RGBA
+#define TAG(x) radeon##x
+#include "tnl_dd/t_dd_vertex.h"
+#undef TAG
+
+typedef void (*radeon_tri_func)( radeonContextPtr,
+				 radeonVertex *,
+				 radeonVertex *,
+				 radeonVertex * );
+
+typedef void (*radeon_line_func)( radeonContextPtr,
+				  radeonVertex *,
+				  radeonVertex * );
+
+typedef void (*radeon_point_func)( radeonContextPtr,
+				   radeonVertex * );
+
+
+/* radeon_swtcl.c
+ */
+struct radeon_swtcl_info {
+   GLuint SetupIndex;
+   GLuint SetupNewInputs;
+   GLuint RenderIndex;
+   GLuint vertex_size;
+   GLuint vertex_stride_shift;
+   GLuint vertex_format;
+   char *verts;
+
+   /* Fallback rasterization functions
+    */
+   radeon_point_func draw_point;
+   radeon_line_func draw_line;
+   radeon_tri_func draw_tri;
+
+   GLuint hw_primitive;
+   GLenum render_primitive;
+   GLuint numverts;
+
+   struct radeon_dma_region indexed_verts;
+};
 
 extern void radeonInitSwtcl( GLcontext *ctx );
 extern void radeonDestroySwtcl( GLcontext *ctx );

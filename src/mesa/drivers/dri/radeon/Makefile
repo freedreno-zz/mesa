@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.1.2.21 2003/02/03 21:33:02 keithw Exp $
+# $Id: Makefile,v 1.1.2.22 2003/02/07 20:22:16 keithw Exp $
 
 # Mesa 3-D graphics library
 # Version:  5.0
@@ -9,8 +9,9 @@
 MESA = ../../..
 MESABUILDDIR = ../..
 
-INCLUDES = -I$(MESABUILDDIR) -I$(MESA)/include -I. -I../common \
-	   -I$(MESABUILDDIR)/miniglx -Iserver
+SHARED_INCLUDES = -I$(MESABUILDDIR) -I$(MESA)/include -I. -I../common -Iserver
+MINIGLX_INCLUDES = -I$(MESABUILDDIR)/miniglx 
+DRI_INCLUDES = -I$(MESABUILDDIR)/dri
 
 DEFINES = \
 	-D_HAVE_SWRAST=0 \
@@ -21,7 +22,9 @@ DEFINES = \
 	-D_HAVE_TEXGEN=0 \
 	-D_HAVE_USERCLIP=0
 
-CFLAGS = $(INCLUDES) $(DEFINES) -g -MD 
+CFLAGS = $(INCLUDES) $(DEFINES) -g -MD -Wall -Wpointer-arith \
+	 -Wstrict-prototypes -Wmissing-prototypes \
+	 -Wmissing-declarations -Wnested-externs
 
 # The .a files for each mesa module required by this driver:
 #
@@ -36,25 +39,29 @@ FULL_MESA = 	$(MESABUILDDIR)/swrast_setup/swrast_setup.a \
 SUBSET_MESA = 	$(MESABUILDDIR)/mesa.a \
 		$(MESABUILDDIR)/math/math.a
 
-DRIVER_SOURCES = server/radeon_dri.c \
-		 radeon_context.c \
+DRI =           $(MESABUILDDIR)/dri/dri.a
+
+MINIGLX_SOURCES = server/radeon_dri.c 
+
+DRIVER_SOURCES = radeon_context.c \
 		 radeon_ioctl.c \
 		 radeon_lock.c \
 		 radeon_screen.c \
 		 radeon_state.c \
 		 radeon_state_init.c \
-		 radeon_tex.c \
-		 radeon_texmem.c \
-		 radeon_texstate.c \
 		 ../common/mm.c 
 
 SUBSET_DRIVER_SOURCES = \
 		radeon_subset_bitmap.c \
 		radeon_subset_readpix.c \
-		radeon_subset_feedback.c \
+		radeon_subset_select.c \
+		radeon_subset_tex.c \
 		radeon_subset_vtx.c 
 
 FULL_DRIVER_SOURCES = 	\
+		 radeon_tex.c \
+		 radeon_texmem.c \
+		 radeon_texstate.c \
 		 radeon_lighting.c \
 		 radeon_userclip.c \
 		 radeon_texgen.c \
@@ -70,10 +77,12 @@ FULL_DRIVER_SOURCES = 	\
 		 radeon_vtxfmt_x86.c 
 
 
+INCLUDES = $(MINIGLX_INCLUDES) \
+	   $(SHARED_INCLUDES)
 
 C_SOURCES = $(DRIVER_SOURCES) \
 	    $(SUBSET_DRIVER_SOURCES) \
-	    $(DRI_SOURCES) 
+	    $(MINIGLX_SOURCES) 
 
 ASM_SOURCES = 
 
@@ -94,13 +103,16 @@ OBJECTS = $(C_SOURCES:.c=.o) \
 
 default: radeon_dri.so install
 
-radeon_dri.so:  $(FULL_MESA) $(OBJECTS) Makefile
-	rm -f $@ && gcc -o $@ -shared $(OBJECTS) $(FULL_MESA) -L$(MESA)/src/miniglx -lGL -lc -lm
+radeon_dri.so:  $(SUBSET_MESA) $(OBJECTS) Makefile
+	rm -f $@ && gcc -o $@ -shared $(OBJECTS) $(SUBSET_MESA) -L$(MESA)/src/miniglx -lGL -lc -lm
+
+#radeon_dri.so:  $(SUBSET_MESA) $(DRI) $(OBJECTS) Makefile
+#	rm -f $@ && gcc -o $@ -shared $(OBJECTS) $(SUBSET_MESA) $(DRI) -lc -lm
+
 
 loc:
-	wc -l $(DRIVER_SOURCES)
-	wc -l $(SUBSET_DRIVER_SOURCES)
-	wc -l $(FULL_DRIVER_SOURCES)
+	wc -l $(DRIVER_SOURCES) $(SUBSET_DRIVER_SOURCES)
+	wc -l $(DRIVER_SOURCES) $(FULL_DRIVER_SOURCES) radeon_maos_verts.c radeon_maos_vbtmp.h
 
 install:
 	rm -f $(MESA)/lib/radeon_dri.so && \
