@@ -1,4 +1,4 @@
-/* $Id: depth.c,v 1.8.2.3 2000/04/04 00:52:28 brianp Exp $ */
+/* $Id: depth.c,v 1.8.2.4 2000/04/11 20:40:44 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -749,21 +749,48 @@ void gl_depth_test_pixels_greater( GLcontext* ctx,
 void gl_read_depth_span_float( GLcontext* ctx,
                                GLuint n, GLint x, GLint y, GLfloat depth[] )
 {
-   GLdepth *zptr;
-   GLfloat scale;
-   GLuint i;
-
-   scale = 1.0F / DEPTH_SCALE;
-
-   if (ctx->Buffer->Depth) {
-      zptr = Z_ADDRESS( ctx, x, y );
+   if (!ctx->Buffer->Depth) {
+      GLint i;
       for (i=0;i<n;i++) {
-	 depth[i] = (GLfloat) zptr[i] * scale;
+	 depth[i] = 0.0F;
       }
    }
    else {
-      for (i=0;i<n;i++) {
-	 depth[i] = 0.0F;
+      const GLfloat scale = 1.0F / DEPTH_SCALE;
+      GLint count = (GLint) n;
+      GLint i;
+      GLdepth *zptr;
+
+      if (y < 0 || y >= ctx->Buffer->Height ||
+          x >= ctx->Buffer->Width || x + count < 0) {
+         /* completely outside frame buffer */
+         for (i = 0; i < count; i++)
+            depth[i] = 0.0F;
+         return;
+      }
+
+      if (x < 0) {
+         GLint dx = -x;
+         for (i = 0; i < dx; i++)
+            depth[i] = 0.0F;
+         x = 0;
+         depth += dx;
+         count -= dx;
+      }
+
+      if (x + count > ctx->Buffer->Width) {
+         GLint dx = x + count - ctx->Buffer->Width;
+         for (i = 0; i < dx; i++)
+            depth[count - dx - 1] = 0;
+         count -= dx;
+      }
+
+      if (count <= 0)
+         return;
+
+      zptr = Z_ADDRESS( ctx, x, y );
+      for (i=0;i<count;i++) {
+         depth[i] = (GLfloat) zptr[i] * scale;
       }
    }
 }
@@ -780,15 +807,44 @@ void gl_read_depth_span_float( GLcontext* ctx,
 void gl_read_depth_span_int( GLcontext* ctx,
                              GLuint n, GLint x, GLint y, GLdepth depth[] )
 {
-   if (ctx->Buffer->Depth) {
-      GLdepth *zptr = Z_ADDRESS( ctx, x, y );
-      MEMCPY( depth, zptr, n * sizeof(GLdepth) );
-   }
-   else {
+   if (!ctx->Buffer->Depth) {
       GLuint i;
       for (i=0;i<n;i++) {
 	 depth[i] = 0;
       }
+   }
+   else {
+      GLint count = (GLint) n;
+      GLdepth *zptr;
+      GLint i;
+
+      if (y < 0 || y >= ctx->Buffer->Height ||
+          x >= ctx->Buffer->Width || x + count < 0) {
+         /* completely outside frame buffer */
+         for (i = 0; i < count; i++)
+            depth[i] = 0;
+         return;
+      }
+
+      if (x < 0) {
+         GLint dx = -x;
+         for (i = 0; i < dx; i++)
+            depth[i] = 0;
+         x = 0;
+         depth += dx;
+         count -= dx;
+      }
+      if (x + count > ctx->Buffer->Width) {
+         GLint dx = x + count - ctx->Buffer->Width;
+         for (i = 0; i < dx; i++)
+            depth[count - dx - 1] = 0;
+         count -= dx;
+      }
+      if (count <= 0)
+         return;
+
+      zptr = Z_ADDRESS( ctx, x, y );
+      MEMCPY( depth, zptr, count * sizeof(GLdepth) );
    }
 }
 
