@@ -303,8 +303,7 @@ interruptibleXNextEvent(Display * dpy, XEvent * event)
     }
     FD_ZERO(&fds);
     FD_SET(__glutConnectionFD, &fds);
-    rc = select(__glutConnectionFD + 1, &fds,
-      NULL, NULL, NULL);
+    rc = select(__glutConnectionFD + 1, &fds, NULL, NULL, NULL);
     if (rc < 0) {
       if (errno == EINTR) {
         return 0;
@@ -897,8 +896,7 @@ waitForSomething(void)
     waittime = zerotime;
   }
 #if !defined(_WIN32)
-  rc = select(__glutConnectionFD + 1, &fds,
-    NULL, NULL, &waittime);
+  rc = select(__glutConnectionFD + 1, &fds, NULL, NULL, &waittime);
   if (rc < 0 && errno != EINTR)
     __glutFatalError("select error.");
 #else
