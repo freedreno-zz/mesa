@@ -95,10 +95,12 @@
 #define _DRM_LOCK_IS_CONT(lock)	   ((lock) & _DRM_LOCK_CONT)
 #define _DRM_LOCKING_CONTEXT(lock) ((lock) & ~(_DRM_LOCK_HELD|_DRM_LOCK_CONT))
 
+
 typedef unsigned long drm_handle_t;
 typedef unsigned int  drm_context_t;
 typedef unsigned int  drm_drawable_t;
 typedef unsigned int  drm_magic_t;
+
 
 /* Warning: If you change this structure, make sure you change
  * XF86DRIClipRectRec in the server as well */
@@ -106,13 +108,13 @@ typedef unsigned int  drm_magic_t;
 /* KW: Actually it's illegal to change either for
  * backwards-compatibility reasons.
  */
-
 typedef struct drm_clip_rect {
 	unsigned short	x1;
 	unsigned short	y1;
 	unsigned short	x2;
 	unsigned short	y2;
 } drm_clip_rect_t;
+
 
 typedef struct drm_tex_region {
 	unsigned char	next;
@@ -122,6 +124,12 @@ typedef struct drm_tex_region {
 	unsigned int	age;
 } drm_tex_region_t;
 
+
+/**
+ * \brief DRM_IOCTL_VERSION ioctl argument type.
+ * 
+ * \sa drmGetVersion().
+ */
 typedef struct drm_version {
 	int    version_major;	  /**< Major version */
 	int    version_minor;	  /**< Minor version */
@@ -134,20 +142,34 @@ typedef struct drm_version {
 	char   *desc;		  /**< User-space buffer to hold desc */
 } drm_version_t;
 
+
+/**
+ * \brief DRM_IOCTL_GET_UNIQUE ioctl argument type.
+ *
+ * \sa drmGetBusid() and drmSetBusId().
+ */
 typedef struct drm_unique {
 	size_t unique_len;	  /**< Length of unique */
 	char   *unique;		  /**< Unique name for driver instantiation */
 } drm_unique_t;
+
 
 typedef struct drm_list {
 	int		 count;	  /**< Length of user-space structures */
 	drm_version_t	 *version;
 } drm_list_t;
 
+
 typedef struct drm_block {
 	int		 unused;
 } drm_block_t;
 
+
+/**
+ * \brief DRM_IOCTL_CONTROL ioctl argument type.
+ *
+ * \sa drmCtlInstHandler() and drmCtlUninstHandler().
+ */
 typedef struct drm_control {
 	enum {
 		DRM_ADD_COMMAND,
@@ -158,6 +180,10 @@ typedef struct drm_control {
 	int		 irq;
 } drm_control_t;
 
+
+/**
+ * \brief Type of memory to map.
+ */
 typedef enum drm_map_type {
 	_DRM_FRAME_BUFFER   = 0,  /**< WC (no caching), no core dump */
 	_DRM_REGISTERS	    = 1,  /**< no caching, no core dump */
@@ -166,6 +192,10 @@ typedef enum drm_map_type {
 	_DRM_SCATTER_GATHER = 4	  /**< Scatter/gather memory for PCI DMA */
 } drm_map_type_t;
 
+
+/**
+ * \brief Memory mapping flags.
+ */
 typedef enum drm_map_flags {
 	_DRM_RESTRICTED	     = 0x01, /**< Cannot be mapped to user-virtual */
 	_DRM_READ_ONLY	     = 0x02,
@@ -176,22 +206,34 @@ typedef enum drm_map_flags {
 	_DRM_REMOVABLE	     = 0x40  /**< Removable mapping */
 } drm_map_flags_t;
 
+
 typedef struct drm_ctx_priv_map {
 	unsigned int	ctx_id;  /**< Context requesting private mapping */
 	void		*handle; /**< Handle of map */
 } drm_ctx_priv_map_t;
 
+
+/**
+ * \brief DRM_IOCTL_GET_MAP, DRM_IOCTL_ADD_MAP and DRM_IOCTL_RM_MAP ioctls
+ * argument type.
+ *
+ * \sa drmAddMap().
+ */
 typedef struct drm_map {
 	unsigned long	offset;	 /**< Requested physical address (0 for SAREA)*/
 	unsigned long	size;	 /**< Requested physical size (bytes) */
 	drm_map_type_t	type;	 /**< Type of memory to map */
 	drm_map_flags_t flags;	 /**< Flags */
-	void		*handle; /**< User-space: "Handle" to pass to mmap */
+	void		*handle; /**< User-space: "Handle" to pass to mmap() */
 				 /**< Kernel-space: kernel-virtual address */
 	int		mtrr;	 /**< MTRR slot used */
-				 /**< Private data */
+				 /*   Private data */
 } drm_map_t;
 
+
+/**
+ * \brief DRM_IOCTL_GET_CLIENT ioctl argument type.
+ */
 typedef struct drm_client {
 	int		idx;	/**< Which client desired? */
 	int		auth;	/**< Is client authenticated? */
@@ -200,6 +242,7 @@ typedef struct drm_client {
 	unsigned long	magic;	/**< Magic */
 	unsigned long	iocs;	/**< Ioctl count */
 } drm_client_t;
+
 
 typedef enum {
 	_DRM_STAT_LOCK,
@@ -222,6 +265,10 @@ typedef enum {
 				/* Add to the *END* of the list */
 } drm_stat_type_t;
 
+
+/**
+ * \brief DRM_IOCTL_GET_STATS ioctl argument type.
+ */
 typedef struct drm_stats {
 	unsigned long count;
 	struct {
@@ -230,6 +277,10 @@ typedef struct drm_stats {
 	} data[15];
 } drm_stats_t;
 
+
+/**
+ * \brief Hardware locking flags.
+ */
 typedef enum drm_lock_flags {
 	_DRM_LOCK_READY	     = 0x01, /**< Wait until hardware is ready for DMA */
 	_DRM_LOCK_QUIESCENT  = 0x02, /**< Wait until hardware quiescent */
@@ -242,12 +293,27 @@ typedef enum drm_lock_flags {
 	_DRM_HALT_CUR_QUEUES = 0x20  /**< Halt all current queues */
 } drm_lock_flags_t;
 
+
+/**
+ * \brief DRM_IOCTL_LOCK, DRM_IOCTL_UNLOCK and DRM_IOCTL_FINISH ioctl argument type.
+ * 
+ * \sa drmGetLock() and drmUnlock().
+ */
 typedef struct drm_lock {
 	int		 context;
 	drm_lock_flags_t flags;
 } drm_lock_t;
 
-typedef enum drm_dma_flags {	      /* These values *MUST* match xf86drm.h */
+
+/**
+ * \brief DMA flags
+ *
+ * \warning 
+ * These values \e must match xf86drm.h.
+ *
+ * \sa drm_dma.
+ */
+typedef enum drm_dma_flags {	      
 				      /* Flags for DMA buffer dispatch */
 	_DRM_DMA_BLOCK	      = 0x01, /**<
 				       * Block until buffer dispatched.
@@ -268,6 +334,12 @@ typedef enum drm_dma_flags {	      /* These values *MUST* match xf86drm.h */
 	_DRM_DMA_LARGER_OK    = 0x40  /**< Larger-than-requested buffers ok */
 } drm_dma_flags_t;
 
+
+/**
+ * \brief DRM_IOCTL_ADD_BUFS and DRM_IOCTL_MARK_BUFS ioctl argument type.
+ *
+ * \sa drmAddBufs().
+ */
 typedef struct drm_buf_desc {
 	int	      count;	 /**< Number of buffers of this size */
 	int	      size;	 /**< Size in bytes */
@@ -275,25 +347,39 @@ typedef struct drm_buf_desc {
 	int	      high_mark; /**< High water mark */
 	enum {
 		_DRM_PAGE_ALIGN = 0x01, /**< Align on page boundaries for DMA */
-		_DRM_AGP_BUFFER = 0x02, /**< Buffer is in agp space */
+		_DRM_AGP_BUFFER = 0x02, /**< Buffer is in AGP space */
 		_DRM_SG_BUFFER  = 0x04  /**< Scatter/gather memory buffer */
 	}	      flags;
 	unsigned long agp_start; /**< 
-				  * Start address of where the agp buffers are
-				  * in the agp aperture
+				  * Start address of where the AGP buffers are
+				  * in the AGP aperture
 				  */
 } drm_buf_desc_t;
 
+
+/**
+ * \brief DRM_IOCTL_INFO_BUFS ioctl argument type.
+ */
 typedef struct drm_buf_info {
 	int	       count;	/**< Entries in list */
 	drm_buf_desc_t *list;
 } drm_buf_info_t;
 
+
+/**
+ * \brief DRM_IOCTL_FREE_BUFS ioctl argument type.
+ */
 typedef struct drm_buf_free {
 	int	       count;
 	int	       *list;
 } drm_buf_free_t;
 
+
+/**
+ * \brief Buffer information
+ *
+ * \sa drm_buf_map.
+ */
 typedef struct drm_buf_pub {
 	int		  idx;	       /**< Index into master buflist */
 	int		  total;       /**< Buffer size */
@@ -301,15 +387,25 @@ typedef struct drm_buf_pub {
 	void		  *address;    /**< Address of buffer */
 } drm_buf_pub_t;
 
+
+/**
+ * \brief DRM_IOCTL_MAP_BUFS ioctl argument type.
+ */
 typedef struct drm_buf_map {
 	int	      count;	/**< Length of buflist */
 	void	      *virtual;	/**< Mmaped area in user-virtual */
 	drm_buf_pub_t *list;	/**< Buffer information */
 } drm_buf_map_t;
 
+
+/**
+ * \brief DRM_IOCTL_DMA ioctl argument type.
+ *
+ * Indices here refer to the offset into buflist in drm_buf_get_t.
+ *
+ * \sa drmDMA().
+ */
 typedef struct drm_dma {
-				/* Indices here refer to the offset into
-				   buflist in drm_buf_get_t. */
 	int		context;	  /**< Context handle */
 	int		send_count;	  /**< Number of buffers to send */
 	int		*send_indices;	  /**< List of handles to buffers */
@@ -322,35 +418,61 @@ typedef struct drm_dma {
 	int		granted_count;	  /**< Number of buffers granted */
 } drm_dma_t;
 
+
 typedef enum {
 	_DRM_CONTEXT_PRESERVED = 0x01,
 	_DRM_CONTEXT_2DONLY    = 0x02
 } drm_ctx_flags_t;
 
+
+/**
+ * \brief DRM_IOCTL_ADD_CTX ioctl argument type.
+ *
+ * \sa drmCreateContext() and drmDestroyContext().
+ */
 typedef struct drm_ctx {
 	drm_context_t	handle;
 	drm_ctx_flags_t flags;
 } drm_ctx_t;
 
+
+/**
+ * \brief DRM_IOCTL_RES_CTX ioctl argument type.
+ */
 typedef struct drm_ctx_res {
 	int		count;
 	drm_ctx_t	*contexts;
 } drm_ctx_res_t;
 
+
+/**
+ * \brief DRM_IOCTL_ADD_DRAW and DRM_IOCTL_RM_DRAW ioctl argument type.
+ */
 typedef struct drm_draw {
 	drm_drawable_t	handle;
 } drm_draw_t;
 
+
+/**
+ * \brief DRM_IOCTL_GET_MAGIC and DRM_IOCTL_AUTH_MAGIC ioctl argument type.
+ */
 typedef struct drm_auth {
 	drm_magic_t	magic;
 } drm_auth_t;
 
+
+/**
+ * \brief DRM_IOCTL_IRQ_BUSID ioctl argument type.
+ *
+ * \sa drmGetInterruptFromBusID().
+ */
 typedef struct drm_irq_busid {
-	int irq;
-	int busnum;
-	int devnum;
-	int funcnum;
+	int irq;	/**< IRQ number */
+	int busnum;	/**< bus number */
+	int devnum;	/**< device number */
+	int funcnum;	/**< function number */
 } drm_irq_busid_t;
+
 
 typedef enum {
     _DRM_VBLANK_ABSOLUTE = 0x0,		/**< Wait for specific vblank sequence number */
@@ -358,13 +480,16 @@ typedef enum {
     _DRM_VBLANK_SIGNAL   = 0x80000000	/**< Send signal instead of blocking */
 } drm_vblank_seq_type_t;
 
+
 #define _DRM_VBLANK_FLAGS_MASK _DRM_VBLANK_SIGNAL
+
 
 struct drm_wait_vblank_request {
 	drm_vblank_seq_type_t type;
 	unsigned int sequence;
 	unsigned long signal;
 };
+
 
 struct drm_wait_vblank_reply {
 	drm_vblank_seq_type_t type;
@@ -373,33 +498,59 @@ struct drm_wait_vblank_reply {
 	long tval_usec;
 };
 
+
+/**
+ * \brief DRM_IOCTL_WAIT_VBLANK ioctl argument type.
+ *
+ * \sa drmWaitVBlank().
+ */
 typedef union drm_wait_vblank {
 	struct drm_wait_vblank_request request;
 	struct drm_wait_vblank_reply reply;
 } drm_wait_vblank_t;
 
-typedef struct drm_agp_mode {
-	unsigned long mode;
-} drm_agp_mode_t;
 
 /**
- * For drm_agp_alloc -- allocated a buffer
+ * \brief DRM_IOCTL_AGP_ENABLE ioctl argument type.
+ *
+ * \sa drmAgpEnable().
+ */
+typedef struct drm_agp_mode {
+	unsigned long mode;	/**< AGP mode */
+} drm_agp_mode_t;
+
+
+/**
+ * \brief DRM_IOCTL_AGP_ALLOC and DRM_IOCTL_AGP_FREE ioctls argument type.
+ *
+ * \sa drmAgpAlloc() and drmAgpFree().
  */
 typedef struct drm_agp_buffer {
 	unsigned long size;	/**< In bytes -- will round to page boundary */
-	unsigned long handle;	/**< Used for BIND/UNBIND ioctls */
+	unsigned long handle;	/**< Used for binding / unbinding */
 	unsigned long type;     /**< Type of memory to allocate */
         unsigned long physical; /**< Physical used by i810 */
 } drm_agp_buffer_t;
 
+
 /**
- * For drm_agp_bind
+ * \brief DRM_IOCTL_AGP_BIND and DRM_IOCTL_AGP_UNBIND ioctls argument type.
+ *
+ * \sa drmAgpBind() and drmAgpUnbind().
  */
 typedef struct drm_agp_binding {
 	unsigned long handle;   /**< From drm_agp_buffer */
 	unsigned long offset;	/**< In bytes -- will round to page boundary */
 } drm_agp_binding_t;
 
+
+/**
+ * \brief DRM_IOCTL_AGP_INFO ioctl argument type.
+ *
+ * \sa drmAgpVersionMajor(), drmAgpVersionMinor(), drmAgpGetMode(),
+ * drmAgpBase(), drmAgpSize(), drmAgpMemoryUsed(), drmAgpMemoryAvail(),
+ * drmAgpVendorId() and drmAgpDeviceId().
+ */
 typedef struct drm_agp_info {
 	int            agp_version_major;
 	int            agp_version_minor;
@@ -414,10 +565,15 @@ typedef struct drm_agp_info {
 	unsigned short id_device;
 } drm_agp_info_t;
 
+
+/**
+ * \brief DRM_IOCTL_SG_ALLOC ioctl argument type.
+ */
 typedef struct drm_scatter_gather {
 	unsigned long size;	/**< In bytes -- will round to page boundary */
 	unsigned long handle;	/**< Used for mapping / unmapping */
 } drm_scatter_gather_t;
+
 
 #define DRM_IOCTL_BASE			'd'
 #define DRM_IO(nr)			_IO(DRM_IOCTL_BASE,nr)
@@ -480,7 +636,10 @@ typedef struct drm_scatter_gather {
 
 /**
  * Device specific ioctls should only be in their respective headers
- * The device specific ioctl range is 0x40 to 0x79.
+ * The device specific ioctl range is from 0x40 to 0x79.
+ *
+ * \sa drmCommandNone(), drmCommandRead(), drmCommandWrite(), and
+ * drmCommandReadWrite().
  */
 #define DRM_COMMAND_BASE                0x40
 

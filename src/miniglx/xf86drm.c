@@ -529,13 +529,16 @@ drmVersionPtr drmGetVersion(int fd)
 
 
 /**
- * \brief Set version information for the DRM user space library.
+ * \brief Get version information for the DRM user space library.
+ * 
+ * This version number is driver indepedent.
  * 
  * \param fd file descriptor.
  *
  * \return version information.
  * 
- * This version number is driver indepedent.
+ * \internal
+ * Allocates and fills a drm_version_t structure.
  */
 drmVersionPtr drmGetLibVersion(int fd)
 {
@@ -559,6 +562,9 @@ drmVersionPtr drmGetLibVersion(int fd)
  * \brief Free the bus ID information.
  *
  * \param busid bus ID information string as given by drmGetBusid().
+ *
+ * \internal
+ * Alias for free().
  */
 void drmFreeBusid(const char *busid)
 {
@@ -574,8 +580,9 @@ void drmFreeBusid(const char *busid)
  * \return bus ID string.
  *
  * \internal
- * Get the bus ID via sucessive DRM_IOCTL_GET_UNIQUE ioctls to get the string
- * length and data.
+ * Get the bus ID via sucessive DRM_IOCTL_GET_UNIQUE ioctls to get the
+ * string length and data, passing the arguments in a drm_unique_t
+ * type.
  */
 char *drmGetBusid(int fd)
 {
@@ -601,7 +608,8 @@ char *drmGetBusid(int fd)
  * \return zero on sucess, negative on failure.
  *
  * \internal
- * Set the bus ID via the DRM_IOCTL_SET_UNIQUE ioctl.
+ * Wrapper around the DRM_IOCTL_SET_UNIQUE ioctl. Passes the arguments
+ * in a drm_unique_t structure.
  */
 int drmSetBusid(int fd, const char *busid)
 {
@@ -699,11 +707,9 @@ int drmAddMap(int fd,
  * \return number of buffers allocated, negative on error.
  *
  * \internal
- * Wrapper around DRM_IOCTL_ADD_BUFS.
+ * Wrapper around DRM_IOCTL_ADD_BUFS ioctl.
  *
- * \sa drm_buf_desc_t.
- * Passes the arguments into a drm_buf_desc_t structure to the
- * DRM_IOCTL_ADD_BUFS ioctl.
+ * \sa drm_buf_desc.
  */
 int drmAddBufs(int fd, int count, int size, drmBufDescFlags flags,
 	       int agp_offset)
@@ -1130,7 +1136,7 @@ int drmAgpAlloc(int fd, unsigned long size, unsigned long type,
  * \internal
  * Wrapper around the DRM_IOCTL_AGP_FREE ioctl.
  *
- * \sa drm_agp_buffer_t.
+ * \sa drm_agp_buffer.
  */
 int drmAgpFree(int fd, unsigned long handle)
 {
@@ -1155,7 +1161,7 @@ int drmAgpFree(int fd, unsigned long handle)
  * \internal
  * Wrapper around the DRM_IOCTL_AGP_BIND ioctl.
  * 
- * \sa drm_agp_binding_t.
+ * \sa drm_agp_binding.
  */
 int drmAgpBind(int fd, unsigned long handle, unsigned long offset)
 {
@@ -1179,7 +1185,7 @@ int drmAgpBind(int fd, unsigned long handle, unsigned long offset)
  * \internal
  * Wrapper around the DRM_IOCTL_AGP_UNBIND ioctl.
  *
- * \sa drm_agp_binding_t.
+ * \sa drm_agp_binding.
  */
 int drmAgpUnbind(int fd, unsigned long handle)
 {
@@ -1455,7 +1461,7 @@ int drmGetInterruptFromBusID(int fd, int busnum, int devnum, int funcnum)
 
 
 /**
- * \brief Send a command.
+ * \brief Send a device-specific command.
  *
  * \param fd file descriptor.
  * \param drmCommandIndex command index 
@@ -1479,7 +1485,7 @@ int drmCommandNone(int fd, unsigned long drmCommandIndex)
 
 
 /**
- * \brief Send a read command.
+ * \brief Send a device-specific read command.
  *
  * \param fd file descriptor.
  * \param drmCommandIndex command index 
@@ -1506,7 +1512,7 @@ int drmCommandRead(int fd, unsigned long drmCommandIndex,
 
 
 /**
- * \brief Send a write command.
+ * \brief Send a device-specific write command.
  *
  * \param fd file descriptor.
  * \param drmCommandIndex command index 
@@ -1533,7 +1539,7 @@ int drmCommandWrite(int fd, unsigned long drmCommandIndex,
 
 
 /**
- * \brief Send a read-write command.
+ * \brief Send a device-specific read-write command.
  *
  * \param fd file descriptor.
  * \param drmCommandIndex command index 
