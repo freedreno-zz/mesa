@@ -27,7 +27,8 @@ static int fullscreen = 1;
 static int WIDTH = 640;
 static int HEIGHT = 480;
 
-#define FRAME 50
+static GLint T0 = 0;
+static GLint Frames = 0;
 
 #define NUMBLOC 5
 
@@ -56,7 +57,7 @@ static float v = 0.5;
 static float alpha = 90.0;
 static float beta = 90.0;
 
-static int fog = 0;
+static int fog = 1;
 static int bfcull = 1;
 static int usetex = 1;
 static int cstrip = 0;
@@ -154,21 +155,6 @@ drawobjs(int *l, float *f)
       }
 }
 
-static float
-gettime(void)
-{
-   static clock_t told = 0;
-   clock_t tnew, ris;
-
-   tnew = clock();
-
-   ris = tnew - told;
-
-   told = tnew;
-
-   return (ris / (float) CLOCKS_PER_SEC);
-}
-
 static void
 calcposobs(void)
 {
@@ -221,7 +207,6 @@ key(unsigned char k, int x, int y)
       XMesaSetFXmode(fullscreen ? XMESA_FX_FULLSCREEN : XMESA_FX_WINDOW);
       break;
 #endif
-
    case 'j':
       joyactive = (!joyactive);
       break;
@@ -257,6 +242,7 @@ key(unsigned char k, int x, int y)
       fprintf(stderr, "Done.\n");
       break;
    }
+   glutPostRedisplay();
 }
 
 static void
@@ -366,10 +352,9 @@ dojoy(void)
 static void
 draw(void)
 {
-   static int count = 0;
-   static char frbuf[80];
+   static char frbuf[80] = "";
    int i;
-   float fr, base, offset;
+   float base, offset;
 
    dojoy();
 
@@ -416,11 +401,6 @@ draw(void)
    glPopMatrix();
    glPopMatrix();
 
-   if ((count % FRAME) == 0) {
-      fr = gettime();
-      sprintf(frbuf, "Frame rate: %f", FRAME / fr);
-   }
-
    glDisable(GL_TEXTURE_2D);
    glDisable(GL_FOG);
    glShadeModel(GL_FLAT);
@@ -449,8 +429,26 @@ draw(void)
 
    glutSwapBuffers();
 
-   count++;
+   Frames++;
+   {
+      GLint t = glutGet(GLUT_ELAPSED_TIME);
+      if (t - T0 >= 2000) {
+         GLfloat seconds = (t - T0) / 1000.0;
+         GLfloat fps = Frames / seconds;
+         sprintf(frbuf, "Frame rate: %f", fps);
+         T0 = t;
+         Frames = 0;
+      }
+   }
 }
+
+static void
+idle(void)
+{
+   glutPostRedisplay();
+}
+
+
 
 int
 main(int ac, char **av)
@@ -500,7 +498,7 @@ main(int ac, char **av)
    glutDisplayFunc(draw);
    glutKeyboardFunc(key);
    glutSpecialFunc(special);
-   glutIdleFunc(draw);
+   glutIdleFunc(idle);
 
    glEnable(GL_BLEND);
    /*glBlendFunc(GL_SRC_ALPHA_SATURATE,GL_ONE); */
