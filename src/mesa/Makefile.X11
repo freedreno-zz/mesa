@@ -1,4 +1,4 @@
-# $Id: Makefile.X11,v 1.20.2.1 2001/03/02 16:40:47 gareth Exp $
+# $Id: Makefile.X11,v 1.20.2.2 2001/03/23 17:08:08 brianp Exp $
 
 # Mesa 3-D graphics library
 # Version:  3.3
@@ -218,15 +218,10 @@ X86/x86.o: X86/x86.c
 	$(CC) -c -I. -I$(INCDIR) $(CFLAGS) $< -o $@
 X86/common_x86.o: X86/common_x86.c
 	$(CC) -c -I. -I$(INCDIR) $(CFLAGS) $< -o $@
-X86/3dnow.o: X86/3dnow.c X86/asm_types.h
+X86/3dnow.o: X86/3dnow.c
 	$(CC) -c -I. -I$(INCDIR) $(CFLAGS) $< -o $@
 X86/katmai.o: X86/katmai.c
 	$(CC) -c -I. -I$(INCDIR) $(CFLAGS) $< -o $@
-
-X86/asm_types.h: types.h vb.h X86/gen_types.c
-	$(CC) -I. -I$(INCDIR) $(CFLAGS) X86/gen_types.c -o X86/gen_types
-	./X86/gen_types > X86/asm_types.h
-	rm -f X86/gen_types
 
 
 ##### TARGETS #####
