@@ -469,7 +469,6 @@ struct tfxMesaContext {
   GLuint texBindNumber;
   GLint tmuSrc;
   GLuint lastUnitsMode;
-  GLuint texStart[FX_NUM_TMU];
   GLuint freeTexMem[FX_NUM_TMU];
   MemRange *tmPool;
   MemRange *tmFree[FX_NUM_TMU];

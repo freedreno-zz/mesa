@@ -124,13 +124,8 @@ static tfxTexInfo *fxAllocTexObjData(fxMesaContext fxMesa)
   ti->sClamp=GR_TEXTURECLAMP_WRAP;
   ti->tClamp=GR_TEXTURECLAMP_WRAP;
 
-  if(fxMesa->haveTwoTMUs) {
-    ti->mmMode=GR_MIPMAP_NEAREST;
-    ti->LODblend=FXTRUE;
-  } else {
-    ti->mmMode=GR_MIPMAP_NEAREST_DITHER;
-    ti->LODblend=FXFALSE;
-  }
+  ti->mmMode=GR_MIPMAP_NEAREST;
+  ti->LODblend=FXFALSE;
 
   for(i=0;i<MAX_TEXTURE_LEVELS;i++) {
     ti->mipmapLevel[i].used=GL_FALSE;
@@ -921,10 +916,10 @@ static void fxTexBuildImageMap(const struct gl_texture_image *image,
 
     if(wscale==hscale==1) {
       int i=0;
-      int lenght=h*w;
+      int length=h*w;
       unsigned short a,l;
 
-      while(i++<lenght) {
+      while(i++<length) {
         l=*data++;
         a=*data++;
 
@@ -965,10 +960,10 @@ static void fxTexBuildImageMap(const struct gl_texture_image *image,
 
     if(wscale==hscale==1) {
       int i=0;
-      int lenght=h*w;
+      int length=h*w;
       unsigned short r,g,b;
 
-      while(i++<lenght) {
+      while(i++<length) {
         r=*data++;
         g=*data++;
         b=*data++;
@@ -1015,10 +1010,10 @@ static void fxTexBuildImageMap(const struct gl_texture_image *image,
 
     if(wscale==hscale==1) {
       int i=0;
-      int lenght=h*w;
+      int length=h*w;
       unsigned short r,g,b,a;
 
-      while(i++<lenght) {
+      while(i++<length) {
         r=*data++;
         g=*data++;
         b=*data++;

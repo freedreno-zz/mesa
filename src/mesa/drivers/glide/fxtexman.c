@@ -60,24 +60,19 @@ static struct gl_texture_object *fxTMFindOldestObject(fxMesaContext fxMesa,
 						      int tmu);
 
 
-#if 0
+#ifdef TEXSANITY
 static void fubar()
 {
 }
 
   /* Sanity Check */
-static void sanity(fxMesaContext fxMesa, int tmu)
+static void sanity(fxMesaContext fxMesa)
 {
-  MemRange *tmp, *prev;
-  int i;
+  MemRange *tmp, *prev, *pos;
 
   prev=0;
-  tmp = fxMesa->tmFree[tmu];
-  i=0;
+  tmp = fxMesa->tmFree[0];
   while (tmp) {
-    fprintf(stderr, "TMU %d Sanity %d %d-%d\n", tmu, i, 
-	    tmp->startAddr, tmp->endAddr);
-    i++;
     if (!tmp->startAddr && !tmp->endAddr) {
       fprintf(stderr, "Textures fubar\n");
       fubar();
@@ -87,7 +82,26 @@ static void sanity(fxMesaContext fxMesa, int tmu)
       fubar();
     }
     if (prev && (prev->startAddr>=tmp->startAddr || 
-	prev->endAddr>=tmp->startAddr)) {
+	prev->endAddr>tmp->startAddr)) {
+      fprintf(stderr, "Sorting fubar\n");
+      fubar();
+    }
+    prev=tmp;
+    tmp=tmp->next;
+  }
+  prev=0;
+  tmp = fxMesa->tmFree[1];
+  while (tmp) {
+    if (!tmp->startAddr && !tmp->endAddr) {
+      fprintf(stderr, "Textures fubar\n");
+      fubar();
+    }
+    if (tmp->startAddr>=tmp->endAddr) {
+      fprintf(stderr, "Node fubar\n");
+      fubar();
+    }
+    if (prev && (prev->startAddr>=tmp->startAddr || 
+	prev->endAddr>tmp->startAddr)) {
       fprintf(stderr, "Sorting fubar\n");
       fubar();
     }
@@ -128,13 +142,12 @@ static void fxTMUInit(fxMesaContext fxMesa, int tmu)
 
   start=FX_grTexMinAddress(tmu);
   end=FX_grTexMaxAddress(tmu);
-  fxMesa->texStart[tmu]=start;
 
   if(fxMesa->verbose) {
     fprintf(stderr,"%s configuration:",(tmu==FX_TMU0) ? "TMU0" : "TMU1");
     fprintf(stderr,"  Lower texture memory address (%u)\n",(unsigned int)start);
     fprintf(stderr,"  Higher texture memory address (%u)\n",(unsigned int)end);
-    fprintf(stderr,"  Splitting Texture memory in 2Mb blocks:\n");
+    fprintf(stderr,"  Splitting Texture memory in 2b blocks:\n");
   }
 
   fxMesa->freeTexMem[tmu]=end-start;
@@ -182,6 +195,7 @@ static int fxTMFindStartAddr(fxMesaContext fxMesa, GLint tmu, int size)
 	  }
 	  fxTMDeleteRangeNode(fxMesa, tmp);
 	}
+	fxMesa->freeTexMem[tmu]-=size;
 	return result;
       }
       prev=tmp;
@@ -199,12 +213,13 @@ static int fxTMFindStartAddr(fxMesaContext fxMesa, GLint tmu, int size)
 
 static void fxTMRemoveRange(fxMesaContext fxMesa, GLint tmu, MemRange *range)
 {
-  MemRange *tmp, *prev, *next;
+  MemRange *tmp, *prev;
 
   if (range->startAddr==range->endAddr) {
     fxTMDeleteRangeNode(fxMesa, range);
     return;
   }
+  fxMesa->freeTexMem[tmu]+=range->endAddr-range->startAddr;
   prev=0;
   tmp=fxMesa->tmFree[tmu];
   while (tmp) {
@@ -554,6 +569,7 @@ void fxTMFreeTexture(fxMesaContext fxMesa, struct gl_texture_object *tObj)
   }
   switch (ti->whichTMU) {
   case FX_TMU0:
+  case FX_TMU1:
     fxTMDeleteRangeNode(fxMesa, ti->tm[ti->whichTMU]);
     break;
   case FX_TMU_SPLIT:
@@ -566,12 +582,13 @@ void fxTMFreeTexture(fxMesaContext fxMesa, struct gl_texture_object *tObj)
 
 void fxTMInit(fxMesaContext fxMesa)
 {
+  fxMesa->texBindNumber=0;
+  fxMesa->tmPool=0;
+
   fxTMUInit(fxMesa,FX_TMU0);
 
   if(fxMesa->haveTwoTMUs)
     fxTMUInit(fxMesa,FX_TMU1);
-
-  fxMesa->texBindNumber=0;
 }
 
 void fxTMClose(fxMesaContext fxMesa)
@@ -641,7 +658,7 @@ void fxTMRestore_NoLock(fxMesaContext fxMesa, struct gl_texture_object *tObj)
     for (i=FX_largeLodValue_NoLock(ti->info),l=ti->minLevel;
 	 i<=FX_smallLodValue_NoLock(ti->info);
 	 i++,l++) {
-      if (ti->mipmapLevel[l].data)
+      if (ti->mipmapLevel[l].data) {
 	FX_grTexDownloadMipMapLevel_NoLock(GR_TMU0,
 					   ti->tm[FX_TMU0]->startAddr,
 					   FX_valueToLod(i),
@@ -650,7 +667,6 @@ void fxTMRestore_NoLock(fxMesaContext fxMesa, struct gl_texture_object *tObj)
 					   ti->info.format,
 					   GR_MIPMAPLEVELMASK_ODD,
 					   ti->mipmapLevel[l].data);
-      if (ti->mipmapLevel[l].data)
 	FX_grTexDownloadMipMapLevel_NoLock(GR_TMU1,
 					   ti->tm[FX_TMU1]->startAddr,
 					   FX_valueToLod(i),
@@ -659,6 +675,7 @@ void fxTMRestore_NoLock(fxMesaContext fxMesa, struct gl_texture_object *tObj)
 					   ti->info.format,
 					   GR_MIPMAPLEVELMASK_EVEN,
 					   ti->mipmapLevel[l].data);
+      }
     }
     break;
   default:

@@ -70,6 +70,7 @@ static void fxSetupFog(GLcontext *ctx, GLboolean forceTableRebuild);
 static void fxSetupScissor(GLcontext *ctx);
 static void fxSetupCull(GLcontext *ctx);
 static void gl_print_fx_state_flags( const char *msg, GLuint flags);
+static GLboolean fxMultipassBlend(struct vertex_buffer *, GLuint);
 static GLboolean fxMultipassTexture( struct vertex_buffer *, GLuint );
 
 static void fxTexValidate(GLcontext *ctx, struct gl_texture_object *tObj)
@@ -314,12 +315,22 @@ static void fxSetupSingleTMU_NoLock(fxMesaContext fxMesa, struct gl_texture_obje
       fxTMMoveInTM_NoLock(fxMesa,tObj,FX_TMU_SPLIT);
     else {
       if (fxMesa->haveTwoTMUs) {
+#if 0
+	/* This path is disabled because we're not correctly setting up
+	   the second TMU as the only texture unit. It is arguable if this
+	   fallback is ever really a win, because when we use the second
+	   TMU we have to do setup for both TMU0 and TMU1 which is extra
+	   work. We could just flush a texture from TMU0 instead. */
 	if (fxMesa->freeTexMem[FX_TMU0] >
 	    FX_grTexTextureMemRequired_NoLock(GR_MIPMAPLEVELMASK_BOTH,
-					      &(ti->info)))
-	  fxTMMoveInTM_NoLock(fxMesa,tObj,FX_TMU0);
-	else
-	  fxTMMoveInTM_NoLock(fxMesa,tObj,FX_TMU1);
+					      &(ti->info))) {
+	  fxTMMoveInTM_NoLock(fxMesa,tObj, FX_TMU0);
+	} else {
+	  fxTMMoveInTM_NoLock(fxMesa,tObj, FX_TMU1);
+	}
+#else
+	fxTMMoveInTM_NoLock(fxMesa, tObj, FX_TMU0);
+#endif
       } else
 	fxTMMoveInTM_NoLock(fxMesa,tObj,FX_TMU0);
     }
@@ -376,7 +387,8 @@ static void fxSetupSingleTMU(fxMesaContext fxMesa, struct gl_texture_object *tOb
   END_BOARD_LOCK();
 }
 
-static void fxSelectSingleTMUSrc_NoLock(fxMesaContext fxMesa, GLint tmu, FxBool LODblend)
+static void fxSelectSingleTMUSrc_NoLock(fxMesaContext fxMesa, GLint tmu, 
+					FxBool LODblend)
 {
    if (MESA_VERBOSE&VERBOSE_DRIVER) {
       fprintf(stderr,"fxmesa: fxSelectSingleTMUSrc(%d,%d)\n",tmu,LODblend);
@@ -394,7 +406,6 @@ static void fxSelectSingleTMUSrc_NoLock(fxMesaContext fxMesa, GLint tmu, FxBool 
 			   GR_COMBINE_FUNCTION_LOCAL,GR_COMBINE_FACTOR_NONE,
 			   GR_COMBINE_FUNCTION_LOCAL,GR_COMBINE_FACTOR_NONE,
 			   FXFALSE,FXFALSE);
-
     fxMesa->tmuSrc=FX_TMU_SPLIT;
   } else {
     if(tmu==FX_TMU0) {
@@ -402,7 +413,6 @@ static void fxSelectSingleTMUSrc_NoLock(fxMesaContext fxMesa, GLint tmu, FxBool 
 			     GR_COMBINE_FUNCTION_LOCAL,GR_COMBINE_FACTOR_NONE,
 			     GR_COMBINE_FUNCTION_LOCAL,GR_COMBINE_FACTOR_NONE,
 			     FXFALSE,FXFALSE);
-      
       fxMesa->tmuSrc=FX_TMU0;
     } else {
       FX_grTexCombine_NoLock(GR_TMU1,
@@ -413,8 +423,10 @@ static void fxSelectSingleTMUSrc_NoLock(fxMesaContext fxMesa, GLint tmu, FxBool 
       /* GR_COMBINE_FUNCTION_SCALE_OTHER doesn't work ?!? */
     
       FX_grTexCombine_NoLock(GR_TMU0,
-			     GR_COMBINE_FUNCTION_BLEND,GR_COMBINE_FACTOR_ONE,
-			     GR_COMBINE_FUNCTION_BLEND,GR_COMBINE_FACTOR_ONE,
+			     GR_COMBINE_FUNCTION_BLEND,
+			     GR_COMBINE_FACTOR_ONE,
+			     GR_COMBINE_FUNCTION_BLEND,
+			     GR_COMBINE_FACTOR_ONE,
 			     FXFALSE,FXFALSE);
     
       fxMesa->tmuSrc=FX_TMU1;
@@ -508,10 +520,24 @@ static void fxSetupTextureSingleTMU_NoLock(GLcontext *ctx, GLuint textureset)
 			       FXFALSE);
     break;
   case GL_BLEND:
-#ifndef FX_SILENT
-    fprintf(stderr,"fx Driver: GL_BLEND not yet supported\n");
-#endif
-    /* TO DO (I think that the Voodoo Graphics isn't able to support GL_BLEND) */
+    FX_grAlphaCombine_NoLock(GR_COMBINE_FUNCTION_SCALE_OTHER,
+			     GR_COMBINE_FACTOR_LOCAL,
+			     locala,
+			     GR_COMBINE_OTHER_TEXTURE,
+			     FXFALSE);
+    if (ifmt==GL_ALPHA)
+      FX_grColorCombine_NoLock(GR_COMBINE_FUNCTION_LOCAL,
+			       GR_COMBINE_FACTOR_NONE,
+			       localc,
+			       GR_COMBINE_OTHER_NONE,
+			       FXFALSE);
+    else
+      FX_grColorCombine_NoLock(GR_COMBINE_FUNCTION_SCALE_OTHER_ADD_LOCAL,
+			       GR_COMBINE_FACTOR_LOCAL,
+			       localc,
+			       GR_COMBINE_OTHER_TEXTURE,
+			       FXTRUE);
+    ctx->Driver.MultipassFunc = fxMultipassBlend;
     break;
   case GL_REPLACE:
     if((ifmt==GL_RGB) || (ifmt==GL_LUMINANCE))
@@ -1584,9 +1610,60 @@ void fxDDEnable(GLcontext *ctx, GLenum cap, GLboolean state)
       ctx->Driver.RenderStart = fxSetupFXUnits;
       break;
   default:
-    ;  /* XXX no-op??? */
+    ;  /* XXX no-op? */
   }    
 }
+
+#if 0
+/*
+  Multipass to do GL_BLEND texture functions
+  Cf*(1-Ct) has already been written to the buffer during the first pass
+  Cc*Ct gets written during the second pass (in this function)
+  Everything gets reset in the third call (in this function)
+*/
+static GLboolean fxMultipassBlend(struct vertex_buffer *VB, GLuint pass)
+{
+  GLcontext *ctx = VB->ctx;
+  fxMesaContext fxMesa = FX_CONTEXT(ctx);
+
+  switch (pass) {
+  case 1:
+    /* Add Cc*Ct */
+    fxMesa->restoreUnitsState=fxMesa->unitsState;
+    if (ctx->Depth.Mask) {
+      /* We don't want to check or change the depth buffers */
+      switch (ctx->Depth.Func) {
+      case GL_NEVER:
+      case GL_ALWAYS:
+	break;
+      default:
+	fxDDDepthFunc(ctx, GL_EQUAL);
+	break;
+      }
+      fxDDDepthMask(ctx, FALSE);
+    }
+    /* Enable Cc*Ct mode */
+    /* ? Set the Constant Color ? */
+    fxDDEnable(ctx, GL_BLEND, GL_TRUE);
+    fxDDBlendFunc(ctx, ?, ?);
+    fxSetupTextureSingleTMU(ctx, ?);
+    fxSetupBlend(ctx);
+    fxSetupDepthTest(ctx);
+    break;
+
+  case 2:
+    /* Reset everything back to normal */
+    fxMesa->unitsState = fxMesa->restoreUnitsState;
+    fxMesa->setupdone &= ?;
+    fxSetupTextureSingleTMU(ctx, ?);
+    fxSetupBlend(ctx);
+    fxSetupDepthTest(ctx);
+    break;
+  }
+
+  return pass==1;
+}
+#endif
 
 /************************************************************************/
 /******************** Fake Multitexture Support *************************/
@@ -1697,7 +1774,7 @@ void fxSetupFXUnits( GLcontext *ctx )
   fxMesaContext fxMesa=(fxMesaContext)ctx->DriverCtx;
   GLuint newstate = fxMesa->new_state;
 
-  if (MESA_VERBOSE&VERBOSE_DRIVER) 
+  if (MESA_VERBOSE&VERBOSE_DRIVER)
      gl_print_fx_state_flags("fxmesa: fxSetupFXUnits", newstate);
 
   if (newstate) {
