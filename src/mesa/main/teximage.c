@@ -1,4 +1,4 @@
-/* $Id: teximage.c,v 1.104.2.3 2002/04/23 16:45:16 brianp Exp $ */
+/* $Id: teximage.c,v 1.104.2.4 2002/06/08 13:05:07 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -978,7 +978,7 @@ copytexture_error_check( GLcontext *ctx, GLuint dimensions,
          _mesa_error( ctx, GL_INVALID_ENUM, "glCopyTexImage2D(target)" );
          return GL_TRUE;
       }
-      if (target == GL_PROXY_TEXTURE_2D && target == GL_TEXTURE_2D)
+      if (target == GL_TEXTURE_2D)
          maxLevels = ctx->Const.MaxTextureLevels;
       else
          maxLevels = ctx->Const.MaxCubeTextureLevels;
@@ -1076,7 +1076,7 @@ copytexsubimage_error_check( GLcontext *ctx, GLuint dimensions,
          _mesa_error( ctx, GL_INVALID_ENUM, "glCopyTexSubImage2D(target)" );
          return GL_TRUE;
       }
-      if (target == GL_PROXY_TEXTURE_2D && target == GL_TEXTURE_2D)
+      if (target == GL_TEXTURE_2D)
          maxLevels = ctx->Const.MaxTextureLevels;
       else
          maxLevels = ctx->Const.MaxCubeTextureLevels;
