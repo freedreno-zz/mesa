@@ -1,5 +1,14 @@
+/**
+ * \file i810_agp.c
+ * \brief AGPGART module i810 backend
+ * \version 0.99
+ * 
+ * \author Jeff Hartmann
+ *
+ * \todo Allocate more than order 0 pages to avoid too much linear map splitting.
+ */
+
 /*
- * AGPGART module version 0.99
  * Copyright (C) 1999 Jeff Hartmann
  * Copyright (C) 1999 Precision Insight, Inc.
  * Copyright (C) 1999 Xi Graphics, Inc.
@@ -21,9 +30,6 @@
  * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR 
  * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE 
  * OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
- * TODO: 
- * - Allocate more than order 0 pages to avoid too much linear map splitting.
  */
 
 #include <linux/module.h>

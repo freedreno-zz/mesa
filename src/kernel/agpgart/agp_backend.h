@@ -1,5 +1,12 @@
+/**
+ * \file agp_backend.h
+ * \brief AGPGART module backend
+ * \version 0.99
+ * 
+ * \author Jeff Hartmann
+ */
+
 /*
- * AGPGART module version 0.99
  * Copyright (C) 1999 Jeff Hartmann
  * Copyright (C) 1999 Precision Insight, Inc.
  * Copyright (C) 1999 Xi Graphics, Inc.
@@ -38,6 +45,7 @@
 #define AGPGART_VERSION_MAJOR 0
 #define AGPGART_VERSION_MINOR 99
 
+/** Supported chipset types */
 enum chipset_type {
 	NOT_SUPPORTED,
 	INTEL_GENERIC,
@@ -95,13 +103,13 @@ typedef struct _agp_kern_info {
 	unsigned long mode;
 	off_t aper_base;
 	size_t aper_size;
-	int max_memory;		/* In pages */
+	int max_memory;		/**< In pages */
 	int current_memory;
 	int cant_use_aperture;
 	unsigned long page_mask;
 } agp_kern_info;
 
-/* 
+/**
  * The agp_memory structure has information
  * about the block of agp memory allocated.
  * A caller may manipulate the next and prev
@@ -111,9 +119,7 @@ typedef struct _agp_kern_info {
  * written to, but the caller may read any of
  * the items to detrimine the status of this
  * block of agp memory.
- * 
  */
-
 typedef struct _agp_memory {
 	int key;
 	struct _agp_memory *next;
@@ -130,11 +136,7 @@ typedef struct _agp_memory {
 
 #define AGP_NORMAL_MEMORY 0
 
-extern void agp_free_memory(agp_memory *);
-
-/*
- * agp_free_memory :
- * 
+/**
  * This function frees memory associated with
  * an agp_memory pointer.  It is the only function
  * that can be called when the backend is not owned
@@ -142,14 +144,10 @@ extern void agp_free_memory(agp_memory *);
  * death.)
  * 
  * It takes an agp_memory pointer as an argument.
- * 
  */
+extern void agp_free_memory(agp_memory *);
 
-extern agp_memory *agp_allocate_memory(size_t, u32);
-
-/*
- * agp_allocate_memory :
- * 
+/**
  * This function allocates a group of pages of
  * a certain type.
  * 
@@ -159,15 +157,12 @@ extern agp_memory *agp_allocate_memory(size_t, u32);
  * AGP_NORMAL_MEMORY which maps to physical ram.  Any other
  * type is device dependant.
  * 
- * It returns NULL whenever memory is unavailable.
+ * \return NULL whenever memory is unavailable.
  * 
  */
+extern agp_memory *agp_allocate_memory(size_t, u32);
 
-extern int agp_copy_info(agp_kern_info *);
-
-/*
- * agp_copy_info :
- * 
+/**
  * This function copies information about the
  * agp bridge device and the state of the agp
  * backend into an agp_kern_info pointer.
@@ -175,14 +170,10 @@ extern int agp_copy_info(agp_kern_info *);
  * It takes an agp_kern_info pointer as an
  * argument.  The caller should insure that
  * this pointer is valid.
- * 
  */
+extern int agp_copy_info(agp_kern_info *);
 
-extern int agp_bind_memory(agp_memory *, off_t);
-
-/*
- * agp_bind_memory :
- * 
+/**
  * This function binds an agp_memory structure
  * into the graphics aperture translation table.
  * 
@@ -192,14 +183,10 @@ extern int agp_bind_memory(agp_memory *, off_t);
  * It returns -EINVAL if the pointer == NULL.
  * It returns -EBUSY if the area of the table
  * requested is already in use.
- * 
  */
+extern int agp_bind_memory(agp_memory *, off_t);
 
-extern int agp_unbind_memory(agp_memory *);
-
-/* 
- * agp_unbind_memory :
- * 
+/**
  * This function removes an agp_memory structure
  * from the graphics aperture translation table.
  * 
@@ -209,39 +196,28 @@ extern int agp_unbind_memory(agp_memory *);
  * is not currently bound to the graphics aperture
  * translation table or if the agp_memory 
  * pointer == NULL
- * 
  */
-
-extern void agp_enable(u32);
+extern int agp_unbind_memory(agp_memory *);
 
 /* 
- * agp_enable :
- * 
  * This function initializes the agp point-to-point
  * connection.
  * 
  * It takes an agp mode register as an argument
- * 
  */
+extern void agp_enable(u32);
 
-extern int agp_backend_acquire(void);
-
-/*
- * agp_backend_acquire :
- * 
- * This Function attempts to acquire the agp
+/**
+ * This function attempts to acquire the agp
  * backend.
  * 
  * returns -EBUSY if agp is in use,
  * returns 0 if the caller owns the agp backend
  */
+extern int agp_backend_acquire(void);
 
-extern void agp_backend_release(void);
-
-/*
- * agp_backend_release :
- * 
- * This Function releases the lock on the agp
+/**
+ * This function releases the lock on the agp
  * backend.
  * 
  * The caller must insure that the graphics
@@ -250,6 +226,8 @@ extern void agp_backend_release(void);
  * it bound is unbound.)
  * 
  */
+extern void agp_backend_release(void);
+
 
 typedef struct {
 	void       (*free_memory)(agp_memory *);
@@ -262,12 +240,15 @@ typedef struct {
 	int        (*copy_info)(agp_kern_info *);
 } drm_agp_t;
 
-extern const drm_agp_t *drm_agp_p;
 
-/*
- * Interface between drm and agp code.  When agp initializes, it makes
- * the above structure available via inter_module_register(), drm might
- * use it.  Keith Owens <kaos@ocs.com.au> 28 Oct 2000.
+/**
+ * Interface between DRM and AGP code.  When AGP initializes, it makes
+ * the above structure available via inter_module_register(), DRM might
+ * use it.
+ * 
+ * \author Keith Owens <kaos@ocs.com.au> 
+ * \date 28 Oct 2000.
  */
+extern const drm_agp_t *drm_agp_p;
 
 #endif				/* _AGP_BACKEND_H */

@@ -1,5 +1,12 @@
+/**
+ * \file frontend.c
+ * \brief AGPGART module frontend
+ * \version 0.99
+ * 
+ * \author Jeff Hartmann
+ */
+
 /*
- * AGPGART module frontend version 0.99
  * Copyright (C) 1999 Jeff Hartmann
  * Copyright (C) 1999 Precision Insight, Inc.
  * Copyright (C) 1999 Xi Graphics, Inc.

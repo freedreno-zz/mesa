@@ -1,8 +1,14 @@
 /**
  * \file agp.c
- * \brief AGPGART module version 0.99
+ * \brief AGPGART module generic backend
+ * \version 0.99
  * 
  * \author Jeff Hartmann
+ *
+ * Currently this module supports the following chipsets:
+ * i810, i815, 440lx, 440bx, 440gx, i830, i840, i845, i850, i860, via vp3,
+ * via mvp3, via kx133, via kt133, amd irongate, amd 761, amd 762, ALi M1541,
+ * and generic support for the SiS chipsets.
  *
  * \todo Allocate more than order 0 pages to avoid too much linear map splitting.
  */
@@ -227,6 +233,7 @@ void agp_free_memory(agp_memory * curr)
  *
  * \param page_count number of pages to allocate.
  * \param type type.
+ * \return pointer to a agp_memory structure on success, or NULL on failure.
  *
  * If \p type is not zero then the call is dispatched to the
  * agp_bridge_data::alloc_by_type method, otherwise the module use count is
@@ -289,7 +296,7 @@ agp_memory *agp_allocate_memory(size_t page_count, u32 type)
 /**
  * Current allocated size.
  *
- * \return
+ * \return the allocated size.
  *
  * Returns the \a size field in agp_bridge_data::current_size according with
  * the size type specified in agp_bridge_data::size_type.
@@ -373,7 +380,7 @@ int agp_copy_info(agp_kern_info * info)
  * Bind AGP memory.
  *
  * \param curr AGP memory to bind.
- * \param pg_start page start.
+ * \param pg_start start page.
  *
  * \return zero on success or a negative number on failure.
  *
@@ -434,13 +441,6 @@ int agp_unbind_memory(agp_memory * curr)
 
 /*@}*/
 
-/* 
- * Driver routines - start
- * Currently this module supports the following chipsets:
- * i810, i815, 440lx, 440bx, 440gx, i830, i840, i845, i850, i860, via vp3,
- * via mvp3, via kx133, via kt133, amd irongate, amd 761, amd 762, ALi M1541,
- * and generic support for the SiS chipsets.
- */
 
 /** 
  * \name Generic Agp routines 
@@ -865,11 +865,14 @@ void agp_generic_free_by_type(agp_memory * curr)
  * 
  * These routines handle page allocation and by default they reserve the
  * allocated memory.  They also handle incrementing the
- * agp_bridge_data::current_memory_agp value, Which is checked against a
+ * agp_bridge_data::current_memory_agp value, which is checked against a
  * maximum value.
  */
 /*@{*/
 
+/**
+ * \sa agp_bridge_data::alloc_page.
+ */
 void *agp_generic_alloc_page(void)
 {
 	struct page * page;
@@ -886,6 +889,9 @@ void *agp_generic_alloc_page(void)
 	return page_address(page);
 }
 
+/**
+ * \sa agp_bridge_data::destroy_page.
+ */
 void agp_generic_destroy_page(void *addr)
 {
 	struct page *page;
@@ -1436,8 +1442,13 @@ static int __init agp_lookup_host_bridge (struct pci_dev *pdev)
 }
 
 
-/* Supported Device Scanning routine */
-
+/**
+ * Supported Device Scanning routine 
+ *
+ * \param dev PCI device.
+ * \return zero on success, or a negative number on failure.
+ *
+ */
 static int __init agp_find_supported_device(struct pci_dev *dev)
 {
 	u8 cap_ptr = 0x00;

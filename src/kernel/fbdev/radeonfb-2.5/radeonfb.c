@@ -1,6 +1,10 @@
+/**
+ * \file drivers/video/radeonfb.c
+ * \brief framebuffer driver for ATI Radeon chipset video boards
+ * \author Ani Joshi <ajoshi@kernel.crashing.org>
+ */
+
 /*
- *	drivers/video/radeonfb.c
- *	framebuffer driver for ATI Radeon chipset video boards
  *
  *	Copyright 2000	Ani Joshi <ajoshi@kernel.crashing.org>
  *
@@ -69,6 +73,7 @@
 #undef CONFIG_PMAC_PBOOK
 
 
+/** Radeon chip */
 enum radeon_chips {
 	RADEON_QD,
 	RADEON_QE,
@@ -101,6 +106,7 @@ enum radeon_chips {
 	RADEON_NG
 };
 
+/** Radeon architecture */
 enum radeon_arch {
 	RADEON_R100,
 	RADEON_RV100,
@@ -113,9 +119,10 @@ enum radeon_arch {
 	RADEON_M9
 };
 
+/** Radeon chip name/architecture table */
 static struct radeon_chip_info {
-	const char *name;
-	unsigned char arch;
+	const char *name;	/**< chip model name */
+	unsigned char arch;	/**< chip architecture */
 } radeon_chip_info[] __devinitdata = {
 	{ "QD", RADEON_R100 },
 	{ "QE", RADEON_R100 },
@@ -149,17 +156,19 @@ static struct radeon_chip_info {
 };
 
 
+/** Monitor type */
 enum radeon_montype
 {
 	MT_NONE,
-	MT_CRT,		/* CRT */
-	MT_LCD,		/* LCD */
-	MT_DFP,		/* DVI */
-	MT_CTV,		/* composite TV */
-	MT_STV		/* S-Video out */
+	MT_CRT,		/**< CRT */
+	MT_LCD,		/**< LCD */
+	MT_DFP,		/**< DVI */
+	MT_CTV,		/**< composite TV */
+	MT_STV		/**< S-Video out */
 };
 
 
+/** PCI table */
 static struct pci_device_id radeonfb_pci_table[] __devinitdata = {
 	{ PCI_VENDOR_ID_ATI, PCI_DEVICE_ID_ATI_RADEON_QD, PCI_ANY_ID, PCI_ANY_ID, 0, 0, RADEON_QD},
 	{ PCI_VENDOR_ID_ATI, PCI_DEVICE_ID_ATI_RADEON_QE, PCI_ANY_ID, PCI_ANY_ID, 0, 0, RADEON_QE},
@@ -195,15 +204,19 @@ static struct pci_device_id radeonfb_pci_table[] __devinitdata = {
 MODULE_DEVICE_TABLE(pci, radeonfb_pci_table);
 
 
+/**
+ * \name Common registers
+ *
+ * These common regs are cleared before mode setting so they do not interfere
+ * with anything.
+ */
+/*@{*/
+
 typedef struct {
 	u16 reg;
 	u32 val;
 } reg_val;
 
-
-/* these common regs are cleared before mode setting so they do not
- * interfere with anything
- */
 reg_val common_regs[] = {
 	{ OVR_CLR, 0 },	
 	{ OVR_WID_LEFT_RIGHT, 0 },
@@ -226,6 +239,10 @@ reg_val common_regs_m6[] = {
 	{ CAP0_TRIG_CNTL,   0 } 
 };
 
+/*@}*/
+
+
+/** PLL information block */
 typedef struct {
         u8 clock_chip_type;
         u8 struct_size;
@@ -252,6 +269,7 @@ typedef struct {
 } __attribute__ ((packed)) PLL_BLOCK;
 
 
+/** PLL data */
 struct pll_info {
 	int ppll_max;
 	int ppll_min;
@@ -260,7 +278,7 @@ struct pll_info {
 	int ref_clk;
 };
 
-
+/** RAM data */
 struct ram_info {
 	int ml;
 	int mb;
@@ -274,8 +292,10 @@ struct ram_info {
 };
 
 
+/** Radeon registers (state) */
 struct radeon_regs {
-	/* CRTC regs */
+	/** \name CRTC regs */
+	/*@{*/
 	u32 crtc_h_total_disp;
 	u32 crtc_h_sync_strt_wid;
 	u32 crtc_v_total_disp;
@@ -284,6 +304,7 @@ struct radeon_regs {
 	u32 crtc_gen_cntl;
 	u32 crtc_ext_cntl;
 	u32 dac_cntl;
+	/*@}*/
 
 	u32 crtc_more_cntl;
 
@@ -291,16 +312,21 @@ struct radeon_regs {
 	u32 pix_clock;
 	int xres, yres;
 
-	/* DDA regs */
+	/** \name DDA regs */
+	/*@{*/
 	u32 dda_config;
 	u32 dda_on_off;
+	/*@}*/
 
-	/* PLL regs */
+	/** \name PLL regs */
+	/*@{*/
 	u32 ppll_div_3;
 	u32 ppll_ref_div;
 	u32 vclk_ecp_cntl;
+	/*@}*/
 	
-	/* Flat panel regs */
+	/** \name Flat panel regs */
+	/*@{*/
 	u32 fp_crtc_h_total_disp;
 	u32 fp_crtc_v_total_disp;
 	u32 fp_gen_cntl;
@@ -313,6 +339,7 @@ struct radeon_regs {
 	u32 lvds_pll_cntl;
 	u32 tmds_crc;
 	u32 tmds_transmitter_cntl;
+	/*@}*/
 
 #if defined(__BIG_ENDIAN)
 	u32 surface_cntl;
@@ -320,22 +347,23 @@ struct radeon_regs {
 };
 
 
+/** Radeon framebuffer device information */
 struct radeonfb_info {
-	struct fb_info info;
+	struct fb_info info;		/**< framebuffer device information */
 
-	struct radeon_regs state;
-	struct radeon_regs init_state;
+	struct radeon_regs state;	/**< current state */
+	struct radeon_regs init_state;	/**< initial state */
 
 	char name[32];
 	char ram_type[12];
 
-	unsigned long mmio_base_phys;
-	unsigned long fb_base_phys;
+	unsigned long mmio_base_phys;	/**< MMIO region base physical offset */
+	unsigned long fb_base_phys;	/**< framebuffer base physical offset */
 
-	unsigned long mmio_base;
-	unsigned long fb_base;
+	unsigned long mmio_base;	/**< MMIO region base offset */
+	unsigned long fb_base;		/**< framebuffer base offset */
 
-	struct pci_dev *pdev;
+	struct pci_dev *pdev;		/**< PCI device information */
 
 	unsigned char *EDID;
 	unsigned char *bios_seg;
@@ -377,7 +405,7 @@ struct radeonfb_info {
 
 	int asleep;
 	
-	struct radeonfb_info *next;
+	struct radeonfb_info *next;	/**< Multiple devices as a single linked list */
 };
 
 
@@ -388,21 +416,28 @@ static struct fb_var_screeninfo radeonfb_default_var = {
         0, FB_VMODE_NONINTERLACED
 };
 
-/*
- * IO macros
+/**
+ * \name IO macros
  */
+/*@{*/
 
+/** Read a 8 bit register */
 #define INREG8(addr)		readb((rinfo->mmio_base)+addr)
+/** Write a 8 bit register */
 #define OUTREG8(addr,val)	writeb(val, (rinfo->mmio_base)+addr)
+/** Read a 32 bit register */
 #define INREG(addr)		readl((rinfo->mmio_base)+addr)
+/** Write a 32 bit register */
 #define OUTREG(addr,val)	writel(val, (rinfo->mmio_base)+addr)
 
+/** Write a PLL register */
 #define OUTPLL(addr,val)	\
 	do {	\
 		OUTREG8(CLOCK_CNTL_INDEX, (addr & 0x0000003f) | 0x00000080); \
 		OUTREG(CLOCK_CNTL_DATA, val); \
 	} while(0)
 
+/** Write a PLL register with mask */
 #define OUTPLLP(addr,val,mask)  					\
 	do {								\
 		unsigned int _tmp = INPLL(addr);			\
@@ -411,6 +446,7 @@ static struct fb_var_screeninfo radeonfb_default_var = {
 		OUTPLL(addr, _tmp);					\
 	} while (0)
 
+/** Write a 32 bit register with mask */
 #define OUTREGP(addr,val,mask)  					\
 	do {								\
 		unsigned int _tmp = INREG(addr);			\
@@ -420,19 +456,31 @@ static struct fb_var_screeninfo radeonfb_default_var = {
 	} while (0)
 
 
+/** Read a PLL register */
 static __inline__ u32 _INPLL(struct radeonfb_info *rinfo, u32 addr)
 {
 	OUTREG8(CLOCK_CNTL_INDEX, addr & 0x0000003f);
 	return (INREG(CLOCK_CNTL_DATA));
 }
 
+/** Read a PLL register (macro) */
 #define INPLL(addr)		_INPLL(rinfo, addr)
+
+/*@}*/
+
 
 #define PRIMARY_MONITOR(rinfo)	((rinfo->dviDisp_type != MT_NONE) &&	\
 				 (rinfo->dviDisp_type != MT_STV) &&	\
 				 (rinfo->dviDisp_type != MT_CTV) ?	\
 				 rinfo->dviDisp_type : rinfo->crtDisp_type)
 
+/** 
+ * Get monitor name.
+ *
+ * \param type monitor type.
+ * \return pointer to a string describing the monitor type, or NULL if an
+ * invalid type.
+ */
 static char *GET_MON_NAME(int type)
 {
 	char *pret = NULL;
@@ -462,11 +510,12 @@ static char *GET_MON_NAME(int type)
 }
 
 
-
-/*
- * helper routines
+/**
+ * \name Helper routines
  */
+/*@{*/
 
+/** Determine */
 static __inline__ u32 radeon_get_dstbpp(u16 depth)
 {
 	switch (depth) {
@@ -483,16 +532,12 @@ static __inline__ u32 radeon_get_dstbpp(u16 depth)
 	}
 }
 
-
 static inline int var_to_depth(const struct fb_var_screeninfo *var)
 {
 	if (var->bits_per_pixel != 16)
 		return var->bits_per_pixel;
 	return (var->green.length == 6) ? 16 : 15;
 }
-
-
-
 
 static __inline__ u8 radeon_get_post_div_bitval(int post_div)
 {
@@ -516,14 +561,10 @@ static __inline__ u8 radeon_get_post_div_bitval(int post_div)
         }
 }
 
-
-
 static __inline__ int round_div(int num, int den)
 {
         return (num + (den / 2)) / den;
 }
-
-
 
 static __inline__ int min_bits_req(int val)
 {
@@ -540,7 +581,7 @@ static __inline__ int min_bits_req(int val)
         return (bits_req);
 }
 
-
+/** Maximum between two integers */
 static __inline__ int _max(int val1, int val2)
 {
         if (val1 >= val2)
@@ -549,11 +590,13 @@ static __inline__ int _max(int val1, int val2)
                 return val2;
 }                       
 
+/*@}*/
 
 
-/*
- * globals
+/**
+ * \name Globals
  */
+/*@{*/
         
 static char *mode_option __initdata;
 static char mirror = 0;
@@ -562,8 +605,11 @@ static char force_dfp __initdata = 0;
 static struct radeonfb_info *board_list = NULL;
 static char nomtrr __initdata = 0;
 
-/*
- * prototypes
+/*@}*/
+
+
+/**
+ * \name Prototypes
  */
 
 static void radeon_save_state (struct radeonfb_info *rinfo,
@@ -582,6 +628,8 @@ static void radeon_get_EDID(struct radeonfb_info *rinfo);
 static int radeon_dfp_parse_EDID(struct radeonfb_info *rinfo);
 static void radeon_update_default_var(struct radeonfb_info *rinfo);
 
+
+/*@}*/
 
 
 static char *radeon_find_rom(struct radeonfb_info *rinfo)
