@@ -1,4 +1,4 @@
-/* $Id: wmesa.c,v 1.22.2.5 2002/04/23 18:24:41 kschultz Exp $ */
+/* $Id: wmesa.c,v 1.22.2.6 2002/04/23 18:38:00 kschultz Exp $ */
 
 /*
  * Windows (Win32) device driver for Mesa 3.4
@@ -1331,7 +1331,8 @@ WMesaContext WMesaCreateContext( HWND hWnd, HPALETTE* Pal,
 				     0,          /* index bits */
 				     16,         /* depth_bits */
 				     8,          /* stencil_bits */
-				     16,16,16,16,/* accum_bits */
+				     16,16,16,/* accum_bits */
+                                     alpha_flag ? 16 : 0, /* alpha accum */
 				     1);
   
   if (!c->gl_visual) {
