@@ -1,4 +1,4 @@
-/* $Id: tess.h,v 1.15.2.3 1999/11/29 18:16:11 gareth Exp $ */
+/* $Id: tess.h,v 1.15.2.4 1999/12/02 06:18:25 gareth Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -58,6 +58,7 @@ struct GLUtesselator
     tess_callbacks_t	callbacks;
     GLboolean		boundary_only;
     GLenum		winding_rule;
+    GLenum		orientation;
     GLdouble		tolerance;
     tess_plane_t	plane;
     GLint		num_contours;
@@ -118,8 +119,8 @@ extern	int	tess_dbg_level;
 #define MSG		tess_msg
 #endif /* DEBUG */
 
-extern INLINE void tess_msg( int level, char *format, ... );
-extern INLINE void tess_info( char *file, char *line );
+extern INLINE void tess_msg( GLint level, char *format, ... );
+extern INLINE void tess_info( char *file, GLint line );
 
 #ifdef __cplusplus
 }

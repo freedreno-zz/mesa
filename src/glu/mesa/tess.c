@@ -1,4 +1,4 @@
-/* $Id: tess.c,v 1.20.2.4 1999/11/29 18:16:11 gareth Exp $ */
+/* $Id: tess.c,v 1.20.2.5 1999/12/02 06:18:25 gareth Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -98,6 +98,7 @@ GLUtesselator* GLAPIENTRY gluNewTess( void )
 
     tobj->boundary_only = GL_FALSE;
     tobj->winding_rule = GLU_TESS_WINDING_ODD;
+    tobj->orientation = GLU_UNKNOWN;
     tobj->tolerance = 0.0;
 
     tobj->plane.normal[X] = 0.0;
@@ -862,6 +863,8 @@ static GLenum save_current_contour( GLUtesselator *tobj )
     {
 	tobj->contours = tobj->last_contour = current;
 	current->next = current->prev = NULL;
+
+	tobj->orientation = current->orientation;
     }
     else
     {
@@ -955,7 +958,7 @@ static void delete_all_contours( GLUtesselator *tobj )
 /*****************************************************************************
  * tess_msg
  *****************************************************************************/
-INLINE void tess_msg( int level, char *format, ... )
+INLINE void tess_msg( GLint level, char *format, ... )
 {
 #ifdef DEBUG
     va_list ap;
@@ -970,7 +973,7 @@ INLINE void tess_msg( int level, char *format, ... )
 #endif
 }
 
-INLINE void tess_info( char *file, char *line )
+INLINE void tess_info( char *file, GLint line )
 {
 #ifdef DEBUG
     fprintf( DBG_STREAM, "%9.9s:%d:\t ", file, line );
