@@ -47,4 +47,48 @@ These build a libGL.so which can load binary modules for an fbdev
 environment.  Those binary modules *could* work with X11, but
 currently are incompatible with the X11 modules due to the movement of
 shared code into libGL.so -- in particular dri_util.c and xf86drm.c
-which were previously part of the loadable driver.
+which were previously part of the loadable driver.  
+
+------------------------------------------------------------
+
+
+
+
+
+------------------------------------------------------------
+
+Porting GLX apps to MiniGLX
+---------------------------
+
+A quick list of issues encountered in porting existing GLX apps to
+MiniGLX.  Listed in no particular order.
+
+1) No input events
+
+MiniGLX doesn't provide an input layer, so any X11 input event
+handling in the existing app will have to be redone for whatever
+input devices exist on the target.
+
+2) No configuration, expose events
+
+Many GLX and Xlib programs wait on an event to ensure the window has
+become visible after being mapped.  MiniGLX provides no equivalent
+facility.
+
+3) Different headers
+
+X11/Xlib.h, GL/GLX.h, etc must not be used if the program is being
+compiled against MiniGLX.
+
+The equivalent header is GL/MiniGLX.h.
+
+4) Different library
+
+It may be necessary to link directly against the minGLX libGL.so.
+
+5) Reduced number of Xlib and GLX entrypoints.
+
+Many, many Xlib and GLX entrypoints, structures and macros are not
+present in MiniGLX.  It will be necessary to find and eliminate all
+references to non-supported entrypoints.  
+
