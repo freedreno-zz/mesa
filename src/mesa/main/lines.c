@@ -1,4 +1,4 @@
-/* $Id: lines.c,v 1.12 2000/07/14 14:04:07 brianp Exp $ */
+/* $Id: lines.c,v 1.12.2.1 2000/11/08 16:42:48 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -1058,7 +1058,7 @@ _mesa_print_line_function(GLcontext *ctx)
    else if (ctx->Driver.LineFunc == null_line)
       printf("null_line\n");
    else
-      printf("Driver func %p\n", ctx->Driver.PointsFunc);
+      printf("Driver func %p\n", ctx->Driver.LineFunc);
 }
 #endif
 
