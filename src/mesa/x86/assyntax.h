@@ -1024,10 +1024,10 @@
 #define B_REGDB(d, b) 	BYTE_PTR [b + d]
 
 /* Variable indirect: */
-#define VARINDIRECT(var) 	[var]
+#define VARINDIRECT(var) 	var
 
 /* Use register contents as jump/call target: */
-#define CODEPTR(reg) 	[reg]
+#define CODEPTR(reg) 	reg
 
 /*
  * 	Redefine assembler commands
