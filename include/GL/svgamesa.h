@@ -1,9 +1,9 @@
-/* $Id: svgamesa.h,v 1.1.1.1.2.1 1999/11/24 18:40:45 brianp Exp $ */
+/* $Id: svgamesa.h,v 1.1.1.1.2.2 2000/01/22 19:58:02 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
- * Version:  3.1
- * Copyright (C) 1995-1998  Brian Paul
+ * Version:  3.2
+ * Copyright (C) 1995-2000  Brian Paul
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -19,21 +19,6 @@
  * License along with this library; if not, write to the Free
  * Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
-
-
-/*
- * $Log: svgamesa.h,v $
- * Revision 1.1.1.1.2.1  1999/11/24 18:40:45  brianp
- * bumped version to 3.1
- *
- * Revision 1.1.1.1  1999/08/19 00:55:40  jtg
- * Imported sources
- *
- * Revision 3.0  1998/02/20 05:07:24  brianp
- * initial rev
- *
- */
-
 
 
 /*
@@ -68,7 +53,7 @@
 
 
 #define SVGAMESA_MAJOR_VERSION 3
-#define SVGAMESA_MINOR_VERSION 1
+#define SVGAMESA_MINOR_VERSION 2
 
 
 #ifdef __cplusplus
@@ -90,16 +75,21 @@ typedef struct svgamesa_context *SVGAMesaContext;
 /*
  * doubleBuffer flag new in version 2.4
  */
+extern int SVGAMesaInit( int GraphMode );
+
+extern int SVGAMesaClose( void );
+
 extern SVGAMesaContext SVGAMesaCreateContext( GLboolean doubleBuffer );
 
 extern void SVGAMesaDestroyContext( SVGAMesaContext ctx );
 
 extern void SVGAMesaMakeCurrent( SVGAMesaContext ctx );
 
-extern SVGAMesaContext SVGAMesaGetCurrentContext( void );
-
 extern void SVGAMesaSwapBuffers( void );
 
+extern void SVGAMesaSetCI(int ndx, GLubyte red, GLubyte green, GLubyte blue);
+
+extern SVGAMesaContext SVGAMesaGetCurrentContext( void );
 
 #ifdef __cplusplus
 }
