@@ -1,4 +1,4 @@
-/* $Id: light.c,v 1.8.2.1 1999/11/22 19:01:39 brianp Exp $ */
+/* $Id: light.c,v 1.8.2.2 2000/06/24 14:14:29 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -588,7 +588,7 @@ void gl_update_color_material( GLcontext *ctx,
       SUB_3V( tmp, color, mat->Ambient );
       ACC_SCALE_3V( ctx->Light.BaseColor[1], ctx->Light.Model.Ambient, tmp);
       foreach (light, list) {
-	 ACC_SCALE_3V( ctx->Light.BaseColor[0], light->Ambient, tmp );
+	 ACC_SCALE_3V( ctx->Light.BaseColor[1], light->Ambient, tmp );
       }
       COPY_4FV( mat->Ambient, color );
    }
