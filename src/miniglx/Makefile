@@ -14,7 +14,6 @@ SOURCES = dispatch.c \
 
 OBJS = $(SOURCES:.c=.o)
 
-
 INCLUDES = -I. -I.. -I$(MESA)/include
 LIBS = -ldl 
 
@@ -40,6 +39,6 @@ glapi.c: ../glapi.c
 clean: clean_here
 
 clean_here:
-	rm -f drmtest glapi.c ../lib/libGL.so*
+	rm -f drmtest glapi.c $(MESA)/lib/libGL.so*
 
 -include $(SOURCES:.c=.d)
