@@ -120,8 +120,6 @@ void radeonAgeTextures( radeonContextPtr rmesa, int heap )
 {
    radeonTexObjPtr t, tmp;
 
-   fprintf(stderr, "%s\n", __FUNCTION__);
-
    foreach_s ( t, tmp, &rmesa->texture.objects[heap] ) 
       radeonSwapOutTexObj( rmesa, t );
 }
@@ -369,6 +367,7 @@ static void radeonSetTexImages( radeonContextPtr rmesa,
       }
    }
 
+   rmesa->texture.age[0] = ++rmesa->sarea->texAge[0]; 
    UNLOCK_HARDWARE( rmesa );
    t->dirty_images = 0;
 }

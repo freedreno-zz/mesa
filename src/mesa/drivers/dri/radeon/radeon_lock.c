@@ -132,14 +132,6 @@ static void validate_drawable( radeonContextPtr rmesa )
 {
    __DRIdrawablePrivate *dPriv = rmesa->dri.drawable;
 
-   fprintf(stderr, "%s\n", __FUNCTION__);
-
-   fprintf(stderr, 
-	   "rmesa->lastStamp %d dpriv->lastStamp %d *(dpriv->pStamp) %d\n",
-	   rmesa->lastStamp, 
-	   dPriv->lastStamp,
-	   *(dPriv->pStamp));
-
    /* The window might have moved, so we might need to get new clip
     * rects.
     *
@@ -177,7 +169,6 @@ void radeonGetLock( radeonContextPtr rmesa, GLuint flags )
    RADEONSAREAPrivPtr sarea = rmesa->sarea;
    int i;
 
-
    drmGetLock( rmesa->dri.fd, rmesa->dri.hwContext, flags );
    
    validate_drawable( rmesa );
@@ -188,8 +179,9 @@ void radeonGetLock( radeonContextPtr rmesa, GLuint flags )
       for ( i = 0 ; i < rmesa->texture.numHeaps ; i++ ) {
 	 if ( rmesa->texture.heap[i] && 
 	      sarea->texAge[i] != rmesa->texture.age[i] ) {
+
 	    radeonAgeTextures( rmesa, i );
-	    rmesa->texture.age[i] = sarea->texAge[i]++;
+	    rmesa->texture.age[i] = sarea->texAge[i];
 	    rmesa->NewGLState |= _NEW_TEXTURE;
 	 }
       }
