@@ -462,55 +462,6 @@ static char *GET_MON_NAME(int type)
 }
 
 
-/*
- * 2D engine routines
- */
-
-static __inline__ void radeon_engine_flush (struct radeonfb_info *rinfo)
-{
-	int i;
-
-	/* initiate flush */
-	OUTREGP(RB2D_DSTCACHE_CTLSTAT, RB2D_DC_FLUSH_ALL,
-	        ~RB2D_DC_FLUSH_ALL);
-
-	for (i=0; i < 2000000; i++) {
-		if (!(INREG(RB2D_DSTCACHE_CTLSTAT) & RB2D_DC_BUSY))
-			break;
-	}
-}
-
-
-static __inline__ void _radeon_fifo_wait (struct radeonfb_info *rinfo, int entries)
-{
-	int i;
-
-	for (i=0; i<2000000; i++)
-		if ((INREG(RBBM_STATUS) & 0x7f) >= entries)
-			return;
-}
-
-
-static __inline__ void _radeon_engine_idle (struct radeonfb_info *rinfo)
-{
-	int i;
-
-	/* ensure FIFO is empty before waiting for idle */
-	_radeon_fifo_wait (rinfo, 64);
-
-	for (i=0; i<2000000; i++) {
-		if (((INREG(RBBM_STATUS) & GUI_ACTIVE)) == 0) {
-			radeon_engine_flush (rinfo);
-			return;
-		}
-	}
-}
-
-
-#define radeon_engine_idle()		_radeon_engine_idle(rinfo)
-#define radeon_fifo_wait(entries)	_radeon_fifo_wait(rinfo,entries)
-
-
 
 /*
  * helper routines
