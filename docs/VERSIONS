@@ -1,4 +1,4 @@
-$Id: VERSIONS,v 1.13.2.37 2000/06/18 22:58:43 brianp Exp $
+$Id: VERSIONS,v 1.13.2.38 2000/06/23 16:05:40 brianp Exp $
 
 
 Mesa Version History
@@ -730,3 +730,4 @@ Mesa Version History
 	- fixed segfault in 3dfx driver when using GL selection/feedback
 	- no longer cull very, very tiny triangles
 	- blending w/ drawbuffer==GL_FRONT_BACK caused segfault (sw rendering)
+	- fixed Motif detection code in widgets-mesa/configure.in
