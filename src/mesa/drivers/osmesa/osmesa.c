@@ -1,4 +1,4 @@
-/* $Id: osmesa.c,v 1.71.2.8 2002/06/25 15:23:51 brianp Exp $ */
+/* $Id: osmesa.c,v 1.71.2.9 2002/06/30 16:07:12 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -486,6 +486,10 @@ OSMesaMakeCurrent( OSMesaContext ctx, void *buffer, GLenum type,
       _mesa_ResizeBuffersMESA();
    }
 
+   /* Added by Gerk Huisma: */
+   _tnl_MakeCurrent( &ctx->gl_ctx, ctx->gl_ctx.DrawBuffer,
+                     ctx->gl_ctx.ReadBuffer );
+
    return GL_TRUE;
 }
 
@@ -631,6 +635,15 @@ OSMesaGetColorBuffer( OSMesaContext c, GLint *width,
  * Useful macros:
  */
 
+#if CHAN_TYPE == GL_FLOAT
+#define PACK_RGBA(DST, R, G, B, A)				\
+do {								\
+   (DST)[0] = (R < 0.0f) ? 0.0f : ((R > 1.0f) ? 1.0f : R);	\
+   (DST)[1] = (G < 0.0f) ? 0.0f : ((G > 1.0f) ? 1.0f : G);	\
+   (DST)[2] = (B < 0.0f) ? 0.0f : ((B > 1.0f) ? 1.0f : B);	\
+   (DST)[3] = (A < 0.0f) ? 0.0f : ((A > 1.0f) ? 1.0f : A);	\
+} while (0)
+#else
 #define PACK_RGBA(DST, R, G, B, A)	\
 do {					\
    (DST)[osmesa->rInd] = R;		\
@@ -638,6 +651,7 @@ do {					\
    (DST)[osmesa->bInd] = B;		\
    (DST)[osmesa->aInd] = A;		\
 } while (0)
+#endif
 
 #define PACK_RGB(DST, R, G, B)  \
 do {				\
@@ -880,7 +894,7 @@ static void clear( GLcontext *ctx, GLbitfield mask, GLboolean all,
 static void buffer_size( GLframebuffer *buffer, GLuint *width, GLuint *height )
 {
 #ifdef WIN32
-   /* Hack to get around problems with exporting glapi_Context from MesaGL
+   /* Hack to get around problems with exporting glapi_Context from Mesa
       and importing into OSMesa. */
    GLcontext *ctx = (GLcontext *) _glapi_get_context();
 #else
