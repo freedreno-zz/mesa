@@ -1,4 +1,4 @@
-/* $Id: mesa_wgl.h,v 1.5 2000/05/22 16:21:27 brianp Exp $ */
+/* $Id: mesa_wgl.h,v 1.5.4.1 2000/11/20 17:31:51 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -32,6 +32,7 @@
 #define _mesa_wgl_h_
 
 
+#include <windows.h>
 #include <gl/gl.h>
 
 #ifdef __cplusplus
