@@ -28,7 +28,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: context.c,v 1.188.2.1.2.13 2003/03/21 11:35:14 keithw Exp $ */
+/* $Id: context.c,v 1.188.2.1.2.14 2003/03/22 14:36:49 keithw Exp $ */
 
 /**
  * \mainpage Mesa Core Module
@@ -115,11 +115,12 @@
 #include "vpstate.h"
 #endif
 #include "vtxfmt.h"
+#if _HAVE_FULL_GL
 #include "math/m_translate.h"
 #include "math/m_matrix.h"
 #include "math/m_xform.h"
 #include "math/mathmod.h"
-
+#endif
 
 #if defined(MESA_TRACE)
 #include "Trace/tr_context.h"

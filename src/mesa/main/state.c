@@ -1,4 +1,4 @@
-/* $Id: state.c,v 1.97.4.8 2003/03/21 11:35:21 keithw Exp $ */
+/* $Id: state.c,v 1.97.4.9 2003/03/22 14:36:50 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -71,8 +71,8 @@
 #endif
 #include "debug.h"
 
-#include "math/m_matrix.h"
-#include "math/m_xform.h"
+/* #include "math/m_matrix.h" */
+/* #include "math/m_xform.h" */
 
 
 static int

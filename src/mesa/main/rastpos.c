@@ -1,4 +1,4 @@
-/* $Id: rastpos.c,v 1.39.4.5 2003/03/22 08:43:26 keithw Exp $ */
+/* $Id: rastpos.c,v 1.39.4.6 2003/03/22 14:36:50 keithw Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -39,7 +39,6 @@
 #include "mtypes.h"
 
 #include "math/m_matrix.h"
-#include "math/m_xform.h"
 
 
 /*

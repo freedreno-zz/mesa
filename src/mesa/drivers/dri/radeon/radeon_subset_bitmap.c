@@ -97,8 +97,6 @@ radeonPointsBitmap(  GLsizei width, GLsizei height,
 
 
    if (ctx->_RotateMode) {
-      __DRIdrawablePrivate *dPriv = rmesa->dri.drawable;
-      GLfloat tmp;
       width = bmheight; height = bmwidth;
 
       px = IFLOOR(ctx->Current.RasterPos[0] + yorig);
