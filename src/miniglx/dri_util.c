@@ -276,16 +276,21 @@ static void *driCreateDrawable(Display *dpy, int scrn,
     pdp->pStamp = &pdp->lastStamp;
     pdp->lastStamp = 0;
     pdp->index = 0;
-    pdp->x = 0;
-    pdp->y = 0;
-    pdp->w = 0;
-    pdp->h = 0;
-    pdp->numClipRects = 0;
     pdp->numBackClipRects = 0;
-    pdp->pClipRects = NULL;
     pdp->pBackClipRects = NULL;
     pdp->display = dpy;
     pdp->screen = scrn;
+
+    pdp->x = 0;
+    pdp->y = 0;
+    pdp->w = pdp->draw->w;
+    pdp->h = pdp->draw->h;
+    pdp->numClipRects = 1;
+    pdp->pClipRects = (XF86DRIClipRectPtr) malloc(sizeof(XF86DRIClipRectRec));
+    (pdp->pClipRects)[0].x1 = 0;
+    (pdp->pClipRects)[0].y1 = 0;
+    (pdp->pClipRects)[0].x2 = pdp->draw->w;
+    (pdp->pClipRects)[0].y2 = pdp->draw->h;
 
     if (!(pDRIScreen = __glXFindDRIScreen(dpy, scrn))) {
 	free(pdp);
