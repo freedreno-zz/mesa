@@ -151,7 +151,7 @@ static void Draw(void)
 	glDisable(GL_POINT_SMOOTH);
     }
 
-    glPointSize(size);
+/*     glPointSize(size); */
     if (mode) {
 	(rgb) ? glColor3f(1.0, 0.0, 0.0) : glIndexf(CI_ANTI_ALIAS_RED);
     } else {
@@ -164,7 +164,7 @@ static void Draw(void)
     glDisable(GL_POINT_SMOOTH);
     glDisable(GL_BLEND);
 
-    glPointSize(1);
+/*     glPointSize(1); */
     SetColor(COLOR_GREEN);
     glBegin(GL_POINTS);
 	glVertex3fv(point);

@@ -279,11 +279,11 @@ static void Draw(void)
 
 	if (showVerticies) {
 	    (rgb) ? glColor3fv(RGBMap[COLOR_RED]) : glIndexf(color1);
-	    glRectf(p0[0]-2, p0[1]-2, p0[0]+2, p0[1]+2);
+/* 	    glRectf(p0[0]-2, p0[1]-2, p0[0]+2, p0[1]+2); */
 	    (rgb) ? glColor3fv(RGBMap[COLOR_GREEN]) : glIndexf(color2);
-	    glRectf(p1[0]-2, p1[1]-2, p1[0]+2, p1[1]+2);
+/* 	    glRectf(p1[0]-2, p1[1]-2, p1[0]+2, p1[1]+2); */
 	    (rgb) ? glColor3fv(RGBMap[COLOR_BLUE]) : glIndexf(color3);
-	    glRectf(p2[0]-2, p2[1]-2, p2[0]+2, p2[1]+2);
+/* 	    glRectf(p2[0]-2, p2[1]-2, p2[0]+2, p2[1]+2); */
 	}
 
 	glPopMatrix();
@@ -306,7 +306,7 @@ static void Draw(void)
     glScalef(zoom, zoom, zoom);
     glRotatef(zRotation, 0,0,1);
 
-    glPointSize(10);
+/*     glPointSize(10); */
     glLineWidth(5);
     glEnable(GL_POINT_SMOOTH);
     glEnable(GL_LINE_STIPPLE);
@@ -322,7 +322,7 @@ static void Draw(void)
 	glVertex3fv(p2);
     EndPrim();
 
-    glPointSize(1);
+/*     glPointSize(1); */
     glLineWidth(1);
     glDisable(GL_POINT_SMOOTH);
     glDisable(GL_LINE_STIPPLE);

@@ -147,7 +147,7 @@ static void Draw(void)
 	    glVertex3fv(pntB);
 	glEnd();
 
-	glPointSize(1);
+/* 	glPointSize(1); */
 
 	SetColor(COLOR_GREEN);
 	glBegin(GL_POINTS);

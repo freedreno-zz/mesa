@@ -52,27 +52,27 @@ static void Reshape(int width, int height)
     windH = (GLint)height;
 }
 
-static void RotateColorMask(void)
+static void RotateRestoreColorMask( int rotate )
 {
     static GLint rotation = 0;
     
-    rotation = (rotation + 1) & 0x3;
+    if (rotate) rotation = (rotation + 1) & 0x3;
     switch (rotation) {
       case 0:
 	glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-	glIndexMask( 0xff );
+/* 	glIndexMask( 0xff ); */
 	break;
       case 1:
 	glColorMask(GL_FALSE, GL_TRUE, GL_TRUE, GL_TRUE);
-	glIndexMask(0xFE);
+/* 	glIndexMask(0xFE); */
 	break;
       case 2:
 	glColorMask(GL_TRUE, GL_FALSE, GL_TRUE, GL_TRUE);
-	glIndexMask(0xFD);
+/* 	glIndexMask(0xFD); */
 	break;
       case 3:
 	glColorMask(GL_TRUE, GL_TRUE, GL_FALSE, GL_TRUE);
-	glIndexMask(0xFB);
+/* 	glIndexMask(0xFB); */
 	break;
     }
 }
@@ -90,7 +90,7 @@ static void Key(unsigned char key, int x, int y)
 	mode2 = !mode2;
 	break;
       case '3':
-	RotateColorMask();
+	RotateRestoreColorMask( 1 );
 	break;
       default:
 	return;
@@ -344,7 +344,7 @@ static void Rect(void)
 {
 
     SetColor(COLOR_GREEN);
-    glRecti(-boxW/4, -boxH/4, boxW/4, boxH/4);
+/*     glRecti(-boxW/4, -boxH/4, boxW/4, boxH/4); */
 }
 
 static void PolygonFunc(void)
@@ -445,15 +445,16 @@ static void Draw(void)
     glViewport(0, 0, windW, windH);
     glDisable(GL_SCISSOR_TEST);
 
-    glPushAttrib(GL_COLOR_BUFFER_BIT);
+/*     glPushAttrib(GL_COLOR_BUFFER_BIT); */
 
     glColorMask(1, 1, 1, 1);
-    glIndexMask(~0);
+/*     glIndexMask(~0); */
 
     glClearColor(0.0, 0.0, 0.0, 0.0);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    glPopAttrib();
+/*     glPopAttrib(); */
+    RotateRestoreColorMask( 0 );
 
     if (mode1) {
 	glShadeModel(GL_SMOOTH);
@@ -461,11 +462,11 @@ static void Draw(void)
 	glShadeModel(GL_FLAT);
     }
 
-    if (mode2) {
-	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    } else {
-	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    }
+/*     if (mode2) { */
+/* 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); */
+/*     } else { */
+/* 	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); */
+/*     } */
 
     Viewport(0, 0); Point();
     Viewport(0, 1); Lines();
@@ -478,10 +479,13 @@ static void Draw(void)
     Viewport(1, 2); Triangles();
     Viewport(1, 3); TriangleStrip();
 
+
     Viewport(2, 0); Rect();
     Viewport(2, 1); PolygonFunc();
     Viewport(2, 2); Quads();
     Viewport(2, 3); QuadStrip();
+    if (0) {
+    }
 
     glFlush();
 
