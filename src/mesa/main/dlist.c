@@ -1017,8 +1017,7 @@ void _mesa_save_CallList( GLuint list )
 {
    GET_CURRENT_CONTEXT(ctx);
    Node *n;
-   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
-   FLUSH_CURRENT(ctx, 0);
+   SAVE_FLUSH_VERTICES(ctx);
 
    n = ALLOC_INSTRUCTION( ctx, OPCODE_CALL_LIST, 1 );
    if (n) {
@@ -1041,8 +1040,7 @@ void _mesa_save_CallLists( GLsizei n, GLenum type, const GLvoid *lists )
    GLint i;
    GLboolean typeErrorFlag;
 
-   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
-   FLUSH_CURRENT(ctx, 0);
+   SAVE_FLUSH_VERTICES(ctx);
 
    switch (type) {
       case GL_BYTE:
@@ -1222,7 +1220,6 @@ static void save_ColorMaterial( GLenum face, GLenum mode )
    GET_CURRENT_CONTEXT(ctx);
    Node *n;
    ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
-   FLUSH_CURRENT(ctx, 0);
 
    n = ALLOC_INSTRUCTION( ctx, OPCODE_COLOR_MATERIAL, 2 );
    if (n) {
@@ -2788,7 +2785,6 @@ static void save_PopMatrix( void )
 {
    GET_CURRENT_CONTEXT(ctx);
    ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
-   FLUSH_CURRENT(ctx, 0);
    (void) ALLOC_INSTRUCTION( ctx, OPCODE_POP_MATRIX, 0 );
    if (ctx->ExecuteFlag) {
       (*ctx->Exec->PopMatrix)();
@@ -2833,7 +2829,6 @@ static void save_PushAttrib( GLbitfield mask )
    GET_CURRENT_CONTEXT(ctx);
    Node *n;
    ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
-   FLUSH_CURRENT(ctx, 0);
    n = ALLOC_INSTRUCTION( ctx, OPCODE_PUSH_ATTRIB, 1 );
    if (n) {
       n[1].bf = mask;
@@ -2875,7 +2870,6 @@ static void save_RasterPos4f( GLfloat x, GLfloat y, GLfloat z, GLfloat w )
    GET_CURRENT_CONTEXT(ctx);
    Node *n;
    ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
-   FLUSH_CURRENT(ctx, 0);
    n = ALLOC_INSTRUCTION( ctx, OPCODE_RASTER_POS, 4 );
    if (n) {
       n[1].f = x;
@@ -3615,7 +3609,6 @@ static void save_WindowPos4fMESA( GLfloat x, GLfloat y, GLfloat z, GLfloat w )
    GET_CURRENT_CONTEXT(ctx);
    Node *n;
    ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
-   FLUSH_CURRENT(ctx, 0);
    n = ALLOC_INSTRUCTION( ctx,  OPCODE_WINDOW_POS, 4 );
    if (n) {
       n[1].f = x;
@@ -6161,9 +6154,7 @@ _mesa_NewList( GLuint list, GLenum mode )
 
 
 /*
- * End definition of current display list.  Is the current
- * ASSERT_OUTSIDE_BEGIN_END strong enough to really guarentee that
- * we are outside begin/end calls?
+ * End definition of current display list. 
  */
 void
 _mesa_EndList( void )
@@ -7728,7 +7719,8 @@ void _mesa_save_vtxfmt_init( GLvertexformat *vfmt )
 {
    vfmt->ArrayElement = _ae_loopback_array_elt;	        /* generic helper */
    vfmt->Begin = save_Begin;
-   vfmt->CallList = _mesa_CallList;
+   vfmt->CallList = _mesa_save_CallList;
+   vfmt->CallLists = _mesa_save_CallLists;
    vfmt->Color3f = save_Color3f;
    vfmt->Color3fv = save_Color3fv;
    vfmt->Color4f = save_Color4f;

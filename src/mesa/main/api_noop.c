@@ -799,6 +799,7 @@ void _mesa_noop_vtxfmt_init( GLvertexformat *vfmt )
    vfmt->ArrayElement = _ae_loopback_array_elt;	        /* generic helper */
    vfmt->Begin = _mesa_noop_Begin;
    vfmt->CallList = _mesa_CallList;
+   vfmt->CallLists = _mesa_CallLists;
    vfmt->Color3f = _mesa_noop_Color3f;
    vfmt->Color3fv = _mesa_noop_Color3fv;
    vfmt->Color4f = _mesa_noop_Color4f;

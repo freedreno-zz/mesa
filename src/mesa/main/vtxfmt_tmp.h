@@ -302,6 +302,12 @@ static void TAG(CallList)( GLuint i )
    _glapi_Dispatch->CallList( i );
 }
 
+static void TAG(CallLists)( GLsizei sz, GLenum type, const GLvoid *v )
+{
+   PRE_LOOPBACK( CallLists );
+   _glapi_Dispatch->CallLists( sz, type, v );
+}
+
 static void TAG(Begin)( GLenum mode )
 {
    PRE_LOOPBACK( Begin );
@@ -449,6 +455,7 @@ static GLvertexformat TAG(vtxfmt) = {
    TAG(Vertex4f),
    TAG(Vertex4fv),
    TAG(CallList),
+   TAG(CallLists),
    TAG(Begin),
    TAG(End),
    TAG(VertexAttrib1fNV),

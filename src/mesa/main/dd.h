@@ -950,6 +950,7 @@ typedef struct {
    void (*Vertex4f)( GLfloat, GLfloat, GLfloat, GLfloat );
    void (*Vertex4fv)( const GLfloat * );
    void (*CallList)( GLuint );	/* NOTE */
+   void (*CallLists)( GLsizei, GLenum, const GLvoid * );	/* NOTE */
    void (*Begin)( GLenum );
    void (*End)( void );
    void (*VertexAttrib1fNV)( GLuint index, GLfloat x );
@@ -968,10 +969,6 @@ typedef struct {
 
    /**
     * \name Array
-    *
-    * These may or may not belong here.  Heuristic: if an array is
-    * enabled, the installed vertex format should support that array and
-    * its current size natively.
     */
    /*@{*/
    void (*DrawArrays)( GLenum mode, GLint start, GLsizei count );
