@@ -32,7 +32,7 @@ glutBitmapCharacter(GLUTbitmapFont font, int c)
 /*     glGetFloatv(GL_UNPACK_ROW_LENGTH, &rowlength); */
 /*     glGetFloatv(GL_UNPACK_SKIP_ROWS, &skiprows); */
 /*     glGetFloatv(GL_UNPACK_SKIP_PIXELS, &skippixels); */
-/*     glGetFloatv(GL_UNPACK_ALIGNMENT, &alignment); */
+       glGetFloatv(GL_UNPACK_ALIGNMENT, &alignment); 
     /* Little endian machines (DEC Alpha for example) could
        benefit from setting GL_UNPACK_LSB_FIRST to GL_TRUE
        instead of GL_FALSE, but this would require changing the
@@ -42,7 +42,7 @@ glutBitmapCharacter(GLUTbitmapFont font, int c)
 /*     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0); */
 /*     glPixelStorei(GL_UNPACK_SKIP_ROWS, 0); */
 /*     glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0); */
-/*     glPixelStorei(GL_UNPACK_ALIGNMENT, 1); */
+     glPixelStorei(GL_UNPACK_ALIGNMENT, 1); 
     glBitmap(ch->width, ch->height, ch->xorig, ch->yorig,
       ch->advance, 0, ch->bitmap);
     /* Restore saved modes. */
@@ -51,6 +51,6 @@ glutBitmapCharacter(GLUTbitmapFont font, int c)
 /*     glPixelStorei(GL_UNPACK_ROW_LENGTH, (int)rowlength); */
 /*     glPixelStorei(GL_UNPACK_SKIP_ROWS, skiprows); */
 /*     glPixelStorei(GL_UNPACK_SKIP_PIXELS, skippixels); */
-/*     glPixelStorei(GL_UNPACK_ALIGNMENT, alignment); */
+     glPixelStorei(GL_UNPACK_ALIGNMENT, (int)alignment); 
   }
 }
