@@ -236,8 +236,8 @@ static void *driCreateDrawable(Display *dpy, int scrn,
 
     pdp->draw = draw;
     pdp->refcount = 0;
-    pdp->pStamp = &pdp->lastStamp; /* cliprects will never change */
-    pdp->lastStamp = 0;
+    pdp->pStamp = &pdp->lastStamp;
+    pdp->lastStamp = 1;
     pdp->index = 0;
     pdp->numBackClipRects = 0;
     pdp->pBackClipRects = NULL;
@@ -398,7 +398,6 @@ __driUtilCreateScreen(Display *dpy, int scrn, __DRIscreen *psc,
    __DRIscreenPrivate *psp;
    char *driverName;
    drmHandle hFB;
-   drmMagic magic;
 
    psp = (__DRIscreenPrivate *)malloc(sizeof(__DRIscreenPrivate));
    if (!psp) {
