@@ -236,11 +236,11 @@ typedef struct _agp_file_private {
 /** Frontend data. */
 struct agp_front_data {
 	struct semaphore agp_mutex;	/**< device mutex. \sa #AGP_INIT, #AGP_LOCK and #AGP_UNLOCK */
-	agp_controller *current_controller;
-	agp_controller *controllers;
+	agp_controller *current_controller;	/**< current controller */
+	agp_controller *controllers;	/**< controllers list */
 	agp_file_private *file_priv_list;	/**< file private data doubly linked list */
 	u8 used_by_controller;
-	u8 backend_acquired;
+	u8 backend_acquired;		/**< whether the backend has been acquired */
 };
 
 #endif				/* __KERNEL__ */

@@ -843,6 +843,7 @@ INCLUDE_FILE_PATTERNS  =
 
 PREDEFINED             = \
 			__KERNEL__ \
+			"__attribute__(x)=" \
 			"__devinit=" \
 			"__init=" \
 			"__devinitdata=" \

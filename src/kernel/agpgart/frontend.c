@@ -48,7 +48,7 @@
 static struct agp_front_data agp_fe;
 
 /**
- * Find a agp_memory by its allocation tag.
+ * Find an agp_memory structure by its allocation tag.
  *
  * \param key allocation tag.
  * \return pointer to the agp_memory on success or NULL on failure.
@@ -75,7 +75,7 @@ static agp_memory *agp_find_mem_by_key(int key)
 }
 
 /**
- * Removes a entry from its memory pool.
+ * Removes an entry from its memory pool.
  *
  * \param temp pointer to the agp_memory structure.
  * 
@@ -155,7 +155,7 @@ static agp_segment_priv *agp_find_seg_in_client(const agp_client * client,
  *
  * \param client client information.
  *
- * Frees the agp_client::segments and its  first entry if not null.
+ * Frees the agp_client::segments and what it's pointed by it if not null.
  */
 static void agp_remove_seg_from_client(agp_client * client)
 {
@@ -383,7 +383,7 @@ void agp_remove_file_private(agp_file_private * priv)
 /*@{*/
 
 /**
- * Wrappers for agp_free_memory().
+ * Wrapper for agp_free_memory().
  *
  * Makes sure that internal lists are kept updated by calling
  * agp_remove_from_pool().
@@ -395,7 +395,7 @@ static void agp_free_memory_wrap(agp_memory * memory)
 }
 
 /**
- * Wrappers for agp_allocate_memory().
+ * Wrapper for agp_allocate_memory().
  *
  * Makes sure that internal lists are kept updated by calling
  * agp_insert_into_pool().
@@ -451,7 +451,7 @@ static agp_controller *agp_find_controller_by_pid(pid_t id)
  * \param id process id of the new controller.
  * \return pointer to the agp_controller structure on success, or NULL on failure.
  * 
- * Allocate and initialize a agp_controller structure.
+ * Allocate and initialize an agp_controller structure.
  */
 static agp_controller *agp_create_controller(pid_t id)
 {
@@ -755,7 +755,7 @@ static void agp_insert_client(agp_client * client)
  * \param id client process id.
  * \return a pointer to an agp_client structure.
  *
- * Allocate and initialze an agp_client structure and inserts into the current
+ * Allocate and initialize an agp_client structure and inserts into the current
  * controller.
  */
 static agp_client *agp_create_client(pid_t id)
@@ -915,14 +915,14 @@ static int agp_mmap(struct file *file, struct vm_area_struct *vma)
  * \param file file pointer.
  * \return zero on success or a negative number on failure.
  * 
- * If it's a controller then find its data structure, and removes it. If it's
+ * If it's a controller then finds its data structure and removes it. If it's
  * the current controller then additionally calls
  * agp_controller_release_current().
  * 
  * If it's a client then simply remove the client.
  *
  * The AGP lock is held during the function call and the file private data is
- * free before returning.
+ * freed before returning.
  */
 static int agp_release(struct inode *inode, struct file *file)
 {
@@ -959,12 +959,12 @@ static int agp_release(struct inode *inode, struct file *file)
  * \param file file pointer.
  * \return zero on success or a negative number on failure.
  * 
- * Allocate and create a agp_file_private structure for the file private data,
- * and sets the client allow flag. If the user or the suid is zero then set the
- * controller allow flag too.
+ * Allocate and create an agp_file_private structure for the file private data,
+ * and sets the client allow flag. If the user or the suid is zero then sets the
+ * <i>controller allow</i> flag too.
  *
- * If there is a client with the current proccess id then set the client and
- * valid flags.
+ * If there is a client with the current proccess id then set the \e client and
+ * \e valid flags.
  * 
  * The AGP lock is held during the function call.
  */
@@ -1032,7 +1032,7 @@ static ssize_t agp_write(struct file *file, const char *buf,
  * information will be copied.
  * \return zero on success or a negative number on failure.
  *
- * Calls agp_copy_info(), transfers the information into a agp_info structure
+ * Calls agp_copy_info(), transfers the information into an agp_info structure
  * and copies into user space.
  */
 static int agpioc_info_wrap(agp_file_private * priv, unsigned long arg)
@@ -1275,7 +1275,7 @@ static int agpioc_allocate_wrap(agp_file_private * priv, unsigned long arg)
  * \param arg allocation tag.
  * \return zero on success or a negative number on failure.
  *
- * Wrapper around agp_deallocate_memory_wrap(), using the allocation tag as
+ * Wrapper around agp_free_memory_wrap(), using the allocation tag as
  * reference.
  */
 static int agpioc_deallocate_wrap(agp_file_private * priv, unsigned long arg)

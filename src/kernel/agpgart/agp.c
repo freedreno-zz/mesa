@@ -99,7 +99,7 @@ int agp_backend_acquire(void)
 /** 
  * Release the AGP backend. 
  *
- * The caller must insure that the graphics
+ * The caller must ensure that the graphics
  * aperture translation table is read for use
  * by another entity.  (Ensure that all memory
  * it bound is unbound.)
@@ -481,8 +481,8 @@ int agp_unbind_memory(agp_memory * curr)
 /**
  * \sa agp_bridge_data::agp_enable.
  *
- * Goes trhough all devices that claim to be AGP devices collecting their data,
- * and disabling impossible settings. Decides the 4X/2X/1X setting and enable
+ * Goes trhough all devices that claim to be AGP devices collecting their data
+ * and disabling impossible settings. Decides the 4X/2X/1X setting and enables
  * the AGP bridge device.
  */
 void agp_generic_agp_enable(u32 mode)
@@ -779,7 +779,7 @@ int agp_generic_free_gatt_table(void)
  * \sa agp_bridge_data::insert_memory.
  *
  * Makes some sanity checks, points each page entry in the GATT table to the
- * respective page of \p mem, and calls the agp_bridge_data::tbl_flush method.
+ * respective page of \p mem, and calls the agp_bridge_data::tlb_flush method.
  */
 int agp_generic_insert_memory(agp_memory * mem, off_t pg_start, int type)
 {
@@ -1401,7 +1401,7 @@ static struct _agp_bridge_info {
  * 
  * Searches agp_bridge_info for a matching vendor and device ID's and calls the
  * function in _agp_bridge_info::chipset_setup field. If the user requested
- * (agp_try_unsupported is set) and there is a \e generic bridge entry (zero
+ * (::agp_try_unsupported is set) and there is a \e generic bridge entry (zero
  * device ID) try it.
  */
 static int __init agp_lookup_host_bridge (struct pci_dev *pdev)

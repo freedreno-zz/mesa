@@ -44,7 +44,7 @@
  *
  * \return always zero.
  *
- * Reads the aperture size and points agp_bridge_data::previous_size and
+ * Reads the aperture size from the hardware and points agp_bridge_data::previous_size and
  * agp_bridge_data::current_size to the agp_bridge_data::aperture_sizes entry
  * with the matching aperture size.
  */
@@ -130,7 +130,7 @@ static void intel_8xx_tlbflush(agp_memory * mem)
 /** 
  * Backend cleanup -- Intel generic.
  *
- * Sets the previous aperture size.
+ * Resets the hardware using the previous aperture size.
  */
 static void intel_cleanup(void)
 {
@@ -168,7 +168,7 @@ static void intel_8xx_cleanup(void)
  *
  * \return always zero.
  *
- * Sets the hardware registers with the information in agp_bridge_data.
+ * Updates the hardware registers to match the information in agp_bridge_data.
  */
 static int intel_configure(void)
 {
@@ -569,7 +569,8 @@ static struct aper_size_info_8 intel_830mp_sizes[4] =
  * \return always zero.
  * 
  * Initializes the device dependent part agp_bride_data structure in agp_bride,
- * using the the functions above for the driver callbacks.
+ * using a mixture of the functions above and the generic driver functions in
+ * agp.c for the driver callbacks.
  */
 int __init intel_generic_setup (struct pci_dev *pdev)
 {

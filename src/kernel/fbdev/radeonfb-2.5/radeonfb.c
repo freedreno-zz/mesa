@@ -464,7 +464,7 @@ static struct fb_var_screeninfo radeonfb_default_var = {
 	} while (0)
 
 
-/** Read a PLL register */
+/** Read a PLL register (inline) */
 static __inline__ u32 _INPLL(struct radeonfb_info *rinfo, u32 addr)
 {
 	OUTREG8(CLOCK_CNTL_INDEX, addr & 0x0000003f);
@@ -486,8 +486,8 @@ static __inline__ u32 _INPLL(struct radeonfb_info *rinfo, u32 addr)
  * Get monitor name.
  *
  * \param type monitor type.
- * \return pointer to a string describing the monitor type, or NULL if an
- * invalid type.
+ * \return pointer to a string describing the monitor type or NULL if \p type
+ * is invalid.
  */
 static char *GET_MON_NAME(int type)
 {
@@ -610,16 +610,16 @@ static __inline__ int _max(int val1, int val2)
  */
 /*@{*/
         
-static char *mode_option __initdata;	/**< mode option */
-static char mirror = 0;			/**< whether to enable the mirroring of
+static char *mode_option __initdata;	/**< Mode option */
+static char mirror = 0;			/**< Whether to enable the mirroring of
 					  the main display on the external CRTC
 					  */
-static int panel_yres __initdata = 0;	/**< panel vertical resolution, used
+static int panel_yres __initdata = 0;	/**< Panel vertical resolution, used
 					  when no DFP information is available */
-static char force_dfp __initdata = 0;	/**< whether to force the recognition
-					  of a DFP (Digital Flap Panel) */
+static char force_dfp __initdata = 0;	/**< Whether to force the recognition
+					  of a DFP */
 static struct radeonfb_info *board_list = NULL;	/**< list of all boards */
-static char nomtrr __initdata = 0;	/**< whether to prevent the use of MTRR's */
+static char nomtrr __initdata = 0;	/**< Whether to prevent the use of MTRR's */
 
 /*@}*/
 
@@ -729,7 +729,7 @@ static char *radeon_find_rom(struct radeonfb_info *rinfo)
  * \param rinfo framebuffer device private data.
  * \param bios_seg pointer to the BIOS segment, or NULL if not available.
  *
- * Attempts to read the PLL Basic Information from the BIOS, otherwise use the
+ * Attempts to read the PLL Basic Information Block from the BIOS, otherwise use the
  * defaults for the PLL data in radeondb_info::pll.
  */
 static void radeon_get_pllinfo(struct radeonfb_info *rinfo, char *bios_seg)
@@ -817,7 +817,8 @@ static void radeon_get_pllinfo(struct radeonfb_info *rinfo, char *bios_seg)
  *
  * \param rinfo framebuffer device private data.
  *
- * Determines the monitor type in all ports. Overriden ::force_dfp is set.
+ * Determines the monitor type in all present ports from the hardware. If
+ * ::force_dfp is set the detection of a DFP is forced.
  */
 static void radeon_get_moninfo (struct radeonfb_info *rinfo)
 {
@@ -883,6 +884,7 @@ static void radeon_get_EDID(struct radeonfb_info *rinfo)
  * \param rinfo framebuffer device private data.
  * \return non-zero on success, or zero on failure.
  *
+ * Reads the EDID timing information into \p rinfo. 
  * radeonfb_info::got_dfpinfo is set on success.
  */
 static int radeon_dfp_parse_EDID(struct radeonfb_info *rinfo)
@@ -1123,7 +1125,7 @@ static int radeon_get_dfpinfo (struct radeonfb_info *rinfo)
  * \return zero on success, or a negative number on failure.
  *
  * Calls radeon_init_disp_var() to find and initialize the user defined part of
- * the display, and activate it.
+ * the display, and activates it.
  */
 static int __devinit radeon_init_disp (struct radeonfb_info *rinfo)
 {
@@ -1189,11 +1191,11 @@ static int radeon_init_disp_var (struct radeonfb_info *rinfo,
  * \param v updated user defined part of the display.
  * \param nom numeration for the video RAM size calculation.
  * \param den denominator for the video RAM size calculation.
- * \return zero on success, or a negative number if it's impossible to find a
- * virtual resolution that fits into video memory, or a invalid resolution was
+ * \return zero on success or a negative number if it's impossible to find a
+ * virtual resolution that fits into video memory or a invalid resolution was
  * given.
  *
- * Replace the special value of -1 in the virtual resolution with the highest
+ * Replaces the special value of -1 in the virtual resolution with the highest
  * possible that will fit the video RAM, using a resolution table when both
  * horizontal and vertical resolutions have the value of -1.
  *
@@ -1386,7 +1388,7 @@ static int radeonfb_check_var (struct fb_var_screeninfo *var, struct fb_info *in
  * \return zero on success, or a negative value on failure.
  * 
  * Checks that displayed area is inside the virtual resolution and, if the
- * device it not asleep, updates the CRTC offsets.
+ * device it not asleep, updates the hardware.
  */
 static int radeonfb_pan_display (struct fb_var_screeninfo *var,
                                  struct fb_info *info)
@@ -1516,9 +1518,8 @@ static int radeonfb_ioctl (struct inode *inode, struct file *file, unsigned int 
  * \param info framebuffer device data.
  * \return zero on success, or a negative value on failure.
  * 
- * If not asleep, blank the display by updating the LVDS_GEN_CNTL or
- * CRTC_EXT_CNTL for LCDs or all others monitors respectively.  Always
- * successful.
+ * If not asleep, updates the hardware to blank (or not) the display according
+ * to \p blank.  Always successful.
  */
 static int radeonfb_blank (int blank, struct fb_info *info)
 {
@@ -1659,7 +1660,7 @@ static int radeonfb_setcolreg (unsigned regno, unsigned red, unsigned green,
  * \param rinfo framebuffer device private data.
  * \param save registers structure to save the state.
  *
- * Saves the values of the registers in \p save.
+ * Reads the values of the hardware state registers saves them into \p save.
  */
 static void radeon_save_state (struct radeonfb_info *rinfo,
                                struct radeon_regs *save)
@@ -2040,8 +2041,8 @@ static int radeonfb_set_par (struct fb_info *info)
  * \param rinfo framebuffer device private data.
  * \param mode register state.
  * 
- * Sets the common registers and the mode registers while having the screen in
- * power down mode.
+ * Write all common and state (mode) registers to the hardware. This is done
+ * with the screen in power down mode.
  */
 static void radeon_write_mode (struct radeonfb_info *rinfo,
                                struct radeon_regs *mode)
@@ -2170,8 +2171,8 @@ static struct fb_ops radeonfb_ops = {
  * \param rinfo framebuffer device private data.
  * \return zero on success or a negative value on failure.
  *
- * Sets the framebuffer device information in radeonfb_info::info and
- * initializes the display.
+ * Initializes the framebuffer device information in radeonfb_info::info and
+ * initializes the display by calling radeon_init_disp().
  */
 static int __devinit radeon_set_fbinfo (struct radeonfb_info *rinfo)
 {
@@ -2219,8 +2220,9 @@ static int __devinit radeon_set_fbinfo (struct radeonfb_info *rinfo)
  * Enables the PCI device, allocates and initializes a radeonfb_info structure
  * as driver private data, finds and maps the MMIO and framebuffer regions,
  * calls radeon_set_fbinfo() to setup the framebuffer device and registers it.
- * * Before switching the mode saves the current mode registers to restore when
- * exiting.  If supported by the kernel and ::nomttrr not set then creates a
+ * 
+ * Before switching the mode it saves the current mode registers to restore when
+ * exiting.  If supported by the kernel and ::nomttrr isn't set then creates a
  * MTRR over the framebuffer region.
  */
 static int radeonfb_pci_register (struct pci_dev *pdev,
@@ -2533,7 +2535,7 @@ void __exit radeonfb_exit (void)
  *
  * \param options options.
  *
- * Updates the global variables according with the options given.
+ * Updates the global variables according with the given options.
  */
 int __init radeonfb_setup (char *options)
 {
