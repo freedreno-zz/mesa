@@ -1,4 +1,4 @@
-/* $Id: context.c,v 1.148.2.6 2002/06/16 03:19:57 brianp Exp $ */
+/* $Id: context.c,v 1.148.2.7 2002/06/17 23:32:43 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -336,6 +336,8 @@ _mesa_initialize_framebuffer( GLframebuffer *buffer,
 {
    assert(buffer);
    assert(visual);
+
+   BZERO(buffer, sizeof(GLframebuffer));
 
    /* sanity checks */
    if (softwareDepth ) {
@@ -1941,7 +1943,39 @@ _mesa_make_current2( GLcontext *newCtx, GLframebuffer *drawBuffer,
 	 newCtx->DrawBuffer = drawBuffer;
 	 newCtx->ReadBuffer = readBuffer;
 	 newCtx->NewState |= _NEW_BUFFERS;
-	 /* _mesa_update_state( newCtx ); */
+
+         if (drawBuffer->Width == 0 && drawBuffer->Height == 0) {
+            /* get initial window size */
+            GLuint bufWidth, bufHeight;
+
+            /* ask device driver for size of output buffer */
+            (*newCtx->Driver.GetBufferSize)( drawBuffer, &bufWidth, &bufHeight );
+
+            if (drawBuffer->Width == bufWidth && drawBuffer->Height == bufHeight)
+               return; /* size is as expected */
+
+            drawBuffer->Width = bufWidth;
+            drawBuffer->Height = bufHeight;
+
+            newCtx->Driver.ResizeBuffers( drawBuffer );
+         }
+
+         if (readBuffer != drawBuffer &&
+             readBuffer->Width == 0 && readBuffer->Height == 0) {
+            /* get initial window size */
+            GLuint bufWidth, bufHeight;
+
+            /* ask device driver for size of output buffer */
+            (*newCtx->Driver.GetBufferSize)( readBuffer, &bufWidth, &bufHeight );
+
+            if (readBuffer->Width == bufWidth && readBuffer->Height == bufHeight)
+               return; /* size is as expected */
+
+            readBuffer->Width = bufWidth;
+            readBuffer->Height = bufHeight;
+
+            newCtx->Driver.ResizeBuffers( readBuffer );
+         }
       }
 
       if (newCtx->Driver.MakeCurrent)
