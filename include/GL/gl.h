@@ -1,4 +1,4 @@
-/* $Id: gl.h,v 1.17.2.5 2000/02/10 17:21:30 brianp Exp $ */
+/* $Id: gl.h,v 1.17.2.6 2000/03/20 17:54:44 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -94,7 +94,7 @@
 
 /* compatability guard so we don't need to change client code */
 
-#if defined(_WIN32) && !defined(_WINDEF_) && !defined(OPENSTEP)
+#if defined(_WIN32) && !defined(_WINDEF_) && !defined(_GNU_H_WINDOWS32_BASE) && !defined(OPENSTEP)
 #	define CALLBACK GLCALLBACK
 typedef int (GLAPIENTRY *PROC)();
 typedef void *HGLRC;
@@ -102,9 +102,10 @@ typedef void *HDC;
 typedef unsigned long COLORREF;
 #endif
 
-#if defined(_WIN32) && !defined(_WINGDI_) && !defined(OPENSTEP)
+#if defined(_WIN32) && !defined(_WINGDI_) && !defined(_GNU_H_WINDOWS32_DEFINES) && !defined(OPENSTEP)
 #	define WGL_FONT_LINES      0
 #	define WGL_FONT_POLYGONS   1
+#ifndef _GNU_H_WINDOWS32_FUNCTIONS
 #	ifdef UNICODE
 #		define wglUseFontBitmaps  wglUseFontBitmapsW
 #		define wglUseFontOutlines  wglUseFontOutlinesW
@@ -112,6 +113,7 @@ typedef unsigned long COLORREF;
 #		define wglUseFontBitmaps  wglUseFontBitmapsA
 #		define wglUseFontOutlines  wglUseFontOutlinesA
 #	endif /* !UNICODE */
+#endif /* _GNU_H_WINDOWS32_FUNCTIONS */
 typedef struct tagLAYERPLANEDESCRIPTOR LAYERPLANEDESCRIPTOR, *PLAYERPLANEDESCRIPTOR, *LPLAYERPLANEDESCRIPTOR;
 typedef struct _GLYPHMETRICSFLOAT GLYPHMETRICSFLOAT, *PGLYPHMETRICSFLOAT, *LPGLYPHMETRICSFLOAT;
 typedef struct tagPIXELFORMATDESCRIPTOR PIXELFORMATDESCRIPTOR, *PPIXELFORMATDESCRIPTOR, *LPPIXELFORMATDESCRIPTOR;
