@@ -1,4 +1,4 @@
-/* $Id: teximage.c,v 1.39.4.1 2000/08/29 22:58:57 brianp Exp $ */
+/* $Id: teximage.c,v 1.39.4.2 2000/08/29 23:10:23 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -2156,18 +2156,6 @@ _mesa_TexSubImage2D( GLenum target, GLint level,
    struct gl_texture_object *texObj;
    struct gl_texture_image *texImage;
    GLboolean success = GL_FALSE;
-
-   printf("TexSubImage2D %d x %d @ %d, %d  f=0x%x t=0x%x  %g %g\n",
-          width, height, xoffset, yoffset, format, type,
-          ctx->Pixel.AlphaScale, ctx->Pixel.AlphaBias);
-   {
-      int i;
-      GLubyte *p = (GLubyte *) pixels;
-      for (i = 0; i < 10; i++) {
-         printf("%02x ", p[i*4+3]);
-      }
-      printf("\n");
-   }
 
    if (subtexture_error_check(ctx, 2, target, level, xoffset, yoffset, 0,
                               width, height, 1, format, type)) {
