@@ -118,6 +118,8 @@ static void fxTexValidate(GLcontext *ctx, struct gl_texture_object *tObj)
   case GL_REPEAT:
     ti->sClamp=0;
     break;
+  default:
+    ;
   }
   switch (tObj->WrapT) {
   case GL_CLAMP_TO_EDGE:
@@ -128,6 +130,8 @@ static void fxTexValidate(GLcontext *ctx, struct gl_texture_object *tObj)
   case GL_REPEAT:
     ti->tClamp=0;
     break;
+  default:
+    ;
   }
 
   ti->validated=GL_TRUE;
