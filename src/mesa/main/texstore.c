@@ -1,4 +1,4 @@
-/* $Id: texstore.c,v 1.34.2.4 2002/09/13 19:34:41 brianp Exp $ */
+/* $Id: texstore.c,v 1.34.2.5 2002/09/13 19:39:46 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -258,7 +258,7 @@ transfer_teximage(GLcontext *ctx, GLuint dimensions,
       }
    }
    else if (texDestFormat == GL_YCBCR_MESA) {
-      /* YCrCb texture */
+      /* YCbCr texture */
       GLint img, row;
       GLushort *dest = (GLushort *) texDestAddr
                      + dstZoffset * (dstImageStride / sizeof(GLushort))

@@ -1,4 +1,4 @@
-/* $Id: teximage.c,v 1.104.2.7 2002/09/13 19:34:40 brianp Exp $ */
+/* $Id: teximage.c,v 1.104.2.8 2002/09/13 19:39:45 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -920,7 +920,7 @@ texture_error_check( GLcontext *ctx, GLenum target,
           type != GL_UNSIGNED_SHORT_8_8_REV_APPLE)) {
          char message[100];
          sprintf(message,
-                 "glTexImage%d(format/type/internalFormat YCRCB mismatch",
+                 "glTexImage%d(format/type/internalFormat YCBCR mismatch",
                  dimensions);
          _mesa_error(ctx, GL_INVALID_ENUM, message);
          return GL_TRUE; /* error */
