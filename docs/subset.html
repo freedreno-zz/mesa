@@ -7,35 +7,42 @@
 <span style="font-style: italic;"></span><span
  style="font-weight: bold;"></span>
 <h1>
-<center>OpenGL Subset Specification</center>
+<center>Mesa Subset Specification</center>
 </h1>
 <h2>
 <center>
 <h3>Tungsten Graphics, Inc.</h3>
-<h3>January 20, 2003<br>
+<h3>January 23, 2003<br>
 </h3>
 </center>
 </h2>
-<p> Copyright &copy; 2002-2003 by Tungsten Graphics, Inc., Cedar Park,
-Texas. All Rights Reserved. <br>
+<p> Copyright &copy; 2002-2003 by <a
+ href="http://www.tungstengraphics.com/">Tungsten Graphics, Inc.</a>,
+Cedar Park, Texas. All Rights Reserved. <br>
 <br>
 Permission is granted to make and distribute verbatim copies of this
 document provided the copyright notice and this permission notice are
 preserved on all copies.<br>
 </p>
+<p> OpenGL is a trademark of <a href="http://www.sgi.com">Silicon
+Graphics, Inc.</a>.</p>
 <h1>1. Introduction</h1>
-This document describes a subset of the OpenGL API implemented by
-Tungsten Graphics, Inc. for embedded devices. &nbsp;Prior to reading
-this document the reader should be familiar with the OpenGL 1.2.1
+This document describes a subset of the Mesa implemented by Tungsten
+Graphics, Inc. for embedded devices. &nbsp;Prior to reading this
+document the reader should be familiar with the OpenGL 1.2.1
 specification dated April 1, 1999 (available from <a
  href="http://www.opengl.org/developers/documentation/specs.html">http://www.opengl.org/developers/documentation/specs.html</a>.)
 &nbsp;Experience with OpenGL programming is highly advisable.<a
  href="http://www.opengl.org/developers/documentation/specs.html"><br>
 </a><br>
+Tungsten Graphics, Inc. is working with industry standards
+organizations +in an attempt to standardize this Mesa subset and any
+other possible subsets +as a result of this work. <br>
+<br>
 Appendix A contains a list of issues of which some may not be resolved.<br>
 <br>
-To summarize, the following major features of OpenGL are omitted from
-the subset:<br>
+To summarize, the following major features of Mesa are omitted from the
+subset:<br>
 <ul>
   <li>Vertex arrays</li>
   <li>Texture coordinate generation</li>
@@ -57,10 +64,11 @@ the subset:<br>
 </ul>
 <p>Further reductions are made at a lower level of detail.<br>
 </p>
-<p>As in the OpenGL specification, OpenGL identifiers are printed in <span
- style="font-weight: bold;">bold face</span>.<br>
+<p>Mesa function names are printed in <span style="font-weight: bold;">bold
+face</span>. &nbsp;Function parameters are printed in <span
+ style="font-style: italic;">italics</span>.<br>
 </p>
-<p>The Tungsten Graphics, Inc. OpenGL subset library is hereafter
+<p>The Tungsten Graphics, Inc. Mesa subset library is hereafter
 referred to as <span style="font-style: italic;">the subset.</span><br>
 <br>
 </p>
@@ -108,10 +116,10 @@ GL_POLYGON - a closed, convex polygon<br>
 <br>
 The <span style="font-weight: bold;">glVertex</span> commands take two
 or three floating point coordinates, or a pointer to an array of two or
-three floating point coordinates. &nbsp;OpenGL vertices are actually
-4-element homogeneous coordinates. &nbsp;The fourth component,
-unspecified by the subset's <span style="font-weight: bold;">glVertex</span>
-commands, is one.<br>
+three floating point coordinates. &nbsp;Vertices are actually 4-element
+homogeneous coordinates. &nbsp;The fourth component, unspecified by the
+subset's <span style="font-weight: bold;">glVertex</span> commands, is
+one.<br>
 <br>
 <span style="font-weight: bold;"></span>
 <h2>2.2 Other Per-vertex Commands<br>
@@ -162,8 +170,8 @@ command between <span style="font-weight: bold;">glBegin</span> and <span
 GL_INVALID_OPERATION.<br>
 <br>
 <h2>2.3 Unsupported Commands</h2>
-None of the following OpenGL commands related to primitive
-specification are supported by the subset:<br>
+None of the following commands related to primitive specification are
+supported by the subset:<br>
 <br>
 <div style="margin-left: 40px;">Per-Vertex commands:<br>
 </div>
@@ -480,7 +488,7 @@ Lines are rendered with the command sequence <span
  style="font-weight: bold;">glEnd</span> where <span
  style="font-style: italic;">mode</span> is one of GL_LINES,
 GL_LINE_STRIP or GL_LINE_LOOP. &nbsp;Lines are rasterized as described
-in the OpenGL specification. &nbsp;Note that OpenGL uses the <span
+in the OpenGL specification. &nbsp;Note that OpenGL specifies the <span
  style="font-style: italic;">half-open</span> convention for drawing
 lines: the last fragment in a line segment is omitted so that endpoint
 pixels shared by two line segments will only be drawn once instead of
@@ -507,9 +515,8 @@ Lines may be stippled (i.e. dashed) with the command<br>
  style="font-style: italic;">pattern</span>)<br>
 </div>
 <br>
-As described in the OpenGL specification, <span
- style="font-style: italic;">pattern</span> describes an on/off pattern
-for the fragments produced by rasterization and <span
+<span style="font-style: italic;">pattern</span> describes an on/off
+pattern for the fragments produced by rasterization and <span
  style="font-style: italic;">factor</span> specifies how many subsequent
 fragments are kept or culled for each pattern bit. &nbsp;Line stippling
 can be enabled or disabled by the commands <span
@@ -676,9 +683,9 @@ the first vertex specifies the color for the entire polygon. &nbsp;If <span
 are linearly interpolated to produce the fragment colors.<br>
 <br>
 <h2>4.5 Bitmap Rasterization</h2>
-In OpenGL, a bitmap is a monochromatic, binary image in which each
-image element (or pixel) is represented by one bit. &nbsp;Fragments are
-only generated for the bits (pixels) which are set.  &nbsp;Bitmaps are
+A bitmap is a monochromatic, binary image in which each image element
+(or pixel) is represented by one bit. &nbsp;Fragments are only
+generated for the bits (pixels) which are set.  &nbsp;Bitmaps are
 commonly used to draw text (glyphs) and markers.<br>
 <br>
 A bitmap is drawn with the command<br>
@@ -3037,12 +3044,10 @@ implementation, such as "Tungsten Graphics, Inc."<br>
       <td style="vertical-align: top;">GL_EXTENSIONS<br>
       </td>
       <td style="vertical-align: top;">A white-space separated list of
-the supported OpenGL extensions.<br>
-      </td>
+the supported extensions. </td>
     </tr>
   </tbody>
 </table>
-<br>
 <br>
 <h2>9.3 Error Queries</h2>
 The command<br>
@@ -3466,8 +3471,9 @@ Which image formats and types should be supported for <span
  style="font-weight: bold;">glTexImage2D</span> and <span
  style="font-weight: bold;">glReadPixels</span>?<br>
 <br>
-OpenGL supports a <span style="font-weight: bold;">large</span> variety
-of image formats and data types. &nbsp;Only a few are commonly used.<br>
+OpenGL specifies a <span style="font-weight: bold;">large</span>
+variety of image formats and data types. &nbsp;Only a few are commonly
+used.<br>
 <br>
 RECOMMENDATION: &nbsp;we propose a subset:<br>
 <br>
@@ -3567,6 +3573,7 @@ be expressed as floating point values and queried with <span
 implementation of the other three commands involves many lines of code.<br>
 <br>
 RESOLUTION: &nbsp;open<br>
+<br>
 <h2>A.13 glBitmap and Per-Fragment Operations</h2>
 Should bitmaps rendered with <span style="font-weight: bold;">glBitmap</span>
 be subjected to the per-fragment operations?<br>
@@ -3580,6 +3587,18 @@ trivially easy. &nbsp;Also, it makes portrait-mode display relatively
 easy.<br>
 <br>
 RESOLUTION: &nbsp;open<br>
+<br>
+<h2>A.14 Reduced gl.h Header File</h2>
+Should we produce a reduced gl.h header file which only defines the
+tokens and functions which are implemented by the subset?<br>
+<br>
+RECOMMENDATION: yes. &nbsp;It would be a useful reference to
+programmers to quickly determine which functions and tokens are
+supported.<br>
+<br>
+RESOLUTION: open<br>
+<br>
+<br>
 <br>
 <p> </p>
 </body>
