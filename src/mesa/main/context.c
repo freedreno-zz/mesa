@@ -412,10 +412,10 @@ one_time_init( void )
       _mesa_init_fog();
       _mesa_init_math();
       gl_init_lists();
-      gl_init_shade();
       gl_init_texture();
       gl_init_transformation();
       gl_init_translate();
+      gl_init_shade();
       gl_init_vbrender();
       gl_init_vbxform();
       gl_init_vertices();

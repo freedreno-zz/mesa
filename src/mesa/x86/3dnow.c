@@ -1,4 +1,4 @@
-/* $Id: 3dnow.c,v 1.5.4.3 2000/10/22 23:10:51 gareth Exp $ */
+/* $Id: 3dnow.c,v 1.5.4.4 2000/11/30 02:44:22 gareth Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -31,6 +31,7 @@
 
 #include "glheader.h"
 #include "context.h"
+#include "shade.h"
 #include "types.h"
 #include "vertices.h"
 #include "xform.h"
@@ -167,6 +168,18 @@ void gl_init_3dnow_transform_asm( void )
 #ifdef DEBUG
    gl_test_all_transform_functions( "3DNow!" );
    gl_test_all_normal_transform_functions( "3DNow!" );
+#endif
+#endif
+}
+
+void gl_init_3dnow_shade_asm( void )
+{
+#ifdef USE_3DNOW_ASM
+   /* When the time comes, initialize optimized lighting here.
+    */
+
+#if 0
+   gl_test_all_shade_functions( "3DNow!" );
 #endif
 #endif
 }
