@@ -1,4 +1,4 @@
-/* $Id: miniglx.c,v 1.1.4.4 2002/11/28 00:03:07 brianp Exp $ */
+/* $Id: miniglx.c,v 1.1.4.5 2002/11/28 00:24:04 brianp Exp $ */
 
 /*
  * Mesa 3-D graphics library
@@ -95,6 +95,9 @@ struct MiniGLXVisualRec {
  * Derived from Mesa's GLframebuffer class.
  */
 struct MiniGLXWindowRec {
+#if !USE_DRI
+   GLframebuffer glframebuffer;    /* must be first */
+#endif
    Visual *visual;
    int x, y;                       /* pos (always 0,0) */
    unsigned int w, h;              /* size */
@@ -108,8 +111,6 @@ struct MiniGLXWindowRec {
    GLubyte *curBottom;             /* = frontBottom or backBottom */
 #if USE_DRI
    __DRIdrawable driDrawable;
-#else
-   GLframebuffer glframebuffer;    /* base class */
 #endif
 }; /* Window */
 
@@ -118,23 +119,16 @@ struct MiniGLXWindowRec {
  * Derived from Mesa's GLcontext class.
  */
 struct MiniGLXContextRec {
+#if !USE_DRI
+   GLcontext glcontext;  /* must be first */
+#endif
    Window drawBuffer;
    Window curBuffer;
 #if USE_DRI
    __DRIcontext driContext;
-#else
-   GLcontext glcontext;
 #endif
 }; /* GLXContext */
 
-
-/*
- * This is defined in each DRI driver.
- */
-#if USE_DRI
-extern void *__driCreateScreen(Display *dpy, int scrn, __DRIscreen *psc,
-                               int numConfigs, __GLXvisualConfig *config);
-#endif
 
 
 /*
@@ -714,6 +708,7 @@ WRAP(XOpenDisplay)( const char *display_name )
       return NULL;
 
    if (!OpenFBDev(dpy)) {
+      fprintf(stderr, "OpenFBDev failed\n");
       _mesa_free(dpy);
       return NULL;
    }
@@ -826,7 +821,7 @@ WRAP(XCreateWindow)( Display *dpy, Window parent, int x, int y,
    win->size = win->rowStride * height * win->bytesPerPixel; /* XXX stride? */
    win->frontStart = dpy->FrameBuffer;
    win->frontBottom = (GLubyte *) win->frontStart
-                    + (dpy->VarInfo.yres_virtual - 1) * win->rowStride;
+                    + (height - 1) * win->rowStride;
 
    if (visual->glvisual.doubleBufferMode) {
       win->backStart = (GLubyte *) win->frontStart + win->size;
@@ -1209,12 +1204,12 @@ WRAP(glXMakeCurrent)( Display *dpy, GLXDrawable drawable, GLXContext ctx)
       _mesa_make_current2( &ctx->glcontext,
                            &drawable->glframebuffer,
                            &drawable->glframebuffer );
-      if (ctx->glcontext.Viewport.Width == 0) {
-         _mesa_Viewport(0, 0, drawable->w, drawable->h);
-      }
 #endif
       ctx->drawBuffer = drawable;
       ctx->curBuffer = drawable;
+      if (ctx->glcontext.Viewport.Width == 0) {
+         _mesa_Viewport(0, 0, drawable->w, drawable->h);
+      }
    }
    else {
       /* unbind */
