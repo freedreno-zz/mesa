@@ -1,4 +1,4 @@
-$Id: VERSIONS,v 1.73.2.2 2001/11/02 00:58:32 brianp Exp $
+$Id: VERSIONS,v 1.73.2.3 2001/11/06 15:53:25 brianp Exp $
 
 
 Mesa Version History
@@ -902,3 +902,6 @@ Mesa Version History
     Bug fixes:
 	- added missing break statements in glGet*() for multisample cases
 	- fixed uninitialized hash table mutex bug (display lists / texobjs)
+	- fixed bad teximage error check conditional (bug 476846)
+	- fixed demos readtex.c compilation problem on Windows (Karl Schultz)
+	- added missing glGet() query for GL_MAX_TEXTURE_LOD_BIAS_EXT 
