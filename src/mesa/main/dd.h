@@ -27,7 +27,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: dd.h,v 1.74.6.2 2003/03/09 10:52:20 jrfonseca Exp $ */
+/* $Id: dd.h,v 1.74.6.3 2003/03/19 15:43:15 jrfonseca Exp $ */
 
 
 #ifndef DD_INCLUDED
@@ -775,26 +775,27 @@ struct dd_function_table {
 };
 
 
-
 /**
  * \brief Transform/Clip/Lighting interface
+ *
+ * Drivers present a reduced set of the functions possible in
+ * glBegin()/glEnd() objects.  Core mesa provides translation stubs for the
+ * remaining functions to map down to these entrypoints.
+ *
+ * These are the initial values to be installed into dispatch by
+ * mesa.  If the T&L driver wants to modify the dispatch table
+ * while installed, it must do so itself.  It would be possible for
+ * the vertexformat to install it's own initial values for these
+ * functions, but this way there is an obvious list of what is
+ * expected of the driver.
+ *
+ * If the driver wants to hook in entrypoints other than those
+ * listed, it must restore them to their original values in
+ * the disable() callback, below.
  */
 typedef struct {
    /**
-    * Drivers present a reduced set of the functions possible in
-    * glBegin()/glEnd() objects.  Core mesa provides translation stubs for the
-    * remaining functions to map down to these entrypoints.
-    *
-    * These are the initial values to be installed into dispatch by
-    * mesa.  If the T&L driver wants to modify the dispatch table
-    * while installed, it must do so itself.  It would be possible for
-    * the vertexformat to install it's own initial values for these
-    * functions, but this way there is an obvious list of what is
-    * expected of the driver.
-    *
-    * If the driver wants to hook in entrypoints other than those
-    * listed, it must restore them to their original values in
-    * the disable() callback, below.
+    * \name Vertex
     */
    /*@{*/
    void (*ArrayElement)( GLint ); /* NOTE */
@@ -859,6 +860,8 @@ typedef struct {
    void (*Rectf)( GLfloat, GLfloat, GLfloat, GLfloat );
 
    /**
+    * \param Array
+    *
     * These may or may not belong here.  Heuristic: if an array is
     * enabled, the installed vertex format should support that array and
     * it's current size natively.
@@ -873,6 +876,8 @@ typedef struct {
    /*@}*/
 
    /**
+    * \name Eval
+    *
     * If you don't support eval, fallback to the default vertex format
     * on receiving an eval call and use the pipeline mechanism to
     * provide partial T&L acceleration.

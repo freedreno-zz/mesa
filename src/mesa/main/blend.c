@@ -1,4 +1,7 @@
-/* $Id: blend.c,v 1.38.4.1 2003/03/17 17:03:46 keithw Exp $ */
+/**
+ * \file blend.c
+ * \brief Blending functions.
+ */
 
 /*
  * Mesa 3-D graphics library
@@ -24,6 +27,8 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+/* $Id: blend.c,v 1.38.4.2 2003/03/19 15:43:14 jrfonseca Exp $ */
+
 
 #include "glheader.h"
 #include "blend.h"
@@ -34,6 +39,18 @@
 #include "mtypes.h"
 
 
+/**
+ * \brief Specify blending operation.
+ *
+ * \param sfactor source factor operator.
+ * \param dfactor destination factor operator.
+ *
+ * \sa glBlendFunc().
+ * 
+ * Verifies the parameters and updates gl_colorbuffer_attrib.
+ * On a change, flush the vertices and notify the driver via
+ * dd_function_table::BlendFunc.
+ */
 void
 _mesa_BlendFunc( GLenum sfactor, GLenum dfactor )
 {
@@ -116,7 +133,18 @@ _mesa_BlendFunc( GLenum sfactor, GLenum dfactor )
 
 #if _HAVE_FULL_GL
 
-/* GL_EXT_blend_func_separate */
+/**
+ * \brief Process GL_EXT_blend_func_separate().
+ *
+ * \param sfactorRGB RGB source factor operator.
+ * \param dfactorRGB RGB destination factor operator.
+ * \param sfactorA alpha source factor operator.
+ * \param dfactorA alpha destination factor operator.
+ *
+ * Verifies the parameters and updates gl_colorbuffer_attrib.
+ * On a change, flush the vertices and notify the driver via
+ * dd_function_table::BlendFuncSeparate.
+ */
 void
 _mesa_BlendFuncSeparateEXT( GLenum sfactorRGB, GLenum dfactorRGB,
                             GLenum sfactorA, GLenum dfactorA )
@@ -257,7 +285,6 @@ _mesa_BlendFuncSeparateEXT( GLenum sfactorRGB, GLenum dfactorRGB,
 }
 
 
-
 /* This is really an extension function! */
 void
 _mesa_BlendEquation( GLenum mode )
@@ -318,7 +345,20 @@ _mesa_BlendEquation( GLenum mode )
 #endif
 
 
-
+/**
+ * \brief Set the blend color.
+ *
+ * \param red red component.
+ * \param green green component.
+ * \param blue blue component.
+ * \param alpha alpha component.
+ *
+ * \sa glBlendColor().
+ *
+ * Clamps the parameters and updates gl_colorbuffer_attrib::BlendColor.
+ * On a change, flush the vertices and notify the driver via
+ * dd_function_table::BlendColor.
+ */
 void
 _mesa_BlendColor( GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha )
 {
@@ -342,6 +382,16 @@ _mesa_BlendColor( GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha )
 }
 
 
+/**
+ * \brief Specify alpha test function.
+ *
+ * \param func alpha comparision function.
+ * \param ref reference value.
+ *
+ * Verifies the parameters and updates gl_colorbuffer_attrib. 
+ * On a change, flush the vertices and notify the driver via
+ * dd_function_table::AlphaFunc.
+ */
 void
 _mesa_AlphaFunc( GLenum func, GLclampf ref )
 {
@@ -377,6 +427,16 @@ _mesa_AlphaFunc( GLenum func, GLclampf ref )
 }
 
 
+/**
+ * \brief Specify a logic pixel operation for color index rendering.
+ *
+ * \param opcode operation.
+ *
+ * Verifies \p opcode is a valid enum and updates
+gl_colorbuffer_attrib::LogicOp.
+ * Flushes the vertices and notifies the driver via
+ * dd_function_table::LogicOp if it has changed.
+ */
 void
 _mesa_LogicOp( GLenum opcode )
 {
@@ -435,6 +495,20 @@ _mesa_IndexMask( GLuint mask )
 #endif
 
 
+/**
+ * \brief Enable or disable writing of frame buffer color components.
+ *
+ * \param red red color component.
+ * \param green green color component.
+ * \param blue blue color component.
+ * \param alpha alpha component.
+ *
+ * \sa glColorMask().
+ *
+ * Sets the appropriate value of gl_colorbuffer_attrib::ColorMask.  Flushes
+ * the vertices and notifies the driver via dd_function_table::ColorMask if
+ * it has changed.
+ */
 void
 _mesa_ColorMask( GLboolean red, GLboolean green,
                  GLboolean blue, GLboolean alpha )

@@ -1,4 +1,7 @@
-/* $Id: enable.c,v 1.71.4.1 2003/03/05 14:22:23 keithw Exp $ */
+/**
+ * \file enable.c
+ * \brief GL capabilities enabling.
+ */
 
 /*
  * Mesa 3-D graphics library
@@ -23,6 +26,8 @@
  * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
+/* $Id: enable.c,v 1.71.4.2 2003/03/19 15:43:15 jrfonseca Exp $ */
 
 
 #include "glheader.h"
@@ -138,7 +143,16 @@ client_state( GLcontext *ctx, GLenum cap, GLboolean state )
 }
 
 
-
+/**
+ * \brief Enable GL capability.
+ *
+ * \param cap capability.
+ *
+ * \sa glEnable().
+ *
+ * Get's the current context, assures that we're outside glBegin()/glEnd() and
+ * calls client_state().
+ */
 void
 _mesa_EnableClientState( GLenum cap )
 {
@@ -148,7 +162,16 @@ _mesa_EnableClientState( GLenum cap )
 }
 
 
-
+/**
+ * \brief Disable GL capability.
+ *
+ * \param cap capability.
+ *
+ * \sa glDisable().
+ *
+ * Get's the current context, assures that we're outside glBegin()/glEnd() and
+ * calls client_state().
+ */
 void
 _mesa_DisableClientState( GLenum cap )
 {
@@ -167,8 +190,16 @@ _mesa_DisableClientState( GLenum cap )
    }
 
 
-/*
- * Perform glEnable and glDisable calls.
+/**
+ * \brief Perform glEnable and glDisable calls.
+ *
+ * \param ctx GL contex.
+ * \param cap capability.
+ * \param state whether to enable or disable the specified capability.
+ *
+ * Updates the current context and flushes the vertices as needed. For
+ * capabilities associated with extensions it verifies that those extensions
+ * are effectivly present before updating.
  */
 void _mesa_set_enable( GLcontext *ctx, GLenum cap, GLboolean state )
 {
@@ -913,6 +944,16 @@ void _mesa_set_enable( GLcontext *ctx, GLenum cap, GLboolean state )
 }
 
 
+/**
+ * \brief Enable GL capability.
+ *
+ * \param cap capability.
+ *
+ * \sa glEnable().
+ *
+ * Get's the current context, assures that we're outside glBegin()/glEnd() and
+ * calls _mesa_set_enable().
+ */
 void
 _mesa_Enable( GLenum cap )
 {
@@ -923,6 +964,16 @@ _mesa_Enable( GLenum cap )
 }
 
 
+/**
+ * \brief Disable GL capability.
+ *
+ * \param cap capability.
+ *
+ * \sa glDisable().
+ *
+ * Get's the current context, assures that we're outside glBegin()/glEnd() and
+ * calls _mesa_set_enable().
+ */
 void
 _mesa_Disable( GLenum cap )
 {
@@ -941,6 +992,15 @@ _mesa_Disable( GLenum cap )
    }
 
 
+/**
+ * \brief Test whether a capability is enabled.
+ *
+ * \param cap capability.
+ *
+ * Returns the state of the specified capability from the current GL context.
+ * For the capabilities associated with extensions verifies that those
+ * extensions are effectively present before reporting.
+ */
 GLboolean
 _mesa_IsEnabled( GLenum cap )
 {

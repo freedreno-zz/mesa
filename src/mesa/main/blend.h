@@ -1,4 +1,7 @@
-/* $Id: blend.h,v 1.9 2001/06/18 17:26:08 brianp Exp $ */
+/**
+ * \file blend.h
+ * \brief Blending functions declarations.
+ */
 
 /*
  * Mesa 3-D graphics library
@@ -23,6 +26,8 @@
  * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
+/* $Id: blend.h,v 1.9.8.1 2003/03/19 15:43:14 jrfonseca Exp $ */
 
 
 #ifndef BLEND_H

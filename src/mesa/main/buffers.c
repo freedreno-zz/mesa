@@ -1,4 +1,7 @@
-/* $Id: buffers.c,v 1.42.4.1 2003/03/17 17:03:48 keithw Exp $ */
+/**
+ * \file buffers.c
+ * \brief Frame buffer management.
+ */
 
 /*
  * Mesa 3-D graphics library
@@ -23,6 +26,8 @@
  * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
+/* $Id: buffers.c,v 1.42.4.2 2003/03/19 15:43:14 jrfonseca Exp $ */
 
 
 #include "glheader.h"
@@ -60,6 +65,20 @@ _mesa_ClearIndex( GLfloat c )
 #endif
 
 
+/**
+ * \brief Specify the clear values for the color buffers.
+ *
+ * \param red red color component.
+ * \param green green color component.
+ * \param blue blue color component.
+ * \param alpha alpha component.
+ *
+ * \sa glClearColor().
+ *
+ * Clamps the parameters and updates gl_colorbuffer_attrib::ClearColor.  On
+ * a change, flush the vertices and notify the driver via
+ * dd_function_table::ClearColor.
+ */
 void
 _mesa_ClearColor( GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha )
 {
@@ -85,7 +104,16 @@ _mesa_ClearColor( GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha )
 }
 
 
-
+/**
+ * \brief Clear buffers.
+ * 
+ * \param mask bit-mask indicating the buffers to be cleared.
+ *
+ * Verifies the parameter. If __GLcontextRec::NewState is set calls
+ * _mesa_update_state() to update gl_frame_buffer::_Xmin, etc. If the
+ * rasterization mode is set to GL_RENDER requests the driver to clean the
+ * buffers, via dd_function_table::Clear.
+ */ 
 void
 _mesa_Clear( GLbitfield mask )
 {
@@ -134,6 +162,18 @@ _mesa_Clear( GLbitfield mask )
 }
 
 
+/**
+ * \brief Specify which color buffers to draw into.
+ *
+ * \param mode color buffer combination.
+ *
+ * \sa glDrawBuffer().
+ *
+ * Verifies the parameter and updates the
+ * gl_colorbuffer_attrib::_DrawDestMask bitfield. Marks new color state in
+ * __GLcontextRec::NewState and notifies the driver via
+ * dd_function_table::DrawBuffer.
+ */
 void
 _mesa_DrawBuffer( GLenum mode )
 {
@@ -274,7 +314,17 @@ _mesa_DrawBuffer( GLenum mode )
 }
 
 
-
+/**
+ * \brief Set the color buffer source for reading pixels.
+ *
+ * \param mode color buffer.
+ *
+ * \sa glReadBuffer().
+ *
+ * Verifies the parameter and updates gl_pixel_attrib::_ReadSrcMask.  Marks
+ * new pixel state in __GLcontextRec::NewState and notifies the driver via
+ * dd_function_table::ReadBuffer.
+ */
 void
 _mesa_ReadBuffer( GLenum mode )
 {
@@ -448,6 +498,21 @@ _mesa_SampleCoverageARB(GLclampf value, GLboolean invert)
 
 #endif
 
+
+/**
+ * \brief Define the scissor box.
+ *
+ * \param x abcissa of the scissor box lower-left corner.
+ * \param y ordinate of the scissor box lower-left corner.
+ * \param width width of the scissor box.
+ * \param height height of the scissor box.
+ *
+ * \sa glScissor().
+ *
+ * Verifies the parameters and updates __GLcontextRec::Scissor. On a
+ * change flush the vertices and notifies the driver via
+ * dd_function_table::Scissor.
+ */
 void
 _mesa_Scissor( GLint x, GLint y, GLsizei width, GLsizei height )
 {

@@ -28,7 +28,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: context.c,v 1.188.2.1.2.10 2003/03/17 21:22:49 keithw Exp $ */
+/* $Id: context.c,v 1.188.2.1.2.11 2003/03/19 15:43:14 jrfonseca Exp $ */
 
 /**
  * \mainpage Mesa Core Module
@@ -39,7 +39,7 @@
  * directory.  The core module basically takes care of API dispatch,
  * and OpenGL state management.
  *
- * For example, calls to glPolygonMode are routed to _mesa_PolygonMode()
+ * For example, calls to glPolygonMode() are routed to _mesa_PolygonMode()
  * which updates the state related to polygonmode.  Furthermore, dirty
  * state flags related to polygon mode are set and if the device driver
  * implements a special routine for PolygonMode, it will be called.
