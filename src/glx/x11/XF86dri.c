@@ -200,9 +200,9 @@ PUBLIC Bool XF86DRIOpenConnection(dpy, screen, hSAREA, busIdString)
     }
 
     *hSAREA = rep.hSAREALow;
-#ifdef LONG64
-    *hSAREA |= ((drm_handle_t)rep.hSAREAHigh) << 32;
-#endif
+    if (sizeof(drm_handle_t) == 8) {
+       *hSAREA |= ((drm_handle_t) rep.hSAREAHigh) << 32;
+    }
 
     if (rep.length) {
         if (!(*busIdString = (char *)Xcalloc(rep.busIdStringLength + 1, 1))) {
@@ -562,9 +562,9 @@ PUBLIC Bool XF86DRIGetDeviceInfo(dpy, screen, hFrameBuffer,
     }
 
     *hFrameBuffer = rep.hFrameBufferLow;
-#ifdef LONG64
-    *hFrameBuffer |= ((drm_handle_t)rep.hFrameBufferHigh) << 32;
-#endif
+    if (sizeof(drm_handle_t) == 8) {
+       *hFrameBuffer |= ((drm_handle_t) rep.hFrameBufferHigh) << 32;
+    }
 
     *fbOrigin = rep.framebufferOrigin;
     *fbSize = rep.framebufferSize;
