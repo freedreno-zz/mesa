@@ -471,7 +471,7 @@ osmesa_choose_line_function( GLcontext *ctx )
 #define INTERP_ALPHA 1
 #define SETUP_CODE \
    const OSMesaContext osmesa = OSMESA_CONTEXT(ctx);
-#define RENDER_SPAN( span )					\
+#define RENDER_SPAN( span ) {					\
    GLuint i;							\
    GLchan *img = PIXELADDR4(span.x, span.y); 			\
    for (i = 0; i < span.end; i++, img += 4) {			\
@@ -487,7 +487,8 @@ osmesa_choose_line_function( GLcontext *ctx )
       span.blue += span.blueStep;				\
       span.alpha += span.alphaStep;				\
       span.z += span.zStep;					\
-   }
+   }								\
+}
 #ifdef WIN32
 #include "..\swrast\s_tritemp.h"
 #else
@@ -508,7 +509,7 @@ osmesa_choose_line_function( GLcontext *ctx )
    PACK_RGBA((GLchan *) &pixel, v2->color[0], v2->color[1],	\
                                 v2->color[2], v2->color[3]);
 
-#define RENDER_SPAN( span )				\
+#define RENDER_SPAN( span ) {				\
    GLuint i;						\
    GLuint *img = (GLuint *) PIXELADDR4(span.x, span.y);	\
    for (i = 0; i < span.end; i++) {			\
@@ -518,7 +519,8 @@ osmesa_choose_line_function( GLcontext *ctx )
          zRow[i] = z;					\
       }							\
       span.z += span.zStep;				\
-   }
+   }							\
+}
 #ifdef WIN32
 #include "..\swrast\s_tritemp.h"
 #else
