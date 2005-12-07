@@ -1072,3 +1072,4 @@ EXPORTS
 	_tnl_InvalidateState
 	_tnl_MakeCurrent
 	_tnl_run_pipeline
+    _tnl_program_string
