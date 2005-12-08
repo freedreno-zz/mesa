@@ -377,7 +377,7 @@ tarballs: rm_depend lib_gz demo_gz glut_gz lib_bz2 demo_bz2 glut_bz2 lib_zip dem
 
 
 rm_depend:
-	for dep in $(DEPEND_FILES) ; do \
+	@for dep in $(DEPEND_FILES) ; do \
 		rm -f $$dep ; \
 		touch $$dep ; \
 	done
