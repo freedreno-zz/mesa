@@ -539,6 +539,9 @@ struct gl_colorbuffer_attrib
    /*@}*/
 
    GLboolean DitherFlag;		/**< Dither enable flag */
+
+   GLenum ClampFragmentColor; /**< GL_TRUE, GL_FALSE or GL_FIXED_ONLY_ARB */
+   GLenum ClampReadColor;     /**< GL_TRUE, GL_FALSE or GL_FIXED_ONLY_ARB */
 };
 
 
@@ -2845,12 +2848,6 @@ struct __GLcontextRec
 		    *
 		    * We don't have a better way to communicate this value from
 		    * swrast_setup to swrast. */
-
-   /** \name Color clamping (tentative part of GL_ARB_color_clamp_control) */
-   /*@{*/
-   GLboolean ClampFragmentColors;
-   GLboolean ClampVertexColors;
-   /*@}*/
 
    /** \name For debugging/development only */
    /*@{*/

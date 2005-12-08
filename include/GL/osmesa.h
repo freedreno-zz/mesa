@@ -61,8 +61,8 @@ extern "C" {
 
 
 #define OSMESA_MAJOR_VERSION 6
-#define OSMESA_MINOR_VERSION 3
-#define OSMESA_PATCH_VERSION 0
+#define OSMESA_MINOR_VERSION 4
+#define OSMESA_PATCH_VERSION 2
 
 
 
@@ -265,6 +265,15 @@ typedef void (*OSMESAproc)();
  */
 GLAPI OSMESAproc GLAPIENTRY
 OSMesaGetProcAddress( const char *funcName );
+
+
+
+/**
+ * Enable/disable color clamping, off by default.
+ * New in Mesa 6.4.2
+ */
+GLAPI void GLAPIENTRY
+OSMesaColorClamp(GLboolean enable);
 
 
 #if defined(__BEOS__) || defined(__QUICKDRAW__)
