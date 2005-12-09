@@ -197,11 +197,11 @@ SOURCE=..\..\..\..\src\mesa\main\eval.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\..\..\src\mesa\main\extensions.c
+SOURCE=..\..\..\..\src\mesa\main\execmem.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\..\..\src\mesa\main\execmem.c
+SOURCE=..\..\..\..\src\mesa\main\extensions.c
 # End Source File
 # Begin Source File
 
