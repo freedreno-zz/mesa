@@ -1,4 +1,4 @@
-/* $Id: wgl.c,v 1.9 2005/07/01 15:56:14 kschultz Exp $ */
+/* $Id: wgl.c,v 1.9.2.1 2005/12/12 15:31:19 brianp Exp $ */
 
 /*
  * This library is free software; you can redistribute it and/or
@@ -170,10 +170,11 @@ WINGDIAPI HGLRC GLAPIENTRY wglCreateContext(HDC hdc)
     for( i = 0; i < MESAWGL_CTX_MAX_COUNT; i++ ) {
         if ( wgl_ctx[i].ctx == NULL ) {
             wgl_ctx[i].ctx = 
-		WMesaCreateContext(hWnd, NULL, GL_TRUE,
-				   pfd[curPFD-1].doubleBuffered, 
-				   pfd[curPFD-1].pfd.cAlphaBits ? 
-				   GL_TRUE : GL_FALSE);
+		WMesaCreateContext(hdc, NULL, (GLboolean)GL_TRUE,
+				   (GLboolean) (pfd[curPFD-1].doubleBuffered ?
+                                   GL_TRUE : GL_FALSE), 
+				   (GLboolean)(pfd[curPFD-1].pfd.cAlphaBits ? 
+				   GL_TRUE : GL_FALSE) );
             if (wgl_ctx[i].ctx == NULL)
                 break;
             wgl_ctx[i].hdc = hdc;
