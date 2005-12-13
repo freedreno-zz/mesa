@@ -13,7 +13,6 @@ typedef struct wmesa_context{
     GLvisual            *gl_visual;	/* Describes the buffers */
     GLframebuffer       *gl_buffer;	/* Depth, stencil, accum, etc buffers*/
     
-    HWND		Window;
     HDC                 hDC;
     COLORREF		clearColorRef;
     HPEN                clearPen;

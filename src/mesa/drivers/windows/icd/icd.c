@@ -135,14 +135,8 @@ WGLAPI BOOL GLAPIENTRY DrvCopyContext(HGLRC hglrcSrc,HGLRC hglrcDst,UINT mask)
 
 WGLAPI HGLRC GLAPIENTRY DrvCreateContext(HDC hdc)
 {
-    HWND		hWnd;
     int i = 0;
 
-    if(!(hWnd = WindowFromDC(hdc)))
-    {
-        SetLastError(0);
-        return(NULL);
-    }
     if (!ctx_count)
     {
     	for(i=0;i<MESAWGL_CTX_MAX_COUNT;i++)
@@ -155,7 +149,7 @@ WGLAPI HGLRC GLAPIENTRY DrvCreateContext(HDC hdc)
     {
         if ( wgl_ctx[i].ctx == NULL )
         {
-            wgl_ctx[i].ctx = WMesaCreateContext( hWnd, NULL, GL_TRUE,
+            wgl_ctx[i].ctx = WMesaCreateContext( hdc, NULL, GL_TRUE,
                 pix[curPFD-1].doubleBuffered, 
                 pix[curPFD-1].pfd.cAlphaBits ? GL_TRUE : GL_FALSE);
             if (wgl_ctx[i].ctx == NULL)
