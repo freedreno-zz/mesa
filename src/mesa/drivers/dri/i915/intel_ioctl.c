@@ -42,7 +42,7 @@
 
 
 
-static int intelEmitIrqLocked( intelContextPtr intel )
+int intelEmitIrqLocked( intelContextPtr intel )
 {
    drmI830IrqEmit ie;
    int ret, seq = 0;
@@ -65,7 +65,7 @@ static int intelEmitIrqLocked( intelContextPtr intel )
    return seq;
 }
 
-static void intelWaitIrq( intelContextPtr intel, int seq )
+void intelWaitIrq( intelContextPtr intel, int seq )
 {
    drmI830IrqWait iw;
    int ret;

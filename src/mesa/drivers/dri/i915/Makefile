@@ -5,6 +5,7 @@ include $(TOP)/configs/current
 LIBNAME = i915_dri.so
 
 DRIVER_SOURCES = \
+	bufmgr_fake.c \
 	i915_context.c \
 	i915_debug.c \
 	i915_fragprog.c \

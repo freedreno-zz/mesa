@@ -62,5 +62,8 @@ extern GLboolean intelIsAgpMemory( intelContextPtr intel, const GLvoid *pointer,
 
 extern GLuint intelAgpOffsetFromVirtual( intelContextPtr intel, const GLvoid *p );
 
+void intelWaitIrq( intelContextPtr intel, int seq );
+int intelEmitIrqLocked( intelContextPtr intel );
+
 
 #endif
