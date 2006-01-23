@@ -24,27 +24,23 @@ void bmInitPool( struct bufmgr *,
 		 void *virtual_base );
 
 
-#define BM_READ        0x1
-#define BM_DRAW        0x2
-#define BM_MEM_SYS     0x4
-#define BM_MEM_GTT     0x8
-#define BM_MEM_VRAM    0x10
-#define BM_MEM_CACHED  0x20 
+#define BM_MEM_SYS     0x1
+#define BM_MEM_AGP     0x2
+#define BM_MEM_VRAM    0x4	/* not used */
+
+#define BM_WRITE       0x100	/* not used */
+#define BM_READ        0x200	/* not used */
 
 /* Maximum number of buffers to pass to bmValidateBufferList:
  */
 #define BM_VALIDATE_MAX 32
 
-/* As in ARB_vbo, use integers to talk about buffers.  Hopefully this
- * facilitates sharing them between processes.
+
+/* Flags for validate.  If both NO_UPLOAD and NO_EVICT are specified,
+ * ValidateBuffers is essentially a query.
  */
-struct buffer_usage {
-   unsigned buffer;
-   unsigned flags:16;
-   unsigned alignment:16;
-   unsigned offset;
-   unsigned pool;
-};
+#define BM_NO_UPLOAD 0x1
+#define BM_NO_EVICT  0x2
 
 
 /* Stick closely to ARB_vbo semantics - they're well defined and
@@ -74,29 +70,40 @@ void *bmMapBuffer( struct bufmgr *,
 		   unsigned buffer, 
 		   unsigned access );
 
-void bmUnmapBuffer( struct bufmgr * );
+void bmUnmapBuffer( struct bufmgr *,
+		    unsigned buffer );
 
 /* To be called prior to emitting commands to hardware which reference
- * these buffers.  The buffer_usage list provides information on where
- * the buffers should be placed and whether their contents need to be
- * preserved on copying.  The offset and pool data elements are return
- * values from this function telling the driver exactly where the
- * buffers are currently located.
- */
-unsigned bmValidateBufferList( struct bufmgr *,
-			       struct buffer_usage *,
-			       unsigned nr );
-
-
-/* After commands are emitted but before unlocking, this must be
- * called so that the buffer manager can correctly age the buffers.
- * The buffer manager keeps track of the list of validated buffers, so
- * already knows what to apply the fence to.
+ * these buffers.  
+ *
+ * ClearBufferList() and AddBuffer() build up a list of buffers to be
+ * validated.  The buffer list provides information on where the
+ * buffers should be placed and whether their contents need to be
+ * preserved on copying.  The offset data elements are return values
+ * from this function telling the driver exactly where the buffers are
+ * currently located.
+ *
+ * ValidateBuffers() performs the actual validation. 
+ *
+ * ReleaseValidatedBuffers() must be called to set fences and other
+ * housekeeping before unlocking after a successful call to
+ * ValidateBuffers().
  *
  * The buffer manager knows how to emit and test fences directly
  * through the drm and without callbacks or whatever into the driver.
  */
-void bmFenceValidatedBuffers( struct bufmgr * );
+void bmClearBufferList( struct bufmgr * );
+
+void bmAddBuffer( struct bufmgr *bm,
+		  unsigned buffer,
+		  unsigned flags,
+		  unsigned *pool_return,
+		  unsigned *offset_return );
+
+int bmValidateBufferList( struct bufmgr *, 
+			  unsigned flags );
+
+void bmReleaseValidatedBuffers( struct bufmgr * );
 
 
 /* This functionality is used by the buffer manager, not really sure

@@ -2,9 +2,10 @@
  * changes in a driver fairly quickly.  Basically wraps the old style
  * memory management in the new programming interface.
  *
- * Version 1:  Just the soggy old dri memory manager.
- *
- * Future:  Import the via memory manager semantics.
+ * This version imports code from the via memory manager to closer
+ * approximate the behaviour of a true memory manager.  In particular,
+ * in this version we do not expect to lose texture memory contents on
+ * context switches.
  */
 #include "bufmgr.h"
 
@@ -17,6 +18,8 @@
 
 struct _mesa_HashTable;
 
+#define   BM_MEM_LOCAL 0x1
+#define   BM_MEM_AGP    0x2
 
 /* Wrapper around mm.c's mem_block, which understands that you must
  * wait for fences to expire before memory can be freed.  This is
@@ -24,103 +27,160 @@ struct _mesa_HashTable;
  * processed through the command queue wouldn't need to care about
  * fences.
  */
-struct fenced_block {
-   struct fenced_block *next, *prev;
-   struct mem_block *mem;
-   unsigned fence;
+struct block {
+   struct block *next, *prev;
+   int memType;
+   struct mem_block *mem;	/* BM_MEM_AGP */
+   unsigned fence;		/* BM_MEM_AGP, Split to read_fence, write_fence */
+   void *virtual;               
    struct buffer *buf;
 };
 
+
 struct buffer {
    unsigned id;			/* debug only */
-   unsigned offset;
    unsigned size;
    unsigned alignment;
-
-   void *local;		/* backing store */
-   struct fenced_block *block;	/* uploaded agp */
+   unsigned mapped;
+   struct block *block;
 };
 
 struct pool {
    unsigned size;
    struct mem_block *heap;
    void *virtual;
-   struct fenced_block lru;
-   struct fenced_block freed;
+   struct block lru;
+   struct block freed;
 };
 
 struct bufmgr {
    struct intel_context *intel;
    struct buffer buffer_list;
    struct pool pool;
-
    struct _mesa_HashTable *hash;
+
    unsigned buf_nr;		/* for generating ids */
 
-   /* Temporary storage while validating and unvalidating: 
+   /* List of buffers to validate: 
     */
    struct buffer *validated[BM_VALIDATE_MAX];
+   unsigned *offset_return[BM_VALIDATE_MAX];
    unsigned nr_validated;
 
-   /* Context clobbering
-    */
-   unsigned global_wait_fence;
    unsigned last_fence;
+   unsigned in_progress;
 };
 
 
-static int alloc_agp( struct bufmgr *bm,
-		      struct buffer *buf )
+static struct block *alloc_agp( struct bufmgr *bm,
+				unsigned size, 
+				unsigned align )
 {
-   struct fenced_block *block = (struct fenced_block *)calloc(sizeof *block, 1);
+   struct block *block = (struct block *)calloc(sizeof *block, 1);
    if (!block)
-      return 0;
+      return NULL;
 
-   block->mem = mmAllocMem(bm->pool.heap, buf->size, buf->alignment, 0);
+   block->mem = mmAllocMem(bm->pool.heap, size, align, 0);
    if (!block->mem) {
       free(block);
-      return 0;
+      return NULL;
    }
 
    make_empty_list(block);
-   block->buf = buf;
-   buf->block = block;
+   block->memType = BM_MEM_AGP;
+   block->virtual = bm->pool.virtual + block->mem->ofs;
 
-   return 1;
+   return block;
 }
+
+
+static struct block *alloc_local( unsigned size )
+{
+   struct block *block = (struct block *)calloc(sizeof *block, 1);
+   if (!block)
+      return NULL;
+
+   block->memType = BM_MEM_LOCAL;
+   block->virtual = malloc(size);
+   if (!block->virtual) {
+      free(block);
+      return NULL;
+   }
+
+   return block;
+}
+
+
+static struct block *alloc_block( struct bufmgr *bm,
+				  unsigned size,
+				  unsigned align,
+				  int memType )
+{
+   switch (memType) {
+   case BM_MEM_AGP:
+      return alloc_agp(bm, size, align);
+   case BM_MEM_LOCAL:
+      return alloc_local(size);
+   default:
+      return NULL;
+   }
+}
+
+static int bmAllocMem( struct bufmgr *bm,
+		       struct buffer *buf,
+		       unsigned flags )	/* unused */
+{
+   if (buf->block == 0)
+      buf->block = alloc_block(bm, buf->size, 4, BM_MEM_AGP);
+ 
+   if (buf->block == 0)
+      buf->block = alloc_block(bm, buf->size, 4, BM_MEM_LOCAL);
+
+   return buf->block != NULL;
+}
+
 
 /* Release the card storage associated with buf:
  */
-static void free_agp( struct bufmgr *bm,
-		      struct buffer *buf )
+static void free_block( struct bufmgr *bm, struct block *block )
 {
-   if (!buf->block)
+   if (!block) 
       return;
-   else if (bmTestFence(bm, buf->block->fence)) {
-      mmFreeMem(buf->block->mem);
-      buf->block = NULL;
-   }
-   else {
-      /* Add an entry to the free list for this range and the fence at
-       * which it becomes free.
-       */
-      move_to_tail(&bm->pool.freed, buf->block);
-      buf->block->buf = NULL;
-      buf->block = NULL;
+
+   switch (block->memType) {
+   case BM_MEM_AGP:
+      if (bmTestFence(bm, block->fence)) {
+         mmFreeMem(block->mem);
+         free(block);
+      }
+      else {
+	 block->buf = NULL;
+         move_to_tail(&bm->pool.freed, block);
+      }
+      break;
+
+   case BM_MEM_LOCAL:
+      free(block->virtual);
+      free(block);
+      break;
+
+   default:
+      free(block);
+      break;
    }
 }
 
 static int delayed_free( struct bufmgr *bm )
 {
-   struct fenced_block *s, *tmp;
+   struct block *block, *tmp;
    int ret = 0;
 
-   foreach_s(s, tmp, &bm->pool.freed ) {
-      if (bmTestFence(bm, s->fence)) {
-	 remove_from_list(s);
-	 mmFreeMem(s->mem);
-	 free(s);
-	 ret = 1;
+   foreach_s(block, tmp, &bm->pool.freed ) {
+      if (bmTestFence(bm, block->fence)) {
+	 ret += block->mem->size;
+	 remove_from_list(block);
+	 mmFreeMem(block->mem);
+	 free(block);
       }
    }
    
@@ -128,47 +188,48 @@ static int delayed_free( struct bufmgr *bm )
 }
 
 
-static unsigned evict_lru( struct bufmgr *bm )
+static int move_buffers( struct bufmgr *bm, 
+			 struct buffer *buffers[],
+			 int nr,
+                         int newMemType,
+			 int flags )
 {
-   if (delayed_free(bm))
-      return 1;
-   else {
-      struct fenced_block *block = bm->pool.lru.next;
+   struct block *newMem[BM_VALIDATE_MAX];
+   GLint i;
 
-      if (block == &bm->pool.lru)
-	 return 0;
-   
-      bmFinishFence(bm, block->fence);
-      free_agp(bm, block->buf);   
-      return 1;
-   }
-}
+   memset(newMem, 0, sizeof(newMem));
 
+   /* First do all the allocations (or fail):
+    */ 
+   for (i = 0; i < nr; i++) {    
+      if (buffers[i]->block->memType != newMemType) { 
+	 if (flags & BM_NO_UPLOAD)
+	    goto cleanup;
 
-/* This differs slightly from the old dri memory manager as it tries
- * to make sure all allocations are satisfied at once.
- */
-static unsigned try_validate( struct bufmgr *bm )
-{
-   struct buffer *allocs[BM_VALIDATE_MAX];
-   unsigned nr_allocs = 0;
-   unsigned i;
+	 newMem[i] = alloc_block(bm, 
+				 buffers[i]->size,
+				 buffers[i]->alignment,
+				 newMemType);
 
-   for (i = 0; i < bm->nr_validated; i++) {
-      struct buffer *buf = bm->validated[i];
-      if (buf->block)
-	 continue;
-      if (!alloc_agp(bm, buf))
-	 goto fail;
-      allocs[nr_allocs++] = buf;
+	 if (!newMem[i]) 
+	    goto cleanup;
+      }
    }
 
-   /* If that succeeded, upload data to allocated regions:
+
+   /* Now copy all the image data and free the old texture memory.
     */
-   for (i = 0; i < nr_allocs; i++) {
-      struct buffer *buf = allocs[i];
-      void *dst = bm->pool.virtual + buf->block->mem->ofs;
-      memcpy(dst, buf->local, buf->size);
+   for (i = 0; i < nr; i++) {    
+      if (newMem[i]) {
+	 memcpy(newMem[i]->virtual,
+		buffers[i]->block->virtual, 
+		buffers[i]->size);
+
+	 free_block(bm, buffers[i]->block);
+
+	 buffers[i]->block = newMem[i];
+	 buffers[i]->block->buf = buffers[i];
+      }
    }
 
    /* Tell hardware that its texture and other caches may be invalid: 
@@ -176,14 +237,74 @@ static unsigned try_validate( struct bufmgr *bm )
    bmFlushReadCaches(bm);   
    return 1;
 
-   /* Undo allocations if failed:
+ cleanup:
+   /* Release any allocations made prior to failure:
     */
- fail:
-   for (i = 0; i < nr_allocs; i++)
-      free_agp(bm, allocs[i]);
-
-   return 0;
+   for (i = 0; i < nr; i++) {    
+      if (newMem[i]) 
+	 free_block(bm, newMem[i]);
+   }
+   
+   return 0;   
 }
+
+
+static unsigned evict_lru( struct bufmgr *bm )
+{
+   int ret = delayed_free(bm);
+   if (ret)
+      return ret;
+   else {
+      struct block *block = bm->pool.lru.next;
+      unsigned size = block->buf->size;
+
+      if (block == &bm->pool.lru ||
+          !bmTestFence(bm, block->fence)) 
+	 return 0;
+   
+      move_buffers(bm, &block->buf, 1, BM_MEM_LOCAL, 0);
+      return size;
+   }
+}
+
+#if 0
+/* Speculatively move texture images which haven't been used in a
+ * while back to local memory.
+ */
+static void viaSwapOutWork( struct bufmgr *bm )
+{
+   unsigned total = 0;
+   unsigned target;
+
+   if (bm->thrashing) {
+      target = 1*1024*1024;
+   }
+   else if (bmIsTexMemLow(bm)) {
+      target = 64*1024;
+   }
+   else {
+      return;
+   }
+
+   while (1) {
+      unsigned size = evict_lru(bm);
+      if (!size)
+         return;
+
+      total += size;
+      if (total >= target)
+         return;
+   }
+}
+#endif
+
+
+
+
+
+
+
+
 
 
 
@@ -206,6 +327,8 @@ struct bufmgr *bm_fake_intel_Attach( struct intel_context *intel )
 
    return bm;
 }
+
+
 
 /* The virtual pointer would go away in a true implementation.
  */
@@ -246,12 +369,16 @@ void bmDeleteBuffers(struct bufmgr *bm, unsigned n, unsigned *buffers)
    for (i = 0; i < n; i++) {
       struct buffer *buf = _mesa_HashLookup(bm->hash, buffers[i]);
       if (buf) {
-	 free(buf);
+         free_block(bm, buf->block);	
+         free(buf);
 	 _mesa_HashRemove(bm->hash, buffers[i]);
       }
    }
 }
 
+/* If buffer size changes, create new buffer in local memory.
+ * Otherwise update in place.
+ */
 void bmBufferData(struct bufmgr *bm, 
 		  unsigned buffer, 
 		  unsigned size, 
@@ -260,16 +387,25 @@ void bmBufferData(struct bufmgr *bm,
 {
    struct buffer *buf = (struct buffer *)_mesa_HashLookup( bm->hash, buffer );
 
-   free_agp(bm, buf);
-   free(buf->local);
+   if (buf->block) {
+      if ((buf->block->memType == BM_MEM_AGP && !bmTestFence(bm, buf->block->fence)) ||
+	  (buf->size && buf->size != size) ||
+	  (data == NULL)) {
+	 free_block(bm, buf->block);
+	 buf->block = NULL;
+      }
+   }
+   
    buf->size = size;
-      
-   if (data != NULL) {
-      buf->local = malloc(size);     
-      memcpy(buf->local, data, size);
+
+   if (data != NULL) {      
+      bmAllocMem(bm, buf, flags);
+      memcpy(buf->block->virtual, data, size);
    }
 }
 
+/* Update the buffer in place, in whatever space it is currently resident:
+ */
 void bmBufferSubData(struct bufmgr *bm, 
 		     unsigned buffer, 
 		     unsigned offset, 
@@ -277,43 +413,91 @@ void bmBufferSubData(struct bufmgr *bm,
 		     const void *data )
 {
    struct buffer *buf = (struct buffer *)_mesa_HashLookup( bm->hash, buffer );
-   
-   if (!buf->local) 
-      buf->local = malloc(buf->size);     
-   
-   memcpy(buf->local + offset, data, size);
-   
-   if (buf->block) {
-      if (1 || !bmTestFence(bm, buf->block->fence))
-	 free_agp(bm, buf);
-      else {
-	 /* LOCK HARDWARE! */
-	 memcpy(buf->local + offset, data, size); 
-      }
-   }
+
+   if (buf->block == 0)
+      bmAllocMem(bm, buf, 0);
+
+   if (buf->block->memType == BM_MEM_AGP)
+      bmFinishFence(bm, buf->block->fence);
+
+   memcpy(buf->block->virtual + offset, data, size); 
 }
 
 
+/* Return a pointer to whatever space the buffer is currently resident in:
+ */
 void *bmMapBuffer( struct bufmgr *bm,
 		   unsigned buffer, 
 		   unsigned access )
 {
    struct buffer *buf = (struct buffer *)_mesa_HashLookup( bm->hash, buffer );
-   
-   if (!buf->local) 
-      buf->local = malloc(buf->size);     
-   
-   if (buf->block)
-      free_agp(bm, buf);
-   
-   return buf->local;
+
+   if (buf->mapped)
+      return NULL;
+
+   buf->mapped = 1;
+
+   if (buf->block == 0)
+      bmAllocMem(bm, buf, 0);
+
+   /* Finish any outstanding operations to/from this memory:
+    */
+   if (buf->block->memType == BM_MEM_AGP) 
+      bmFinishFence(bm, buf->block->fence);
+
+   return buf->block->virtual;
 }
 
-void bmUnmapBuffer( struct bufmgr *bm )
+void bmUnmapBuffer( struct bufmgr *bm, unsigned buffer )
 {
-   /* Nothing to do */
+   struct buffer *buf = (struct buffer *)_mesa_HashLookup( bm->hash, buffer );
+   buf->mapped = 0;
 }
 
+
+/* Add a mechanism to tell the manager about some fixed buffers such
+ * as the (fixed) front, back and depth buffers.  Something like this
+ * may be needed even in a finalized version if we keep the static
+ * management of these buffers.
+ * 
+ * These are excluded from the buffer memory management in this file,
+ * but are presented to the driver by the same interface.  In the
+ * future they may become managed.
+ */
+#if 0
+void bm_fake_SetFixedBufferParams( struct bufmgr *bm
+                                   unsigned buffer,
+                                   unsigned offset,
+                                   unsigned size )
+{
+}
+#endif
+
+
+/* Build the list of buffers to validate:
+ */
+void bmClearBufferList( struct bufmgr *bm )
+{
+   assert(!bm->in_progress);
+   bm->nr_validated = 0;
+}
+
+void bmAddBuffer( struct bufmgr *bm,
+		  unsigned buffer,
+		  unsigned flags,
+		  unsigned *pool_return,
+		  unsigned *offset_return )
+{
+   assert(bm->nr_validated < BM_VALIDATE_MAX);
+
+   bm->validated[bm->nr_validated] = _mesa_HashLookup(bm->hash, buffer);
+   bm->offset_return[bm->nr_validated] = offset_return;
+   bm->nr_validated++;
+
+   if (pool_return) 
+      *pool_return = 0;
+}
+		  
 
 
 
@@ -325,44 +509,18 @@ void bmUnmapBuffer( struct bufmgr *bm )
  * values from this function telling the driver exactly where the
  * buffers are currently located.
  */
-unsigned bmValidateBufferList( struct bufmgr *bm,
-			       struct buffer_usage *usage,
-			       unsigned nr )
+int bmValidateBufferList( struct bufmgr *bm,
+			  unsigned flags )
 {
    unsigned i;
    unsigned total = 0;
-   unsigned align_total = 0;
 
-   if (nr > BM_VALIDATE_MAX)
+   if (bm->nr_validated > BM_VALIDATE_MAX)
       return 0;
 
-   /* On context switch, all our buffers invalidated: (Fix by
-    * importing global lru if you can be bothered)
-    */
-   if (bm->global_wait_fence) {
-      bmFinishFence(bm, bm->global_wait_fence);
-      while (evict_lru(bm))
-	 ;
-      bm->global_wait_fence = 0;
-   }
-
-   /* Build validate list, calculate total size.  Total calculated may
-    * underestimate real total because of alignment, packing issues.
-    * Only looking at a single pool here.
-    */
-   for (i = 0; i < nr; i++) {
-      bm->validated[i] = (struct buffer *)_mesa_HashLookup( bm->hash, usage[i].buffer );
-      
-      /* This is a bit odd - but where should alignment be specified?
-       */
-      if (bm->validated[i]->alignment != usage[i].alignment &&
-	  bm->validated[i]->alignment != 0)
-	 return 0;		
-      
-      bm->validated[i]->alignment = usage[i].alignment;
-
+   for (i = 0; i < bm->nr_validated; i++) {
+      assert(!bm->validated[i]->mapped);
       total += bm->validated[i]->size;
-      align_total += 1 << bm->validated[i]->alignment;
    }
 
    /* Don't need to try allocation in this case:
@@ -370,17 +528,17 @@ unsigned bmValidateBufferList( struct bufmgr *bm,
    if (total > bm->pool.size)
       return 0;
    
-   bm->nr_validated = nr;
-
    /* The old story: evict one texture after another until allocation
-    * succeeds.  This is pretty shite but really hard to do better
-    * without more infrastucture...  Which is coming - hooray!
+    * succeeds.  This is a pretty poor strategy but really hard to do
+    * better without more infrastucture...  Which is coming - hooray!
     */
-   while (!try_validate(bm)) {
-      if (!evict_lru(bm))
+   while (!move_buffers(bm, bm->validated, bm->nr_validated, BM_MEM_AGP, flags)) {
+      if ((flags & BM_NO_EVICT) || 
+	  !evict_lru(bm))
 	 return 0;
    }
    
+   bm->in_progress = 1;
    return 1;
 }
 
@@ -393,15 +551,18 @@ unsigned bmValidateBufferList( struct bufmgr *bm,
  * The buffer manager knows how to emit and test fences directly
  * through the drm and without callbacks or whatever into the driver.
  */
-void bmFenceValidatedBuffers( struct bufmgr *bm )
+void bmReleaseValidatedBuffers( struct bufmgr *bm )
 {
    unsigned i;
 
+   assert(bm->in_progress);
+   bm->in_progress = 0;
    bm->last_fence = bmSetFence( bm );
 
    /* Move all buffers to head of resident list and set their fences
     */
    for (i = 0; i < bm->nr_validated; i++) {
+      assert(bm->validated[i]->block->buf == bm->validated[i]);
       move_to_head(&bm->pool.lru, bm->validated[i]->block);
       bm->validated[i]->block->fence = bm->last_fence;
    }
@@ -441,26 +602,53 @@ void bmFinishFence( struct bufmgr *bm, unsigned fence )
  * TODO: Need a flag value to tell hardware which caches have changed?
  * Who would we rely on to populate the flag?
  */
+
+
+/* If new data is uploaded/mapped to video or agp memory, need to
+ * flush the texture and other read caches to ensure the new version
+ * is picked up.  Can be done immediately after the upload (ie. within
+ * ValidateBuffers).
+ */
 void bmFlushReadCaches( struct bufmgr *bm )
 {
 }
 
+/* If a buffer which has been written to is going to be evicted, read
+ * by bmGetBufferData or mappped with bmMapBuffer, need to flush the
+ * write cache first.  Probably want to make sure this happens
+ * immediately after the last write and before the fence (how to
+ * tell?).  If we wait until just prior the evict/read/map, would then
+ * have to emit another fence and wait for the hw queue to drain to be
+ * sure the caches had flushed.
+ *
+ * Strategy:
+ * - every once in a while, when there is no last_draw_flush_fence outstanding,
+ *     emit a draw-cache flush just prior to the fence.
+ * - note the fence (last_draw_flush_fence)
+ * - note the most recently retired value of last_draw_flush_fence in
+ *      last_retired_draw_flush_fence
+ * - keep track of which fence each buffer is last written to in
+ *      buffer.last_write_fence
+ * - on evict/read/map, check:
+ *      - if buffer.last_write_fence > last_draw_flush_fence {
+ *            emit_flush
+ *            last_draw_flush_fence = emit fence 
+ *        }
+ *        if last_write_fence > last_retired_draw_flush_fence {
+ *            finish_fence(last_draw_flush_fence)
+ *            last_retired_draw_flush_fence = last_draw_fence
+ *        }
+ *   
+ */
 void bmFlushDrawCache( struct bufmgr *bm )
 {
 }
 
-/* A full version of this fake memory manager would take the Global
- * LRU into account at this point.  I can't be bothered and will just
- * evict all local textures if it looks like another context has been
- * texturing.  The Global LRU is going away & doesn't have any
- * relevence to the ultimate aims of this code.
+/* Specifically ignore texture memory sharing.
  */
 void bm_fake_NotifyContendedLockTake( struct bufmgr *bm )
 {
-   /* Will wait for this value, then evict all local textures.
-    */
-   if (bm->intel->sarea->last_enqueue != bm->last_fence)
-      bm->global_wait_fence = bm->intel->sarea->last_enqueue;
+   fprintf(stderr, "did we just lose texture memory? oh well, never mind\n");
 }
 
 
