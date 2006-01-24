@@ -338,7 +338,6 @@ static void i915_emit_flush( intelContextPtr intel )
 
 void i915InitVtbl( i915ContextPtr i915 )
 {
-   i915->intel.vtbl.alloc_tex_obj = i915AllocTexObj;
    i915->intel.vtbl.check_vertex_size = i915_check_vertex_size;
    i915->intel.vtbl.clear_with_tris = i915ClearWithTris;
    i915->intel.vtbl.destroy = i915_destroy_context;

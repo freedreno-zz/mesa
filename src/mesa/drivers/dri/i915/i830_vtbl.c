@@ -441,7 +441,6 @@ static void i830_emit_flush( intelContextPtr intel )
 
 void i830InitVtbl( i830ContextPtr i830 )
 {
-   i830->intel.vtbl.alloc_tex_obj = i830AllocTexObj;
    i830->intel.vtbl.check_vertex_size = i830_check_vertex_size;
    i830->intel.vtbl.clear_with_tris = i830ClearWithTris;
    i830->intel.vtbl.destroy = i830_destroy_context;

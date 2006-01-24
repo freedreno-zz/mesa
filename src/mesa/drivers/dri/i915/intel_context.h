@@ -124,8 +124,6 @@ struct intel_context
 			       GLboolean all, 
 			       GLint cx, GLint cy, GLint cw, GLint ch);
 
-      intelTextureObjectPtr (*alloc_tex_obj)( struct gl_texture_object *tObj );
-
    } vtbl;
 
    GLint refcount;   
