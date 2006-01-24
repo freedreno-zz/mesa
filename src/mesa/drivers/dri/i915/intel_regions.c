@@ -106,9 +106,9 @@ static void _mesa_copy_rect( GLubyte *dst,
 			     GLuint width,
 			     GLuint height,
 			     GLubyte *src,
+			     GLuint src_pitch,
 			     GLuint src_x,
-			     GLuint src_y,
-			     GLuint src_pitch )
+			     GLuint src_y )
 {
    GLuint i;
 
@@ -195,24 +195,24 @@ static void _mesa_fill_rect( GLubyte *dst,
  * Currently always memcpy.
  */
 void intel_region_data(struct intel_context *intel, 
-		       struct intel_region *dest,
-		       GLuint destx, GLuint desty,
+		       struct intel_region *dst,
+		       GLuint dstx, GLuint dsty,
 		       void *src, GLuint src_pitch,
 		       GLuint srcx, GLuint srcy,
 		       GLuint width, GLuint height)
 {
    LOCK_HARDWARE(intel);
    
-   _mesa_copy_rect(intel_region_map(intel, dest),
-		   dest->cpp,
-		   dest->pitch,
-		   destx, desty,
-		   destx + width, desty + height,
+   _mesa_copy_rect(intel_region_map(intel, dst),
+		   dst->cpp,
+		   dst->pitch,
+		   dstx, dsty,
+		   width, height,
 		   src,
-		   srcx, srcy,
-		   src_pitch);      
+		   src_pitch,
+		   srcx, srcy);      
 
-   intel_region_unmap(intel, dest);
+   intel_region_unmap(intel, dst);
 
    UNLOCK_HARDWARE(intel);
    
@@ -222,52 +222,51 @@ void intel_region_data(struct intel_context *intel,
  * push buffers into AGP - will currently do so whenever possible.
  */
 void intel_region_copy( struct intel_context *intel,
-			struct intel_region *dest,
-			GLuint destx, GLuint desty,
+			struct intel_region *dst,
+			GLuint dstx, GLuint dsty,
 			struct intel_region *src,
 			GLuint srcx, GLuint srcy,
 			GLuint width, GLuint height )
 {
    unsigned dst_offset;
    unsigned src_offset;
+   struct bm_buffer_list *list = bmNewBufferList();
 
-   assert(src->cpp == dest->cpp);
+   assert(src->cpp == dst->cpp);
 
    LOCK_HARDWARE(intel);
-   bmClearBufferList(intel->bm);
-   bmAddBuffer(intel->bm, dest->buffer, BM_WRITE, NULL, &dst_offset);
-   bmAddBuffer(intel->bm, src->buffer, BM_READ, NULL, &src_offset);
+   bmAddBuffer(intel->bm, list, dst->buffer, BM_WRITE, NULL, &dst_offset);
+   bmAddBuffer(intel->bm, list, src->buffer, BM_READ, NULL, &src_offset);
 
    /* What I really want to do is query if both buffers are already
     * uploaded:
     */
-   if (bmValidateBufferList(intel->bm, BM_NO_EVICT|BM_NO_UPLOAD)) {
+   if (bmValidateBufferList(intel->bm, list, BM_NO_EVICT|BM_NO_UPLOAD)) {
       intelEmitCopyBlitLocked(intel,
-			      dest->cpp,
-			      src->pitch,
-			      src_offset,
-			     dest->pitch,			      
-			     dst_offset, 
-			     srcx, srcy,
-			     destx, desty,
-			     width, height);
+			      dst->cpp,
+			      src->pitch, src_offset,
+			      dst->pitch, dst_offset, 
+			      srcx, srcy,
+			      dstx, dsty,
+			      width, height);
 
-      bmReleaseValidatedBuffers(intel->bm);
+      bmFenceBufferList(intel->bm, list);
    }
    else {
-      _mesa_copy_rect(intel_region_map(intel, dest),
-		      dest->cpp,
-		      dest->pitch,
-		      destx, desty,
+      _mesa_copy_rect(intel_region_map(intel, dst),
+		      dst->cpp,
+		      dst->pitch,
+		      dstx, dsty,
 		      width, height,
 		      intel_region_map(intel, src),
 		      srcx, srcy,
 		      src->pitch);      
 
-      intel_region_unmap(intel, dest);
+      intel_region_unmap(intel, dst);
       intel_region_unmap(intel, src);      
    }
    
+   bmFreeBufferList(list);
    UNLOCK_HARDWARE(intel);
 }
 
@@ -275,40 +274,40 @@ void intel_region_copy( struct intel_context *intel,
  * push buffers into AGP - will currently do so whenever possible.
  */
 void intel_region_fill( struct intel_context *intel,
-			struct intel_region *dest,
-			GLuint destx, GLuint desty,
+			struct intel_region *dst,
+			GLuint dstx, GLuint dsty,
 			GLuint width, GLuint height,
 			GLuint color )
 {
    unsigned dst_offset;
+   struct bm_buffer_list *list = bmNewBufferList();
+
    LOCK_HARDWARE(intel);
+   bmAddBuffer(intel->bm, list, dst->buffer, BM_WRITE, NULL, &dst_offset);
 
-   bmClearBufferList(intel->bm);
-   bmAddBuffer(intel->bm, dest->buffer, BM_WRITE, NULL, &dst_offset);
-
-   if (bmValidateBufferList(intel->bm, BM_NO_EVICT)) {
+   if (bmValidateBufferList(intel->bm, list, BM_NO_EVICT)) {
       intelEmitFillBlitLocked(intel,
-			      dest->cpp,
-			      dest->pitch,
+			      dst->cpp,
+			      dst->pitch,
 			      dst_offset, 
-			      destx, desty,
+			      dstx, dsty,
 			      width, height,
 			      color );
 
-      bmReleaseValidatedBuffers(intel->bm);
+      bmFenceBufferList(intel->bm, list);
    }
    else {
-      _mesa_fill_rect(intel_region_map(intel, dest),
-		      dest->cpp,
-		      dest->pitch,
-		      destx, desty,
-		      destx + width, desty + height,
+      _mesa_fill_rect(intel_region_map(intel, dst),
+		      dst->cpp,
+		      dst->pitch,
+		      dstx, dsty,
+		      width, height,
 		      color);      
 
-      intel_region_unmap(intel, dest);
+      intel_region_unmap(intel, dst);
    }
    
+   bmFreeBufferList(list);
    UNLOCK_HARDWARE(intel);
-
 }
 

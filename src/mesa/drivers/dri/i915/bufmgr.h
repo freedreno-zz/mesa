@@ -10,6 +10,7 @@
 /* The buffer manager context.  Opaque.
  */
 struct bufmgr;
+struct bm_buffer_list;
 
 struct bufmgr *bm_fake_intel_Attach( struct intel_context *intel );
 
@@ -23,17 +24,12 @@ void bmInitPool( struct bufmgr *,
 		 unsigned long high_offset,
 		 void *virtual_base );
 
-
-#define BM_MEM_SYS     0x1
+#define BM_MEM_LOCAL   0x1
 #define BM_MEM_AGP     0x2
 #define BM_MEM_VRAM    0x4	/* not used */
 
 #define BM_WRITE       0x100	/* not used */
 #define BM_READ        0x200	/* not used */
-
-/* Maximum number of buffers to pass to bmValidateBufferList:
- */
-#define BM_VALIDATE_MAX 32
 
 
 /* Flags for validate.  If both NO_UPLOAD and NO_EVICT are specified,
@@ -76,34 +72,39 @@ void bmUnmapBuffer( struct bufmgr *,
 /* To be called prior to emitting commands to hardware which reference
  * these buffers.  
  *
- * ClearBufferList() and AddBuffer() build up a list of buffers to be
+ * NewBufferList() and AddBuffer() build up a list of buffers to be
  * validated.  The buffer list provides information on where the
  * buffers should be placed and whether their contents need to be
  * preserved on copying.  The offset data elements are return values
  * from this function telling the driver exactly where the buffers are
  * currently located.
  *
- * ValidateBuffers() performs the actual validation. 
+ * ValidateBufferList() performs the actual validation and returns the
+ * buffer pools and offsets within the pools.
  *
- * ReleaseValidatedBuffers() must be called to set fences and other
+ * FenceBufferList() must be called to set fences and other
  * housekeeping before unlocking after a successful call to
- * ValidateBuffers().
- *
- * The buffer manager knows how to emit and test fences directly
- * through the drm and without callbacks or whatever into the driver.
+ * ValidateBufferList(). The buffer manager knows how to emit and test
+ * fences directly through the drm and without callbacks to the
+ * driver.
  */
-void bmClearBufferList( struct bufmgr * );
+struct bm_buffer_list *bmNewBufferList( void );
 
-void bmAddBuffer( struct bufmgr *bm,
+void bmAddBuffer( struct bufmgr *,
+		  struct bm_buffer_list *list,
 		  unsigned buffer,
 		  unsigned flags,
 		  unsigned *pool_return,
 		  unsigned *offset_return );
 
 int bmValidateBufferList( struct bufmgr *, 
+			  struct bm_buffer_list *,
 			  unsigned flags );
 
-void bmReleaseValidatedBuffers( struct bufmgr * );
+void bmFenceBufferList( struct bufmgr *,
+			struct bm_buffer_list * );
+
+void bmFreeBufferList( struct bm_buffer_list * );
 
 
 /* This functionality is used by the buffer manager, not really sure

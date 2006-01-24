@@ -18,8 +18,11 @@
 
 struct _mesa_HashTable;
 
-#define   BM_MEM_LOCAL 0x1
-#define   BM_MEM_AGP    0x2
+
+/* Maximum number of buffers to pass to bmValidateBufferList:
+ */
+#define BM_LIST_MAX 32
+
 
 /* Wrapper around mm.c's mem_block, which understands that you must
  * wait for fences to expire before memory can be freed.  This is
@@ -53,6 +56,16 @@ struct pool {
    struct block freed;
 };
 
+/* List of buffers to validate: 
+ */
+struct bm_buffer_list {
+   struct buffer *buffer[BM_LIST_MAX];
+   unsigned *offset_return[BM_LIST_MAX];
+   unsigned nr;
+   unsigned need_fence;
+};
+
+
 struct bufmgr {
    struct intel_context *intel;
    struct buffer buffer_list;
@@ -61,14 +74,7 @@ struct bufmgr {
 
    unsigned buf_nr;		/* for generating ids */
 
-   /* List of buffers to validate: 
-    */
-   struct buffer *validated[BM_VALIDATE_MAX];
-   unsigned *offset_return[BM_VALIDATE_MAX];
-   unsigned nr_validated;
-
    unsigned last_fence;
-   unsigned in_progress;
 };
 
 
@@ -194,7 +200,7 @@ static int move_buffers( struct bufmgr *bm,
                          int newMemType,
 			 int flags )
 {
-   struct block *newMem[BM_VALIDATE_MAX];
+   struct block *newMem[BM_LIST_MAX];
    GLint i;
 
    memset(newMem, 0, sizeof(newMem));
@@ -476,28 +482,34 @@ void bm_fake_SetFixedBufferParams( struct bufmgr *bm
 
 /* Build the list of buffers to validate:
  */
-void bmClearBufferList( struct bufmgr *bm )
+struct bm_buffer_list *bmNewBufferList( void )
 {
-   assert(!bm->in_progress);
-   bm->nr_validated = 0;
+   struct bm_buffer_list *list = calloc(sizeof(*list), 1);
+   return list;
 }
 
 void bmAddBuffer( struct bufmgr *bm,
+		  struct bm_buffer_list *list,
 		  unsigned buffer,
 		  unsigned flags,
 		  unsigned *pool_return,
 		  unsigned *offset_return )
 {
-   assert(bm->nr_validated < BM_VALIDATE_MAX);
+   assert(list->nr < BM_LIST_MAX);
 
-   bm->validated[bm->nr_validated] = _mesa_HashLookup(bm->hash, buffer);
-   bm->offset_return[bm->nr_validated] = offset_return;
-   bm->nr_validated++;
+   list->buffer[list->nr] = _mesa_HashLookup(bm->hash, buffer);
+   list->offset_return[list->nr] = offset_return;
+   list->nr++;
 
    if (pool_return) 
       *pool_return = 0;
 }
-		  
+		
+void bmFreeBufferList( struct bm_buffer_list *list )
+{
+   assert(!list->need_fence);
+   free(list);
+}
 
 
 
@@ -510,17 +522,18 @@ void bmAddBuffer( struct bufmgr *bm,
  * buffers are currently located.
  */
 int bmValidateBufferList( struct bufmgr *bm,
+			  struct bm_buffer_list *list,
 			  unsigned flags )
 {
    unsigned i;
    unsigned total = 0;
 
-   if (bm->nr_validated > BM_VALIDATE_MAX)
+   if (list->nr > BM_LIST_MAX)
       return 0;
 
-   for (i = 0; i < bm->nr_validated; i++) {
-      assert(!bm->validated[i]->mapped);
-      total += bm->validated[i]->size;
+   for (i = 0; i < list->nr; i++) {
+      assert(!list->buffer[i]->mapped);
+      total += list->buffer[i]->size;
    }
 
    /* Don't need to try allocation in this case:
@@ -532,13 +545,13 @@ int bmValidateBufferList( struct bufmgr *bm,
     * succeeds.  This is a pretty poor strategy but really hard to do
     * better without more infrastucture...  Which is coming - hooray!
     */
-   while (!move_buffers(bm, bm->validated, bm->nr_validated, BM_MEM_AGP, flags)) {
+   while (!move_buffers(bm, list->buffer, list->nr, BM_MEM_AGP, flags)) {
       if ((flags & BM_NO_EVICT) || 
 	  !evict_lru(bm))
 	 return 0;
    }
    
-   bm->in_progress = 1;
+   list->need_fence = 1;
    return 1;
 }
 
@@ -551,20 +564,21 @@ int bmValidateBufferList( struct bufmgr *bm,
  * The buffer manager knows how to emit and test fences directly
  * through the drm and without callbacks or whatever into the driver.
  */
-void bmReleaseValidatedBuffers( struct bufmgr *bm )
+void bmFenceBufferList( struct bufmgr *bm, struct bm_buffer_list *list )
 {
    unsigned i;
 
-   assert(bm->in_progress);
-   bm->in_progress = 0;
+   assert(list->need_fence);
+   list->need_fence = 0;
+
    bm->last_fence = bmSetFence( bm );
 
    /* Move all buffers to head of resident list and set their fences
     */
-   for (i = 0; i < bm->nr_validated; i++) {
-      assert(bm->validated[i]->block->buf == bm->validated[i]);
-      move_to_head(&bm->pool.lru, bm->validated[i]->block);
-      bm->validated[i]->block->fence = bm->last_fence;
+   for (i = 0; i < list->nr; i++) {
+      assert(list->buffer[i]->block->buf == list->buffer[i]);
+      move_to_head(&bm->pool.lru, list->buffer[i]->block);
+      list->buffer[i]->block->fence = bm->last_fence;
    }
 
 }
