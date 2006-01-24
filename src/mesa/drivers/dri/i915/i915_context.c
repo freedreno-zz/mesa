@@ -41,6 +41,8 @@
 #include "utils.h"
 #include "i915_reg.h"
 
+#include "bufmgr.h"
+
 /***************************************
  * Mesa's Driver Functions
  ***************************************/
@@ -119,33 +121,22 @@ GLboolean i915CreateContext( const __GLcontextModes *mesaVis,
    ctx->Const.MaxTextureImageUnits = I915_TEX_UNITS;
    ctx->Const.MaxTextureCoordUnits = I915_TEX_UNITS;
 
-   intel->nr_heaps = 1;
-   intel->texture_heaps[0] = 
-      driCreateTextureHeap( 0, intel,
-			    intel->intelScreen->tex.size,
-			    12,
-			    I830_NR_TEX_REGIONS,
-			    intel->sarea->texList,
-			    & intel->sarea->texAge,
-			    & intel->swapped,
-			    sizeof( struct i915_texture_object ),
-			    (destroy_texture_object_t *)intelDestroyTexObj );
+   intel->bm = bm_fake_intel_Attach( intel );
 
-   /* FIXME: driCalculateMaxTextureLevels assumes that mipmaps are
-    * tightly packed, but they're not in Intel graphics
-    * hardware.
+   bmInitPool(intel->bm,
+              0,
+              0,                /* low offset */
+              intel->intelScreen->tex.size, /* high offset */
+              intel->intelScreen->tex.map); /* virtual base */
+
+   /* AGP allocation won't work: 
     */
-   ctx->Const.MaxTextureUnits = 1;
-   driCalculateMaxTextureLevels( intel->texture_heaps,
-				 intel->nr_heaps,
-				 &intel->ctx.Const,
-				 4,
-				 11, /* max 2D texture size is 2048x2048 */
-				 8,  /* 3D texture */
-				 11, /* cube texture. */
-				 11, /* rect texture */
-				 12,
-				 GL_FALSE );
+   intel->intelScreen->allow_batchbuffer = GL_FALSE;
+
+   ctx->Const.MaxTextureLevels = 11;
+   ctx->Const.Max3DTextureLevels = 8;
+   ctx->Const.MaxCubeTextureLevels = 11;
+   ctx->Const.MaxTextureRectSize = (1<<11);
    ctx->Const.MaxTextureUnits = I915_TEX_UNITS;
 
    /* GL_ARB_fragment_program limits - don't think Mesa actually

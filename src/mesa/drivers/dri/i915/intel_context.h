@@ -47,8 +47,6 @@
 #define DV_PF_565  (2<<8)
 #define DV_PF_8888 (3<<8)
 
-#define INTEL_CONTEXT(ctx)	((intelContextPtr)(ctx))
-
 typedef struct intel_context intelContext;
 typedef struct intel_context *intelContextPtr;
 typedef struct intel_texture_object *intelTextureObjectPtr;
@@ -72,30 +70,34 @@ extern void intelFallback( intelContextPtr intel, GLuint bit, GLboolean mode );
 #define INTEL_TEX_MAXLEVELS 10
 
 
+
 struct intel_texture_object
 {
-   driTextureObject    base;	/* the parent class */
+   struct gl_texture_object base; /* The "parent" object */
 
-   GLuint texelBytes;
-   GLuint age;
-   GLuint Pitch;
-   GLuint Height;
-   GLuint TextureOffset;
-   GLubyte *BufAddr;   
+   /* The mipmap tree must include at least these levels once
+    * validated:
+    */
+   GLuint firstLevel;
+   GLuint lastLevel;
 
-   GLuint min_level;
-   GLuint max_level;
-   GLuint depth_pitch;
+   /* On validation any active images held in main memory or in other
+    * regions will be copied to this region and the old storage freed.
+    */
+   struct intel_mipmap_tree *mt;
+};
 
-   struct {
-      const struct gl_texture_image *image;
-      GLuint offset;       /* into BufAddr */
-      GLuint height;
-      GLuint internalFormat;
-   } image[6][INTEL_TEX_MAXLEVELS];
 
-   GLuint dirty;
-   GLuint firstLevel,lastLevel;
+
+struct intel_texture_image {
+   struct gl_texture_image base;
+
+   /* These aren't stored in gl_texture_image 
+    */
+   GLuint level;
+   GLuint face;
+
+   struct intel_mipmap_tree *mt;
 };
 
 
@@ -179,12 +181,9 @@ struct intel_context
    GLboolean hw_stencil;
    GLboolean hw_stipple;
    
-   /* Texture object bookkeeping
+   /* AGP memory buffer manager:
     */
-   GLuint                nr_heaps;
-   driTexHeap          * texture_heaps[1];
-   driTextureObject      swapped;
-   GLuint                lastStamp;
+   struct bufmgr *bm;
 
    struct intel_texture_object *CurrentTexObj[MAX_TEXTURE_UNITS];
 
@@ -212,7 +211,6 @@ struct intel_context
    GLuint numClipRects;		/* cliprects for that buffer */
    drm_clip_rect_t *pClipRects;
 
-   int dirtyAge;
    int perf_boxes;
    int do_irqs;
 
@@ -228,6 +226,8 @@ struct intel_context
    __DRIscreenPrivate *driScreen;
    intelScreenPrivate *intelScreen; 
    drmI830Sarea *sarea; 
+   
+   GLuint lastStamp;
 
    /**
     * Configuration cache
@@ -511,6 +511,25 @@ extern void intel_dump_batchbuffer( long offset,
  */	
 extern void intelInitPixelFuncs( struct dd_function_table *functions );
 
+
+/* Inline conversion functions.  These are better-typed than the macros used previously:
+ */
+static inline struct intel_context *intel_context( GLcontext *ctx )
+{
+   return (struct intel_context *)ctx;
+}
+
+static inline struct intel_texture_object *intel_texture_object( struct gl_texture_object *obj )
+{
+   return (struct intel_texture_object *)obj;
+}
+
+static inline struct intel_texture_image *intel_texture_image( struct gl_texture_image *img )
+{
+   return (struct intel_texture_image *)img;
+}
+
+#define INTEL_CONTEXT(ctx)	intel_context(ctx)
 
 
 #endif

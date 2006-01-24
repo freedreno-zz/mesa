@@ -44,7 +44,7 @@
 static void i915_render_start( intelContextPtr intel )
 {
    GLcontext *ctx = &intel->ctx;
-   i915ContextPtr i915 = I915_CONTEXT(intel);
+   i915ContextPtr i915 = i915_context(&intel->ctx);
 
    if (ctx->FragmentProgram._Active) 
       i915ValidateFragmentProgram( i915 );
@@ -56,7 +56,7 @@ static void i915_render_start( intelContextPtr intel )
 static void i915_reduced_primitive_state( intelContextPtr intel,
 					  GLenum rprim )
 {
-    i915ContextPtr i915 = I915_CONTEXT(intel);
+   i915ContextPtr i915 = i915_context(&intel->ctx);
     GLuint st1 = i915->state.Stipple[I915_STPREG_ST1];
 
     st1 &= ~ST1_ENABLE;
@@ -88,7 +88,7 @@ static void i915_reduced_primitive_state( intelContextPtr intel,
 static GLboolean i915_check_vertex_size( intelContextPtr intel,
 					 GLuint expected )
 {
-   i915ContextPtr i915 = I915_CONTEXT(intel);
+   i915ContextPtr i915 = i915_context(&intel->ctx);
    int lis2 = i915->current->Ctx[I915_CTXREG_LIS2];
    int lis4 = i915->current->Ctx[I915_CTXREG_LIS4];
    int i, sz = 0;
@@ -218,7 +218,7 @@ do {							\
  */
 static void i915_emit_state( intelContextPtr intel )
 {
-   i915ContextPtr i915 = I915_CONTEXT(intel);
+   i915ContextPtr i915 = i915_context(&intel->ctx);
    struct i915_hw_state *state = i915->current;
    int i;
    GLuint dirty;
@@ -314,14 +314,15 @@ static void i915_destroy_context( intelContextPtr intel )
 
 static void i915_set_draw_offset( intelContextPtr intel, int offset )
 {
-   i915ContextPtr i915 = I915_CONTEXT(intel);
+   i915ContextPtr i915 = i915_context(&intel->ctx);
    I915_STATECHANGE( i915, I915_UPLOAD_BUFFERS );
    i915->state.Buffer[I915_DESTREG_CBUFADDR2] = offset;
 }
 
 static void i915_lost_hardware( intelContextPtr intel )
 {
-   I915_CONTEXT(intel)->state.emitted = 0;
+   i915ContextPtr i915 = i915_context(&intel->ctx);
+   i915->state.emitted = 0;
 }
 
 static void i915_emit_flush( intelContextPtr intel )

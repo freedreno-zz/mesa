@@ -35,8 +35,54 @@
 
 void intelInitTextureFuncs( struct dd_function_table *functions );
 
-void intelDestroyTexObj( intelContextPtr intel, intelTextureObjectPtr t );
-int intelUploadTexImages( intelContextPtr intel, intelTextureObjectPtr t,
-			  GLuint face );
+const struct gl_texture_format *
+intelChooseTextureFormat( GLcontext *ctx, GLint internalFormat,
+                          GLenum format, GLenum type );
+
+void intelTexImage2D(GLcontext *ctx, 
+		     GLenum target, GLint level,
+		     GLint internalFormat,
+		     GLint width, GLint height, GLint border,
+		     GLenum format, GLenum type, const void *pixels,
+		     const struct gl_pixelstore_attrib *packing,
+		     struct gl_texture_object *texObj,
+		     struct gl_texture_image *texImage);
+
+void intelTexSubImage2D(GLcontext *ctx,
+			GLenum target,
+			GLint level,
+			GLint xoffset, GLint yoffset,
+			GLsizei width, GLsizei height,
+			GLenum format, GLenum type,
+			const GLvoid *pixels,
+			const struct gl_pixelstore_attrib *packing,
+			struct gl_texture_object *texObj,
+			struct gl_texture_image *texImage);
+
+void intelTexImage1D(GLcontext *ctx, 
+		     GLenum target, GLint level,
+		     GLint internalFormat,
+		     GLint width, GLint border,
+		     GLenum format, GLenum type, const void *pixels,
+		     const struct gl_pixelstore_attrib *packing,
+		     struct gl_texture_object *texObj,
+		     struct gl_texture_image *texImage);
+
+void intelTexSubImage1D(GLcontext *ctx,
+			GLenum target,
+			GLint level,
+			GLint xoffset,
+			GLsizei width,
+			GLenum format, GLenum type,
+			const GLvoid *pixels,
+			const struct gl_pixelstore_attrib *packing,
+			struct gl_texture_object *texObj,
+			struct gl_texture_image *texImage);
+
+GLuint intel_validate_mipmap_tree( struct intel_context *intel,
+				   struct intel_texture_object *intelObj );
+
+
+
 
 #endif

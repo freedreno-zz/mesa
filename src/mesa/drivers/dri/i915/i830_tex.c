@@ -200,7 +200,7 @@ intelTextureObjectPtr i830AllocTexObj( struct gl_texture_object *texObj )
 
    texObj->DriverData = t;
    t->intel.base.tObj = texObj;
-   t->intel.dirty = I830_UPLOAD_TEX_ALL;
+   t->intel.dirty = ~0;
    make_empty_list( &t->intel.base );
 
    t->Setup[I830_TEXREG_TM0LI] = 0; /* not used */
@@ -268,7 +268,7 @@ static void i830TexParameter( GLcontext *ctx, GLenum target,
       return;
    }
 
-   t->intel.dirty = I830_UPLOAD_TEX_ALL;
+   t->intel.dirty = ~0;
 }
 
 

@@ -39,7 +39,7 @@
 
 
 static GLboolean
-check_color( const GLcontext *ctx, GLenum type, GLenum format,
+check_color( GLcontext *ctx, GLenum type, GLenum format,
 	     const struct gl_pixelstore_attrib *packing,
 	     const void *pixels, GLint sz, GLint pitch )
 {
@@ -96,7 +96,7 @@ check_color_per_fragment_ops( const GLcontext *ctx )
 
 
 static GLboolean
-clip_pixelrect( const GLcontext *ctx,
+clip_pixelrect( GLcontext *ctx,
 		const GLframebuffer *buffer,
 		GLint *x, GLint *y,
 		GLsizei *width, GLsizei *height,

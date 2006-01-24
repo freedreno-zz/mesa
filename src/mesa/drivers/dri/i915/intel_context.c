@@ -300,9 +300,6 @@ GLboolean intelInitContext( intelContextPtr intel,
    intel->sarea = saPriv;
 
 
-   (void) memset( intel->texture_heaps, 0, sizeof( intel->texture_heaps ) );
-   make_empty_list( & intel->swapped );
-
    ctx->Const.MaxTextureMaxAnisotropy = 2.0;
 
    ctx->Const.MinLineWidth = 1.0;
@@ -438,14 +435,7 @@ void intelDestroyContext(__DRIcontextPrivate *driContextPriv)
          /* This share group is about to go away, free our private
           * texture object data.
           */
-         int i;
-
-         for ( i = 0 ; i < intel->nr_heaps ; i++ ) {
-	    driDestroyTextureHeap( intel->texture_heaps[ i ] );
-	    intel->texture_heaps[ i ] = NULL;
-         }
-
-	 assert( is_empty_list( & intel->swapped ) );
+	 fprintf(stderr, "do somethign to free texture heaps\n");
       }
 
       /* free the Mesa context */
@@ -586,7 +576,6 @@ void intelGetLock( intelContextPtr intel, GLuint flags )
    __DRIscreenPrivate *sPriv = intel->driScreen;
    drmI830Sarea * sarea = intel->sarea;
    int me = intel->hHWContext;
-   unsigned   i;
 
    drmGetLock(intel->driFd, intel->hHWContext, flags);
 
@@ -607,15 +596,6 @@ void intelGetLock( intelContextPtr intel, GLuint flags )
    if (sarea->ctxOwner != me) {
       intel->perf_boxes |= I830_BOX_LOST_CONTEXT;
       sarea->ctxOwner = me;
-   }
-
-   /* Shared texture managment - if another client has played with
-    * texture space, figure out which if any of our textures have been
-    * ejected, and update our global LRU.
-    */
-
-   for ( i = 0 ; i < intel->nr_heaps ; i++ ) {
-      DRI_AGE_TEXTURES( intel->texture_heaps[ i ] );
    }
 
    if (dPriv && intel->lastStamp != dPriv->lastStamp) {

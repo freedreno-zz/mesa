@@ -447,7 +447,7 @@ i915ClearWithTris(intelContextPtr intel, GLbitfield mask,
 		  GLboolean all,
 		  GLint cx, GLint cy, GLint cw, GLint ch)
 {
-   i915ContextPtr i915 = I915_CONTEXT( intel );
+   i915ContextPtr i915 = i915_context( &intel->ctx );
    __DRIdrawablePrivate *dPriv = intel->driDrawable;
    intelScreenPrivate *screen = intel->intelScreen;
    int x0, y0, x1, y1;

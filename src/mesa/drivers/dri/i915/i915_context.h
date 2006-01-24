@@ -163,8 +163,6 @@ struct i915_fragment_program {
    GLuint nr_params;
       
 
-
-
    /* Helpers for i915_texprog.c:
     */
    GLuint src_texture;		/* Reg containing sampled texture color,
@@ -185,13 +183,6 @@ struct i915_fragment_program {
 
 
 
-struct i915_texture_object
-{
-   struct intel_texture_object intel;
-   GLenum lastTarget;
-   GLboolean refs_border_color;
-   GLuint Setup[I915_TEX_SETUP_SIZE];
-};
 
 #define I915_TEX_UNITS 8
 
@@ -220,6 +211,8 @@ struct i915_context
 
    GLuint last_ReallyEnabled;
    GLuint vertex_fog;
+   GLuint lodbias_ss2[MAX_TEXTURE_UNITS];
+
 
    struct i915_fragment_program tex_program;
    struct i915_fragment_program *current_program;
@@ -229,10 +222,6 @@ struct i915_context
 
 
 typedef struct i915_context *i915ContextPtr;
-typedef struct i915_texture_object *i915TextureObjectPtr;
-
-#define I915_CONTEXT(ctx)	((i915ContextPtr)(ctx))
-
 
 
 #define I915_STATECHANGE(i915, flag)					\
@@ -346,6 +335,22 @@ i915ClearWithTris( intelContextPtr intel, GLbitfield mask,
  */
 extern void i915ValidateFragmentProgram( i915ContextPtr i915 );
 extern void i915InitFragProgFuncs( struct dd_function_table *functions );
+
+/*======================================================================
+ * Inline conversion functions.  These are better-typed than the
+ * macros used previously:
+ */
+static inline struct i915_context *
+i915_context( GLcontext *ctx )
+{
+   return (struct i915_context *)ctx;
+}
+
+
+
+#define I915_CONTEXT(ctx)	i915_context(ctx)
+
+
 	
 #endif
 

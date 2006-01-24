@@ -246,7 +246,7 @@ static GLboolean i830SetTexImages( i830ContextPtr i830,
    t->Setup[I830_TEXREG_TM0S3] &= ~TM0S3_MAX_MIP_MASK;
    t->Setup[I830_TEXREG_TM0S3] &= ~TM0S3_MIN_MIP_MASK;
    t->Setup[I830_TEXREG_TM0S3] |= ((numLevels - 1)*4) << TM0S3_MIN_MIP_SHIFT;
-   t->intel.dirty = I830_UPLOAD_TEX_ALL;
+   t->intel.dirty = ~0;
 
    return intelUploadTexImages( &i830->intel, &t->intel, 0 );
 }
@@ -259,11 +259,7 @@ static void i830_import_tex_unit( i830ContextPtr i830,
    if(INTEL_DEBUG&DEBUG_TEXTURE)
       fprintf(stderr, "%s unit(%d)\n", __FUNCTION__, unit);
    
-   if (i830->intel.CurrentTexObj[unit]) 
-      i830->intel.CurrentTexObj[unit]->base.bound &= ~(1U << unit);
-
    i830->intel.CurrentTexObj[unit] = (intelTextureObjectPtr)t;
-   t->intel.base.bound |= (1 << unit);
 
    I830_STATECHANGE( i830, I830_UPLOAD_TEX(unit) );
 
@@ -285,7 +281,7 @@ static void i830_import_tex_unit( i830ContextPtr i830,
    i830->state.Tex[unit][I830_TEXREG_CUBE] = t->Setup[I830_TEXREG_CUBE];
    i830->state.Tex[unit][I830_TEXREG_MCS] |= MAP_UNIT(unit);
 
-   t->intel.dirty &= ~I830_UPLOAD_TEX(unit);
+   t->intel.dirty &= ~(1<<unit); /* This is broken! */
 }
 
 
@@ -317,7 +313,7 @@ static GLboolean enable_tex_common( GLcontext *ctx, GLuint unit )
     * time.
     */
    if (i830->intel.CurrentTexObj[unit] != &t->intel || 
-       (t->intel.dirty & I830_UPLOAD_TEX(unit))) {
+       (t->intel.dirty & (1<<unit))) {
       i830_import_tex_unit( i830, t, unit);
    }
 
@@ -419,14 +415,10 @@ static GLboolean disable_tex( GLcontext *ctx, GLuint unit )
     * one if nothing is enabled.
     */
 
-   if ( i830->intel.CurrentTexObj[unit] != NULL ) {
-      /* The old texture is no longer bound to this texture unit.
-       * Mark it as such.
-       */
-
-      i830->intel.CurrentTexObj[unit]->base.bound &= ~(1U << 0);
-      i830->intel.CurrentTexObj[unit] = NULL;
-   }
+   /* The old texture is no longer bound to this texture unit.
+    * Mark it as such.
+    */
+   i830->intel.CurrentTexObj[unit] = NULL;
 
    return GL_TRUE;
 }

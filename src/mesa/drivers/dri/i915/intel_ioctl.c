@@ -91,15 +91,6 @@ void intelWaitIrq( intelContextPtr intel, int seq )
 
 
 
-static void age_intel( intelContextPtr intel, int age )
-{
-   GLuint i;
-
-   for (i = 0 ; i < MAX_TEXTURE_UNITS ; i++)
-      if (intel->CurrentTexObj[i]) 
-	 intel->CurrentTexObj[i]->age = age;
-}
-
 void intel_dump_batchbuffer( long offset,
 			     int *ptr,
 			     int count )
@@ -263,8 +254,6 @@ void intelFlushBatchLocked( intelContextPtr intel,
       }	 
 
       
-      age_intel(intel, intel->sarea->last_enqueue);
-
       /* FIXME: use hardware contexts to avoid 'losing' hardware after
        * each buffer flush.
        */
@@ -402,6 +391,11 @@ void *intelAllocateAGP( intelContextPtr intel, GLsizei size )
    drmI830MemAlloc alloc;
    int ret;
 
+   /* This won't work with the current state of the texture memory
+    * manager:
+    */
+   assert(0);
+
    if (0)
       fprintf(stderr, "%s: %d bytes\n", __FUNCTION__, size);
 
@@ -411,11 +405,6 @@ void *intelAllocateAGP( intelContextPtr intel, GLsizei size )
    alloc.region_offset = &region_offset;
 
    LOCK_HARDWARE(intel);
-
-   /* Make sure the global heap is initialized
-    */
-   if (intel->texture_heaps[0])
-      driAgeTextures( intel->texture_heaps[0] );
 
 
    ret = drmCommandWriteRead( intel->driFd,
@@ -431,13 +420,6 @@ void *intelAllocateAGP( intelContextPtr intel, GLsizei size )
    if (0)
       fprintf(stderr, "%s: allocated %d bytes\n", __FUNCTION__, size);
 
-   /* Need to propogate this information (agp memory in use) to our
-    * local texture lru.  The kernel has already updated the global
-    * lru.  An alternative would have been to allocate memory the
-    * usual way and then notify the kernel to pin the allocation.
-    */
-   if (intel->texture_heaps[0])
-      driAgeTextures( intel->texture_heaps[0] );
 
    UNLOCK_HARDWARE(intel);   
 
