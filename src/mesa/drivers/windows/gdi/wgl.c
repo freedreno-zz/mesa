@@ -1,4 +1,4 @@
-/* $Id: wgl.c,v 1.9.2.4 2005/12/13 18:10:24 kschultz Exp $ */
+/* $Id: wgl.c,v 1.9.2.5 2006/01/25 15:55:49 brianp Exp $ */
 
 /*
  * This library is free software; you can redistribute it and/or
@@ -692,3 +692,7 @@ WINGDIAPI BOOL GLAPIENTRY wglSwapLayerBuffers(HDC hdc,
     return(FALSE);
 }
 
+WINGDIAPI const char * GLAPIENTRY wglGetExtensionsStringARB(HDC hdc)
+{
+    return "WGL_ARB_extensions_string";
+}
