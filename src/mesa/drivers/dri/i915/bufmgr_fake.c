@@ -212,6 +212,8 @@ static int move_buffers( struct bufmgr *bm,
    struct block *newMem[BM_LIST_MAX];
    GLint i;
 
+   _mesa_printf("%s\n", __FUNCTION__);
+
    memset(newMem, 0, sizeof(newMem));
 
    /* First do all the allocations (or fail):
@@ -254,7 +256,10 @@ static int move_buffers( struct bufmgr *bm,
 
    /* Tell hardware that its texture and other caches may be invalid: 
     */
-   bmFlushReadCaches(bm);   
+   if (nr)
+      bmFlushReadCaches(bm);   
+
+   _mesa_printf("%s - success\n", __FUNCTION__);
    return 1;
 
  cleanup:
@@ -265,13 +270,18 @@ static int move_buffers( struct bufmgr *bm,
 	 free_block(bm, newMem[i]);
    }
    
+   _mesa_printf("%s - fail\n", __FUNCTION__);
    return 0;   
 }
 
 
 static unsigned evict_lru( struct bufmgr *bm )
 {
-   int ret = delayed_free(bm);
+   int ret;
+
+   _mesa_printf("%s\n", __FUNCTION__);
+
+   ret = delayed_free(bm);
    if (ret)
       return ret;
    else {
@@ -379,8 +389,9 @@ void bmGenBuffers(struct bufmgr *bm, unsigned n, unsigned *buffers)
    unsigned i;
 
    for (i = 0; i < n; i++) {
-      buffers[i] = ++bm->buf_nr;
-      _mesa_HashInsert(bm->hash, buffers[i], calloc(sizeof(struct buffer), 1));
+      struct buffer *buf = calloc(sizeof(*buf), 1);
+      buffers[i] = buf->id = ++bm->buf_nr;
+      _mesa_HashInsert(bm->hash, buffers[i], buf);
    }
 }
 
@@ -523,14 +534,18 @@ void bmAddBuffer( struct bufmgr *bm,
 {
    assert(list->nr < BM_LIST_MAX);
 
-   _mesa_printf("bmAddBuffer %d\n", buffer);
 
    list->buffer[list->nr] = _mesa_HashLookup(bm->hash, buffer);
    list->offset_return[list->nr] = offset_return;
+
+   _mesa_printf("bmAddBuffer nr %d buf %d (%p/%d)\n", list->nr, buffer,
+		list->buffer[list->nr], list->buffer[list->nr]->id);
+
    list->nr++;
 
    if (pool_return) 
       *pool_return = 0;
+
 }
 		
 void bmFreeBufferList( struct bm_buffer_list *list )
@@ -580,6 +595,15 @@ int bmValidateBufferList( struct bufmgr *bm,
       if ((flags & BM_NO_EVICT) || 
 	  !evict_lru(bm))
 	 return 0;
+   }
+
+
+   for (i = 0; i < list->nr; i++) {
+      _mesa_printf("%d: buf %d ofs 0x%x\n",
+		   i, list->buffer[i]->id,
+		   list->buffer[i]->block->mem->ofs);
+
+      list->offset_return[i][0] = list->buffer[i]->block->mem->ofs;
    }
    
    list->need_fence = 1;
