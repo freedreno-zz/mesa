@@ -211,7 +211,6 @@ void intel_add_texoffset_fixup( struct intel_context *intel,
    *ptr = (intelObj->textureOffset + 
 	   intel->intelScreen->tex.offset +
 	   intel_miptree_image_offset(intelObj->mt, 0, intelObj->firstLevel));
-   *ptr = 9999;
 #endif
 }
 
