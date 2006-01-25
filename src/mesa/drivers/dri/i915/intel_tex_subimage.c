@@ -3,6 +3,7 @@
 #include "mtypes.h"
 #include "texobj.h"
 #include "texstore.h"
+#include "enums.h"
 
 #include "intel_context.h"
 #include "intel_tex.h"
@@ -23,6 +24,12 @@ static void intelTexSubimage (GLcontext *ctx,
    struct intel_texture_image *intelImage = intel_texture_image(texImage);
    GLuint dstImageStride = 0;
    GLuint dstRowStride;
+
+   _mesa_printf("%s target %s level %d offset %d,%d %dx%d\n", __FUNCTION__,
+		_mesa_lookup_enum_by_nr(target),
+		level,
+		xoffset, yoffset,
+		width, height);
 
    pixels = _mesa_validate_pbo_teximage(ctx, dims, width, height, 1, format, type,
                                         pixels, packing, "glTexSubImage2D");

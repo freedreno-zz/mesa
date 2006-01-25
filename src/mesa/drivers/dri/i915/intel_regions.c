@@ -48,6 +48,7 @@
  */
 GLubyte *intel_region_map(struct intel_context *intel, struct intel_region *region)
 {
+   _mesa_printf("%s\n", __FUNCTION__);
    if (!region->map_refcount++) {
       region->map = bmMapBuffer(intel->bm, region->buffer, 0);
    }
@@ -58,6 +59,7 @@ GLubyte *intel_region_map(struct intel_context *intel, struct intel_region *regi
 void intel_region_unmap(struct intel_context *intel, 
 			struct intel_region *region)
 {
+   _mesa_printf("%s\n", __FUNCTION__);
    if (!--region->map_refcount) {
       bmUnmapBuffer(intel->bm, region->buffer);
    }
@@ -69,6 +71,8 @@ struct intel_region *intel_region_alloc( struct intel_context *intel,
 					 GLuint height )
 {
    struct intel_region *region = calloc(sizeof(*region), 1);
+
+   _mesa_printf("%s\n", __FUNCTION__);
 
    region->cpp = cpp;
    region->pitch = pitch;
@@ -201,6 +205,8 @@ void intel_region_data(struct intel_context *intel,
 		       GLuint srcx, GLuint srcy,
 		       GLuint width, GLuint height)
 {
+   _mesa_printf("%s\n", __FUNCTION__);
+
    LOCK_HARDWARE(intel);
    
    _mesa_copy_rect(intel_region_map(intel, dst),
@@ -231,6 +237,8 @@ void intel_region_copy( struct intel_context *intel,
    unsigned dst_offset;
    unsigned src_offset;
    struct bm_buffer_list *list = bmNewBufferList();
+
+   _mesa_printf("%s\n", __FUNCTION__);
 
    assert(src->cpp == dst->cpp);
 
@@ -281,6 +289,8 @@ void intel_region_fill( struct intel_context *intel,
 {
    unsigned dst_offset;
    struct bm_buffer_list *list = bmNewBufferList();
+
+   _mesa_printf("%s\n", __FUNCTION__);
 
    LOCK_HARDWARE(intel);
    bmAddBuffer(intel->bm, list, dst->buffer, BM_WRITE, NULL, &dst_offset);

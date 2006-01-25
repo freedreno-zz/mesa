@@ -387,6 +387,7 @@ static void draw_quad(i915ContextPtr i915,
 		      GLfloat s0, GLfloat s1,
 		      GLfloat t0, GLfloat t1 )
 {
+#if 0
    GLuint vertex_size = 8;
    GLuint *vb = intelEmitInlinePrimitiveLocked( &i915->intel, 
 						PRIM3D_TRIFAN, 
@@ -440,6 +441,7 @@ static void draw_quad(i915ContextPtr i915,
    tmp.v.u0 = s0;
    for (i = 0 ; i < vertex_size ; i++)
       vb[i] = tmp.ui[i];
+#endif
 }
 
 void 

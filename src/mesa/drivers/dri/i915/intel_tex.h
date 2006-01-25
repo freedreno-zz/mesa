@@ -82,7 +82,14 @@ void intelTexSubImage1D(GLcontext *ctx,
 GLuint intel_validate_mipmap_tree( struct intel_context *intel,
 				   struct intel_texture_object *intelObj );
 
+void intel_add_texoffset_fixup( struct intel_context *intel,
+				GLuint unit,
+				GLuint *ptr );
 
+void intel_apply_fixups( struct intel_context *intel );
 
+GLboolean intel_prevalidate_buffers( struct intel_context *intel );
+GLboolean intel_validate_buffers( struct intel_context *intel );
+void intel_fence_buffers( struct intel_context *intel );
 
 #endif

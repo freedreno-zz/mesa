@@ -34,10 +34,7 @@
 
 #define BATCH_LOCALS	GLubyte *batch_ptr;
 
-/* #define VERBOSE 0 */
-#ifndef VERBOSE
-extern int VERBOSE;
-#endif
+#define VERBOSE 1
 
 
 #define BEGIN_BATCH(n)							\
@@ -70,7 +67,6 @@ extern void intelDestroyBatchBuffer( GLcontext *ctx );
 
 extern void intelStartInlinePrimitive( intelContextPtr intel, GLuint prim );
 extern void intelWrapInlinePrimitive( intelContextPtr intel );
-extern void intelRestartInlinePrimitive( intelContextPtr intel );
 extern GLuint *intelEmitInlinePrimitiveLocked(intelContextPtr intel, 
 					      int primitive, int dwords,
 					      int vertex_size);
@@ -99,25 +95,7 @@ extern void intelEmitFillBlitLocked( intelContextPtr intel,
 
 
 
-static __inline GLuint *intelExtendInlinePrimitive( intelContextPtr intel, 
-						GLuint dwords )
-{
-   GLuint sz = dwords * sizeof(GLuint);
-   GLuint *ptr;
-
-   if (intel->batch.space < sz) {
-      intelWrapInlinePrimitive( intel );
-/*       assert(intel->batch.space >= sz); */
-   }
-
-/*    assert(intel->prim.primitive != ~0); */
-   ptr = (GLuint *)intel->batch.ptr;
-   intel->batch.ptr += sz;
-   intel->batch.space -= sz;
-
-   return ptr;
-}
-
-
+GLuint *intelExtendInlinePrimitive( intelContextPtr intel, 
+				    GLuint dwords );
 
 #endif

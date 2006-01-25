@@ -118,23 +118,11 @@ static GLboolean i915_update_tex_unit( GLcontext *ctx,
    struct intel_texture_object *intelObj = intel_texture_object(tObj);
    struct i915_context *i915 = i915_context(ctx);
    GLuint state[I915_TEX_SETUP_SIZE];
-   struct gl_texture_image *firstImage;
-   GLuint firstImageOffset;
+   struct gl_texture_image *firstImage = tObj->Image[0][intelObj->firstLevel];
 
    memset(state, 0, sizeof(state));
 
-   /* Will return the offset for the image at intelObj->firstLevel
-    * (firstLevel and lastLevel are calculated in
-    * validate_mipmap_tree).  We will program the hardware as if this
-    * is level 0.
-    */
-   firstImageOffset = intel_validate_mipmap_tree( intel_context(ctx), intelObj );
-   firstImage = tObj->Image[0][intelObj->firstLevel];
-
-   if (!firstImageOffset)
-      return GL_FALSE;
-
-   state[I915_TEXREG_MS2] = firstImageOffset;
+   state[I915_TEXREG_MS2] = 0;	/* will fixup later */
    state[I915_TEXREG_MS3] = 
       (((firstImage->Height - 1) << MS3_HEIGHT_SHIFT) |
        ((firstImage->Width - 1) << MS3_WIDTH_SHIFT) |
@@ -264,14 +252,24 @@ static GLboolean i915_update_tex_unit( GLcontext *ctx,
 						tObj->_BorderChan[3]);
    
 
+   I915_ACTIVESTATE(i915, I915_UPLOAD_TEX(unit), GL_TRUE);
 
-   if (memcmp(state, i915->state.Tex[unit], sizeof(state)) != 0) {
+   if (1 || memcmp(state, i915->state.Tex[unit], sizeof(state)) != 0) {
       I915_STATECHANGE( i915, I915_UPLOAD_TEX(unit) );
       memcpy(i915->state.Tex[unit], state, sizeof(state));
    }
-   
+
+   _mesa_printf("state[I915_TEXREG_SS2] = 0x%x\n", state[I915_TEXREG_SS2]);
+   _mesa_printf("state[I915_TEXREG_SS3] = 0x%x\n", state[I915_TEXREG_SS3]);
+   _mesa_printf("state[I915_TEXREG_SS4] = 0x%x\n", state[I915_TEXREG_SS4]);
+
+   _mesa_printf("state[I915_TEXREG_MS2] = 0x%x\n", state[I915_TEXREG_MS2]);
+   _mesa_printf("state[I915_TEXREG_MS3] = 0x%x\n", state[I915_TEXREG_MS3]);
+   _mesa_printf("state[I915_TEXREG_MS4] = 0x%x\n", state[I915_TEXREG_MS4]);
+
    return GL_TRUE;
 }
+
 
 
 

@@ -107,6 +107,8 @@ GLboolean i915CreateContext( const __GLcontextModes *mesaVis,
 
    if (!i915) return GL_FALSE;
 
+   _mesa_printf( "\ntexmem branch\n\n");
+   
    i915InitVtbl( i915 );
 
    i915InitDriverFunctions( &functions );
@@ -129,9 +131,6 @@ GLboolean i915CreateContext( const __GLcontextModes *mesaVis,
               intel->intelScreen->tex.size, /* high offset */
               intel->intelScreen->tex.map); /* virtual base */
 
-   /* AGP allocation won't work: 
-    */
-   intel->intelScreen->allow_batchbuffer = GL_FALSE;
 
    ctx->Const.MaxTextureLevels = 11;
    ctx->Const.Max3DTextureLevels = 8;

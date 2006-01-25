@@ -81,6 +81,10 @@ struct intel_texture_object
    GLuint firstLevel;
    GLuint lastLevel;
 
+   /* Offset for firstLevel image:
+    */
+   GLuint textureOffset;
+
    /* On validation any active images held in main memory or in other
     * regions will be copied to this region and the old storage freed.
     */
@@ -97,9 +101,21 @@ struct intel_texture_image {
    GLuint level;
    GLuint face;
 
+   /* If intelImage->mt != NULL, image data is stored here.
+    * Else if intelImage->base.Data != NULL, image is stored there.
+    * Else there is no image data.
+    */
    struct intel_mipmap_tree *mt;
 };
 
+
+struct intel_reloc {
+   GLuint *value;
+   GLuint delta;
+   GLuint *dest;
+};
+
+#define INTEL_MAX_FIXUP 64
 
 struct intel_context
 {
@@ -182,8 +198,11 @@ struct intel_context
    /* AGP memory buffer manager:
     */
    struct bufmgr *bm;
+   struct bm_buffer_list *buffer_list;
 
-   struct intel_texture_object *CurrentTexObj[MAX_TEXTURE_UNITS];
+   struct intel_reloc fixup[INTEL_MAX_FIXUP];
+   GLuint nr_fixups;
+
 
    /* State for intelvb.c and inteltris.c.
     */

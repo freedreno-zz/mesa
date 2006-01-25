@@ -42,9 +42,130 @@
 #include "intel_batchbuffer.h"
 #include "intel_reg.h"
 #include "intel_span.h"
+#include "intel_tex.h"
 
 static void intelRenderPrimitive( GLcontext *ctx, GLenum prim );
 static void intelRasterPrimitive( GLcontext *ctx, GLenum rprim, GLuint hwprim );
+
+/* The simplest but least-good technique for integrating new buffer
+ * management:
+ *
+ * LOCK_HARDWARE
+ *   validate_buffers
+ *   emit_state to batch
+ *   emit_vertices to batch
+ *   flush batch
+ *   fence_buffers
+ * UNLOCK_HARDWARE
+ *
+ * Will look later at ways to get the emit_state and emit_vertices out
+ * of the locked region - vertex buffers, second batch buffer for
+ * primitives, relocation fixups for texture addresses.
+ */
+static void intel_flush_inline_primitive( GLcontext *ctx )
+{
+   intelContextPtr intel = INTEL_CONTEXT( ctx );
+   GLuint used = intel->batch.ptr - intel->prim.start_ptr;
+
+   assert(intel->prim.primitive != ~0);
+
+   if (used < 8)
+      goto do_discard;
+
+   *(int *)intel->prim.start_ptr = (_3DPRIMITIVE | 
+				    intel->prim.primitive |
+				    (used/4-2));
+
+   goto finished;
+   
+ do_discard:
+   intel->batch.ptr -= used;
+   intel->batch.space += used;
+   assert(intel->batch.space >= 0);
+
+ finished:
+   intel->prim.primitive = ~0;
+   intel->prim.start_ptr = 0;
+   intel->prim.flush = 0;
+
+   intelFlushBatch(intel, GL_TRUE); 
+   intel_fence_buffers(intel);
+   UNLOCK_HARDWARE(intel);
+
+
+}
+
+
+/* Emit a primitive referencing vertices in a vertex buffer.
+ */
+void intelStartInlinePrimitive( intelContextPtr intel, GLuint prim )
+{
+   BATCH_LOCALS;
+
+   fprintf(stderr, "%s %x\n", __FUNCTION__, prim);
+
+
+   /* Finish any in-progress primitive:
+    */
+   INTEL_FIREVERTICES( intel );
+
+   LOCK_HARDWARE(intel);
+   intel_validate_buffers( intel );
+   intel->vtbl.emit_state( intel );
+   
+   /* Make sure there is some space in this buffer:
+    */
+   if (intel->vertex_size * 10 * sizeof(GLuint) >= intel->batch.space)
+      intelFlushBatch(intel, GL_TRUE); 
+
+   if (((int)intel->batch.ptr) & 0x4) {
+      BEGIN_BATCH(1);
+      OUT_BATCH(0);
+      ADVANCE_BATCH();
+   }
+
+   /* Emit a slot which will be filled with the inline primitive
+    * command later.
+    */
+   BEGIN_BATCH(2);
+   OUT_BATCH( 0 );
+
+   intel->prim.start_ptr = batch_ptr;
+   intel->prim.primitive = prim;
+   intel->prim.flush = intel_flush_inline_primitive;
+
+   OUT_BATCH( 0 );
+   ADVANCE_BATCH();
+}
+
+
+void intelWrapInlinePrimitive( intelContextPtr intel )
+{
+   GLuint prim = intel->prim.primitive;
+
+   intel_flush_inline_primitive( &intel->ctx );
+   intelFlushBatch(intel, GL_TRUE);
+   intelStartInlinePrimitive( intel, prim );
+}
+
+GLuint *intelExtendInlinePrimitive( intelContextPtr intel, 
+				    GLuint dwords )
+{
+   GLuint sz = dwords * sizeof(GLuint);
+   GLuint *ptr;
+
+   if (intel->batch.space < sz) {
+      intelWrapInlinePrimitive( intel );
+   }
+
+   ptr = (GLuint *)intel->batch.ptr;
+   intel->batch.ptr += sz;
+   intel->batch.space -= sz;
+
+   return ptr;
+}
+
+
 
 /***********************************************************************
  *                    Emit primitives as inline vertices               *
@@ -520,22 +641,6 @@ intel_fallback_line( intelContextPtr intel,
 }
 
 
-static void
-intel_fallback_point( intelContextPtr intel,
-		     intelVertex *v0 )
-{
-   GLcontext *ctx = &intel->ctx;
-   SWvertex v[1];
-
-   if (0)
-      fprintf(stderr, "\n%s\n", __FUNCTION__);
-
-   _swsetup_Translate( ctx, v0, &v[0] );
-   intelSpanRenderStart( ctx );
-   _swrast_Point( ctx, &v[0] );
-   intelSpanRenderFinish( ctx );
-}
-
 
 
 /**********************************************************************/
@@ -630,12 +735,8 @@ static void intelFastRenderClippedPoly( GLcontext *ctx, const GLuint *elts,
 
 
 
-#define POINT_FALLBACK (0)
-#define LINE_FALLBACK (DD_LINE_STIPPLE)
-#define TRI_FALLBACK (0)
-#define ANY_FALLBACK_FLAGS (POINT_FALLBACK|LINE_FALLBACK|TRI_FALLBACK|\
-                            DD_TRI_STIPPLE|DD_POINT_ATTEN)
-#define ANY_RASTER_FLAGS (DD_TRI_LIGHT_TWOSIDE|DD_TRI_OFFSET|DD_TRI_UNFILLED)
+#define ANY_FALLBACK_FLAGS (DD_LINE_STIPPLE | DD_TRI_STIPPLE | DD_POINT_ATTEN)
+#define ANY_RASTER_FLAGS (DD_TRI_LIGHT_TWOSIDE | DD_TRI_OFFSET | DD_TRI_UNFILLED)
 
 void intelChooseRenderState(GLcontext *ctx)
 {
@@ -672,18 +773,13 @@ void intelChooseRenderState(GLcontext *ctx)
 	 intel->draw_tri = intel_draw_triangle;
       }
 
+#if 0
       /* Hook in fallbacks for specific primitives.
        */
       if (flags & ANY_FALLBACK_FLAGS)
       {
-	 if (flags & POINT_FALLBACK)
-	    intel->draw_point = intel_fallback_point;
-
-	 if (flags & LINE_FALLBACK)
+	 if (flags & DD_LINE_STIPPLE)
 	    intel->draw_line = intel_fallback_line;
-
-	 if (flags & TRI_FALLBACK)
-	    intel->draw_tri = intel_fallback_tri;
 
 	 if ((flags & DD_TRI_STIPPLE) && !intel->hw_stipple) 
 	    intel->draw_tri = intel_fallback_tri;
@@ -693,6 +789,8 @@ void intelChooseRenderState(GLcontext *ctx)
 
 	 index |= INTEL_FALLBACK_BIT;
       }
+#endif
+
    }
 
    if (intel->RenderIndex != index) {
@@ -765,8 +863,13 @@ static void intelRenderStart( GLcontext *ctx )
 
 static void intelRenderFinish( GLcontext *ctx )
 {
-   if (INTEL_CONTEXT(ctx)->RenderIndex & INTEL_FALLBACK_BIT)
+   struct intel_context *intel = intel_context(ctx);
+
+   if (intel->RenderIndex & INTEL_FALLBACK_BIT)
       _swrast_flush( ctx );
+
+   if (intel->prim.flush)
+      intel->prim.flush(ctx);
 }
 
 

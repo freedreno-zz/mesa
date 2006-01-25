@@ -65,6 +65,8 @@ static void guess_and_alloc_mipmap_tree( struct intel_context *intel,
    GLuint l2width, l2height, l2depth;
    GLuint i;
 
+   _mesa_printf("%s\n", __FUNCTION__);
+
    if (intelImage->base.Border)
       return;
 
@@ -121,6 +123,8 @@ static void guess_and_alloc_mipmap_tree( struct intel_context *intel,
 					depth,
 					intelImage->base.TexFormat->TexelBytes,
 					intelImage->base.IsCompressed );
+
+   _mesa_printf("%s - success\n", __FUNCTION__);
 }
    
 
@@ -160,6 +164,11 @@ static void intelTexImage(GLcontext *ctx,
    GLint postConvHeight = height;
    GLint texelBytes, sizeInBytes;
    GLuint dstRowStride;
+
+   _mesa_printf("%s target %s level %d %dx%d border %d\n", __FUNCTION__,
+		_mesa_lookup_enum_by_nr(target),
+		level,
+		width, height, border);
 
    intelImage->face = target_to_face( target );
    intelImage->level = level;
@@ -219,15 +228,23 @@ static void intelTexImage(GLcontext *ctx,
    LOCK_HARDWARE(intel);
 
    if (intelObj->mt && 
+       intelObj->mt != intelImage->mt &&
        intel_miptree_match_image(intelObj->mt, &intelImage->base,
 				 intelImage->face, intelImage->level)) {
       
+      if (intelImage->mt)
+	 intel_miptree_release(intel, intelImage->mt);
+
+      intelImage->mt = intel_miptree_reference(intelObj->mt);
+   }
+   
+   if (intelImage->mt) {
       texImage->Data = intel_miptree_image_map(intel, 
-					       intelObj->mt, 
+					       intelImage->mt, 
 					       intelImage->face, 
 					       intelImage->level, 
 					       &dstRowStride);	 
-    }   
+   }
    else {
       /* Allocate regular memory and store the image there temporarily.   */
       if (texImage->IsCompressed) {

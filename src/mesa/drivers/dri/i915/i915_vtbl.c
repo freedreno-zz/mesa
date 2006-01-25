@@ -37,6 +37,7 @@
 #include "tnl/t_vertex.h"
 
 #include "intel_batchbuffer.h"
+#include "intel_tex.h"
 
 #include "i915_reg.h"
 #include "i915_context.h"
@@ -271,7 +272,10 @@ static void i915_emit_state( intelContextPtr intel )
       OUT_BATCH((dirty & I915_UPLOAD_TEX_ALL) >> I915_UPLOAD_TEX_0_SHIFT);
       for (i = 0 ; i < I915_TEX_UNITS ; i++)
 	 if (dirty & I915_UPLOAD_TEX(i)) {
-	    OUT_BATCH(state->Tex[i][I915_TEXREG_MS2]);
+	    /* Emit zero texture offset, will fixup before firing */
+	    intel_add_texoffset_fixup(intel, i, (GLuint *)batch_ptr); 
+	    _mesa_printf("MS2: %x\n", *(GLuint *)batch_ptr);
+	    batch_ptr += 4;
 	    OUT_BATCH(state->Tex[i][I915_TEXREG_MS3]);
 	    OUT_BATCH(state->Tex[i][I915_TEXREG_MS4]);
 	 }

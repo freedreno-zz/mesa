@@ -196,7 +196,7 @@ void intelFlushBatchLocked( intelContextPtr intel,
 	 }      
       }
 
-      if (0)
+      if (1)
  	 intel_dump_batchbuffer( batch.start,
 				 (int *)(intel->batch.ptr - batch.used),
 				 batch.used );

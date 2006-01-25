@@ -29,6 +29,7 @@
 #include "intel_mipmap_tree.h"
 #include "intel_regions.h"
 #include "bufmgr.h"
+#include "enums.h"
 
 static GLenum target_to_target( GLenum target )
 {
@@ -58,6 +59,12 @@ struct intel_mipmap_tree *intel_miptree_create( struct intel_context *intel,
 {
    GLboolean ok;
    struct intel_mipmap_tree *mt = calloc(sizeof(*mt), 1);
+
+   _mesa_printf("%s target %s format %s level %d..%d\n", __FUNCTION__,
+		_mesa_lookup_enum_by_nr(target),
+		_mesa_lookup_enum_by_nr(internal_format),
+		first_level,
+		last_level);
 
    mt->target = target_to_target(target);
    mt->internal_format = internal_format;
@@ -125,6 +132,11 @@ GLboolean intel_miptree_match_image( struct intel_mipmap_tree *mt,
 				     GLuint face,
 				     GLuint level )
 {
+   _mesa_printf("%s %d %d/%d %d/%d\n", __FUNCTION__,
+		image->Border,
+		image->InternalFormat, mt->internal_format,
+		image->IsCompressed, mt->compressed);
+
    /* Images with borders are never pulled into mipmap trees. 
     */
    if (image->Border)
@@ -133,6 +145,11 @@ GLboolean intel_miptree_match_image( struct intel_mipmap_tree *mt,
    if (image->InternalFormat != mt->internal_format ||
        image->IsCompressed != mt->compressed)
       return GL_FALSE;
+
+   _mesa_printf("%s: %d/%d %d/%d %d/%d\n", __FUNCTION__,
+		image->Width, mt->offset[face][level].width,
+		image->Height, mt->offset[face][level].height,
+		image->Depth, mt->offset[face][level].depth);
 
    /* Test image dimensions against the base level image adjusted for
     * minification.  This will also catch images not present in the
@@ -143,8 +160,21 @@ GLboolean intel_miptree_match_image( struct intel_mipmap_tree *mt,
        image->Depth != mt->offset[face][level].depth)
       return GL_FALSE;
 
+
+   _mesa_printf("%s: success\n", __FUNCTION__);
    return GL_TRUE;
 }
+
+
+GLuint intel_miptree_image_offset(struct intel_mipmap_tree *mt,
+				  GLuint face,
+				  GLuint level)
+{
+   return (mt->offset[face][level].x +
+	   mt->offset[face][level].y * mt->pitch) * mt->cpp;
+}
+
+
 
 
 GLubyte *intel_miptree_image_map(struct intel_context *intel, 
@@ -153,21 +183,21 @@ GLubyte *intel_miptree_image_map(struct intel_context *intel,
 				 GLuint level,
 				 GLuint *stride)
 {
-   GLubyte *img = intel_region_map(intel, mt->region);
+   _mesa_printf("%s\n", __FUNCTION__);
    
    if (stride)
       *stride = mt->pitch * mt->cpp;
 
-   return img + (mt->offset[face][level].x +
-		 mt->offset[face][level].y * mt->pitch) * mt->cpp;
+   return (intel_region_map(intel, mt->region) +
+	   intel_miptree_image_offset(mt, face, level));
 }
 
 void intel_miptree_image_unmap(struct intel_context *intel, 
 			       struct intel_mipmap_tree *mt)
 {
+   _mesa_printf("%s\n", __FUNCTION__);
    intel_region_unmap(intel, mt->region);
 }
-
 
 
 
@@ -181,6 +211,7 @@ void intel_miptree_image_data(struct intel_context *intel,
 			      GLuint level,
 			      void *src, GLuint src_pitch )
 {
+   _mesa_printf("%s\n", __FUNCTION__);
    intel_region_data(intel,
 		     dst->region,
 		     dst->offset[face][level].x,
@@ -199,6 +230,7 @@ void intel_miptree_image_copy( struct intel_context *intel,
 			       GLuint face, GLuint level,
 			       struct intel_mipmap_tree *src )
 {
+   _mesa_printf("%s\n", __FUNCTION__);
    assert(src->offset[face][level].width == 
 	  dst->offset[face][level].width);
 

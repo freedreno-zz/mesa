@@ -295,6 +295,7 @@ static void draw_quad(i830ContextPtr i830,
 		      GLfloat s0, GLfloat s1,
 		      GLfloat t0, GLfloat t1 )
 {
+#if 0
    GLuint vertex_size = 8;
    GLuint *vb = intelEmitInlinePrimitiveLocked( &i830->intel, 
 						PRIM3D_TRIFAN, 
@@ -350,6 +351,7 @@ static void draw_quad(i830ContextPtr i830,
 
 /*    fprintf(stderr, "%s: DV1: %x\n",  */
 /* 	   __FUNCTION__, i830->meta.Buffer[I830_DESTREG_DV1]); */
+#endif
 }
 
 void 

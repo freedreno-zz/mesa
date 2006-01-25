@@ -131,6 +131,16 @@ GLubyte *intel_miptree_image_map( struct intel_context *intel,
 void intel_miptree_image_unmap( struct intel_context *intel,
 				struct intel_mipmap_tree *mt );
 
+
+/* Return the linear offset of an image relative to the start of the
+ * tree:
+ */
+GLuint intel_miptree_image_offset( struct intel_mipmap_tree *mt,
+				   GLuint face,
+				   GLuint level );
+
+
+
 /* Upload an image into a tree
  */
 void intel_miptree_image_data(struct intel_context *intel, 

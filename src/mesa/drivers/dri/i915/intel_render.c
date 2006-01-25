@@ -199,6 +199,10 @@ static GLboolean intel_run_render( GLcontext *ctx,
    struct vertex_buffer *VB = &tnl->vb;
    GLuint i;
 
+   /* disabled
+    */
+   return GL_TRUE;
+
    /* Don't handle clipping or indexed vertices.
     */
    if (intel->RenderIndex != 0 || 

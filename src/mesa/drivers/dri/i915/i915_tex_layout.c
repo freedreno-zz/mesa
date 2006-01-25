@@ -55,7 +55,6 @@ static GLuint minify( GLuint d )
 GLboolean i915_miptree_layout( struct intel_mipmap_tree *mt )
 {
    GLint i;
-   GLint numLevels = mt->last_level - mt->first_level + 1;
 
    switch (mt->target) {
    case GL_TEXTURE_CUBE_MAP: {
@@ -71,12 +70,12 @@ GLboolean i915_miptree_layout( struct intel_mipmap_tree *mt )
 	 GLuint y = initial_offsets[face][1] * dim;
 	 GLuint d = dim;
 	 
-	 for (i = 0; i < numLevels; i++) {
+	 for (i = mt->first_level; i <= mt->last_level; i++) {
 	    mt->offset[face][i].x = x; 
 	    mt->offset[face][i].y = y; 
 	    mt->offset[face][i].width = d;
 	    mt->offset[face][i].height = d;
-	    mt->offset[face][i].depth = 0;
+	    mt->offset[face][i].depth = 1;
 	 
 	    d >>= 1;
 	    assert(d > 0);
@@ -91,7 +90,6 @@ GLboolean i915_miptree_layout( struct intel_mipmap_tree *mt )
       GLuint width  = mt->width0;
       GLuint height = mt->height0;
       GLuint depth  = mt->depth0;
-      GLuint tmp_numLevels = MAX2(numLevels, 9);
 
       /* Calculate the size of a single slice.  Hardware demands a
        * minimum of 8 mipmaps, some of which might ultimately not be
@@ -100,7 +98,9 @@ GLboolean i915_miptree_layout( struct intel_mipmap_tree *mt )
       mt->pitch = (mt->width0 * mt->cpp + 3) & ~3;
       mt->total_height = 0;
 
-      for ( i = 0 ; i < tmp_numLevels ; i++ ) {
+      /* XXX: fixme! hardware expects/requires 9 levels at minimum.
+       */
+      for ( i = mt->first_level ; i <= mt->last_level ; i++ ) {
 	 mt->offset[0][i].x = 0;
 	 mt->offset[0][i].y = mt->total_height;
 	 mt->offset[0][i].width = width;
@@ -131,12 +131,12 @@ GLboolean i915_miptree_layout( struct intel_mipmap_tree *mt )
       mt->pitch = (mt->width0 * mt->cpp + 3) & ~3;
       mt->total_height = 0;
 
-      for ( i = 0 ; i < numLevels ; i++ ) {
+      for ( i = mt->first_level ; i <= mt->last_level ; i++ ) {
 	 mt->offset[0][i].x = 0;
 	 mt->offset[0][i].y = mt->total_height;
 	 mt->offset[0][i].height = height;
 	 mt->offset[0][i].width = width;
-	 mt->offset[0][i].depth = 0;
+	 mt->offset[0][i].depth = 1;
 
 	 
 	 if (mt->compressed)
@@ -157,7 +157,6 @@ GLboolean i915_miptree_layout( struct intel_mipmap_tree *mt )
 
 GLboolean i945_miptree_layout( struct intel_mipmap_tree *mt )
 {
-   GLint numLevels = mt->last_level - mt->first_level + 1;
    GLint i;
 
    switch (mt->target) {
@@ -191,12 +190,12 @@ GLboolean i945_miptree_layout( struct intel_mipmap_tree *mt )
 	    x = face * 8;
 	 }
 
-	 for (i = 0; i < numLevels; i++) {
+	 for ( i = mt->first_level ; i <= mt->last_level ; i++ ) {
 	    mt->offset[face][i].x = x; 
 	    mt->offset[face][i].y = y; 
 	    mt->offset[face][i].width = d;
 	    mt->offset[face][i].height = d;
-	    mt->offset[face][i].depth = 0;
+	    mt->offset[face][i].depth = 1;
 
 	    d >>= 1;
 	    assert(d > 0);
@@ -251,7 +250,7 @@ GLboolean i945_miptree_layout( struct intel_mipmap_tree *mt )
 
       depth_pack_pitch = mt->pitch;
 
-      for ( i = 0 ; i < numLevels ; i++ ) {
+      for ( i = mt->first_level ; i <= mt->last_level ; i++ ) {
 
 	 mt->offset[0][i].x = 0;
 	 mt->offset[0][i].y = mt->total_height;
@@ -291,12 +290,12 @@ GLboolean i945_miptree_layout( struct intel_mipmap_tree *mt )
       mt->pitch = (mt->width0 * mt->cpp + 3) & ~3;
       mt->total_height = 0;
 
-      for ( i = 0 ; i < numLevels ; i++ ) {
+      for ( i = mt->first_level ; i <= mt->last_level ; i++ ) {
 	 mt->offset[0][i].x = x;
 	 mt->offset[0][i].y = y;
 	 mt->offset[0][i].height = height;
 	 mt->offset[0][i].width = width;
-	 mt->offset[0][i].depth = 0;
+	 mt->offset[0][i].depth = 1;
 
 	 
 	 /* LPT change: step right after second mipmap.
