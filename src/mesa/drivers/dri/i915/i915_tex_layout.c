@@ -62,7 +62,7 @@ GLboolean i915_miptree_layout( struct intel_mipmap_tree *mt )
       GLuint face;
 
       /* double pitch for cube layouts */
-      mt->pitch = (dim * mt->cpp * 2 + 3) & ~3;
+      mt->pitch = ((dim * mt->cpp * 2 + 3) & ~3) / mt->cpp;
       mt->total_height = dim * 4;
       
       for ( face = 0 ; face < 6 ; face++) {
@@ -95,7 +95,7 @@ GLboolean i915_miptree_layout( struct intel_mipmap_tree *mt )
        * minimum of 8 mipmaps, some of which might ultimately not be
        * used:
        */
-      mt->pitch = (mt->width0 * mt->cpp + 3) & ~3;
+      mt->pitch = ((mt->width0 * mt->cpp + 3) & ~3) / mt->cpp;
       mt->total_height = 0;
 
       /* XXX: fixme! hardware expects/requires 9 levels at minimum.
@@ -128,7 +128,7 @@ GLboolean i915_miptree_layout( struct intel_mipmap_tree *mt )
       GLuint width  = mt->width0;
       GLuint height = mt->height0;
 
-      mt->pitch = (mt->width0 * mt->cpp + 3) & ~3;
+      mt->pitch = ((mt->width0 * mt->cpp + 3) & ~3) / mt->cpp;
       mt->total_height = 0;
 
       for ( i = mt->first_level ; i <= mt->last_level ; i++ ) {
@@ -169,9 +169,9 @@ GLboolean i945_miptree_layout( struct intel_mipmap_tree *mt )
        * or the final row of 4x4, 2x2 and 1x1 faces below this. 
        */
       if (dim > 32) 
-	 mt->pitch = (dim * mt->cpp * 2 + 3) & ~3;
+	 mt->pitch = ((dim * mt->cpp * 2 + 3) & ~3) / mt->cpp;
       else 
-	 mt->pitch = 14 * 8 * mt->cpp; 
+	 mt->pitch = 14 * 8; 
 
       mt->total_height = dim * 4 + 4;
 
@@ -245,10 +245,10 @@ GLboolean i945_miptree_layout( struct intel_mipmap_tree *mt )
       GLuint depth_pack_pitch;
       GLuint depth_packing = 0;
 
-      mt->pitch = (mt->width0 * mt->cpp + 3) & ~3;
+      mt->pitch = ((mt->width0 * mt->cpp + 3) & ~3) / mt->cpp;
       mt->total_height = 0;
 
-      depth_pack_pitch = mt->pitch;
+      depth_pack_pitch = mt->pitch * mt->cpp;
 
       for ( i = mt->first_level ; i <= mt->last_level ; i++ ) {
 
@@ -287,7 +287,7 @@ GLboolean i945_miptree_layout( struct intel_mipmap_tree *mt )
       GLuint width = mt->width0;
       GLuint height = mt->height0;
 
-      mt->pitch = (mt->width0 * mt->cpp + 3) & ~3;
+      mt->pitch = ((mt->width0 * mt->cpp + 3) & ~3) / mt->cpp;
       mt->total_height = 0;
 
       for ( i = mt->first_level ; i <= mt->last_level ; i++ ) {
@@ -301,7 +301,7 @@ GLboolean i945_miptree_layout( struct intel_mipmap_tree *mt )
 	 /* LPT change: step right after second mipmap.
 	  */
 	 if (i == 1) 
-	    x += mt->pitch / (2 * mt->cpp);
+	    x += mt->pitch / 2;
 	 else {
 	    GLuint img_height;
 	 

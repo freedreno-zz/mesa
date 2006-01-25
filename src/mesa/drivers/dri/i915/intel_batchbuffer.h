@@ -34,7 +34,7 @@
 
 #define BATCH_LOCALS	GLubyte *batch_ptr;
 
-#define VERBOSE 1
+#define VERBOSE 0
 
 
 #define BEGIN_BATCH(n)							\

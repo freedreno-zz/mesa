@@ -130,7 +130,7 @@ static GLboolean i915_update_tex_unit( GLcontext *ctx,
        MS3_USE_FENCE_REGS);
 
    state[I915_TEXREG_MS4] = 
-      ((((intelObj->mt->pitch / 4) - 1) << MS4_PITCH_SHIFT) | 
+      (((((intelObj->mt->pitch * intelObj->mt->cpp) / 4) - 1) << MS4_PITCH_SHIFT) | 
        MS4_CUBE_FACE_ENA_MASK |
        ((((intelObj->lastLevel - intelObj->firstLevel) * 4)) << MS4_MAX_LOD_SHIFT) |
        ((firstImage->Depth - 1) << MS4_VOLUME_DEPTH_SHIFT));

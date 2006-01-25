@@ -183,7 +183,7 @@ GLubyte *intel_miptree_image_map(struct intel_context *intel,
 				 GLuint level,
 				 GLuint *stride)
 {
-   _mesa_printf("%s\n", __FUNCTION__);
+   _mesa_printf("%s \n", __FUNCTION__);
    
    if (stride)
       *stride = mt->pitch * mt->cpp;
