@@ -143,8 +143,8 @@ GLboolean i915CreateContext( const __GLcontextModes *mesaVis,
 				 intelScreen->front.offset,
 				 intelScreen->front.map,
 				 intelScreen->cpp,
-				 intelScreen->front.pitch / intelScreen->cpp,
-				 intelScreen->front.size / intelScreen->front.pitch);
+				 intelScreen->front.pitch,
+				 intelScreen->height);
 
 
    intel->back_region = 
@@ -153,8 +153,8 @@ GLboolean i915CreateContext( const __GLcontextModes *mesaVis,
 				 intelScreen->back.offset,
 				 intelScreen->back.map,
 				 intelScreen->cpp,
-				 intelScreen->back.pitch / intelScreen->cpp,
-				 intelScreen->back.size / intelScreen->back.pitch);
+				 intelScreen->back.pitch,
+				 intelScreen->height);
 
    /* Still assuming front.cpp == depth.cpp
     */
@@ -164,8 +164,8 @@ GLboolean i915CreateContext( const __GLcontextModes *mesaVis,
 				 intelScreen->depth.offset,
 				 intelScreen->depth.map,
 				 intelScreen->cpp,
-				 intelScreen->depth.pitch / intelScreen->cpp,
-				 intelScreen->depth.size / intelScreen->depth.pitch);
+				 intelScreen->depth.pitch,
+				 intelScreen->height);
 
 
    /* Advertise the full hardware capabilities.  The new memory

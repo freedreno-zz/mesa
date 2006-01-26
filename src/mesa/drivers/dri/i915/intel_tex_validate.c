@@ -260,6 +260,7 @@ GLboolean intel_validate_buffers( struct intel_context *intel )
    /* Add the color and depth buffers:
     */
       
+
    /* Add each enabled texture:
     */
    for (i = 0 ; i < ctx->Const.MaxTextureUnits && ok ; i++) {

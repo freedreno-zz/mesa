@@ -197,7 +197,7 @@ void intelFlushBatchLocked( intelContextPtr intel,
 	 }      
       }
 
-      if (1)
+      if (0)
  	 intel_dump_batchbuffer( batch.start,
 				 (int *)(intel->batch.ptr - batch.used),
 				 batch.used );
@@ -385,7 +385,9 @@ void intelClear(GLcontext *ctx, GLbitfield mask, GLboolean all,
 }
 
 
-
+/* This will have to go or change to use a fixed pool provided by the
+ * memory manager:
+ */
 void *intelAllocateAGP( intelContextPtr intel, GLsizei size )
 {
    int region_offset = 0;
@@ -451,86 +453,6 @@ void intelFreeAGP( intelContextPtr intel, void *pointer )
    
    if (ret) 
       fprintf(stderr, "%s: DRM_I830_FREE ret %d\n", __FUNCTION__, ret);
-}
-
-/* This version of AllocateMemoryMESA allocates only agp memory, and
- * only does so after the point at which the driver has been
- * initialized.
- *
- * Theoretically a valid context isn't required.  However, in this
- * implementation, it is, as I'm using the hardware lock to protect
- * the kernel data structures, and the current context to get the
- * device fd.
- */
-void *intelAllocateMemoryMESA(__DRInativeDisplay *dpy, int scrn,
-			      GLsizei size, GLfloat readfreq,
-			      GLfloat writefreq, GLfloat priority)
-{
-   GET_CURRENT_CONTEXT(ctx);
-
-   if (INTEL_DEBUG & DEBUG_IOCTL)
-      fprintf(stderr, "%s sz %d %f/%f/%f\n", __FUNCTION__, size, readfreq, 
-	      writefreq, priority);
-
-   if (getenv("INTEL_NO_ALLOC"))
-      return NULL;
-   
-   if (!ctx || INTEL_CONTEXT(ctx) == 0) 
-      return NULL;
-   
-   return intelAllocateAGP( INTEL_CONTEXT(ctx), size );
-}
-
-
-/* Called via glXFreeMemoryMESA() */
-void intelFreeMemoryMESA(__DRInativeDisplay *dpy, int scrn, GLvoid *pointer)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   if (INTEL_DEBUG & DEBUG_IOCTL) 
-      fprintf(stderr, "%s %p\n", __FUNCTION__, pointer);
-
-   if (!ctx || INTEL_CONTEXT(ctx) == 0) {
-      fprintf(stderr, "%s: no context\n", __FUNCTION__);
-      return;
-   }
-
-   intelFreeAGP( INTEL_CONTEXT(ctx), pointer );
-}
-
-/* Called via glXGetMemoryOffsetMESA() 
- *
- * Returns offset of pointer from the start of agp aperture.
- */
-GLuint intelGetMemoryOffsetMESA(__DRInativeDisplay *dpy, int scrn, 
-				const GLvoid *pointer)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   intelContextPtr intel;
-
-   if (!ctx || !(intel = INTEL_CONTEXT(ctx)) ) {
-      fprintf(stderr, "%s: no context\n", __FUNCTION__);
-      return ~0;
-   }
-
-   if (!intelIsAgpMemory( intel, pointer, 0 ))
-      return ~0;
-
-   return intelAgpOffsetFromVirtual( intel, pointer );
-}
-
-
-GLboolean intelIsAgpMemory( intelContextPtr intel, const GLvoid *pointer,
-			   GLint size )
-{
-   int offset = (char *)pointer - (char *)intel->intelScreen->tex.map;
-   int valid = (size >= 0 &&
-		offset >= 0 &&
-		offset + size < intel->intelScreen->tex.size);
-
-   if (INTEL_DEBUG & DEBUG_IOCTL)
-      fprintf(stderr, "intelIsAgpMemory( %p ) : %d\n", pointer, valid );
-   
-   return valid;
 }
 
 

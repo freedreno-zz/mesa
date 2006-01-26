@@ -289,7 +289,7 @@ void intel_region_copy( struct intel_context *intel,
 
    /* Query if both buffers are already uploaded:
     */
-   if (bmValidateBufferList(intel->bm, list, BM_NO_EVICT|BM_NO_UPLOAD)) {
+   if (bmValidateBufferList(intel->bm, list, BM_NO_EVICT|BM_NO_UPLOAD|BM_MEM_AGP)) {
       intelEmitCopyBlitLocked(intel,
 			      dst->cpp,
 			      src->pitch, src_offset,
@@ -335,7 +335,7 @@ void intel_region_fill( struct intel_context *intel,
    LOCK_HARDWARE(intel);
    bmAddBuffer(list, dst->buffer, BM_WRITE, NULL, &dst_offset);
 
-   if (bmValidateBufferList(intel->bm, list, BM_NO_EVICT)) {
+   if (bmValidateBufferList(intel->bm, list, BM_NO_EVICT|BM_NO_UPLOAD|BM_MEM_AGP)) {
       intelEmitFillBlitLocked(intel,
 			      dst->cpp,
 			      dst->pitch,

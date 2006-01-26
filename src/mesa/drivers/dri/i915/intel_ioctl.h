@@ -49,16 +49,6 @@ extern void intelFlush( GLcontext *ctx );
 extern void *intelAllocateAGP( intelContextPtr intel, GLsizei size );
 extern void intelFreeAGP( intelContextPtr intel, void *pointer );
 
-extern void *intelAllocateMemoryMESA( __DRInativeDisplay *dpy, int scrn, 
-				      GLsizei size, GLfloat readfreq,
-				      GLfloat writefreq, GLfloat priority );
-
-extern void intelFreeMemoryMESA( __DRInativeDisplay *dpy, int scrn, 
-				 GLvoid *pointer );
-
-extern GLuint intelGetMemoryOffsetMESA( __DRInativeDisplay *dpy, int scrn, const GLvoid *pointer );
-extern GLboolean intelIsAgpMemory( intelContextPtr intel, const GLvoid *pointer,
-				  GLint size );
 
 extern GLuint intelAgpOffsetFromVirtual( intelContextPtr intel, const GLvoid *p );
 

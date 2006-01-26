@@ -35,8 +35,8 @@
 #include "intel_context.h"
 #include "intel_ioctl.h"
 #include "intel_batchbuffer.h"
-
-
+#include "intel_regions.h"
+#include "bufmgr.h"
 
 static GLboolean
 check_color( GLcontext *ctx, GLenum type, GLenum format,
@@ -75,22 +75,17 @@ check_color( GLcontext *ctx, GLenum type, GLenum format,
 static GLboolean
 check_color_per_fragment_ops( const GLcontext *ctx )
 {
-   int result;
-   result = (!(     ctx->Color.AlphaEnabled || 
-		    ctx->Depth.Test ||
-		    ctx->Fog.Enabled ||
-		    ctx->Scissor.Enabled ||
-		    ctx->Stencil.Enabled ||
-		    !ctx->Color.ColorMask[0] ||
-		    !ctx->Color.ColorMask[1] ||
-		    !ctx->Color.ColorMask[2] ||
-		    !ctx->Color.ColorMask[3] ||
-		    ctx->Color.ColorLogicOpEnabled ||
-		    ctx->Texture._EnabledUnits
-           ) &&
-	   ctx->Current.RasterPosValid);
-   
-   return result;
+   return !(ctx->Color.AlphaEnabled || 
+	    ctx->Depth.Test ||
+	    ctx->Fog.Enabled ||
+	    ctx->Scissor.Enabled ||
+	    ctx->Stencil.Enabled ||
+	    !ctx->Color.ColorMask[0] ||
+	    !ctx->Color.ColorMask[1] ||
+	    !ctx->Color.ColorMask[2] ||
+	    !ctx->Color.ColorMask[3] ||
+	    ctx->Color.ColorLogicOpEnabled ||
+	    ctx->Texture._EnabledUnits);
 }
 
 
@@ -99,11 +94,8 @@ static GLboolean
 clip_pixelrect( GLcontext *ctx,
 		const GLframebuffer *buffer,
 		GLint *x, GLint *y,
-		GLsizei *width, GLsizei *height,
-		GLint *size )
+		GLsizei *width, GLsizei *height )
 {
-   intelContextPtr intel = INTEL_CONTEXT(ctx);
-
    /* left clipping */
    if (*x < buffer->_Xmin) {
       *width -= (buffer->_Xmin - *x);
@@ -130,8 +122,8 @@ clip_pixelrect( GLcontext *ctx,
    if (*height <= 0)
       return GL_FALSE;
 
-   *size = ((*y + *height - 1) * intel->intelScreen->front.pitch +
-	    (*x + *width - 1) * intel->intelScreen->cpp);
+/*    *size = ((*y + *height - 1) * intel->intelScreen->front.pitch + */
+/* 	    (*x + *width - 1) * intel->intelScreen->cpp); */
 
    return GL_TRUE;
 }
@@ -152,8 +144,7 @@ intelTryReadPixels( GLcontext *ctx,
 
    /* Only accelerate reading to agp buffers.
     */
-   if ( !intelIsAgpMemory(intel, pixels, 
-			pitch * height * intel->intelScreen->cpp ) ) {
+   if ( 1 ) {
       if (INTEL_DEBUG & DEBUG_PIXEL)
 	 fprintf(stderr, "%s: dest not agp\n", __FUNCTION__);
       return GL_FALSE;
@@ -198,8 +189,7 @@ intelTryReadPixels( GLcontext *ctx,
       drm_clip_rect_t *box = dPriv->pClipRects;
       int i;
 
-      if (!clip_pixelrect(ctx, ctx->ReadBuffer, &x, &y, &width, &height,
-			  &size)) {
+      if (!clip_pixelrect(ctx, ctx->ReadBuffer, &x, &y, &width, &height)) {
 	 UNLOCK_HARDWARE( intel );
 	 if (INTEL_DEBUG & DEBUG_PIXEL)
 	    fprintf(stderr, "%s totally clipped -- nothing to do\n",
@@ -276,7 +266,6 @@ static void do_draw_pix( GLcontext *ctx,
    drm_clip_rect_t *box = dPriv->pClipRects;
    int nbox = dPriv->numClipRects;
    int i;
-   int size;
    int src_offset = intelAgpOffsetFromVirtual( intel, pixels);
    int src_pitch = pitch;
 
@@ -290,8 +279,7 @@ static void do_draw_pix( GLcontext *ctx,
       y -= height;			/* cope with pixel zoom */
    
       if (!clip_pixelrect(ctx, ctx->DrawBuffer,
-			  &x, &y, &width, &height,
-			  &size)) {
+			  &x, &y, &width, &height)) {
 	 UNLOCK_HARDWARE( intel );
 	 return;
       }
@@ -367,7 +355,7 @@ intelTryDrawPixels( GLcontext *ctx,
 
       /* Can't do conversions on agp reads/draws. 
        */
-      if ( !intelIsAgpMemory( intel, pixels, size ) ) {
+      if ( 1 ) {
 	 if (INTEL_DEBUG & DEBUG_PIXEL)
 	    fprintf(stderr, "%s: not agp memory\n", __FUNCTION__);
 	 return GL_FALSE;
@@ -379,6 +367,8 @@ intelTryDrawPixels( GLcontext *ctx,
       if (!check_color_per_fragment_ops(ctx)) {
 	 return GL_FALSE;
       }
+      if (!ctx->Current.RasterPosValid)
+	 return GL_FALSE;
 
       if (ctx->Pixel.ZoomX != 1.0F ||
 	  ctx->Pixel.ZoomY != -1.0F)
@@ -389,7 +379,7 @@ intelTryDrawPixels( GLcontext *ctx,
       return GL_FALSE;
    }
 
-   if ( intelIsAgpMemory(intel, pixels, size) )
+   if ( 0 )
    {
       do_draw_pix( ctx, x, y, width, height, pitch, pixels,
 		   dest );
@@ -424,6 +414,41 @@ intelDrawPixels( GLcontext *ctx,
 }
 
 
+static struct intel_region *intel_drawbuf_region( struct intel_context *intel )
+{
+   switch (intel->ctx.DrawBuffer->_ColorDrawBufferMask[0]) {
+   case BUFFER_BIT_FRONT_LEFT:
+      return intel->front_region;
+   case BUFFER_BIT_BACK_LEFT:
+      return intel->back_region;
+   default:
+      /* Not necessary to fallback - could handle either NONE or
+       * FRONT_AND_BACK cases below.
+       */
+      return NULL;		
+   }
+}
+
+static struct intel_region *intel_readbuf_region( struct intel_context *intel )
+{
+   GLcontext *ctx = &intel->ctx;
+
+   /* XXX: I don't really understand where I should be pulling the
+    * ReadBuffer.
+    */
+   switch (ctx->Pixel.ReadBuffer) {
+   case GL_FRONT:
+      return intel->front_region;
+   case GL_BACK:
+      return intel->back_region;
+   default:
+      return NULL;
+   }
+}
+
+
+
+
 
 
 /**
@@ -431,42 +456,166 @@ intelDrawPixels( GLcontext *ctx,
  * for the color buffer.  Don't support zooming, pixel transfer, etc.
  * We do support copying from one window to another, ala glXMakeCurrentRead.
  */
+static GLboolean intelTryCopyPixels( GLcontext *ctx,
+				     GLint srcx, GLint srcy, 
+				     GLsizei width, GLsizei height,
+				     GLint dstx, GLint dsty, 
+				     GLenum type )
+{
+   struct intel_context *intel = intel_context( ctx );
+   struct intel_region *dst = intel_drawbuf_region( intel );
+   struct intel_region *src = NULL;
+
+   /* Copypixels can be more than a straight copy.  Ensure all the
+    * extra operations are disabled:
+    */
+   if (!check_color_per_fragment_ops(ctx) ||
+       ctx->_ImageTransferState ||
+       ctx->Pixel.ZoomX != 1.0F || 
+       ctx->Pixel.ZoomY != 1.0F)
+      return GL_FALSE;
+
+   switch (type) {
+   case GL_COLOR:
+      src = intel_readbuf_region( intel );
+      /* No readbuffer, copypixels is a noop: 
+       */
+      if (!src)
+	 return GL_TRUE;
+      break;
+   case GL_DEPTH:
+      /* Don't think this is really possible execpt at 16bpp, when we have no stencil.
+       */
+      if (intel->intelScreen->cpp == 2)
+	 src = intel->depth_region;
+      break;
+   case GL_STENCIL:
+      /* Don't think this is really possible. 
+       */
+      break;
+   case GL_DEPTH_STENCIL_EXT:
+      /* Does it matter whether it is stencil/depth or depth/stencil?
+       */
+      src = intel->depth_region;
+      break;
+   default:
+      break;
+   }
+
+   if (!src || !dst) 
+      return GL_FALSE;
+
+
+
+   intelFlush( &intel->ctx );
+   LOCK_HARDWARE( intel );
+   {
+      __DRIdrawablePrivate *dPriv = intel->driDrawable;
+      drm_clip_rect_t *box = dPriv->pClipRects;
+      GLint nbox = dPriv->numClipRects;
+      GLint delta_x = srcx - dstx;
+      GLint delta_y = srcy - dsty;
+      GLuint dst_offset = 0;
+      GLuint src_offset = 0;
+      GLuint i;
+      struct bm_buffer_list *list = bmNewBufferList();
+
+#if 0
+      dsty -= height;			/* cope with pixel zoom */
+      srcy -= height;			/* cope with pixel zoom */
+#endif
+      if (!ctx->DrawBuffer)
+	 goto out;
+
+      if (!clip_pixelrect(ctx, ctx->DrawBuffer, &dstx, &dsty, &width, &height)) 
+	 goto out;
+
+      /* Update source for clipped dest.  Need to also clip the source rect.
+       */
+      srcx = dstx + delta_x;
+      srcy = dsty + delta_y;
+
+      if (!clip_pixelrect(ctx, ctx->DrawBuffer, &srcx, &srcy, &width, &height)) 
+	 goto out;
+
+      /* Update dest for clipped source:
+       */
+      dstx = srcx - delta_x;
+      dsty = srcy - delta_y;
+
+
+      srcy = dPriv->h - srcy - height; 	/* convert from gl to hardware coords */
+      dsty = dPriv->h - dsty - height; 	/* convert from gl to hardware coords */
+      srcx += dPriv->x;
+      dstx += dPriv->x;
+      srcy += dPriv->y;
+      dsty += dPriv->y;
+
+
+      bmAddBuffer(list, dst->buffer, BM_WRITE, NULL, &dst_offset);
+      bmAddBuffer(list, src->buffer, BM_READ, NULL, &src_offset);
+      if (!bmValidateBufferList(intel->bm, list, BM_NO_EVICT|BM_NO_UPLOAD|BM_MEM_AGP)) 
+	 goto out;
+      
+      /* Could do slightly more clipping: Eg, take the intersection of
+       * the existing set of cliprects and those cliprects translated
+       * by delta_x, delta_y:
+       * 
+       * This code will not overwrite other windows, but will
+       * introduce garbage when copying from obscured window regions.
+       */
+      for (i = 0 ; i < nbox ; i++ )
+      {
+	 GLint bx = box[i].x1;
+	 GLint by = box[i].y1;
+	 GLint bw = box[i].x2 - bx;
+	 GLint bh = box[i].y2 - by;
+
+	 if (bx < dstx) bw -= dstx - bx, bx = dstx;
+	 if (by < dsty) bh -= dsty - by, by = dsty;
+	 if (bx + bw > dstx + width) bw = dstx + width - bx;
+	 if (by + bh > dsty + height) bh = dsty + height - by;
+	 if (bw <= 0) continue;
+	 if (bh <= 0) continue;
+
+	 assert(dst_offset == intel->drawOffset);
+
+	 intelEmitCopyBlitLocked( intel,
+				  dst->cpp,
+				  src->pitch, src_offset,
+				  dst->pitch, dst_offset,
+				  bx + delta_x, by - delta_y, /* srcx, srcy */
+				  bx, by, /* dstx, dsty */
+				  bw, bh );
+      }
+
+      intelFlushBatchLocked( intel, GL_TRUE, GL_FALSE, GL_FALSE);
+      bmFenceBufferList(intel->bm, list);
+
+ out:
+      bmFreeBufferList(list);
+   }
+
+
+   UNLOCK_HARDWARE( intel );
+   return GL_TRUE;
+}
+
+
 static void
 intelCopyPixels( GLcontext *ctx,
 		 GLint srcx, GLint srcy, GLsizei width, GLsizei height,
 		 GLint destx, GLint desty, GLenum type )
 {
-#if 0
-   const XMesaContext xmesa = XMESA_CONTEXT(ctx);
-   const SWcontext *swrast = SWRAST_CONTEXT( ctx );
-   XMesaDisplay *dpy = xmesa->xm_visual->display;
-   const XMesaDrawable drawBuffer = xmesa->xm_draw_buffer->buffer;
-   const XMesaDrawable readBuffer = xmesa->xm_read_buffer->buffer;
-   const XMesaGC gc = xmesa->xm_draw_buffer->gc;
+   if (INTEL_DEBUG & DEBUG_PIXEL)
+      fprintf(stderr, "%s\n", __FUNCTION__);
 
-   ASSERT(dpy);
-   ASSERT(gc);
-
-   if (drawBuffer &&  /* buffer != 0 means it's a Window or Pixmap */
-       readBuffer &&
-       type == GL_COLOR &&
-       (swrast->_RasterMask & ~CLIP_BIT) == 0 && /* no blend, z-test, etc */
-       ctx->_ImageTransferState == 0 &&  /* no color tables, scale/bias, etc */
-       ctx->Pixel.ZoomX == 1.0 &&        /* no zooming */
-       ctx->Pixel.ZoomY == 1.0) {
-      /* Note: we don't do any special clipping work here.  We could,
-       * but X will do it for us.
-       */
-      srcy = FLIP(xmesa->xm_read_buffer, srcy) - height + 1;
-      desty = FLIP(xmesa->xm_draw_buffer, desty) - height + 1;
-      XCopyArea(dpy, readBuffer, drawBuffer, gc,
-                srcx, srcy, width, height, destx, desty);
+   if (!intelTryCopyPixels( ctx, srcx, srcy, width, height, destx, desty, type)) {
+/*       if (INTEL_DEBUG & DEBUG_FALLBACKS) */
+	 _mesa_printf("fallback to _swrast_CopyPixels\n");
+      _swrast_CopyPixels( ctx, srcx, srcy, width, height, destx, desty, type);
    }
-#else
-   _swrast_CopyPixels(ctx, srcx, srcy, width, height, destx, desty, type );
-#endif
 }
-
 
 
 
@@ -476,13 +625,14 @@ void intelInitPixelFuncs( struct dd_function_table *functions )
     */
    functions->Accum = _swrast_Accum;
    functions->Bitmap = _swrast_Bitmap;
-   functions->CopyPixels = intelCopyPixels;
 
-   if (!getenv("INTEL_NO_BLITS")) {
+   if (getenv("INTEL_NO_BLITS") == 0) {
+      functions->CopyPixels = intelCopyPixels;
       functions->ReadPixels = intelReadPixels;  
       functions->DrawPixels = intelDrawPixels; 
    }
    else {
+      functions->CopyPixels = _swrast_CopyPixels;
       functions->ReadPixels = _swrast_ReadPixels;
       functions->DrawPixels = _swrast_DrawPixels;
    }
