@@ -306,7 +306,6 @@ extern void i915_update_fog( GLcontext *ctx );
  */
 extern void i915UpdateTextureState( intelContextPtr intel );
 extern void i915InitTextureFuncs( struct dd_function_table *functions );
-extern intelTextureObjectPtr i915AllocTexObj( struct gl_texture_object *texObj );
 
 /*======================================================================
  * i915_metaops.c

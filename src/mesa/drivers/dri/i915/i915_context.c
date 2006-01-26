@@ -42,6 +42,7 @@
 #include "i915_reg.h"
 
 #include "bufmgr.h"
+#include "intel_regions.h"
 
 /***************************************
  * Mesa's Driver Functions
@@ -103,6 +104,7 @@ GLboolean i915CreateContext( const __GLcontextModes *mesaVis,
    struct dd_function_table functions;
    i915ContextPtr i915 = (i915ContextPtr) CALLOC_STRUCT(i915_context);
    intelContextPtr intel = &i915->intel;
+   intelScreenPrivate *intelScreen;
    GLcontext *ctx = &intel->ctx;
 
    if (!i915) return GL_FALSE;
@@ -126,12 +128,49 @@ GLboolean i915CreateContext( const __GLcontextModes *mesaVis,
    intel->bm = bm_fake_intel_Attach( intel );
 
    bmInitPool(intel->bm,
-              0,
-              0,                /* low offset */
-              intel->intelScreen->tex.size, /* high offset */
-              intel->intelScreen->tex.map); /* virtual base */
+              intel->intelScreen->tex.offset, /* low offset */
+              intel->intelScreen->tex.map, /* low virtual */
+              intel->intelScreen->tex.size,
+	      BM_MEM_AGP);
+
+   intelScreen = intel->intelScreen;
+
+   /* These are still static, but create regions for them.  
+    */
+   intel->front_region = 
+      intel_region_create_static(intel,
+				 BM_MEM_AGP,
+				 intelScreen->front.offset,
+				 intelScreen->front.map,
+				 intelScreen->cpp,
+				 intelScreen->front.pitch / intelScreen->cpp,
+				 intelScreen->front.size / intelScreen->front.pitch);
 
 
+   intel->back_region = 
+      intel_region_create_static(intel,
+				 BM_MEM_AGP,
+				 intelScreen->back.offset,
+				 intelScreen->back.map,
+				 intelScreen->cpp,
+				 intelScreen->back.pitch / intelScreen->cpp,
+				 intelScreen->back.size / intelScreen->back.pitch);
+
+   /* Still assuming front.cpp == depth.cpp
+    */
+   intel->depth_region = 
+      intel_region_create_static(intel,
+				 BM_MEM_AGP,
+				 intelScreen->depth.offset,
+				 intelScreen->depth.map,
+				 intelScreen->cpp,
+				 intelScreen->depth.pitch / intelScreen->cpp,
+				 intelScreen->depth.size / intelScreen->depth.pitch);
+
+
+   /* Advertise the full hardware capabilities.  The new memory
+    * manager should cope much better with overload situations:
+    */
    ctx->Const.MaxTextureLevels = 11;
    ctx->Const.Max3DTextureLevels = 8;
    ctx->Const.MaxCubeTextureLevels = 11;
@@ -142,15 +181,14 @@ GLboolean i915CreateContext( const __GLcontextModes *mesaVis,
     * validates programs against these, and in any case one ARB
     * instruction can translate to more than one HW instruction, so
     * we'll still have to check and fallback each time.
-    */
-   
+    */   
    ctx->Const.FragmentProgram.MaxNativeTemps = I915_MAX_TEMPORARY;
    ctx->Const.FragmentProgram.MaxNativeAttribs = 11; /* 8 tex, 2 color, fog */
    ctx->Const.FragmentProgram.MaxNativeParameters = I915_MAX_CONSTANT;
    ctx->Const.FragmentProgram.MaxNativeAluInstructions = I915_MAX_ALU_INSN;
    ctx->Const.FragmentProgram.MaxNativeTexInstructions = I915_MAX_TEX_INSN;
    ctx->Const.FragmentProgram.MaxNativeInstructions = (I915_MAX_ALU_INSN + 
-						I915_MAX_TEX_INSN);
+						       I915_MAX_TEX_INSN);
    ctx->Const.FragmentProgram.MaxNativeTexIndirections = I915_MAX_TEX_INDIRECT;
    ctx->Const.FragmentProgram.MaxNativeAddressRegs = 0; /* I don't think we have one */
 

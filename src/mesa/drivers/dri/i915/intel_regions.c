@@ -102,6 +102,47 @@ void intel_region_release( struct intel_context *intel,
 }
 
 
+struct intel_region *intel_region_create_static( struct intel_context *intel, 
+						 GLuint mem_type,
+						 GLuint offset,
+						 void *virtual,
+						 GLuint cpp,
+						 GLuint pitch, 
+						 GLuint height )
+{
+   struct intel_region *region = calloc(sizeof(*region), 1);
+   GLuint size = cpp * pitch * height;
+   GLint pool;
+
+   _mesa_printf("%s\n", __FUNCTION__);
+
+   region->cpp = cpp;
+   region->pitch = pitch;
+   region->height = height; 	/* needed? */
+   region->refcount = 1;
+
+   /* Recipe for creating a static buffer - create a static pool with
+    * the right offset and size, generate a buffer and use a special
+    * call to bind it to all of the memory in that pool.
+    */
+   pool = bmInitPool(intel->bm, offset, virtual, size, 
+		     (BM_MEM_AGP |
+		      BM_NO_UPLOAD | 
+		      BM_NO_EVICT | 
+		      BM_NO_MOVE));
+   if (pool < 0) {
+      _mesa_printf("bmInitPool failed for static region\n");
+      exit(1);
+   }
+
+   bmGenBuffers(intel->bm, 1, &region->buffer);
+   bmBufferStatic(intel->bm, region->buffer, size, pool);
+
+   return region;
+}
+
+
+
 static void _mesa_copy_rect( GLubyte *dst,
 			     GLuint cpp,
 			     GLuint dst_pitch,
@@ -243,11 +284,10 @@ void intel_region_copy( struct intel_context *intel,
    assert(src->cpp == dst->cpp);
 
    LOCK_HARDWARE(intel);
-   bmAddBuffer(intel->bm, list, dst->buffer, BM_WRITE, NULL, &dst_offset);
-   bmAddBuffer(intel->bm, list, src->buffer, BM_READ, NULL, &src_offset);
+   bmAddBuffer(list, dst->buffer, BM_WRITE, NULL, &dst_offset);
+   bmAddBuffer(list, src->buffer, BM_READ, NULL, &src_offset);
 
-   /* What I really want to do is query if both buffers are already
-    * uploaded:
+   /* Query if both buffers are already uploaded:
     */
    if (bmValidateBufferList(intel->bm, list, BM_NO_EVICT|BM_NO_UPLOAD)) {
       intelEmitCopyBlitLocked(intel,
@@ -293,7 +333,7 @@ void intel_region_fill( struct intel_context *intel,
    _mesa_printf("%s\n", __FUNCTION__);
 
    LOCK_HARDWARE(intel);
-   bmAddBuffer(intel->bm, list, dst->buffer, BM_WRITE, NULL, &dst_offset);
+   bmAddBuffer(list, dst->buffer, BM_WRITE, NULL, &dst_offset);
 
    if (bmValidateBufferList(intel->bm, list, BM_NO_EVICT)) {
       intelEmitFillBlitLocked(intel,

@@ -47,9 +47,9 @@
 #define DV_PF_565  (2<<8)
 #define DV_PF_8888 (3<<8)
 
-typedef struct intel_context intelContext;
+struct intel_region;
+
 typedef struct intel_context *intelContextPtr;
-typedef struct intel_texture_object *intelTextureObjectPtr;
 
 typedef void (*intel_tri_func)(intelContextPtr, intelVertex *, intelVertex *,
 							  intelVertex *);
@@ -212,6 +212,11 @@ struct intel_context
    GLenum reduced_primitive;
    GLuint vertex_size;
    char *verts;			/* points to tnl->clipspace.vertex_buf */
+
+
+   struct intel_region *front_region;
+   struct intel_region *back_region;
+   struct intel_region *depth_region;
 
 
    /* Fallback rasterization functions 

@@ -14,29 +14,54 @@ struct bm_buffer_list;
 
 struct bufmgr *bm_fake_intel_Attach( struct intel_context *intel );
 
-
 /* struct bufmgr *bmCreate( ... ); */
 /* struct bufmgr *bmAttach( ... ); */
 
-void bmInitPool( struct bufmgr *, 
-		 unsigned pool, 
-		 unsigned long low_offset,
-		 unsigned long high_offset,
-		 void *virtual_base );
+/* Define an address space.  Doesn't really do anything, but the
+ * information could be used to validate the bmInitPool() requests.
+ */
+void bmInitMemType( struct bufmgr *,
+		    unsigned mem_type,
+		    unsigned long size );
 
+
+/* Create a pool of a given memory type, from a certain offset and a
+ * certain size.  
+ *
+ * Also passed in is a virtual pointer to the start of the pool.  This
+ * is useful in the faked-out version in i915 so that MapBuffer can
+ * return a pointer to a buffer residing in AGP space.  
+ *
+ * Flags passed into a pool are inherited by all buffers allocated in
+ * that pool.  So pools representing the static front,back,depth
+ * buffer allocations should have MEM_AGP|NO_UPLOAD|NO_EVICT|NO_MOVE to match
+ * the behaviour of the legacy allocations.
+ *
+ * Returns -1 for failure, pool number for success.
+ */
+int bmInitPool( struct bufmgr *, 
+		unsigned long low_offset,
+		void *low_virtual,
+		unsigned long size,
+		unsigned flags);
+
+
+/* Flags for validate and other calls.  If both NO_UPLOAD and NO_EVICT
+ * are specified, ValidateBuffers is essentially a query.
+ */
 #define BM_MEM_LOCAL   0x1
 #define BM_MEM_AGP     0x2
-#define BM_MEM_VRAM    0x4	/* not used */
+#define BM_MEM_VRAM    0x4	/* not yet used */
+#define BM_WRITE       0x8	/* not yet used */
+#define BM_READ        0x10	/* not yet used */
+#define BM_NO_UPLOAD   0x20
+#define BM_NO_EVICT    0x40
+#define BM_NO_MOVE     0x80	/* not yet used */
+#define BM_NO_ALLOC    0x100	/* legacy "fixed" buffers only */
 
-#define BM_WRITE       0x100	/* not used */
-#define BM_READ        0x200	/* not used */
 
+#define BM_MEM_MASK (BM_MEM_LOCAL|BM_MEM_AGP|BM_MEM_VRAM)
 
-/* Flags for validate.  If both NO_UPLOAD and NO_EVICT are specified,
- * ValidateBuffers is essentially a query.
- */
-#define BM_NO_UPLOAD 0x1
-#define BM_NO_EVICT  0x2
 
 
 /* Stick closely to ARB_vbo semantics - they're well defined and
@@ -45,6 +70,18 @@ void bmInitPool( struct bufmgr *,
  */
 void bmGenBuffers(struct bufmgr *, unsigned n, unsigned *buffers);
 void bmDeleteBuffers(struct bufmgr *, unsigned n, unsigned *buffers);
+
+
+/* Hook to inform faked buffer manager about fixed-position
+ * front,depth,back buffers.  These may move to a fully memory-managed
+ * scheme, or they may continue to be managed as is.
+ */
+unsigned bmBufferStatic(struct bufmgr *,
+			unsigned buffer,
+			unsigned size,
+			unsigned pool);
+
+
 
 /* The driver has more intimate knowledge of the hardare than a GL
  * client would, so flags here is more proscriptive than the usage
@@ -90,8 +127,7 @@ void bmUnmapBuffer( struct bufmgr *,
  */
 struct bm_buffer_list *bmNewBufferList( void );
 
-void bmAddBuffer( struct bufmgr *,
-		  struct bm_buffer_list *list,
+void bmAddBuffer( struct bm_buffer_list *list,
 		  unsigned buffer,
 		  unsigned flags,
 		  unsigned *pool_return,

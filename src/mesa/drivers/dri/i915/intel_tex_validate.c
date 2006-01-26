@@ -208,8 +208,7 @@ void intel_add_texoffset_fixup( struct intel_context *intel,
    f->delta = (intel->intelScreen->tex.offset + 
 	       intel_miptree_image_offset(intelObj->mt, 0, intelObj->firstLevel));
 #else
-   *ptr = (intelObj->textureOffset + 
-	   intel->intelScreen->tex.offset +
+   *ptr = (intelObj->textureOffset + 	   
 	   intel_miptree_image_offset(intelObj->mt, 0, intelObj->firstLevel));
 #endif
 }
@@ -270,8 +269,7 @@ GLboolean intel_validate_buffers( struct intel_context *intel )
 
 	 ok = intel_finalize_mipmap_tree( intel, i );
 	 if (ok) {
-	    bmAddBuffer(intel->bm, 
-			intel->buffer_list,
+	    bmAddBuffer(intel->buffer_list,
 			intelObj->mt->region->buffer,
 			BM_READ,
 			NULL,
@@ -280,7 +278,7 @@ GLboolean intel_validate_buffers( struct intel_context *intel )
       }
    }
 
-   ok = bmValidateBufferList(intel->bm, intel->buffer_list, 0);
+   ok = bmValidateBufferList(intel->bm, intel->buffer_list, BM_MEM_AGP);
    assert(ok);
    return ok;
 }

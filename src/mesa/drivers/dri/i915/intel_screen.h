@@ -32,6 +32,9 @@
 #include "dri_util.h"
 #include "xmlconfig.h"
 
+/* XXX: change name or eliminate to avoid conflict with "struct
+ * intel_region"!!!
+ */
 typedef struct {
    drm_handle_t handle;
    drmSize size;        /* region size in bytes */

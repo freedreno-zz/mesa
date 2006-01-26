@@ -61,6 +61,14 @@ void intel_region_release(struct intel_context *intel,
 			  struct intel_region *ib );
 
 
+struct intel_region *intel_region_create_static( struct intel_context *intel,
+						 GLuint mem_type,
+						 GLuint offset,
+						 void *virtual,
+						 GLuint cpp,
+						 GLuint pitch,
+						 GLuint height );
+
 /* Map/unmap regions.  This is refcounted also: 
  */
 GLubyte *intel_region_map(struct intel_context *intel, 

@@ -22,6 +22,7 @@ struct _mesa_HashTable;
 /* Maximum number of buffers to pass to bmValidateBufferList:
  */
 #define BM_LIST_MAX 32
+#define BM_POOL_MAX 8
 
 
 /* Wrapper around mm.c's mem_block, which understands that you must
@@ -32,7 +33,8 @@ struct _mesa_HashTable;
  */
 struct block {
    struct block *next, *prev;
-   int memType;
+   int mem_type;
+   struct pool *pool;		/* BM_MEM_AGP */
    struct mem_block *mem;	/* BM_MEM_AGP */
    unsigned fence;		/* BM_MEM_AGP, Split to read_fence, write_fence */
    void *virtual;               
@@ -45,50 +47,56 @@ struct buffer {
    unsigned size;
    unsigned alignment;
    unsigned mapped;
+   unsigned flags;
    struct block *block;
 };
 
 struct pool {
-   unsigned size;
+   unsigned flags;
    struct mem_block *heap;
    void *virtual;
    struct block lru;
    struct block freed;
 };
 
-/* List of buffers to validate: 
- */
-struct bm_buffer_list {
-   struct buffer *buffer[BM_LIST_MAX];
-   unsigned *offset_return[BM_LIST_MAX];
-   unsigned nr;
-   unsigned need_fence;
-};
-
-
 struct bufmgr {
    struct intel_context *intel;
-   struct buffer buffer_list;
-   struct pool pool;
+   struct pool pool[BM_POOL_MAX];
+   unsigned nr_pools;
+
    struct _mesa_HashTable *hash;
 
    unsigned buf_nr;		/* for generating ids */
-
-   unsigned last_fence;
 };
 
 
-static struct block *alloc_agp( struct bufmgr *bm,
-				unsigned size, 
-				unsigned align )
+/* List of buffers to validate: 
+ */
+struct bm_buffer_list {
+   struct {
+      unsigned buffer;
+      unsigned *offset_return;
+      unsigned *memtype_return;
+   } elem[BM_LIST_MAX];
+
+   unsigned nr;
+};
+
+
+
+static struct block *alloc_from_pool( struct bufmgr *bm,				
+				      unsigned pool_nr,
+				      unsigned size, 
+				      unsigned align )
 {
+   struct pool *pool = &bm->pool[pool_nr];
    struct block *block = (struct block *)calloc(sizeof *block, 1);
    if (!block)
       return NULL;
 
-   _mesa_printf("alloc_agp 0x%x\n", size);
+   _mesa_printf("alloc_from_pool %d sz 0x%x\n", pool_nr, size);
 
-   block->mem = mmAllocMem(bm->pool.heap, size, align, 0);
+   block->mem = mmAllocMem(pool->heap, size, align, 0);
    if (!block->mem) {
       _mesa_printf("\t- failed\n");
       free(block);
@@ -96,8 +104,9 @@ static struct block *alloc_agp( struct bufmgr *bm,
    }
 
    make_empty_list(block);
-   block->memType = BM_MEM_AGP;
-   block->virtual = bm->pool.virtual + block->mem->ofs;
+   block->pool = pool;
+   block->mem_type = pool->flags & BM_MEM_MASK;
+   block->virtual = pool->virtual + block->mem->ofs;
 
    _mesa_printf("\t- offset 0x%x\n", block->mem->ofs);
    return block;
@@ -112,7 +121,7 @@ static struct block *alloc_local( unsigned size )
 
    _mesa_printf("alloc_local 0x%x\n", size);
 
-   block->memType = BM_MEM_LOCAL;
+   block->mem_type = BM_MEM_LOCAL;
    block->virtual = malloc(size);
    if (!block->virtual) {
       free(block);
@@ -123,30 +132,35 @@ static struct block *alloc_local( unsigned size )
 }
 
 
+
+
 static struct block *alloc_block( struct bufmgr *bm,
 				  unsigned size,
 				  unsigned align,
-				  int memType )
+				  int flags )
 {
-   switch (memType) {
-   case BM_MEM_AGP:
-      return alloc_agp(bm, size, align);
-   case BM_MEM_LOCAL:
-      return alloc_local(size);
-   default:
-      return NULL;
+   GLuint i;
+
+   for (i = 0; i < bm->nr_pools; i++) {
+      if (bm->pool[i].flags & BM_NO_ALLOC)
+	 continue;
+
+      if ((bm->pool[i].flags & flags & BM_MEM_MASK) == 0)
+	 continue;
+      
+      return alloc_from_pool(bm, i, size, align);
    }
+   
+   if (flags & BM_MEM_LOCAL)
+      return alloc_local(size);
+
+   return NULL;
 }
 
 static int bmAllocMem( struct bufmgr *bm,
-		       struct buffer *buf,
-		       unsigned flags )	/* unused */
+		       struct buffer *buf )	
 {
-   if (buf->block == NULL)
-      buf->block = alloc_block(bm, buf->size, 4, BM_MEM_AGP);
- 
-   if (buf->block == NULL)
-      buf->block = alloc_block(bm, buf->size, 4, BM_MEM_LOCAL);
+   buf->block = alloc_block(bm, buf->size, 4, buf->flags);
 
    if (buf->block)
       buf->block->buf = buf;
@@ -162,15 +176,16 @@ static void free_block( struct bufmgr *bm, struct block *block )
    if (!block) 
       return;
 
-   switch (block->memType) {
+   switch (block->mem_type) {
    case BM_MEM_AGP:
+   case BM_MEM_VRAM:
       if (bmTestFence(bm, block->fence)) {
          mmFreeMem(block->mem);
          free(block);
       }
       else {
 	 block->buf = NULL;
-         move_to_tail(&bm->pool.freed, block);
+         move_to_tail(&block->pool->freed, block);
       }
       break;
 
@@ -189,13 +204,16 @@ static int delayed_free( struct bufmgr *bm )
 {
    struct block *block, *tmp;
    int ret = 0;
+   int i;
 
-   foreach_s(block, tmp, &bm->pool.freed ) {
-      if (bmTestFence(bm, block->fence)) {
-	 ret += block->mem->size;
-	 remove_from_list(block);
-	 mmFreeMem(block->mem);
-	 free(block);
+   for (i = 0; i < bm->nr_pools; i++) {
+      foreach_s(block, tmp, &bm->pool[i].freed ) {
+	 if (bmTestFence(bm, block->fence)) {
+	    ret += block->mem->size;
+	    remove_from_list(block);
+	    mmFreeMem(block->mem);
+	    free(block);
+	 }
       }
    }
    
@@ -206,7 +224,6 @@ static int delayed_free( struct bufmgr *bm )
 static int move_buffers( struct bufmgr *bm, 
 			 struct buffer *buffers[],
 			 int nr,
-                         int newMemType,
 			 int flags )
 {
    struct block *newMem[BM_LIST_MAX];
@@ -219,22 +236,20 @@ static int move_buffers( struct bufmgr *bm,
    /* First do all the allocations (or fail):
     */ 
    for (i = 0; i < nr; i++) {    
-      if (buffers[i]->block->memType != newMemType) { 
+      if (!(buffers[i]->block->mem_type & flags)) { 
 	 if (flags & BM_NO_UPLOAD)
 	    goto cleanup;
 
-	 _mesa_printf("try to move buffer size 0x%x to pool %d\n", 
-		      buffers[i]->size, newMemType);
+	 _mesa_printf("try to move buffer %d size 0x%x to pools 0x%x\n", 
+		      buffers[i]->id, buffers[i]->size, flags & BM_MEM_MASK);
 
 	 newMem[i] = alloc_block(bm, 
 				 buffers[i]->size,
 				 buffers[i]->alignment,
-				 newMemType);
+				 flags & BM_MEM_MASK);
 
 	 if (!newMem[i]) 
 	    goto cleanup;
-	 
-	 newMem[i]->buf = buffers[i];
       }
    }
 
@@ -243,12 +258,15 @@ static int move_buffers( struct bufmgr *bm,
     */
    for (i = 0; i < nr; i++) {    
       if (newMem[i]) {
+	 /* XXX: To be replaced with DMA, GTT bind, and other
+	  * mechanisms in final version.  Memcpy (or sse_memcpy) is
+	  * probably pretty good for local->agp uploads.
+	  */
 	 memcpy(newMem[i]->virtual,
 		buffers[i]->block->virtual, 
 		buffers[i]->size);
 
 	 free_block(bm, buffers[i]->block);
-
 	 buffers[i]->block = newMem[i];
 	 buffers[i]->block->buf = buffers[i];
       }
@@ -256,7 +274,7 @@ static int move_buffers( struct bufmgr *bm,
 
    /* Tell hardware that its texture and other caches may be invalid: 
     */
-   if (nr)
+   if (nr && (flags & (BM_MEM_AGP|BM_MEM_VRAM)))
       bmFlushReadCaches(bm);   
 
    _mesa_printf("%s - success\n", __FUNCTION__);
@@ -275,26 +293,36 @@ static int move_buffers( struct bufmgr *bm,
 }
 
 
-static unsigned evict_lru( struct bufmgr *bm )
+static unsigned evict_lru( struct bufmgr *bm,
+			   unsigned flags)
 {
-   int ret;
+   int i;
 
    _mesa_printf("%s\n", __FUNCTION__);
 
-   ret = delayed_free(bm);
-   if (ret)
-      return ret;
-   else {
-      struct block *block = bm->pool.lru.next;
-      unsigned size = block->buf->size;
+   if (flags & BM_NO_EVICT)
+      return 0;
 
-      if (block == &bm->pool.lru ||
-          !bmTestFence(bm, block->fence)) 
-	 return 0;
+   /* XXX: this is broken with >1 active pool - all the first pool
+    * will be evicted before starting on the second.  Actually, maybe
+    * you want that in some situations...
+    */
+   for (i = 0; i < bm->nr_pools; i++) {
+      if ((bm->pool[i].flags & flags & BM_MEM_MASK) && 
+	  !(bm->pool[i].flags & BM_NO_EVICT)) {
+	 struct block *block = bm->pool[i].lru.next;
+	 unsigned size = block->buf->size;
+
+	 if (block == &bm->pool[i].lru ||
+	     !bmTestFence(bm, block->fence)) 
+	    return 0;
    
-      move_buffers(bm, &block->buf, 1, BM_MEM_LOCAL, 0);
-      return size;
+	 move_buffers(bm, &block->buf, 1, BM_MEM_LOCAL);
+	 return size;
+      }
    }
+
+   return 0;
 }
 
 #if 0
@@ -359,27 +387,43 @@ struct bufmgr *bm_fake_intel_Attach( struct intel_context *intel )
 }
 
 
+void bmInitMemType( struct bufmgr *bm,
+		    unsigned mem_type,
+		    unsigned long size )
+{
+   /* Nothing really to do.  Could store and use to validate
+    * bmInitPool requests.
+    */
+}
+
+
 
 /* The virtual pointer would go away in a true implementation.
  */
-void bmInitPool( struct bufmgr *bm, 
-		 unsigned pool, 
-		 unsigned long low_offset,
-		 unsigned long high_offset,
-		 void *virtual_base )
+int bmInitPool( struct bufmgr *bm, 
+		unsigned long low_offset,
+		void *low_virtual,
+		unsigned long size,
+		unsigned flags)
 {
-   if (pool > 0 || low_offset >= high_offset)
-      return;
+   GLuint i;
 
-   _mesa_printf("bmInitPool %d %x..%x\n",
-		pool, low_offset, high_offset);
+   if (bm->nr_pools >= BM_POOL_MAX)
+      return -1;
+
+   i = bm->nr_pools++;
    
-   bm->pool.size = high_offset - low_offset;
-   bm->pool.heap = mmInit( low_offset, bm->pool.size );
-   bm->pool.virtual = virtual_base;
+   _mesa_printf("bmInitPool %d low_offset %x sz %x\n",
+		i, low_offset, size);
    
-   make_empty_list(&bm->pool.lru);
-   make_empty_list(&bm->pool.freed);
+   bm->pool[i].heap = mmInit( low_offset, size );
+   bm->pool[i].virtual = low_virtual - low_offset;
+   bm->pool[i].flags = flags;
+   
+   make_empty_list(&bm->pool[i].lru);
+   make_empty_list(&bm->pool[i].freed);
+
+   return i;
 }
 
 
@@ -390,7 +434,10 @@ void bmGenBuffers(struct bufmgr *bm, unsigned n, unsigned *buffers)
 
    for (i = 0; i < n; i++) {
       struct buffer *buf = calloc(sizeof(*buf), 1);
-      buffers[i] = buf->id = ++bm->buf_nr;
+      buf->id = ++bm->buf_nr;
+      buf->alignment = 12;	/* page-alignment to fit in with AGP swapping */
+      buf->flags = BM_MEM_AGP|BM_MEM_VRAM|BM_MEM_LOCAL;
+      buffers[i] = buf->id;
       _mesa_HashInsert(bm->hash, buffers[i], buf);
    }
 }
@@ -410,6 +457,54 @@ void bmDeleteBuffers(struct bufmgr *bm, unsigned n, unsigned *buffers)
    }
 }
 
+
+
+
+/* Hook to inform faked buffer manager about fixed-position
+ * front,depth,back buffers.  These may move to a fully memory-managed
+ * scheme, or they may continue to be managed as is.  It will probably
+ * be useful to pass a fixed offset here one day.
+ */
+unsigned bmBufferStatic(struct bufmgr *bm,
+			unsigned buffer,
+			unsigned size,
+			unsigned pool )
+{
+   struct buffer *buf = (struct buffer *)_mesa_HashLookup( bm->hash, buffer );
+   
+   assert(!buf->block);
+   assert(bm->pool[pool].flags & BM_NO_EVICT);
+   assert(bm->pool[pool].flags & BM_NO_MOVE);
+
+   buf->size = size;
+   buf->flags = bm->pool[pool].flags;
+   buf->alignment = 0;
+   buf->block = alloc_from_pool(bm, pool, buf->size, buf->alignment);
+   if (!buf->block)
+      return 0;
+
+   buf->block->buf = buf;
+   return buf->block->mem->ofs;
+}
+
+
+#if 0
+/* How wise/useful is this?
+ */
+void bmBufferSetParams( struct bufmgr *bm,
+			unsigned buffer,
+			unsigned flags,
+			unsigned alignment )
+{
+   struct buffer *buf = (struct buffer *)_mesa_HashLookup( bm->hash, buffer );
+   assert(!buf->block);
+   buf->flags = flags;
+   buf->alignment = alignment;
+}
+#endif
+
+
+
 /* If buffer size changes, create new buffer in local memory.
  * Otherwise update in place.
  */
@@ -424,7 +519,7 @@ void bmBufferData(struct bufmgr *bm,
    _mesa_printf("bmBufferData %d sz 0x%x data: %p\n", buffer, size, data);
 
    if (buf->block) {
-      if ((buf->block->memType == BM_MEM_AGP && !bmTestFence(bm, buf->block->fence)) ||
+      if ((buf->block->mem_type != BM_MEM_LOCAL && !bmTestFence(bm, buf->block->fence)) ||
 	  (buf->size && buf->size != size) ||
 	  (data == NULL)) {
 	 free_block(bm, buf->block);
@@ -435,7 +530,7 @@ void bmBufferData(struct bufmgr *bm,
    buf->size = size;
 
    if (data != NULL) {      
-      bmAllocMem(bm, buf, flags);
+      bmAllocMem(bm, buf);
       memcpy(buf->block->virtual, data, size);
    }
 }
@@ -453,12 +548,13 @@ void bmBufferSubData(struct bufmgr *bm,
    _mesa_printf("bmBufferSubdata %d offset 0x%x sz 0x%x\n", buffer, offset, size);
 
    if (buf->block == 0)
-      bmAllocMem(bm, buf, 0);
+      bmAllocMem(bm, buf);
 
-   if (buf->block->memType == BM_MEM_AGP)
+   if (buf->block->mem_type != BM_MEM_LOCAL)
       bmFinishFence(bm, buf->block->fence);
 
-   memcpy(buf->block->virtual + offset, data, size); 
+   if (size) 
+      memcpy(buf->block->virtual + offset, data, size); 
 }
 
 
@@ -478,11 +574,11 @@ void *bmMapBuffer( struct bufmgr *bm,
    buf->mapped = 1;
 
    if (buf->block == 0)
-      bmAllocMem(bm, buf, 0);
+      bmAllocMem(bm, buf);
 
    /* Finish any outstanding operations to/from this memory:
     */
-   if (buf->block->memType == BM_MEM_AGP) 
+   if (buf->block->mem_type != BM_MEM_LOCAL) 
       bmFinishFence(bm, buf->block->fence);
 
    return buf->block->virtual;
@@ -525,32 +621,27 @@ struct bm_buffer_list *bmNewBufferList( void )
    return list;
 }
 
-void bmAddBuffer( struct bufmgr *bm,
-		  struct bm_buffer_list *list,
+void bmAddBuffer( struct bm_buffer_list *list,
 		  unsigned buffer,
 		  unsigned flags,
-		  unsigned *pool_return,
+		  unsigned *memtype_return,
 		  unsigned *offset_return )
 {
    assert(list->nr < BM_LIST_MAX);
 
 
-   list->buffer[list->nr] = _mesa_HashLookup(bm->hash, buffer);
-   list->offset_return[list->nr] = offset_return;
+   list->elem[list->nr].buffer = buffer;
+   list->elem[list->nr].memtype_return = memtype_return;
+   list->elem[list->nr].offset_return = offset_return;
 
-   _mesa_printf("bmAddBuffer nr %d buf %d (%p/%d)\n", list->nr, buffer,
-		list->buffer[list->nr], list->buffer[list->nr]->id);
+   _mesa_printf("bmAddBuffer nr %d buf %d\n", 
+		list->nr, buffer);
 
    list->nr++;
-
-   if (pool_return) 
-      *pool_return = 0;
-
 }
 		
 void bmFreeBufferList( struct bm_buffer_list *list )
 {
-   assert(!list->need_fence);
    free(list);
 }
 
@@ -568,45 +659,39 @@ int bmValidateBufferList( struct bufmgr *bm,
 			  struct bm_buffer_list *list,
 			  unsigned flags )
 {
+   struct buffer *bufs[BM_LIST_MAX];
    unsigned i;
-   unsigned total = 0;
 
    _mesa_printf("%s\n", __FUNCTION__);
 
    if (list->nr > BM_LIST_MAX)
       return 0;
 
-   for (i = 0; i < list->nr; i++) {
-      assert(!list->buffer[i]->mapped);
-      assert(list->buffer[i]->block);
-      total += list->buffer[i]->size;
-   }
+   for (i = 0; i < list->nr; i++)
+      bufs[i] = _mesa_HashLookup(bm->hash, list->elem[i].buffer);
 
-   /* Don't need to try allocation in this case:
-    */
-   if (total > bm->pool.size)
-      return 0;
    
    /* The old story: evict one texture after another until allocation
     * succeeds.  This is a pretty poor strategy but really hard to do
     * better without more infrastucture...  Which is coming - hooray!
     */
-   while (!move_buffers(bm, list->buffer, list->nr, BM_MEM_AGP, flags)) {
-      if ((flags & BM_NO_EVICT) || 
-	  !evict_lru(bm))
+   while (!move_buffers(bm, bufs, list->nr, flags)) {
+      if (!delayed_free(bm) &&
+	  !evict_lru(bm, flags))
 	 return 0;
    }
 
 
    for (i = 0; i < list->nr; i++) {
       _mesa_printf("%d: buf %d ofs 0x%x\n",
-		   i, list->buffer[i]->id,
-		   list->buffer[i]->block->mem->ofs);
+		   i, bufs[i]->id, bufs[i]->block->mem->ofs);
 
-      list->offset_return[i][0] = list->buffer[i]->block->mem->ofs;
+      list->elem[i].offset_return[0] = bufs[i]->block->mem->ofs;
+      
+      if (list->elem[i].memtype_return)
+	 list->elem[i].memtype_return[0] = bufs[i]->block->mem_type;
    }
    
-   list->need_fence = 1;
    return 1;
 }
 
@@ -621,26 +706,22 @@ int bmValidateBufferList( struct bufmgr *bm,
  */
 void bmFenceBufferList( struct bufmgr *bm, struct bm_buffer_list *list )
 {
-   unsigned i;
 
    _mesa_printf("%s (%d bufs)\n", __FUNCTION__, list->nr);
 
-   assert(list->need_fence);
-   list->need_fence = 0;
+   if (list->nr) {
+      unsigned i;
+      unsigned fence = bmSetFence( bm );
 
-   if (!list->nr)
-      return;
+      /* Move all buffers to head of resident list and set their fences
+       */
+      for (i = 0; i < list->nr; i++) {
+	 struct buffer *buf = _mesa_HashLookup(bm->hash, list->elem[i].buffer);
 
-   bm->last_fence = bmSetFence( bm );
-
-   /* Move all buffers to head of resident list and set their fences
-    */
-   for (i = 0; i < list->nr; i++) {
-      assert(list->buffer[i]->block->buf == list->buffer[i]);
-      move_to_head(&bm->pool.lru, list->buffer[i]->block);
-      list->buffer[i]->block->fence = bm->last_fence;
+	 move_to_head(&buf->block->pool->lru, buf->block);
+	 buf->block->fence = fence;
+      }
    }
-
 }
 
 
