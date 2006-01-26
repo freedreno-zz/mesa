@@ -433,13 +433,13 @@ static struct intel_region *intel_readbuf_region( struct intel_context *intel )
 {
    GLcontext *ctx = &intel->ctx;
 
-   /* XXX: I don't really understand where I should be pulling the
-    * ReadBuffer.
+   /* This will have to change to support EXT_fbo's, but is correct
+    * for now:
     */
-   switch (ctx->Pixel.ReadBuffer) {
-   case GL_FRONT:
+   switch (ctx->ReadBuffer->_ColorReadBufferIndex) {
+   case BUFFER_FRONT_LEFT:
       return intel->front_region;
-   case GL_BACK:
+   case BUFFER_BACK_LEFT:
       return intel->back_region;
    default:
       return NULL;
