@@ -79,6 +79,25 @@ void intelTexSubImage1D(GLcontext *ctx,
 			struct gl_texture_object *texObj,
 			struct gl_texture_image *texImage);
 
+void intelCopyTexImage1D( GLcontext *ctx, GLenum target, GLint level,
+			  GLenum internalFormat,
+			  GLint x, GLint y, GLsizei width,
+			  GLint border );
+
+void intelCopyTexImage2D( GLcontext *ctx, GLenum target, GLint level,
+			  GLenum internalFormat,
+			  GLint x, GLint y, GLsizei width, GLsizei height,
+			  GLint border );
+
+void intelCopyTexSubImage1D( GLcontext *ctx, GLenum target, GLint level,
+			     GLint xoffset,
+			     GLint x, GLint y, GLsizei width );
+
+void intelCopyTexSubImage2D( GLcontext *ctx, GLenum target, GLint level,
+			     GLint xoffset, GLint yoffset,
+			     GLint x, GLint y, GLsizei width, GLsizei height );
+
+
 GLuint intel_validate_mipmap_tree( struct intel_context *intel,
 				   struct intel_texture_object *intelObj );
 

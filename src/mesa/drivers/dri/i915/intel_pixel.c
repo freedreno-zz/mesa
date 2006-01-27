@@ -72,8 +72,7 @@ check_color( GLcontext *ctx, GLenum type, GLenum format,
    return GL_FALSE;
 }
 
-static GLboolean
-check_color_per_fragment_ops( const GLcontext *ctx )
+GLboolean intel_check_color_per_fragment_ops( const GLcontext *ctx )
 {
    return !(ctx->Color.AlphaEnabled || 
 	    ctx->Depth.Test ||
@@ -90,11 +89,10 @@ check_color_per_fragment_ops( const GLcontext *ctx )
 
 
 
-static GLboolean
-clip_pixelrect( GLcontext *ctx,
-		const GLframebuffer *buffer,
-		GLint *x, GLint *y,
-		GLsizei *width, GLsizei *height )
+GLboolean intel_clip_to_framebuffer( GLcontext *ctx,
+				     const GLframebuffer *buffer,
+				     GLint *x, GLint *y,
+				     GLsizei *width, GLsizei *height )
 {
    /* left clipping */
    if (*x < buffer->_Xmin) {
@@ -121,9 +119,6 @@ clip_pixelrect( GLcontext *ctx,
 
    if (*height <= 0)
       return GL_FALSE;
-
-/*    *size = ((*y + *height - 1) * intel->intelScreen->front.pitch + */
-/* 	    (*x + *width - 1) * intel->intelScreen->cpp); */
 
    return GL_TRUE;
 }
@@ -189,7 +184,7 @@ intelTryReadPixels( GLcontext *ctx,
       drm_clip_rect_t *box = dPriv->pClipRects;
       int i;
 
-      if (!clip_pixelrect(ctx, ctx->ReadBuffer, &x, &y, &width, &height)) {
+      if (!intel_clip_to_framebuffer(ctx, ctx->ReadBuffer, &x, &y, &width, &height)) {
 	 UNLOCK_HARDWARE( intel );
 	 if (INTEL_DEBUG & DEBUG_PIXEL)
 	    fprintf(stderr, "%s totally clipped -- nothing to do\n",
@@ -278,7 +273,7 @@ static void do_draw_pix( GLcontext *ctx,
    {
       y -= height;			/* cope with pixel zoom */
    
-      if (!clip_pixelrect(ctx, ctx->DrawBuffer,
+      if (!intel_clip_to_framebuffer(ctx, ctx->DrawBuffer,
 			  &x, &y, &width, &height)) {
 	 UNLOCK_HARDWARE( intel );
 	 return;
@@ -414,7 +409,7 @@ intelDrawPixels( GLcontext *ctx,
 }
 
 
-static struct intel_region *intel_drawbuf_region( struct intel_context *intel )
+struct intel_region *intel_drawbuf_region( struct intel_context *intel )
 {
    switch (intel->ctx.DrawBuffer->_ColorDrawBufferMask[0]) {
    case BUFFER_BIT_FRONT_LEFT:
@@ -429,7 +424,7 @@ static struct intel_region *intel_drawbuf_region( struct intel_context *intel )
    }
 }
 
-static struct intel_region *intel_readbuf_region( struct intel_context *intel )
+struct intel_region *intel_readbuf_region( struct intel_context *intel )
 {
    GLcontext *ctx = &intel->ctx;
 
@@ -527,7 +522,7 @@ static GLboolean intelTryCopyPixels( GLcontext *ctx,
       if (!ctx->DrawBuffer)
 	 goto out;
 
-      if (!clip_pixelrect(ctx, ctx->DrawBuffer, &dstx, &dsty, &width, &height)) 
+      if (!intel_clip_to_framebuffer(ctx, ctx->DrawBuffer, &dstx, &dsty, &width, &height)) 
 	 goto out;
 
       /* Update source for clipped dest.  Need to also clip the source rect.
@@ -535,7 +530,7 @@ static GLboolean intelTryCopyPixels( GLcontext *ctx,
       srcx = dstx + delta_x;
       srcy = dsty + delta_y;
 
-      if (!clip_pixelrect(ctx, ctx->DrawBuffer, &srcx, &srcy, &width, &height)) 
+      if (!intel_clip_to_framebuffer(ctx, ctx->DrawBuffer, &srcx, &srcy, &width, &height)) 
 	 goto out;
 
       /* Update dest for clipped source:

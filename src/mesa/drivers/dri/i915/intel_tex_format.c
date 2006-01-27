@@ -7,13 +7,16 @@
  * hardware.  However, there is still a need to map the formats onto
  * hardware descriptors.
  */
+/* Note that the i915 can actually support many more formats than
+ * these if we take the step of simply swizzling the colors
+ * immediately after sampling...
+ */
 const struct gl_texture_format *
 intelChooseTextureFormat( GLcontext *ctx, GLint internalFormat,
                           GLenum format, GLenum type )
 {
    intelContextPtr intel = INTEL_CONTEXT( ctx );
-   const GLboolean do32bpt = ( intel->intelScreen->cpp == 4 &&
-			       intel->intelScreen->tex.size > 4*1024*1024);
+   const GLboolean do32bpt = (intel->intelScreen->cpp == 4);
 
    switch ( internalFormat ) {
    case 4:
@@ -57,7 +60,7 @@ intelChooseTextureFormat( GLcontext *ctx, GLint internalFormat,
    case GL_RGB10:
    case GL_RGB12:
    case GL_RGB16:
-      return do32bpt ? &_mesa_texformat_argb8888 : &_mesa_texformat_rgb565;
+      return &_mesa_texformat_argb8888;
 
    case GL_RGB5:
    case GL_RGB4:

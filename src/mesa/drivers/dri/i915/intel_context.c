@@ -197,7 +197,7 @@ const struct dri_extension card_extensions[] =
     { "GL_NV_blend_square",                NULL },
     { "GL_NV_vertex_program",              GL_NV_vertex_program_functions },
     { "GL_NV_vertex_program1_1",           NULL },
-    { "GL_SGIS_generate_mipmap",           NULL },
+/*     { "GL_SGIS_generate_mipmap",           NULL }, */
     { NULL,                                NULL }
 };
 
@@ -368,7 +368,12 @@ GLboolean intelInitContext( intelContextPtr intel,
 
    _math_matrix_ctr (&intel->ViewportMatrix);
 
-   driInitExtensions( ctx, card_extensions, GL_TRUE );
+   /* Disable imaging extension until convolution is working in
+    * teximage paths:
+    */
+   driInitExtensions( ctx, card_extensions, 
+/* 		      GL_TRUE, */
+		      GL_FALSE);
 
    if (intel->ctx.Mesa_DXTn) {
      _mesa_enable_extension( ctx, "GL_EXT_texture_compression_s3tc" );

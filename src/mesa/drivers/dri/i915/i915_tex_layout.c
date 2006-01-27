@@ -150,6 +150,11 @@ GLboolean i915_miptree_layout( struct intel_mipmap_tree *mt )
       break;
    }
    }
+   _mesa_printf("%s: %dx%dx%d - sz 0x%x\n", __FUNCTION__, 
+		mt->pitch, 
+		mt->total_height,
+		mt->cpp,
+		mt->pitch * mt->total_height * mt->cpp );
 
    return GL_TRUE;
 }
@@ -324,6 +329,12 @@ GLboolean i945_miptree_layout( struct intel_mipmap_tree *mt )
       break;
    }
    }
+   _mesa_printf("%s: %dx%dx%d - sz 0x%x\n", __FUNCTION__, 
+		mt->pitch, 
+		mt->total_height,
+		mt->cpp,
+		mt->pitch * mt->total_height * mt->cpp );
+		
    return GL_TRUE;
 }
 

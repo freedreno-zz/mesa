@@ -259,13 +259,14 @@ static GLboolean i915_update_tex_unit( GLcontext *ctx,
       memcpy(i915->state.Tex[unit], state, sizeof(state));
    }
 
-   _mesa_printf("state[I915_TEXREG_SS2] = 0x%x\n", state[I915_TEXREG_SS2]);
-   _mesa_printf("state[I915_TEXREG_SS3] = 0x%x\n", state[I915_TEXREG_SS3]);
-   _mesa_printf("state[I915_TEXREG_SS4] = 0x%x\n", state[I915_TEXREG_SS4]);
-
-   _mesa_printf("state[I915_TEXREG_MS2] = 0x%x\n", state[I915_TEXREG_MS2]);
-   _mesa_printf("state[I915_TEXREG_MS3] = 0x%x\n", state[I915_TEXREG_MS3]);
-   _mesa_printf("state[I915_TEXREG_MS4] = 0x%x\n", state[I915_TEXREG_MS4]);
+   if (INTEL_DEBUG & DEBUG_TEXTURE) {
+      _mesa_printf("state[I915_TEXREG_SS2] = 0x%x\n", state[I915_TEXREG_SS2]);
+      _mesa_printf("state[I915_TEXREG_SS3] = 0x%x\n", state[I915_TEXREG_SS3]);
+      _mesa_printf("state[I915_TEXREG_SS4] = 0x%x\n", state[I915_TEXREG_SS4]);
+      _mesa_printf("state[I915_TEXREG_MS2] = 0x%x\n", state[I915_TEXREG_MS2]);
+      _mesa_printf("state[I915_TEXREG_MS3] = 0x%x\n", state[I915_TEXREG_MS3]);
+      _mesa_printf("state[I915_TEXREG_MS4] = 0x%x\n", state[I915_TEXREG_MS4]);
+   }
 
    return GL_TRUE;
 }

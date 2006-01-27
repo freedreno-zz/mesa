@@ -533,8 +533,21 @@ extern void intel_dump_batchbuffer( long offset,
  */	
 extern void intelInitPixelFuncs( struct dd_function_table *functions );
 
+GLboolean intel_check_color_per_fragment_ops( const GLcontext *ctx );
 
-/* Inline conversion functions.  These are better-typed than the macros used previously:
+GLboolean intel_clip_to_framebuffer( GLcontext *ctx,
+				     const GLframebuffer *buffer,
+				     GLint *x, GLint *y,
+				     GLsizei *width, GLsizei *height );
+
+struct intel_region *intel_readbuf_region( struct intel_context *intel );
+struct intel_region *intel_drawbuf_region( struct intel_context *intel );
+
+
+
+/*======================================================================
+ * Inline conversion functions.  
+ * These are better-typed than the macros used previously:
  */
 static inline struct intel_context *intel_context( GLcontext *ctx )
 {

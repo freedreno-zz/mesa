@@ -215,17 +215,24 @@ static void intelTexImage(GLcontext *ctx,
       free(texImage->Data);
    }
 
-   pixels = _mesa_validate_pbo_teximage(ctx, dims, width, height, 1, 
-					format, type,
-					pixels, packing, "glTexImage");
-   if (!pixels) 
-      return;
+   /* XXX: If this is the only texture image in the tree, could call
+    * bmBufferData with NULL data to free the old block and avoid
+    * waiting on any outstanding fences.
+    *
+    * XXX: Better to do this internally to intel_mipmap_tree.c,
+    * somehow?
+    */
+   if (intelObj->mt && 
+       intelObj->mt->first_level == level &&
+       intelObj->mt->last_level == level &&
+       intelObj->mt->target != GL_TEXTURE_CUBE_MAP_ARB) {
+   }
+
 
    if (!intelObj->mt) {
       guess_and_alloc_mipmap_tree(intel, intelObj, intelImage);
    }
-
-   LOCK_HARDWARE(intel);
+   
 
    if (intelObj->mt && 
        intelObj->mt != intelImage->mt &&
@@ -237,6 +244,22 @@ static void intelTexImage(GLcontext *ctx,
 
       intelImage->mt = intel_miptree_reference(intelObj->mt);
    }
+
+
+   /* intelCopyTexImage calls this function with pixels == NULL, with
+    * the expectation that the mipmap tree will be set up but nothing
+    * more will be done.  This is where those calls return:
+    */
+   pixels = _mesa_validate_pbo_teximage(ctx, dims, width, height, 1, 
+					format, type,
+					pixels, packing, "glTexImage");
+   if (!pixels) 
+      return;
+   
+
+
+
+   LOCK_HARDWARE(intel);
    
    if (intelImage->mt) {
       texImage->Data = intel_miptree_image_map(intel, 
