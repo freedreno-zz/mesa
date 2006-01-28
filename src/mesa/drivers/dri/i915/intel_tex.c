@@ -65,6 +65,10 @@ void intelInitTextureFuncs(struct dd_function_table * functions)
    functions->TexImage2D = intelTexImage2D;
    functions->TexSubImage1D = intelTexSubImage1D;
    functions->TexSubImage2D = intelTexSubImage2D;
+   functions->CopyTexImage1D = intelCopyTexImage1D;
+   functions->CopyTexImage2D = intelCopyTexImage2D;
+   functions->CopyTexSubImage1D = intelCopyTexSubImage1D;
+   functions->CopyTexSubImage2D = intelCopyTexSubImage2D;
    functions->NewTextureObject = intelNewTextureObject;
    functions->NewTextureImage = intelNewTextureImage;
    functions->DeleteTexture = _mesa_delete_texture_object;

@@ -45,6 +45,9 @@
 static struct intel_region *get_teximage_source( struct intel_context *intel,
 						 GLenum internalFormat )
 {
+   DBG("%s %s\n", __FUNCTION__, 
+       _mesa_lookup_enum_by_nr(internalFormat));
+
    switch (internalFormat) {
    case GL_DEPTH_COMPONENT:
    case GL_DEPTH_COMPONENT16_ARB:
@@ -67,6 +70,21 @@ static struct intel_region *get_teximage_source( struct intel_context *intel,
    }
 }
 
+static GLboolean check_copytex_fragment_ops( const GLcontext *ctx )
+{
+   return !(ctx->Color.AlphaEnabled || 
+/* 	    ctx->Depth.Test || */
+	    ctx->Fog.Enabled ||
+/* 	    ctx->Scissor.Enabled || */
+	    ctx->Stencil.Enabled ||
+	    !ctx->Color.ColorMask[0] ||
+	    !ctx->Color.ColorMask[1] ||
+	    !ctx->Color.ColorMask[2] ||
+	    !ctx->Color.ColorMask[3] ||
+	    ctx->Color.ColorLogicOpEnabled ||
+	    ctx->Texture._EnabledUnits);
+}
+
 
 static GLboolean do_copy_texsubimage( struct intel_context *intel,
 				      struct intel_texture_image *intelImage,
@@ -82,7 +100,7 @@ static GLboolean do_copy_texsubimage( struct intel_context *intel,
    if (!intelImage->mt)
       return GL_FALSE;
  
-   if (!intel_check_color_per_fragment_ops( ctx ))
+   if (!check_copytex_fragment_ops( ctx ))
       return GL_FALSE;
  
 
