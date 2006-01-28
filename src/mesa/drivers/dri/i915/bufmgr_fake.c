@@ -229,6 +229,7 @@ static int move_buffers( struct bufmgr *bm,
 {
    struct block *newMem[BM_LIST_MAX];
    GLint i;
+   GLuint nr_uploads = 0;
 
    DBG("%s\n", __FUNCTION__);
 
@@ -237,7 +238,20 @@ static int move_buffers( struct bufmgr *bm,
    /* First do all the allocations (or fail):
     */ 
    for (i = 0; i < nr; i++) {    
-      if (!(buffers[i]->block->mem_type & flags)) { 
+      if (!buffers[i]->block) {
+/* 	 if (flags & BM_NO_ALLOC) */
+/* 	    goto cleanup; */
+
+	 newMem[i] = alloc_block(bm, 
+				 buffers[i]->size,
+				 buffers[i]->alignment,
+				 flags & BM_MEM_MASK);
+
+	 if (!newMem[i]) 
+	    goto cleanup;
+	
+      } 
+      else if (!(buffers[i]->block->mem_type & flags)) { 
 	 if (flags & BM_NO_UPLOAD)
 	    goto cleanup;
 
@@ -259,16 +273,20 @@ static int move_buffers( struct bufmgr *bm,
     */
    for (i = 0; i < nr; i++) {    
       if (newMem[i]) {
-	 /* XXX: To be replaced with DMA, GTT bind, and other
-	  * mechanisms in final version.  Memcpy (or sse_memcpy) is
-	  * probably pretty good for local->agp uploads.
-	  */
-	 _mesa_printf("* %d\n", buffers[i]->size);
-	 memcpy(newMem[i]->virtual,
-		buffers[i]->block->virtual, 
-		buffers[i]->size);
+	 if (buffers[i]->block) {
+	    /* XXX: To be replaced with DMA, GTT bind, and other
+	     * mechanisms in final version.  Memcpy (or sse_memcpy) is
+	     * probably pretty good for local->agp uploads.
+	     */
+	    _mesa_printf("* %d\n", buffers[i]->size);
+	    memcpy(newMem[i]->virtual,
+		   buffers[i]->block->virtual, 
+		   buffers[i]->size);
+	    
+	    free_block(bm, buffers[i]->block);
+	    nr_uploads++;
+	 }
 
-	 free_block(bm, buffers[i]->block);
 	 buffers[i]->block = newMem[i];
 	 buffers[i]->block->buf = buffers[i];
       }
@@ -276,7 +294,7 @@ static int move_buffers( struct bufmgr *bm,
 
    /* Tell hardware that its texture and other caches may be invalid: 
     */
-   if (nr && (flags & (BM_MEM_AGP|BM_MEM_VRAM)))
+   if (nr_uploads && (flags & (BM_MEM_AGP|BM_MEM_VRAM)))
       bmFlushReadCaches(bm);   
 
    DBG("%s - success\n", __FUNCTION__);
