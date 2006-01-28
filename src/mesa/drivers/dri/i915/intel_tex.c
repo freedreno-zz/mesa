@@ -69,7 +69,20 @@ void intelInitTextureFuncs(struct dd_function_table * functions)
    functions->NewTextureImage = intelNewTextureImage;
    functions->DeleteTexture = _mesa_delete_texture_object;
    functions->FreeTexImageData = intelFreeTextureImageData;
-   functions->TextureMemCpy = _mesa_memcpy;
    functions->UpdateTexturePalette = 0;
    functions->IsTextureResident = intelIsTextureResident;
+
+   /* The system memcpy (at least on ubuntu 5.10) has problems copying
+    * to agp (writecombined) memory from a source which isn't 64-byte
+    * aligned - there is a 4x performance falloff.
+    *
+    * The x86 __memcpy is immune to this but is slightly slower
+    * (10%-ish) than the system memcpy.
+    *
+    * The sse_memcpy seems to have a slight cliff at 64/32 bytes, but
+    * isn't much faster than x86_memcpy for agp copies.
+    * 
+    * TODO: switch dynamically.
+    */
+   functions->TextureMemCpy = __memcpy;	
 }
