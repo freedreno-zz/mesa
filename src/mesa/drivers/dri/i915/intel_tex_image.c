@@ -65,7 +65,7 @@ static void guess_and_alloc_mipmap_tree( struct intel_context *intel,
    GLuint l2width, l2height, l2depth;
    GLuint i;
 
-   _mesa_printf("%s\n", __FUNCTION__);
+   DBG("%s\n", __FUNCTION__);
 
    if (intelImage->base.Border)
       return;
@@ -124,7 +124,7 @@ static void guess_and_alloc_mipmap_tree( struct intel_context *intel,
 					intelImage->base.TexFormat->TexelBytes,
 					intelImage->base.IsCompressed );
 
-   _mesa_printf("%s - success\n", __FUNCTION__);
+   DBG("%s - success\n", __FUNCTION__);
 }
    
 
@@ -165,7 +165,7 @@ static void intelTexImage(GLcontext *ctx,
    GLint texelBytes, sizeInBytes;
    GLuint dstRowStride;
 
-   _mesa_printf("%s target %s level %d %dx%d border %d\n", __FUNCTION__,
+   DBG("%s target %s level %d %dx%d border %d\n", __FUNCTION__,
 		_mesa_lookup_enum_by_nr(target),
 		level,
 		width, height, border);

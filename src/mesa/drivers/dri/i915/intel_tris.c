@@ -102,7 +102,8 @@ void intelStartInlinePrimitive( intelContextPtr intel, GLuint prim )
 {
    BATCH_LOCALS;
 
-   fprintf(stderr, "%s %x\n", __FUNCTION__, prim);
+   if (0)
+      fprintf(stderr, "%s %x\n", __FUNCTION__, prim);
 
 
    /* Finish any in-progress primitive:

@@ -84,6 +84,7 @@ struct bm_buffer_list {
 
 
 
+
 static struct block *alloc_from_pool( struct bufmgr *bm,				
 				      unsigned pool_nr,
 				      unsigned size, 
@@ -94,11 +95,11 @@ static struct block *alloc_from_pool( struct bufmgr *bm,
    if (!block)
       return NULL;
 
-   _mesa_printf("alloc_from_pool %d sz 0x%x\n", pool_nr, size);
+   DBG("alloc_from_pool %d sz 0x%x\n", pool_nr, size);
 
    block->mem = mmAllocMem(pool->heap, size, align, 0);
    if (!block->mem) {
-      _mesa_printf("\t- failed\n");
+      DBG("\t- failed\n");
       free(block);
       return NULL;
    }
@@ -108,7 +109,7 @@ static struct block *alloc_from_pool( struct bufmgr *bm,
    block->mem_type = pool->flags & BM_MEM_MASK;
    block->virtual = pool->virtual + block->mem->ofs;
 
-   _mesa_printf("\t- offset 0x%x\n", block->mem->ofs);
+   DBG("\t- offset 0x%x\n", block->mem->ofs);
    return block;
 }
 
@@ -119,7 +120,7 @@ static struct block *alloc_local( unsigned size )
    if (!block)
       return NULL;
 
-   _mesa_printf("alloc_local 0x%x\n", size);
+   DBG("alloc_local 0x%x\n", size);
 
    block->mem_type = BM_MEM_LOCAL;
    block->virtual = malloc(size);
@@ -229,7 +230,7 @@ static int move_buffers( struct bufmgr *bm,
    struct block *newMem[BM_LIST_MAX];
    GLint i;
 
-   _mesa_printf("%s\n", __FUNCTION__);
+   DBG("%s\n", __FUNCTION__);
 
    memset(newMem, 0, sizeof(newMem));
 
@@ -240,7 +241,7 @@ static int move_buffers( struct bufmgr *bm,
 	 if (flags & BM_NO_UPLOAD)
 	    goto cleanup;
 
-	 _mesa_printf("try to move buffer %d size 0x%x to pools 0x%x\n", 
+	 DBG("try to move buffer %d size 0x%x to pools 0x%x\n", 
 		      buffers[i]->id, buffers[i]->size, flags & BM_MEM_MASK);
 
 	 newMem[i] = alloc_block(bm, 
@@ -262,6 +263,7 @@ static int move_buffers( struct bufmgr *bm,
 	  * mechanisms in final version.  Memcpy (or sse_memcpy) is
 	  * probably pretty good for local->agp uploads.
 	  */
+	 _mesa_printf("* %d\n", buffers[i]->size);
 	 memcpy(newMem[i]->virtual,
 		buffers[i]->block->virtual, 
 		buffers[i]->size);
@@ -277,7 +279,7 @@ static int move_buffers( struct bufmgr *bm,
    if (nr && (flags & (BM_MEM_AGP|BM_MEM_VRAM)))
       bmFlushReadCaches(bm);   
 
-   _mesa_printf("%s - success\n", __FUNCTION__);
+   DBG("%s - success\n", __FUNCTION__);
    return 1;
 
  cleanup:
@@ -288,7 +290,7 @@ static int move_buffers( struct bufmgr *bm,
 	 free_block(bm, newMem[i]);
    }
    
-   _mesa_printf("%s - fail\n", __FUNCTION__);
+   DBG("%s - fail\n", __FUNCTION__);
    return 0;   
 }
 
@@ -298,7 +300,7 @@ static unsigned evict_lru( struct bufmgr *bm,
 {
    int i;
 
-   _mesa_printf("%s\n", __FUNCTION__);
+   DBG("%s\n", __FUNCTION__);
 
    if (flags & BM_NO_EVICT)
       return 0;
@@ -413,7 +415,7 @@ int bmInitPool( struct bufmgr *bm,
 
    i = bm->nr_pools++;
    
-   _mesa_printf("bmInitPool %d low_offset %x sz %x\n",
+   DBG("bmInitPool %d low_offset %x sz %x\n",
 		i, low_offset, size);
    
    bm->pool[i].heap = mmInit( low_offset, size );
@@ -516,7 +518,7 @@ void bmBufferData(struct bufmgr *bm,
 {
    struct buffer *buf = (struct buffer *)_mesa_HashLookup( bm->hash, buffer );
 
-   _mesa_printf("bmBufferData %d sz 0x%x data: %p\n", buffer, size, data);
+   DBG("bmBufferData %d sz 0x%x data: %p\n", buffer, size, data);
 
    if (buf->block) {
       if ((buf->block->mem_type != BM_MEM_LOCAL && !bmTestFence(bm, buf->block->fence)) ||
@@ -545,7 +547,7 @@ void bmBufferSubData(struct bufmgr *bm,
 {
    struct buffer *buf = (struct buffer *)_mesa_HashLookup( bm->hash, buffer );
 
-   _mesa_printf("bmBufferSubdata %d offset 0x%x sz 0x%x\n", buffer, offset, size);
+   DBG("bmBufferSubdata %d offset 0x%x sz 0x%x\n", buffer, offset, size);
 
    if (buf->block == 0)
       bmAllocMem(bm, buf);
@@ -566,7 +568,7 @@ void *bmMapBuffer( struct bufmgr *bm,
 {
    struct buffer *buf = (struct buffer *)_mesa_HashLookup( bm->hash, buffer );
 
-   _mesa_printf("bmMapBuffer %d\n", buffer);
+   DBG("bmMapBuffer %d\n", buffer);
 
    if (buf->mapped)
       return NULL;
@@ -588,7 +590,7 @@ void bmUnmapBuffer( struct bufmgr *bm, unsigned buffer )
 {
    struct buffer *buf = (struct buffer *)_mesa_HashLookup( bm->hash, buffer );
 
-   _mesa_printf("bmUnmapBuffer %d\n", buffer);
+   DBG("bmUnmapBuffer %d\n", buffer);
    buf->mapped = 0;
 }
 
@@ -617,7 +619,7 @@ void bm_fake_SetFixedBufferParams( struct bufmgr *bm
 struct bm_buffer_list *bmNewBufferList( void )
 {
    struct bm_buffer_list *list = calloc(sizeof(*list), 1);
-   _mesa_printf("bmNewBufferList\n");
+   DBG("bmNewBufferList\n");
    return list;
 }
 
@@ -634,7 +636,7 @@ void bmAddBuffer( struct bm_buffer_list *list,
    list->elem[list->nr].memtype_return = memtype_return;
    list->elem[list->nr].offset_return = offset_return;
 
-   _mesa_printf("bmAddBuffer nr %d buf %d\n", 
+   DBG("bmAddBuffer nr %d buf %d\n", 
 		list->nr, buffer);
 
    list->nr++;
@@ -662,7 +664,7 @@ int bmValidateBufferList( struct bufmgr *bm,
    struct buffer *bufs[BM_LIST_MAX];
    unsigned i;
 
-   _mesa_printf("%s\n", __FUNCTION__);
+   DBG("%s\n", __FUNCTION__);
 
    if (list->nr > BM_LIST_MAX)
       return 0;
@@ -683,7 +685,7 @@ int bmValidateBufferList( struct bufmgr *bm,
 
 
    for (i = 0; i < list->nr; i++) {
-      _mesa_printf("%d: buf %d ofs 0x%x\n",
+      DBG("%d: buf %d ofs 0x%x\n",
 		   i, bufs[i]->id, bufs[i]->block->mem->ofs);
 
       list->elem[i].offset_return[0] = bufs[i]->block->mem->ofs;
@@ -707,7 +709,7 @@ int bmValidateBufferList( struct bufmgr *bm,
 void bmFenceBufferList( struct bufmgr *bm, struct bm_buffer_list *list )
 {
 
-   _mesa_printf("%s (%d bufs)\n", __FUNCTION__, list->nr);
+   DBG("%s (%d bufs)\n", __FUNCTION__, list->nr);
 
    if (list->nr) {
       unsigned i;

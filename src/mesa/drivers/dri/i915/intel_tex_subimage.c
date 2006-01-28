@@ -51,7 +51,7 @@ static void intelTexSubimage (GLcontext *ctx,
    GLuint dstImageStride = 0;
    GLuint dstRowStride;
 
-   _mesa_printf("%s target %s level %d offset %d,%d %dx%d\n", __FUNCTION__,
+   DBG("%s target %s level %d offset %d,%d %dx%d\n", __FUNCTION__,
 		_mesa_lookup_enum_by_nr(target),
 		level,
 		xoffset, yoffset,

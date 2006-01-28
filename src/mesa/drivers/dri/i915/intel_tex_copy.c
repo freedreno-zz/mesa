@@ -90,7 +90,7 @@ static GLboolean do_copy_texsubimage( struct intel_context *intel,
    {
       __DRIdrawablePrivate *dPriv = intel->driDrawable;
       struct bm_buffer_list *list = bmNewBufferList();
-      GLuint image_offset = intel_miptree_image_offset(intelImage->mt,						       
+      GLuint image_offset = intel_miptree_image_offset(intelImage->mt, 
 						       intelImage->face,
 						       intelImage->level);
       GLuint dst_offset = 0;
@@ -178,11 +178,6 @@ void intelCopyTexImage1D( GLcontext *ctx, GLenum target, GLint level,
 			  width, border,
 			  GL_RGBA, CHAN_TYPE, NULL,
 			  &ctx->DefaultPacking, texObj, texImage);
-
-
-
-   if (!texImage)
-      goto fail;
 
    if (!do_copy_texsubimage(intel_context(ctx), 
 			    intel_texture_image(texImage),

@@ -250,7 +250,7 @@ GLboolean intel_validate_buffers( struct intel_context *intel )
    GLboolean ok = GL_TRUE;
    GLuint i;
 
-   _mesa_printf("%s\n", __FUNCTION__);
+   DBG("%s\n", __FUNCTION__);
 
    assert(intel->locked);
    assert (!intel->buffer_list);

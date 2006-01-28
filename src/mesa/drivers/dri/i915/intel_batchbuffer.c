@@ -181,11 +181,12 @@ void intelEmitCopyBlitLocked( intelContextPtr intel,
    BATCH_LOCALS;
 
 
-   _mesa_printf("%s src:0x%x/%d %d,%d dst:0x%x/%d %d,%d sz:%dx%d\n",
-		__FUNCTION__,
-		src_offset, src_pitch, src_x, src_y,
-		dst_offset, dst_pitch, dst_x, dst_y,
-		w,h);
+   if (0)
+      _mesa_printf("%s src:0x%x/%d %d,%d dst:0x%x/%d %d,%d sz:%dx%d\n",
+		   __FUNCTION__,
+		   src_offset, src_pitch, src_x, src_y,
+		   dst_offset, dst_pitch, dst_x, dst_y,
+		   w,h);
 
    src_pitch *= cpp;
    dst_pitch *= cpp;

@@ -60,7 +60,7 @@ struct intel_mipmap_tree *intel_miptree_create( struct intel_context *intel,
    GLboolean ok;
    struct intel_mipmap_tree *mt = calloc(sizeof(*mt), 1);
 
-   _mesa_printf("%s target %s format %s level %d..%d\n", __FUNCTION__,
+   DBG("%s target %s format %s level %d..%d\n", __FUNCTION__,
 		_mesa_lookup_enum_by_nr(target),
 		_mesa_lookup_enum_by_nr(internal_format),
 		first_level,
@@ -132,7 +132,7 @@ GLboolean intel_miptree_match_image( struct intel_mipmap_tree *mt,
 				     GLuint face,
 				     GLuint level )
 {
-   _mesa_printf("%s %d %d/%d %d/%d\n", __FUNCTION__,
+   DBG("%s %d %d/%d %d/%d\n", __FUNCTION__,
 		image->Border,
 		image->InternalFormat, mt->internal_format,
 		image->IsCompressed, mt->compressed);
@@ -146,7 +146,7 @@ GLboolean intel_miptree_match_image( struct intel_mipmap_tree *mt,
        image->IsCompressed != mt->compressed)
       return GL_FALSE;
 
-   _mesa_printf("%s: %d/%d %d/%d %d/%d\n", __FUNCTION__,
+   DBG("%s: %d/%d %d/%d %d/%d\n", __FUNCTION__,
 		image->Width, mt->offset[face][level].width,
 		image->Height, mt->offset[face][level].height,
 		image->Depth, mt->offset[face][level].depth);
@@ -161,7 +161,7 @@ GLboolean intel_miptree_match_image( struct intel_mipmap_tree *mt,
       return GL_FALSE;
 
 
-   _mesa_printf("%s: success\n", __FUNCTION__);
+   DBG("%s: success\n", __FUNCTION__);
    return GL_TRUE;
 }
 
@@ -183,7 +183,7 @@ GLubyte *intel_miptree_image_map(struct intel_context *intel,
 				 GLuint level,
 				 GLuint *stride)
 {
-   _mesa_printf("%s \n", __FUNCTION__);
+   DBG("%s \n", __FUNCTION__);
    
    if (stride)
       *stride = mt->pitch * mt->cpp;
@@ -195,7 +195,7 @@ GLubyte *intel_miptree_image_map(struct intel_context *intel,
 void intel_miptree_image_unmap(struct intel_context *intel, 
 			       struct intel_mipmap_tree *mt)
 {
-   _mesa_printf("%s\n", __FUNCTION__);
+   DBG("%s\n", __FUNCTION__);
    intel_region_unmap(intel, mt->region);
 }
 
@@ -211,7 +211,7 @@ void intel_miptree_image_data(struct intel_context *intel,
 			      GLuint level,
 			      void *src, GLuint src_pitch )
 {
-   _mesa_printf("%s\n", __FUNCTION__);
+   DBG("%s\n", __FUNCTION__);
    intel_region_data(intel,
 		     dst->region,
 		     dst->offset[face][level].x,
@@ -230,7 +230,7 @@ void intel_miptree_image_copy( struct intel_context *intel,
 			       GLuint face, GLuint level,
 			       struct intel_mipmap_tree *src )
 {
-   _mesa_printf("%s\n", __FUNCTION__);
+   DBG("%s\n", __FUNCTION__);
    assert(src->offset[face][level].width == 
 	  dst->offset[face][level].width);
 
