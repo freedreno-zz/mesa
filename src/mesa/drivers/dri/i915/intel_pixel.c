@@ -359,7 +359,7 @@ intelTryDrawPixels( GLcontext *ctx,
       if (!check_color(ctx, type, format, unpack, pixels, size, pitch)) {
 	 return GL_FALSE;
       }
-      if (!check_color_per_fragment_ops(ctx)) {
+      if (!intel_check_color_per_fragment_ops(ctx)) {
 	 return GL_FALSE;
       }
       if (!ctx->Current.RasterPosValid)
@@ -464,7 +464,7 @@ static GLboolean intelTryCopyPixels( GLcontext *ctx,
    /* Copypixels can be more than a straight copy.  Ensure all the
     * extra operations are disabled:
     */
-   if (!check_color_per_fragment_ops(ctx) ||
+   if (!intel_check_color_per_fragment_ops(ctx) ||
        ctx->_ImageTransferState ||
        ctx->Pixel.ZoomX != 1.0F || 
        ctx->Pixel.ZoomY != 1.0F)
