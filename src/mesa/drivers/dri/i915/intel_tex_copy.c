@@ -105,9 +105,9 @@ static GLboolean do_copy_texsubimage( struct intel_context *intel,
  
 
    LOCK_HARDWARE(intel);
+   intelInstallBatchBuffer(intel);
    {
       __DRIdrawablePrivate *dPriv = intel->driDrawable;
-      struct bm_buffer_list *list = bmNewBufferList();
       GLuint image_offset = intel_miptree_image_offset(intelImage->mt, 
 						       intelImage->face,
 						       intelImage->level);
@@ -131,9 +131,15 @@ static GLboolean do_copy_texsubimage( struct intel_context *intel,
       y += dPriv->y;
 
 
-      bmAddBuffer(list, intelImage->mt->region->buffer, BM_WRITE, NULL, &dst_offset);
-      bmAddBuffer(list, src->buffer, BM_READ, NULL, &src_offset);
-      if (!bmValidateBufferList(intel->bm, list, BM_MEM_AGP)) {
+      bmAddBuffer(intel->buffer_list, 
+		  intelImage->mt->region->buffer, 
+		  BM_WRITE, NULL, &dst_offset);
+
+      bmAddBuffer(intel->buffer_list, 
+		  src->buffer, 
+		  BM_READ, NULL, &src_offset);
+
+      if (!bmValidateBufferList(intel->bm, intel->buffer_list, BM_MEM_AGP)) {
 	 ret = GL_FALSE;
 	 goto out;
       }
@@ -146,12 +152,8 @@ static GLboolean do_copy_texsubimage( struct intel_context *intel,
 			       x, y, 
 			       dstx, dsty,
 			       width, height );
-
-      intelFlushBatchLocked( intel, GL_TRUE, GL_FALSE, GL_FALSE);
-      bmFenceBufferList(intel->bm, list);
-
    out:
-      bmFreeBufferList(list);
+      intelFlushBatchLocked( intel, GL_TRUE, GL_FALSE, GL_FALSE);
    }
    
 

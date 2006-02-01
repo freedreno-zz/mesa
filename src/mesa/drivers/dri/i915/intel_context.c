@@ -389,7 +389,7 @@ GLboolean intelInitContext( intelContextPtr intel,
 /* 			  DRI_TEXMGR_DO_TEXTURE_RECT ); */
 
 
-   intel->prim.flush = intelInitBatchBuffer;
+   intel->prim.flush = NULL;
    intel->prim.primitive = ~0;
 
 
@@ -433,7 +433,7 @@ void intelDestroyContext(__DRIcontextPrivate *driContextPriv)
       _swrast_DestroyContext (&intel->ctx);
       intel->Fallback = 0;	/* don't call _swrast_Flush later */
 
-      intelDestroyBatchBuffer(&intel->ctx);
+      intelDestroyBatchBuffer(intel);
       
 
       if ( release_texture_heaps ) {
@@ -581,6 +581,13 @@ void intelGetLock( intelContextPtr intel, GLuint flags )
    __DRIscreenPrivate *sPriv = intel->driScreen;
    drmI830Sarea * sarea = intel->sarea;
    int me = intel->hHWContext;
+   static int foo = 0;
+
+/*    _mesa_printf("%s\n", __FUNCTION__); */
+/*    if (foo++ > 1) { */
+/*       _mesa_printf("%s - foo\n", __FUNCTION__); */
+/*       abort(); */
+/*    } */
 
    drmGetLock(intel->driFd, intel->hHWContext, flags);
 

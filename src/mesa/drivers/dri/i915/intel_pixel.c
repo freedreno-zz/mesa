@@ -180,7 +180,7 @@ intelTryReadPixels( GLcontext *ctx,
       int nbox = dPriv->numClipRects;
       int src_offset = intel->drawOffset;
       int src_pitch = intel->intelScreen->front.pitch;
-      int dst_offset = intelAgpOffsetFromVirtual( intel, pixels);
+      int dst_offset = 0;
       drm_clip_rect_t *box = dPriv->pClipRects;
       int i;
 
@@ -261,7 +261,7 @@ static void do_draw_pix( GLcontext *ctx,
    drm_clip_rect_t *box = dPriv->pClipRects;
    int nbox = dPriv->numClipRects;
    int i;
-   int src_offset = intelAgpOffsetFromVirtual( intel, pixels);
+   int src_offset = 0;
    int src_pitch = pitch;
 
    if (INTEL_DEBUG & DEBUG_PIXEL)
@@ -504,6 +504,7 @@ static GLboolean intelTryCopyPixels( GLcontext *ctx,
 
    intelFlush( &intel->ctx );
    LOCK_HARDWARE( intel );
+   intelInstallBatchBuffer( intel );
    {
       __DRIdrawablePrivate *dPriv = intel->driDrawable;
       drm_clip_rect_t *box = dPriv->pClipRects;
@@ -513,7 +514,6 @@ static GLboolean intelTryCopyPixels( GLcontext *ctx,
       GLuint dst_offset = 0;
       GLuint src_offset = 0;
       GLuint i;
-      struct bm_buffer_list *list = bmNewBufferList();
 
 #if 0
       dsty -= height;			/* cope with pixel zoom */
@@ -547,9 +547,12 @@ static GLboolean intelTryCopyPixels( GLcontext *ctx,
       dsty += dPriv->y;
 
 
-      bmAddBuffer(list, dst->buffer, BM_WRITE, NULL, &dst_offset);
-      bmAddBuffer(list, src->buffer, BM_READ, NULL, &src_offset);
-      if (!bmValidateBufferList(intel->bm, list, BM_NO_EVICT|BM_NO_UPLOAD|BM_MEM_AGP)) 
+      bmAddBuffer(intel->buffer_list, dst->buffer, BM_NO_EVICT|BM_NO_UPLOAD|BM_WRITE, 
+		  NULL, &dst_offset);
+      bmAddBuffer(intel->buffer_list, src->buffer, BM_NO_EVICT|BM_NO_UPLOAD|BM_READ, 
+		  NULL, &src_offset);
+
+      if (!bmValidateBufferList(intel->bm, intel->buffer_list, BM_MEM_AGP)) 
 	 goto out;
       
       /* Could do slightly more clipping: Eg, take the intersection of
@@ -583,15 +586,9 @@ static GLboolean intelTryCopyPixels( GLcontext *ctx,
 				  bx, by, /* dstx, dsty */
 				  bw, bh );
       }
-
-      intelFlushBatchLocked( intel, GL_TRUE, GL_FALSE, GL_FALSE);
-      bmFenceBufferList(intel->bm, list);
-
- out:
-      bmFreeBufferList(list);
    }
-
-
+ out:
+   intelFlushBatchLocked( intel, GL_TRUE, GL_FALSE, GL_FALSE);
    UNLOCK_HARDWARE( intel );
    return GL_TRUE;
 }

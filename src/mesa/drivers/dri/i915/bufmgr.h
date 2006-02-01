@@ -137,7 +137,7 @@ int bmValidateBufferList( struct bufmgr *,
 			  struct bm_buffer_list *,
 			  unsigned flags );
 
-void bmFenceBufferList( struct bufmgr *,
+unsigned bmFenceBufferList( struct bufmgr *,
 			struct bm_buffer_list * );
 
 void bmFreeBufferList( struct bm_buffer_list * );

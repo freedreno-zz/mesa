@@ -146,6 +146,8 @@ struct intel_context
    GLuint Fallback;
    GLuint NewGLState;
    
+   GLuint last_fence;
+
    struct {
       GLuint start_offset;
       GLint size;
@@ -153,15 +155,16 @@ struct intel_context
       GLubyte *ptr;
    } batch;
       
+#define INTEL_ALLOC_NR 64
+#define INTEL_ALLOC_SIZE 4096
+
    struct {
-      void *ptr;
-      GLint size;
-      GLuint offset;
-      GLuint active_buf;
-      GLuint irq_emitted;
+      GLuint buffer[INTEL_ALLOC_NR];
+      GLuint current;
    } alloc;
 
    struct {
+      GLuint id;
       GLuint primitive;
       GLubyte *start_ptr;      
       void (*flush)( GLcontext * );
@@ -211,11 +214,12 @@ struct intel_context
    GLenum render_primitive;
    GLenum reduced_primitive;
    GLuint vertex_size;
-   char *verts;			/* points to tnl->clipspace.vertex_buf */
+   GLubyte *verts;			/* points to tnl->clipspace.vertex_buf */
 
 
    struct intel_region *front_region;
    struct intel_region *back_region;
+   struct intel_region *draw_region;
    struct intel_region *depth_region;
 
 

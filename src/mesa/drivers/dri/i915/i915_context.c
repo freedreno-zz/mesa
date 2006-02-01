@@ -109,7 +109,7 @@ GLboolean i915CreateContext( const __GLcontextModes *mesaVis,
 
    if (!i915) return GL_FALSE;
 
-   _mesa_printf( "\ntexmem branch\n\n");
+   _mesa_printf( "\ntexmem branch (i915)\n\n");
    
    i915InitVtbl( i915 );
 
@@ -167,6 +167,7 @@ GLboolean i915CreateContext( const __GLcontextModes *mesaVis,
 				 intelScreen->depth.pitch,
 				 intelScreen->height);
 
+   intelInitBatchBuffer(intel);
 
    /* Advertise the full hardware capabilities.  The new memory
     * manager should cope much better with overload situations:

@@ -111,4 +111,12 @@ GLboolean intel_prevalidate_buffers( struct intel_context *intel );
 GLboolean intel_validate_buffers( struct intel_context *intel );
 void intel_fence_buffers( struct intel_context *intel );
 
+
+void intel_tex_map_images( struct intel_context *intel,
+			   struct intel_texture_object *intelObj );
+
+void intel_tex_unmap_images( struct intel_context *intel,
+			     struct intel_texture_object *intelObj );
+
+
 #endif

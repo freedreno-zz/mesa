@@ -42,6 +42,7 @@ do {									\
    if (VERBOSE) fprintf(stderr, 					\
 			"BEGIN_BATCH(%d) in %s, %d dwords free\n",	\
 			(n), __FUNCTION__, intel->batch.space/4);	\
+   assert(intel->locked); \
    if (intel->batch.space < (n)*4)					\
       intelFlushBatch(intel, GL_TRUE);					\
    batch_ptr = intel->batch.ptr;					\
@@ -62,8 +63,11 @@ do {								\
    assert(intel->batch.space >= 0);				\
 } while(0)
 
-extern void intelInitBatchBuffer( GLcontext *ctx );
-extern void intelDestroyBatchBuffer( GLcontext *ctx );
+extern void intelInitBatchBuffer( struct intel_context *intel );
+extern void intelDestroyBatchBuffer( struct intel_context *intel );
+
+void intelInstallBatchBuffer( struct intel_context *intel );
+
 
 extern void intelStartInlinePrimitive( intelContextPtr intel, GLuint prim );
 extern void intelWrapInlinePrimitive( intelContextPtr intel );
@@ -97,5 +101,6 @@ extern void intelEmitFillBlitLocked( intelContextPtr intel,
 
 GLuint *intelExtendInlinePrimitive( intelContextPtr intel, 
 				    GLuint dwords );
+void intelValidateBuffers( struct intel_context *intel );
 
 #endif

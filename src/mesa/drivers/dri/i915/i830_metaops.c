@@ -442,7 +442,7 @@ i830TryTextureReadPixels( GLcontext *ctx,
    int textureFormat;
    GLenum glTextureFormat;
    int src_offset = i830->meta.Buffer[I830_DESTREG_CBUFADDR2];
-   int destOffset = intelAgpOffsetFromVirtual( &i830->intel, pixels);
+   int destOffset = 0;
    int destFormat, depthFormat, destPitch;
    drm_clip_rect_t tmp;
 
@@ -596,7 +596,7 @@ i830TryTextureDrawPixels( GLcontext *ctx,
    int textureFormat;
    GLenum glTextureFormat;
    int dst_offset = i830->meta.Buffer[I830_DESTREG_CBUFADDR2];
-   int src_offset = intelAgpOffsetFromVirtual( intel, pixels );
+   int src_offset = 0;
 
    if (INTEL_DEBUG & DEBUG_PIXEL)
       fprintf(stderr, "%s\n", __FUNCTION__);

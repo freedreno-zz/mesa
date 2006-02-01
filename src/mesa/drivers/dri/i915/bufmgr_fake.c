@@ -166,6 +166,7 @@ static int bmAllocMem( struct bufmgr *bm,
    if (buf->block)
       buf->block->buf = buf;
 
+   assert(buf->block);
    return buf->block != NULL;
 }
 
@@ -255,6 +256,8 @@ static int move_buffers( struct bufmgr *bm,
 	 if (flags & BM_NO_UPLOAD)
 	    goto cleanup;
 
+	 assert(!buffers[i]->mapped);
+
 	 DBG("try to move buffer %d size 0x%x to pools 0x%x\n", 
 		      buffers[i]->id, buffers[i]->size, flags & BM_MEM_MASK);
 
@@ -308,7 +311,7 @@ static int move_buffers( struct bufmgr *bm,
 	 free_block(bm, newMem[i]);
    }
    
-   DBG("%s - fail\n", __FUNCTION__);
+   _mesa_printf("%s - fail\n", __FUNCTION__);
    return 0;   
 }
 
@@ -538,6 +541,8 @@ void bmBufferData(struct bufmgr *bm,
 
    DBG("bmBufferData %d sz 0x%x data: %p\n", buffer, size, data);
 
+   assert(!buf->mapped);
+
    if (buf->block) {
       if ((buf->block->mem_type != BM_MEM_LOCAL && !bmTestFence(bm, buf->block->fence)) ||
 	  (buf->size && buf->size != size) ||
@@ -699,6 +704,7 @@ int bmValidateBufferList( struct bufmgr *bm,
       if (!delayed_free(bm) &&
 	  !evict_lru(bm, flags))
 	 return 0;
+      exit(1);
    }
 
 
@@ -706,7 +712,8 @@ int bmValidateBufferList( struct bufmgr *bm,
       DBG("%d: buf %d ofs 0x%x\n",
 		   i, bufs[i]->id, bufs[i]->block->mem->ofs);
 
-      list->elem[i].offset_return[0] = bufs[i]->block->mem->ofs;
+      if (list->elem[i].offset_return)
+	 list->elem[i].offset_return[0] = bufs[i]->block->mem->ofs;
       
       if (list->elem[i].memtype_return)
 	 list->elem[i].memtype_return[0] = bufs[i]->block->mem_type;
@@ -724,7 +731,7 @@ int bmValidateBufferList( struct bufmgr *bm,
  * The buffer manager knows how to emit and test fences directly
  * through the drm and without callbacks or whatever into the driver.
  */
-void bmFenceBufferList( struct bufmgr *bm, struct bm_buffer_list *list )
+unsigned bmFenceBufferList( struct bufmgr *bm, struct bm_buffer_list *list )
 {
 
    DBG("%s (%d bufs)\n", __FUNCTION__, list->nr);
@@ -741,7 +748,11 @@ void bmFenceBufferList( struct bufmgr *bm, struct bm_buffer_list *list )
 	 move_to_head(&buf->block->pool->lru, buf->block);
 	 buf->block->fence = fence;
       }
+
+      return fence;
    }
+   else
+      return 0;
 }
 
 
@@ -761,6 +772,9 @@ unsigned bmSetFence( struct bufmgr *bm )
 
 int bmTestFence( struct bufmgr *bm, unsigned fence )
 {
+/*    if (fence % 1024 == 0) */
+/*       _mesa_printf("%d %d\n", fence, bm->intel->sarea->last_dispatch); */
+
    return fence <= bm->intel->sarea->last_dispatch;
 }
 

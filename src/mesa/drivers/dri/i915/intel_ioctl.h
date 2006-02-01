@@ -46,11 +46,6 @@ extern void intelRefillBatchLocked( intelContextPtr intel, GLboolean allow_unloc
 extern void intelFinish( GLcontext *ctx );
 extern void intelFlush( GLcontext *ctx );
 
-extern void *intelAllocateAGP( intelContextPtr intel, GLsizei size );
-extern void intelFreeAGP( intelContextPtr intel, void *pointer );
-
-
-extern GLuint intelAgpOffsetFromVirtual( intelContextPtr intel, const GLvoid *p );
 
 void intelWaitIrq( intelContextPtr intel, int seq );
 int intelEmitIrqLocked( intelContextPtr intel );

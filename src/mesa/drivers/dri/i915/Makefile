@@ -29,7 +29,6 @@ DRIVER_SOURCES = \
 	intel_context.c \
 	intel_ioctl.c \
 	intel_pixel.c \
-	intel_render.c \
 	intel_screen.c \
 	intel_span.c \
 	intel_state.c \
@@ -37,6 +36,7 @@ DRIVER_SOURCES = \
 
 
 DISABLED = \
+	intel_render.c \
 	i830_context.c \
 	i830_metaops.c \
 	i830_state.c \

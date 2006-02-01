@@ -166,7 +166,7 @@ static GLboolean intelInitDriver(__DRIscreenPrivate *sPriv)
 			 
    intelScreen->sarea_priv_offset = gDRIPriv->sarea_priv_offset;
    
-   if (0) intelPrintDRIInfo(intelScreen, sPriv, gDRIPriv);
+   if (1) intelPrintDRIInfo(intelScreen, sPriv, gDRIPriv);
 
    intelScreen->drmMinor = sPriv->drmMinor;
 

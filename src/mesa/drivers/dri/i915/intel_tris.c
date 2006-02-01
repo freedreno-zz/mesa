@@ -87,12 +87,6 @@ static void intel_flush_inline_primitive( GLcontext *ctx )
    intel->prim.primitive = ~0;
    intel->prim.start_ptr = 0;
    intel->prim.flush = 0;
-
-   intelFlushBatch(intel, GL_TRUE); 
-   intel_fence_buffers(intel);
-   UNLOCK_HARDWARE(intel);
-
-
 }
 
 
@@ -101,30 +95,7 @@ static void intel_flush_inline_primitive( GLcontext *ctx )
 void intelStartInlinePrimitive( intelContextPtr intel, GLuint prim )
 {
    BATCH_LOCALS;
-
-   if (0)
-      fprintf(stderr, "%s %x\n", __FUNCTION__, prim);
-
-
-   /* Finish any in-progress primitive:
-    */
-   INTEL_FIREVERTICES( intel );
-
-   LOCK_HARDWARE(intel);
-   intel_validate_buffers( intel );
-   intel->vtbl.emit_state( intel );
    
-   /* Make sure there is some space in this buffer:
-    */
-   if (intel->vertex_size * 10 * sizeof(GLuint) >= intel->batch.space)
-      intelFlushBatch(intel, GL_TRUE); 
-
-   if (((int)intel->batch.ptr) & 0x4) {
-      BEGIN_BATCH(1);
-      OUT_BATCH(0);
-      ADVANCE_BATCH();
-   }
-
    /* Emit a slot which will be filled with the inline primitive
     * command later.
     */
@@ -146,6 +117,9 @@ void intelWrapInlinePrimitive( intelContextPtr intel )
 
    intel_flush_inline_primitive( &intel->ctx );
    intelFlushBatch(intel, GL_TRUE);
+   intelInstallBatchBuffer( intel );    
+   intel_validate_buffers( intel );
+   intel->vtbl.emit_state( intel );
    intelStartInlinePrimitive( intel, prim );
 }
 
@@ -859,7 +833,14 @@ static void intelRunPipeline( GLcontext *ctx )
 
 static void intelRenderStart( GLcontext *ctx )
 {
-   INTEL_CONTEXT(ctx)->vtbl.render_start( INTEL_CONTEXT(ctx) );
+   struct intel_context *intel = intel_context(ctx);
+
+   intel->vtbl.render_start( INTEL_CONTEXT(ctx) );
+
+   LOCK_HARDWARE(intel);
+   intelInstallBatchBuffer( intel );    
+   intel_validate_buffers( intel );
+   intel->vtbl.emit_state( intel );
 }
 
 static void intelRenderFinish( GLcontext *ctx )
@@ -871,6 +852,9 @@ static void intelRenderFinish( GLcontext *ctx )
 
    if (intel->prim.flush)
       intel->prim.flush(ctx);
+
+   intelFlushBatch(intel, GL_TRUE); 
+   UNLOCK_HARDWARE(intel);
 }
 
 

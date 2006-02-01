@@ -37,6 +37,7 @@
 #include "intel_batchbuffer.h"
 #include "intel_context.h"
 
+#include "bufmgr.h"
 
 
 
@@ -59,6 +60,9 @@ void intelCopyBuffer( const __DRIdrawablePrivate *dPriv )
 
    intelFlush( &intel->ctx );
    LOCK_HARDWARE( intel );
+   intelInstallBatchBuffer(intel);   
+   intelValidateBuffers( intel );
+
    {
       intelScreenPrivate *intelScreen = intel->intelScreen;
       __DRIdrawablePrivate *dPriv = intel->driDrawable;
@@ -117,6 +121,8 @@ void intelCopyBuffer( const __DRIdrawablePrivate *dPriv )
       }
    }
    intelFlushBatchLocked( intel, GL_TRUE, GL_TRUE, GL_TRUE );
+   assert(intel->buffer_list == NULL);
+
    UNLOCK_HARDWARE( intel );
 }
 
@@ -273,6 +279,8 @@ void intelClearWithBlit(GLcontext *ctx, GLbitfield flags, GLboolean all,
 
    intelFlush( &intel->ctx );
    LOCK_HARDWARE( intel );
+   intelInstallBatchBuffer(intel);   
+   intelValidateBuffers( intel );
    {
       /* flip top to bottom */
       cy = intel->driDrawable->h-cy1-ch;
@@ -362,60 +370,72 @@ void intelClearWithBlit(GLcontext *ctx, GLbitfield flags, GLboolean all,
 
 
 
-void intelDestroyBatchBuffer( GLcontext *ctx )
+void intelDestroyBatchBuffer( struct intel_context *intel )
 {
-   intelContextPtr intel = INTEL_CONTEXT(ctx);
-
-   if (intel->alloc.ptr) {
-      intelFreeAGP( intel, intel->alloc.ptr );
-      intel->alloc.ptr = 0;
-   }
 }
 
 
-void intelInitBatchBuffer( GLcontext *ctx )
+void intelInstallBatchBuffer( struct intel_context *intel )
 {
-   intelContextPtr intel = INTEL_CONTEXT(ctx);
+   assert(!intel->batch.ptr);
 
-   /* AGP allocation won't work: 
+   intel->alloc.current++;
+   intel->alloc.current %= INTEL_ALLOC_NR;
+
+   DBG("%s: %d\n", __FUNCTION__, intel->alloc.current);
+
+   intel->batch.size = INTEL_ALLOC_SIZE;
+   intel->batch.space = intel->batch.size;
+   intel->batch.start_offset = 0;
+
+   intel->batch.ptr = bmMapBuffer( intel->bm, 
+				   intel->alloc.buffer[intel->alloc.current],
+				   BM_WRITE | BM_MEM_AGP );
+
+
+   assert(!intel->buffer_list);
+   intel->buffer_list = bmNewBufferList();
+      
+   /* Add the batchbuffer 
     */
-   if (1 || !intel->intelScreen->allow_batchbuffer || getenv("INTEL_NO_BATCH")) {
-      intel->alloc.size = 8 * 1024;
-      intel->alloc.ptr = malloc( intel->alloc.size );
-      intel->alloc.offset = 0;
-   }
-   else {
-      switch (intel->intelScreen->deviceID) {
-      case PCI_CHIP_I865_G:
-	 /* HW bug?  Seems to crash if batchbuffer crosses 4k boundary.
-	  */
-	 intel->alloc.size = 8 * 1024; 
-	 break;
-      default:
-	 /* This is the smallest amount of memory the kernel deals with.
-	  * We'd ideally like to make this smaller.
-	  */
-	 intel->alloc.size = 1 << intel->intelScreen->logTextureGranularity;
-	 break;
+   bmAddBuffer(intel->buffer_list,
+	       intel->alloc.buffer[intel->alloc.current],
+	       BM_READ,
+	       NULL,
+	       &intel->batch.start_offset);
+
+
+   if (0) {
+      static int foo;
+      if (foo++ > 10) {
+	 _mesa_printf("foo\n");
+	 exit(1);
       }
-
-      intel->alloc.ptr = intelAllocateAGP( intel, intel->alloc.size );
-      if (intel->alloc.ptr)
-	 intel->alloc.offset = 
-	    intelAgpOffsetFromVirtual( intel, intel->alloc.ptr );
    }
+}
 
-   if (!intel->alloc.ptr) {
-      FALLBACK(intel, INTEL_FALLBACK_NO_BATCHBUFFER, 1);
-   }
-   else {
-      intel->prim.flush = 0;
-      intel->vtbl.emit_invarient_state( intel );
+void intelInitBatchBuffer( struct intel_context *intel )
+{
+   GLint i;
 
-      /* Make sure this gets to the hardware, even if we have no cliprects:
-       */
-      LOCK_HARDWARE( intel );
-      intelFlushBatchLocked( intel, GL_TRUE, GL_FALSE, GL_TRUE );
-      UNLOCK_HARDWARE( intel );
-   }
+   _mesa_printf("%s: %d\n", __FUNCTION__, intel->alloc.current);
+   bmGenBuffers(intel->bm,
+		INTEL_ALLOC_NR,
+		intel->alloc.buffer);
+
+   for (i = 0; i < INTEL_ALLOC_NR; i++)
+      bmBufferData(intel->bm, 
+		   intel->alloc.buffer[i],
+		   INTEL_ALLOC_SIZE,
+		   NULL,
+		   BM_MEM_AGP);
+		
+
+}
+
+
+void intelValidateBuffers( struct intel_context *intel )
+{
+   if (!bmValidateBufferList(intel->bm, intel->buffer_list, BM_MEM_AGP))
+      assert(0);
 }

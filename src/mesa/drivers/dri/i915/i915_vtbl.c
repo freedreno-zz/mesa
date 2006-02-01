@@ -237,6 +237,11 @@ static void i915_emit_state( intelContextPtr intel )
    if (VERBOSE) 
       fprintf(stderr, "%s dirty: %x\n", __FUNCTION__, dirty);
 
+   if (dirty & I915_UPLOAD_INVARIENT) {
+      if (VERBOSE) fprintf(stderr, "I915_UPLOAD_INVARIENT:\n"); 
+      i915_emit_invarient_state( intel );
+   }
+
    if (dirty & I915_UPLOAD_CTX) {
       if (VERBOSE) fprintf(stderr, "I915_UPLOAD_CTX:\n"); 
       emit( i915, state->Ctx, sizeof(state->Ctx) );
