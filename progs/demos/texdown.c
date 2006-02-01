@@ -116,6 +116,12 @@ TypeStr(GLenum type)
    }
 }
 
+/* On x86, there is a performance cliff for memcpy to texture memory
+ * for sources below 64 byte alignment.  We do our best with this in
+ * the driver, but it is better if the images are correctly aligned to
+ * start with:
+ */
+#define ALIGN (1<<7)
 
 static void
 MeasureDownloadRate(void)
@@ -128,13 +134,20 @@ MeasureDownloadRate(void)
    int count;
    int i;
 
-   texImage = (GLubyte *) malloc(bytes);
-   getImage = (GLubyte *) malloc(bytes);
+   texImage = (GLubyte *) malloc(bytes + ALIGN);
+   getImage = (GLubyte *) malloc(bytes + ALIGN);
    if (!texImage || !getImage) {
       DownloadRate = 0.0;
       return;
    }
 
+   texImage = (GLubyte *)((((unsigned)texImage) + ALIGN) & ~(ALIGN-1));
+   getImage = (GLubyte *)((((unsigned)getImage) + ALIGN) & ~(ALIGN-1));
+
+   for (i = 1; !(((unsigned)texImage) & i); i<<=1)
+      ;
+   printf("texture image alignment: %d bytes\n", i);
+      
    for (i = 0; i < bytes; i++) {
       texImage[i] = i & 0xff;
    }
@@ -178,12 +191,15 @@ MeasureDownloadRate(void)
                       FormatTable[Format].Type, texImage);
       }
 
+#if 1
       /* draw a tiny polygon to force texture into texram */
       glBegin(GL_TRIANGLES);
       glTexCoord2f(0, 0);     glVertex2f(1, 1);
       glTexCoord2f(1, 0);     glVertex2f(3, 1);
       glTexCoord2f(0.5, 1);   glVertex2f(2, 3);
       glEnd();
+/*       glFinish(); */
+#endif
 
       t1 = glutGet(GLUT_ELAPSED_TIME) * 0.001;
       time = t1 - t0;
@@ -209,8 +225,8 @@ MeasureDownloadRate(void)
    }
 #endif
 
-   free(texImage);
-   free(getImage);
+/*    free(texImage); */
+/*    free(getImage); */
 
    {
       GLint err = glGetError();
