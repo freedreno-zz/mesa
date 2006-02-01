@@ -45,8 +45,9 @@
 static struct intel_region *get_teximage_source( struct intel_context *intel,
 						 GLenum internalFormat )
 {
-   DBG("%s %s\n", __FUNCTION__, 
-       _mesa_lookup_enum_by_nr(internalFormat));
+   if (0)
+      _mesa_printf("%s %s\n", __FUNCTION__, 
+		   _mesa_lookup_enum_by_nr(internalFormat));
 
    switch (internalFormat) {
    case GL_DEPTH_COMPONENT:
@@ -72,6 +73,8 @@ static struct intel_region *get_teximage_source( struct intel_context *intel,
 
 static GLboolean check_copytex_fragment_ops( const GLcontext *ctx )
 {
+   return GL_TRUE;
+
    return !(ctx->Color.AlphaEnabled || 
 /* 	    ctx->Depth.Test || */
 	    ctx->Fog.Enabled ||
@@ -97,7 +100,7 @@ static GLboolean do_copy_texsubimage( struct intel_context *intel,
    struct intel_region *src = get_teximage_source(intel, internalFormat);
    GLuint ret = GL_TRUE;
 
-   if (!intelImage->mt)
+   if (!intelImage->mt || !src)
       return GL_FALSE;
  
    if (!check_copytex_fragment_ops( ctx ))
