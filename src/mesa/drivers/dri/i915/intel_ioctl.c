@@ -38,8 +38,9 @@
 #include "intel_context.h"
 #include "intel_ioctl.h"
 #include "intel_batchbuffer.h"
+#include "intel_regions.h"
 #include "drm.h"
-
+#include "bufmgr.h"
 
 
 int intelEmitIrqLocked( intelContextPtr intel )
@@ -51,14 +52,16 @@ int intelEmitIrqLocked( intelContextPtr intel )
 	  (DRM_LOCK_HELD|intel->hHWContext));
 
    ie.irq_seq = &seq;
-	 
+
+#if 1
    ret = drmCommandWriteRead( intel->driFd, DRM_I830_IRQ_EMIT, 
 			      &ie, sizeof(ie) );
    if ( ret ) {
       fprintf( stderr, "%s: drmI830IrqEmit: %d\n", __FUNCTION__, ret );
       exit(1);
-   }
-   
+   }   
+#endif
+
    if (0)
       fprintf(stderr, "%s -->  %d\n", __FUNCTION__, seq );
 
@@ -75,18 +78,16 @@ void intelWaitIrq( intelContextPtr intel, int seq )
 
    iw.irq_seq = seq;
 	 
+#if 1
    do {
       ret = drmCommandWrite( intel->driFd, DRM_I830_IRQ_WAIT, &iw, sizeof(iw) );
    } while (ret == -EAGAIN || ret == -EINTR);
 
    if ( ret ) {
       fprintf( stderr, "%s: drmI830IrqWait: %d\n", __FUNCTION__, ret );
-      if (0)
-	 intel_dump_batchbuffer( intel->alloc.offset,
-				 intel->alloc.ptr,
-				 intel->alloc.size );
       exit(1);
    }
+#endif
 }
 
 
@@ -104,29 +105,6 @@ void intel_dump_batchbuffer( long offset,
    fprintf(stderr, "END BATCH\n\n\n");
 }
 
-void intelRefillBatchLocked( intelContextPtr intel, GLboolean allow_unlock )
-{
-   GLuint last_irq = intel->alloc.irq_emitted;
-   GLuint half = intel->alloc.size / 2;
-   GLuint buf = (intel->alloc.active_buf ^= 1);
-
-   intel->alloc.irq_emitted = intelEmitIrqLocked( intel );
-
-   if (last_irq) {
-      if (allow_unlock) UNLOCK_HARDWARE( intel ); 
-      intelWaitIrq( intel, last_irq );
-      if (allow_unlock) LOCK_HARDWARE( intel ); 
-   }
-
-   if (0)
-      fprintf(stderr, "%s: now using half %d\n", __FUNCTION__, buf);
-
-   intel->batch.start_offset = intel->alloc.offset + buf * half;
-   intel->batch.ptr = (GLubyte *)intel->alloc.ptr + buf * half;
-   intel->batch.size = half - 8;
-   intel->batch.space = half - 8;
-   assert(intel->batch.space >= 0);
-}
 
 #define MI_BATCH_BUFFER_END 	(0xA<<23)
 
@@ -139,6 +117,9 @@ void intelFlushBatchLocked( intelContextPtr intel,
    drmI830BatchBuffer batch;
 
    assert(intel->locked);
+   assert(intel->buffer_list);
+   assert(intel->batch.ptr);
+
 
    if (0)
       fprintf(stderr, "%s used %d of %d offset %x..%x refill %d\n",
@@ -155,17 +136,6 @@ void intelFlushBatchLocked( intelContextPtr intel,
     * single buffer.
     */
    if (intel->numClipRects == 0 && !ignore_cliprects) {
-      
-      /* Without this yeild, an application with no cliprects can hog
-       * the hardware.  Without unlocking, the effect is much worse -
-       * effectively a lock-out of other contexts.
-       */
-      if (allow_unlock) {
-	 UNLOCK_HARDWARE( intel );
-	 sched_yield();
-	 LOCK_HARDWARE( intel );
-      }
-
       /* Note that any state thought to have been emitted actually
        * hasn't:
        */
@@ -183,19 +153,17 @@ void intelFlushBatchLocked( intelContextPtr intel,
       batch.DR4 = ((((GLuint)intel->drawX) & 0xffff) | 
 		   (((GLuint)intel->drawY) << 16));
       
-      if (intel->alloc.offset) {
-	 if ((batch.used & 0x4) == 0) {
-	    ((int *)intel->batch.ptr)[0] = 0;
-	    ((int *)intel->batch.ptr)[1] = MI_BATCH_BUFFER_END;
-	    batch.used += 0x8;
-	    intel->batch.ptr += 0x8;
-	 }
-	 else {
-	    ((int *)intel->batch.ptr)[0] = MI_BATCH_BUFFER_END;
-	    batch.used += 0x4;
-	    intel->batch.ptr += 0x4;
-	 }      
+      if ((batch.used & 0x4) == 0) {
+	 ((int *)intel->batch.ptr)[0] = 0;
+	 ((int *)intel->batch.ptr)[1] = MI_BATCH_BUFFER_END;
+	 batch.used += 0x8;
+	 intel->batch.ptr += 0x8;
       }
+      else {
+	 ((int *)intel->batch.ptr)[0] = MI_BATCH_BUFFER_END;
+	 batch.used += 0x4;
+	 intel->batch.ptr += 0x4;
+      }      
 
       if (0)
  	 intel_dump_batchbuffer( batch.start,
@@ -206,54 +174,17 @@ void intelFlushBatchLocked( intelContextPtr intel,
 	 fprintf(stderr, "%s: 0x%x..0x%x DR4: %x cliprects: %d\n",
 		 __FUNCTION__, 
 		 batch.start, 
-		 batch.start + batch.used,
+		 batch.start + batch.used * 4,
 		 batch.DR4, batch.num_cliprects);
 
-      intel->batch.start_offset += batch.used;
-      intel->batch.size -= batch.used;
-
-      if (intel->batch.size < 8) {
-	 refill = GL_TRUE;
-	 intel->batch.space = intel->batch.size = 0;
+#if 1
+      if (drmCommandWrite (intel->driFd, DRM_I830_BATCHBUFFER, &batch, 
+			   sizeof(batch))) {
+	 fprintf(stderr, "DRM_I830_BATCHBUFFER: %d\n",  -errno);
+	 UNLOCK_HARDWARE(intel);
+	 exit(1);
       }
-      else {
-	 intel->batch.size -= 8;
-	 intel->batch.space = intel->batch.size;
-      }
-
-
-      assert(intel->batch.space >= 0);
-      assert(batch.start >= intel->alloc.offset);
-      assert(batch.start < intel->alloc.offset + intel->alloc.size);
-      assert(batch.start + batch.used > intel->alloc.offset);
-      assert(batch.start + batch.used <= 
-	     intel->alloc.offset + intel->alloc.size);
-
-
-      if (intel->alloc.offset) {
-	 if (drmCommandWrite (intel->driFd, DRM_I830_BATCHBUFFER, &batch, 
-			      sizeof(batch))) {
-	    fprintf(stderr, "DRM_I830_BATCHBUFFER: %d\n",  -errno);
-	    UNLOCK_HARDWARE(intel);
-	    exit(1);
-	 }
-      } else {
-	 drmI830CmdBuffer cmd;
-	 cmd.buf = (char *)intel->alloc.ptr + batch.start;
-	 cmd.sz = batch.used;
-	 cmd.DR1 = batch.DR1;
-	 cmd.DR4 = batch.DR4;
-	 cmd.num_cliprects = batch.num_cliprects;
-	 cmd.cliprects = batch.cliprects;
-	 
-	 if (drmCommandWrite (intel->driFd, DRM_I830_CMDBUFFER, &cmd, 
-			      sizeof(cmd))) {
-	    fprintf(stderr, "DRM_I830_CMDBUFFER: %d\n",  -errno);
-	    UNLOCK_HARDWARE(intel);
-	    exit(1);
-	 }
-      }	 
-
+#endif
       
       /* FIXME: use hardware contexts to avoid 'losing' hardware after
        * each buffer flush.
@@ -261,8 +192,17 @@ void intelFlushBatchLocked( intelContextPtr intel,
       intel->vtbl.lost_hardware( intel );
    }
 
-   if (refill)
-      intelRefillBatchLocked( intel, allow_unlock );
+   bmUnmapBuffer( intel->bm,
+		  intel->alloc.buffer[intel->alloc.current] );
+   intel->batch.ptr = NULL;
+   intel->batch.size = 0;
+   intel->batch.space = 0;
+
+   intel->last_fence = bmFenceBufferList(intel->bm, intel->buffer_list);
+   bmFreeBufferList(intel->buffer_list);
+
+
+   intel->buffer_list = NULL;
 }
 
 void intelFlushBatch( intelContextPtr intel, GLboolean refill )
@@ -271,9 +211,7 @@ void intelFlushBatch( intelContextPtr intel, GLboolean refill )
       intelFlushBatchLocked( intel, GL_FALSE, refill, GL_FALSE );
    } 
    else {
-      LOCK_HARDWARE(intel);
-      intelFlushBatchLocked( intel, GL_FALSE, refill, GL_TRUE );
-      UNLOCK_HARDWARE(intel);
+      assert(intel->batch.size == intel->batch.space);
    }
 }
 
@@ -281,21 +219,31 @@ void intelFlushBatch( intelContextPtr intel, GLboolean refill )
 
 
 
+static void wait_for_idle_locked( struct intel_context *intel )
+{
+   intelInstallBatchBuffer(intel);
 
-
-void intelWaitForIdle( intelContextPtr intel )
-{   
-   if (0)
-      fprintf(stderr, "%s\n", __FUNCTION__);
+   bmAddBuffer(intel->buffer_list, intel->draw_region->buffer,
+	       BM_WRITE, NULL, NULL);
+   
+   intelValidateBuffers(intel);
 
    intel->vtbl.emit_flush( intel );
    intelFlushBatch( intel, GL_TRUE );
 
-   /* Use an irq to wait for dma idle -- Need to track lost contexts
-    * to shortcircuit consecutive calls to this function:
-    */
-   intelWaitIrq( intel, intel->alloc.irq_emitted );
-   intel->alloc.irq_emitted = 0;
+   bmFinishFence( intel->bm, intel->last_fence );
+}
+
+void intelWaitForIdle( intelContextPtr intel )
+{   
+   if (intel->locked) {
+      wait_for_idle_locked( intel );
+   }
+   else {
+      LOCK_HARDWARE(intel);
+      wait_for_idle_locked( intel );
+      UNLOCK_HARDWARE(intel);
+   }
 }
 
 
@@ -385,86 +333,6 @@ void intelClear(GLcontext *ctx, GLbitfield mask, GLboolean all,
 }
 
 
-/* This will have to go or change to use a fixed pool provided by the
- * memory manager:
- */
-void *intelAllocateAGP( intelContextPtr intel, GLsizei size )
-{
-   int region_offset = 0;
-   drmI830MemAlloc alloc;
-   int ret;
-
-   /* This won't work with the current state of the texture memory
-    * manager:
-    */
-   assert(0);
-
-   if (0)
-      fprintf(stderr, "%s: %d bytes\n", __FUNCTION__, size);
-
-   alloc.region = I830_MEM_REGION_AGP;
-   alloc.alignment = 0;
-   alloc.size = size;
-   alloc.region_offset = &region_offset;
-
-   LOCK_HARDWARE(intel);
-
-
-   ret = drmCommandWriteRead( intel->driFd,
-			      DRM_I830_ALLOC,
-			      &alloc, sizeof(alloc));
-   
-   if (ret) {
-      fprintf(stderr, "%s: DRM_I830_ALLOC ret %d\n", __FUNCTION__, ret);
-      UNLOCK_HARDWARE(intel);
-      return NULL;
-   }
-   
-   if (0)
-      fprintf(stderr, "%s: allocated %d bytes\n", __FUNCTION__, size);
-
-
-   UNLOCK_HARDWARE(intel);   
-
-   return (void *)((char *)intel->intelScreen->tex.map + region_offset);
-}
-
-void intelFreeAGP( intelContextPtr intel, void *pointer )
-{
-   int region_offset;
-   drmI830MemFree memfree;
-   int ret;
-
-   region_offset = (char *)pointer - (char *)intel->intelScreen->tex.map;
-
-   if (region_offset < 0 || 
-       region_offset > intel->intelScreen->tex.size) {
-      fprintf(stderr, "offset %d outside range 0..%d\n", region_offset,
-	      intel->intelScreen->tex.size);
-      return;
-   }
-
-   memfree.region = I830_MEM_REGION_AGP;
-   memfree.region_offset = region_offset;
-   
-   ret = drmCommandWrite( intel->driFd,
-			  DRM_I830_FREE,
-			  &memfree, sizeof(memfree));
-   
-   if (ret) 
-      fprintf(stderr, "%s: DRM_I830_FREE ret %d\n", __FUNCTION__, ret);
-}
-
-
-GLuint intelAgpOffsetFromVirtual( intelContextPtr intel, const GLvoid *pointer )
-{
-   int offset = (char *)pointer - (char *)intel->intelScreen->tex.map;
-
-   if (offset < 0 || offset > intel->intelScreen->tex.size)
-      return ~0;
-   else
-      return intel->intelScreen->tex.offset + offset;
-}
 
 
 
