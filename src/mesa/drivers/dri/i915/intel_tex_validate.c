@@ -307,8 +307,8 @@ void intel_tex_map_images( struct intel_context *intel,
 {
    GLuint nr_faces = (intelObj->base.Target == GL_TEXTURE_CUBE_MAP) ? 6 : 1;
    GLuint face, i;
-
-   _mesa_printf("%s\n", __FUNCTION__);
+   
+   DBG("%s\n", __FUNCTION__);
 
    for (face = 0; face < nr_faces; face++) {
       for (i = intelObj->firstLevel; i < intelObj->lastLevel; i++) {
