@@ -90,7 +90,7 @@ int prevLockLine;
  * Mesa's Driver Functions
  ***************************************/
 
-#define DRIVER_DATE                     "20050225"
+#define DRIVER_DATE                     "20060201"
 
 const GLubyte *intelGetString( GLcontext *ctx, GLenum name )
 {
