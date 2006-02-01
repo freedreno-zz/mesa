@@ -31,12 +31,14 @@
 #include "colormac.h"
 
 #include "intel_screen.h"
-
 #include "intel_span.h"
+#include "intel_regions.h"
 #include "intel_ioctl.h"
+#include "intel_tex.h"
+
 #include "swrast/swrast.h"
 
-
+#undef DBG
 #define DBG 0
 
 #define LOCAL_VARS						\
@@ -205,16 +207,47 @@ do {								\
 void intelSpanRenderStart( GLcontext *ctx )
 {
    intelContextPtr intel = INTEL_CONTEXT(ctx);
+   GLuint i;
 
    intelFlush(&intel->ctx);
    LOCK_HARDWARE(intel);
    intelWaitForIdle(intel);
+
+   /* Just map the framebuffer and all textures.  Bufmgr code will
+    * take care of waiting on the necessary fences:
+    */
+   intel_region_map(intel, intel->front_region);
+   intel_region_map(intel, intel->back_region);
+   intel_region_map(intel, intel->depth_region);
+
+   for (i = 0; i < ctx->Const.MaxTextureCoordUnits; i++) {
+      if (ctx->Texture.Unit[i]._ReallyEnabled) {
+	 struct gl_texture_object *texObj = ctx->Texture.Unit[i]._Current;
+	 intel_tex_map_images(intel, intel_texture_object(texObj));
+      }
+   }
 }
 
 void intelSpanRenderFinish( GLcontext *ctx )
 {
    intelContextPtr intel = INTEL_CONTEXT( ctx );
+   GLuint i;
+
    _swrast_flush( ctx );
+
+   /* Now unmap the framebuffer:
+    */
+   intel_region_unmap(intel, intel->front_region);
+   intel_region_unmap(intel, intel->back_region);
+   intel_region_unmap(intel, intel->depth_region);
+
+   for (i = 0; i < ctx->Const.MaxTextureCoordUnits; i++) {
+      if (ctx->Texture.Unit[i]._ReallyEnabled) {
+	 struct gl_texture_object *texObj = ctx->Texture.Unit[i]._Current;
+	 intel_tex_unmap_images(intel, intel_texture_object(texObj));
+      }
+   }
+
    UNLOCK_HARDWARE( intel );
 }
 
