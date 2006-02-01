@@ -1423,7 +1423,7 @@ Mesa Version History
 	- fixed BSD X server compilation problem by including stdint.h
 
 
-6.4.2
+6.4.2  February 2, 2006
     New:
 	- added OSMesaColorClamp() function/feature
 	- added wglGetExtensionStringARB() function
