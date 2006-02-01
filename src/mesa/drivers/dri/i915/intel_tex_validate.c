@@ -253,13 +253,21 @@ GLboolean intel_validate_buffers( struct intel_context *intel )
    DBG("%s\n", __FUNCTION__);
 
    assert(intel->locked);
-   assert (!intel->buffer_list);
 
-   intel->buffer_list = bmNewBufferList();
-      
-   /* Add the color and depth buffers:
+   /* Add the color and depth buffers so that fences associated with
+    * these buffers:
     */
-      
+   bmAddBuffer(intel->buffer_list,
+	       intel->draw_region->buffer,
+	       BM_WRITE,
+	       NULL,
+	       NULL);
+   
+   bmAddBuffer(intel->buffer_list,
+	       intel->depth_region->buffer,
+	       BM_WRITE,
+	       NULL,
+	       NULL);
 
    /* Add each enabled texture:
     */
@@ -288,8 +296,54 @@ void intel_fence_buffers( struct intel_context *intel )
 {
    assert(intel->locked);
    assert(intel->buffer_list);
-   bmFenceBufferList(intel->bm, intel->buffer_list);
-   bmFreeBufferList(intel->buffer_list);
-   intel->buffer_list = NULL;
 }
 
+
+
+
+
+void intel_tex_map_images( struct intel_context *intel,
+			   struct intel_texture_object *intelObj )
+{
+   GLuint nr_faces = (intelObj->base.Target == GL_TEXTURE_CUBE_MAP) ? 6 : 1;
+   GLuint face, i;
+
+   _mesa_printf("%s\n", __FUNCTION__);
+
+   for (face = 0; face < nr_faces; face++) {
+      for (i = intelObj->firstLevel; i < intelObj->lastLevel; i++) {
+	 struct intel_texture_image *intelImage = 
+	    intel_texture_image(intelObj->base.Image[face][i]);
+
+	 if (intelImage->mt) {
+	    intelImage->base.Data = 
+	       intel_miptree_image_map(intel, 
+				       intelImage->mt,
+				       intelImage->face,
+				       intelImage->level,
+				       &intelImage->base.RowStride);
+	 }
+      }
+   }
+}
+
+
+
+void intel_tex_unmap_images( struct intel_context *intel,
+			     struct intel_texture_object *intelObj )
+{
+   GLuint nr_faces = (intelObj->base.Target == GL_TEXTURE_CUBE_MAP) ? 6 : 1;
+   GLuint face, i;
+
+   for (face = 0; face < nr_faces; face++) {
+      for (i = intelObj->firstLevel; i < intelObj->lastLevel; i++) {
+	 struct intel_texture_image *intelImage = 
+	    intel_texture_image(intelObj->base.Image[face][i]);
+
+	 if (intelImage->mt) {
+	    intel_miptree_image_unmap(intel, intelImage->mt);
+	    intelImage->base.Data = NULL;
+	 }
+      }
+   }
+}
