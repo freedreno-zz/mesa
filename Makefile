@@ -134,10 +134,10 @@ ultrix-gcc:
 
 # Rules for making release tarballs
 
-DIRECTORY = Mesa-6.4.1
-LIB_NAME = MesaLib-6.4.1
-DEMO_NAME = MesaDemos-6.4.1
-GLUT_NAME = MesaGLUT-6.4.1
+DIRECTORY = Mesa-6.4.2
+LIB_NAME = MesaLib-6.4.2
+DEMO_NAME = MesaDemos-6.4.2
+GLUT_NAME = MesaGLUT-6.4.2
 
 MAIN_FILES = \
 	$(DIRECTORY)/Makefile*						\
@@ -166,6 +166,7 @@ MAIN_FILES = \
 	$(DIRECTORY)/include/GL/glx.h					\
 	$(DIRECTORY)/include/GL/glxext.h				\
 	$(DIRECTORY)/include/GL/glx_mangle.h				\
+	$(DIRECTORY)/include/GL/glfbdev.h				\
 	$(DIRECTORY)/include/GL/mesa_wgl.h				\
 	$(DIRECTORY)/include/GL/mglmesa.h				\
 	$(DIRECTORY)/include/GL/osmesa.h				\
