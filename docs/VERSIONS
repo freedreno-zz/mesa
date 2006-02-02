@@ -1431,3 +1431,4 @@ Mesa Version History
 	- fixed some problems when building on Windows
 	- GLw header files weren't installed by installmesa script (bug 5396)
 	- GL/glfbdev.h file was missing from tarballs
+	- fixed TNL initialization bug which could lead to crash (bug 5791)
