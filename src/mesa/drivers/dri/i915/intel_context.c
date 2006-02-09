@@ -55,6 +55,8 @@
 #include "intel_ioctl.h"
 #include "intel_batchbuffer.h"
 
+#include "bufmgr.h"
+
 #include "utils.h"
 #ifndef INTEL_DEBUG
 int INTEL_DEBUG = (0);
@@ -237,6 +239,7 @@ static const struct dri_debug_control debug_control[] =
     { "sync",  DEBUG_SYNC },
     { "sleep", DEBUG_SLEEP },
     { "pix",   DEBUG_PIXEL },
+    { "buf",   DEBUG_BUFMGR },
     { NULL,    0 }
 };
 
@@ -581,13 +584,6 @@ void intelGetLock( intelContextPtr intel, GLuint flags )
    __DRIscreenPrivate *sPriv = intel->driScreen;
    drmI830Sarea * sarea = intel->sarea;
    int me = intel->hHWContext;
-   static int foo = 0;
-
-/*    _mesa_printf("%s\n", __FUNCTION__); */
-/*    if (foo++ > 1) { */
-/*       _mesa_printf("%s - foo\n", __FUNCTION__); */
-/*       abort(); */
-/*    } */
 
    drmGetLock(intel->driFd, intel->hHWContext, flags);
 
@@ -599,17 +595,15 @@ void intelGetLock( intelContextPtr intel, GLuint flags )
    if (dPriv)
       DRI_VALIDATE_DRAWABLE_INFO(sPriv, dPriv);
 
-   /* If we lost context, need to dump all registers to hardware.
-    * Note that we don't care about 2d contexts, even if they perform
-    * accelerated commands, so the DRI locking in the X server is even
-    * more broken than usual.
+   /* Lost context?
     */
-
    if (sarea->ctxOwner != me) {
       intel->perf_boxes |= I830_BOX_LOST_CONTEXT;
       sarea->ctxOwner = me;
    }
 
+   /* Drawable changed?
+    */
    if (dPriv && intel->lastStamp != dPriv->lastStamp) {
       intelWindowMoved( intel );
       intel->lastStamp = dPriv->lastStamp;

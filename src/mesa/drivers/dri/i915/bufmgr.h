@@ -158,7 +158,9 @@ void bmFlushDrawCache( struct bufmgr *bm );
 
 void bm_fake_NotifyContendedLockTake( struct bufmgr * );
 
+extern int INTEL_DEBUG;
+#define DEBUG_BUFMGR 0x2000
 
-#define DBG(...)  do { if (0) _mesa_printf(__VA_ARGS__); } while(0)
+#define DBG(...)  do { if (INTEL_DEBUG & DEBUG_BUFMGR) _mesa_printf(__VA_ARGS__); } while(0)
 
 #endif
