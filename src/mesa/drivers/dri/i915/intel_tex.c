@@ -56,15 +56,6 @@ static void intelFreeTextureImageData( GLcontext *ctx,
    }
 }
 
-static void *do_memcpy( void *dest, const void *src, size_t n )
-{
-   if ( (((unsigned)src) & 63) ||
-	(((unsigned)dest) & 63))
-      return __memcpy(dest, src, n);	
-   else
-      return memcpy(dest, src, n);
-}
-
 
 #ifndef __x86_64__
 static unsigned
