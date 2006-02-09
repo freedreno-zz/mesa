@@ -18,6 +18,7 @@
 
 struct _mesa_HashTable;
 
+static int delayed_free( struct bufmgr *bm );
 
 /* Maximum number of buffers to pass to bmValidateBufferList:
  */
@@ -96,6 +97,7 @@ static struct block *alloc_from_pool( struct bufmgr *bm,
       return NULL;
 
    DBG("alloc_from_pool %d sz 0x%x\n", pool_nr, size);
+   assert(align >= 7);
 
    block->mem = mmAllocMem(pool->heap, size, align, 0);
    if (!block->mem) {
@@ -143,13 +145,17 @@ static struct block *alloc_block( struct bufmgr *bm,
    GLuint i;
 
    for (i = 0; i < bm->nr_pools; i++) {
+      struct block *block;
+
       if (bm->pool[i].flags & BM_NO_ALLOC)
 	 continue;
 
       if ((bm->pool[i].flags & flags & BM_MEM_MASK) == 0)
 	 continue;
       
-      return alloc_from_pool(bm, i, size, align);
+      block = alloc_from_pool(bm, i, size, align);
+      if (block)
+	 return block;
    }
    
    if (flags & BM_MEM_LOCAL)
@@ -161,12 +167,21 @@ static struct block *alloc_block( struct bufmgr *bm,
 static int bmAllocMem( struct bufmgr *bm,
 		       struct buffer *buf )	
 {
-   buf->block = alloc_block(bm, buf->size, 4, buf->flags);
+   delayed_free(bm);
+
+   buf->block = alloc_block(bm, 
+			    buf->size,
+			    buf->alignment, 
+			    buf->flags);
 
    if (buf->block)
       buf->block->buf = buf;
+   else
+      _mesa_printf("bmAllocMem failed memflags %x\n", buf->flags & BM_MEM_MASK);
 
-   assert(buf->block);
+   /* Sleep here or fail??? 
+    */
+/*    assert(buf->block); */
    return buf->block != NULL;
 }
 
@@ -178,6 +193,8 @@ static void free_block( struct bufmgr *bm, struct block *block )
    if (!block) 
       return;
 
+   remove_from_list(block);
+
    switch (block->mem_type) {
    case BM_MEM_AGP:
    case BM_MEM_VRAM:
@@ -187,7 +204,7 @@ static void free_block( struct bufmgr *bm, struct block *block )
       }
       else {
 	 block->buf = NULL;
-         move_to_tail(&block->pool->freed, block);
+         insert_at_tail(&block->pool->freed, block);
       }
       break;
 
@@ -219,6 +236,7 @@ static int delayed_free( struct bufmgr *bm )
       }
    }
    
+   DBG("%s: %d\n", __FUNCTION__, ret);
    return ret;
 }
 
@@ -256,7 +274,11 @@ static int move_buffers( struct bufmgr *bm,
 	 if (flags & BM_NO_UPLOAD)
 	    goto cleanup;
 
-	 assert(!buffers[i]->mapped);
+	 /* Known issue: this assert will get hit on texture swapping.
+	  * There's not much to do about that at this stage - it's
+	  * tbd.
+	  */
+ 	 assert(!buffers[i]->mapped);
 
 	 DBG("try to move buffer %d size 0x%x to pools 0x%x\n", 
 		      buffers[i]->id, buffers[i]->size, flags & BM_MEM_MASK);
@@ -477,6 +499,7 @@ void bmDeleteBuffers(struct bufmgr *bm, unsigned n, unsigned *buffers)
          free(buf);
 	 _mesa_HashRemove(bm->hash, buffers[i]);
       }
+      assert(_mesa_HashLookup(bm->hash, buffers[i]) == NULL);
    }
 }
 
@@ -501,7 +524,7 @@ unsigned bmBufferStatic(struct bufmgr *bm,
 
    buf->size = size;
    buf->flags = bm->pool[pool].flags;
-   buf->alignment = 0;
+   buf->alignment = 12;
    buf->block = alloc_from_pool(bm, pool, buf->size, buf->alignment);
    if (!buf->block)
       return 0;

@@ -403,15 +403,6 @@ void intelInstallBatchBuffer( struct intel_context *intel )
 	       BM_READ,
 	       NULL,
 	       &intel->batch.start_offset);
-
-
-   if (0) {
-      static int foo;
-      if (foo++ > 10) {
-	 _mesa_printf("foo\n");
-	 exit(1);
-      }
-   }
 }
 
 void intelInitBatchBuffer( struct intel_context *intel )

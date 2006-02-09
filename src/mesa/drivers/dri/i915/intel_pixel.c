@@ -328,6 +328,10 @@ intelTryDrawPixels( GLcontext *ctx,
    GLuint cpp = intel->intelScreen->cpp;
    GLint size = width * pitch * cpp;
 
+   /* XXX: Need to adjust pixels pointer for unpack->skip pixels/rows
+    * offsets.
+    */
+
    if (INTEL_DEBUG & DEBUG_PIXEL)
       fprintf(stderr, "%s\n", __FUNCTION__);
 
@@ -437,6 +441,7 @@ struct intel_region *intel_readbuf_region( struct intel_context *intel )
    case BUFFER_BACK_LEFT:
       return intel->back_region;
    default:
+      assert(0);
       return NULL;
    }
 }

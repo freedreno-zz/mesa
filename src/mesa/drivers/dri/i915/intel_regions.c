@@ -85,20 +85,27 @@ struct intel_region *intel_region_alloc( struct intel_context *intel,
    return region;
 }
 
-struct intel_region *intel_region_reference( struct intel_region *region )
+void intel_region_reference( struct intel_region **dst,
+			     struct intel_region *src)
 {
-   region->refcount++;
-   return region;
+   src->refcount++;
+   *dst = src;
 }
 
 void intel_region_release( struct intel_context *intel,
-			   struct intel_region *region )
+			   struct intel_region **region )
 {
-   if (--region->refcount) {
-      assert(region->map_refcount == 0);
-      bmDeleteBuffers(intel->bm, 1, &region->buffer);
-      free(region);
+   if (!*region)
+      return;
+
+   DBG("%s %d\n", __FUNCTION__, (*region)->refcount-1);
+   
+   if (--(*region)->refcount == 0) {
+      assert((*region)->map_refcount == 0);
+      bmDeleteBuffers(intel->bm, 1, &(*region)->buffer);
+      free(*region);
    }
+   *region = NULL;
 }
 
 

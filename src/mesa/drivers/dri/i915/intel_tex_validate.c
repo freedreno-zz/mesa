@@ -60,19 +60,19 @@ static void intel_calculate_first_last_level( struct intel_texture_object *intel
 }
 
 static void copy_image_data_to_tree( struct intel_context *intel,
-				     struct intel_mipmap_tree *mt,
+				     struct intel_texture_object *intelObj,
 				     struct intel_texture_image *intelImage )
 {
    if (intelImage->mt) {
       /* Copy potentially with the blitter:
        */
       intel_miptree_image_copy(intel,
-			       mt,
+			       intelObj->mt,
 			       intelImage->face,
 			       intelImage->level,
 			       intelImage->mt);
 
-      intel_miptree_release(intel, intelImage->mt);
+      intel_miptree_release(intel, &intelImage->mt);
    }
    else {
       assert(intelImage->base.Data != NULL);
@@ -80,7 +80,7 @@ static void copy_image_data_to_tree( struct intel_context *intel,
       /* More straightforward upload.  
        */
       intel_miptree_image_data(intel,
-			       mt,
+			       intelObj->mt,
 			       intelImage->face,
 			       intelImage->level,
 			       intelImage->base.Data,
@@ -90,7 +90,7 @@ static void copy_image_data_to_tree( struct intel_context *intel,
       intelImage->base.Data = NULL;
    }
 
-   intelImage->mt = intel_miptree_reference(mt);
+   intel_miptree_reference(&intelImage->mt, intelObj->mt);
 }
 
 
@@ -118,8 +118,7 @@ static GLuint intel_finalize_mipmap_tree( struct intel_context *intel, GLuint un
     */
    if (firstImage->base.Border) {
       if (intelObj->mt) {
-	 intel_miptree_release(intel, intelObj->mt);
-	 intelObj->mt = NULL;
+	 intel_miptree_release(intel, &intelObj->mt);
       }
       return 0;
    }
@@ -134,9 +133,9 @@ static GLuint intel_finalize_mipmap_tree( struct intel_context *intel, GLuint un
        firstImage->mt->last_level >= intelObj->lastLevel) {
 
       if (intelObj->mt) 
-	 intel_miptree_release(intel, intelObj->mt);
+	 intel_miptree_release(intel, &intelObj->mt);
 
-      intelObj->mt = intel_miptree_reference(firstImage->mt);
+      intel_miptree_reference(&intelObj->mt, firstImage->mt);
    }
 
    /* Check tree can hold all active levels.  Check tree matches
@@ -152,8 +151,7 @@ static GLuint intel_finalize_mipmap_tree( struct intel_context *intel, GLuint un
        ((intelObj->mt->first_level > intelObj->firstLevel) ||
 	(intelObj->mt->last_level < intelObj->lastLevel) ||
 	(intelObj->mt->internal_format != firstImage->base.InternalFormat))) {
-      intel_miptree_release(intel, intelObj->mt);
-      intelObj->mt = NULL;
+      intel_miptree_release(intel, &intelObj->mt);
    }
       
 
@@ -184,7 +182,7 @@ static GLuint intel_finalize_mipmap_tree( struct intel_context *intel, GLuint un
 	  */
 	 if (intelObj->mt != intelImage->mt) {
 	    copy_image_data_to_tree(intel,
-				    intelObj->mt,
+				    intelObj,
 				    intelImage);
 	 }
       }

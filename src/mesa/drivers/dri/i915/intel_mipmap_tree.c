@@ -75,6 +75,7 @@ struct intel_mipmap_tree *intel_miptree_create( struct intel_context *intel,
    mt->depth0 = depth0;
    mt->cpp = cpp;
    mt->compressed = compressed;
+   mt->refcount = 1;
 
    switch (intel->intelScreen->deviceID) {
    case PCI_CHIP_I945_G:
@@ -104,19 +105,25 @@ struct intel_mipmap_tree *intel_miptree_create( struct intel_context *intel,
 }
 
 
-struct intel_mipmap_tree *intel_miptree_reference( struct intel_mipmap_tree *mt )
+void intel_miptree_reference( struct intel_mipmap_tree **dst, 
+			      struct intel_mipmap_tree *src )
 {
-   mt->refcount++;
-   return mt;
+   src->refcount++;
+   *dst = src;
 }
 
 void intel_miptree_release( struct intel_context *intel,
-			   struct intel_mipmap_tree *mt )
+			    struct intel_mipmap_tree **mt )
 {
-   if (--mt->refcount) {
-      intel_region_release(intel, mt->region);
-      free(mt);
+   if (!*mt)
+      return;
+
+   DBG("%s %d\n", __FUNCTION__, (*mt)->refcount-1);
+   if (--(*mt)->refcount == 0) {
+      intel_region_release(intel, &((*mt)->region));
+      free(*mt);
    }
+   *mt = NULL;
 }
 
 

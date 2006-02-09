@@ -107,10 +107,11 @@ struct intel_mipmap_tree *intel_miptree_create( struct intel_context *intel,
 						GLuint cpp,
 						GLboolean compressed);
 
-struct intel_mipmap_tree *intel_miptree_reference( struct intel_mipmap_tree * );
+void intel_miptree_reference( struct intel_mipmap_tree **dst,
+			      struct intel_mipmap_tree *src );
 
 void intel_miptree_release( struct intel_context *intel,
-			    struct intel_mipmap_tree *mt );
+			    struct intel_mipmap_tree **mt );
 
 /* Check if an image fits an existing mipmap tree layout
  */

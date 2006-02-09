@@ -34,6 +34,7 @@
 
 #include "intel_screen.h"
 #include "intel_context.h"
+#include "intel_regions.h"
 #include "swrast/swrast.h"
 
 int intel_translate_compare_func( GLenum func )
@@ -192,17 +193,19 @@ static void intelDrawBuffer(GLcontext *ctx, GLenum mode )
    
    intelSetFrontClipRects( intel );
 
-/*    if (intel->draw_region) */
-/*       intel_region_release(intel, intel->draw_region); */
 
    if (front) {
       intel->drawOffset = screen->front.offset;
-/*       intel->draw_region = intel_region_reference(intel->front_region); */
-      intel->draw_region = intel->front_region;
+      if (intel->draw_region != intel->front_region) {
+	 intel_region_release(intel, &intel->draw_region);
+	 intel_region_reference(&intel->draw_region, intel->front_region);
+      }
    } else {
       intel->drawOffset = screen->back.offset;
-/*       intel->draw_region = intel_region_reference(intel->back_region); */
-      intel->draw_region = intel->back_region;
+      if (intel->draw_region != intel->back_region) {
+	 intel_region_release(intel, &intel->draw_region);
+	 intel_region_reference(&intel->draw_region, intel->back_region);
+      }
    }
 
    intel->vtbl.set_draw_offset( intel, intel->drawOffset );

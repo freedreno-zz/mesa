@@ -56,9 +56,12 @@ struct intel_region *intel_region_alloc( struct intel_context *intel,
 					 GLuint cpp,
 					 GLuint pitch, 
 					 GLuint height );
-struct intel_region *intel_region_reference( struct intel_region *ib );
+
+void intel_region_reference( struct intel_region **dst, 
+			     struct intel_region *src );
+
 void intel_region_release(struct intel_context *intel,
-			  struct intel_region *ib );
+			  struct intel_region **ib );
 
 
 struct intel_region *intel_region_create_static( struct intel_context *intel,

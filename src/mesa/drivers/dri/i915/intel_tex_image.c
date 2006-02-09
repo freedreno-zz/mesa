@@ -112,7 +112,7 @@ static void guess_and_alloc_mipmap_tree( struct intel_context *intel,
       lastLevel = firstLevel + MAX2(MAX2(l2width,l2height),l2depth);
    }
 	 
-
+   assert(!intelObj->mt);
    intelObj->mt = intel_miptree_create( intel,
 					intelObj->base.Target,
 					intelImage->base.InternalFormat,
@@ -207,44 +207,63 @@ static void intelTexImage(GLcontext *ctx,
     * Release any old malloced memory.
     */
    if (intelImage->mt) {
-      intel_miptree_release(intel, intelImage->mt);
-      intelImage->mt = NULL;
+      intel_miptree_release(intel, &intelImage->mt);
       assert(!texImage->Data);
    }
    else if (texImage->Data) {
       free(texImage->Data);
    }
 
-   /* XXX: If this is the only texture image in the tree, could call
+   /* If this is the only texture image in the tree, could call
     * bmBufferData with NULL data to free the old block and avoid
     * waiting on any outstanding fences.
-    *
-    * XXX: Better to do this internally to intel_mipmap_tree.c,
-    * somehow?
+    * 
+    * XXX: this hits a malloc/free problem.  fixme.
     */
+#if 0
    if (intelObj->mt && 
        intelObj->mt->first_level == level &&
        intelObj->mt->last_level == level &&
        intelObj->mt->target != GL_TEXTURE_CUBE_MAP_ARB) {
+      DBG("release it 2\n");
+      intel_miptree_release(intel, &intelObj->mt);
    }
+#endif
 
+   if (intelObj->mt && 
+       intelObj->mt->first_level == level &&
+       intelObj->mt->last_level == level &&
+       intelObj->mt->target != GL_TEXTURE_CUBE_MAP_ARB &&
+       !intel_miptree_match_image(intelObj->mt, &intelImage->base,
+				 intelImage->face, intelImage->level)) {
 
-   if (!intelObj->mt) {
-      guess_and_alloc_mipmap_tree(intel, intelObj, intelImage);
+      DBG("release it\n");
+      intel_miptree_release(intel, &intelObj->mt); 
+      assert(!intelObj->mt);
    }
    
+   if (!intelObj->mt) {
+      guess_and_alloc_mipmap_tree(intel, intelObj, intelImage);
+      if (!intelObj->mt)
+	 _mesa_printf("guess_and_alloc_mipmap_tree: failed\n");
+   }
+
 
    if (intelObj->mt && 
        intelObj->mt != intelImage->mt &&
        intel_miptree_match_image(intelObj->mt, &intelImage->base,
 				 intelImage->face, intelImage->level)) {
       
-      if (intelImage->mt)
-	 intel_miptree_release(intel, intelImage->mt);
+      if (intelImage->mt) {
+	 intel_miptree_release(intel, &intelImage->mt);
+      }
 
-      intelImage->mt = intel_miptree_reference(intelObj->mt);
+      intel_miptree_reference(&intelImage->mt, intelObj->mt);
+      assert(intelImage->mt);
    }
 
+   if (!intelImage->mt)
+      _mesa_printf("XXX: Image did not fit into tree - storing in local memory!\n");
 
    /* intelCopyTexImage calls this function with pixels == NULL, with
     * the expectation that the mipmap tree will be set up but nothing
@@ -278,7 +297,6 @@ static void intelTexImage(GLcontext *ctx,
 	 sizeInBytes = postConvWidth * postConvHeight * texelBytes;
          dstRowStride = postConvWidth * texImage->TexFormat->TexelBytes;
       }
-
       texImage->Data = malloc(sizeInBytes);
    }
      

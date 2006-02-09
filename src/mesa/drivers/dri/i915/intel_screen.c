@@ -111,7 +111,7 @@ static GLboolean intelInitDriver(__DRIscreenPrivate *sPriv)
 
    intelScreen->front.pitch = gDRIPriv->fbStride;
    intelScreen->front.offset = gDRIPriv->fbOffset;
-   intelScreen->front.map = sPriv->pFB;
+   intelScreen->front.map = (char *)sPriv->pFB;
 
    intelScreen->back.offset = gDRIPriv->backOffset;
    intelScreen->back.pitch = gDRIPriv->backPitch;
