@@ -15,6 +15,7 @@
 #include "hash.h"
 #include "simple_list.h"
 #include "mm.h"
+#include "imports.h"
 
 struct _mesa_HashTable;
 
@@ -125,7 +126,7 @@ static struct block *alloc_local( unsigned size )
    DBG("alloc_local 0x%x\n", size);
 
    block->mem_type = BM_MEM_LOCAL;
-   block->virtual = malloc(size);
+   block->virtual = ALIGN_MALLOC(size, 1<<7);
    if (!block->virtual) {
       free(block);
       return NULL;
@@ -209,7 +210,7 @@ static void free_block( struct bufmgr *bm, struct block *block )
       break;
 
    case BM_MEM_LOCAL:
-      free(block->virtual);
+      ALIGN_FREE(block->virtual);
       free(block);
       break;
 
