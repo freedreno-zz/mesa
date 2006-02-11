@@ -15,6 +15,7 @@ DRIVER_SOURCES = \
 	intel_tex_validate.c \
 	intel_tex_format.c \
 	intel_tex.c \
+	intel_blit.c \
 	i915_tex.c \
 	i915_texstate.c \
 	i915_context.c \

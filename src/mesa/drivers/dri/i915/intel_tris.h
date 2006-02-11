@@ -30,6 +30,8 @@
 
 #include "mtypes.h"
 
+
+
 #define _INTEL_NEW_RENDERSTATE (_DD_NEW_LINE_STIPPLE |		\
 			       _DD_NEW_TRI_UNFILLED |		\
 			       _DD_NEW_TRI_LIGHT_TWOSIDE |	\
@@ -42,5 +44,14 @@ extern void intelInitTriFuncs( GLcontext *ctx );
 
 extern void intelPrintRenderState( const char *msg, GLuint state );
 extern void intelChooseRenderState( GLcontext *ctx );
+
+extern void intelStartInlinePrimitive( intelContextPtr intel, GLuint prim );
+extern void intelWrapInlinePrimitive( intelContextPtr intel );
+extern GLuint *intelEmitInlinePrimitiveLocked(intelContextPtr intel, 
+					      int primitive, int dwords,
+					      int vertex_size);
+
+GLuint *intelExtendInlinePrimitive( intelContextPtr intel, 
+				    GLuint dwords );
 
 #endif

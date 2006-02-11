@@ -41,7 +41,7 @@
 
 #include "intel_context.h"
 #include "intel_regions.h"
-#include "intel_batchbuffer.h"
+#include "intel_blit.h"
 #include "bufmgr.h"
 
 /* XXX: Thread safety?
@@ -62,6 +62,7 @@ void intel_region_unmap(struct intel_context *intel,
    DBG("%s\n", __FUNCTION__);
    if (!--region->map_refcount) {
       bmUnmapBuffer(intel->bm, region->buffer);
+      region->map = NULL;
    }
 }
 

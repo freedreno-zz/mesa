@@ -69,38 +69,6 @@ extern void intelDestroyBatchBuffer( struct intel_context *intel );
 void intelInstallBatchBuffer( struct intel_context *intel );
 
 
-extern void intelStartInlinePrimitive( intelContextPtr intel, GLuint prim );
-extern void intelWrapInlinePrimitive( intelContextPtr intel );
-extern GLuint *intelEmitInlinePrimitiveLocked(intelContextPtr intel, 
-					      int primitive, int dwords,
-					      int vertex_size);
-extern void intelCopyBuffer( const __DRIdrawablePrivate *dpriv );
-extern void intelClearWithBlit(GLcontext *ctx, GLbitfield mask, GLboolean all,
-			     GLint cx1, GLint cy1, GLint cw, GLint ch);
-
-extern void intelEmitCopyBlitLocked( intelContextPtr intel,
-				     GLuint cpp,
-				     GLshort src_pitch,
-				     GLuint  src_offset,
-				     GLshort dst_pitch,
-				     GLuint  dst_offset,
-				     GLshort srcx, GLshort srcy,
-				     GLshort dstx, GLshort dsty,
-				     GLshort w, GLshort h );
-
-extern void intelEmitFillBlitLocked( intelContextPtr intel,
-				     GLuint cpp,
-				     GLshort dst_pitch,
-				     GLuint dst_offset,
-				     GLshort x, GLshort y, 
-				     GLshort w, GLshort h,
-				     GLuint color );
-
-
-
-
-GLuint *intelExtendInlinePrimitive( intelContextPtr intel, 
-				    GLuint dwords );
 void intelValidateBuffers( struct intel_context *intel );
 
 #endif

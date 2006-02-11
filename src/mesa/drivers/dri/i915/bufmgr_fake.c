@@ -625,6 +625,9 @@ void *bmMapBuffer( struct bufmgr *bm,
    if (buf->block == 0)
       bmAllocMem(bm, buf);
 
+   if (buf->block == 0)
+      return NULL;
+
    /* Finish any outstanding operations to/from this memory:
     */
    if (buf->block->mem_type != BM_MEM_LOCAL) 

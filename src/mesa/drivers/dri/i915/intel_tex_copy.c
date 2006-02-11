@@ -36,6 +36,7 @@
 #include "intel_mipmap_tree.h"
 #include "intel_regions.h"
 #include "intel_tex.h"
+#include "intel_blit.h"
 #include "bufmgr.h"
 
 /* Do the best we can using the blitter.  A future project is to use

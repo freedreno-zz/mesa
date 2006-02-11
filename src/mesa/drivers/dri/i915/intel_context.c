@@ -54,6 +54,7 @@
 #include "intel_tris.h"
 #include "intel_ioctl.h"
 #include "intel_batchbuffer.h"
+#include "intel_blit.h"
 
 #include "bufmgr.h"
 
