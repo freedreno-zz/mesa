@@ -110,7 +110,7 @@ GLboolean i915CreateContext( const __GLcontextModes *mesaVis,
 
    if (!i915) return GL_FALSE;
 
-   _mesa_printf( "\ntexmem branch (i915)\n\n");
+   _mesa_printf( "\ntexmem branch (i915, drop2)\n\n");
    
    i915InitVtbl( i915 );
 

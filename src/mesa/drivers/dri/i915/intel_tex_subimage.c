@@ -74,6 +74,7 @@ static void intelTexSubimage (GLcontext *ctx,
 					       intelImage->level, 
 					       &dstRowStride );
       
+   assert(dstRowStride);
 
    if (!texImage->TexFormat->StoreImage(ctx, dims, texImage->_BaseFormat,
 					texImage->TexFormat,
