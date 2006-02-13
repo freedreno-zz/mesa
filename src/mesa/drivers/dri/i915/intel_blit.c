@@ -219,16 +219,36 @@ void intelEmitCopyBlitLocked( intelContextPtr intel,
       return;
    }
 
-   BEGIN_BATCH( 12);
-   OUT_BATCH( CMD );
-   OUT_BATCH( BR13 );
-   OUT_BATCH( (dst_y << 16) | dst_x );
-   OUT_BATCH( (dst_y2 << 16) | dst_x2 );
-   OUT_BATCH( dst_offset );	
-   OUT_BATCH( (src_y << 16) | src_x );
-   OUT_BATCH( src_pitch );
-   OUT_BATCH( src_offset ); 
-   ADVANCE_BATCH();
+   /* Initial y values don't seem to work with negative pitches.  If
+    * we adjust the offsets manually (below), it seems to work fine.
+    */
+   if (0) {
+      BEGIN_BATCH(8);
+      OUT_BATCH( CMD );
+      OUT_BATCH( BR13 );
+      OUT_BATCH( (dst_y << 16) | dst_x );
+      OUT_BATCH( (dst_y2 << 16) | dst_x2 );
+      OUT_BATCH( dst_offset );	
+      OUT_BATCH( (src_y << 16) | src_x );
+      OUT_BATCH( ((GLint)src_pitch&0xffff) );
+      OUT_BATCH( src_offset ); 
+      ADVANCE_BATCH();
+   }
+   else {
+      src_offset += src_y * src_pitch;
+      dst_offset += dst_y * dst_pitch;
+
+      BEGIN_BATCH(8);
+      OUT_BATCH( CMD );
+      OUT_BATCH( BR13 );
+      OUT_BATCH( (0 << 16) | dst_x );
+      OUT_BATCH( (h << 16) | dst_x2 );
+      OUT_BATCH( dst_offset );	
+      OUT_BATCH( (0 << 16) | src_x );
+      OUT_BATCH( ((GLint)src_pitch&0xffff) );
+      OUT_BATCH( src_offset ); 
+      ADVANCE_BATCH();
+   }
 }
 
 

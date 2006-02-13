@@ -119,6 +119,7 @@ static GLboolean do_copy_texsubimage( struct intel_context *intel,
       GLuint src_offset = 0;
       GLint orig_x = x;
       GLint orig_y = y;
+      GLuint window_y;
 
       if (!intel_clip_to_framebuffer(ctx, ctx->DrawBuffer, &x, &y, &width, &height)) {
 	 ret = GL_TRUE;
@@ -127,12 +128,14 @@ static GLboolean do_copy_texsubimage( struct intel_context *intel,
 
       /* Update dst for clipped src.  Need to also clip the source rect.
        */
-      dstx = x - orig_x;
-      dsty = y - orig_y;
+      dstx += x - orig_x;
+      dsty += y - orig_y;
 
-      y = dPriv->h - y - height; 	/* convert from gl to hardware coords */
       x += dPriv->x;
-      y += dPriv->y;
+
+      window_y = intel->intelScreen->height - (dPriv->y + dPriv->h);
+
+      y = window_y + y;
 
 
       bmAddBuffer(intel->buffer_list, 
@@ -147,15 +150,21 @@ static GLboolean do_copy_texsubimage( struct intel_context *intel,
 	 ret = GL_FALSE;
 	 goto out;
       }
-      
+
+      /* A bit of fiddling to get the blitter to work with -ve
+       * pitches.  But we get a nice inverted blit this way, so it's
+       * worth it:
+       */
       intelEmitCopyBlitLocked( intel,
 			       intelImage->mt->cpp,
-			       src->pitch, src_offset,
+			       -src->pitch, 
+			       src_offset + intel->intelScreen->height * src->pitch * src->cpp, 
 			       intelImage->mt->pitch, 
 			       dst_offset + image_offset,
-			       x, y, 
+			       x, y + height, 
 			       dstx, dsty,
 			       width, height );
+
    out:
       intelFlushBatchLocked( intel, GL_TRUE, GL_FALSE, GL_FALSE);
    }
