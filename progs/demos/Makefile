@@ -52,7 +52,7 @@ PROGS = \
 	terrain \
 	tessdemo \
 	texcyl \
-	texdown \
+	texdown-pool \
 	texenv \
 	texobj \
 	trispd \
