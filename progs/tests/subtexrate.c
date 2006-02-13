@@ -77,15 +77,15 @@ DoCopyTex(GLboolean doSubRect)
       int w = TexWidth / 2, h = TexHeight / 2;
       int x0 = 0, y0 = 0;
       int x1 = w, y1 = h;
-#if 1
+#if 0
       glCopyTexSubImage2D(GL_TEXTURE_2D, 0, x0, y0, x0, y0, w, h);
       glCopyTexSubImage2D(GL_TEXTURE_2D, 0, x1, y0, x1, y0, w, h);
       glCopyTexSubImage2D(GL_TEXTURE_2D, 0, x0, y1, x0, y1, w, h);
       glCopyTexSubImage2D(GL_TEXTURE_2D, 0, x1, y1, x1, y1, w, h);
 #else
       /* scramble */
-      glCopyTexSubImage2D(GL_TEXTURE_2D, 0, x0, y0, x1, y1, w, h);
-      glCopyTexSubImage2D(GL_TEXTURE_2D, 0, x1, y0, x0, y1, w, h);
+      glCopyTexSubImage2D(GL_TEXTURE_2D, 0, x0, y0, x1, y1, w, h); 
+      glCopyTexSubImage2D(GL_TEXTURE_2D, 0, x1, y0, x0, y1, w, h); 
       glCopyTexSubImage2D(GL_TEXTURE_2D, 0, x0, y1, x1, y0, w, h);
       glCopyTexSubImage2D(GL_TEXTURE_2D, 0, x1, y1, x0, y0, w, h);
 #endif
@@ -110,26 +110,31 @@ SubTex(GLboolean doSubRect, const GLubyte *image)
       int x1 = w, y1 = h;
       glPixelStorei(GL_UNPACK_ROW_LENGTH, TexWidth);
       glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+      glPixelStorei( GL_PACK_INVERT_MESA, GL_TRUE );
 
-      glPixelStorei(GL_UNPACK_SKIP_ROWS, y0);
-      glPixelStorei(GL_UNPACK_SKIP_PIXELS, x0);
+       glPixelStorei(GL_UNPACK_SKIP_ROWS, 0); 
+       glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0); 
+/*       glPixelStorei(GL_UNPACK_SKIP_ROWS, y0); */
+/*       glPixelStorei(GL_UNPACK_SKIP_PIXELS, x0); */
       glTexSubImage2D(GL_TEXTURE_2D, 0, x0, y0, w, h,
                       ReadFormat, GL_UNSIGNED_BYTE, image);
 
-      glPixelStorei(GL_UNPACK_SKIP_ROWS, y0);
-      glPixelStorei(GL_UNPACK_SKIP_PIXELS, x1);
+/*       glPixelStorei(GL_UNPACK_SKIP_ROWS, y0); */
+/*       glPixelStorei(GL_UNPACK_SKIP_PIXELS, x1); */
       glTexSubImage2D(GL_TEXTURE_2D, 0, x1, y0, w, h,
                       ReadFormat, GL_UNSIGNED_BYTE, image);
 
-      glPixelStorei(GL_UNPACK_SKIP_ROWS, y1);
-      glPixelStorei(GL_UNPACK_SKIP_PIXELS, x0);
+/*       glPixelStorei(GL_UNPACK_SKIP_ROWS, y1); */
+/*       glPixelStorei(GL_UNPACK_SKIP_PIXELS, x0); */
       glTexSubImage2D(GL_TEXTURE_2D, 0, x0, y1, w, h,
                       ReadFormat, GL_UNSIGNED_BYTE, image);
 
-      glPixelStorei(GL_UNPACK_SKIP_ROWS, y1);
-      glPixelStorei(GL_UNPACK_SKIP_PIXELS, x1);
+/*       glPixelStorei(GL_UNPACK_SKIP_ROWS, y1); */
+/*       glPixelStorei(GL_UNPACK_SKIP_PIXELS, x1); */
       glTexSubImage2D(GL_TEXTURE_2D, 0, x1, y1, w, h,
                       ReadFormat, GL_UNSIGNED_BYTE, image);
+      glPixelStorei( GL_PACK_INVERT_MESA, GL_FALSE );
+      
    }
    else {
       /* all at once */
@@ -173,6 +178,9 @@ RunTest(GLboolean copyTex, GLboolean doSubRect)
 
    t0 = glutGet(GLUT_ELAPSED_TIME) / 1000.0;
 
+   if (!DrawQuad)
+      glDrawBuffer(GL_FRONT);
+
    do {
       if (copyTex)
          /* Framebuffer -> Texture */
@@ -194,16 +202,36 @@ RunTest(GLboolean copyTex, GLboolean doSubRect)
                glTexCoord2f(0, 1);  glVertex2f(-1,  1);
             glEnd();
          glPopMatrix();
+	 glutSwapBuffers();
+      }
+      else {
+	 /* Draw something tiny to ensure that the texture is really
+	  * uploaded:
+	  */
+         glPushMatrix();
+            glRotatef(rot, 0, 0, 1);
+            glTranslatef(1, 0, 0);
+            glBegin(GL_POLYGON);
+               glTexCoord2f(0, 0);  glVertex2f(-.01, -.01);
+               glTexCoord2f(.01, 0);  glVertex2f( .01, -.01);
+               glTexCoord2f(.01, .01);  glVertex2f( .01,  .01);
+               glTexCoord2f(0, .01);  glVertex2f(-.01,  .01);
+            glEnd();
+         glPopMatrix();
+	 glFlush();
       }
 
       iters++;
       rot += 2.0;
 
       t1 = glutGet(GLUT_ELAPSED_TIME) / 1000.0;
-      if (DrawQuad) {
-         glutSwapBuffers();
-      }
-   } while (t1 - t0 < 5.0);
+   } while (t1 - t0 < 2.0);
+
+   /*  Make sure everything is done before taking the final timing:
+    */
+   glFinish();
+   t1 = glutGet(GLUT_ELAPSED_TIME) / 1000.0;
+   
 
    glDisable(GL_TEXTURE_2D);
    if (image)
@@ -242,17 +270,15 @@ Draw(void)
       glutSwapBuffers();
    }
 
-/*    RunTest(GL_FALSE, GL_FALSE); */
-/*    RunTest(GL_FALSE, GL_TRUE); */
-   while (1) {
-      RunTest(GL_TRUE, GL_FALSE);
-      RunTest(GL_TRUE, GL_TRUE);
+   RunTest(GL_FALSE, GL_FALSE); 
+   RunTest(GL_FALSE, GL_TRUE); 
+   RunTest(GL_TRUE, GL_FALSE); 
+   RunTest(GL_TRUE, GL_TRUE);
 
-      glutSwapBuffers();
-   }
+   glutSwapBuffers(); 
 
-   printf("exiting\n");
-   exit(0);
+/*    printf("exiting\n"); */
+/*    exit(0); */
 }
 
 
