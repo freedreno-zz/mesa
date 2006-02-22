@@ -161,7 +161,7 @@ static void do_flush_locked( struct intel_batchbuffer *batch,
       ptr[r->offset/4] = batch->offset[r->elem] + r->delta;
    }
 
-   if (0)
+   if (INTEL_DEBUG & DEBUG_DMA)
       intel_dump_batchbuffer( 0, ptr, used );
 
 
@@ -189,14 +189,17 @@ GLuint intel_batchbuffer_flush( struct intel_batchbuffer *batch )
    if (used == 0) 
       return batch->last_fence;
 
-   /* Add the MI_BATCH_BUFFER_END: 
+   /* Add the MI_BATCH_BUFFER_END.  Always add an MI_FLUSH - this is a
+    * performance drain that we would like to avoid.
     */
-   if (intel_batchbuffer_space(batch) & 4) {
-      ((int *)batch->ptr)[0] = MI_BATCH_BUFFER_END;
-      used += 4;
+   if (used & 4) {
+      ((int *)batch->ptr)[0] = intel->vtbl.flush_cmd();
+      ((int *)batch->ptr)[1] = 0;
+      ((int *)batch->ptr)[2] = MI_BATCH_BUFFER_END;
+      used += 12;
    }
    else {
-      ((int *)batch->ptr)[0] = 0;
+      ((int *)batch->ptr)[0] = intel->vtbl.flush_cmd();
       ((int *)batch->ptr)[1] = MI_BATCH_BUFFER_END;
       used += 8;
    }

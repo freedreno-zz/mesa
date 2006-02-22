@@ -7,6 +7,8 @@
 struct intel_context;
 
 #define BATCH_SZ 4096
+#define BATCH_RESERVED 16
+
 #define MAX_RELOCS 100
 
 #define INTEL_BATCH_NO_CLIPRECTS 0x1
@@ -72,7 +74,7 @@ GLboolean intel_batchbuffer_emit_reloc( struct intel_batchbuffer *batch,
 static inline GLuint 
 intel_batchbuffer_space( struct intel_batchbuffer *batch )
 {
-   return (BATCH_SZ - 8) - (batch->ptr - batch->map);
+   return (BATCH_SZ - BATCH_RESERVED) - (batch->ptr - batch->map);
 }
 
 

@@ -360,14 +360,9 @@ static void i915_lost_hardware( struct intel_context *intel )
    i915->state.emitted = 0;
 }
 
-static void i915_emit_flush( struct intel_context *intel )
+static GLuint i915_flush_cmd( void )
 {
-   BATCH_LOCALS;
-
-   BEGIN_BATCH(2, 0);
-   OUT_BATCH( MI_FLUSH | FLUSH_MAP_CACHE | FLUSH_RENDER_CACHE ); 
-   OUT_BATCH( 0 );
-   ADVANCE_BATCH();
+   return MI_FLUSH | FLUSH_MAP_CACHE | FLUSH_RENDER_CACHE;
 }
 
 
@@ -382,6 +377,6 @@ void i915InitVtbl( struct i915_context *i915 )
    i915->intel.vtbl.render_start = i915_render_start;
    i915->intel.vtbl.set_draw_region = i915_set_draw_region;
    i915->intel.vtbl.update_texture_state = i915UpdateTextureState;
-   i915->intel.vtbl.emit_flush = i915_emit_flush;
+   i915->intel.vtbl.flush_cmd = i915_flush_cmd;
 }
 

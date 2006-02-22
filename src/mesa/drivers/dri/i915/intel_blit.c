@@ -51,8 +51,7 @@ void intelCopyBuffer( const __DRIdrawablePrivate *dPriv )
 {
    struct intel_context *intel;
 
-   if (0)
-      fprintf(stderr, "%s\n", __FUNCTION__);
+   DBG(stderr, "%s\n", __FUNCTION__);
 
    assert(dPriv);
    assert(dPriv->driContextPriv);
@@ -188,12 +187,11 @@ void intelEmitCopyBlit( struct intel_context *intel,
    BATCH_LOCALS;
 
 
-   if (1)
-      _mesa_printf("%s src:buf(%d)/%d %d,%d dst:buf(%d)/%d %d,%d sz:%dx%d\n",
-		   __FUNCTION__,
-		   src_buffer, src_pitch, src_x, src_y,
-		   dst_buffer, dst_pitch, dst_x, dst_y,
-		   w,h);
+   DBG("%s src:buf(%d)/%d %d,%d dst:buf(%d)/%d %d,%d sz:%dx%d\n",
+       __FUNCTION__,
+       src_buffer, src_pitch, src_x, src_y,
+       dst_buffer, dst_pitch, dst_x, dst_y,
+       w,h);
 
    src_pitch *= cpp;
    dst_pitch *= cpp;

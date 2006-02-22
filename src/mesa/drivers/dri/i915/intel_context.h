@@ -121,7 +121,8 @@ struct intel_context
       void (*set_draw_region)( struct intel_context *intel, 
 			       struct intel_region *draw_region,
 			       struct intel_region *depth_region );
-      void (*emit_flush)( struct intel_context *intel );
+
+      GLuint (*flush_cmd)( void );
 
       void (*reduced_primitive_state)( struct intel_context *intel, GLenum rprim );
 

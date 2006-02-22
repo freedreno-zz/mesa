@@ -123,7 +123,7 @@ void intel_batch_ioctl( struct intel_context *intel,
    batch.DR4 = ((((GLuint)intel->drawX) & 0xffff) | 
 		(((GLuint)intel->drawY) << 16));
       
-   if (0)
+   if (INTEL_DEBUG & DEBUG_DMA)
       fprintf(stderr, "%s: 0x%x..0x%x DR4: %x cliprects: %d\n",
 	      __FUNCTION__, 
 	      batch.start, 
