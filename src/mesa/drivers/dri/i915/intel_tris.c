@@ -63,10 +63,9 @@ static void intelRasterPrimitive( GLcontext *ctx, GLenum rprim, GLuint hwprim );
  * of the locked region - vertex buffers, second batch buffer for
  * primitives, relocation fixups for texture addresses.
  */
-static void intel_flush_inline_primitive( GLcontext *ctx )
+static void intel_flush_inline_primitive( struct intel_context *intel )
 {
-   intelContextPtr intel = INTEL_CONTEXT( ctx );
-   GLuint used = intel->batch.ptr - intel->prim.start_ptr;
+   GLuint used = intel->batch->ptr - intel->prim.start_ptr;
 
    assert(intel->prim.primitive != ~0);
 
@@ -80,9 +79,7 @@ static void intel_flush_inline_primitive( GLcontext *ctx )
    goto finished;
    
  do_discard:
-   intel->batch.ptr -= used;
-   intel->batch.space += used;
-   assert(intel->batch.space >= 0);
+   intel->batch->ptr -= used;
 
  finished:
    intel->prim.primitive = ~0;
@@ -93,17 +90,19 @@ static void intel_flush_inline_primitive( GLcontext *ctx )
 
 /* Emit a primitive referencing vertices in a vertex buffer.
  */
-void intelStartInlinePrimitive( intelContextPtr intel, GLuint prim )
+void intelStartInlinePrimitive( struct intel_context *intel, 
+				GLuint prim, 
+				GLuint batch_flags )
 {
    BATCH_LOCALS;
    
    /* Emit a slot which will be filled with the inline primitive
     * command later.
     */
-   BEGIN_BATCH(2);
+   BEGIN_BATCH(2, batch_flags);
    OUT_BATCH( 0 );
 
-   intel->prim.start_ptr = batch_ptr;
+   intel->prim.start_ptr = intel->batch->ptr;
    intel->prim.primitive = prim;
    intel->prim.flush = intel_flush_inline_primitive;
 
@@ -112,31 +111,29 @@ void intelStartInlinePrimitive( intelContextPtr intel, GLuint prim )
 }
 
 
-void intelWrapInlinePrimitive( intelContextPtr intel )
+void intelWrapInlinePrimitive( struct intel_context *intel )
 {
    GLuint prim = intel->prim.primitive;
+   GLuint batchflags = intel->batch->flags;
 
-   intel_flush_inline_primitive( &intel->ctx );
-   intelFlushBatch(intel, GL_TRUE);
-   intelInstallBatchBuffer( intel );    
-   intel_validate_buffers( intel );
+   intel_flush_inline_primitive(intel);
+   intel_batchbuffer_flush(intel->batch);
+
    intel->vtbl.emit_state( intel );
-   intelStartInlinePrimitive( intel, prim );
+   intelStartInlinePrimitive( intel, prim, batchflags ); /* ??? */
 }
 
-GLuint *intelExtendInlinePrimitive( intelContextPtr intel, 
+GLuint *intelExtendInlinePrimitive( struct intel_context *intel, 
 				    GLuint dwords )
 {
    GLuint sz = dwords * sizeof(GLuint);
    GLuint *ptr;
 
-   if (intel->batch.space < sz) {
+   if (intel_batchbuffer_space(intel->batch) < sz) 
       intelWrapInlinePrimitive( intel );
-   }
 
-   ptr = (GLuint *)intel->batch.ptr;
-   intel->batch.ptr += sz;
-   intel->batch.space -= sz;
+   ptr = (GLuint *)intel->batch->ptr;
+   intel->batch->ptr += sz;
 
    return ptr;
 }
@@ -160,22 +157,18 @@ do {								\
 #else
 #define COPY_DWORDS( j, vb, vertsize, v )	\
 do {						\
-   if (0) fprintf(stderr, "\n");	\
    for ( j = 0 ; j < vertsize ; j++ ) {		\
-      if (0) fprintf(stderr, "   -- v(%d): %x/%f\n",j,	\
-	      ((GLuint *)v)[j],			\
-	      ((GLfloat *)v)[j]);		\
       vb[j] = ((GLuint *)v)[j];			\
    }						\
    vb += vertsize;				\
 } while (0)
 #endif
 
-static void __inline__ intel_draw_quad( intelContextPtr intel,
-					intelVertexPtr v0,
-					intelVertexPtr v1,
-					intelVertexPtr v2,
-					intelVertexPtr v3 )
+static void intel_draw_quad( struct intel_context *intel,
+			     intelVertexPtr v0,
+			     intelVertexPtr v1,
+			     intelVertexPtr v2,
+			     intelVertexPtr v3 )
 {
    GLuint vertsize = intel->vertex_size;
    GLuint *vb = intelExtendInlinePrimitive( intel, 6 * vertsize );
@@ -189,10 +182,10 @@ static void __inline__ intel_draw_quad( intelContextPtr intel,
    COPY_DWORDS( j, vb, vertsize, v3 );
 }
 
-static void __inline__ intel_draw_triangle( intelContextPtr intel,
-					    intelVertexPtr v0,
-					    intelVertexPtr v1,
-					    intelVertexPtr v2 )
+static void intel_draw_triangle( struct intel_context *intel,
+				 intelVertexPtr v0,
+				 intelVertexPtr v1,
+				 intelVertexPtr v2 )
 {
    GLuint vertsize = intel->vertex_size;
    GLuint *vb = intelExtendInlinePrimitive( intel, 3 * vertsize );
@@ -204,9 +197,9 @@ static void __inline__ intel_draw_triangle( intelContextPtr intel,
 }
 
 
-static __inline__ void intel_draw_line( intelContextPtr intel,
-					intelVertexPtr v0,
-					intelVertexPtr v1 )
+static void intel_draw_line( struct intel_context *intel,
+			     intelVertexPtr v0,
+			     intelVertexPtr v1 )
 {
    GLuint vertsize = intel->vertex_size;
    GLuint *vb = intelExtendInlinePrimitive( intel, 2 * vertsize );
@@ -217,8 +210,8 @@ static __inline__ void intel_draw_line( intelContextPtr intel,
 }
 
 
-static __inline__ void intel_draw_point( intelContextPtr intel,
-					 intelVertexPtr v0 )
+static void intel_draw_point( struct intel_context *intel,
+			      intelVertexPtr v0 )
 {
    GLuint vertsize = intel->vertex_size;
    GLuint *vb = intelExtendInlinePrimitive( intel, vertsize );
@@ -237,7 +230,7 @@ static __inline__ void intel_draw_point( intelContextPtr intel,
  *                Fixup for ARB_point_parameters                       *
  ***********************************************************************/
 
-static void intel_atten_point( intelContextPtr intel, intelVertexPtr v0 )
+static void intel_atten_point( struct intel_context *intel, intelVertexPtr v0 )
 {
    GLcontext *ctx = &intel->ctx;
    GLfloat psz[4], col[4], restore_psz, restore_alpha;
@@ -286,7 +279,7 @@ static void intel_atten_point( intelContextPtr intel, intelVertexPtr v0 )
 
 
 
-static void intel_wpos_triangle( intelContextPtr intel,
+static void intel_wpos_triangle( struct intel_context *intel,
 				 intelVertexPtr v0,
 				 intelVertexPtr v1,
 				 intelVertexPtr v2 )
@@ -302,7 +295,7 @@ static void intel_wpos_triangle( intelContextPtr intel,
 }
 
 
-static void intel_wpos_line( intelContextPtr intel,
+static void intel_wpos_line( struct intel_context *intel,
 			     intelVertexPtr v0,
 			     intelVertexPtr v1 )
 {
@@ -316,7 +309,7 @@ static void intel_wpos_line( intelContextPtr intel,
 }
 
 
-static void intel_wpos_point( intelContextPtr intel,
+static void intel_wpos_point( struct intel_context *intel,
 			      intelVertexPtr v0 )
 {
    GLuint offset = intel->wpos_offset;
@@ -446,7 +439,7 @@ do {							\
 #define VERT_RESTORE_SPEC( idx ) if (specoffset) v[idx]->ui[specoffset] = spec[idx]
 
 #define LOCAL_VARS(n)							\
-   intelContextPtr intel = INTEL_CONTEXT(ctx);				\
+   struct intel_context *intel = intel_context(ctx);				\
    GLuint color[n], spec[n];						\
    GLuint coloroffset = intel->coloroffset;		\
    GLboolean specoffset = intel->specoffset;			\
@@ -578,7 +571,7 @@ static void init_rast_tab( void )
  * primitives.
  */
 static void
-intel_fallback_tri( intelContextPtr intel,
+intel_fallback_tri( struct intel_context *intel,
 		   intelVertex *v0,
 		   intelVertex *v1,
 		   intelVertex *v2 )
@@ -599,7 +592,7 @@ intel_fallback_tri( intelContextPtr intel,
 
 
 static void
-intel_fallback_line( intelContextPtr intel,
+intel_fallback_line( struct intel_context *intel,
 		    intelVertex *v0,
 		    intelVertex *v1 )
 {
@@ -633,7 +626,7 @@ intel_fallback_line( intelContextPtr intel,
 #define INIT(x) intelRenderPrimitive( ctx, x )
 #undef LOCAL_VARS
 #define LOCAL_VARS						\
-    intelContextPtr intel = INTEL_CONTEXT(ctx);			\
+    struct intel_context *intel = intel_context(ctx);			\
     GLubyte *vertptr = (GLubyte *)intel->verts;			\
     const GLuint vertsize = intel->vertex_size;       	\
     const GLuint * const elt = TNL_CONTEXT(ctx)->vb.Elts;	\
@@ -659,7 +652,7 @@ intel_fallback_line( intelContextPtr intel,
 static void intelRenderClippedPoly( GLcontext *ctx, const GLuint *elts,
 				   GLuint n )
 {
-   intelContextPtr intel = INTEL_CONTEXT(ctx);
+   struct intel_context *intel = intel_context(ctx);
    TNLcontext *tnl = TNL_CONTEXT(ctx);
    struct vertex_buffer *VB = &TNL_CONTEXT(ctx)->vb;
    GLuint prim = intel->render_primitive;
@@ -690,7 +683,7 @@ static void intelRenderClippedLine( GLcontext *ctx, GLuint ii, GLuint jj )
 static void intelFastRenderClippedPoly( GLcontext *ctx, const GLuint *elts,
 				       GLuint n )
 {
-   intelContextPtr intel = INTEL_CONTEXT( ctx );
+   struct intel_context *intel = intel_context( ctx );
    const GLuint vertsize = intel->vertex_size;
    GLuint *vb = intelExtendInlinePrimitive( intel, (n-2) * 3 * vertsize );
    GLubyte *vertptr = (GLubyte *)intel->verts;
@@ -717,7 +710,7 @@ static void intelFastRenderClippedPoly( GLcontext *ctx, const GLuint *elts,
 void intelChooseRenderState(GLcontext *ctx)
 {
    TNLcontext *tnl = TNL_CONTEXT(ctx);
-   intelContextPtr intel = INTEL_CONTEXT(ctx);
+   struct intel_context *intel = intel_context(ctx);
    GLuint flags = ctx->_TriangleCaps;
    struct fragment_program *fprog = ctx->FragmentProgram._Current;
    GLboolean have_wpos = (fprog && (fprog->Base.InputsRead & FRAG_BIT_WPOS));
@@ -814,7 +807,7 @@ static const GLenum reduced_prim[GL_POLYGON+1] = {
 
 static void intelRunPipeline( GLcontext *ctx )
 {
-   intelContextPtr intel = INTEL_CONTEXT(ctx);
+   struct intel_context *intel = intel_context(ctx);
 
    if (intel->NewGLState) {
       if (intel->NewGLState & _NEW_TEXTURE) {
@@ -836,11 +829,7 @@ static void intelRenderStart( GLcontext *ctx )
 {
    struct intel_context *intel = intel_context(ctx);
 
-   intel->vtbl.render_start( INTEL_CONTEXT(ctx) );
-
-   LOCK_HARDWARE(intel);
-   intelInstallBatchBuffer( intel );    
-   intel_validate_buffers( intel );
+   intel->vtbl.render_start( intel_context(ctx) );
    intel->vtbl.emit_state( intel );
 }
 
@@ -852,10 +841,7 @@ static void intelRenderFinish( GLcontext *ctx )
       _swrast_flush( ctx );
 
    if (intel->prim.flush)
-      intel->prim.flush(ctx);
-
-   intelFlushBatch(intel, GL_TRUE); 
-   UNLOCK_HARDWARE(intel);
+      intel->prim.flush(intel);
 }
 
 
@@ -866,7 +852,7 @@ static void intelRenderFinish( GLcontext *ctx )
   */
 static void intelRasterPrimitive( GLcontext *ctx, GLenum rprim, GLuint hwprim )
 {
-   intelContextPtr intel = INTEL_CONTEXT(ctx);
+   struct intel_context *intel = intel_context(ctx);
 
    if (0)
       fprintf(stderr, "%s %s %x\n", __FUNCTION__, 
@@ -877,7 +863,7 @@ static void intelRasterPrimitive( GLcontext *ctx, GLenum rprim, GLuint hwprim )
    /* Start a new primitive.  Arrange to have it flushed later on.
     */
    if (hwprim != intel->prim.primitive) 
-      intelStartInlinePrimitive( intel, hwprim );
+      intelStartInlinePrimitive( intel, hwprim, INTEL_BATCH_CLIPRECTS );
 }
 
 
@@ -885,7 +871,7 @@ static void intelRasterPrimitive( GLcontext *ctx, GLenum rprim, GLuint hwprim )
   */
 static void intelRenderPrimitive( GLcontext *ctx, GLenum prim )
 {
-   intelContextPtr intel = INTEL_CONTEXT(ctx);
+   struct intel_context *intel = intel_context(ctx);
 
    if (0)
       fprintf(stderr, "%s %s\n", __FUNCTION__, _mesa_lookup_enum_by_nr(prim));
@@ -938,7 +924,7 @@ static char *getFallbackString(GLuint bit)
 
 
 
-void intelFallback( intelContextPtr intel, GLuint bit, GLboolean mode )
+void intelFallback( struct intel_context *intel, GLuint bit, GLboolean mode )
 {
    GLcontext *ctx = &intel->ctx;
    TNLcontext *tnl = TNL_CONTEXT(ctx);
@@ -981,6 +967,70 @@ void intelFallback( intelContextPtr intel, GLuint bit, GLboolean mode )
 }
 
 
+
+/**********************************************************************/
+/*             Used only with the metaops callbacks.                  */
+/**********************************************************************/
+void intel_meta_draw_quad(struct intel_context *intel, 
+			  GLfloat x0, GLfloat x1,
+			  GLfloat y0, GLfloat y1, 
+			  GLfloat z,
+			  GLuint color,
+			  GLfloat s0, GLfloat s1,
+			  GLfloat t0, GLfloat t1,
+			  GLuint flags)
+{
+   union fi *vb;
+
+   if (0)
+      fprintf(stderr, "%s: %f,%f-%f,%f 0x%x %f,%f-%f,%f\n",
+	      __FUNCTION__,
+	      x0,y0,x1,y1,color,s0,t0,s1,t1);
+
+   intel->vtbl.emit_state( intel );
+
+   intelStartInlinePrimitive( intel, PRIM3D_TRIFAN, flags );  
+   vb = (union fi *)intelExtendInlinePrimitive( intel, 4 * 6 );
+
+
+   /* initial vertex, left bottom */
+   vb[0].f = x0;
+   vb[1].f = y0;
+   vb[2].f = z;
+   vb[3].i = color;
+   vb[4].f = s0;
+   vb[5].f = t0;
+   vb += 6;
+
+   /* right bottom */
+   vb[0].f = x1;
+   vb[1].f = y0;
+   vb[2].f = z;
+   vb[3].i = color;
+   vb[4].f = s1;
+   vb[5].f = t0;
+   vb += 6;
+
+   /* right top */
+   vb[0].f = x1;
+   vb[1].f = y1;
+   vb[2].f = z;
+   vb[3].i = color;
+   vb[4].f = s1;
+   vb[5].f = t1;
+   vb += 6;
+
+   /* left top */
+   vb[0].f = x0;
+   vb[1].f = y1;
+   vb[2].f = z;
+   vb[3].i = color;
+   vb[4].f = s0;
+   vb[5].f = t1;
+
+   if (intel->prim.flush)
+      intel->prim.flush(intel);
+}
 
 
 /**********************************************************************/

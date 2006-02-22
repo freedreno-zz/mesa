@@ -90,6 +90,7 @@ void intel_region_reference( struct intel_region **dst,
 			     struct intel_region *src)
 {
    src->refcount++;
+   assert(*dst == NULL);
    *dst = src;
 }
 
@@ -151,6 +152,7 @@ struct intel_region *intel_region_create_static( struct intel_context *intel,
 
 
 
+
 static void _mesa_copy_rect( GLubyte *dst,
 			     GLuint cpp,
 			     GLuint dst_pitch,
@@ -184,60 +186,6 @@ static void _mesa_copy_rect( GLubyte *dst,
       }
    }
 }
-
-
-
-/* Could make color a char * to handle deeper buffers.
- */
-static void _mesa_fill_rect( GLubyte *dst,
-			     GLuint cpp,
-			     GLuint dst_pitch,
-			     GLuint dst_x, 
-			     GLuint dst_y,
-			     GLuint width,
-			     GLuint height,
-			     GLuint color )
-{
-   GLuint i,j;
-
-   switch (cpp) {
-   case 1:
-      dst += dst_x;
-      dst += dst_y * dst_pitch;
-      for (i = 0; i < height; i++) { 
-	 memset(dst, color, width);
-	 dst += dst_pitch;
-      }
-      break;
-   case 2: {
-      GLushort color_short = color & 0xffff;
-      GLushort *dst_short = (GLushort *)dst;
-      dst_short += dst_x;
-      dst_short += dst_y * dst_pitch;
-
-      for (i = 0; i < height; i++) { 
-	 for (j = 0; j < width; j++) 
-	    dst_short[j] = color_short;
-      }
-      break;
-   }
-   case 4: {
-      GLuint *dst_int = (GLuint *)dst;
-      dst_int += dst_x;
-      dst_int += dst_y * dst_pitch;
-
-      for (i = 0; i < height; i++) { 
-	 for (j = 0; j < width; j++) 
-	    dst_int[j] = color;
-      }
-      break;
-   }
-   default:
-      assert(0);
-      return;
-   }
-}
-
 
 
 /* Upload data to a rectangular sub-region.  Lots of choices how to do this:
@@ -283,47 +231,17 @@ void intel_region_copy( struct intel_context *intel,
 			GLuint srcx, GLuint srcy,
 			GLuint width, GLuint height )
 {
-   unsigned dst_offset;
-   unsigned src_offset;
-   struct bm_buffer_list *list = bmNewBufferList();
-
    DBG("%s\n", __FUNCTION__);
 
    assert(src->cpp == dst->cpp);
 
-   LOCK_HARDWARE(intel);
-   bmAddBuffer(list, dst->buffer, BM_WRITE, NULL, &dst_offset);
-   bmAddBuffer(list, src->buffer, BM_READ, NULL, &src_offset);
-
-   /* Query if both buffers are already uploaded:
-    */
-   if (bmValidateBufferList(intel->bm, list, BM_NO_EVICT|BM_NO_UPLOAD|BM_MEM_AGP)) {
-      intelEmitCopyBlitLocked(intel,
-			      dst->cpp,
-			      src->pitch, src_offset,
-			      dst->pitch, dst_offset, 
-			      srcx, srcy,
-			      dstx, dsty,
-			      width, height);
-
-      bmFenceBufferList(intel->bm, list);
-   }
-   else {
-      _mesa_copy_rect(intel_region_map(intel, dst),
-		      dst->cpp,
-		      dst->pitch,
-		      dstx, dsty,
-		      width, height,
-		      intel_region_map(intel, src),
-		      srcx, srcy,
-		      src->pitch);      
-
-      intel_region_unmap(intel, dst);
-      intel_region_unmap(intel, src);      
-   }
-   
-   bmFreeBufferList(list);
-   UNLOCK_HARDWARE(intel);
+   intelEmitCopyBlit(intel,
+		     dst->cpp,
+		     src->pitch, src->buffer, 0,
+		     dst->pitch, dst->buffer, 0, 
+		     srcx, srcy,
+		     dstx, dsty,
+		     width, height);
 }
 
 /* Fill a rectangular sub-region.  Need better logic about when to
@@ -335,37 +253,15 @@ void intel_region_fill( struct intel_context *intel,
 			GLuint width, GLuint height,
 			GLuint color )
 {
-   unsigned dst_offset;
-   struct bm_buffer_list *list = bmNewBufferList();
-
    DBG("%s\n", __FUNCTION__);
-
-   LOCK_HARDWARE(intel);
-   bmAddBuffer(list, dst->buffer, BM_WRITE, NULL, &dst_offset);
-
-   if (bmValidateBufferList(intel->bm, list, BM_NO_EVICT|BM_NO_UPLOAD|BM_MEM_AGP)) {
-      intelEmitFillBlitLocked(intel,
-			      dst->cpp,
-			      dst->pitch,
-			      dst_offset, 
-			      dstx, dsty,
-			      width, height,
-			      color );
-
-      bmFenceBufferList(intel->bm, list);
-   }
-   else {
-      _mesa_fill_rect(intel_region_map(intel, dst),
-		      dst->cpp,
-		      dst->pitch,
-		      dstx, dsty,
-		      width, height,
-		      color);      
-
-      intel_region_unmap(intel, dst);
-   }
    
-   bmFreeBufferList(list);
-   UNLOCK_HARDWARE(intel);
+   intelEmitFillBlit(intel,
+		     dst->cpp,
+		     dst->pitch,
+		     dst->buffer,
+		     0, 
+		     dstx, dsty,
+		     width, height,
+		     color );
 }
 

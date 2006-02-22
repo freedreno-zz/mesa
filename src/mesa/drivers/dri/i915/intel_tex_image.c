@@ -153,7 +153,7 @@ static void intelTexImage(GLcontext *ctx,
 			  GLint internalFormat,
 			  GLint width, GLint height, GLint border,
 			  GLenum format, GLenum type, const void *pixels,
-			  const struct gl_pixelstore_attrib *packing,
+			  const struct gl_pixelstore_attrib *unpack,
 			  struct gl_texture_object *texObj,
 			  struct gl_texture_image *texImage)
 {
@@ -165,10 +165,13 @@ static void intelTexImage(GLcontext *ctx,
    GLint texelBytes, sizeInBytes;
    GLuint dstRowStride;
 
+
    DBG("%s target %s level %d %dx%d border %d\n", __FUNCTION__,
 		_mesa_lookup_enum_by_nr(target),
 		level,
 		width, height, border);
+
+   intelFlush(ctx);
 
    intelImage->face = target_to_face( target );
    intelImage->level = level;
@@ -271,12 +274,10 @@ static void intelTexImage(GLcontext *ctx,
     */
    pixels = _mesa_validate_pbo_teximage(ctx, dims, width, height, 1, 
 					format, type,
-					pixels, packing, "glTexImage");
+					pixels, unpack, "glTexImage");
    if (!pixels) 
       return;
    
-
-
 
    LOCK_HARDWARE(intel);
    
@@ -311,11 +312,11 @@ static void intelTexImage(GLcontext *ctx,
 					0, 0, 0,  /* dstX/Y/Zoffset */
 					dstRowStride, 0 /* dstImageStride */,
 					width, height, 1,
-					format, type, pixels, packing)) {
+					format, type, pixels, unpack)) {
       _mesa_error(ctx, GL_OUT_OF_MEMORY, "glTexImage");
    }
 
-   _mesa_unmap_teximage_pbo(ctx, packing);
+   _mesa_unmap_teximage_pbo(ctx, unpack);
 
    if (intelImage->mt) {
       intel_miptree_image_unmap(intel, intelImage->mt);
@@ -342,14 +343,14 @@ void intelTexImage2D(GLcontext *ctx,
 		     GLint internalFormat,
 		     GLint width, GLint height, GLint border,
 		     GLenum format, GLenum type, const void *pixels,
-		     const struct gl_pixelstore_attrib *packing,
+		     const struct gl_pixelstore_attrib *unpack,
 		     struct gl_texture_object *texObj,
 		     struct gl_texture_image *texImage)
 {
    intelTexImage( ctx, 2, target, level, 
 		internalFormat, width, height, border,
 		format, type, pixels,
-		packing, texObj, texImage );
+		unpack, texObj, texImage );
 }
 
 void intelTexImage1D(GLcontext *ctx, 
@@ -357,14 +358,14 @@ void intelTexImage1D(GLcontext *ctx,
 		     GLint internalFormat,
 		     GLint width, GLint border,
 		     GLenum format, GLenum type, const void *pixels,
-		     const struct gl_pixelstore_attrib *packing,
+		     const struct gl_pixelstore_attrib *unpack,
 		     struct gl_texture_object *texObj,
 		     struct gl_texture_image *texImage)
 {
    intelTexImage( ctx, 1, target, level, 
 		  internalFormat, width, 1, border,
 		  format, type, pixels,
-		  packing, texObj, texImage );
+		  unpack, texObj, texImage );
 }
 
 

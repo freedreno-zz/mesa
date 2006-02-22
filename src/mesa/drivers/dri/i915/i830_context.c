@@ -59,7 +59,7 @@ GLboolean i830CreateContext( const __GLcontextModes *mesaVis,
 {
    struct dd_function_table functions;
    i830ContextPtr i830 = (i830ContextPtr) CALLOC_STRUCT(i830_context);
-   intelContextPtr intel = &i830->intel;
+   struct intel_context *intel = &i830->intel;
    GLcontext *ctx = &intel->ctx;
    if (!i830) return GL_FALSE;
 

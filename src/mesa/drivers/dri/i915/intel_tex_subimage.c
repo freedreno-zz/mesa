@@ -57,6 +57,8 @@ static void intelTexSubimage (GLcontext *ctx,
 		xoffset, yoffset,
 		width, height);
 
+   intelFlush(ctx);
+
    pixels = _mesa_validate_pbo_teximage(ctx, dims, width, height, 1, format, type,
                                         pixels, packing, "glTexSubImage2D");
    if (!pixels)

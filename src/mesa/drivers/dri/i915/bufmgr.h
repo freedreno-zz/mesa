@@ -10,9 +10,23 @@
 /* The buffer manager context.  Opaque.
  */
 struct bufmgr;
-struct bm_buffer_list;
 
-struct bufmgr *bm_fake_intel_Attach( struct intel_context *intel );
+#define BM_LIST_MAX 32
+
+/* List of buffers to validate.  Probably better managed by the client:
+ */
+struct bm_buffer_list {
+   struct {
+      unsigned buffer;
+      unsigned *offset_return;
+      unsigned *memtype_return;
+   } elem[BM_LIST_MAX];
+
+   unsigned nr;
+};
+
+
+struct bufmgr *bm_fake_intel_Attach( struct intel_context *intel ); 
 
 /* struct bufmgr *bmCreate( ... ); */
 /* struct bufmgr *bmAttach( ... ); */
@@ -58,7 +72,8 @@ int bmInitPool( struct bufmgr *,
 #define BM_NO_EVICT    0x40
 #define BM_NO_MOVE     0x80	/* not yet used */
 #define BM_NO_ALLOC    0x100	/* legacy "fixed" buffers only */
-
+#define BM_CLIENT      0x200	/* for map - pointer will be accessed
+				 * without dri lock */
 
 #define BM_MEM_MASK (BM_MEM_LOCAL|BM_MEM_AGP|BM_MEM_VRAM)
 

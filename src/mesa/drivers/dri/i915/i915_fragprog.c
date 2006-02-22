@@ -806,7 +806,7 @@ static void check_wpos( struct i915_fragment_program *p )
 
 static void translate_program( struct i915_fragment_program *p )
 {
-   i915ContextPtr i915 = I915_CONTEXT(p->ctx);
+   struct i915_context *i915 = I915_CONTEXT(p->ctx);
    
    i915_init_program( i915, p );
    check_wpos( p ); 
@@ -840,7 +840,7 @@ static void i915BindProgram( GLcontext *ctx,
 			    struct program *prog )
 {
    if (target == GL_FRAGMENT_PROGRAM_ARB) {
-      i915ContextPtr i915 = I915_CONTEXT(ctx);
+      struct i915_context *i915 = I915_CONTEXT(ctx);
       struct i915_fragment_program *p = (struct i915_fragment_program *)prog;
 
       if (i915->current_program == p) 
@@ -896,7 +896,7 @@ static void i915DeleteProgram( GLcontext *ctx,
 			      struct program *prog )
 {
    if (prog->Target == GL_FRAGMENT_PROGRAM_ARB) {
-      i915ContextPtr i915 = I915_CONTEXT(ctx);
+      struct i915_context *i915 = I915_CONTEXT(ctx);
       struct i915_fragment_program *p = (struct i915_fragment_program *)prog;
       
       if (i915->current_program == p) 
@@ -940,10 +940,10 @@ static void i915ProgramStringNotify( GLcontext *ctx,
 }
 
 
-void i915ValidateFragmentProgram( i915ContextPtr i915 )
+void i915ValidateFragmentProgram( struct i915_context *i915 )
 {
    GLcontext *ctx = &i915->intel.ctx;
-   intelContextPtr intel = INTEL_CONTEXT(ctx);
+   struct intel_context *intel = intel_context(ctx);
    TNLcontext *tnl = TNL_CONTEXT(ctx);
    struct vertex_buffer *VB = &tnl->vb;
 

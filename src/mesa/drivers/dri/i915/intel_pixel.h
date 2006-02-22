@@ -1,6 +1,6 @@
 /**************************************************************************
  * 
- * Copyright 2003 Tungsten Graphics, Inc., Cedar Park, Texas.
+ * Copyright 2006 Tungsten Graphics, Inc., Cedar Park, Texas.
  * All Rights Reserved.
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a
@@ -25,36 +25,39 @@
  * 
  **************************************************************************/
 
-#ifndef INTEL_BLIT_H
-#define INTEL_BLIT_H
+#ifndef INTEL_PIXEL_H
+#define INTEL_PIXEL_H
 
-#include "intel_context.h"
-#include "intel_ioctl.h"
+#include "mtypes.h"
 
-extern void intelCopyBuffer( const __DRIdrawablePrivate *dpriv );
-extern void intelClearWithBlit(GLcontext *ctx, GLbitfield mask, GLboolean all,
-			     GLint cx1, GLint cy1, GLint cw, GLint ch);
+void intelInitPixelFuncs( struct dd_function_table *functions );
 
-extern void intelEmitCopyBlit( struct intel_context *intel,
-			       GLuint cpp,
-			       GLshort src_pitch,
-			       GLuint  src_buffer,
-			       GLuint  src_offset,
-			       GLshort dst_pitch,
-			       GLuint  dst_buffer,
-			       GLuint  dst_offset,
-			       GLshort srcx, GLshort srcy,
-			       GLshort dstx, GLshort dsty,
-			       GLshort w, GLshort h );
+GLboolean intel_check_color_per_fragment_ops( const GLcontext *ctx );
 
-extern void intelEmitFillBlit( struct intel_context *intel,
-			       GLuint cpp,
-			       GLshort dst_pitch,
-			       GLuint dst_buffer,
-			       GLuint dst_offset,
-			       GLshort x, GLshort y, 
-			       GLshort w, GLshort h,
-			       GLuint color );
+GLboolean intel_clip_to_framebuffer( GLcontext *ctx,
+				     const GLframebuffer *buffer,
+				     GLint *x, GLint *y,
+				     GLsizei *width, GLsizei *height );
 
+void intelReadPixels( GLcontext *ctx,
+		      GLint x, GLint y, 
+		      GLsizei width, GLsizei height,
+		      GLenum format, GLenum type,
+		      const struct gl_pixelstore_attrib *pack,
+		      GLvoid *pixels );
+
+void intelDrawPixels( GLcontext *ctx,
+		      GLint x, GLint y, 
+		      GLsizei width, GLsizei height,
+		      GLenum format, 
+		      GLenum type,
+		      const struct gl_pixelstore_attrib *unpack,
+		      const GLvoid *pixels );
+
+void intelCopyPixels( GLcontext *ctx,
+		      GLint srcx, GLint srcy, 
+		      GLsizei width, GLsizei height,
+		      GLint destx, GLint desty, 
+		      GLenum type );
 
 #endif

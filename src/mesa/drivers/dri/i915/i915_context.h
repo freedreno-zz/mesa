@@ -53,10 +53,8 @@
  */
 #define I915_DESTREG_CBUFADDR0 0
 #define I915_DESTREG_CBUFADDR1 1
-#define I915_DESTREG_CBUFADDR2 2
 #define I915_DESTREG_DBUFADDR0 3
 #define I915_DESTREG_DBUFADDR1 4
-#define I915_DESTREG_DBUFADDR2 5
 #define I915_DESTREG_DV0 6
 #define I915_DESTREG_DV1 7
 #define I915_DESTREG_SENABLE 8
@@ -87,7 +85,6 @@
 #define I915_STPREG_ST1        1
 #define I915_STP_SETUP_SIZE    2
 
-#define I915_TEXREG_MS2        0
 #define I915_TEXREG_MS3        1
 #define I915_TEXREG_MS4        2
 #define I915_TEXREG_SS2        3
@@ -198,6 +195,15 @@ struct i915_hw_state {
    GLuint ConstantSize;
    GLuint Program[I915_PROGRAM_SIZE];
    GLuint ProgramSize;
+   
+   /* Region pointers for relocation: 
+    */
+   struct intel_region *draw_region;
+   struct intel_region *depth_region;
+   struct intel_region *tex_region[I915_TEX_UNITS];
+   GLuint tex_offset[I915_TEX_UNITS];
+   
+
    GLuint active;		/* I915_UPLOAD_* */
    GLuint emitted;		/* I915_UPLOAD_* */
 };
@@ -222,20 +228,14 @@ struct i915_context
 };
 
 
-typedef struct i915_context *i915ContextPtr;
-
-
 #define I915_STATECHANGE(i915, flag)					\
 do {									\
-   if (0) fprintf(stderr, "I915_STATECHANGE %x in %s\n", flag, __FUNCTION__);	\
    INTEL_FIREVERTICES( &(i915)->intel );					\
    (i915)->state.emitted &= ~(flag);					\
 } while (0)
 
 #define I915_ACTIVESTATE(i915, flag, mode)			\
 do {								\
-   if (0) fprintf(stderr, "I915_ACTIVESTATE %x %d in %s\n",	\
-		  flag, mode, __FUNCTION__);			\
    INTEL_FIREVERTICES( &(i915)->intel );				\
    if (mode)							\
       (i915)->state.active |= (flag);				\
@@ -247,7 +247,7 @@ do {								\
 /*======================================================================
  * i915_vtbl.c
  */
-extern void i915InitVtbl( i915ContextPtr i915 );
+extern void i915InitVtbl( struct i915_context *i915 );
 
 
 
@@ -284,7 +284,7 @@ extern GLboolean i915CreateContext( const __GLcontextModes *mesaVis,
 /*======================================================================
  * i915_texprog.c
  */
-extern void i915ValidateTextureProgram( i915ContextPtr i915 );
+extern void i915ValidateTextureProgram( struct i915_context *i915 );
 
 
 /*======================================================================
@@ -298,42 +298,26 @@ extern void i915_print_ureg( const char *msg, GLuint ureg );
  * i915_state.c
  */
 extern void i915InitStateFunctions( struct dd_function_table *functions );
-extern void i915InitState( i915ContextPtr i915 );
+extern void i915InitState( struct i915_context *i915 );
 extern void i915_update_fog( GLcontext *ctx );
 
 
 /*======================================================================
  * i915_tex.c
  */
-extern void i915UpdateTextureState( intelContextPtr intel );
+extern void i915UpdateTextureState( struct intel_context *intel );
 extern void i915InitTextureFuncs( struct dd_function_table *functions );
 
 /*======================================================================
  * i915_metaops.c
  */
-extern GLboolean
-i915TryTextureReadPixels( GLcontext *ctx,
-			  GLint x, GLint y, GLsizei width, GLsizei height,
-			  GLenum format, GLenum type,
-			  const struct gl_pixelstore_attrib *pack,
-			  GLvoid *pixels );
-
-extern GLboolean
-i915TryTextureDrawPixels( GLcontext *ctx,
-			  GLint x, GLint y, GLsizei width, GLsizei height,
-			  GLenum format, GLenum type,
-			  const struct gl_pixelstore_attrib *unpack,
-			  const GLvoid *pixels );
-
-extern void 
-i915ClearWithTris( intelContextPtr intel, GLbitfield mask,
-		   GLboolean all, GLint cx, GLint cy, GLint cw, GLint ch);
+void i915InitMetaFuncs( struct i915_context *i915 );
 
 
 /*======================================================================
  * i915_fragprog.c
  */
-extern void i915ValidateFragmentProgram( i915ContextPtr i915 );
+extern void i915ValidateFragmentProgram( struct i915_context *i915 );
 extern void i915InitFragProgFuncs( struct dd_function_table *functions );
 
 /*======================================================================

@@ -48,7 +48,7 @@
 static void i915TexEnv( GLcontext *ctx, GLenum target, 
 			GLenum pname, const GLfloat *param )
 {
-   i915ContextPtr i915 = I915_CONTEXT( ctx );
+   struct i915_context *i915 = I915_CONTEXT( ctx );
 
    switch (pname) {
    case GL_TEXTURE_ENV_COLOR: 	/* Should be a tracked param */

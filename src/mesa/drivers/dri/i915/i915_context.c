@@ -69,7 +69,7 @@ static void i915InvalidateState( GLcontext *ctx, GLuint new_state )
    _ac_InvalidateState( ctx, new_state );
    _tnl_InvalidateState( ctx, new_state );
    _tnl_invalidate_vertex_state( ctx, new_state );
-   INTEL_CONTEXT(ctx)->NewGLState |= new_state;
+   intel_context(ctx)->NewGLState |= new_state;
 
    /* Todo: gather state values under which tracked parameters become
     * invalidated, add callbacks for things like
@@ -103,9 +103,8 @@ GLboolean i915CreateContext( const __GLcontextModes *mesaVis,
 			    void *sharedContextPrivate)
 {
    struct dd_function_table functions;
-   i915ContextPtr i915 = (i915ContextPtr) CALLOC_STRUCT(i915_context);
-   intelContextPtr intel = &i915->intel;
-   intelScreenPrivate *intelScreen;
+   struct i915_context *i915 = (struct i915_context *) CALLOC_STRUCT(i915_context);
+   struct intel_context *intel = &i915->intel;
    GLcontext *ctx = &intel->ctx;
 
    if (!i915) return GL_FALSE;
@@ -113,6 +112,7 @@ GLboolean i915CreateContext( const __GLcontextModes *mesaVis,
    _mesa_printf( "\ntexmem branch (i915, drop2)\n\n");
    
    i915InitVtbl( i915 );
+   i915InitMetaFuncs( i915 );
 
    i915InitDriverFunctions( &functions );
 
@@ -126,49 +126,6 @@ GLboolean i915CreateContext( const __GLcontextModes *mesaVis,
    ctx->Const.MaxTextureImageUnits = I915_TEX_UNITS;
    ctx->Const.MaxTextureCoordUnits = I915_TEX_UNITS;
 
-   intel->bm = bm_fake_intel_Attach( intel );
-
-   bmInitPool(intel->bm,
-              intel->intelScreen->tex.offset, /* low offset */
-              intel->intelScreen->tex.map, /* low virtual */
-              intel->intelScreen->tex.size,
-	      BM_MEM_AGP);
-
-   intelScreen = intel->intelScreen;
-
-   /* These are still static, but create regions for them.  
-    */
-   intel->front_region = 
-      intel_region_create_static(intel,
-				 BM_MEM_AGP,
-				 intelScreen->front.offset,
-				 intelScreen->front.map,
-				 intelScreen->cpp,
-				 intelScreen->front.pitch,
-				 intelScreen->height);
-
-
-   intel->back_region = 
-      intel_region_create_static(intel,
-				 BM_MEM_AGP,
-				 intelScreen->back.offset,
-				 intelScreen->back.map,
-				 intelScreen->cpp,
-				 intelScreen->back.pitch,
-				 intelScreen->height);
-
-   /* Still assuming front.cpp == depth.cpp
-    */
-   intel->depth_region = 
-      intel_region_create_static(intel,
-				 BM_MEM_AGP,
-				 intelScreen->depth.offset,
-				 intelScreen->depth.map,
-				 intelScreen->cpp,
-				 intelScreen->depth.pitch,
-				 intelScreen->height);
-
-   intelInitBatchBuffer(intel);
 
    /* Advertise the full hardware capabilities.  The new memory
     * manager should cope much better with overload situations:

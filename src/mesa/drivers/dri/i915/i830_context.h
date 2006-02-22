@@ -48,10 +48,8 @@
  */
 #define I830_DESTREG_CBUFADDR0 0
 #define I830_DESTREG_CBUFADDR1 1
-#define I830_DESTREG_CBUFADDR2 2
 #define I830_DESTREG_DBUFADDR0 3
 #define I830_DESTREG_DBUFADDR1 4
-#define I830_DESTREG_DBUFADDR2 5
 #define I830_DESTREG_DV0 6
 #define I830_DESTREG_DV1 7
 #define I830_DESTREG_SENABLE 8
@@ -160,7 +158,7 @@ i830CreateContext( const __GLcontextModes *mesaVis,
 /* i830_tex.c, i830_texstate.c
  */
 extern void 
-i830UpdateTextureState( intelContextPtr intel );
+i830UpdateTextureState( struct intel_context *intel );
 
 extern void 
 i830InitTextureFuncs( struct dd_function_table *functions );
@@ -206,7 +204,7 @@ i830TryTextureDrawPixels( GLcontext *ctx,
 			  const GLvoid *pixels );
 
 extern void 
-i830ClearWithTris( intelContextPtr intel, GLbitfield mask,
+i830ClearWithTris( struct intel_context *intel, GLbitfield mask,
 		   GLboolean all, GLint cx, GLint cy, GLint cw, GLint ch);
 
 

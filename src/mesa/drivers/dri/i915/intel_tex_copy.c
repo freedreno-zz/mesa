@@ -37,6 +37,7 @@
 #include "intel_regions.h"
 #include "intel_tex.h"
 #include "intel_blit.h"
+#include "intel_pixel.h"
 #include "bufmgr.h"
 
 /* Do the best we can using the blitter.  A future project is to use
@@ -108,15 +109,13 @@ static GLboolean do_copy_texsubimage( struct intel_context *intel,
       return GL_FALSE;
  
 
+   intelFlush(ctx);
    LOCK_HARDWARE(intel);
-   intelInstallBatchBuffer(intel);
    {
       __DRIdrawablePrivate *dPriv = intel->driDrawable;
       GLuint image_offset = intel_miptree_image_offset(intelImage->mt, 
 						       intelImage->face,
 						       intelImage->level);
-      GLuint dst_offset = 0;
-      GLuint src_offset = 0;
       GLint orig_x = x;
       GLint orig_y = y;
       GLuint window_y;
@@ -138,35 +137,28 @@ static GLboolean do_copy_texsubimage( struct intel_context *intel,
       y = window_y + y;
 
 
-      bmAddBuffer(intel->buffer_list, 
-		  intelImage->mt->region->buffer, 
-		  BM_WRITE, NULL, &dst_offset);
-
-      bmAddBuffer(intel->buffer_list, 
-		  src->buffer, 
-		  BM_READ, NULL, &src_offset);
-
-      if (!bmValidateBufferList(intel->bm, intel->buffer_list, BM_MEM_AGP)) {
-	 ret = GL_FALSE;
-	 goto out;
-      }
 
       /* A bit of fiddling to get the blitter to work with -ve
        * pitches.  But we get a nice inverted blit this way, so it's
        * worth it:
        */
-      intelEmitCopyBlitLocked( intel,
-			       intelImage->mt->cpp,
-			       -src->pitch, 
-			       src_offset + intel->intelScreen->height * src->pitch * src->cpp, 
-			       intelImage->mt->pitch, 
-			       dst_offset + image_offset,
-			       x, y + height, 
-			       dstx, dsty,
-			       width, height );
+      intelEmitCopyBlit( intel,
+			 intelImage->mt->cpp,
+
+			 -src->pitch, 
+			 src->buffer,
+			 src->height * src->pitch * src->cpp, 
+
+			 intelImage->mt->pitch, 
+			 intelImage->mt->region->buffer,
+			 image_offset,
+
+			 x, y + height, 
+			 dstx, dsty,
+			 width, height );
 
    out:
-      intelFlushBatchLocked( intel, GL_TRUE, GL_FALSE, GL_FALSE);
+      intel_batchbuffer_flush( intel->batch );
    }
    
 

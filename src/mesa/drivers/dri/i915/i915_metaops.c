@@ -34,39 +34,32 @@
 #include "intel_screen.h"
 #include "intel_batchbuffer.h"
 #include "intel_ioctl.h"
+#include "intel_regions.h"
 
 #include "i915_context.h"
 #include "i915_reg.h"
 
 /* A large amount of state doesn't need to be uploaded.
  */
-#define ACTIVE (I915_UPLOAD_PROGRAM | 		\
+#define ACTIVE (I915_UPLOAD_INVARIENT | 	\
+                I915_UPLOAD_PROGRAM | 		\
 		I915_UPLOAD_STIPPLE |		\
 		I915_UPLOAD_CTX |		\
 		I915_UPLOAD_BUFFERS |		\
 		I915_UPLOAD_TEX(0))		
 
-#define SET_STATE( i915, STATE )			\
+#define SET_STATE( i915, STATE )		\
 do {						\
    i915->current->emitted &= ~ACTIVE;		\
-   i915->current = &i915->STATE;			\
+   i915->current = &i915->STATE;		\
    i915->current->emitted &= ~ACTIVE;		\
 } while (0)
 
-/* Operations where the 3D engine is decoupled temporarily from the
- * current GL state and used for other purposes than simply rendering
- * incoming triangles.
- */
-static void set_initial_state( i915ContextPtr i915 )
-{
-   memcpy(&i915->meta, &i915->initial, sizeof(i915->meta) );
-   i915->meta.active = ACTIVE;
-   i915->meta.emitted = 0;
-}
 
-
-static void set_no_depth_stencil_write( i915ContextPtr i915 )
+static void meta_no_depth_stencil_write( struct intel_context *intel )
 {
+   struct i915_context *i915 = i915_context(&intel->ctx);
+
    /* ctx->Driver.Enable( ctx, GL_STENCIL_TEST, GL_FALSE )
     */
    i915->meta.Ctx[I915_CTXREG_LIS5] &= ~(S5_STENCIL_TEST_ENABLE | 
@@ -82,10 +75,11 @@ static void set_no_depth_stencil_write( i915ContextPtr i915 )
 
 /* Set stencil unit to replace always with the reference value.
  */
-static void set_stencil_replace( i915ContextPtr i915,
+static void meta_stencil_replace( struct intel_context *intel,
 				 GLuint s_mask,
 				 GLuint s_clear)
 {
+   struct i915_context *i915 = i915_context(&intel->ctx);
    GLuint op = STENCILOP_REPLACE;
    GLuint func = COMPAREFUNC_ALWAYS;
 
@@ -100,14 +94,12 @@ static void set_stencil_replace( i915ContextPtr i915,
    i915->meta.Ctx[I915_CTXREG_LIS6] &= ~(S6_DEPTH_TEST_ENABLE |
 				       S6_DEPTH_WRITE_ENABLE);
 
-
    /* ctx->Driver.StencilMask( ctx, s_mask )
     */
    i915->meta.Ctx[I915_CTXREG_STATE4] &= ~MODE4_ENABLE_STENCIL_WRITE_MASK;
 
    i915->meta.Ctx[I915_CTXREG_STATE4] |= (ENABLE_STENCIL_WRITE_MASK |
 					STENCIL_WRITE_MASK(s_mask));
-
 
    /* ctx->Driver.StencilOp( ctx, GL_REPLACE, GL_REPLACE, GL_REPLACE )
     */
@@ -137,8 +129,9 @@ static void set_stencil_replace( i915ContextPtr i915,
 }
 
 
-static void set_color_mask( i915ContextPtr i915, GLboolean state )
+static void meta_color_mask( struct intel_context *intel, GLboolean state )
 {
+   struct i915_context *i915 = i915_context(&intel->ctx);
    const GLuint mask = (S5_WRITEDISABLE_RED |
 			S5_WRITEDISABLE_GREEN |
 			S5_WRITEDISABLE_BLUE |
@@ -210,8 +203,10 @@ static void set_color_mask( i915ContextPtr i915, GLboolean state )
 
 
 
-static void set_no_texture( i915ContextPtr i915 )
+static void meta_no_texture( struct intel_context *intel )
 {
+   struct i915_context *i915 = i915_context(&intel->ctx);
+
    static const GLuint prog[] = {
       _3DSTATE_PIXEL_SHADER_PROGRAM,
 
@@ -240,9 +235,10 @@ static void set_no_texture( i915ContextPtr i915 )
    i915->meta.emitted &= ~I915_UPLOAD_PROGRAM;
 }
 
-#if 0
-static void enable_texture_blend_replace( i915ContextPtr i915 )
+static void meta_texture_blend_replace( struct intel_context *intel )
 {
+   struct i915_context *i915 = i915_context(&intel->ctx);
+
    static const GLuint prog[] = {
       _3DSTATE_PIXEL_SHADER_PROGRAM,
 
@@ -285,78 +281,86 @@ static void enable_texture_blend_replace( i915ContextPtr i915 )
 /* Set up an arbitary piece of memory as a rectangular texture
  * (including the front or back buffer).
  */
-static void set_tex_rect_source( i915ContextPtr i915,
-				 GLuint offset,
-				 GLuint width, 
-				 GLuint height,
-				 GLuint pitch,
+static void meta_tex_rect_source( struct intel_context *intel,
+				 struct intel_region *region,
 				 GLuint textureFormat )
 {
+   struct i915_context *i915 = i915_context(&intel->ctx);
    GLuint unit = 0;
    GLint numLevels = 1;
    GLuint *state = i915->meta.Tex[0];
 
-   pitch *= i915->intel.intelScreen->cpp;
+   GLuint pitch = region->pitch * region->cpp;
 
 /*    fprintf(stderr, "%s: offset: %x w: %d h: %d pitch %d format %x\n", */
 /* 	   __FUNCTION__, offset, width, height, pitch, textureFormat ); */
 
-   state[I915_TEXREG_MS2] = offset;
-   state[I915_TEXREG_MS3] = (((height - 1) << MS3_HEIGHT_SHIFT) |
-			    ((width - 1) << MS3_WIDTH_SHIFT) |
-			    textureFormat |
-			    MS3_USE_FENCE_REGS);
+   intel_region_release(intel, &i915->meta.tex_region[0]);
+   intel_region_reference(&i915->meta.tex_region[0], region);
+   i915->meta.tex_offset[0] = 0;
+
+   state[I915_TEXREG_MS3] = (((region->height - 1) << MS3_HEIGHT_SHIFT) |
+			     ((region->pitch - 1) << MS3_WIDTH_SHIFT) |
+			     textureFormat |
+			     MS3_USE_FENCE_REGS);
 
    state[I915_TEXREG_MS4] = ((((pitch / 4) - 1) << MS4_PITCH_SHIFT) | 
-			    MS4_CUBE_FACE_ENA_MASK |
-			    ((((numLevels-1) * 4)) << MS4_MAX_LOD_SHIFT));
+			     MS4_CUBE_FACE_ENA_MASK |
+			     ((((numLevels-1) * 4)) << MS4_MAX_LOD_SHIFT));
 
    state[I915_TEXREG_SS2] = ((FILTER_NEAREST << SS2_MIN_FILTER_SHIFT) |
-			    (MIPFILTER_NONE << SS2_MIP_FILTER_SHIFT) |
-			    (FILTER_NEAREST << SS2_MAG_FILTER_SHIFT));
+			     (MIPFILTER_NONE << SS2_MIP_FILTER_SHIFT) |
+			     (FILTER_NEAREST << SS2_MAG_FILTER_SHIFT));
+
    state[I915_TEXREG_SS3] = ((TEXCOORDMODE_WRAP << SS3_TCX_ADDR_MODE_SHIFT) |
-			    (TEXCOORDMODE_WRAP << SS3_TCY_ADDR_MODE_SHIFT) |
-			    (TEXCOORDMODE_WRAP << SS3_TCZ_ADDR_MODE_SHIFT) |
-			    (unit<<SS3_TEXTUREMAP_INDEX_SHIFT));
+			     (TEXCOORDMODE_WRAP << SS3_TCY_ADDR_MODE_SHIFT) |
+			     (TEXCOORDMODE_WRAP << SS3_TCZ_ADDR_MODE_SHIFT) |
+			     (unit<<SS3_TEXTUREMAP_INDEX_SHIFT));
 
    state[I915_TEXREG_SS4] = 0;
 
    i915->meta.emitted &= ~I915_UPLOAD_TEX(0);
 }
-#endif
 
 /* Select between front and back draw buffers.
  */
-static void set_draw_offset( i915ContextPtr i915,
-			     GLuint offset )
+static void meta_draw_region( struct intel_context *intel,
+			     struct intel_region *draw_region,
+			     struct intel_region *depth_region )
 {
-   i915->meta.Buffer[I915_DESTREG_CBUFADDR2] = offset;
+   struct i915_context *i915 = i915_context(&intel->ctx);
+
+   intel_region_release(intel, &i915->meta.draw_region);
+   intel_region_release(intel, &i915->meta.depth_region);
+   intel_region_reference(&i915->meta.draw_region, draw_region);
+   intel_region_reference(&i915->meta.depth_region, depth_region);
+
    i915->meta.emitted &= ~I915_UPLOAD_BUFFERS;
 }
 
-#if 0
 /* Setup an arbitary draw format, useful for targeting texture or agp
  * memory.
  */
-static void set_draw_format( i915ContextPtr i915,
+static void set_draw_format( struct intel_context *intel,
 			     GLuint format,
 			     GLuint depth_format)
 {
+   struct i915_context *i915 = i915_context(&intel->ctx);
+
    i915->meta.Buffer[I915_DESTREG_DV1] = (DSTORG_HORT_BIAS(0x8) | /* .5 */
-					DSTORG_VERT_BIAS(0x8) | /* .5 */
-					format |
-					LOD_PRECLAMP_OGL |
-					TEX_DEFAULT_COLOR_OGL |
-					depth_format);
+					  DSTORG_VERT_BIAS(0x8) | /* .5 */
+					  format |
+					  LOD_PRECLAMP_OGL |
+					  TEX_DEFAULT_COLOR_OGL |
+					  depth_format);
 
    i915->meta.emitted &= ~I915_UPLOAD_BUFFERS;
-/*    fprintf(stderr, "%s: DV1: %x\n",  */
-/* 	   __FUNCTION__, i915->meta.Buffer[I915_DESTREG_DV1]); */
 }
-#endif
 
-static void set_vertex_format( i915ContextPtr i915 )
+static void set_vertex_format( struct intel_context *intel )
 {
+   struct i915_context *i915 = i915_context(&intel->ctx);
+
    i915->meta.Ctx[I915_CTXREG_LIS2] = 
       (S2_TEXCOORD_FMT(0, TEXCOORDFMT_2D) |
        S2_TEXCOORD_FMT(1, TEXCOORDFMT_NOT_PRESENT) | 
@@ -371,148 +375,50 @@ static void set_vertex_format( i915ContextPtr i915 )
 
    i915->meta.Ctx[I915_CTXREG_LIS4] |= 
       (S4_VFMT_COLOR |
-       S4_VFMT_SPEC_FOG |
-       S4_VFMT_XYZW);
+       S4_VFMT_XYZ);
 
    i915->meta.emitted &= ~I915_UPLOAD_CTX;
-
 }
 
 
-static void draw_quad(i915ContextPtr i915, 
-		      GLfloat x0, GLfloat x1,
-		      GLfloat y0, GLfloat y1, 
-		      GLubyte red, GLubyte green,
-		      GLubyte blue, GLubyte alpha,
-		      GLfloat s0, GLfloat s1,
-		      GLfloat t0, GLfloat t1 )
+
+/* Operations where the 3D engine is decoupled temporarily from the
+ * current GL state and used for other purposes than simply rendering
+ * incoming triangles.
+ */
+static void install_meta_state( struct intel_context *intel )
 {
-#if 0
-   GLuint vertex_size = 8;
-   GLuint *vb = intelEmitInlinePrimitiveLocked( &i915->intel, 
-						PRIM3D_TRIFAN, 
-						4 * vertex_size,
-						vertex_size );
-   intelVertex tmp;
-   int i;
+   struct i915_context *i915 = i915_context(&intel->ctx);
+   memcpy(&i915->meta, &i915->initial, sizeof(i915->meta) );
+   i915->meta.active = ACTIVE;
+   i915->meta.emitted = 0;
 
-   if (0)
-      fprintf(stderr, "%s: %f,%f-%f,%f 0x%x%x%x%x %f,%f-%f,%f\n",
-	      __FUNCTION__,
-	      x0,y0,x1,y1,red,green,blue,alpha,s0,t0,s1,t1);
-
-
-   /* initial vertex, left bottom */
-   tmp.v.x = x0;
-   tmp.v.y = y0;
-   tmp.v.z = 1.0;
-   tmp.v.w = 1.0; 
-   tmp.v.color.red = red;
-   tmp.v.color.green = green;
-   tmp.v.color.blue = blue;
-   tmp.v.color.alpha = alpha;
-   tmp.v.specular.red = 0;
-   tmp.v.specular.green = 0;
-   tmp.v.specular.blue = 0;
-   tmp.v.specular.alpha = 0;
-   tmp.v.u0 = s0;
-   tmp.v.v0 = t0;
-
-   for (i = 0 ; i < vertex_size ; i++)
-      vb[i] = tmp.ui[i];
-
-   /* right bottom */
-   vb += vertex_size;
-   tmp.v.x = x1;
-   tmp.v.u0 = s1;
-   for (i = 0 ; i < vertex_size ; i++)
-      vb[i] = tmp.ui[i];
-
-   /* right top */
-   vb += vertex_size;
-   tmp.v.y = y1;
-   tmp.v.v0 = t1;
-   for (i = 0 ; i < vertex_size ; i++)
-      vb[i] = tmp.ui[i];
-
-   /* left top */
-   vb += vertex_size;
-   tmp.v.x = x0;
-   tmp.v.u0 = s0;
-   for (i = 0 ; i < vertex_size ; i++)
-      vb[i] = tmp.ui[i];
-#endif
+   SET_STATE(i915, meta);
+   set_vertex_format(intel);
+   meta_no_texture(intel);
 }
 
-void 
-i915ClearWithTris(intelContextPtr intel, GLbitfield mask,
-		  GLboolean all,
-		  GLint cx, GLint cy, GLint cw, GLint ch)
+static void leave_meta_state( struct intel_context *intel )
 {
-   i915ContextPtr i915 = i915_context( &intel->ctx );
-   __DRIdrawablePrivate *dPriv = intel->driDrawable;
-   intelScreenPrivate *screen = intel->intelScreen;
-   int x0, y0, x1, y1;
-
-   SET_STATE( i915, meta ); 
-   set_initial_state( i915 ); 
-   set_no_texture( i915 ); 
-   set_vertex_format( i915 ); 
-
-   LOCK_HARDWARE(intel);
-
-   if(!all) {
-      x0 = cx;
-      y0 = cy;
-      x1 = x0 + cw;
-      y1 = y0 + ch;
-   } else {
-      x0 = 0;
-      y0 = 0;
-      x1 = x0 + dPriv->w;
-      y1 = y0 + dPriv->h;
-   }
-
-   /* Don't do any clipping to screen - these are window coordinates.
-    * The active cliprects will be applied as for any other geometry.
-    */
-
-   if (mask & BUFFER_BIT_FRONT_LEFT) { 
-      set_no_depth_stencil_write( i915 );
-      set_color_mask( i915, GL_TRUE );
-      set_draw_offset( i915, screen->front.offset );
-
-      draw_quad(i915, x0, x1, y0, y1,
-		intel->clear_red, intel->clear_green, 
- 		intel->clear_blue, intel->clear_alpha, 
-		0, 0, 0, 0);
-   }
-
-   if (mask & BUFFER_BIT_BACK_LEFT) {
-      set_no_depth_stencil_write( i915 );
-      set_color_mask( i915, GL_TRUE );
-      set_draw_offset( i915, screen->back.offset );
-
-      draw_quad(i915, x0, x1, y0, y1,
-		intel->clear_red, intel->clear_green,
-		intel->clear_blue, intel->clear_alpha,
-		0, 0, 0, 0);
-   }
-
-   if (mask & BUFFER_BIT_STENCIL) {
-      set_stencil_replace( i915, 
-			   intel->ctx.Stencil.WriteMask[0], 
-			   intel->ctx.Stencil.Clear);
-      
-      set_color_mask( i915, GL_FALSE );
-      set_draw_offset( i915, screen->front.offset ); /* could be either? */
-
-      draw_quad( i915, x0, x1, y0, y1, 0, 0, 0, 0, 0, 0, 0, 0 );
-   }
-
-   UNLOCK_HARDWARE(intel);
-
-   SET_STATE( i915, state );
+   struct i915_context *i915 = i915_context(&intel->ctx);
+   intel_region_release(intel, &i915->meta.draw_region);
+   intel_region_release(intel, &i915->meta.depth_region);
+   intel_region_release(intel, &i915->meta.tex_region[0]);
+   SET_STATE(i915, state);
 }
 
 
+
+void i915InitMetaFuncs( struct i915_context *i915 )
+{
+   i915->intel.vtbl.install_meta_state = install_meta_state;
+   i915->intel.vtbl.leave_meta_state = leave_meta_state;
+   i915->intel.vtbl.meta_no_depth_stencil_write = meta_no_depth_stencil_write;
+   i915->intel.vtbl.meta_stencil_replace = meta_stencil_replace;
+   i915->intel.vtbl.meta_color_mask = meta_color_mask;
+   i915->intel.vtbl.meta_no_texture = meta_no_texture;
+   i915->intel.vtbl.meta_texture_blend_replace = meta_texture_blend_replace;
+   i915->intel.vtbl.meta_tex_rect_source = meta_tex_rect_source;
+   i915->intel.vtbl.meta_draw_region = meta_draw_region;
+   i915->intel.vtbl.meta_draw_format = set_draw_format;
+}

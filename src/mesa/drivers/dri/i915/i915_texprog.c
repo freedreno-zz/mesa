@@ -536,7 +536,7 @@ static void emit_program_fini( struct i915_fragment_program *p )
 }
 
 
-static void i915EmitTextureProgram( i915ContextPtr i915 )
+static void i915EmitTextureProgram( struct i915_context *i915 )
 {
    GLcontext *ctx = &i915->intel.ctx;
    struct i915_fragment_program *p = &i915->tex_program;
@@ -570,9 +570,9 @@ static void i915EmitTextureProgram( i915ContextPtr i915 )
 }
 
 
-void i915ValidateTextureProgram( i915ContextPtr i915 )
+void i915ValidateTextureProgram( struct i915_context *i915 )
 {
-   intelContextPtr intel = &i915->intel;
+   struct intel_context *intel = &i915->intel;
    GLcontext *ctx = &intel->ctx;
    TNLcontext *tnl = TNL_CONTEXT(ctx);
    struct vertex_buffer *VB = &tnl->vb;

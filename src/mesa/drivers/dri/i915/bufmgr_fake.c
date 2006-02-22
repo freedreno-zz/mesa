@@ -21,9 +21,6 @@ struct _mesa_HashTable;
 
 static int delayed_free( struct bufmgr *bm );
 
-/* Maximum number of buffers to pass to bmValidateBufferList:
- */
-#define BM_LIST_MAX 32
 #define BM_POOL_MAX 8
 
 
@@ -72,17 +69,6 @@ struct bufmgr {
 };
 
 
-/* List of buffers to validate: 
- */
-struct bm_buffer_list {
-   struct {
-      unsigned buffer;
-      unsigned *offset_return;
-      unsigned *memtype_return;
-   } elem[BM_LIST_MAX];
-
-   unsigned nr;
-};
 
 
 
@@ -145,20 +131,22 @@ static struct block *alloc_block( struct bufmgr *bm,
 {
    GLuint i;
 
-   for (i = 0; i < bm->nr_pools; i++) {
-      struct block *block;
-
-      if (bm->pool[i].flags & BM_NO_ALLOC)
-	 continue;
-
-      if ((bm->pool[i].flags & flags & BM_MEM_MASK) == 0)
-	 continue;
-      
-      block = alloc_from_pool(bm, i, size, align);
-      if (block)
-	 return block;
+   if (!(flags & BM_CLIENT)) {
+      for (i = 0; i < bm->nr_pools; i++) {
+	 struct block *block;
+	 
+	 if (bm->pool[i].flags & BM_NO_ALLOC)
+	    continue;
+	 
+	 if ((bm->pool[i].flags & flags & BM_MEM_MASK) == 0)
+	    continue;
+	 
+	 block = alloc_from_pool(bm, i, size, align);
+	 if (block)
+	    return block;
+      }
    }
-   
+
    if (flags & BM_MEM_LOCAL)
       return alloc_local(size);
 
@@ -166,14 +154,15 @@ static struct block *alloc_block( struct bufmgr *bm,
 }
 
 static int bmAllocMem( struct bufmgr *bm,
-		       struct buffer *buf )	
+		       struct buffer *buf,
+		       GLuint flags )	
 {
    delayed_free(bm);
 
    buf->block = alloc_block(bm, 
 			    buf->size,
 			    buf->alignment, 
-			    buf->flags);
+			    buf->flags | flags);
 
    if (buf->block)
       buf->block->buf = buf;
@@ -191,30 +180,43 @@ static int bmAllocMem( struct bufmgr *bm,
  */
 static void free_block( struct bufmgr *bm, struct block *block )
 {
+   DBG("free block %p\n", block);
+
    if (!block) 
       return;
 
-   remove_from_list(block);
+   DBG("free block (mem: %d, sz %d) from buf %d\n",
+       block->mem_type,
+       block->buf->size,
+       block->buf->id);
 
    switch (block->mem_type) {
    case BM_MEM_AGP:
    case BM_MEM_VRAM:
+      remove_from_list(block);
+
+      DBG("    - offset %x\n", block->mem->ofs);
+
       if (bmTestFence(bm, block->fence)) {
+	 DBG("    - free immediately\n");
          mmFreeMem(block->mem);
          free(block);
       }
       else {
+	 DBG("    - place on delayed_free list\n");
 	 block->buf = NULL;
          insert_at_tail(&block->pool->freed, block);
       }
       break;
 
    case BM_MEM_LOCAL:
+      DBG("    - free local memory\n");
       ALIGN_FREE(block->virtual);
       free(block);
       break;
 
    default:
+      DBG("    - unknown memory type\n");
       free(block);
       break;
    }
@@ -259,8 +261,8 @@ static int move_buffers( struct bufmgr *bm,
     */ 
    for (i = 0; i < nr; i++) {    
       if (!buffers[i]->block) {
-/* 	 if (flags & BM_NO_ALLOC) */
-/* 	    goto cleanup; */
+ 	 if (flags & BM_NO_ALLOC)
+ 	    goto cleanup;
 
 	 newMem[i] = alloc_block(bm, 
 				 buffers[i]->size,
@@ -276,8 +278,8 @@ static int move_buffers( struct bufmgr *bm,
 	    goto cleanup;
 
 	 /* Known issue: this assert will get hit on texture swapping.
-	  * There's not much to do about that at this stage - it's
-	  * tbd.
+	  * There's not much to do about that at this stage - it's a
+	  * todo item.
 	  */
  	 assert(!buffers[i]->mapped);
 
@@ -304,7 +306,7 @@ static int move_buffers( struct bufmgr *bm,
 	     * mechanisms in final version.  Memcpy (or sse_memcpy) is
 	     * probably pretty good for local->agp uploads.
 	     */
-	    _mesa_printf("* %d\n", buffers[i]->size);
+	    DBG("memcpy %d bytes\n", buffers[i]->size);
 	    memcpy(newMem[i]->virtual,
 		   buffers[i]->block->virtual, 
 		   buffers[i]->size);
@@ -535,25 +537,9 @@ unsigned bmBufferStatic(struct bufmgr *bm,
 }
 
 
-#if 0
-/* How wise/useful is this?
- */
-void bmBufferSetParams( struct bufmgr *bm,
-			unsigned buffer,
-			unsigned flags,
-			unsigned alignment )
-{
-   struct buffer *buf = (struct buffer *)_mesa_HashLookup( bm->hash, buffer );
-   assert(!buf->block);
-   buf->flags = flags;
-   buf->alignment = alignment;
-}
-#endif
 
-
-
-/* If buffer size changes, create new buffer in local memory.
- * Otherwise update in place.
+/* If buffer size changes, free and reallocate.  Otherwise update in
+ * place.
  */
 void bmBufferData(struct bufmgr *bm, 
 		  unsigned buffer, 
@@ -579,7 +565,7 @@ void bmBufferData(struct bufmgr *bm,
    buf->size = size;
 
    if (data != NULL) {      
-      bmAllocMem(bm, buf);
+      bmAllocMem(bm, buf, buf->flags | flags);
       memcpy(buf->block->virtual, data, size);
    }
 }
@@ -597,7 +583,7 @@ void bmBufferSubData(struct bufmgr *bm,
    DBG("bmBufferSubdata %d offset 0x%x sz 0x%x\n", buffer, offset, size);
 
    if (buf->block == 0)
-      bmAllocMem(bm, buf);
+      bmAllocMem(bm, buf, buf->flags);
 
    if (buf->block->mem_type != BM_MEM_LOCAL)
       bmFinishFence(bm, buf->block->fence);
@@ -611,7 +597,7 @@ void bmBufferSubData(struct bufmgr *bm,
  */
 void *bmMapBuffer( struct bufmgr *bm,
 		   unsigned buffer, 
-		   unsigned access )
+		   unsigned flags )
 {
    struct buffer *buf = (struct buffer *)_mesa_HashLookup( bm->hash, buffer );
 
@@ -620,13 +606,13 @@ void *bmMapBuffer( struct bufmgr *bm,
    if (buf->mapped)
       return NULL;
 
-   buf->mapped = 1;
-
    if (buf->block == 0)
-      bmAllocMem(bm, buf);
+      bmAllocMem(bm, buf, flags);
 
    if (buf->block == 0)
       return NULL;
+
+   buf->mapped = 1;
 
    /* Finish any outstanding operations to/from this memory:
     */
@@ -731,6 +717,7 @@ int bmValidateBufferList( struct bufmgr *bm,
       if (!delayed_free(bm) &&
 	  !evict_lru(bm, flags))
 	 return 0;
+      _mesa_printf("couldn't allocate sufficient texture memory\n");
       exit(1);
    }
 
@@ -738,6 +725,8 @@ int bmValidateBufferList( struct bufmgr *bm,
    for (i = 0; i < list->nr; i++) {
       DBG("%d: buf %d ofs 0x%x\n",
 		   i, bufs[i]->id, bufs[i]->block->mem->ofs);
+
+      assert(!bufs[i]->mapped);
 
       if (list->elem[i].offset_return)
 	 list->elem[i].offset_return[0] = bufs[i]->block->mem->ofs;
@@ -791,7 +780,6 @@ unsigned bmFenceBufferList( struct bufmgr *bm, struct bm_buffer_list *list )
  */
 unsigned bmSetFence( struct bufmgr *bm )
 {
-   assert(bm->intel->batch.space == bm->intel->batch.size);
    assert(bm->intel->locked);
 
    return intelEmitIrqLocked( bm->intel );

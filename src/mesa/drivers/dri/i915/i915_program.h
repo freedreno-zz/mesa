@@ -84,7 +84,7 @@
 
 /* One neat thing about the UREG representation:  
  */
-static __inline int swizzle( int reg, int x, int y, int z, int w )
+static inline int swizzle( int reg, int x, int y, int z, int w )
 {
    return ((reg & ~UREG_XYZW_CHANNEL_MASK) |
 	   CHANNEL_SRC( GET_CHANNEL_SRC( reg, x ), 0 ) |
@@ -95,7 +95,7 @@ static __inline int swizzle( int reg, int x, int y, int z, int w )
 
 /* Another neat thing about the UREG representation:  
  */
-static __inline int negate( int reg, int x, int y, int z, int w )
+static inline int negate( int reg, int x, int y, int z, int w )
 {
    return reg ^ (((x&1)<<UREG_CHANNEL_X_NEGATE_SHIFT)|
 		 ((y&1)<<UREG_CHANNEL_Y_NEGATE_SHIFT)|
@@ -149,10 +149,10 @@ extern GLuint i915_emit_param4fv( struct i915_fragment_program *p,
 extern void i915_program_error( struct i915_fragment_program *p,
                                 const char *msg );
 
-extern void i915_init_program( i915ContextPtr i915,
+extern void i915_init_program( struct i915_context *i915,
 			      struct i915_fragment_program *p );
 
-extern void i915_upload_program( i915ContextPtr i915, 
+extern void i915_upload_program( struct i915_context *i915, 
 				struct i915_fragment_program *p );
 
 extern void i915_fini_program( struct i915_fragment_program *p );

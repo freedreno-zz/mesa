@@ -101,7 +101,7 @@ static GLuint emit_factor( GLuint blendUnit, GLuint *state, GLuint count,
 }
 
 
-static __inline__ GLuint GetTexelOp(GLint unit)
+static inline GLuint GetTexelOp(GLint unit)
 {
    switch(unit) {
    case 0: return TEXBLENDARG_TEXEL0;

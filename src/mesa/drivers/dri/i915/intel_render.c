@@ -106,7 +106,7 @@ static const int scale_prim[GL_POLYGON+1] = {
 };
 
 
-static void intelDmaPrimitive( intelContextPtr intel, GLenum prim )
+static void intelDmaPrimitive( struct intel_context *intel, GLenum prim )
 {
    if (0) fprintf(stderr, "%s %s\n", __FUNCTION__, _mesa_lookup_enum_by_nr(prim));
    INTEL_FIREVERTICES(intel);
@@ -115,7 +115,7 @@ static void intelDmaPrimitive( intelContextPtr intel, GLenum prim )
 }
 
 
-#define LOCAL_VARS intelContextPtr intel = INTEL_CONTEXT(ctx)
+#define LOCAL_VARS struct intel_context *intel = intel_context(ctx)
 #define INIT( prim ) 				\
 do {						\
    intelDmaPrimitive( intel, prim );		\
@@ -142,7 +142,7 @@ do {						\
 
 /* Heuristic to choose between the two render paths:  
  */
-static GLboolean choose_render( intelContextPtr intel,
+static GLboolean choose_render( struct intel_context *intel,
 				struct vertex_buffer *VB )
 {
    int vertsz = intel->vertex_size;
@@ -194,7 +194,7 @@ static GLboolean choose_render( intelContextPtr intel,
 static GLboolean intel_run_render( GLcontext *ctx, 
 				 struct tnl_pipeline_stage *stage )
 {
-   intelContextPtr intel = INTEL_CONTEXT(ctx);
+   struct intel_context *intel = intel_context(ctx);
    TNLcontext *tnl = TNL_CONTEXT(ctx);
    struct vertex_buffer *VB = &tnl->vb;
    GLuint i;

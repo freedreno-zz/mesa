@@ -58,7 +58,7 @@ do {						\
  * current GL state and used for other purposes than simply rendering
  * incoming triangles.
  */
-static void set_initial_state( i830ContextPtr i830 )
+static void set_initial_state( struct intel_context *intel )
 {
    memcpy(&i830->meta, &i830->initial, sizeof(i830->meta) );
    i830->meta.active = ACTIVE;
@@ -66,7 +66,7 @@ static void set_initial_state( i830ContextPtr i830 )
 }
 
 
-static void set_no_depth_stencil_write( i830ContextPtr i830 )
+static void set_no_depth_stencil_write( struct intel_context *intel )
 {
    /* ctx->Driver.Enable( ctx, GL_STENCIL_TEST, GL_FALSE )
     */
@@ -88,7 +88,7 @@ static void set_no_depth_stencil_write( i830ContextPtr i830 )
 
 /* Set stencil unit to replace always with the reference value.
  */
-static void set_stencil_replace( i830ContextPtr i830,
+static void set_stencil_replace( struct intel_context *intel,
 				 GLuint s_mask,
 				 GLuint s_clear)
 {
@@ -140,7 +140,7 @@ static void set_stencil_replace( i830ContextPtr i830,
 }
 
 
-static void set_color_mask( i830ContextPtr i830, GLboolean state )
+static void set_color_mask( struct intel_context *intel, GLboolean state )
 {
    const GLuint mask = ((1 << WRITEMASK_RED_SHIFT) |
 			(1 << WRITEMASK_GREEN_SHIFT) |
@@ -161,7 +161,7 @@ static void set_color_mask( i830ContextPtr i830, GLboolean state )
 /* Installs a one-stage passthrough texture blend pipeline.  Is there
  * more that can be done to turn off texturing?
  */
-static void set_no_texture( i830ContextPtr i830 )
+static void set_no_texture( struct intel_context *intel )
 {
    static const struct gl_tex_env_combine_state comb = {
       GL_NONE, GL_NONE,
@@ -181,7 +181,7 @@ static void set_no_texture( i830ContextPtr i830 )
 /* Set up a single element blend stage for 'replace' texturing with no
  * funny ops.
  */
-static void enable_texture_blend_replace( i830ContextPtr i830,
+static void enable_texture_blend_replace( struct intel_context *intel,
 					  GLenum format )
 {
    static const struct gl_tex_env_combine_state comb = {
@@ -207,7 +207,7 @@ static void enable_texture_blend_replace( i830ContextPtr i830,
 /* Set up an arbitary piece of memory as a rectangular texture
  * (including the front or back buffer).
  */
-static void set_tex_rect_source( i830ContextPtr i830,
+static void set_tex_rect_source( struct intel_context *intel,
 				 GLuint offset,
 				 GLuint width, 
 				 GLuint height,
@@ -249,17 +249,17 @@ static void set_tex_rect_source( i830ContextPtr i830,
 
 /* Select between front and back draw buffers.
  */
-static void set_draw_offset( i830ContextPtr i830,
+static void set_draw_offset( struct intel_context *intel,
 			     GLuint offset )
 {
-   i830->meta.Buffer[I830_DESTREG_CBUFADDR2] = offset;
+/*    i830->meta.Buffer[I830_DESTREG_CBUFADDR2] = offset; */
    i830->meta.emitted &= ~I830_UPLOAD_BUFFERS;
 }
 
 /* Setup an arbitary draw format, useful for targeting
  * texture or agp memory.
  */
-static void set_draw_format( i830ContextPtr i830,
+static void set_draw_format( struct intel_context *intel,
 			     GLuint format,
 			     GLuint depth_format)
 {
@@ -271,7 +271,7 @@ static void set_draw_format( i830ContextPtr i830,
 }
 
 
-static void set_vertex_format( i830ContextPtr i830 )
+static void set_vertex_format( struct intel_context *intel )
 {
    i830->meta.Ctx[I830_CTXREG_VF] =  (_3DSTATE_VFT0_CMD |
 				      VFT0_TEX_COUNT(1) |
@@ -287,448 +287,6 @@ static void set_vertex_format( i830ContextPtr i830 )
 }
 
 
-static void draw_quad(i830ContextPtr i830, 
-		      GLfloat x0, GLfloat x1,
-		      GLfloat y0, GLfloat y1, 
-		      GLubyte red, GLubyte green,
-		      GLubyte blue, GLubyte alpha,
-		      GLfloat s0, GLfloat s1,
-		      GLfloat t0, GLfloat t1 )
-{
-#if 0
-   GLuint vertex_size = 8;
-   GLuint *vb = intelEmitInlinePrimitiveLocked( &i830->intel, 
-						PRIM3D_TRIFAN, 
-						4*vertex_size,
-						vertex_size );
-   intelVertex tmp;
-   int i;
 
-   
-/*    fprintf(stderr, "%s: %f,%f-%f,%f 0x%x%x%x%x %f,%f-%f,%f\n", */
-/* 	   __FUNCTION__, */
-/* 	   x0,y0,x1,y1,red,green,blue,alpha,s0,t0,s1,t1); */
 
-
-   /* initial vertex, left bottom */
-   tmp.v.x = x0;
-   tmp.v.y = y0;
-   tmp.v.z = 1.0;
-   tmp.v.w = 1.0;
-   tmp.v.color.red = red;
-   tmp.v.color.green = green;
-   tmp.v.color.blue = blue;
-   tmp.v.color.alpha = alpha;
-   tmp.v.specular.red = 0;
-   tmp.v.specular.green = 0;
-   tmp.v.specular.blue = 0;
-   tmp.v.specular.alpha = 0;
-   tmp.v.u0 = s0;
-   tmp.v.v0 = t0;
-   for (i = 0 ; i < 8 ; i++)
-      vb[i] = tmp.ui[i];
-
-   /* right bottom */
-   vb += 8;
-   tmp.v.x = x1;
-   tmp.v.u0 = s1;
-   for (i = 0 ; i < 8 ; i++)
-      vb[i] = tmp.ui[i];
-
-   /* right top */
-   vb += 8;
-   tmp.v.y = y1;
-   tmp.v.v0 = t1;
-   for (i = 0 ; i < 8 ; i++)
-      vb[i] = tmp.ui[i];
-
-   /* left top */
-   vb += 8;
-   tmp.v.x = x0;
-   tmp.v.u0 = s0;
-   for (i = 0 ; i < 8 ; i++)
-      vb[i] = tmp.ui[i];
-
-/*    fprintf(stderr, "%s: DV1: %x\n",  */
-/* 	   __FUNCTION__, i830->meta.Buffer[I830_DESTREG_DV1]); */
-#endif
-}
-
-void 
-i830ClearWithTris(intelContextPtr intel, GLbitfield mask,
-		  GLboolean all,
-		  GLint cx, GLint cy, GLint cw, GLint ch)
-{
-   i830ContextPtr i830 = I830_CONTEXT( intel );
-   __DRIdrawablePrivate *dPriv = intel->driDrawable;
-   intelScreenPrivate *screen = intel->intelScreen;
-   int x0, y0, x1, y1;
-
-
-   SET_STATE( i830, meta );
-   set_initial_state( i830 );
-   set_no_texture( i830 );
-   set_vertex_format( i830 ); 
-
-   LOCK_HARDWARE(intel);
-
-   if(!all) {
-      x0 = cx;
-      y0 = cy;
-      x1 = x0 + cw;
-      y1 = y0 + ch;
-   } else {
-      x0 = 0;
-      y0 = 0;
-      x1 = x0 + dPriv->w;
-      y1 = y0 + dPriv->h;
-   }
-
-   /* Don't do any clipping to screen - these are window coordinates.
-    * The active cliprects will be applied as for any other geometry.
-    */
-
-   if(mask & BUFFER_BIT_FRONT_LEFT) {
-      set_no_depth_stencil_write( i830 );
-      set_color_mask( i830, GL_TRUE );
-      set_draw_offset( i830, screen->front.offset );
-      draw_quad(i830, x0, x1, y0, y1,
-		intel->clear_red, intel->clear_green,
-		intel->clear_blue, intel->clear_alpha,
-		0, 0, 0, 0);
-   }
-
-   if(mask & BUFFER_BIT_BACK_LEFT) {
-      set_no_depth_stencil_write( i830 );
-      set_color_mask( i830, GL_TRUE );
-      set_draw_offset( i830, screen->back.offset );
-
-      draw_quad(i830, x0, x1, y0, y1,
-		intel->clear_red, intel->clear_green,
-		intel->clear_blue, intel->clear_alpha,
-		0, 0, 0, 0);
-   }
-
-   if(mask & BUFFER_BIT_STENCIL) {
-      set_stencil_replace( i830, 
-			   intel->ctx.Stencil.WriteMask[0], 
-			   intel->ctx.Stencil.Clear);
-
-      set_color_mask( i830, GL_FALSE );
-      set_draw_offset( i830, screen->front.offset );
-      draw_quad( i830, x0, x1, y0, y1, 0, 0, 0, 0, 0, 0, 0, 0 );
-   }
-
-   UNLOCK_HARDWARE(intel);
-
-   SET_STATE( i830, state );
-}
-
-
-
-
-GLboolean
-i830TryTextureReadPixels( GLcontext *ctx,
-			  GLint x, GLint y, GLsizei width, GLsizei height,
-			  GLenum format, GLenum type,
-			  const struct gl_pixelstore_attrib *pack,
-			  GLvoid *pixels )
-{
-   i830ContextPtr i830 = I830_CONTEXT(ctx);
-   intelContextPtr intel = INTEL_CONTEXT(ctx);
-   intelScreenPrivate *screen = i830->intel.intelScreen;
-   GLint pitch = pack->RowLength ? pack->RowLength : width;
-   __DRIdrawablePrivate *dPriv = i830->intel.driDrawable;
-   int textureFormat;
-   GLenum glTextureFormat;
-   int src_offset = i830->meta.Buffer[I830_DESTREG_CBUFADDR2];
-   int destOffset = 0;
-   int destFormat, depthFormat, destPitch;
-   drm_clip_rect_t tmp;
-
-   if (INTEL_DEBUG & DEBUG_PIXEL)
-      fprintf(stderr, "%s\n", __FUNCTION__);
-
-
-   if (	ctx->_ImageTransferState ||
-	pack->SwapBytes ||
-	pack->LsbFirst ||
-	!pack->Invert) {
-      fprintf(stderr, "%s: check_color failed\n", __FUNCTION__);
-      return GL_FALSE;
-   }
-
-   switch (screen->fbFormat) {
-   case DV_PF_565:
-      textureFormat = MAPSURF_16BIT | MT_16BIT_RGB565;
-      glTextureFormat = GL_RGB;
-      break;
-   case DV_PF_555:
-      textureFormat = MAPSURF_16BIT | MT_16BIT_ARGB1555;
-      glTextureFormat = GL_RGBA;
-      break;
-   case DV_PF_8888:
-      textureFormat = MAPSURF_32BIT | MT_32BIT_ARGB8888;
-      glTextureFormat = GL_RGBA;
-      break;
-   default:
-      fprintf(stderr, "%s: textureFormat failed %x\n", __FUNCTION__,
-	      screen->fbFormat);
-      return GL_FALSE;
-   }
-
-
-   switch (type) {
-   case GL_UNSIGNED_SHORT_5_6_5: 
-      if (format != GL_RGB) return GL_FALSE;
-      destFormat = COLR_BUF_RGB565; 
-      depthFormat = DEPTH_FRMT_16_FIXED;
-      destPitch = pitch * 2;
-      break;
-   case GL_UNSIGNED_INT_8_8_8_8_REV: 
-      if (format != GL_BGRA) return GL_FALSE;
-      destFormat = COLR_BUF_ARGB8888; 
-      depthFormat = DEPTH_FRMT_24_FIXED_8_OTHER;
-      destPitch = pitch * 4;
-      break;
-   default:
-      fprintf(stderr, "%s: destFormat failed %s\n", __FUNCTION__,
-	      _mesa_lookup_enum_by_nr(type));
-      return GL_FALSE;
-   }
-
-   destFormat |= (0x02<<24);
-
-/*    fprintf(stderr, "type: %s destFormat: %x\n", */
-/* 	   _mesa_lookup_enum_by_nr(type), */
-/* 	   destFormat); */
-
-   intelFlush( ctx );
-
-   SET_STATE( i830, meta );
-   set_initial_state( i830 );
-   set_no_depth_stencil_write( i830 );
-
-   LOCK_HARDWARE( intel );
-   {
-      intelWaitForIdle( intel ); /* required by GL */
-
-      if (!driClipRectToFramebuffer(ctx->ReadBuffer, &x, &y, &width, &height)) {
-	 UNLOCK_HARDWARE( intel );
-	 SET_STATE(i830, state);
-	 fprintf(stderr, "%s: cliprect failed\n", __FUNCTION__);
-	 return GL_TRUE;
-      }
-
-#if 0
-      /* FIXME -- Just emit the correct state
-       */
-      if (i830SetParam(i830->driFd, I830_SETPARAM_CBUFFER_PITCH, 
-		      destPitch) != 0) {
-	 UNLOCK_HARDWARE( intel );
-	 SET_STATE(i830, state);
-	 fprintf(stderr, "%s: setparam failed\n", __FUNCTION__);
-	 return GL_FALSE;
-      }
-#endif
-
-
-      y = dPriv->h - y - height;
-      x += dPriv->x;
-      y += dPriv->y;
-
-
-      /* Set the frontbuffer up as a large rectangular texture.
-       */
-      set_tex_rect_source( i830, 
-			   src_offset, 
-			   screen->width, 
-			   screen->height, 
-			   screen->front.pitch, 
-			   textureFormat ); 
-   
-   
-      enable_texture_blend_replace( i830, glTextureFormat ); 
-
-
-      /* Set the 3d engine to draw into the agp memory
-       */
-
-      set_draw_offset( i830, destOffset ); 
-      set_draw_format( i830, destFormat, depthFormat );  
-
-
-      /* Draw a single quad, no cliprects:
-       */
-      i830->intel.numClipRects = 1;
-      i830->intel.pClipRects = &tmp;
-      i830->intel.pClipRects[0].x1 = 0;
-      i830->intel.pClipRects[0].y1 = 0;
-      i830->intel.pClipRects[0].x2 = width;
-      i830->intel.pClipRects[0].y2 = height;
-
-      draw_quad( i830, 
-		 0, width, 0, height, 
-		 0, 255, 0, 0, 
-		 x, x+width, y, y+height );
-
-      intelWindowMoved( intel );
-   }
-   UNLOCK_HARDWARE( intel );
-   intelFinish( ctx ); /* required by GL */
-
-   SET_STATE( i830, state );
-   return GL_TRUE;
-}
-
-
-GLboolean
-i830TryTextureDrawPixels( GLcontext *ctx,
-			  GLint x, GLint y, GLsizei width, GLsizei height,
-			  GLenum format, GLenum type,
-			  const struct gl_pixelstore_attrib *unpack,
-			  const GLvoid *pixels )
-{
-   intelContextPtr intel = INTEL_CONTEXT(ctx);
-   i830ContextPtr i830 = I830_CONTEXT(ctx);
-   GLint pitch = unpack->RowLength ? unpack->RowLength : width;
-   __DRIdrawablePrivate *dPriv = intel->driDrawable;
-   int textureFormat;
-   GLenum glTextureFormat;
-   int dst_offset = i830->meta.Buffer[I830_DESTREG_CBUFADDR2];
-   int src_offset = 0;
-
-   if (INTEL_DEBUG & DEBUG_PIXEL)
-      fprintf(stderr, "%s\n", __FUNCTION__);
-
-   /* Todo -- upload images that aren't in agp space, then texture
-    * from them.  
-    */
-
-   if ( !intelIsAgpMemory( intel, pixels, pitch*height ) ) {
-      fprintf(stderr, "%s: intelIsAgpMemory failed\n", __FUNCTION__);
-      return GL_FALSE;
-   }
-
-   /* Todo -- don't want to clobber all the drawing state like we do
-    * for readpixels -- most of this state can be handled just fine.
-    */
-   if (	ctx->_ImageTransferState ||
-	unpack->SwapBytes ||
-	unpack->LsbFirst ||
-	ctx->Color.AlphaEnabled || 
-	ctx->Depth.Test ||
-	ctx->Fog.Enabled ||
-	ctx->Scissor.Enabled ||
-	ctx->Stencil.Enabled ||
-	!ctx->Color.ColorMask[0] ||
-	!ctx->Color.ColorMask[1] ||
-	!ctx->Color.ColorMask[2] ||
-	!ctx->Color.ColorMask[3] ||
-	ctx->Color.ColorLogicOpEnabled ||
-	ctx->Texture._EnabledUnits) {
-      fprintf(stderr, "%s: other tests failed\n", __FUNCTION__);
-      return GL_FALSE;
-   }
-
-   /* Todo -- remove these restrictions:
-    */
-   if (ctx->Pixel.ZoomX != 1.0F ||
-       ctx->Pixel.ZoomY != -1.0F)
-      return GL_FALSE;
-
-
-
-   switch (type) {
-   case GL_UNSIGNED_SHORT_1_5_5_5_REV:
-      if (format != GL_BGRA) return GL_FALSE;
-      textureFormat = MAPSURF_16BIT | MT_16BIT_ARGB1555;
-      glTextureFormat = GL_RGBA;
-      break;
-   case GL_UNSIGNED_SHORT_5_6_5: 
-      if (format != GL_RGB) return GL_FALSE;
-      textureFormat = MAPSURF_16BIT | MT_16BIT_RGB565;
-      glTextureFormat = GL_RGB;
-      break;
-   case GL_UNSIGNED_SHORT_8_8_MESA: 
-      if (format != GL_YCBCR_MESA) return GL_FALSE;
-      textureFormat = (MAPSURF_422 | MT_422_YCRCB_SWAPY 
-/*  		       | TM0S1_COLORSPACE_CONVERSION */
-	 );
-      glTextureFormat = GL_YCBCR_MESA;
-      break;
-   case GL_UNSIGNED_SHORT_8_8_REV_MESA: 
-      if (format != GL_YCBCR_MESA) return GL_FALSE;
-      textureFormat = (MAPSURF_422 | MT_422_YCRCB_NORMAL 
-/* 		       | TM0S1_COLORSPACE_CONVERSION */
-	 );
-      glTextureFormat = GL_YCBCR_MESA;
-      break;
-   case GL_UNSIGNED_INT_8_8_8_8_REV: 
-      if (format != GL_BGRA) return GL_FALSE;
-      textureFormat = MAPSURF_32BIT | MT_32BIT_ARGB8888;
-      glTextureFormat = GL_RGBA;
-      break;
-   default:
-      fprintf(stderr, "%s: destFormat failed\n", __FUNCTION__);
-      return GL_FALSE;
-   }
-
-   intelFlush( ctx );
-
-   SET_STATE( i830, meta );
-
-   LOCK_HARDWARE( intel );
-   {
-      intelWaitForIdle( intel ); /* required by GL */
-
-      y -= height;			/* cope with pixel zoom */
-
-      if (!driClipRectToFramebuffer(ctx->ReadBuffer, &x, &y, &width, &height)) {
-	 UNLOCK_HARDWARE( intel );
-	 SET_STATE(i830, state);
-	 fprintf(stderr, "%s: cliprect failed\n", __FUNCTION__);
-	 return GL_TRUE;
-      }
-
-
-      y = dPriv->h - y - height;
-
-      set_initial_state( i830 );
-
-      /* Set the pixel image up as a rectangular texture.
-       */
-      set_tex_rect_source( i830, 
-			   src_offset, 
-			   width, 
-			   height, 
-			   pitch, /* XXXX!!!! -- /2 sometimes */
-			   textureFormat ); 
-   
-   
-      enable_texture_blend_replace( i830, glTextureFormat ); 
-
-   
-      /* Draw to the current draw buffer:
-       */
-      set_draw_offset( i830, dst_offset );
-
-      /* Draw a quad, use regular cliprects
-       */
-/*       fprintf(stderr, "x: %d y: %d width %d height %d\n", x, y, width, height); */
-
-      draw_quad( i830, 
-		 x, x+width, y, y+height,
-		 0, 255, 0, 0, 
-		 0, width, 0, height );
-
-      intelWindowMoved( intel );
-   }
-   UNLOCK_HARDWARE( intel );
-   intelFinish( ctx ); /* required by GL */
-   
-   SET_STATE(i830, state);
-
-   return GL_TRUE;
-}
 

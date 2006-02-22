@@ -44,7 +44,7 @@
 #include "bufmgr.h"
 
 
-int intelEmitIrqLocked( intelContextPtr intel )
+int intelEmitIrqLocked( struct intel_context *intel )
 {
    drmI830IrqEmit ie;
    int ret, seq = 0;
@@ -54,14 +54,12 @@ int intelEmitIrqLocked( intelContextPtr intel )
 
    ie.irq_seq = &seq;
 
-#if 1
    ret = drmCommandWriteRead( intel->driFd, DRM_I830_IRQ_EMIT, 
 			      &ie, sizeof(ie) );
    if ( ret ) {
       fprintf( stderr, "%s: drmI830IrqEmit: %d\n", __FUNCTION__, ret );
       exit(1);
    }   
-#endif
 
    if (0)
       fprintf(stderr, "%s -->  %d\n", __FUNCTION__, seq );
@@ -69,7 +67,7 @@ int intelEmitIrqLocked( intelContextPtr intel )
    return seq;
 }
 
-void intelWaitIrq( intelContextPtr intel, int seq )
+void intelWaitIrq( struct intel_context *intel, int seq )
 {
    drmI830IrqWait iw;
    int ret;
@@ -79,7 +77,6 @@ void intelWaitIrq( intelContextPtr intel, int seq )
 
    iw.irq_seq = seq;
 	 
-#if 1
    do {
       ret = drmCommandWrite( intel->driFd, DRM_I830_IRQ_WAIT, &iw, sizeof(iw) );
    } while (ret == -EAGAIN || ret == -EINTR);
@@ -88,294 +85,61 @@ void intelWaitIrq( intelContextPtr intel, int seq )
       fprintf( stderr, "%s: drmI830IrqWait: %d\n", __FUNCTION__, ret );
       exit(1);
    }
-#endif
 }
 
 
-
-void intel_dump_batchbuffer( long offset,
-			     int *ptr,
-			     int count )
-{
-   int i;
-   fprintf(stderr, "\n\n\nSTART BATCH (%d dwords):\n", count);
-   for (i = 0; i < count/4; i += 4) 
-      fprintf(stderr, "\t0x%08x 0x%08x 0x%08x 0x%08x\n", 
-/* 	      (unsigned int)offset + i*4,  */
-	      ptr[i], ptr[i+1], ptr[i+2], ptr[i+3]);
-   fprintf(stderr, "END BATCH\n\n\n");
-}
-
-
-#define MI_BATCH_BUFFER_END 	(0xA<<23)
-
-
-void intelFlushBatchLocked( intelContextPtr intel, 
-			    GLboolean ignore_cliprects,
-			    GLboolean refill,
-			    GLboolean allow_unlock)
+void intel_batch_ioctl( struct intel_context *intel, 
+			GLuint start_offset,
+			GLuint used,
+			GLboolean ignore_cliprects)
 {
    drmI830BatchBuffer batch;
 
    assert(intel->locked);
-   assert(intel->buffer_list);
-   assert(intel->batch.ptr);
-
+   assert(used);
 
    if (0)
-      fprintf(stderr, "%s used %d of %d offset %x..%x refill %d\n",
+      fprintf(stderr, "%s used %d offset %x..%x ignore_cliprects %d\n",
 	      __FUNCTION__, 
-	      (intel->batch.size - intel->batch.space), 
-	      intel->batch.size,
-	      intel->batch.start_offset,
-	      intel->batch.start_offset + 
-	      (intel->batch.size - intel->batch.space), 
-	      refill);
+	      used, 
+	      start_offset,
+	      start_offset + used,
+	      ignore_cliprects);
 
    /* Throw away non-effective packets.  Won't work once we have
     * hardware contexts which would preserve statechanges beyond a
     * single buffer.
     */
    if (intel->numClipRects == 0 && !ignore_cliprects) {
-      /* Note that any state thought to have been emitted actually
-       * hasn't:
-       */
-      intel->batch.ptr -= (intel->batch.size - intel->batch.space);
-      intel->batch.space = intel->batch.size;
       intel->vtbl.lost_hardware( intel ); 
+      return;
    }
 
-   if (intel->batch.space != intel->batch.size) {
-      batch.start = intel->batch.start_offset;
-      batch.used = intel->batch.size - intel->batch.space;
-      batch.cliprects = intel->pClipRects;
-      batch.num_cliprects = ignore_cliprects ? 0 : intel->numClipRects;
-      batch.DR1 = 0;
-      batch.DR4 = ((((GLuint)intel->drawX) & 0xffff) | 
-		   (((GLuint)intel->drawY) << 16));
+   batch.start = start_offset;
+   batch.used = used;
+   batch.cliprects = intel->pClipRects;
+   batch.num_cliprects = ignore_cliprects ? 0 : intel->numClipRects;
+   batch.DR1 = 0;
+   batch.DR4 = ((((GLuint)intel->drawX) & 0xffff) | 
+		(((GLuint)intel->drawY) << 16));
       
-      if ((batch.used & 0x4) == 0) {
-	 ((int *)intel->batch.ptr)[0] = 0;
-	 ((int *)intel->batch.ptr)[1] = MI_BATCH_BUFFER_END;
-	 batch.used += 0x8;
-	 intel->batch.ptr += 0x8;
-      }
-      else {
-	 ((int *)intel->batch.ptr)[0] = MI_BATCH_BUFFER_END;
-	 batch.used += 0x4;
-	 intel->batch.ptr += 0x4;
-      }      
-
-      if (0)
- 	 intel_dump_batchbuffer( batch.start,
-				 (int *)(intel->batch.ptr - batch.used),
-				 batch.used );
-
-      if (0)
-	 fprintf(stderr, "%s: 0x%x..0x%x DR4: %x cliprects: %d\n",
-		 __FUNCTION__, 
-		 batch.start, 
-		 batch.start + batch.used * 4,
-		 batch.DR4, batch.num_cliprects);
-
-#if 1
-      if (drmCommandWrite (intel->driFd, DRM_I830_BATCHBUFFER, &batch, 
-			   sizeof(batch))) {
-	 fprintf(stderr, "DRM_I830_BATCHBUFFER: %d\n",  -errno);
-	 UNLOCK_HARDWARE(intel);
-	 exit(1);
-      }
-#endif
-      
-      /* FIXME: use hardware contexts to avoid 'losing' hardware after
-       * each buffer flush.
-       */
-      intel->vtbl.lost_hardware( intel );
-   }
-
-   bmUnmapBuffer( intel->bm,
-		  intel->alloc.buffer[intel->alloc.current] );
-   intel->batch.ptr = NULL;
-   intel->batch.size = 0;
-   intel->batch.space = 0;
-
-   intel->last_fence = bmFenceBufferList(intel->bm, intel->buffer_list);
-   bmFreeBufferList(intel->buffer_list);
-
-
-   intel->buffer_list = NULL;
-}
-
-void intelFlushBatch( intelContextPtr intel, GLboolean refill )
-{
-   if (intel->locked) {
-      intelFlushBatchLocked( intel, GL_FALSE, refill, GL_FALSE );
-   } 
-   else {
-      assert(intel->batch.size == intel->batch.space);
-   }
-}
-
-
-
-
-
-static void wait_for_idle_locked( struct intel_context *intel )
-{
-   intelInstallBatchBuffer(intel);
-
-   bmAddBuffer(intel->buffer_list, intel->draw_region->buffer,
-	       BM_WRITE, NULL, NULL);
-   
-   intelValidateBuffers(intel);
-
-   intel->vtbl.emit_flush( intel );
-   intelFlushBatch( intel, GL_TRUE );
-
-   bmFinishFence( intel->bm, intel->last_fence );
-}
-
-void intelWaitForIdle( intelContextPtr intel )
-{   
-   if (intel->locked) {
-      wait_for_idle_locked( intel );
-   }
-   else {
-      LOCK_HARDWARE(intel);
-      wait_for_idle_locked( intel );
-      UNLOCK_HARDWARE(intel);
-   }
-}
-
-
-
-void intelFlush( GLcontext *ctx )
-{
-   intelContextPtr intel = INTEL_CONTEXT( ctx );
-
-   if (intel->Fallback)
-      _swrast_flush( ctx );
-
-   INTEL_FIREVERTICES( intel );
-
-   if (intel->batch.size != intel->batch.space)
-      intelFlushBatch( intel, GL_FALSE );
-}
-
-void intelFinish( GLcontext *ctx  ) 
-{
-   intelContextPtr intel = INTEL_CONTEXT( ctx );
-   intelFlush( ctx );
-   intelWaitForIdle( intel );
-}
-
-
-void intelClear(GLcontext *ctx, GLbitfield mask, GLboolean all,
-		GLint cx, GLint cy, GLint cw, GLint ch)
-{
-   intelContextPtr intel = INTEL_CONTEXT( ctx );
-   const GLuint colorMask = *((GLuint *) &ctx->Color.ColorMask);
-   GLbitfield tri_mask = 0;
-   GLbitfield blit_mask = 0;
-   GLbitfield swrast_mask = 0;
-
    if (0)
-      fprintf(stderr, "%s\n", __FUNCTION__);
-
-   /* Take care of cliprects, which are handled differently for
-    * clears, etc.
-    */
-   intelFlush( &intel->ctx );
-
-   if (mask & BUFFER_BIT_FRONT_LEFT) {
-      if (colorMask == ~0) {
-	 blit_mask |= BUFFER_BIT_FRONT_LEFT;
-      } 
-      else {
-	 tri_mask |= BUFFER_BIT_FRONT_LEFT;
-      }
-   }
-
-   if (mask & BUFFER_BIT_BACK_LEFT) {
-      if (colorMask == ~0) {
-	 blit_mask |= BUFFER_BIT_BACK_LEFT;
-      } 
-      else {
-	 tri_mask |= BUFFER_BIT_BACK_LEFT;
-      }
-   }
-
-   if (mask & BUFFER_BIT_DEPTH) {
-      blit_mask |= BUFFER_BIT_DEPTH;
-   }
-
-   if (mask & BUFFER_BIT_STENCIL) {
-      if (!intel->hw_stencil) {
-	 swrast_mask |= BUFFER_BIT_STENCIL;
-      }
-      else if (ctx->Stencil.WriteMask[0] != 0xff) {
-	 tri_mask |= BUFFER_BIT_STENCIL;
-      } 
-      else {
-	 blit_mask |= BUFFER_BIT_STENCIL;
-      }
-   }
-
-   swrast_mask |= (mask & BUFFER_BIT_ACCUM);
-
-   if (blit_mask) 
-      intelClearWithBlit( ctx, blit_mask, all, cx, cy, cw, ch );
-
-   if (tri_mask) 
-      intel->vtbl.clear_with_tris( intel, tri_mask, all, cx, cy, cw, ch);
-
-   if (swrast_mask)
-      _swrast_Clear( ctx, swrast_mask, all, cx, cy, cw, ch );
-}
-
-
-
-
-
-
-
-/* Flip the front & back buffes
- */
-void intelPageFlip( const __DRIdrawablePrivate *dPriv )
-{
-#if 0
-   intelContextPtr intel;
-   int tmp, ret;
-
-   if (INTEL_DEBUG & DEBUG_IOCTL)
-      fprintf(stderr, "%s\n", __FUNCTION__);
-
-   assert(dPriv);
-   assert(dPriv->driContextPriv);
-   assert(dPriv->driContextPriv->driverPrivate);
-
-   intel = (intelContextPtr) dPriv->driContextPriv->driverPrivate;
-
-   intelFlush( &intel->ctx );
-   LOCK_HARDWARE( intel );
-
-   if (dPriv->pClipRects) {
-      *(drm_clip_rect_t *)intel->sarea->boxes = dPriv->pClipRects[0];
-      intel->sarea->nbox = 1;
-   }
-
-   ret = drmCommandNone(intel->driFd, DRM_I830_FLIP); 
-   if (ret) {
-      fprintf(stderr, "%s: %d\n", __FUNCTION__, ret);
-      UNLOCK_HARDWARE( intel );
+      fprintf(stderr, "%s: 0x%x..0x%x DR4: %x cliprects: %d\n",
+	      __FUNCTION__, 
+	      batch.start, 
+	      batch.start + batch.used * 4,
+	      batch.DR4, batch.num_cliprects);
+#if 1
+   if (drmCommandWrite (intel->driFd, DRM_I830_BATCHBUFFER, &batch, 
+			sizeof(batch))) {
+      fprintf(stderr, "DRM_I830_BATCHBUFFER: %d\n",  -errno);
+      UNLOCK_HARDWARE(intel);
       exit(1);
    }
-
-   tmp = intel->sarea->last_enqueue;
-   intelRefillBatchLocked( intel );
-   UNLOCK_HARDWARE( intel );
-
-
-   intelSetDrawBuffer( &intel->ctx, intel->ctx.Color.DriverDrawBuffer );
 #endif
+      
+   /* FIXME: use hardware contexts to avoid 'losing' hardware after
+    * each buffer flush.
+    */
+   intel->vtbl.lost_hardware( intel );
 }

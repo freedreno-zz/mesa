@@ -42,7 +42,7 @@
 #define DBG 0
 
 #define LOCAL_VARS						\
-   intelContextPtr intel = INTEL_CONTEXT(ctx);			\
+   struct intel_context *intel = intel_context(ctx);			\
    __DRIdrawablePrivate *dPriv = intel->driDrawable;		\
    driRenderbuffer *drb = (driRenderbuffer *) rb;		\
    GLuint pitch = drb->pitch * drb->cpp;			\
@@ -54,7 +54,7 @@
    (void) buf; (void) p
 
 #define LOCAL_DEPTH_VARS					\
-   intelContextPtr intel = INTEL_CONTEXT(ctx);			\
+   struct intel_context *intel = intel_context(ctx);			\
    __DRIdrawablePrivate *dPriv = intel->driDrawable;		\
    driRenderbuffer *drb = (driRenderbuffer *) rb;		\
    GLuint pitch = drb->pitch * drb->cpp;			\
@@ -95,27 +95,6 @@ do {								\
 #define TAG(x) intel##x##_565
 #include "spantmp.h"
 
-/* 15 bit, 555 rgb color spanline and pixel functions
- */
-#define WRITE_RGBA( _x, _y, r, g, b, a )			\
-   *(GLushort *)(buf + _x*2 + _y*pitch)  = (((r & 0xf8) << 7) |	\
-		                            ((g & 0xf8) << 3) |	\
-                         		    ((b & 0xf8) >> 3))
-
-#define WRITE_PIXEL( _x, _y, p )  \
-   *(GLushort *)(buf + _x*2 + _y*pitch)  = p
-
-#define READ_RGBA( rgba, _x, _y )				\
-do {								\
-   GLushort p = *(GLushort *)(buf + _x*2 + _y*pitch);		\
-   rgba[0] = (p >> 7) & 0xf8;					\
-   rgba[1] = (p >> 3) & 0xf8;					\
-   rgba[2] = (p << 3) & 0xf8;					\
-   rgba[3] = 255;						\
-} while(0)
-
-#define TAG(x) intel##x##_555
-#include "spantmp.h"
 
 /* 16 bit depthbuffer functions.
  */
@@ -132,7 +111,7 @@ do {								\
 
 #undef LOCAL_VARS
 #define LOCAL_VARS						\
-   intelContextPtr intel = INTEL_CONTEXT(ctx);			\
+   struct intel_context *intel = intel_context(ctx);			\
    __DRIdrawablePrivate *dPriv = intel->driDrawable;		\
    driRenderbuffer *drb = (driRenderbuffer *) rb;		\
    GLuint pitch = drb->pitch * drb->cpp;			\
@@ -206,12 +185,11 @@ do {								\
  */
 void intelSpanRenderStart( GLcontext *ctx )
 {
-   intelContextPtr intel = INTEL_CONTEXT(ctx);
+   struct intel_context *intel = intel_context(ctx);
    GLuint i;
 
    intelFlush(&intel->ctx);
    LOCK_HARDWARE(intel);
-   intelWaitForIdle(intel);
 
    /* Just map the framebuffer and all textures.  Bufmgr code will
     * take care of waiting on the necessary fences:
@@ -230,7 +208,7 @@ void intelSpanRenderStart( GLcontext *ctx )
 
 void intelSpanRenderFinish( GLcontext *ctx )
 {
-   intelContextPtr intel = INTEL_CONTEXT( ctx );
+   struct intel_context *intel = intel_context( ctx );
    GLuint i;
 
    _swrast_flush( ctx );
@@ -266,10 +244,7 @@ void
 intelSetSpanFunctions(driRenderbuffer *drb, const GLvisual *vis)
 {
    if (drb->Base.InternalFormat == GL_RGBA) {
-      if (vis->redBits == 5 && vis->greenBits == 5 && vis->blueBits == 5) {
-         intelInitPointers_555(&drb->Base);
-      }
-      else if (vis->redBits == 5 && vis->greenBits == 6 && vis->blueBits == 5) {
+      if (vis->redBits == 5 && vis->greenBits == 6 && vis->blueBits == 5) {
          intelInitPointers_565(&drb->Base);
       }
       else {

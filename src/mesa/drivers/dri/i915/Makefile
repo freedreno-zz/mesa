@@ -7,6 +7,7 @@ LIBNAME = i915_dri.so
 DRIVER_SOURCES = \
 	bufmgr_fake.c \
 	intel_regions.c \
+	intel_batchbuffer.c \
 	intel_mipmap_tree.c \
 	i915_tex_layout.c \
 	intel_tex_image.c \
@@ -15,6 +16,11 @@ DRIVER_SOURCES = \
 	intel_tex_validate.c \
 	intel_tex_format.c \
 	intel_tex.c \
+	intel_pixel.c \
+	intel_pixel_copy.c \
+	intel_pixel_read.c \
+	intel_pixel_draw.c \
+	intel_buffers.c \
 	intel_blit.c \
 	i915_tex.c \
 	i915_texstate.c \
@@ -26,10 +32,8 @@ DRIVER_SOURCES = \
 	i915_state.c \
 	i915_texprog.c \
 	i915_vtbl.c \
-	intel_batchbuffer.c \
 	intel_context.c \
 	intel_ioctl.c \
-	intel_pixel.c \
 	intel_screen.c \
 	intel_span.c \
 	intel_state.c \

@@ -55,6 +55,8 @@
 #include "intel_ioctl.h"
 #include "intel_batchbuffer.h"
 #include "intel_blit.h"
+#include "intel_pixel.h"
+#include "intel_regions.h"
 
 #include "bufmgr.h"
 
@@ -80,9 +82,6 @@ int INTEL_DEBUG = (0);
 #define need_GL_NV_vertex_program
 #include "extension_helper.h"
 
-#ifndef VERBOSE
-int VERBOSE = 0;
-#endif
 
 #if DEBUG_LOCKING
 char *prevLockFile;
@@ -95,7 +94,7 @@ int prevLockLine;
 
 #define DRIVER_DATE                     "20060212"
 
-const GLubyte *intelGetString( GLcontext *ctx, GLenum name )
+static const GLubyte *intelGetString( GLcontext *ctx, GLenum name )
 {
    const char * chipset;
    static char buffer[128];
@@ -106,7 +105,7 @@ const GLubyte *intelGetString( GLcontext *ctx, GLenum name )
       break;
       
    case GL_RENDERER:
-      switch (INTEL_CONTEXT(ctx)->intelScreen->deviceID) {
+      switch (intel_context(ctx)->intelScreen->deviceID) {
       case PCI_CHIP_845_G:
 	 chipset = "Intel(R) 845G"; break;
       case PCI_CHIP_I830_M:
@@ -131,27 +130,6 @@ const GLubyte *intelGetString( GLcontext *ctx, GLenum name )
    default:
       return NULL;
    }
-}
-
-static void intelBufferSize(GLframebuffer *buffer,
-			   GLuint *width, GLuint *height)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   intelContextPtr intel = INTEL_CONTEXT(ctx);
-   /* Need to lock to make sure the driDrawable is uptodate.  This
-    * information is used to resize Mesa's software buffers, so it has
-    * to be correct.
-    */
-   LOCK_HARDWARE(intel);
-   if (intel->driDrawable) {
-      *width = intel->driDrawable->w;
-      *height = intel->driDrawable->h;
-   }
-   else {
-      *width = 0;
-      *height = 0;
-   }
-   UNLOCK_HARDWARE(intel);
 }
 
 
@@ -252,7 +230,32 @@ static void intelInvalidateState( GLcontext *ctx, GLuint new_state )
    _ac_InvalidateState( ctx, new_state );
    _tnl_InvalidateState( ctx, new_state );
    _tnl_invalidate_vertex_state( ctx, new_state );
-   INTEL_CONTEXT(ctx)->NewGLState |= new_state;
+   intel_context(ctx)->NewGLState |= new_state;
+}
+
+
+void intelFlush( GLcontext *ctx )
+{
+   struct intel_context *intel = intel_context( ctx );
+
+   if (intel->Fallback)
+      _swrast_flush( ctx );
+
+   INTEL_FIREVERTICES( intel );
+
+   if (intel->batch->map != intel->batch->ptr)
+      intel_batchbuffer_flush( intel->batch );
+
+   /* XXX: Need to do an MI_FLUSH here.  Actually, the bufmgr_fake.c
+    * code will have done one already.
+    */
+}
+
+void intelFinish( GLcontext *ctx ) 
+{
+   struct intel_context *intel = intel_context( ctx );
+   intelFlush( ctx );
+   bmFinishFence( intel->bm, intel->last_fence );
 }
 
 
@@ -261,10 +264,7 @@ void intelInitDriverFunctions( struct dd_function_table *functions )
    _mesa_init_driver_functions( functions );
 
    functions->Flush = intelFlush;
-   functions->Clear = intelClear;
    functions->Finish = intelFinish;
-   functions->GetBufferSize = intelBufferSize;
-   functions->ResizeBuffers = _mesa_resize_framebuffer;
    functions->GetString = intelGetString;
    functions->UpdateState = intelInvalidateState;
    functions->CopyColorTable = _swrast_CopyColorTable;
@@ -275,11 +275,12 @@ void intelInitDriverFunctions( struct dd_function_table *functions )
    intelInitTextureFuncs( functions );
    intelInitPixelFuncs( functions );
    intelInitStateFuncs( functions );
+   intelInitBufferFuncs( functions );
 }
 
 
 
-GLboolean intelInitContext( intelContextPtr intel,
+GLboolean intelInitContext( struct intel_context *intel,
 			    const __GLcontextModes *mesaVis,
 			    __DRIcontextPrivate *driContextPriv,
 			    void *sharedContextPrivate,
@@ -379,6 +380,51 @@ GLboolean intelInitContext( intelContextPtr intel,
 /* 		      GL_TRUE, */
 		      GL_FALSE);
 
+
+   /* Buffer manager: 
+    */
+   intel->bm = bm_fake_intel_Attach( intel );
+
+   bmInitPool(intel->bm,
+              intel->intelScreen->tex.offset, /* low offset */
+              intel->intelScreen->tex.map, /* low virtual */
+              intel->intelScreen->tex.size,
+	      BM_MEM_AGP);
+
+   /* These are still static, but create regions for them.  
+    */
+   intel->front_region = 
+      intel_region_create_static(intel,
+				 BM_MEM_AGP,
+				 intelScreen->front.offset,
+				 intelScreen->front.map,
+				 intelScreen->cpp,
+				 intelScreen->front.pitch,
+				 intelScreen->height);
+
+
+   intel->back_region = 
+      intel_region_create_static(intel,
+				 BM_MEM_AGP,
+				 intelScreen->back.offset,
+				 intelScreen->back.map,
+				 intelScreen->cpp,
+				 intelScreen->back.pitch,
+				 intelScreen->height);
+
+   /* Still assuming front.cpp == depth.cpp
+    */
+   intel->depth_region = 
+      intel_region_create_static(intel,
+				 BM_MEM_AGP,
+				 intelScreen->depth.offset,
+				 intelScreen->depth.map,
+				 intelScreen->cpp,
+				 intelScreen->depth.pitch,
+				 intelScreen->height);
+   
+   intel->batch = intel_batchbuffer_alloc( intel );
+
    if (intel->ctx.Mesa_DXTn) {
      _mesa_enable_extension( ctx, "GL_EXT_texture_compression_s3tc" );
      _mesa_enable_extension( ctx, "GL_S3_s3tc" );
@@ -393,24 +439,16 @@ GLboolean intelInitContext( intelContextPtr intel,
 /* 			  DRI_TEXMGR_DO_TEXTURE_RECT ); */
 
 
-   intel->prim.flush = NULL;
    intel->prim.primitive = ~0;
 
 
 #if DO_DEBUG
    INTEL_DEBUG  = driParseDebugString( getenv( "INTEL_DEBUG" ),
 				       debug_control );
-   INTEL_DEBUG |= driParseDebugString( getenv( "INTEL_DEBUG" ),
-				       debug_control );
 #endif
 
-#ifndef VERBOSE
-   if (getenv("INTEL_VERBOSE"))
-      VERBOSE=1;
-#endif
 
-   if (getenv("INTEL_NO_RAST") || 
-       getenv("INTEL_NO_RAST")) {
+   if (getenv("INTEL_NO_RAST")) {
       fprintf(stderr, "disabling 3D rasterization\n");
       FALLBACK(intel, INTEL_FALLBACK_USER, 1); 
    }
@@ -420,7 +458,7 @@ GLboolean intelInitContext( intelContextPtr intel,
 
 void intelDestroyContext(__DRIcontextPrivate *driContextPriv)
 {
-   intelContextPtr intel = (intelContextPtr) driContextPriv->driverPrivate;
+   struct intel_context *intel = (struct intel_context *) driContextPriv->driverPrivate;
 
    assert(intel); /* should never be null */
    if (intel) {
@@ -437,7 +475,7 @@ void intelDestroyContext(__DRIcontextPrivate *driContextPriv)
       _swrast_DestroyContext (&intel->ctx);
       intel->Fallback = 0;	/* don't call _swrast_Flush later */
 
-      intelDestroyBatchBuffer(intel);
+      intel_batchbuffer_free(intel->batch);
       
 
       if ( release_texture_heaps ) {
@@ -452,102 +490,6 @@ void intelDestroyContext(__DRIcontextPrivate *driContextPriv)
    }
 }
 
-void intelSetFrontClipRects( intelContextPtr intel )
-{
-   __DRIdrawablePrivate *dPriv = intel->driDrawable;
-
-   if (!dPriv) return;
-
-   intel->numClipRects = dPriv->numClipRects;
-   intel->pClipRects = dPriv->pClipRects;
-   intel->drawX = dPriv->x;
-   intel->drawY = dPriv->y;
-}
-
-
-void intelSetBackClipRects( intelContextPtr intel )
-{
-   __DRIdrawablePrivate *dPriv = intel->driDrawable;
-
-   if (!dPriv) return;
-
-   if (intel->sarea->pf_enabled == 0 && dPriv->numBackClipRects == 0) {
-      intel->numClipRects = dPriv->numClipRects;
-      intel->pClipRects = dPriv->pClipRects;
-      intel->drawX = dPriv->x;
-      intel->drawY = dPriv->y;
-   } else {
-      intel->numClipRects = dPriv->numBackClipRects;
-      intel->pClipRects = dPriv->pBackClipRects;
-      intel->drawX = dPriv->backX;
-      intel->drawY = dPriv->backY;
-      
-      if (dPriv->numBackClipRects == 1 &&
-	  dPriv->x == dPriv->backX &&
-	  dPriv->y == dPriv->backY) {
-      
-	 /* Repeat the calculation of the back cliprect dimensions here
-	  * as early versions of dri.a in the Xserver are incorrect.  Try
-	  * very hard not to restrict future versions of dri.a which
-	  * might eg. allocate truly private back buffers.
-	  */
-	 int x1, y1;
-	 int x2, y2;
-	 
-	 x1 = dPriv->x;
-	 y1 = dPriv->y;      
-	 x2 = dPriv->x + dPriv->w;
-	 y2 = dPriv->y + dPriv->h;
-	 
-	 if (x1 < 0) x1 = 0;
-	 if (y1 < 0) y1 = 0;
-	 if (x2 > intel->intelScreen->width) x2 = intel->intelScreen->width;
-	 if (y2 > intel->intelScreen->height) y2 = intel->intelScreen->height;
-
-	 if (x1 == dPriv->pBackClipRects[0].x1 &&
-	     y1 == dPriv->pBackClipRects[0].y1) {
-
-	    dPriv->pBackClipRects[0].x2 = x2;
-	    dPriv->pBackClipRects[0].y2 = y2;
-	 }
-      }
-   }
-}
-
-
-void intelWindowMoved( intelContextPtr intel )
-{
-   if (!intel->ctx.DrawBuffer) {
-      intelSetFrontClipRects( intel );
-   }
-   else {
-      switch (intel->ctx.DrawBuffer->_ColorDrawBufferMask[0]) {
-      case BUFFER_BIT_FRONT_LEFT:
-	 intelSetFrontClipRects( intel );
-	 break;
-      case BUFFER_BIT_BACK_LEFT:
-	 intelSetBackClipRects( intel );
-	 break;
-      default:
-	 /* glDrawBuffer(GL_NONE or GL_FRONT_AND_BACK): software fallback */
-	 intelSetFrontClipRects( intel );
-      }
-   }
-
-   /* Set state we know depends on drawable parameters:
-    */
-   {
-      GLcontext *ctx = &intel->ctx;
-
-      ctx->Driver.Scissor( ctx, ctx->Scissor.X, ctx->Scissor.Y,
-			   ctx->Scissor.Width, ctx->Scissor.Height );
-      
-      ctx->Driver.DepthRange( ctx, 
-			      ctx->Viewport.Near,
-			      ctx->Viewport.Far );
-   }
-}
-
 GLboolean intelUnbindContext(__DRIcontextPrivate *driContextPriv)
 {
    return GL_TRUE;
@@ -559,7 +501,7 @@ GLboolean intelMakeCurrent(__DRIcontextPrivate *driContextPriv,
 {
 
    if (driContextPriv) {
-      intelContextPtr intel = (intelContextPtr) driContextPriv->driverPrivate;
+      struct intel_context *intel = (struct intel_context *) driContextPriv->driverPrivate;
 
       if ( intel->driDrawable != driDrawPriv ) {
 	 /* Shouldn't the readbuffer be stored also? */
@@ -579,7 +521,7 @@ GLboolean intelMakeCurrent(__DRIcontextPrivate *driContextPriv,
    return GL_TRUE;
 }
 
-void intelGetLock( intelContextPtr intel, GLuint flags )
+void intelGetLock( struct intel_context *intel, GLuint flags )
 {
    __DRIdrawablePrivate *dPriv = intel->driDrawable;
    __DRIscreenPrivate *sPriv = intel->driScreen;
@@ -611,117 +553,4 @@ void intelGetLock( intelContextPtr intel, GLuint flags )
    }
 }
 
-void intelSwapBuffers( __DRIdrawablePrivate *dPriv )
-{
-   if (dPriv->driContextPriv && dPriv->driContextPriv->driverPrivate) {
-      intelContextPtr intel;
-      GLcontext *ctx;
-      intel = (intelContextPtr) dPriv->driContextPriv->driverPrivate;
-      ctx = &intel->ctx;
-      if (ctx->Visual.doubleBufferMode) {
-	 _mesa_notifySwapBuffers( ctx );  /* flush pending rendering comands */
-	 if ( 0 /*intel->doPageFlip*/ ) { /* doPageFlip is never set !!! */
-	    intelPageFlip( dPriv );
-	 } else {
-	    intelCopyBuffer( dPriv );
-	 }
-      }
-   } else {
-      /* XXX this shouldn't be an error but we can't handle it for now */
-      fprintf(stderr, "%s: drawable has no context!\n", __FUNCTION__);
-   }
-}
 
-
-void intelInitState( GLcontext *ctx )
-{
-   /* Mesa should do this for us:
-    */
-   ctx->Driver.AlphaFunc( ctx, 
-			  ctx->Color.AlphaFunc,
-			  ctx->Color.AlphaRef);
-
-   ctx->Driver.BlendColor( ctx,
-			   ctx->Color.BlendColor );
-
-   ctx->Driver.BlendEquationSeparate( ctx, 
-				      ctx->Color.BlendEquationRGB,
-				      ctx->Color.BlendEquationA);
-
-   ctx->Driver.BlendFuncSeparate( ctx,
-				  ctx->Color.BlendSrcRGB,
-				  ctx->Color.BlendDstRGB,
-				  ctx->Color.BlendSrcA,
-				  ctx->Color.BlendDstA);
-
-   ctx->Driver.ColorMask( ctx, 
-			  ctx->Color.ColorMask[RCOMP],
-			  ctx->Color.ColorMask[GCOMP],
-			  ctx->Color.ColorMask[BCOMP],
-			  ctx->Color.ColorMask[ACOMP]);
-
-   ctx->Driver.CullFace( ctx, ctx->Polygon.CullFaceMode );
-   ctx->Driver.DepthFunc( ctx, ctx->Depth.Func );
-   ctx->Driver.DepthMask( ctx, ctx->Depth.Mask );
-
-   ctx->Driver.Enable( ctx, GL_ALPHA_TEST, ctx->Color.AlphaEnabled );
-   ctx->Driver.Enable( ctx, GL_BLEND, ctx->Color.BlendEnabled );
-   ctx->Driver.Enable( ctx, GL_COLOR_LOGIC_OP, ctx->Color.ColorLogicOpEnabled );
-   ctx->Driver.Enable( ctx, GL_COLOR_SUM, ctx->Fog.ColorSumEnabled );
-   ctx->Driver.Enable( ctx, GL_CULL_FACE, ctx->Polygon.CullFlag );
-   ctx->Driver.Enable( ctx, GL_DEPTH_TEST, ctx->Depth.Test );
-   ctx->Driver.Enable( ctx, GL_DITHER, ctx->Color.DitherFlag );
-   ctx->Driver.Enable( ctx, GL_FOG, ctx->Fog.Enabled );
-   ctx->Driver.Enable( ctx, GL_LIGHTING, ctx->Light.Enabled );
-   ctx->Driver.Enable( ctx, GL_LINE_SMOOTH, ctx->Line.SmoothFlag );
-   ctx->Driver.Enable( ctx, GL_POLYGON_STIPPLE, ctx->Polygon.StippleFlag );
-   ctx->Driver.Enable( ctx, GL_SCISSOR_TEST, ctx->Scissor.Enabled );
-   ctx->Driver.Enable( ctx, GL_STENCIL_TEST, ctx->Stencil.Enabled );
-   ctx->Driver.Enable( ctx, GL_TEXTURE_1D, GL_FALSE );
-   ctx->Driver.Enable( ctx, GL_TEXTURE_2D, GL_FALSE );
-   ctx->Driver.Enable( ctx, GL_TEXTURE_RECTANGLE_NV, GL_FALSE );
-   ctx->Driver.Enable( ctx, GL_TEXTURE_3D, GL_FALSE );
-   ctx->Driver.Enable( ctx, GL_TEXTURE_CUBE_MAP, GL_FALSE );
-
-   ctx->Driver.Fogfv( ctx, GL_FOG_COLOR, ctx->Fog.Color );
-   ctx->Driver.Fogfv( ctx, GL_FOG_MODE, 0 );
-   ctx->Driver.Fogfv( ctx, GL_FOG_DENSITY, &ctx->Fog.Density );
-   ctx->Driver.Fogfv( ctx, GL_FOG_START, &ctx->Fog.Start );
-   ctx->Driver.Fogfv( ctx, GL_FOG_END, &ctx->Fog.End );
-
-   ctx->Driver.FrontFace( ctx, ctx->Polygon.FrontFace );
-
-   {
-      GLfloat f = (GLfloat)ctx->Light.Model.ColorControl;
-      ctx->Driver.LightModelfv( ctx, GL_LIGHT_MODEL_COLOR_CONTROL, &f );
-   }
-
-   ctx->Driver.LineWidth( ctx, ctx->Line.Width );
-   ctx->Driver.LogicOpcode( ctx, ctx->Color.LogicOp );
-   ctx->Driver.PointSize( ctx, ctx->Point.Size );
-   ctx->Driver.PolygonStipple( ctx, (const GLubyte *)ctx->PolygonStipple );
-   ctx->Driver.Scissor( ctx, ctx->Scissor.X, ctx->Scissor.Y,
-			ctx->Scissor.Width, ctx->Scissor.Height );
-   ctx->Driver.ShadeModel( ctx, ctx->Light.ShadeModel );
-   ctx->Driver.StencilFuncSeparate( ctx, GL_FRONT,
-                                    ctx->Stencil.Function[0],
-                                    ctx->Stencil.Ref[0],
-                                    ctx->Stencil.ValueMask[0] );
-   ctx->Driver.StencilFuncSeparate( ctx, GL_BACK,
-                                    ctx->Stencil.Function[1],
-                                    ctx->Stencil.Ref[1],
-                                    ctx->Stencil.ValueMask[1] );
-   ctx->Driver.StencilMaskSeparate( ctx, GL_FRONT, ctx->Stencil.WriteMask[0] );
-   ctx->Driver.StencilMaskSeparate( ctx, GL_BACK, ctx->Stencil.WriteMask[1] );
-   ctx->Driver.StencilOpSeparate( ctx, GL_FRONT,
-                                  ctx->Stencil.FailFunc[0],
-                                  ctx->Stencil.ZFailFunc[0],
-                                  ctx->Stencil.ZPassFunc[0]);
-   ctx->Driver.StencilOpSeparate( ctx, GL_BACK,
-                                  ctx->Stencil.FailFunc[1],
-                                  ctx->Stencil.ZFailFunc[1],
-                                  ctx->Stencil.ZPassFunc[1]);
-
-
-   ctx->Driver.DrawBuffer( ctx, ctx->Color.DrawBuffer[0] );
-}

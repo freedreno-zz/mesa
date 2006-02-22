@@ -1012,13 +1012,12 @@ static void i830_init_packets( i830ContextPtr i830 )
       (BUF_3D_ID_DEPTH |
        BUF_3D_PITCH(screen->depth.pitch * screen->cpp) |
        BUF_3D_USE_FENCE);
-   i830->state.Buffer[I830_DESTREG_DBUFADDR2] = screen->depth.offset;
+/*    i830->state.Buffer[I830_DESTREG_DBUFADDR2] = screen->depth.offset; */
 
 
    i830->state.Buffer[I830_DESTREG_DV0] = _3DSTATE_DST_BUF_VARS_CMD;
 
    switch (screen->fbFormat) {
-   case DV_PF_555:
    case DV_PF_565:
       i830->state.Buffer[I830_DESTREG_DV1] = (DSTORG_HORT_BIAS(0x8) | /* .5 */
 					      DSTORG_VERT_BIAS(0x8) | /* .5 */

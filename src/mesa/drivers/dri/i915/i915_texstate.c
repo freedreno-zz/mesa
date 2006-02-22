@@ -110,19 +110,31 @@ static GLuint translate_wrap_mode( GLenum wrap )
  * efficient, but this has gotten complex enough that we need
  * something which is understandable and reliable.
  */
-static GLboolean i915_update_tex_unit( GLcontext *ctx,
+static GLboolean i915_update_tex_unit( struct intel_context *intel,
 				       GLuint unit, 
 				       GLuint ss3 )
 {
+   GLcontext *ctx = &intel->ctx;
+   struct i915_context *i915 = i915_context(ctx);
    struct gl_texture_object *tObj = ctx->Texture.Unit[unit]._Current;
    struct intel_texture_object *intelObj = intel_texture_object(tObj);
-   struct i915_context *i915 = i915_context(ctx);
-   GLuint state[I915_TEX_SETUP_SIZE];
    struct gl_texture_image *firstImage = tObj->Image[0][intelObj->firstLevel];
+   GLuint *state = i915->state.Tex[unit];
 
    memset(state, 0, sizeof(state));
 
-   state[I915_TEXREG_MS2] = 0;	/* will fixup later */
+   intel_region_release(intel, &i915->state.tex_region[unit]);
+
+   if (!intel_finalize_mipmap_tree(intel, unit))
+      return GL_FALSE;   
+
+   intel_region_reference(&i915->state.tex_region[unit],
+			  intelObj->mt->region);
+
+   i915->state.tex_offset[unit] = intel_miptree_image_offset(intelObj->mt, 0,
+							     intelObj->firstLevel); 
+
+
    state[I915_TEXREG_MS3] = 
       (((firstImage->Height - 1) << MS3_HEIGHT_SHIFT) |
        ((firstImage->Width - 1) << MS3_WIDTH_SHIFT) |
@@ -253,11 +265,11 @@ static GLboolean i915_update_tex_unit( GLcontext *ctx,
    
 
    I915_ACTIVESTATE(i915, I915_UPLOAD_TEX(unit), GL_TRUE);
+   /* memcmp was already disabled, but definitely won't work as the
+    * region might now change and that wouldn't be detected:
+    */
+			  I915_STATECHANGE( i915, I915_UPLOAD_TEX(unit) );
 
-   if (1 || memcmp(state, i915->state.Tex[unit], sizeof(state)) != 0) {
-      I915_STATECHANGE( i915, I915_UPLOAD_TEX(unit) );
-      memcpy(i915->state.Tex[unit], state, sizeof(state));
-   }
 
 #if 0
    DBG(TEXTURE, "state[I915_TEXREG_SS2] = 0x%x\n", state[I915_TEXREG_SS2]);
@@ -274,25 +286,24 @@ static GLboolean i915_update_tex_unit( GLcontext *ctx,
 
 
 
-void i915UpdateTextureState( intelContextPtr intel )
+void i915UpdateTextureState( struct intel_context *intel )
 {
-   GLcontext *ctx = &intel->ctx;
    GLboolean ok = GL_TRUE;
    GLuint i;
 
    for (i = 0 ; i < I915_TEX_UNITS && ok ; i++) {
-      switch (ctx->Texture.Unit[i]._ReallyEnabled) {
+      switch (intel->ctx.Texture.Unit[i]._ReallyEnabled) {
       case TEXTURE_1D_BIT:
       case TEXTURE_2D_BIT:
       case TEXTURE_CUBE_BIT:
-	 ok = i915_update_tex_unit( ctx, i, SS3_NORMALIZED_COORDS );
+	 ok = i915_update_tex_unit( intel, i, SS3_NORMALIZED_COORDS );
 	 break;
       case TEXTURE_RECT_BIT:
       case TEXTURE_3D_BIT:
-	 ok = i915_update_tex_unit( ctx, i, 0 );
+	 ok = i915_update_tex_unit( intel, i, 0 );
 	 break;
       case 0: {
-	 struct i915_context *i915 = i915_context(ctx);
+	 struct i915_context *i915 = i915_context(&intel->ctx);
 	 if (i915->state.active & I915_UPLOAD_TEX(i)) 
 	    I915_ACTIVESTATE(i915, I915_UPLOAD_TEX(i), GL_FALSE);
 	 break;

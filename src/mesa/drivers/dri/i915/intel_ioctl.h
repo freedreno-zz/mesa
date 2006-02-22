@@ -30,25 +30,13 @@
 
 #include "intel_context.h"
 
-extern void intelWaitAgeLocked( intelContextPtr intel, int age, GLboolean unlock );
+void intelWaitIrq( struct intel_context *intel, int seq );
+int intelEmitIrqLocked( struct intel_context *intel );
 
-extern void intelClear(GLcontext *ctx, GLbitfield mask, GLboolean all,
-		       GLint cx, GLint cy, GLint cw, GLint ch);
-
-extern void intelPageFlip( const __DRIdrawablePrivate *dpriv );
-extern void intelWaitForIdle( intelContextPtr intel );
-extern void intelFlushBatch( intelContextPtr intel, GLboolean refill );
-extern void intelFlushBatchLocked( intelContextPtr intel,
-				   GLboolean ignore_cliprects,
-				   GLboolean refill,
-				   GLboolean allow_unlock);
-extern void intelRefillBatchLocked( intelContextPtr intel, GLboolean allow_unlock );
-extern void intelFinish( GLcontext *ctx );
-extern void intelFlush( GLcontext *ctx );
-
-
-void intelWaitIrq( intelContextPtr intel, int seq );
-int intelEmitIrqLocked( intelContextPtr intel );
+void intel_batch_ioctl( struct intel_context *intel, 
+			GLuint start_offset,
+			GLuint used,
+			GLboolean ignore_cliprects);
 
 
 #endif

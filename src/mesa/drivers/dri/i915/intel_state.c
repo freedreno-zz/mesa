@@ -30,6 +30,7 @@
 #include "context.h"
 #include "macros.h"
 #include "enums.h"
+#include "colormac.h"
 #include "dd.h"
 
 #include "intel_screen.h"
@@ -165,79 +166,26 @@ int intel_translate_logic_op( GLenum opcode )
    }
 }
 
-static void intelDrawBuffer(GLcontext *ctx, GLenum mode )
-{
-   intelContextPtr intel = INTEL_CONTEXT(ctx);
-   intelScreenPrivate *screen = intel->intelScreen;
-   int front = 0;
- 
-   if (!ctx->DrawBuffer)
-      return;
-
-   switch ( ctx->DrawBuffer->_ColorDrawBufferMask[0] ) {
-   case BUFFER_BIT_FRONT_LEFT:
-      front = 1;
-      FALLBACK( intel, INTEL_FALLBACK_DRAW_BUFFER, GL_FALSE );
-      break;
-   case BUFFER_BIT_BACK_LEFT:
-      front = 0;
-      FALLBACK( intel, INTEL_FALLBACK_DRAW_BUFFER, GL_FALSE );
-      break;
-   default:
-      FALLBACK( intel, INTEL_FALLBACK_DRAW_BUFFER, GL_TRUE );
-      return;
-   }
-
-   if ( intel->sarea->pf_current_page == 1 ) 
-      front ^= 1;
-   
-   intelSetFrontClipRects( intel );
-
-
-   if (front) {
-      intel->drawOffset = screen->front.offset;
-      if (intel->draw_region != intel->front_region) {
-	 intel_region_release(intel, &intel->draw_region);
-	 intel_region_reference(&intel->draw_region, intel->front_region);
-      }
-   } else {
-      intel->drawOffset = screen->back.offset;
-      if (intel->draw_region != intel->back_region) {
-	 intel_region_release(intel, &intel->draw_region);
-	 intel_region_reference(&intel->draw_region, intel->back_region);
-      }
-   }
-
-   intel->vtbl.set_draw_offset( intel, intel->drawOffset );
-}
-
-static void intelReadBuffer( GLcontext *ctx, GLenum mode )
-{
-   /* nothing, until we implement h/w glRead/CopyPixels or CopyTexImage */
-}
-
 
 static void intelClearColor(GLcontext *ctx, const GLfloat color[4])
 {
-   intelContextPtr intel = INTEL_CONTEXT(ctx);
+   struct intel_context *intel = intel_context(ctx);
    intelScreenPrivate *screen = intel->intelScreen;
+   GLubyte clear_chan[4];
 
-   CLAMPED_FLOAT_TO_UBYTE(intel->clear_red, color[0]);
-   CLAMPED_FLOAT_TO_UBYTE(intel->clear_green, color[1]);
-   CLAMPED_FLOAT_TO_UBYTE(intel->clear_blue, color[2]);
-   CLAMPED_FLOAT_TO_UBYTE(intel->clear_alpha, color[3]);
+   UNCLAMPED_FLOAT_TO_RGBA_CHAN(clear_chan, color);
 
    intel->ClearColor = INTEL_PACKCOLOR(screen->fbFormat,
-				       intel->clear_red, 
-				       intel->clear_green, 
-				       intel->clear_blue, 
-				       intel->clear_alpha);
+				       clear_chan[0], 
+				       clear_chan[1], 
+				       clear_chan[2], 
+				       clear_chan[3]);
 }
 
 
 static void intelCalcViewport( GLcontext *ctx )
 {
-   intelContextPtr intel = INTEL_CONTEXT(ctx);
+   struct intel_context *intel = intel_context(ctx);
    const GLfloat *v = ctx->Viewport._WindowMap.m;
    GLfloat *m = intel->ViewportMatrix.m;
    GLint h = 0;
@@ -273,18 +221,111 @@ static void intelDepthRange( GLcontext *ctx,
  */
 static void intelRenderMode( GLcontext *ctx, GLenum mode )
 {
-   intelContextPtr intel = INTEL_CONTEXT(ctx);
+   struct intel_context *intel = intel_context(ctx);
    FALLBACK( intel, INTEL_FALLBACK_RENDERMODE, (mode != GL_RENDER) );
 }
 
 
 void intelInitStateFuncs( struct dd_function_table *functions )
 {
-   functions->DrawBuffer = intelDrawBuffer;
-   functions->ReadBuffer = intelReadBuffer;
    functions->RenderMode = intelRenderMode;
    functions->Viewport = intelViewport;
    functions->DepthRange = intelDepthRange;
    functions->ClearColor = intelClearColor;
 }
 
+
+
+
+void intelInitState( GLcontext *ctx )
+{
+   /* Mesa should do this for us:
+    */
+   ctx->Driver.AlphaFunc( ctx, 
+			  ctx->Color.AlphaFunc,
+			  ctx->Color.AlphaRef);
+
+   ctx->Driver.BlendColor( ctx,
+			   ctx->Color.BlendColor );
+
+   ctx->Driver.BlendEquationSeparate( ctx, 
+				      ctx->Color.BlendEquationRGB,
+				      ctx->Color.BlendEquationA);
+
+   ctx->Driver.BlendFuncSeparate( ctx,
+				  ctx->Color.BlendSrcRGB,
+				  ctx->Color.BlendDstRGB,
+				  ctx->Color.BlendSrcA,
+				  ctx->Color.BlendDstA);
+
+   ctx->Driver.ColorMask( ctx, 
+			  ctx->Color.ColorMask[RCOMP],
+			  ctx->Color.ColorMask[GCOMP],
+			  ctx->Color.ColorMask[BCOMP],
+			  ctx->Color.ColorMask[ACOMP]);
+
+   ctx->Driver.CullFace( ctx, ctx->Polygon.CullFaceMode );
+   ctx->Driver.DepthFunc( ctx, ctx->Depth.Func );
+   ctx->Driver.DepthMask( ctx, ctx->Depth.Mask );
+
+   ctx->Driver.Enable( ctx, GL_ALPHA_TEST, ctx->Color.AlphaEnabled );
+   ctx->Driver.Enable( ctx, GL_BLEND, ctx->Color.BlendEnabled );
+   ctx->Driver.Enable( ctx, GL_COLOR_LOGIC_OP, ctx->Color.ColorLogicOpEnabled );
+   ctx->Driver.Enable( ctx, GL_COLOR_SUM, ctx->Fog.ColorSumEnabled );
+   ctx->Driver.Enable( ctx, GL_CULL_FACE, ctx->Polygon.CullFlag );
+   ctx->Driver.Enable( ctx, GL_DEPTH_TEST, ctx->Depth.Test );
+   ctx->Driver.Enable( ctx, GL_DITHER, ctx->Color.DitherFlag );
+   ctx->Driver.Enable( ctx, GL_FOG, ctx->Fog.Enabled );
+   ctx->Driver.Enable( ctx, GL_LIGHTING, ctx->Light.Enabled );
+   ctx->Driver.Enable( ctx, GL_LINE_SMOOTH, ctx->Line.SmoothFlag );
+   ctx->Driver.Enable( ctx, GL_POLYGON_STIPPLE, ctx->Polygon.StippleFlag );
+   ctx->Driver.Enable( ctx, GL_SCISSOR_TEST, ctx->Scissor.Enabled );
+   ctx->Driver.Enable( ctx, GL_STENCIL_TEST, ctx->Stencil.Enabled );
+   ctx->Driver.Enable( ctx, GL_TEXTURE_1D, GL_FALSE );
+   ctx->Driver.Enable( ctx, GL_TEXTURE_2D, GL_FALSE );
+   ctx->Driver.Enable( ctx, GL_TEXTURE_RECTANGLE_NV, GL_FALSE );
+   ctx->Driver.Enable( ctx, GL_TEXTURE_3D, GL_FALSE );
+   ctx->Driver.Enable( ctx, GL_TEXTURE_CUBE_MAP, GL_FALSE );
+
+   ctx->Driver.Fogfv( ctx, GL_FOG_COLOR, ctx->Fog.Color );
+   ctx->Driver.Fogfv( ctx, GL_FOG_MODE, 0 );
+   ctx->Driver.Fogfv( ctx, GL_FOG_DENSITY, &ctx->Fog.Density );
+   ctx->Driver.Fogfv( ctx, GL_FOG_START, &ctx->Fog.Start );
+   ctx->Driver.Fogfv( ctx, GL_FOG_END, &ctx->Fog.End );
+
+   ctx->Driver.FrontFace( ctx, ctx->Polygon.FrontFace );
+
+   {
+      GLfloat f = (GLfloat)ctx->Light.Model.ColorControl;
+      ctx->Driver.LightModelfv( ctx, GL_LIGHT_MODEL_COLOR_CONTROL, &f );
+   }
+
+   ctx->Driver.LineWidth( ctx, ctx->Line.Width );
+   ctx->Driver.LogicOpcode( ctx, ctx->Color.LogicOp );
+   ctx->Driver.PointSize( ctx, ctx->Point.Size );
+   ctx->Driver.PolygonStipple( ctx, (const GLubyte *)ctx->PolygonStipple );
+   ctx->Driver.Scissor( ctx, ctx->Scissor.X, ctx->Scissor.Y,
+			ctx->Scissor.Width, ctx->Scissor.Height );
+   ctx->Driver.ShadeModel( ctx, ctx->Light.ShadeModel );
+   ctx->Driver.StencilFuncSeparate( ctx, GL_FRONT,
+                                    ctx->Stencil.Function[0],
+                                    ctx->Stencil.Ref[0],
+                                    ctx->Stencil.ValueMask[0] );
+   ctx->Driver.StencilFuncSeparate( ctx, GL_BACK,
+                                    ctx->Stencil.Function[1],
+                                    ctx->Stencil.Ref[1],
+                                    ctx->Stencil.ValueMask[1] );
+   ctx->Driver.StencilMaskSeparate( ctx, GL_FRONT, ctx->Stencil.WriteMask[0] );
+   ctx->Driver.StencilMaskSeparate( ctx, GL_BACK, ctx->Stencil.WriteMask[1] );
+   ctx->Driver.StencilOpSeparate( ctx, GL_FRONT,
+                                  ctx->Stencil.FailFunc[0],
+                                  ctx->Stencil.ZFailFunc[0],
+                                  ctx->Stencil.ZPassFunc[0]);
+   ctx->Driver.StencilOpSeparate( ctx, GL_BACK,
+                                  ctx->Stencil.FailFunc[1],
+                                  ctx->Stencil.ZFailFunc[1],
+                                  ctx->Stencil.ZPassFunc[1]);
+
+
+   ctx->Driver.DrawBuffer( ctx, ctx->Color.DrawBuffer[0] );
+}

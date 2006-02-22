@@ -358,7 +358,7 @@ void i915_program_error( struct i915_fragment_program *p, const char *msg )
    p->error = 1;
 }
 
-void i915_init_program( i915ContextPtr i915, struct i915_fragment_program *p )
+void i915_init_program( struct i915_context *i915, struct i915_fragment_program *p )
 {
    GLcontext *ctx = &i915->intel.ctx;
    TNLcontext *tnl = TNL_CONTEXT( ctx );
@@ -431,7 +431,7 @@ void i915_fini_program( struct i915_fragment_program *p )
    p->declarations[0] |= program_size + decl_size - 2;
 }
 
-void i915_upload_program( i915ContextPtr i915, struct i915_fragment_program *p )
+void i915_upload_program( struct i915_context *i915, struct i915_fragment_program *p )
 {
    GLuint program_size = p->csr - p->program;
    GLuint decl_size = p->decl - p->declarations;

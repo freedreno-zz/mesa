@@ -34,7 +34,7 @@
 #include "tnl/t_context.h"
 #include "tnl/t_vertex.h"
 
-static GLboolean i830_check_vertex_size( intelContextPtr intel,
+static GLboolean i830_check_vertex_size( struct intel_context *intel,
 					 GLuint expected );
 
 #define SZ_TO_HW(sz)  ((sz-2)&0x3)
@@ -59,7 +59,7 @@ do {									\
 #define VRTX_TEX_SET_FMT(n, x)          ((x)<<((n)*2))
 #define TEXBIND_SET(n, x) 		((x)<<((n)*4))
 
-static void i830_render_start( intelContextPtr intel )
+static void i830_render_start( struct intel_context *intel )
 {
    GLcontext *ctx = &intel->ctx;
    i830ContextPtr i830 = I830_CONTEXT(intel);
@@ -186,7 +186,7 @@ static void i830_render_start( intelContextPtr intel )
    }
 }
 
-static void i830_reduced_primitive_state( intelContextPtr intel,
+static void i830_reduced_primitive_state( struct intel_context *intel,
 					  GLenum rprim )
 {
     i830ContextPtr i830 = I830_CONTEXT(intel);
@@ -217,7 +217,7 @@ static void i830_reduced_primitive_state( intelContextPtr intel,
 /* Pull apart the vertex format registers and figure out how large a
  * vertex is supposed to be. 
  */
-static GLboolean i830_check_vertex_size( intelContextPtr intel,
+static GLboolean i830_check_vertex_size( struct intel_context *intel,
 					 GLuint expected )
 {
    i830ContextPtr i830 = I830_CONTEXT(intel);
@@ -257,11 +257,11 @@ static GLboolean i830_check_vertex_size( intelContextPtr intel,
    return sz == expected;
 }
 
-static void i830_emit_invarient_state( intelContextPtr intel )
+static void i830_emit_invarient_state( struct intel_context *intel )
 {
    BATCH_LOCALS;
 
-   BEGIN_BATCH( 200 );
+   BEGIN_BATCH(200, 0);
 
    OUT_BATCH(_3DSTATE_MAP_CUBE | MAP_UNIT(0));
    OUT_BATCH(_3DSTATE_MAP_CUBE | MAP_UNIT(1));
@@ -355,7 +355,7 @@ static void i830_emit_invarient_state( intelContextPtr intel )
 #define emit( intel, state, size )			\
 do {							\
    int k;						\
-   BEGIN_BATCH( size / sizeof(GLuint));			\
+   BEGIN_BATCH(size / sizeof(GLuint), 0);			\
    for (k = 0 ; k < size / sizeof(GLuint) ; k++)	\
       OUT_BATCH(state[k]);				\
    ADVANCE_BATCH();					\
@@ -364,7 +364,7 @@ do {							\
 
 /* Push the state into the sarea and/or texture memory.
  */
-static void i830_emit_state( intelContextPtr intel )
+static void i830_emit_state( struct intel_context *intel )
 {
    i830ContextPtr i830 = I830_CONTEXT(intel);
    struct i830_hw_state *state = i830->current;
@@ -405,32 +405,32 @@ static void i830_emit_state( intelContextPtr intel )
    state->emitted |= dirty;
 }
 
-static void i830_destroy_context( intelContextPtr intel )
+static void i830_destroy_context( struct intel_context *intel )
 {
    _tnl_free_vertices(&intel->ctx);
 }
 
-static void i830_set_draw_offset( intelContextPtr intel, int offset )
+static void i830_set_draw_offset( struct intel_context *intel, int offset )
 {
    i830ContextPtr i830 = I830_CONTEXT(intel);
    I830_STATECHANGE( i830, I830_UPLOAD_BUFFERS );
-   i830->state.Buffer[I830_DESTREG_CBUFADDR2] = offset;
+/*    i830->state.Buffer[I830_DESTREG_CBUFADDR2] = offset; */
 }
 
 /* This isn't really handled at the moment.
  */
-static void i830_lost_hardware( intelContextPtr intel )
+static void i830_lost_hardware( struct intel_context *intel )
 {
    I830_CONTEXT(intel)->state.emitted = 0;
 }
 
 
 
-static void i830_emit_flush( intelContextPtr intel )
+static void i830_emit_flush( struct intel_context *intel )
 {
    BATCH_LOCALS;
 
-   BEGIN_BATCH(2);
+   BEGIN_BATCH(2, 0);
    OUT_BATCH( MI_FLUSH | FLUSH_MAP_CACHE ); 
    OUT_BATCH( 0 );
    ADVANCE_BATCH();

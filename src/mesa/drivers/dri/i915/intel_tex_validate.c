@@ -96,7 +96,7 @@ static void copy_image_data_to_tree( struct intel_context *intel,
 
 /*  
  */
-static GLuint intel_finalize_mipmap_tree( struct intel_context *intel, GLuint unit )
+GLuint intel_finalize_mipmap_tree( struct intel_context *intel, GLuint unit )
 {
    struct gl_texture_object *tObj = intel->ctx.Texture.Unit[unit]._Current;
    struct intel_texture_object *intelObj = intel_texture_object(tObj);
@@ -120,7 +120,7 @@ static GLuint intel_finalize_mipmap_tree( struct intel_context *intel, GLuint un
       if (intelObj->mt) {
 	 intel_miptree_release(intel, &intelObj->mt);
       }
-      return 0;
+      return GL_FALSE;
    }
 
 
@@ -190,113 +190,6 @@ static GLuint intel_finalize_mipmap_tree( struct intel_context *intel, GLuint un
 
    return GL_TRUE;
 }
-
-void intel_add_texoffset_fixup( struct intel_context *intel,
-				GLuint unit,
-				GLuint *ptr )
-{
-   struct gl_texture_object *tObj = intel->ctx.Texture.Unit[unit]._Current;
-   struct intel_texture_object *intelObj = intel_texture_object(tObj);
-
-#if 0
-   struct intel_reloc *f = &intel->fixup[intel->nr_fixups++];
-   assert(intel->nr_fixups <= INTEL_MAX_FIXUP);
-   f->dest = ptr;
-   f->value = &intelObj->textureOffset;
-   f->delta = (intel->intelScreen->tex.offset + 
-	       intel_miptree_image_offset(intelObj->mt, 0, intelObj->firstLevel));
-#else
-   *ptr = (intelObj->textureOffset + 	   
-	   intel_miptree_image_offset(intelObj->mt, 0, intelObj->firstLevel));
-#endif
-}
-
-/* Fix up the command buffer:
- */
-void intel_apply_fixups( struct intel_context *intel )
-{
-   GLuint i;
-
-   for (i = 0; i < intel->nr_fixups; i++) {
-      struct intel_reloc *f = &intel->fixup[i];
-      *f->dest = *f->value + f->delta;
-   }
-
-   intel->nr_fixups = 0;
-}
-
-
-
-/* One upshot of the new manager is that it should be possible to tell
- * ahead of time whether a certain set of buffers will cause a
- * fallback.  
- *
- * Unless we do this we either have to a) hold the DRI lock
- * while emitting all vertices and fire after each vertex buffer, or
- * b) build a fallback path that operates on i915 command streams
- * rather than the state in the GLcontext.
- */
-GLboolean intel_prevalidate_buffers( struct intel_context *intel )
-{
-   return GL_TRUE;		/* never fallback */
-}
-
-
-GLboolean intel_validate_buffers( struct intel_context *intel )
-{
-   GLcontext *ctx = &intel->ctx;
-   GLboolean ok = GL_TRUE;
-   GLuint i;
-
-   DBG("%s\n", __FUNCTION__);
-
-   assert(intel->locked);
-
-   /* Add the color and depth buffers so that fences associated with
-    * these buffers:
-    */
-   bmAddBuffer(intel->buffer_list,
-	       intel->draw_region->buffer,
-	       BM_WRITE,
-	       NULL,
-	       NULL);
-   
-   bmAddBuffer(intel->buffer_list,
-	       intel->depth_region->buffer,
-	       BM_WRITE,
-	       NULL,
-	       NULL);
-
-   /* Add each enabled texture:
-    */
-   for (i = 0 ; i < ctx->Const.MaxTextureUnits && ok ; i++) {
-      if (ctx->Texture.Unit[i]._ReallyEnabled) {
-	 struct gl_texture_object *tObj = intel->ctx.Texture.Unit[i]._Current;
-	 struct intel_texture_object *intelObj = intel_texture_object(tObj);
-
-	 ok = intel_finalize_mipmap_tree( intel, i );
-	 if (ok) {
-	    bmAddBuffer(intel->buffer_list,
-			intelObj->mt->region->buffer,
-			BM_READ,
-			NULL,
-			&intelObj->textureOffset);
-	 }
-      }
-   }
-
-   ok = bmValidateBufferList(intel->bm, intel->buffer_list, BM_MEM_AGP);
-   assert(ok);
-   return ok;
-}
-
-void intel_fence_buffers( struct intel_context *intel )
-{
-   assert(intel->locked);
-   assert(intel->buffer_list);
-}
-
-
 
 
 
