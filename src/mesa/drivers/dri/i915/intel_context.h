@@ -171,6 +171,7 @@ struct intel_context
    GLuint NewGLState;
    
    GLuint last_fence;
+   GLuint last_swap_fence;
 
    struct intel_batchbuffer *batch;
 
