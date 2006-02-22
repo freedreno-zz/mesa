@@ -76,10 +76,12 @@ GLboolean i915_miptree_layout( struct intel_mipmap_tree *mt )
 	    mt->offset[face][i].width = d;
 	    mt->offset[face][i].height = d;
 	    mt->offset[face][i].depth = 1;
-	 
-	    d >>= 1;
-	    assert(d > 0);
 
+	    if (d == 0)
+	       _mesa_printf("cube mipmap %d/%d (%d..%d) is 0x0\n",
+			    face, i, mt->first_level, mt->last_level);
+
+	    d >>= 1;
 	    x += step_offsets[face][0] * d;
 	    y += step_offsets[face][1] * d;
 	 }
