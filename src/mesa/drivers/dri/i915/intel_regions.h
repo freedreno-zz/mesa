@@ -85,6 +85,7 @@ void intel_region_unmap(struct intel_context *intel,
  */
 void intel_region_data(struct intel_context *intel, 
 		       struct intel_region *dest,
+		       GLuint dest_offset,
 		       GLuint destx, GLuint desty,
 		       void *src, GLuint src_stride,
 		       GLuint srcx, GLuint srcy,
@@ -94,8 +95,10 @@ void intel_region_data(struct intel_context *intel,
  */
 void intel_region_copy( struct intel_context *intel,
 			struct intel_region *dest,
+			GLuint dest_offset,
 			GLuint destx, GLuint desty,
 			struct intel_region *src,
+			GLuint src_offset,
 			GLuint srcx, GLuint srcy,
 			GLuint width, GLuint height );
 
@@ -103,6 +106,7 @@ void intel_region_copy( struct intel_context *intel,
  */
 void intel_region_fill( struct intel_context *intel,
 			struct intel_region *dest,
+			GLuint dest_offset,
 			GLuint destx, GLuint desty,
 			GLuint width, GLuint height,
 			GLuint color );

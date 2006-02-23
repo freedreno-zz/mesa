@@ -177,8 +177,27 @@ GLuint intel_miptree_image_offset(struct intel_mipmap_tree *mt,
 				  GLuint face,
 				  GLuint level)
 {
-   return (mt->offset[face][level].x +
-	   mt->offset[face][level].y * mt->pitch) * mt->cpp;
+   return mt->offset[face][level].offset;
+}
+
+GLuint intel_miptree_depth_image_stride(struct intel_mipmap_tree *mt,
+					GLuint face,
+					GLuint level)
+{
+   return mt->offset[face][level].depth_image_stride;
+}
+
+
+void intel_miptree_set_image_offset(struct intel_mipmap_tree *mt,
+				    GLuint face,
+				    GLuint level,
+				    GLuint x, GLuint y,
+				    GLuint w, GLuint h, GLuint d)
+{
+   mt->offset[face][level].offset = (x + y * mt->pitch) * mt->cpp;
+   mt->offset[face][level].width = w;
+   mt->offset[face][level].height = h;
+   mt->offset[face][level].depth = d;
 }
 
 
@@ -188,12 +207,16 @@ GLubyte *intel_miptree_image_map(struct intel_context *intel,
 				 struct intel_mipmap_tree *mt,
 				 GLuint face,
 				 GLuint level,
-				 GLuint *stride)
+				 GLuint *row_stride,
+				 GLuint *image_stride)
 {
    DBG("%s \n", __FUNCTION__);
    
-   if (stride)
-      *stride = mt->pitch * mt->cpp;
+   if (row_stride)
+      *row_stride = mt->pitch * mt->cpp;
+   
+   if (image_stride) 
+      *image_stride = mt->offset[face][level].depth_image_stride;
 
    return (intel_region_map(intel, mt->region) +
 	   intel_miptree_image_offset(mt, face, level));
@@ -209,25 +232,34 @@ void intel_miptree_image_unmap(struct intel_context *intel,
 
 
 /* Upload data for a particular image.
- *
- * TODO: 3D textures
  */
 void intel_miptree_image_data(struct intel_context *intel, 
 			      struct intel_mipmap_tree *dst,
 			      GLuint face,
 			      GLuint level,
-			      void *src, GLuint src_pitch )
+			      void *src, 
+			      GLuint src_row_pitch,
+			      GLuint src_image_pitch)
 {
+   GLuint depth = dst->offset[face][level].depth;
+   GLuint dst_offset = intel_miptree_image_offset(dst, face, level);
+   GLuint dst_image_stride = intel_miptree_depth_image_stride(dst, face, level);
+   GLuint i;
+
    DBG("%s\n", __FUNCTION__);
-   intel_region_data(intel,
-		     dst->region,
-		     dst->offset[face][level].x,
-		     dst->offset[face][level].y,
-		     src,
-		     src_pitch,
-		     0, 0,	/* source x,y */
-		     dst->offset[face][level].width,
-		     dst->offset[face][level].height);      
+   for (i = 0; i < depth; i++) {
+      intel_region_data(intel,
+			dst->region, dst_offset,
+			0,
+			0,
+			src,
+			src_row_pitch,
+			0, 0,	/* source x,y */
+			dst->offset[face][level].width,
+			dst->offset[face][level].height);
+      dst_offset += dst_image_stride;
+      src += src_image_pitch;
+   }
 }
 			  
 /* Copy mipmap image between trees
@@ -237,21 +269,28 @@ void intel_miptree_image_copy( struct intel_context *intel,
 			       GLuint face, GLuint level,
 			       struct intel_mipmap_tree *src )
 {
-   DBG("%s\n", __FUNCTION__);
-   assert(src->offset[face][level].width == 
-	  dst->offset[face][level].width);
+   GLuint width = src->offset[face][level].width;
+   GLuint height = src->offset[face][level].height;
+   GLuint depth = src->offset[face][level].depth;
+   GLuint dst_offset = intel_miptree_image_offset(dst, face, level);
+   GLuint src_offset = intel_miptree_image_offset(src, face, level);
+   GLuint dst_image_stride = intel_miptree_depth_image_stride(dst, face, level);
+   GLuint src_image_stride = intel_miptree_depth_image_stride(src, face, level);
+   GLuint i;
 
-   assert(src->offset[face][level].height == 
-	  dst->offset[face][level].height);
+   for (i = 0; i < depth; i++) {
+      intel_region_copy(intel,
+			dst->region, dst_offset,
+			0,
+			0,
+			src->region, src_offset,
+			0,
+			0,
+			width,
+			height);
 
-   intel_region_copy(intel,
-		     dst->region,
-		     dst->offset[face][level].x,
-		     dst->offset[face][level].y,
-		     src->region,
-		     src->offset[face][level].x,
-		     src->offset[face][level].y,
-		     src->offset[face][level].width,
-		     src->offset[face][level].height);
+      dst_offset += dst_image_stride;
+      src_offset += src_image_stride;
+   }
 		     
 }

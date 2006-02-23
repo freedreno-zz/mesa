@@ -39,6 +39,28 @@ const struct gl_texture_format *
 intelChooseTextureFormat( GLcontext *ctx, GLint internalFormat,
                           GLenum format, GLenum type );
 
+
+void intelTexImage3D(GLcontext *ctx, 
+		     GLenum target, GLint level,
+		     GLint internalFormat,
+		     GLint width, GLint height, GLint depth,
+		     GLint border,
+		     GLenum format, GLenum type, const void *pixels,
+		     const struct gl_pixelstore_attrib *packing,
+		     struct gl_texture_object *texObj,
+		     struct gl_texture_image *texImage);
+
+void intelTexSubImage3D(GLcontext *ctx,
+			GLenum target,
+			GLint level,
+			GLint xoffset, GLint yoffset, GLint zoffset,
+			GLsizei width, GLsizei height, GLsizei depth,
+			GLenum format, GLenum type,
+			const GLvoid *pixels,
+			const struct gl_pixelstore_attrib *packing,
+			struct gl_texture_object *texObj,
+			struct gl_texture_image *texImage);
+
 void intelTexImage2D(GLcontext *ctx, 
 		     GLenum target, GLint level,
 		     GLint internalFormat,

@@ -296,10 +296,10 @@ void i915UpdateTextureState( struct intel_context *intel )
       case TEXTURE_1D_BIT:
       case TEXTURE_2D_BIT:
       case TEXTURE_CUBE_BIT:
+      case TEXTURE_3D_BIT:
 	 ok = i915_update_tex_unit( intel, i, SS3_NORMALIZED_COORDS );
 	 break;
       case TEXTURE_RECT_BIT:
-      case TEXTURE_3D_BIT:
 	 ok = i915_update_tex_unit( intel, i, 0 );
 	 break;
       case 0: {

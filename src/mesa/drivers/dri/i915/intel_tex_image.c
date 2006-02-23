@@ -151,7 +151,8 @@ static void intelTexImage(GLcontext *ctx,
 			  GLint dims,
 			  GLenum target, GLint level,
 			  GLint internalFormat,
-			  GLint width, GLint height, GLint border,
+			  GLint width, GLint height, GLint depth,
+			  GLint border,
 			  GLenum format, GLenum type, const void *pixels,
 			  const struct gl_pixelstore_attrib *unpack,
 			  struct gl_texture_object *texObj,
@@ -164,12 +165,13 @@ static void intelTexImage(GLcontext *ctx,
    GLint postConvHeight = height;
    GLint texelBytes, sizeInBytes;
    GLuint dstRowStride;
+   GLuint dstImageStride;
 
 
-   DBG("%s target %s level %d %dx%d border %d\n", __FUNCTION__,
+   DBG("%s target %s level %d %dx%dx%d border %d\n", __FUNCTION__,
 		_mesa_lookup_enum_by_nr(target),
 		level,
-		width, height, border);
+		width, height, depth, border);
 
    intelFlush(ctx);
 
@@ -187,14 +189,24 @@ static void intelTexImage(GLcontext *ctx,
 
    assert(texImage->TexFormat);
 
-   if (dims == 1) {
+   switch (dims) {
+   case 1:
       texImage->FetchTexelc = texImage->TexFormat->FetchTexel1D;
       texImage->FetchTexelf = texImage->TexFormat->FetchTexel1Df;
-   }
-   else {
+      break;
+   case 2:
       texImage->FetchTexelc = texImage->TexFormat->FetchTexel2D;
       texImage->FetchTexelf = texImage->TexFormat->FetchTexel2Df;
+      break;
+   case 3:
+      texImage->FetchTexelc = texImage->TexFormat->FetchTexel3D;
+      texImage->FetchTexelf = texImage->TexFormat->FetchTexel3Df;
+      break;
+   default:
+      assert(0);
+      break;
    }
+
    texelBytes = texImage->TexFormat->TexelBytes;
 
 
@@ -220,19 +232,7 @@ static void intelTexImage(GLcontext *ctx,
    /* If this is the only texture image in the tree, could call
     * bmBufferData with NULL data to free the old block and avoid
     * waiting on any outstanding fences.
-    * 
-    * XXX: this hits a malloc/free problem.  fixme.
     */
-#if 0
-   if (intelObj->mt && 
-       intelObj->mt->first_level == level &&
-       intelObj->mt->last_level == level &&
-       intelObj->mt->target != GL_TEXTURE_CUBE_MAP_ARB) {
-      DBG("release it 2\n");
-      intel_miptree_release(intel, &intelObj->mt);
-   }
-#endif
-
    if (intelObj->mt && 
        intelObj->mt->first_level == level &&
        intelObj->mt->last_level == level &&
@@ -286,20 +286,30 @@ static void intelTexImage(GLcontext *ctx,
 					       intelImage->mt, 
 					       intelImage->face, 
 					       intelImage->level, 
-					       &dstRowStride);	 
+					       &dstRowStride,
+					       &dstImageStride);	 
    }
    else {
       /* Allocate regular memory and store the image there temporarily.   */
       if (texImage->IsCompressed) {
 	 sizeInBytes = texImage->CompressedSize;
          dstRowStride = _mesa_compressed_row_stride(texImage->InternalFormat,width);
+	 dstImageStride = 0;	/* ? */
+	 assert(dims != 3);
       }
       else {
-	 sizeInBytes = postConvWidth * postConvHeight * texelBytes;
-         dstRowStride = postConvWidth * texImage->TexFormat->TexelBytes;
+         dstRowStride = postConvWidth * texelBytes;
+	 dstImageStride = dstRowStride * postConvHeight;
+	 sizeInBytes = depth * dstImageStride;
       }
       texImage->Data = malloc(sizeInBytes);
    }
+
+   fprintf(stderr, 
+	   "Upload image %dx%dx%d row_len %x "
+	   "pitch %x depth_pitch %x\n",
+	   width, height, depth,
+	   width * texelBytes, dstRowStride, dstImageStride);
      
    /* Copy data.  Would like to know when it's ok for us to eg. use
     * the blitter to copy.  Or, use the hardware to do the format
@@ -310,8 +320,8 @@ static void intelTexImage(GLcontext *ctx,
 					texImage->TexFormat,
 					texImage->Data,
 					0, 0, 0,  /* dstX/Y/Zoffset */
-					dstRowStride, 0 /* dstImageStride */,
-					width, height, 1,
+					dstRowStride, dstImageStride,
+					width, height, depth,
 					format, type, pixels, unpack)) {
       _mesa_error(ctx, GL_OUT_OF_MEMORY, "glTexImage");
    }
@@ -337,6 +347,22 @@ static void intelTexImage(GLcontext *ctx,
 #endif
 }
 
+void intelTexImage3D(GLcontext *ctx, 
+		     GLenum target, GLint level,
+		     GLint internalFormat,
+		     GLint width, GLint height, GLint depth,
+		     GLint border,
+		     GLenum format, GLenum type, const void *pixels,
+		     const struct gl_pixelstore_attrib *unpack,
+		     struct gl_texture_object *texObj,
+		     struct gl_texture_image *texImage)
+{
+   intelTexImage( ctx, 3, target, level, 
+		  internalFormat, width, height, depth, border,
+		  format, type, pixels,
+		  unpack, texObj, texImage );
+}
+
 
 void intelTexImage2D(GLcontext *ctx, 
 		     GLenum target, GLint level,
@@ -348,9 +374,9 @@ void intelTexImage2D(GLcontext *ctx,
 		     struct gl_texture_image *texImage)
 {
    intelTexImage( ctx, 2, target, level, 
-		internalFormat, width, height, border,
-		format, type, pixels,
-		unpack, texObj, texImage );
+		  internalFormat, width, height, 1, border,
+		  format, type, pixels,
+		  unpack, texObj, texImage );
 }
 
 void intelTexImage1D(GLcontext *ctx, 
@@ -363,7 +389,7 @@ void intelTexImage1D(GLcontext *ctx,
 		     struct gl_texture_image *texImage)
 {
    intelTexImage( ctx, 1, target, level, 
-		  internalFormat, width, 1, border,
+		  internalFormat, width, 1, 1, border,
 		  format, type, pixels,
 		  unpack, texObj, texImage );
 }

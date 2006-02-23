@@ -71,11 +71,9 @@ GLboolean i915_miptree_layout( struct intel_mipmap_tree *mt )
 	 GLuint d = dim;
 	 
 	 for (i = mt->first_level; i <= mt->last_level; i++) {
-	    mt->offset[face][i].x = x; 
-	    mt->offset[face][i].y = y; 
-	    mt->offset[face][i].width = d;
-	    mt->offset[face][i].height = d;
-	    mt->offset[face][i].depth = 1;
+	    intel_miptree_set_image_offset(mt, face, i,
+					   x, y,
+					   d, d, 1);
 
 	    if (d == 0)
 	       _mesa_printf("cube mipmap %d/%d (%d..%d) is 0x0\n",
@@ -93,21 +91,17 @@ GLboolean i915_miptree_layout( struct intel_mipmap_tree *mt )
       GLuint height = mt->height0;
       GLuint depth  = mt->depth0;
 
-      /* Calculate the size of a single slice.  Hardware demands a
-       * minimum of 8 mipmaps, some of which might ultimately not be
-       * used:
+      /* Calculate the size of a single slice. 
        */
       mt->pitch = ((mt->width0 * mt->cpp + 3) & ~3) / mt->cpp;
       mt->total_height = 0;
 
-      /* XXX: fixme! hardware expects/requires 9 levels at minimum.
+      /* XXX: hardware expects/requires 9 levels at minimum.
        */
-      for ( i = mt->first_level ; i <= mt->last_level ; i++ ) {
-	 mt->offset[0][i].x = 0;
-	 mt->offset[0][i].y = mt->total_height;
-	 mt->offset[0][i].width = width;
-	 mt->offset[0][i].height = height;
-	 mt->offset[0][i].depth = depth;
+      for ( i = mt->first_level ; i <= MAX2(8, mt->last_level) ; i++ ) {
+	 intel_miptree_set_image_offset(mt, 0, i,
+					0, mt->total_height,
+					width, height, depth);
 
 	 mt->total_height += MAX2(2, height);
 
@@ -116,12 +110,17 @@ GLboolean i915_miptree_layout( struct intel_mipmap_tree *mt )
 	 depth  = minify(depth);
       }
 
+      /* Fixup depth_image_stride: 
+       */
+      for ( i = mt->first_level ; i <= mt->last_level ; i++ ) {
+	 mt->offset[0][i].depth_image_stride = mt->total_height * mt->pitch * mt->cpp;
+      }
+
 
       /* Multiply slice size by texture depth for total size.  It's
        * remarkable how wasteful of memory the i915 texture layouts
        * are.  They are largely fixed in the i945.
        */
-      mt->depth_pitch = mt->total_height * mt->pitch;
       mt->total_height *= mt->depth0;
       break;
    }
@@ -134,13 +133,10 @@ GLboolean i915_miptree_layout( struct intel_mipmap_tree *mt )
       mt->total_height = 0;
 
       for ( i = mt->first_level ; i <= mt->last_level ; i++ ) {
-	 mt->offset[0][i].x = 0;
-	 mt->offset[0][i].y = mt->total_height;
-	 mt->offset[0][i].height = height;
-	 mt->offset[0][i].width = width;
-	 mt->offset[0][i].depth = 1;
+	 intel_miptree_set_image_offset(mt, 0, i,
+					0, mt->total_height,
+					width, height, 1);
 
-	 
 	 if (mt->compressed)
 	    mt->total_height += MAX2(1, height/4);
 	 else
@@ -198,14 +194,11 @@ GLboolean i945_miptree_layout( struct intel_mipmap_tree *mt )
 	 }
 
 	 for ( i = mt->first_level ; i <= mt->last_level ; i++ ) {
-	    mt->offset[face][i].x = x; 
-	    mt->offset[face][i].y = y; 
-	    mt->offset[face][i].width = d;
-	    mt->offset[face][i].height = d;
-	    mt->offset[face][i].depth = 1;
+	    intel_miptree_set_image_offset(mt, face, i,
+					   x, y,
+					   d, d, 1);
 
 	    d >>= 1;
-	    assert(d > 0);
 	    
 	    switch (d) {
 	    case 4:
@@ -259,11 +252,11 @@ GLboolean i945_miptree_layout( struct intel_mipmap_tree *mt )
 
       for ( i = mt->first_level ; i <= mt->last_level ; i++ ) {
 
-	 mt->offset[0][i].x = 0;
-	 mt->offset[0][i].y = mt->total_height;
-	 mt->offset[0][i].width = width;
-	 mt->offset[0][i].height = height;
-	 mt->offset[0][i].depth = depth;
+	 intel_miptree_set_image_offset(mt, 0, i,
+					0, mt->total_height,
+					width, height, depth);
+
+
 
 	 mt->total_height += MAX2(2, height) * MAX2((depth >> depth_packing), 1);
 
@@ -273,7 +266,7 @@ GLboolean i945_miptree_layout( struct intel_mipmap_tree *mt )
 	  */
 	 if (depth_pack_pitch > 4) {
 	    depth_packing++;
-	    depth_pack_pitch <<= 2; /* KW: is this right?? */
+	    depth_pack_pitch >>= 2; /* KW: is this right?? */
 	 }
 
 	 width  = minify(width);
@@ -298,11 +291,9 @@ GLboolean i945_miptree_layout( struct intel_mipmap_tree *mt )
       mt->total_height = 0;
 
       for ( i = mt->first_level ; i <= mt->last_level ; i++ ) {
-	 mt->offset[0][i].x = x;
-	 mt->offset[0][i].y = y;
-	 mt->offset[0][i].height = height;
-	 mt->offset[0][i].width = width;
-	 mt->offset[0][i].depth = 1;
+	 intel_miptree_set_image_offset(mt, 0, i,
+					x, y,
+					width, height, 1);
 
 	 
 	 /* LPT change: step right after second mipmap.

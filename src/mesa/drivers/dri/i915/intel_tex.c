@@ -140,8 +140,10 @@ void intelInitTextureFuncs(struct dd_function_table * functions)
    functions->ChooseTextureFormat = intelChooseTextureFormat;
    functions->TexImage1D = intelTexImage1D;
    functions->TexImage2D = intelTexImage2D;
+   functions->TexImage3D = intelTexImage3D;
    functions->TexSubImage1D = intelTexSubImage1D;
    functions->TexSubImage2D = intelTexSubImage2D;
+   functions->TexSubImage3D = intelTexSubImage3D;
    functions->CopyTexImage1D = intelCopyTexImage1D;
    functions->CopyTexImage2D = intelCopyTexImage2D;
    functions->CopyTexSubImage1D = intelCopyTexSubImage1D;

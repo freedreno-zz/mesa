@@ -51,7 +51,7 @@ void intelCopyBuffer( const __DRIdrawablePrivate *dPriv )
 {
    struct intel_context *intel;
 
-   DBG(stderr, "%s\n", __FUNCTION__);
+   DBG("%s\n", __FUNCTION__);
 
    assert(dPriv);
    assert(dPriv->driContextPriv);

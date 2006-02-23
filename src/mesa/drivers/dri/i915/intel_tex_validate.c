@@ -84,7 +84,8 @@ static void copy_image_data_to_tree( struct intel_context *intel,
 			       intelImage->face,
 			       intelImage->level,
 			       intelImage->base.Data,
-			       intelImage->base.RowStride);
+			       intelImage->base.RowStride,
+			       intelImage->base.RowStride * intelImage->base.Height);
 
       free(intelImage->base.Data);
       intelImage->base.Data = NULL;
@@ -125,7 +126,9 @@ GLuint intel_finalize_mipmap_tree( struct intel_context *intel, GLuint unit )
 
 
    /* If both firstImage and intelObj have a tree which can contain
-    * all active images, favour firstImage.
+    * all active images, favour firstImage.  Note that because of the
+    * completeness requirement, we know that the image dimensions
+    * will match.
     */
    if (firstImage->mt &&
        firstImage->mt != intelObj->mt &&
@@ -206,13 +209,19 @@ void intel_tex_map_images( struct intel_context *intel,
 	 struct intel_texture_image *intelImage = 
 	    intel_texture_image(intelObj->base.Image[face][i]);
 
+	 /* XXX: Fallbacks will fail for 3d textures because core mesa
+	  * doesn't have a place to put ImageStride -- assumes each
+	  * teximage's depth slices are packed contiguously.  This
+	  * isn't true for i915.
+	  */
 	 if (intelImage->mt) {
 	    intelImage->base.Data = 
 	       intel_miptree_image_map(intel, 
 				       intelImage->mt,
 				       intelImage->face,
 				       intelImage->level,
-				       &intelImage->base.RowStride);
+				       &intelImage->base.RowStride,
+				       NULL);
 	 }
       }
    }

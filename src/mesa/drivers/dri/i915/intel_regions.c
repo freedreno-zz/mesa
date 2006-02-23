@@ -197,6 +197,7 @@ static void _mesa_copy_rect( GLubyte *dst,
  */
 void intel_region_data(struct intel_context *intel, 
 		       struct intel_region *dst,
+		       GLuint dst_offset,
 		       GLuint dstx, GLuint dsty,
 		       void *src, GLuint src_pitch,
 		       GLuint srcx, GLuint srcy,
@@ -206,7 +207,7 @@ void intel_region_data(struct intel_context *intel,
 
    LOCK_HARDWARE(intel);
    
-   _mesa_copy_rect(intel_region_map(intel, dst),
+   _mesa_copy_rect(intel_region_map(intel, dst) + dst_offset,
 		   dst->cpp,
 		   dst->pitch,
 		   dstx, dsty,
@@ -226,8 +227,10 @@ void intel_region_data(struct intel_context *intel,
  */
 void intel_region_copy( struct intel_context *intel,
 			struct intel_region *dst,
+			GLuint dst_offset,
 			GLuint dstx, GLuint dsty,
 			struct intel_region *src,
+			GLuint src_offset,
 			GLuint srcx, GLuint srcy,
 			GLuint width, GLuint height )
 {
@@ -237,8 +240,8 @@ void intel_region_copy( struct intel_context *intel,
 
    intelEmitCopyBlit(intel,
 		     dst->cpp,
-		     src->pitch, src->buffer, 0,
-		     dst->pitch, dst->buffer, 0, 
+		     src->pitch, src->buffer, src_offset,
+		     dst->pitch, dst->buffer, dst_offset, 
 		     srcx, srcy,
 		     dstx, dsty,
 		     width, height);
@@ -249,6 +252,7 @@ void intel_region_copy( struct intel_context *intel,
  */
 void intel_region_fill( struct intel_context *intel,
 			struct intel_region *dst,
+			GLuint dst_offset,
 			GLuint dstx, GLuint dsty,
 			GLuint width, GLuint height,
 			GLuint color )
@@ -257,9 +261,7 @@ void intel_region_fill( struct intel_context *intel,
    
    intelEmitFillBlit(intel,
 		     dst->cpp,
-		     dst->pitch,
-		     dst->buffer,
-		     0, 
+		     dst->pitch, dst->buffer, dst_offset, 
 		     dstx, dsty,
 		     width, height,
 		     color );

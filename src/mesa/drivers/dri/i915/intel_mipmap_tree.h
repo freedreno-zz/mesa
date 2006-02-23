@@ -58,11 +58,11 @@
 
 
 struct intel_mipmap_offset {
-   GLuint x; 
-   GLuint y;
+   GLuint offset; 
    GLuint width;
    GLuint height;
-   GLuint depth;		/* how will this work? */
+   GLuint depth;
+   GLuint depth_image_stride;
 };
 
 struct intel_mipmap_tree {
@@ -127,7 +127,8 @@ GLubyte *intel_miptree_image_map( struct intel_context *intel,
 				  struct intel_mipmap_tree *mt,
 				  GLuint face,
 				  GLuint level,
-				  GLuint *stride );
+				  GLuint *row_stride,
+				  GLuint *image_stride);
 
 void intel_miptree_image_unmap( struct intel_context *intel,
 				struct intel_mipmap_tree *mt );
@@ -140,6 +141,16 @@ GLuint intel_miptree_image_offset( struct intel_mipmap_tree *mt,
 				   GLuint face,
 				   GLuint level );
 
+void intel_miptree_set_image_offset(struct intel_mipmap_tree *mt,
+				    GLuint face,
+				    GLuint level,
+				    GLuint x, GLuint y,
+				    GLuint w, GLuint h, GLuint d);
+
+GLuint intel_miptree_depth_image_stride(struct intel_mipmap_tree *mt,
+					GLuint face,
+					GLuint level);
+
 
 
 /* Upload an image into a tree
@@ -148,7 +159,9 @@ void intel_miptree_image_data(struct intel_context *intel,
 			      struct intel_mipmap_tree *dst,
 			      GLuint face,
 			      GLuint level,
-			      void *src, GLuint src_pitch );
+			      void *src, 
+			      GLuint src_row_pitch,
+			      GLuint src_image_pitch);
 
 /* Copy an image between two trees
  */
