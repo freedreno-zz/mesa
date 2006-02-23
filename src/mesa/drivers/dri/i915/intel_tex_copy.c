@@ -73,23 +73,6 @@ static struct intel_region *get_teximage_source( struct intel_context *intel,
    }
 }
 
-static GLboolean check_copytex_fragment_ops( const GLcontext *ctx )
-{
-   return GL_TRUE;
-
-   return !(ctx->Color.AlphaEnabled || 
-/* 	    ctx->Depth.Test || */
-	    ctx->Fog.Enabled ||
-/* 	    ctx->Scissor.Enabled || */
-	    ctx->Stencil.Enabled ||
-	    !ctx->Color.ColorMask[0] ||
-	    !ctx->Color.ColorMask[1] ||
-	    !ctx->Color.ColorMask[2] ||
-	    !ctx->Color.ColorMask[3] ||
-	    ctx->Color.ColorLogicOpEnabled ||
-	    ctx->Texture._EnabledUnits);
-}
-
 
 static GLboolean do_copy_texsubimage( struct intel_context *intel,
 				      struct intel_texture_image *intelImage,
@@ -105,10 +88,6 @@ static GLboolean do_copy_texsubimage( struct intel_context *intel,
    if (!intelImage->mt || !src)
       return GL_FALSE;
  
-   if (!check_copytex_fragment_ops( ctx ))
-      return GL_FALSE;
- 
-
    intelFlush(ctx);
    LOCK_HARDWARE(intel);
    {
