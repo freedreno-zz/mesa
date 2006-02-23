@@ -1,6 +1,7 @@
 #include "swrast/swrast.h"
 #include "intel_context.h"
 #include "intel_pixel.h"
+#include "intel_regions.h"
 
 
 
@@ -115,23 +116,84 @@ GLboolean intel_clip_to_framebuffer( GLcontext *ctx,
 
 
 
+GLboolean intel_clip_to_drawable( GLcontext *ctx,
+				  const __DRIdrawablePrivate *dPriv,
+				  GLint *x, GLint *y,
+				  GLsizei *width, GLsizei *height )
+{
+   /* left clipping */
+   if (*x < dPriv->x) {
+      *width -= (dPriv->x - *x);
+      *x = dPriv->x;
+   }
+
+   /* right clipping */
+   if (*x + *width > dPriv->x + dPriv->w)
+      *width -= (*x + *width) - (dPriv->x + dPriv->w);
+
+   if (*width <= 0)
+      return GL_FALSE;
+
+   /* bottom clipping */
+   if (*y < dPriv->y) {
+      *height -= (dPriv->y - *y);
+      *y = dPriv->y;
+   }
+
+   /* top clipping */
+   if (*y + *height > dPriv->y + dPriv->h)
+      *height -= (*y + *height) - (dPriv->y + dPriv->w);
+
+   if (*height <= 0)
+      return GL_FALSE;
+
+   return GL_TRUE;
+}
+
+
+GLboolean intel_clip_to_region( GLcontext *ctx,
+				const struct intel_region *region,
+				GLint *x, GLint *y,
+				GLsizei *width, GLsizei *height )
+{
+   /* left clipping */
+   if (*x < 0) {
+      *width -= (0 - *x);
+      *x = 0;
+   }
+
+   /* right clipping */
+   if (*x + *width > region->pitch)
+      *width -= (*x + *width) - region->pitch;
+
+   if (*width <= 0)
+      return GL_FALSE;
+
+   /* bottom clipping */
+   if (*y < 0) {
+      *height -= (0 - *y);
+      *y = 0;
+   }
+
+   /* top clipping */
+   if (*y + *height > region->height)
+      *height -= (*y + *height) - region->height;
+
+   if (*height <= 0)
+      return GL_FALSE;
+
+   return GL_TRUE;
+}
+
+
+
 
 void intelInitPixelFuncs( struct dd_function_table *functions )
 {
-   /* Pixel path fallbacks.
-    */
    functions->Accum = _swrast_Accum;
    functions->Bitmap = _swrast_Bitmap;
-
-   if (getenv("INTEL_NO_BLITS") == 0) {
-      functions->CopyPixels = intelCopyPixels;
-      functions->ReadPixels = intelReadPixels;  
-      functions->DrawPixels = intelDrawPixels; 
-   }
-   else {
-      functions->CopyPixels = _swrast_CopyPixels;
-      functions->ReadPixels = _swrast_ReadPixels;
-      functions->DrawPixels = _swrast_DrawPixels;
-   }
+   functions->CopyPixels = intelCopyPixels;
+   functions->ReadPixels = intelReadPixels;  
+   functions->DrawPixels = intelDrawPixels; 
 }
 

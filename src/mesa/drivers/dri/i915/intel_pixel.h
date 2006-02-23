@@ -39,6 +39,17 @@ GLboolean intel_clip_to_framebuffer( GLcontext *ctx,
 				     GLint *x, GLint *y,
 				     GLsizei *width, GLsizei *height );
 
+GLboolean intel_clip_to_drawable( GLcontext *ctx,
+				  const __DRIdrawablePrivate *dPriv,
+				  GLint *x, GLint *y,
+				  GLsizei *width, GLsizei *height );
+
+GLboolean intel_clip_to_region( GLcontext *ctx,
+				const struct intel_region *region,
+				GLint *x, GLint *y,
+				GLsizei *width, GLsizei *height );
+
+
 void intelReadPixels( GLcontext *ctx,
 		      GLint x, GLint y, 
 		      GLsizei width, GLsizei height,

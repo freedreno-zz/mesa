@@ -41,49 +41,17 @@
 #include "bufmgr.h"
 
 
-
-
-static GLboolean do_texture_copypixels( GLcontext *ctx,
-					GLint srcx, GLint srcy, 
-					GLsizei width, GLsizei height,
-					GLint dstx, GLint dsty, 
-					GLenum type )
+static struct intel_region *copypix_src_region( struct intel_context *intel,
+						GLenum type )
 {
-   return GL_FALSE;
-}
-
-
-/**
- * CopyPixels with the blitter.  Don't support zooming, pixel transfer, etc.
- */
-static GLboolean do_blit_copypixels( GLcontext *ctx,
-				     GLint srcx, GLint srcy, 
-				     GLsizei width, GLsizei height,
-				     GLint dstx, GLint dsty, 
-				     GLenum type )
-{
-   struct intel_context *intel = intel_context( ctx );
-   struct intel_region *dst = intel_drawbuf_region( intel );
-   struct intel_region *src = NULL;
-
-   /* Copypixels can be more than a straight copy.  Ensure all the
-    * extra operations are disabled:
-    */
-   if (!intel_check_color_per_fragment_ops(ctx) ||
-       ctx->Pixel.ZoomX != 1.0F || 
-       ctx->Pixel.ZoomY != 1.0F)
-      return GL_FALSE;
-
    switch (type) {
    case GL_COLOR:
-      src = intel_readbuf_region( intel );
-      break;
+      return intel_readbuf_region( intel );
    case GL_DEPTH:
       /* Don't think this is really possible execpt at 16bpp, when we have no stencil.
        */
       if (intel->intelScreen->cpp == 2)
-	 src = intel->depth_region;
-      break;
+	 return intel->depth_region;
    case GL_STENCIL:
       /* Don't think this is really possible. 
        */
@@ -91,15 +59,24 @@ static GLboolean do_blit_copypixels( GLcontext *ctx,
    case GL_DEPTH_STENCIL_EXT:
       /* Does it matter whether it is stencil/depth or depth/stencil?
        */
-      src = intel->depth_region;
-      break;
+      return intel->depth_region;
    default:
       break;
    }
 
-   if (!src || !dst) 
-      return GL_FALSE;
+   return NULL;
+}
 
+static GLboolean do_texture_copypixels( GLcontext *ctx,
+					GLint srcx, GLint srcy, 
+					GLsizei width, GLsizei height,
+					GLint dstx, GLint dsty, 
+					GLenum type )
+{
+#if 0
+   struct intel_context *intel = intel_context( ctx );
+   struct intel_region *dst = intel_drawbuf_region( intel );
+   struct intel_region *src = copypix_src_region(intel);
 
 
    intelFlush( &intel->ctx );
@@ -163,6 +140,104 @@ static GLboolean do_blit_copypixels( GLcontext *ctx,
 			    src->pitch, src->buffer, 0,
 			    dst->pitch, dst->buffer, 0,
 			    bx + delta_x, by - delta_y, /* srcx, srcy */
+			    bx, by, /* dstx, dsty */
+			    bw, bh );
+      }
+   }
+ out:
+   intel_batchbuffer_flush( intel->batch );
+   UNLOCK_HARDWARE( intel );
+   return GL_TRUE;
+#endif
+
+   return GL_FALSE;
+}
+
+
+
+
+
+/**
+ * CopyPixels with the blitter.  Don't support zooming, pixel transfer, etc.
+ */
+static GLboolean do_blit_copypixels( GLcontext *ctx,
+				     GLint srcx, GLint srcy, 
+				     GLsizei width, GLsizei height,
+				     GLint dstx, GLint dsty, 
+				     GLenum type )
+{
+   struct intel_context *intel = intel_context( ctx );
+   struct intel_region *dst = intel_drawbuf_region( intel );
+   struct intel_region *src = copypix_src_region( intel, type );
+
+   /* Copypixels can be more than a straight copy.  Ensure all the
+    * extra operations are disabled:
+    */
+   if (!intel_check_color_per_fragment_ops(ctx) ||
+       ctx->Pixel.ZoomX != 1.0F || 
+       ctx->Pixel.ZoomY != 1.0F)
+      return GL_FALSE;
+
+   if (!src || !dst) 
+      return GL_FALSE;
+
+
+
+   intelFlush( &intel->ctx );
+   LOCK_HARDWARE( intel );
+   {
+      __DRIdrawablePrivate *dPriv = intel->driDrawable;
+      drm_clip_rect_t *box = dPriv->pClipRects;
+      GLint nbox = dPriv->numClipRects;
+      GLint delta_x = srcx - dstx;
+      GLint delta_y = srcy - dsty;
+      GLuint i;
+
+
+      dsty = dPriv->h - dsty - height; 	/* convert from gl to hardware coords */
+      srcy = dPriv->h - srcy - height; 	/* convert from gl to hardware coords */
+      dstx += dPriv->x;
+      dsty += dPriv->y;
+      srcx += dPriv->x;
+      srcy += dPriv->y;
+
+      /* Clip against the source region.  This is the only source
+       * clipping we do.  Dst is clipped with cliprects below.
+       *
+       * TODO: Scissor?
+       */
+      if (!intel_clip_to_region(ctx, src, &srcx, &srcy, &width, &height)) 
+	 goto out;
+
+      dstx = srcx - delta_x;
+      dsty = srcy - delta_y;
+
+      /* Could do slightly more clipping: Eg, take the intersection of
+       * the existing set of cliprects and those cliprects translated
+       * by delta_x, delta_y:
+       * 
+       * This code will not overwrite other windows, but will
+       * introduce garbage when copying from obscured window regions.
+       */
+      for (i = 0 ; i < nbox ; i++ )
+      {
+	 GLint bx = box[i].x1;
+	 GLint by = box[i].y1;
+	 GLint bw = box[i].x2 - bx;
+	 GLint bh = box[i].y2 - by;
+
+	 if (bx < dstx) bw -= dstx - bx, bx = dstx;
+	 if (by < dsty) bh -= dsty - by, by = dsty;
+	 if (bx + bw > dstx + width) bw = dstx + width - bx;
+	 if (by + bh > dsty + height) bh = dsty + height - by;
+	 if (bw <= 0) continue;
+	 if (bh <= 0) continue;
+
+	 intelEmitCopyBlit( intel,
+			    dst->cpp,
+			    src->pitch, src->buffer, 0,
+			    dst->pitch, dst->buffer, 0,
+			    bx + delta_x, by + delta_y, /* srcx, srcy */
 			    bx, by, /* dstx, dsty */
 			    bw, bh );
       }
