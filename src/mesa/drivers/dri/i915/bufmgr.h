@@ -74,6 +74,7 @@ int bmInitPool( struct bufmgr *,
 #define BM_NO_ALLOC    0x100	/* legacy "fixed" buffers only */
 #define BM_CLIENT      0x200	/* for map - pointer will be accessed
 				 * without dri lock */
+#define BM_NO_TTM         0x400	 
 
 #define BM_MEM_MASK (BM_MEM_LOCAL|BM_MEM_AGP|BM_MEM_VRAM)
 
@@ -177,5 +178,6 @@ extern int INTEL_DEBUG;
 #define DEBUG_BUFMGR 0x2000
 
 #define DBG(...)  do { if (INTEL_DEBUG & DEBUG_BUFMGR) _mesa_printf(__VA_ARGS__); } while(0)
+#define DBG_BM(...)  do { if (0) _mesa_printf(__VA_ARGS__); } while(0)
 
 #endif
