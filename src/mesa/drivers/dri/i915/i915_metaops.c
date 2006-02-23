@@ -39,13 +39,14 @@
 #include "i915_context.h"
 #include "i915_reg.h"
 
-/* A large amount of state doesn't need to be uploaded.
+/* We touch almost everything:
  */
 #define ACTIVE (I915_UPLOAD_INVARIENT | 	\
-                I915_UPLOAD_PROGRAM | 		\
-		I915_UPLOAD_STIPPLE |		\
 		I915_UPLOAD_CTX |		\
 		I915_UPLOAD_BUFFERS |		\
+		I915_UPLOAD_STIPPLE |		\
+                I915_UPLOAD_PROGRAM | 		\
+                I915_UPLOAD_FOG | 		\
 		I915_UPLOAD_TEX(0))		
 
 #define SET_STATE( i915, STATE )		\
@@ -147,6 +148,28 @@ static void meta_color_mask( struct intel_context *intel, GLboolean state )
    else 
       i915->meta.Ctx[I915_CTXREG_LIS5] |= mask;
       
+   i915->meta.emitted &= ~I915_UPLOAD_CTX;
+}
+
+
+
+static void meta_import_pixel_state( struct intel_context *intel )
+{
+   struct i915_context *i915 = i915_context(&intel->ctx);
+   memcpy(i915->meta.Fog, i915->state.Fog, I915_FOG_SETUP_SIZE * 4);
+   
+   i915->meta.Ctx[I915_CTXREG_LIS5] = i915->state.Ctx[I915_CTXREG_LIS5];
+   i915->meta.Ctx[I915_CTXREG_LIS6] = i915->state.Ctx[I915_CTXREG_LIS6];
+   i915->meta.Ctx[I915_CTXREG_STATE4] = i915->state.Ctx[I915_CTXREG_STATE4];
+   i915->meta.Ctx[I915_CTXREG_BLENDCOLOR1] = i915->state.Ctx[I915_CTXREG_BLENDCOLOR1];
+   i915->meta.Ctx[I915_CTXREG_IAB] = i915->state.Ctx[I915_CTXREG_IAB];
+
+   i915->meta.Buffer[I915_DESTREG_SENABLE] = i915->state.Buffer[I915_DESTREG_SENABLE];
+   i915->meta.Buffer[I915_DESTREG_SR1] = i915->state.Buffer[I915_DESTREG_SR1];
+   i915->meta.Buffer[I915_DESTREG_SR2] = i915->state.Buffer[I915_DESTREG_SR2];
+
+   i915->meta.emitted &= ~I915_UPLOAD_FOG;
+   i915->meta.emitted &= ~I915_UPLOAD_BUFFERS;
    i915->meta.emitted &= ~I915_UPLOAD_CTX;
 }
 
@@ -421,4 +444,5 @@ void i915InitMetaFuncs( struct i915_context *i915 )
    i915->intel.vtbl.meta_tex_rect_source = meta_tex_rect_source;
    i915->intel.vtbl.meta_draw_region = meta_draw_region;
    i915->intel.vtbl.meta_draw_format = set_draw_format;
+   i915->intel.vtbl.meta_import_pixel_state = meta_import_pixel_state;
 }

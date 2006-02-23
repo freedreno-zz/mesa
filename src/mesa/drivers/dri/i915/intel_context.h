@@ -154,6 +154,8 @@ struct intel_context
       void (*meta_no_texture)( struct intel_context *intel );
       void (*meta_texture_blend_replace)( struct intel_context *intel );
 
+      void (*meta_import_pixel_state)( struct intel_context *intel );
+
       void (*meta_tex_rect_source)( struct intel_context *intel,
 				    struct intel_region *region,
 				    GLuint textureFormat );
