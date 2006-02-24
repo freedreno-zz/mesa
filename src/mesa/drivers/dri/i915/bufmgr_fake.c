@@ -18,6 +18,7 @@
 #include "imports.h"
 #include <sys/ioctl.h>
 #include <unistd.h>
+#include <drm.h>
 
 static int ttmcount = 0;
 
@@ -55,9 +56,9 @@ static int delayed_free( struct bufmgr *bm );
 
 /* Wrapper around mm.c's mem_block, which understands that you must
  * wait for fences to expire before memory can be freed.  This is
- * specific to our use of memcpy for uploads - an upload that was
- * processed through the command queue wouldn't need to care about
- * fences.
+ * specific to our use of memcpy and/or ttms for uploads - an upload
+ * that was processed through the command queue wouldn't need to care
+ * about fences.
  */
 struct block {
    struct block *next, *prev;
@@ -114,12 +115,12 @@ static struct block *alloc_from_pool( struct bufmgr *bm,
    if (!block)
       return NULL;
 
-   DBG_BM("alloc_from_pool %d sz 0x%x\n", pool_nr, size);
+   DBG("alloc_from_pool %d sz 0x%x\n", pool_nr, size);
    assert(align >= 7);
 
    block->mem = mmAllocMem(pool->heap, size, align, 0);
    if (!block->mem) {
-      DBG_BM("\t- failed\n");
+      DBG("\t- failed\n");
       free(block);
       return NULL;
    }
@@ -130,7 +131,7 @@ static struct block *alloc_from_pool( struct bufmgr *bm,
    block->virtual = pool->virtual + block->mem->ofs;
    block->has_ttm = 0;
 
-   DBG_BM("\t- offset 0x%x\n", block->mem->ofs);
+   DBG("\t- offset 0x%x\n", block->mem->ofs);
    return block;
 }
 
@@ -141,7 +142,7 @@ static struct block *alloc_local( unsigned size )
    if (!block)
       return NULL;
 
-   DBG_BM("alloc_local 0x%x\n", size);
+   DBG("alloc_local 0x%x\n", size);
 
    block->mem_type = BM_MEM_LOCAL;
    block->virtual = ALIGN_MALLOC(size, 1<<7);
@@ -199,8 +200,8 @@ static struct block *alloc_block( struct bufmgr *bm,
 	if (block->has_ttm > 1)
 	    block->virtual = NULL;
 	ttmcount += block->drm_buf.num_pages;
-	DBG_BM("ttmcount pages is %d\n", ttmcount);
-	DBG_BM("ttm handle is 0x%x\n", block->drm_ttm.handle);
+	DBG("ttmcount pages is %d\n", ttmcount);
+	DBG("ttm handle is 0x%x\n", block->drm_ttm.handle);
 	
 	return block;
     }
@@ -259,7 +260,7 @@ static void free_block( struct bufmgr *bm, struct block *block )
    if (!block) 
       return;
 
-   DBG_BM("free block (mem: %d, sz %d) from buf %d\n",
+   DBG("free block (mem: %d, sz %d) from buf %d\n",
        block->mem_type,
        block->buf->size,
        block->buf->id);
@@ -270,9 +271,9 @@ static void free_block( struct bufmgr *bm, struct block *block )
       remove_from_list(block);
 
       if (!block->has_ttm)
-	DBG_BM("    - offset %x\n", block->mem->ofs);
+	DBG("    - offset %x\n", block->mem->ofs);
       else
-	DBG_BM("    - offset %x\n", block->drm_buf.aper_offset*getpagesize());
+	DBG("    - offset %x\n", block->drm_buf.aper_offset*getpagesize());
 	
       if (bmTestFence(bm, block->fence)) {
 	  if (!block->has_ttm) {
@@ -281,26 +282,26 @@ static void free_block( struct bufmgr *bm, struct block *block )
 	      block->drm_ttm.op = ttm_remove;
 	      ret = ioctl(bm->intel->driFd, DRM_IOCTL_TTM, &block->drm_ttm);
 	      ttmcount -= block->drm_buf.num_pages;
-	      DBG_BM("ttmcount pages is %d\n", ttmcount);
+	      DBG("ttmcount pages is %d\n", ttmcount);
 	      assert(ret == 0);
 	  }
          free(block);
       }
       else {
-	 DBG_BM("    - place on delayed_free list\n");
+	 DBG("    - place on delayed_free list\n");
 	 block->buf = NULL;
          insert_at_tail(&block->pool->freed, block);
       }
       break;
 
    case BM_MEM_LOCAL:
-      DBG_BM("    - free local memory\n");
+      DBG("    - free local memory\n");
       ALIGN_FREE(block->virtual);
       free(block);
       break;
 
    default:
-      DBG_BM("    - unknown memory type\n");
+      DBG("    - unknown memory type\n");
       free(block);
       break;
    }
@@ -324,7 +325,7 @@ static int delayed_free( struct bufmgr *bm )
 		block->drm_ttm.op = ttm_remove;
 		rettm = ioctl(bm->intel->driFd, DRM_IOCTL_TTM, &block->drm_ttm);
 		ttmcount -= block->drm_buf.num_pages;
-		DBG_BM("ttmcount pages is %d\n", ttmcount);
+		DBG("ttmcount pages is %d\n", ttmcount);
 		assert(rettm == 0);
 		ret += block->drm_buf.num_pages*getpagesize();
 	    }
@@ -333,7 +334,7 @@ static int delayed_free( struct bufmgr *bm )
       }
    }
    
-   DBG_BM("%s: %d\n", __FUNCTION__, ret);
+   DBG("%s: %d\n", __FUNCTION__, ret);
    return ret;
 }
 
@@ -351,7 +352,7 @@ static int move_buffers( struct bufmgr *bm,
    int ret;
 
 
-   DBG_BM("%s\n", __FUNCTION__);
+   DBG("%s\n", __FUNCTION__);
 
    memset(newMem, 0, sizeof(newMem));
 
@@ -405,7 +406,7 @@ static int move_buffers( struct bufmgr *bm,
    }
    arg.op = ttm_bufs;
    arg.do_fence = 0;
-   DBG_BM("Num validated TTM bufs is %d\n", arg.num_bufs);
+   DBG("Num validated TTM bufs is %d\n", arg.num_bufs);
    if (arg.num_bufs) {
      ret = ioctl(bm->intel->driFd, DRM_IOCTL_TTM, &arg);
      assert(ret == 0);
@@ -427,7 +428,7 @@ static int move_buffers( struct bufmgr *bm,
 	    */
 	   assert(!buffers[i]->mapped);
 	   
-	   DBG_BM("try to move buffer %d size 0x%x to pools 0x%x\n", 
+	   DBG("try to move buffer %d size 0x%x to pools 0x%x\n", 
 		  buffers[i]->id, buffers[i]->size, flags & BM_MEM_MASK);
 	   
 	   newMem[i] = alloc_block(bm, 
@@ -446,12 +447,12 @@ static int move_buffers( struct bufmgr *bm,
     */
    for (i = 0; i < nr; i++) {    
       if (newMem[i]) {
-	  if (buffers[i]->block) {
-	      /* XXX: To be replaced with DMA, GTT bind, and other
+	 if (buffers[i]->block) {
+	    /* XXX: To be replaced with DMA, GTT bind, and other
 	       * mechanisms in final version.  Memcpy (or sse_memcpy) is
 	       * probably pretty good for local->agp uploads.
 	       */
-	      DBG_BM("memcpy %d bytes\n", buffers[i]->size);
+	     DBG("memcpy %d bytes\n", buffers[i]->size);
 	      memcpy(newMem[i]->virtual,
 		     buffers[i]->block->virtual, 
 		     buffers[i]->size);
@@ -470,7 +471,7 @@ static int move_buffers( struct bufmgr *bm,
    if (nr_uploads && (flags & (BM_MEM_AGP|BM_MEM_VRAM)))
        bmFlushReadCaches(bm);   
    
-   DBG_BM("%s - success\n", __FUNCTION__);
+   DBG("%s - success\n", __FUNCTION__);
    return 1;
 
  cleanup:
@@ -491,7 +492,7 @@ static unsigned evict_lru( struct bufmgr *bm,
 {
    int i;
 
-   DBG_BM("%s\n", __FUNCTION__);
+   DBG("%s\n", __FUNCTION__);
 
    if (flags & BM_NO_EVICT)
       return 0;
@@ -606,7 +607,7 @@ int bmInitPool( struct bufmgr *bm,
 
    i = bm->nr_pools++;
    
-   DBG_BM("bmInitPool %d low_offset %x sz %x\n",
+   DBG("bmInitPool %d low_offset %x sz %x\n",
 		i, low_offset, size);
    
    pool = bm->pool + i;
@@ -622,13 +623,13 @@ int bmInitPool( struct bufmgr *bm,
        drmAddress ttmAddress;
 
 
-       DBG_BM("Creating Pinned ttm.\n");
+       DBG("Creating Pinned ttm.\n");
        pool->drm_ttm.op = ttm_add;
        pool->drm_ttm.size = size;
        ret = ioctl(bm->intel->driFd, DRM_IOCTL_TTM, &pool->drm_ttm);
        if (ret) return -1;
        ret = drmMap(bm->intel->driFd, pool->drm_ttm.handle, size, &ttmAddress);
-       DBG_BM("Virtual is 0x%lx\n", (unsigned long) ttmAddress);
+       DBG("Virtual is 0x%lx\n", (unsigned long) ttmAddress);
        if (ret) {
 	   pool->drm_ttm.op = ttm_add;
 	   ioctl(bm->intel->driFd, DRM_IOCTL_TTM, &pool->drm_ttm);
@@ -649,7 +650,7 @@ int bmInitPool( struct bufmgr *bm,
        low_offset = pool->drm_buf.aper_offset * getpagesize();
        pool->heap = mmInit( low_offset , size );
        pool->virtual = (char *) ttmAddress - low_offset;
-       DBG_BM("Pinned buf offset is 0x%lx\n", low_offset);
+       DBG("Pinned buf offset is 0x%lx\n", low_offset);
 #else 
        pool->heap = mmInit( low_offset , size );
        pool->virtual = low_virtual - low_offset;      
@@ -668,7 +669,7 @@ void bmAssertTTM(struct bufmgr *bm, unsigned n, unsigned *buffers)
 
    for (i = 0; i < n; i++) {
       struct buffer *buf = _mesa_HashLookup(bm->hash, buffers[i]);
-      DBG_BM("0x%x\n", buf->flags);
+      DBG("0x%x\n", buf->flags);
       assert(buf->block);
       assert(buf->block->has_ttm);
    }
@@ -748,7 +749,7 @@ void bmBufferData(struct bufmgr *bm,
 {
    struct buffer *buf = (struct buffer *)_mesa_HashLookup( bm->hash, buffer );
 
-   DBG_BM("bmBufferData %d sz 0x%x data: %p\n", buffer, size, data);
+   DBG("bmBufferData %d sz 0x%x data: %p\n", buffer, size, data);
 
    assert(!buf->mapped);
 
@@ -779,7 +780,7 @@ void bmBufferSubData(struct bufmgr *bm,
 {
    struct buffer *buf = (struct buffer *)_mesa_HashLookup( bm->hash, buffer );
 
-   DBG_BM("bmBufferSubdata %d offset 0x%x sz 0x%x\n", buffer, offset, size);
+   DBG("bmBufferSubdata %d offset 0x%x sz 0x%x\n", buffer, offset, size);
 
    if (buf->block == 0)
       bmAllocMem(bm, buf, buf->flags);
@@ -801,8 +802,8 @@ void *bmMapBuffer( struct bufmgr *bm,
    struct buffer *buf = (struct buffer *)_mesa_HashLookup( bm->hash, buffer );
    int ret;
 
-   DBG_BM("bmMapBuffer %d\n", buffer);
-   DBG_BM("Map: Block is 0x%x\n", &buf->block);
+   DBG("bmMapBuffer %d\n", buffer);
+   DBG("Map: Block is 0x%x\n", &buf->block);
 
 
    if (buf->mapped)
@@ -834,7 +835,7 @@ void *bmMapBuffer( struct bufmgr *bm,
 	  assert(0); 
       }
    }
-   DBG_BM("Mapped buf %u 0x%x\n", buffer, buf->block->virtual);
+   DBG("Mapped buf %u 0x%x\n", buffer, buf->block->virtual);
    return buf->block->virtual;
 }
 
@@ -844,11 +845,11 @@ void bmUnmapBuffer( struct bufmgr *bm, unsigned buffer )
    if (!buf)
        return;
 
-   DBG_BM("bmUnmapBuffer %d\n", buffer);
+   DBG("bmUnmapBuffer %d\n", buffer);
 
    if (buf->block->has_ttm > 0) {
        drmUnmap(buf->block->virtual, buf->size);
-       DBG_BM("Unmapped buf %u 0x%x\n", buffer, buf->block->virtual);
+       DBG("Unmapped buf %u 0x%x\n", buffer, buf->block->virtual);
        buf->block->virtual = NULL;
    }
 
@@ -881,7 +882,7 @@ void bm_fake_SetFixedBufferParams( struct bufmgr *bm
 struct bm_buffer_list *bmNewBufferList( void )
 {
    struct bm_buffer_list *list = calloc(sizeof(*list), 1);
-   DBG_BM("bmNewBufferList\n");
+   DBG("bmNewBufferList\n");
    return list;
 }
 
@@ -898,7 +899,7 @@ void bmAddBuffer( struct bm_buffer_list *list,
    list->elem[list->nr].memtype_return = memtype_return;
    list->elem[list->nr].offset_return = offset_return;
 
-   DBG_BM("bmAddBuffer nr %d buf %d\n", 
+   DBG("bmAddBuffer nr %d buf %d\n", 
 		list->nr, buffer);
 
    list->nr++;
@@ -928,7 +929,7 @@ int bmValidateBufferList( struct bufmgr *bm,
 
    
 
-   DBG_BM("%s\n", __FUNCTION__);
+   DBG("%s\n", __FUNCTION__);
 
    if (list->nr > BM_LIST_MAX)
       return 0;
@@ -960,11 +961,11 @@ int bmValidateBufferList( struct bufmgr *bm,
       if (bufs[i]->block->has_ttm > 1) {
 	  if (list->elem[i].offset_return)
 	    list->elem[i].offset_return[0] = bufs[i]->block->drm_buf.aper_offset*getpagesize();	  
-	  DBG_BM("TTM OFFS 0x%x\n", bufs[i]->block->drm_buf.aper_offset*getpagesize());
+	  DBG("TTM OFFS 0x%x\n", bufs[i]->block->drm_buf.aper_offset*getpagesize());
       } else {
 	  if (list->elem[i].offset_return)
 	      list->elem[i].offset_return[0] = bufs[i]->block->mem->ofs;
-	  DBG_BM("Pinned Offs 0x%x\n", bufs[i]->block->mem->ofs);
+	  DBG("Pinned Offs 0x%x\n", bufs[i]->block->mem->ofs);
       }
       if (list->elem[i].memtype_return)
 	 list->elem[i].memtype_return[0] = bufs[i]->block->mem_type;
@@ -993,7 +994,7 @@ unsigned bmFenceBufferList( struct bufmgr *bm, struct bm_buffer_list *list )
    ret = ioctl(bm->intel->driFd, DRM_IOCTL_TTM, &arg);
    assert(ret == 0);
 
-   DBG_BM("%s (%d bufs)\n", __FUNCTION__, list->nr);
+   DBG("%s (%d bufs)\n", __FUNCTION__, list->nr);
 
    if (list->nr) {
       unsigned i;
@@ -1035,7 +1036,7 @@ int bmTestFence( struct bufmgr *bm, unsigned fence )
 /*    if (fence % 1024 == 0) */
 /*       _mesa_printf("%d %d\n", fence, bm->intel->sarea->last_dispatch); */
 
-  DBG_BM("fence: %d %d\n", fence,  bm->intel->sarea->last_dispatch);
+  DBG("fence: %d %d\n", fence,  bm->intel->sarea->last_dispatch);
    return fence <= bm->intel->sarea->last_dispatch;
 }
 

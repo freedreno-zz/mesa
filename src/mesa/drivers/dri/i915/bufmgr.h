@@ -178,6 +178,5 @@ extern int INTEL_DEBUG;
 #define DEBUG_BUFMGR 0x2000
 
 #define DBG(...)  do { if (INTEL_DEBUG & DEBUG_BUFMGR) _mesa_printf(__VA_ARGS__); } while(0)
-#define DBG_BM(...)  do { if (0) _mesa_printf(__VA_ARGS__); } while(0)
 
 #endif
