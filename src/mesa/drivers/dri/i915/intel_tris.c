@@ -970,6 +970,10 @@ void intelFallback( struct intel_context *intel, GLuint bit, GLboolean mode )
    }
 }
 
+union fi { 
+   GLfloat f; 
+   GLint i; 
+};
 
 
 /**********************************************************************/
@@ -984,11 +988,7 @@ void intel_meta_draw_quad(struct intel_context *intel,
 			  GLfloat t0, GLfloat t1,
 			  GLuint flags)
 {
-
-  return;
-#if 0
    union fi *vb;
-
 
    if (0)
       fprintf(stderr, "%s: %f,%f-%f,%f 0x%x %f,%f-%f,%f\n",
@@ -1038,7 +1038,6 @@ void intel_meta_draw_quad(struct intel_context *intel,
 
    if (intel->prim.flush)
       intel->prim.flush(intel);
-#endif
 }
 
 
