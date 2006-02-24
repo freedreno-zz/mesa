@@ -143,9 +143,9 @@ static GLboolean do_blit_draw_pixels( struct intel_context *intel,
    GLuint rowLength;
    GLuint fence;
    
-   if (INTEL_DEBUG & DEBUG_PIXEL)
-      fprintf(stderr, "%s\n", __FUNCTION__);
-
+   _mesa_printf("%s\n", __FUNCTION__);
+   
+   
    if (!dest)
       return GL_FALSE;
 
@@ -155,24 +155,32 @@ static GLboolean do_blit_draw_pixels( struct intel_context *intel,
       if (!_mesa_validate_pbo_access(2, unpack, width, height, 1,
                                      format, type, pixels)) {
          _mesa_error(ctx, GL_INVALID_OPERATION, "glDrawPixels");
+	 _mesa_printf("%s - _mesa_validate_pbo_access\n", __FUNCTION__);
+
          return GL_TRUE;
       }
    }
    else {
       /* PBO only for now:
        */
+      _mesa_printf("%s - not PBO\n", __FUNCTION__);
       return GL_FALSE;
    }
    
-   if (!intel_check_blit_format(dest, format, type)) 
+   if (!intel_check_blit_format(dest, format, type)) {
+      _mesa_printf("%s - bad format for blit\n", __FUNCTION__);
       return GL_FALSE;
+   }
 
-   if (!intel_check_blit_fragment_ops(ctx)) 
+   if (!intel_check_blit_fragment_ops(ctx)) {
+      _mesa_printf("%s - bad GL fragment state for blit\n", __FUNCTION__);
       return GL_FALSE;
+   }
 
-   if (ctx->Pixel.ZoomX != 1.0F)
+   if (ctx->Pixel.ZoomX != 1.0F) {
+      _mesa_printf("%s - bad PixelZoomX for blit\n", __FUNCTION__);
       return GL_FALSE;
-
+   }
 
 
    if (unpack->RowLength > 0)
@@ -180,14 +188,17 @@ static GLboolean do_blit_draw_pixels( struct intel_context *intel,
    else
       rowLength = width;
 
-   if (ctx->Pixel.ZoomY == -1.0F)
+   if (ctx->Pixel.ZoomY == -1.0F) {
+      return GL_FALSE;		/* later */
       y -= height;
+   }
    else if (ctx->Pixel.ZoomY == 1.0F) {
       rowLength = -rowLength;
-      src_y += height;
    }
-   else
+   else {
+      _mesa_printf("%s - bad PixelZoomY for blit\n", __FUNCTION__);
       return GL_FALSE;
+   }
 
    src_offset = (GLuint) _mesa_image_address(2, unpack, pixels, width, height,
 					     format, type, 0, 0, 0);
@@ -202,14 +213,10 @@ static GLboolean do_blit_draw_pixels( struct intel_context *intel,
       drm_clip_rect_t dest_rect;
       int i;
       
-      y = dPriv->h - y - height; 	/* convert from gl to hardware coords */
-      x += dPriv->x;
-      y += dPriv->y;
-
-      dest_rect.x1 = x;
-      dest_rect.y1 = y;
-      dest_rect.x2 = x + width;
-      dest_rect.y2 = y + height;
+      dest_rect.x1 = dPriv->x + x;
+      dest_rect.y1 = dPriv->y + dPriv->h - (y + height);
+      dest_rect.x2 = dest_rect.x1 + width;
+      dest_rect.y2 = dest_rect.y1 + height;
 
       for (i = 0 ; i < nbox ; i++ )
       {
@@ -218,12 +225,12 @@ static GLboolean do_blit_draw_pixels( struct intel_context *intel,
 
 	 intelEmitCopyBlit( intel,
 			    dest->cpp,
-			    rowLength * dest->cpp, 
+			    rowLength, 
 			    intel_bufferobj_buffer(src), src_offset,
 			    dest->pitch, 
 			    dest->buffer, 0,
-			    rect.x1 - x, 
-			    rect.y1 + src_y - (y * ctx->Pixel.ZoomY),
+			    rect.x1 - dest_rect.x1, 
+			    rect.y2 - dest_rect.y2,
 			    rect.x1, 
 			    rect.y1,
 			    rect.x2 - rect.x1,
@@ -235,6 +242,7 @@ static GLboolean do_blit_draw_pixels( struct intel_context *intel,
    UNLOCK_HARDWARE( intel );
 
    bmFinishFence(intel->bm, fence);   
+   _mesa_printf("%s - DONE\n", __FUNCTION__);
    return GL_TRUE;
 }
 
@@ -250,8 +258,6 @@ void intelDrawPixels( GLcontext *ctx,
 {
    struct intel_context *intel = intel_context(ctx);
 
-   if (INTEL_DEBUG & DEBUG_PIXEL)
-      fprintf(stderr, "%s\n", __FUNCTION__);
 
    if (do_texture_draw_pixels( intel, x, y, width, height, format, type,
 			       unpack, pixels ))
@@ -261,6 +267,7 @@ void intelDrawPixels( GLcontext *ctx,
 			    unpack, pixels ))
       return;
 
+   _mesa_printf("%s: fallback to swrast\n", __FUNCTION__);
    _swrast_DrawPixels( ctx, x, y, width, height, format, type,
 		       unpack, pixels );
 }
