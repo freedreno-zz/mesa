@@ -29,6 +29,8 @@
 #include "enums.h"
 #include "mtypes.h"
 #include "macros.h"
+#include "image.h"
+#include "bufferobj.h"
 #include "swrast/swrast.h"
 
 #include "intel_screen.h"
@@ -38,6 +40,8 @@
 #include "intel_blit.h"
 #include "intel_regions.h"
 #include "intel_pixel.h"
+#include "intel_buffer_objects.h"
+
 #include "bufmgr.h"
 
 
@@ -147,31 +151,65 @@ static GLboolean do_blit_readpixels( GLcontext *ctx,
 				     const struct gl_pixelstore_attrib *pack,
 				     GLvoid *pixels )
 {
-#if 0
    struct intel_context *intel = intel_context(ctx);
-   GLint pitch = pack->RowLength ? pack->RowLength : width;
    struct intel_region *src = intel_readbuf_region(intel);
-   struct intel_client_region *dst = intel_client_pack_region(intel,
-							      pack, 
-							      pixels);
+   struct intel_buffer_object *dst = intel_buffer_object(pack->BufferObj);
+   GLuint dst_offset;
+   GLuint rowLength;
+   GLuint fence;
 
-   if (ctx->_ImageTransferState ||
-       pack->SwapBytes ||
-       pack->LsbFirst) {
-      fprintf(stderr, "%s: failed 1\n", __FUNCTION__);
+   if (INTEL_DEBUG & DEBUG_PIXEL)
+      _mesa_printf("%s\n", __FUNCTION__);
+
+   if (!src)
+      return GL_FALSE;
+
+   if (dst) {
+      /* This validation should be done by core mesa:
+       */
+      if (!_mesa_validate_pbo_access(2, pack, width, height, 1,
+                                     format, type, pixels)) {
+         _mesa_error(ctx, GL_INVALID_OPERATION, "glDrawPixels");
+	 _mesa_printf("%s - _mesa_validate_pbo_access\n", __FUNCTION__);
+
+         return GL_TRUE;
+      }
+   }
+   else {
+      /* PBO only for now:
+       */
+      _mesa_printf("%s - not PBO\n", __FUNCTION__);
       return GL_FALSE;
    }
 
-   /* Need GL_PACK_INVERT_MESA to cope with upsidedown results from
-    * blitter:
-    */
-   if (!pack->Invert) {
-      fprintf(stderr, "%s: MESA_PACK_INVERT not set\n", __FUNCTION__);
+   
+   if (!intel_check_blit_format(src, format, type)) {
+      _mesa_printf("%s - bad format for blit\n", __FUNCTION__);
       return GL_FALSE;
    }
 
-   if (!intel_check_blit_format(src, format, type))
+   if (pack->SwapBytes || pack->LsbFirst) {
+      _mesa_printf("%s: bad packing params\n", __FUNCTION__);
       return GL_FALSE;
+   }
+
+   if (pack->RowLength > 0)
+      rowLength = pack->RowLength;
+   else
+      rowLength = width;
+
+   if (pack->Invert) {
+      _mesa_printf("%s: MESA_PACK_INVERT not done yet\n", __FUNCTION__);
+      return GL_FALSE;
+   }
+   else {
+      rowLength = -rowLength;
+   }
+
+
+   dst_offset = (GLuint) _mesa_image_address(2, pack, pixels, width, height,
+					     format, type, 0, 0, 0);
+
 
    /* Although the blits go on the command buffer, need to do this and
     * fire with lock held to guarentee cliprects are correct.
@@ -179,51 +217,47 @@ static GLboolean do_blit_readpixels( GLcontext *ctx,
    intelFlush( &intel->ctx );
    LOCK_HARDWARE( intel );
    {
-      __DRIdrawablePrivate *dPriv = intel->driDrawable;
+       __DRIdrawablePrivate *dPriv = intel->driDrawable;
       int nbox = dPriv->numClipRects;
       drm_clip_rect_t *box = dPriv->pClipRects;
+      drm_clip_rect_t rect;
+      drm_clip_rect_t src_rect;
       int i;
+      
+      src_rect.x1 = dPriv->x + x;
+      src_rect.y1 = dPriv->y + dPriv->h - (y + height);
+      src_rect.x2 = src_rect.x1 + width;
+      src_rect.y2 = src_rect.y1 + height;
 
-      y = dPriv->h - y - height;
-      x += dPriv->x;
-      y += dPriv->y;
 
-
-      if (INTEL_DEBUG & DEBUG_PIXEL)
-	 fprintf(stderr, "readpixel blit src_pitch %d dst_pitch %d\n",
-		 src_pitch, pitch);
 
       for (i = 0 ; i < nbox ; i++)
       {
-	 GLint bx = box[i].x1;
-	 GLint by = box[i].y1;
-	 GLint bw = box[i].x2 - bx;
-	 GLint bh = box[i].y2 - by;
-	 
-	 if (bx < x) bw -= x - bx, bx = x;
-	 if (by < y) bh -= y - by, by = y;
-	 if (bx + bw > x + width) bw = x + width - bx;
-	 if (by + bh > y + height) bh = y + height - by;
-	 if (bw <= 0) continue;
-	 if (bh <= 0) continue;
+	 if (!intel_intersect_cliprects(&rect, &src_rect, &box[i]))
+	    continue;
 
 	 intelEmitCopyBlit( intel,
 			    src->cpp,
 			    src->pitch, src->buffer, 0,
-			    dst->pitch, dst->buffer, 0,
-			    bx, by,
-			    bx - x, by - y,
-			    bw, bh );
+			    rowLength, 
+			    intel_bufferobj_buffer(dst), dst_offset,
+			    rect.x1, 
+			    rect.y1,
+			    rect.x1 - src_rect.x1, 
+			    rect.y2 - src_rect.y2,
+			    rect.x2 - rect.x1,
+			    rect.y2 - rect.y1 );
       }
 
-      intel_batchbuffer_flush(intel->batch);
-      intel_client_region_release(intel, dst);
+      fence = intel_batchbuffer_flush(intel->batch);
    }
    UNLOCK_HARDWARE( intel );
-   return GL_TRUE;
-#endif
 
-   return GL_FALSE;
+   bmFinishFence(intel->bm, fence);   
+
+   if (INTEL_DEBUG & DEBUG_PIXEL)
+      _mesa_printf("%s - DONE\n", __FUNCTION__);
+   return GL_TRUE;
 }
 
 void

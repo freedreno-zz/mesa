@@ -143,7 +143,8 @@ static GLboolean do_blit_draw_pixels( struct intel_context *intel,
    GLuint rowLength;
    GLuint fence;
    
-   _mesa_printf("%s\n", __FUNCTION__);
+   if (INTEL_DEBUG & DEBUG_PIXEL)
+      _mesa_printf("%s\n", __FUNCTION__);
    
    
    if (!dest)
@@ -242,7 +243,10 @@ static GLboolean do_blit_draw_pixels( struct intel_context *intel,
    UNLOCK_HARDWARE( intel );
 
    bmFinishFence(intel->bm, fence);   
-   _mesa_printf("%s - DONE\n", __FUNCTION__);
+
+   if (INTEL_DEBUG & DEBUG_PIXEL)
+      _mesa_printf("%s - DONE\n", __FUNCTION__);
+
    return GL_TRUE;
 }
 
@@ -267,7 +271,9 @@ void intelDrawPixels( GLcontext *ctx,
 			    unpack, pixels ))
       return;
 
-   _mesa_printf("%s: fallback to swrast\n", __FUNCTION__);
+   if (INTEL_DEBUG & DEBUG_PIXEL)
+      _mesa_printf("%s: fallback to swrast\n", __FUNCTION__);
+
    _swrast_DrawPixels( ctx, x, y, width, height, format, type,
 		       unpack, pixels );
 }

@@ -187,10 +187,10 @@ void intelEmitCopyBlit( struct intel_context *intel,
    BATCH_LOCALS;
 
 
-   DBG("%s src:buf(%d)/%d %d,%d dst:buf(%d)/%d %d,%d sz:%dx%d\n",
+   DBG("%s src:buf(%d)/%d+%d %d,%d dst:buf(%d)/%d+%d %d,%d sz:%dx%d\n",
        __FUNCTION__,
-       src_buffer, src_pitch, src_x, src_y,
-       dst_buffer, dst_pitch, dst_x, dst_y,
+       src_buffer, src_pitch, src_offset, src_x, src_y,
+       dst_buffer, dst_pitch, dst_offset, dst_x, dst_y,
        w,h);
 
    src_pitch *= cpp;
@@ -200,11 +200,11 @@ void intelEmitCopyBlit( struct intel_context *intel,
    case 1: 
    case 2: 
    case 3: 
-      BR13 = dst_pitch | (0xCC << 16) | (1<<24);
+      BR13 = (((GLint)dst_pitch)&0xffff) | (0xCC << 16) | (1<<24);
       CMD = XY_SRC_COPY_BLT_CMD;
       break;
    case 4:
-      BR13 = dst_pitch | (0xCC << 16) | (1<<24) | (1<<25);
+      BR13 = (((GLint)dst_pitch)&0xffff) | (0xCC << 16) | (1<<24) | (1<<25);
       CMD = (XY_SRC_COPY_BLT_CMD | XY_SRC_COPY_BLT_WRITE_ALPHA |
 	     XY_SRC_COPY_BLT_WRITE_RGB);
       break;
