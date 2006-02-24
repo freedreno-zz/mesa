@@ -115,6 +115,12 @@ void bmBufferSubData(struct bufmgr *,
 		     unsigned size, 
 		     const void *data );
 
+void bmBufferGetSubData(struct bufmgr *, 
+			unsigned buffer, 
+			unsigned offset, 
+			unsigned size, 
+			void *data );
+
 void *bmMapBuffer( struct bufmgr *,
 		   unsigned buffer, 
 		   unsigned access );

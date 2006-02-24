@@ -808,6 +808,40 @@ void bmBufferSubData(struct bufmgr *bm,
 }
 
 
+
+/* Extract data from the buffer:
+ */
+void bmBufferGetSubData(struct bufmgr *bm, 
+			unsigned buffer, 
+			unsigned offset, 
+			unsigned size, 
+			void *data )
+{
+   struct buffer *buf = (struct buffer *)_mesa_HashLookup( bm->hash, buffer );
+
+   DBG("bmBufferSubdata %d offset 0x%x sz 0x%x\n", buffer, offset, size);
+
+   if (buf->block == 0)
+      return;
+
+   if (buf->block->mem_type != BM_MEM_LOCAL)
+      bmFinishFence(bm, buf->block->fence);
+
+   if (size) {
+#if 0
+      memcpy(data, buf->block->virtual + offset, size); 
+#else
+      /* Do an implicit map/unmap to get this working for now: 
+       */
+      memcpy(data, bmMapBuffer(bm, buf->id, 0) + offset, size); 
+      bmUnmapBuffer(bm, buf->id);
+#endif
+   }
+}
+
+
+
+
 /* Return a pointer to whatever space the buffer is currently resident in:
  */
 void *bmMapBuffer( struct bufmgr *bm,
