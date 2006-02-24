@@ -1,6 +1,6 @@
 /**************************************************************************
  * 
- * Copyright 2003 Tungsten Graphics, Inc., Cedar Park, Texas.
+ * Copyright 2006 Tungsten Graphics, Inc., Cedar Park, Texas.
  * All Rights Reserved.
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a
@@ -12,7 +12,7 @@
  * the following conditions:
  * 
  * The above copyright notice and this permission notice (including the
- * next paragraph) shall be included in all copies or substantial portions
+ * next paragraph) shall be included in all copies or substantial portionsalloc
  * of the Software.
  * 
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
@@ -27,8 +27,10 @@
 
 #include "glheader.h"
 #include "enums.h"
+#include "image.h"
 #include "mtypes.h"
 #include "macros.h"
+#include "bufferobj.h"
 #include "swrast/swrast.h"
 
 #include "intel_screen.h"
@@ -38,6 +40,7 @@
 #include "intel_blit.h"
 #include "intel_regions.h"
 #include "intel_pixel.h"
+#include "intel_buffer_objects.h"
 #include "bufmgr.h"
 
 
@@ -118,6 +121,12 @@ static GLboolean do_texture_draw_pixels( struct intel_context *intel,
  *   - uploads the whole image even if destination is clipped
  *   
  * Need to benchmark.
+ *
+ * Given the questions about performance, implement for pbo's only.
+ * This path is definitely a win if the pbo is already in agp.  If it
+ * turns out otherwise, we can add the code necessary to upload client
+ * data to agp space before performing the blit.  (Though it may turn
+ * out to be better/simpler just to use the texture engine).
  */
 static GLboolean do_blit_draw_pixels( struct intel_context *intel,
 				      GLint x, GLint y, 
@@ -126,17 +135,36 @@ static GLboolean do_blit_draw_pixels( struct intel_context *intel,
 				      const struct gl_pixelstore_attrib *unpack,
 				      const GLvoid *pixels )
 {
-#if 0
+   GLcontext *ctx = &intel->ctx;
    struct intel_region *dest = intel_drawbuf_region(intel);
-   struct intel_region *src = NULL;
-
+   struct intel_buffer_object *src = intel_buffer_object(unpack->BufferObj);
+   GLuint src_offset;
+   GLuint src_y = 0;
+   GLuint rowLength;
+   GLuint fence;
+   
    if (INTEL_DEBUG & DEBUG_PIXEL)
       fprintf(stderr, "%s\n", __FUNCTION__);
 
-   if (!src || !dest)
+   if (!dest)
       return GL_FALSE;
 
-   if (!intel_check_blit_format(dest, src)) 
+   if (src) {
+      /* This validation should be done by core mesa:
+       */
+      if (!_mesa_validate_pbo_access(2, unpack, width, height, 1,
+                                     format, type, pixels)) {
+         _mesa_error(ctx, GL_INVALID_OPERATION, "glDrawPixels");
+         return GL_TRUE;
+      }
+   }
+   else {
+      /* PBO only for now:
+       */
+      return GL_FALSE;
+   }
+   
+   if (!intel_check_blit_format(dest, format, type)) 
       return GL_FALSE;
 
    if (!intel_check_blit_fragment_ops(ctx)) 
@@ -145,30 +173,24 @@ static GLboolean do_blit_draw_pixels( struct intel_context *intel,
    if (ctx->Pixel.ZoomX != 1.0F)
       return GL_FALSE;
 
+
+
+   if (unpack->RowLength > 0)
+      rowLength = unpack->RowLength;
+   else
+      rowLength = width;
+
    if (ctx->Pixel.ZoomY == -1.0F)
-      y -= height;			
+      y -= height;
    else if (ctx->Pixel.ZoomY == 1.0F) {
-      src_pitch = -src_pitch;
+      rowLength = -rowLength;
       src_y += height;
    }
    else
       return GL_FALSE;
 
-
-   if (unpack->BufferObj->Name) {
-      src = intel_bufferobj_unpack_region(intel, unpack, 
-					  width, height, 
-					  format, type, 
-					  unpack->BufferObj);
-      src_offset = (unsigned long)pixels;
-   }
-   else {
-      src = intel_client_unpack_region(intel, unpack, 
-				       width, height, 
-				       format, type, pixels);
-      src_offset = 0;
-   }
-
+   src_offset = (GLuint) _mesa_image_address(2, unpack, pixels, width, height,
+					     format, type, 0, 0, 0);
 
    intelFlush( &intel->ctx );
    LOCK_HARDWARE( intel );
@@ -177,40 +199,43 @@ static GLboolean do_blit_draw_pixels( struct intel_context *intel,
       int nbox = dPriv->numClipRects;
       drm_clip_rect_t *box = dPriv->pClipRects;
       drm_clip_rect_t rect;
+      drm_clip_rect_t dest_rect;
       int i;
       
       y = dPriv->h - y - height; 	/* convert from gl to hardware coords */
       x += dPriv->x;
       y += dPriv->y;
 
+      dest_rect.x1 = x;
+      dest_rect.y1 = y;
+      dest_rect.x2 = x + width;
+      dest_rect.y2 = y + height;
 
       for (i = 0 ; i < nbox ; i++ )
       {
-	 if (!intel_intersect_cliprects(rect, db_rect, &box[i]))
+	 if (!intel_intersect_cliprects(&rect, &dest_rect, &box[i]))
 	    continue;
 
 	 intelEmitCopyBlit( intel,
-			    intel->intelScreen->cpp,
-			    src->pitch, src->buffer, src_offset,
-			    dst->pitch, dst->buffer, 0,
-			    rect->x1 - x, 
-			    rect->y1 - y,
-			    rect->x1, 
-			    rect->y1,
-			    rect->x2 - rect->x1,
-			    rect->y2 - rect->y1 );
+			    dest->cpp,
+			    rowLength * dest->cpp, 
+			    intel_bufferobj_buffer(src), src_offset,
+			    dest->pitch, 
+			    dest->buffer, 0,
+			    rect.x1 - x, 
+			    rect.y1 + src_y - (y * ctx->Pixel.ZoomY),
+			    rect.x1, 
+			    rect.y1,
+			    rect.x2 - rect.x1,
+			    rect.y2 - rect.y1 );
       }
    }
 
-   intel_release_unpack_region( intel, src );
    fence = intel_batchbuffer_flush( intel->batch );
    UNLOCK_HARDWARE( intel );
 
-   bmWaitFence(intel->bm, fence);
-   intel_region_release(intel, &src);
-#endif
-   
-   return GL_FALSE;
+   bmFinishFence(intel->bm, fence);   
+   return GL_TRUE;
 }
 
 

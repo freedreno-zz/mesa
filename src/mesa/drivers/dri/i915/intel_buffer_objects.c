@@ -40,11 +40,6 @@ struct intel_buffer_object {
    GLuint buffer;
 };
 
-static inline struct intel_buffer_object *
-intel_buffer_object( struct gl_buffer_object *obj )
-{
-   return (struct intel_buffer_object *)obj;
-}
 
 /* There is some duplication between mesa's bufferobjects and our
  * bufmgr buffers.  Both have an integer handle and a hashtable to
@@ -62,7 +57,7 @@ static struct gl_buffer_object *intel_bufferobj_alloc( GLcontext *ctx,
 
    /* XXX:  We generate our own handle, which is different to 'name' above.
     */
-   bmGenBuffers(intel->bm, &obj->buffer, 1);
+   bmGenBuffers(intel->bm, 1, &obj->buffer);
 
    return &obj->Base;
 }
@@ -70,20 +65,15 @@ static struct gl_buffer_object *intel_bufferobj_alloc( GLcontext *ctx,
 static void intel_bufferobj_free( GLcontext *ctx, 
 				  struct gl_buffer_object *obj )
 { 
-   /* Are the obj->Name tests necessary?  Unfortunately yes, mesa
-    * allocates a couple of gl_buffer_object structs statically, and
-    * the Name == 0 test is the only way to identify them and avoid
-    * casting them erroneously to our structs.
-    */
-   if (obj->Name) {
-      struct intel_context *intel = intel_context(ctx);
-      struct intel_buffer_object *intel_obj = intel_buffer_object(obj);
+   struct intel_context *intel = intel_context(ctx);
+   struct intel_buffer_object *intel_obj = intel_buffer_object(obj);
 
-      if (intel_obj->buffer) 
-	 bmDeleteBuffers( intel->bm, 1, &intel_obj->buffer );
+   assert(intel_obj);
+
+   if (intel_obj->buffer) 
+      bmDeleteBuffers( intel->bm, 1, &intel_obj->buffer );
   
-      _mesa_free(obj);
-   }
+   _mesa_free(intel_obj);
 }
 
 
@@ -99,15 +89,14 @@ static void intel_bufferobj_data( GLcontext *ctx,
 				  GLenum usage,
 				  struct gl_buffer_object *obj )
 {
-   if (obj->Name) {
-      struct intel_context *intel = intel_context(ctx);
-      struct intel_buffer_object *intel_obj = intel_buffer_object(obj);
+   struct intel_context *intel = intel_context(ctx);
+   struct intel_buffer_object *intel_obj = intel_buffer_object(obj);
 
-      /* XXX: do something useful with 'usage' (eg. populate flags
-       * argument below)
-       */
-      bmBufferData(intel->bm, obj->buffer, size, data, 0);
-   }
+   /* XXX: do something useful with 'usage' (eg. populate flags
+    * argument below)
+    */
+   assert(intel_obj);
+   bmBufferData(intel->bm, intel_obj->buffer, size, data, 0);
 }
 
 
@@ -122,12 +111,11 @@ static void intel_bufferobj_subdata( GLcontext *ctx,
 				     const GLvoid * data,
 				     struct gl_buffer_object * obj )
 {
-   if (obj->Name) {
-      struct intel_context *intel = intel_context(ctx);
-      struct intel_buffer_object *intel_obj = intel_buffer_object(obj);
+   struct intel_context *intel = intel_context(ctx);
+   struct intel_buffer_object *intel_obj = intel_buffer_object(obj);
 
-      bmBufferSubData(intel->bm, obj->buffer, size, data);
-   }
+   assert(intel_obj);
+   bmBufferSubData(intel->bm, intel_obj->buffer, offset, size, data);
 }
 
 
@@ -138,16 +126,13 @@ static void *intel_bufferobj_map( GLcontext *ctx,
 				  GLenum access,
 				  struct gl_buffer_object *obj )
 {
-   if (obj->Name) {
-      struct intel_context *intel = intel_context(ctx);
-      struct intel_buffer_object *intel_obj = intel_buffer_object(obj);
+   struct intel_context *intel = intel_context(ctx);
+   struct intel_buffer_object *intel_obj = intel_buffer_object(obj);
 
-      /* XXX: Translate access to flags arg below:
-       */
-      return bmMapBuffer(intel->bm, intel_obj->buffer, 0);
-   }
-      
-   return NULL;
+   /* XXX: Translate access to flags arg below:
+    */
+   assert(intel_obj);
+   return bmMapBuffer(intel->bm, intel_obj->buffer, 0);
 }
 
 
@@ -155,37 +140,27 @@ static GLboolean intel_bufferobj_unmap( GLcontext *ctx,
 					GLenum target,
 					struct gl_buffer_object *obj )
 {
-   if (obj->Name) {
-      struct intel_context *intel = intel_context(ctx);
-      struct intel_buffer_object *intel_obj = intel_buffer_object(obj);
+   struct intel_context *intel = intel_context(ctx);
+   struct intel_buffer_object *intel_obj = intel_buffer_object(obj);
 
-      return bmUnmapBuffer(intel->bm, intel_obj->buffer);
-   }
-   
+   assert(intel_obj);
+   bmUnmapBuffer(intel->bm, intel_obj->buffer);
    return GL_TRUE;
 }
 
-GLuint intel_bufferobj_buffer( struct gl_buffer_object *obj )
+GLuint intel_bufferobj_buffer( struct intel_buffer_object *intel_obj )
 {
-   if (obj->Name) {
-      struct intel_buffer_object *intel_obj = intel_buffer_object(obj);
-      return intel_obj->buffer;
-   }
-   else {
-      assert(0);
-      return 0;
-   }
-      
+   return intel_obj->buffer;
 }  
 
 void intel_bufferobj_init( struct intel_context *intel )
 {
    GLcontext *ctx = &intel->ctx;
 
-   ctx->Driver.NewBufferObject = intel_new_buffer_object;
-   ctx->Driver.DeleteBuffer = intel_delete_buffer_object;
-   ctx->Driver.BufferData = intel_buffer_data;
-   ctx->Driver.BufferSubData = intel_buffer_subdata;
-   ctx->Driver.MapBuffer = intel_buffer_map;
-   ctx->Driver.UnmapBuffer = intel_buffer_unmap;
+   ctx->Driver.NewBufferObject = intel_bufferobj_alloc;
+   ctx->Driver.DeleteBuffer = intel_bufferobj_free;
+   ctx->Driver.BufferData = intel_bufferobj_data;
+   ctx->Driver.BufferSubData = intel_bufferobj_subdata;
+   ctx->Driver.MapBuffer = intel_bufferobj_map;
+   ctx->Driver.UnmapBuffer = intel_bufferobj_unmap;
 }

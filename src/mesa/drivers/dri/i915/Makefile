@@ -7,6 +7,7 @@ LIBNAME = i915_dri.so
 DRIVER_SOURCES = \
 	bufmgr_fake.c \
 	intel_regions.c \
+	intel_buffer_objects.c \
 	intel_batchbuffer.c \
 	intel_mipmap_tree.c \
 	i915_tex_layout.c \

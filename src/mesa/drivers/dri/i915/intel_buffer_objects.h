@@ -32,14 +32,30 @@
 
 struct intel_context;
 struct gl_buffer_object;
+struct intel_buffer_object;
 
 /* Get the bm buffer associated with a GL bufferobject:
  */
-GLuint intel_bufferobj_buffer( struct intel_context *intel,
-			       struct gl_buffer_object *obj );
+GLuint intel_bufferobj_buffer( struct intel_buffer_object *obj );
 
 /* Hook the bufferobject implementation into mesa: 
  */
 void intel_bufferobj_init( struct intel_context *intel );
+
+
+
+/* Are the obj->Name tests necessary?  Unfortunately yes, mesa
+ * allocates a couple of gl_buffer_object structs statically, and
+ * the Name == 0 test is the only way to identify them and avoid
+ * casting them erroneously to our structs.
+ */
+static inline struct intel_buffer_object *
+intel_buffer_object( struct gl_buffer_object *obj )
+{
+   if (obj->Name)
+      return (struct intel_buffer_object *)obj;
+   else
+      return NULL;
+}
 
 #endif

@@ -305,11 +305,11 @@ static void intelTexImage(GLcontext *ctx,
       texImage->Data = malloc(sizeInBytes);
    }
 
-   fprintf(stderr, 
-	   "Upload image %dx%dx%d row_len %x "
-	   "pitch %x depth_pitch %x\n",
-	   width, height, depth,
-	   width * texelBytes, dstRowStride, dstImageStride);
+   if (INTEL_DEBUG & DEBUG_TEXTURE)
+      _mesa_printf("Upload image %dx%dx%d row_len %x "
+		   "pitch %x depth_pitch %x\n",
+		   width, height, depth,
+		   width * texelBytes, dstRowStride, dstImageStride);
      
    /* Copy data.  Would like to know when it's ok for us to eg. use
     * the blitter to copy.  Or, use the hardware to do the format

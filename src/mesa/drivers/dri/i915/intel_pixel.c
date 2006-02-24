@@ -1,42 +1,38 @@
+/**************************************************************************
+ * 
+ * Copyright 2006 Tungsten Graphics, Inc., Cedar Park, Texas.
+ * All Rights Reserved.
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the
+ * "Software"), to deal in the Software without restriction, including
+ * without limitation the rights to use, copy, modify, merge, publish,
+ * distribute, sub license, and/or sell copies of the Software, and to
+ * permit persons to whom the Software is furnished to do so, subject to
+ * the following conditions:
+ * 
+ * The above copyright notice and this permission notice (including the
+ * next paragraph) shall be included in all copies or substantial portionsalloc
+ * of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+ * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
+ * IN NO EVENT SHALL TUNGSTEN GRAPHICS AND/OR ITS SUPPLIERS BE LIABLE FOR
+ * ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+ * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+ * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * 
+ **************************************************************************/
+
 #include "swrast/swrast.h"
+
 #include "intel_context.h"
 #include "intel_pixel.h"
 #include "intel_regions.h"
 
 
-
-#if 0
-struct intel_client_region *intel_pack_region( struct intel_context *intel,
-					       const struct gl_pixelstore_attrib *pack,
-					       GLenum format,
-					       GLenum type,
-					       GLvoid *pixels )
-{
-}
-
-
-struct intel_client_region *intel_unpack_region( struct intel_context *intel,
-						 const struct gl_pixelstore_attrib *pack,
-						 GLenum format,
-						 GLenum type,
-						 GLvoid *pixels )
-{
-   GLint pitch = unpack->RowLength ? unpack->RowLength : width;
-   /* XXX: Need to adjust pixels pointer for unpack->skip pixels/rows
-    * offsets.
-    */
-
-}
-
-void release_client_region( struct intel_context *intel,
-			    struct intel_region *region )
-{
-}
-#endif
-
-
-
-GLboolean intel_check_color_per_fragment_ops( const GLcontext *ctx )
+GLboolean intel_check_blit_fragment_ops( const GLcontext *ctx )
 {
    return !(ctx->Color.AlphaEnabled || 
 	    ctx->Depth.Test ||
@@ -51,33 +47,29 @@ GLboolean intel_check_color_per_fragment_ops( const GLcontext *ctx )
 	    ctx->Texture._EnabledUnits);
 }
 
-#if 0
 /* The intel_region struct doesn't really do enough to capture the
  * format of the pixels in the region.  For now this code assumes that
  * the region is a display surface and hence is either ARGB8888 or
  * RGB565.
  */
 GLboolean intel_check_blit_format( struct intel_region *region,
-				   struct intel_client_region *client_region )
+				   GLenum type, GLenum format )
 {
-   if (region->cpp == 4 
-       client_region->cpp == 4 && 
-       client_region->type == GL_UNSIGNED_INT_8_8_8_8_REV &&        
-       client_region->format == GL_BGRA ) {
+   if (region->cpp == 4 &&
+       type == GL_UNSIGNED_INT_8_8_8_8_REV &&        
+       format == GL_BGRA ) {
       return GL_TRUE;
    }
    
    if (region->cpp == 2 && 
-       client_region->cpp == 2 &&
-       client_region->type == GL_UNSIGNED_INT_5_6_5_REV && 
-       client_region->format == GL_BGR ) {
+       type == GL_UNSIGNED_SHORT_5_6_5_REV && 
+       format == GL_BGR ) {
       return GL_TRUE;
    }
    
    fprintf(stderr, "%s: request doesn't match pixel format\n", __FUNCTION__);
    return GL_FALSE;
 }
-#endif
 
 
 GLboolean intel_clip_to_framebuffer( GLcontext *ctx,

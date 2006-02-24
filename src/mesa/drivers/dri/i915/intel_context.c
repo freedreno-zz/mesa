@@ -57,6 +57,7 @@
 #include "intel_blit.h"
 #include "intel_pixel.h"
 #include "intel_regions.h"
+#include "intel_buffer_objects.h"
 
 #include "bufmgr.h"
 
@@ -154,6 +155,7 @@ const struct dri_extension card_extensions[] =
     { "GL_ARB_texture_mirrored_repeat",    NULL },
     { "GL_ARB_texture_rectangle",          NULL },
     { "GL_ARB_vertex_buffer_object",       GL_ARB_vertex_buffer_object_functions },
+    { "GL_ARB_pixel_buffer_object",        NULL },
     { "GL_ARB_vertex_program",             GL_ARB_vertex_program_functions },
     { "GL_ARB_window_pos",                 GL_ARB_window_pos_functions },
     { "GL_EXT_blend_color",                GL_EXT_blend_color_functions },
@@ -424,6 +426,7 @@ GLboolean intelInitContext( struct intel_context *intel,
 				 intelScreen->height);
    
    intel->batch = intel_batchbuffer_alloc( intel );
+   intel_bufferobj_init( intel );
 
    if (intel->ctx.Mesa_DXTn) {
      _mesa_enable_extension( ctx, "GL_EXT_texture_compression_s3tc" );
@@ -432,12 +435,6 @@ GLboolean intelInitContext( struct intel_context *intel,
    else if (driQueryOptionb (&intelScreen->optionCache, "force_s3tc_enable")) {
      _mesa_enable_extension( ctx, "GL_EXT_texture_compression_s3tc" );
    }
-
-/*    driInitTextureObjects( ctx, & intel->swapped, */
-/* 			  DRI_TEXMGR_DO_TEXTURE_1D | */
-/* 			  DRI_TEXMGR_DO_TEXTURE_2D |  */
-/* 			  DRI_TEXMGR_DO_TEXTURE_RECT ); */
-
 
    intel->prim.primitive = ~0;
 
