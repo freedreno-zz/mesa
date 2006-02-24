@@ -35,7 +35,7 @@ void intelInitPixelFuncs( struct dd_function_table *functions );
 GLboolean intel_check_blit_fragment_ops( const GLcontext *ctx );
 
 GLboolean intel_check_blit_format( struct intel_region *region,
-				   GLenum type, GLenum format );
+				   GLenum format, GLenum type );
 
 
 GLboolean intel_clip_to_framebuffer( GLcontext *ctx,

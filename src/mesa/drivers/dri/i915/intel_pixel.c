@@ -25,6 +25,7 @@
  * 
  **************************************************************************/
 
+#include "enums.h"
 #include "swrast/swrast.h"
 
 #include "intel_context.h"
@@ -53,7 +54,7 @@ GLboolean intel_check_blit_fragment_ops( const GLcontext *ctx )
  * RGB565.
  */
 GLboolean intel_check_blit_format( struct intel_region *region,
-				   GLenum type, GLenum format )
+				   GLenum format, GLenum type )
 {
    if (region->cpp == 4 &&
        type == GL_UNSIGNED_INT_8_8_8_8_REV &&        
@@ -67,7 +68,11 @@ GLboolean intel_check_blit_format( struct intel_region *region,
       return GL_TRUE;
    }
    
-   fprintf(stderr, "%s: request doesn't match pixel format\n", __FUNCTION__);
+   fprintf(stderr, "%s: bad format for blit (cpp %d, type %s format %s)\n", 
+	   __FUNCTION__, region->cpp, 
+	   _mesa_lookup_enum_by_nr(type),
+	   _mesa_lookup_enum_by_nr(format));
+
    return GL_FALSE;
 }
 
