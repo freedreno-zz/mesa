@@ -32,8 +32,8 @@ static GLboolean Benchmark = GL_FALSE;
 static GLuint DrawPBO, TempPBO;
 
 
-static GLenum ReadFormat = GL_RGBA;
-static GLenum ReadType = GL_UNSIGNED_BYTE;
+static GLenum ReadFormat = GL_BGRA;
+static GLenum ReadType = GL_UNSIGNED_INT_8_8_8_8_REV;
 
 
 
