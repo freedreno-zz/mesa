@@ -96,6 +96,10 @@ static void intel_bufferobj_data( GLcontext *ctx,
     * argument below)
     */
    assert(intel_obj);
+
+   obj->Size = size;
+   obj->Usage = usage;
+
    bmBufferData(intel->bm, intel_obj->buffer, size, data, 0);
 }
 
@@ -120,6 +124,22 @@ static void intel_bufferobj_subdata( GLcontext *ctx,
 
 
 
+static void intel_bufferobj_get_subdata( GLcontext *ctx, 
+					 GLenum target, 
+					 GLintptrARB offset,
+					 GLsizeiptrARB size, 
+					 GLvoid * data,
+					 struct gl_buffer_object * obj )
+{
+   struct intel_context *intel = intel_context(ctx);
+   struct intel_buffer_object *intel_obj = intel_buffer_object(obj);
+
+   assert(intel_obj);
+   bmBufferGetSubData(intel->bm, intel_obj->buffer, offset, size, data);
+}
+
+
+
 
 static void *intel_bufferobj_map( GLcontext *ctx, 
 				  GLenum target, 
@@ -132,7 +152,8 @@ static void *intel_bufferobj_map( GLcontext *ctx,
    /* XXX: Translate access to flags arg below:
     */
    assert(intel_obj);
-   return bmMapBuffer(intel->bm, intel_obj->buffer, 0);
+   obj->Pointer = bmMapBuffer(intel->bm, intel_obj->buffer, 0);
+   return obj->Pointer;
 }
 
 
@@ -144,7 +165,9 @@ static GLboolean intel_bufferobj_unmap( GLcontext *ctx,
    struct intel_buffer_object *intel_obj = intel_buffer_object(obj);
 
    assert(intel_obj);
+   assert(obj->Pointer);
    bmUnmapBuffer(intel->bm, intel_obj->buffer);
+   obj->Pointer = NULL;
    return GL_TRUE;
 }
 
@@ -161,6 +184,7 @@ void intel_bufferobj_init( struct intel_context *intel )
    ctx->Driver.DeleteBuffer = intel_bufferobj_free;
    ctx->Driver.BufferData = intel_bufferobj_data;
    ctx->Driver.BufferSubData = intel_bufferobj_subdata;
+   ctx->Driver.GetBufferSubData = intel_bufferobj_get_subdata;
    ctx->Driver.MapBuffer = intel_bufferobj_map;
    ctx->Driver.UnmapBuffer = intel_bufferobj_unmap;
 }
