@@ -766,7 +766,14 @@ void bmBufferData(struct bufmgr *bm,
 
    if (data != NULL) {      
       bmAllocMem(bm, buf, buf->flags | flags);
+#if 0      
       memcpy(buf->block->virtual, data, size);
+#else
+      /* Do an implicit map/unmap to get this working for now: 
+       */
+      memcpy(bmMapBuffer(bm, buf->id, flags), data, size);
+      bmUnmapBuffer(bm, buf->id);
+#endif      
    }
 }
 
@@ -788,8 +795,16 @@ void bmBufferSubData(struct bufmgr *bm,
    if (buf->block->mem_type != BM_MEM_LOCAL)
       bmFinishFence(bm, buf->block->fence);
 
-   if (size) 
+   if (size) {
+#if 0
       memcpy(buf->block->virtual + offset, data, size); 
+#else
+      /* Do an implicit map/unmap to get this working for now: 
+       */
+      memcpy(bmMapBuffer(bm, buf->id, 0) + offset, data, size); 
+      bmUnmapBuffer(bm, buf->id);
+#endif
+   }
 }
 
 
