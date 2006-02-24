@@ -862,8 +862,12 @@ static void intelRasterPrimitive( GLcontext *ctx, GLenum rprim, GLuint hwprim )
     
    /* Start a new primitive.  Arrange to have it flushed later on.
     */
-   if (hwprim != intel->prim.primitive) 
+   if (hwprim != intel->prim.primitive) {
+      if (intel->prim.flush)
+	 intel->prim.flush(intel);
+
       intelStartInlinePrimitive( intel, hwprim, INTEL_BATCH_CLIPRECTS );
+   }
 }
 
 
