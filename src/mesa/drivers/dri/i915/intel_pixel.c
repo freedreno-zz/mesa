@@ -26,6 +26,7 @@
  **************************************************************************/
 
 #include "enums.h"
+#include "state.h"
 #include "swrast/swrast.h"
 
 #include "intel_context.h"
@@ -35,7 +36,11 @@
 
 GLboolean intel_check_blit_fragment_ops( const GLcontext *ctx )
 {
-   return !(ctx->Color.AlphaEnabled || 
+   if (ctx->NewState)
+      _mesa_update_state(ctx);
+
+   return !(ctx->_ImageTransferState ||
+	    ctx->Color.AlphaEnabled || 
 	    ctx->Depth.Test ||
 	    ctx->Fog.Enabled ||
 	    ctx->Scissor.Enabled ||

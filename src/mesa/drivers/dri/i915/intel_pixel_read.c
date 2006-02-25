@@ -183,12 +183,13 @@ static GLboolean do_blit_readpixels( GLcontext *ctx,
    }
 
    
-   if (!intel_check_blit_format(src, format, type)) {
+   if (ctx->_ImageTransferState ||
+       !intel_check_blit_format(src, format, type)) {
       _mesa_printf("%s - bad format for blit\n", __FUNCTION__);
       return GL_FALSE;
    }
 
-   if (pack->SwapBytes || pack->LsbFirst) {
+   if (pack->Alignment != 1 || pack->SwapBytes || pack->LsbFirst) {
       _mesa_printf("%s: bad packing params\n", __FUNCTION__);
       return GL_FALSE;
    }
