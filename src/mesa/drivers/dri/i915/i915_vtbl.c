@@ -362,7 +362,7 @@ static void i915_lost_hardware( struct intel_context *intel )
 
 static GLuint i915_flush_cmd( void )
 {
-   return MI_FLUSH | FLUSH_MAP_CACHE | FLUSH_RENDER_CACHE;
+   return MI_FLUSH | FLUSH_MAP_CACHE;
 }
 
 

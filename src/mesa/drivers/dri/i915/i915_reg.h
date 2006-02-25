@@ -825,9 +825,9 @@
 #define ST1_MASK                 (0xffff)
 
 
-#define MI_FLUSH           ((0<<29)|(4<<23))
-#define FLUSH_MAP_CACHE    (1<<0)
-#define FLUSH_RENDER_CACHE (1<<1)
+#define MI_FLUSH                   ((0<<29)|(4<<23))
+#define FLUSH_MAP_CACHE            (1<<0)
+#define INHIBIT_FLUSH_RENDER_CACHE (1<<2)
 
 
 #endif
