@@ -34,7 +34,7 @@
 #include "intel_regions.h"
 
 
-GLboolean intel_check_blit_fragment_ops( const GLcontext *ctx )
+GLboolean intel_check_blit_fragment_ops( GLcontext *ctx )
 {
    if (ctx->NewState)
       _mesa_update_state(ctx);

@@ -157,14 +157,7 @@ struct intel_context
       void (*meta_import_pixel_state)( struct intel_context *intel );
 
       void (*meta_tex_rect_source)( struct intel_context *intel,
-				    struct intel_region *region,
-				    GLuint textureFormat );
-
-      void (*meta_draw_format)( struct intel_context *intel,
-				GLuint format,
-				GLuint depth_format );
-      
-      
+				    struct intel_region *region );
 
 
    } vtbl;

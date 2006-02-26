@@ -139,7 +139,6 @@ static GLboolean do_blit_draw_pixels( struct intel_context *intel,
    struct intel_region *dest = intel_drawbuf_region(intel);
    struct intel_buffer_object *src = intel_buffer_object(unpack->BufferObj);
    GLuint src_offset;
-   GLuint src_y = 0;
    GLuint rowLength;
    GLuint fence;
    
@@ -164,7 +163,7 @@ static GLboolean do_blit_draw_pixels( struct intel_context *intel,
    else {
       /* PBO only for now:
        */
-      _mesa_printf("%s - not PBO\n", __FUNCTION__);
+/*       _mesa_printf("%s - not PBO\n", __FUNCTION__); */
       return GL_FALSE;
    }
    
@@ -261,7 +260,6 @@ void intelDrawPixels( GLcontext *ctx,
 		      const GLvoid *pixels )
 {
    struct intel_context *intel = intel_context(ctx);
-
 
    if (do_texture_draw_pixels( intel, x, y, width, height, format, type,
 			       unpack, pixels ))

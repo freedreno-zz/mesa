@@ -305,18 +305,23 @@ static void meta_texture_blend_replace( struct intel_context *intel )
  * (including the front or back buffer).
  */
 static void meta_tex_rect_source( struct intel_context *intel,
-				 struct intel_region *region,
-				 GLuint textureFormat )
+				 struct intel_region *region )
 {
    struct i915_context *i915 = i915_context(&intel->ctx);
    GLuint unit = 0;
    GLint numLevels = 1;
    GLuint *state = i915->meta.Tex[0];
+   GLuint textureFormat;
 
    GLuint pitch = region->pitch * region->cpp;
 
-/*    fprintf(stderr, "%s: offset: %x w: %d h: %d pitch %d format %x\n", */
-/* 	   __FUNCTION__, offset, width, height, pitch, textureFormat ); */
+   /* XXX: color buffers only: 
+    */
+   if (region->cpp == 2)
+      textureFormat = (MAPSURF_16BIT | MT_16BIT_RGB565);
+   else
+      textureFormat = (MAPSURF_32BIT | MT_32BIT_ARGB8888);
+
 
    intel_region_release(intel, &i915->meta.tex_region[0]);
    intel_region_reference(&i915->meta.tex_region[0], region);
@@ -348,27 +353,32 @@ static void meta_tex_rect_source( struct intel_context *intel,
 /* Select between front and back draw buffers.
  */
 static void meta_draw_region( struct intel_context *intel,
-			     struct intel_region *draw_region,
-			     struct intel_region *depth_region )
+			      struct intel_region *draw_region,
+			      struct intel_region *depth_region )
 {
    struct i915_context *i915 = i915_context(&intel->ctx);
+   GLuint format;
+   GLuint depth_format = DEPTH_FRMT_16_FIXED;
 
    intel_region_release(intel, &i915->meta.draw_region);
-   intel_region_release(intel, &i915->meta.depth_region);
    intel_region_reference(&i915->meta.draw_region, draw_region);
+   
+   intel_region_release(intel, &i915->meta.depth_region);   
    intel_region_reference(&i915->meta.depth_region, depth_region);
 
-   i915->meta.emitted &= ~I915_UPLOAD_BUFFERS;
-}
+   /* XXX: 555 support?
+    */
+   if (draw_region->cpp == 2)
+      format = DV_PF_565;
+   else
+      format = DV_PF_8888;
 
-/* Setup an arbitary draw format, useful for targeting texture or agp
- * memory.
- */
-static void set_draw_format( struct intel_context *intel,
-			     GLuint format,
-			     GLuint depth_format)
-{
-   struct i915_context *i915 = i915_context(&intel->ctx);
+   if (depth_region) {
+      if (depth_region->cpp == 2)
+	 depth_format = DEPTH_FRMT_16_FIXED;
+      else
+	 depth_format = DEPTH_FRMT_24_FIXED_8_OTHER;
+   }
 
    i915->meta.Buffer[I915_DESTREG_DV1] = (DSTORG_HORT_BIAS(0x8) | /* .5 */
 					  DSTORG_VERT_BIAS(0x8) | /* .5 */
@@ -379,6 +389,7 @@ static void set_draw_format( struct intel_context *intel,
 
    i915->meta.emitted &= ~I915_UPLOAD_BUFFERS;
 }
+
 
 static void set_vertex_format( struct intel_context *intel )
 {
@@ -443,6 +454,5 @@ void i915InitMetaFuncs( struct i915_context *i915 )
    i915->intel.vtbl.meta_texture_blend_replace = meta_texture_blend_replace;
    i915->intel.vtbl.meta_tex_rect_source = meta_tex_rect_source;
    i915->intel.vtbl.meta_draw_region = meta_draw_region;
-   i915->intel.vtbl.meta_draw_format = set_draw_format;
    i915->intel.vtbl.meta_import_pixel_state = meta_import_pixel_state;
 }

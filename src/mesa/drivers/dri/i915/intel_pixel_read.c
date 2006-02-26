@@ -44,7 +44,27 @@
 
 #include "bufmgr.h"
 
-
+/* For many applications, the new ability to pull the source buffers
+ * back out of the GTT and then do the packing/conversion operations
+ * in software will be as much of an improvement as trying to get the
+ * blitter and/or texture engine to do the work. 
+ *
+ * This step is gated on private backbuffers.
+ * 
+ * Obviously the frontbuffer can't be pulled back, so that is either
+ * an argument for blit/texture readpixels, or for blitting to a
+ * temporary and then pulling that back.
+ *
+ * When the destination is a pbo, however, it's not clear if it is
+ * ever going to be pulled to main memory (though the access param
+ * will be a good hint).  So it sounds like we do want to be able to
+ * choose between blit/texture implementation on the gpu and pullback
+ * and cpu-based copying.
+ *
+ * Unless you can magically turn client memory into a PBO for the
+ * duration of this call, there will be a cpu-based copying step in
+ * any case.
+ */
 
 
 static GLboolean
@@ -278,6 +298,8 @@ intelReadPixels( GLcontext *ctx,
 
    if (do_texture_readpixels(ctx, x, y, width, height, format, type, pack, pixels))
       return;
+
+   _mesa_printf("%s: fallback to swrast\n", __FUNCTION__);
 
    _swrast_ReadPixels( ctx, x, y, width, height, format, type, pack, pixels);
 }
