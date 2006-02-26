@@ -32,7 +32,13 @@
 
 struct intel_context;
 struct gl_buffer_object;
-struct intel_buffer_object;
+
+
+struct intel_buffer_object {
+   struct gl_buffer_object Base;
+   GLuint buffer;
+};
+
 
 /* Get the bm buffer associated with a GL bufferobject:
  */

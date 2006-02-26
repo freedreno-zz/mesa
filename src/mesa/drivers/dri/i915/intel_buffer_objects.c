@@ -35,12 +35,6 @@
 #include "bufmgr.h"
 
 
-struct intel_buffer_object {
-   struct gl_buffer_object Base;
-   GLuint buffer;
-};
-
-
 /* There is some duplication between mesa's bufferobjects and our
  * bufmgr buffers.  Both have an integer handle and a hashtable to
  * lookup an opaque structure.  It would be nice if the handles and
