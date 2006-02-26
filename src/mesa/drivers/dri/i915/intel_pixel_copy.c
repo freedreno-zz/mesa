@@ -78,11 +78,13 @@ static GLboolean do_texture_copypixels( GLcontext *ctx,
    struct intel_context *intel = intel_context( ctx );
    struct intel_region *dst = intel_drawbuf_region( intel );
    struct intel_region *src = copypix_src_region(intel, type);
+   GLenum src_format;
+   GLenum src_type;
 
    if (INTEL_DEBUG & DEBUG_PIXEL)
       fprintf(stderr, "%s\n", __FUNCTION__);
 
-   if (!src || !dst)
+   if (!src || !dst || type != GL_COLOR)
       return GL_FALSE;
 
    intelFlush( &intel->ctx );
@@ -98,10 +100,26 @@ static GLboolean do_texture_copypixels( GLcontext *ctx,
     */
    intel->vtbl.meta_draw_region(intel, dst, intel->depth_region);
 
+   if (src->cpp == 2) {
+      src_format = GL_RGB;
+      src_type = GL_UNSIGNED_SHORT_5_6_5;
+   } 
+   else {
+      src_format = GL_BGRA;
+      src_type = GL_UNSIGNED_BYTE;
+   }
 
    /* Set the frontbuffer up as a large rectangular texture.
     */
-   intel->vtbl.meta_tex_rect_source( intel, src ); 
+   if (!intel->vtbl.meta_tex_rect_source( intel, src->buffer, 0,
+					  src->pitch,
+					  src->height,
+					  src_format,
+					  src_type )) {
+      intel->vtbl.leave_meta_state(intel);
+      return GL_FALSE;
+   }
+
       
    intel->vtbl.meta_texture_blend_replace( intel ); 
 
@@ -258,7 +276,7 @@ void intelCopyPixels( GLcontext *ctx,
    if (INTEL_DEBUG & DEBUG_PIXEL)
       fprintf(stderr, "%s\n", __FUNCTION__);
 
-   if (0 && do_blit_copypixels( ctx, srcx, srcy, width, height, destx, desty, type))
+   if (do_blit_copypixels( ctx, srcx, srcy, width, height, destx, desty, type))
       return;
 
    if (do_texture_copypixels( ctx, srcx, srcy, width, height, destx, desty, type))

@@ -154,6 +154,8 @@ static void do_flush_locked( struct intel_batchbuffer *batch,
    for (i = 0; i < batch->nr_relocs; i++) {
       struct buffer_reloc *r = &batch->reloc[i];
 
+      assert(r->elem < batch->list->nr);
+
       DBG("apply fixup at offset 0x%x, elem %d (buf %d, offset 0x%x), delta 0x%x\n",
 	  r->offset, r->elem, batch->list->elem[r->elem].buffer,
 	  batch->offset[r->elem], r->delta);

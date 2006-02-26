@@ -289,8 +289,8 @@ static void i915_emit_state( struct intel_context *intel )
       for (i = 0 ; i < I915_TEX_UNITS ; i++)
 	 if (dirty & I915_UPLOAD_TEX(i)) {
 
-	    if (state->tex_region[i]) {
-	       OUT_RELOC(state->tex_region[i]->buffer,
+	    if (state->tex_buffer[i]) {
+	       OUT_RELOC(state->tex_buffer[i],
 			 BM_MEM_AGP|BM_READ,
 			 state->tex_offset[i]);
 	    }

@@ -123,14 +123,15 @@ static GLboolean i915_update_tex_unit( struct intel_context *intel,
 
    memset(state, 0, sizeof(state));
 
-   intel_region_release(intel, &i915->state.tex_region[unit]);
+/*    intel_region_release(intel, &i915->state.tex_region[unit]); */
 
    if (!intel_finalize_mipmap_tree(intel, unit))
       return GL_FALSE;   
 
-   intel_region_reference(&i915->state.tex_region[unit],
-			  intelObj->mt->region);
+/*    intel_region_reference(&i915->state.tex_region[unit], */
+/* 			  intelObj->mt->region); */
 
+   i915->state.tex_buffer[unit] = intelObj->mt->region->buffer;
    i915->state.tex_offset[unit] = intel_miptree_image_offset(intelObj->mt, 0,
 							     intelObj->firstLevel); 
 

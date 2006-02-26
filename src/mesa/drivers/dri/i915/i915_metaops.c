@@ -304,35 +304,91 @@ static void meta_texture_blend_replace( struct intel_context *intel )
 /* Set up an arbitary piece of memory as a rectangular texture
  * (including the front or back buffer).
  */
-static void meta_tex_rect_source( struct intel_context *intel,
-				 struct intel_region *region )
+static GLboolean meta_tex_rect_source( struct intel_context *intel,
+				       GLuint buffer,
+				       GLuint offset, 
+				       GLuint pitch,
+				       GLuint height,
+				       GLenum format,
+				       GLenum type)
 {
    struct i915_context *i915 = i915_context(&intel->ctx);
    GLuint unit = 0;
    GLint numLevels = 1;
    GLuint *state = i915->meta.Tex[0];
    GLuint textureFormat;
+   GLuint cpp;
 
-   GLuint pitch = region->pitch * region->cpp;
-
-   /* XXX: color buffers only: 
+   /* A full implementation of this would do the upload through
+    * glTexImage2d, and get all the conversion operations at that
+    * point.  We are restricted, but still at least have access to the
+    * fragment program swizzle.
     */
-   if (region->cpp == 2)
-      textureFormat = (MAPSURF_16BIT | MT_16BIT_RGB565);
-   else
-      textureFormat = (MAPSURF_32BIT | MT_32BIT_ARGB8888);
+   switch (format) {
+   case GL_BGRA:
+      switch (type) {
+      case GL_UNSIGNED_INT_8_8_8_8_REV:
+      case GL_UNSIGNED_BYTE:
+	 textureFormat = (MAPSURF_32BIT | MT_32BIT_ARGB8888);
+	 cpp = 4;
+	 break;
+      default:
+	 return GL_FALSE;
+      }
+      break;
+   case GL_RGBA:
+      switch (type) {
+      case GL_UNSIGNED_INT_8_8_8_8_REV:
+      case GL_UNSIGNED_BYTE:
+	 textureFormat = (MAPSURF_32BIT | MT_32BIT_ABGR8888);
+	 cpp = 4;
+	 break;
+      default:
+	 return GL_FALSE;
+      }
+      break;
+   case GL_BGR:
+      switch (type) {
+      case GL_UNSIGNED_SHORT_5_6_5_REV:
+	 textureFormat = (MAPSURF_16BIT | MT_16BIT_RGB565);
+	 cpp = 2;
+	 break;
+      default:
+	 return GL_FALSE;
+      }
+      break;
+   case GL_RGB:
+      switch (type) {
+      case GL_UNSIGNED_SHORT_5_6_5:
+	 textureFormat = (MAPSURF_16BIT | MT_16BIT_RGB565);
+	 cpp = 2;
+	 break;
+      default:
+	 return GL_FALSE;
+      }
+      break;
+
+   default:
+      return GL_FALSE;
+   }
 
 
-   intel_region_release(intel, &i915->meta.tex_region[0]);
-   intel_region_reference(&i915->meta.tex_region[0], region);
-   i915->meta.tex_offset[0] = 0;
+   if ((pitch * cpp) & 3) {
+      _mesa_printf("%s: texture is not dword pitch\n", __FUNCTION__);
+      return GL_FALSE;
+   }
 
-   state[I915_TEXREG_MS3] = (((region->height - 1) << MS3_HEIGHT_SHIFT) |
-			     ((region->pitch - 1) << MS3_WIDTH_SHIFT) |
+/*    intel_region_release(intel, &i915->meta.tex_region[0]); */
+/*    intel_region_reference(&i915->meta.tex_region[0], region); */
+   i915->meta.tex_buffer[0] = buffer;
+   i915->meta.tex_offset[0] = offset;
+
+   state[I915_TEXREG_MS3] = (((height - 1) << MS3_HEIGHT_SHIFT) |
+			     ((pitch - 1) << MS3_WIDTH_SHIFT) |
 			     textureFormat |
 			     MS3_USE_FENCE_REGS);
 
-   state[I915_TEXREG_MS4] = ((((pitch / 4) - 1) << MS4_PITCH_SHIFT) | 
+   state[I915_TEXREG_MS4] = (((((pitch * cpp) / 4) - 1) << MS4_PITCH_SHIFT) | 
 			     MS4_CUBE_FACE_ENA_MASK |
 			     ((((numLevels-1) * 4)) << MS4_MAX_LOD_SHIFT));
 
@@ -348,6 +404,7 @@ static void meta_tex_rect_source( struct intel_context *intel,
    state[I915_TEXREG_SS4] = 0;
 
    i915->meta.emitted &= ~I915_UPLOAD_TEX(0);
+   return GL_TRUE;
 }
 
 /* Select between front and back draw buffers.
@@ -437,7 +494,7 @@ static void leave_meta_state( struct intel_context *intel )
    struct i915_context *i915 = i915_context(&intel->ctx);
    intel_region_release(intel, &i915->meta.draw_region);
    intel_region_release(intel, &i915->meta.depth_region);
-   intel_region_release(intel, &i915->meta.tex_region[0]);
+/*    intel_region_release(intel, &i915->meta.tex_region[0]); */
    SET_STATE(i915, state);
 }
 

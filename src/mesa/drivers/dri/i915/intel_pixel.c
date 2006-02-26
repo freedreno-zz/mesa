@@ -39,6 +39,8 @@ GLboolean intel_check_blit_fragment_ops( GLcontext *ctx )
    if (ctx->NewState)
       _mesa_update_state(ctx);
 
+   /* Scissor could be done with the blitter:
+    */
    return !(ctx->_ImageTransferState ||
 	    ctx->Color.AlphaEnabled || 
 	    ctx->Depth.Test ||
@@ -50,7 +52,22 @@ GLboolean intel_check_blit_fragment_ops( GLcontext *ctx )
 	    !ctx->Color.ColorMask[2] ||
 	    !ctx->Color.ColorMask[3] ||
 	    ctx->Color.ColorLogicOpEnabled ||
-	    ctx->Texture._EnabledUnits);
+	    ctx->Texture._EnabledUnits ||
+	    ctx->FragmentProgram._Enabled);
+}
+
+
+GLboolean intel_check_meta_tex_fragment_ops( GLcontext *ctx )
+{
+   if (ctx->NewState)
+      _mesa_update_state(ctx);
+
+   /* Some of _ImageTransferState (scale, bias) could be done with
+    * fragment programs on i915.
+    */
+   return !(ctx->_ImageTransferState ||
+	    ctx->Texture._EnabledUnits ||
+	    ctx->FragmentProgram._Enabled);
 }
 
 /* The intel_region struct doesn't really do enough to capture the
@@ -62,7 +79,8 @@ GLboolean intel_check_blit_format( struct intel_region *region,
 				   GLenum format, GLenum type )
 {
    if (region->cpp == 4 &&
-       type == GL_UNSIGNED_INT_8_8_8_8_REV &&        
+       (type == GL_UNSIGNED_INT_8_8_8_8_REV ||
+	type == GL_UNSIGNED_BYTE) &&        
        format == GL_BGRA ) {
       return GL_TRUE;
    }

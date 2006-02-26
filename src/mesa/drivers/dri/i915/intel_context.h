@@ -156,9 +156,13 @@ struct intel_context
 
       void (*meta_import_pixel_state)( struct intel_context *intel );
 
-      void (*meta_tex_rect_source)( struct intel_context *intel,
-				    struct intel_region *region );
-
+      GLboolean (*meta_tex_rect_source)( struct intel_context *intel,
+					 GLuint buffer,
+					 GLuint offset,
+					 GLuint pitch,
+					 GLuint height,
+					 GLenum format,
+					 GLenum type);
 
    } vtbl;
 
