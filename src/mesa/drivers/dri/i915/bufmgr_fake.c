@@ -28,7 +28,7 @@ static int ttmcount = 0;
  * Backdoor mapping will very probably fix this. (texdown-pool)
  */ 
 
-#define CACHED_TTMS
+#undef CACHED_TTMS
 
 /*
  * Batchbuffer memory location:
@@ -40,7 +40,7 @@ static int ttmcount = 0;
  *   for a while, depending on application. multiarb works fine for example.
  */
 
-#define BATCH_LOCATION 0
+#define BATCH_LOCATION 1
 
 #if (BATCH_LOCATION == 2)
 #warning Batch buffers using dynamic TTMS. Making TTMS uncached.
@@ -621,9 +621,9 @@ int bmInitPool( struct bufmgr *bm,
 #warning Replacing pool 0 with a large uncached pinned TTM.
        int ret;
        drmAddress ttmAddress;
-
-
-       DBG("Creating Pinned ttm.\n");
+       
+       size = 1024*1024;
+       DBG("Creating Pinned ttm, size %d\n", size);
        pool->drm_ttm.op = ttm_add;
        pool->drm_ttm.size = size;
        ret = ioctl(bm->intel->driFd, DRM_IOCTL_TTM, &pool->drm_ttm);
@@ -992,19 +992,8 @@ int bmValidateBufferList( struct bufmgr *bm,
     * better without more infrastucture...  Which is coming - hooray!
     */
 
-   while (!move_buffers(bm, bufs, list->nr, flags)) {
-
-       /*
-	* We should never get here. The kernel handles this.
-	*/
-       
-       assert(0);
-      if (!delayed_free(bm) &&
-	  !evict_lru(bm, flags))
-	 return 0;
-      _mesa_printf("couldn't allocate sufficient texture memory\n");
-      exit(1);
-   }
+   while (!move_buffers(bm, bufs, list->nr, flags))
+     delayed_free(bm);
 
    for (i = 0; i < list->nr; i++) {
       if (bufs[i]->block->has_ttm > 1) {
