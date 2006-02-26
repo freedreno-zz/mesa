@@ -42,59 +42,52 @@
 #define DBG 0
 
 #define LOCAL_VARS						\
-   struct intel_context *intel = intel_context(ctx);			\
-   __DRIdrawablePrivate *dPriv = intel->driDrawable;		\
    driRenderbuffer *drb = (driRenderbuffer *) rb;		\
-   GLuint pitch = drb->pitch * drb->cpp;			\
-   GLuint height = dPriv->h;					\
-   char *buf = (char *) drb->Base.Data +			\
-			dPriv->x * drb->cpp +			\
-			dPriv->y * pitch;			\
-   GLushort p;							\
-   (void) buf; (void) p
+   const __DRIdrawablePrivate *dPriv = drb->dPriv;		\
+   const GLuint bottom = dPriv->h - 1;				\
+   GLubyte *buf = (GLubyte *) drb->flippedData			\
+      + (dPriv->y * drb->flippedPitch + dPriv->x) * drb->cpp;	\
+   GLuint p;							\
+   (void) p;
 
-#define LOCAL_DEPTH_VARS					\
-   struct intel_context *intel = intel_context(ctx);			\
-   __DRIdrawablePrivate *dPriv = intel->driDrawable;		\
-   driRenderbuffer *drb = (driRenderbuffer *) rb;		\
-   GLuint pitch = drb->pitch * drb->cpp;			\
-   GLuint height = dPriv->h;					\
-   char *buf = (char *) drb->Base.Data +			\
-			dPriv->x * drb->cpp +			\
-			dPriv->y * pitch
-
-#define LOCAL_STENCIL_VARS LOCAL_DEPTH_VARS 
-
-#define INIT_MONO_PIXEL(p,color)\
-	 p = INTEL_PACKCOLOR565(color[0],color[1],color[2])
-
-#define Y_FLIP(_y) (height - _y - 1)
+#define Y_FLIP(_y) (bottom - _y)
 
 #define HW_LOCK()
 
 #define HW_UNLOCK()
 
-/* 16 bit, 565 rgb color spanline and pixel functions
+/* 16 bit, RGB565 color spanline and pixel functions
  */
-#define WRITE_RGBA( _x, _y, r, g, b, a )				\
-   *(GLushort *)(buf + _x*2 + _y*pitch)  = ( (((int)r & 0xf8) << 8) |	\
-		                             (((int)g & 0xfc) << 3) |	\
-		                             (((int)b & 0xf8) >> 3))
-#define WRITE_PIXEL( _x, _y, p )  \
-   *(GLushort *)(buf + _x*2 + _y*pitch) = p
+#define SPANTMP_PIXEL_FMT GL_RGB
+#define SPANTMP_PIXEL_TYPE GL_UNSIGNED_SHORT_5_6_5
 
-#define READ_RGBA( rgba, _x, _y )				\
-do {								\
-   GLushort p = *(GLushort *)(buf + _x*2 + _y*pitch);		\
-   rgba[0] = (((p >> 11) & 0x1f) * 255) / 31;			\
-   rgba[1] = (((p >>  5) & 0x3f) * 255) / 63;			\
-   rgba[2] = (((p >>  0) & 0x1f) * 255) / 31;			\
-   rgba[3] = 255;						\
-} while(0)
+#define TAG(x)    intel##x##_RGB565
+#define TAG2(x,y) intel##x##_RGB565##y
+#define GET_PTR(X,Y) (buf + ((Y) * drb->flippedPitch + (X)) * 2)
+#include "spantmp2.h"
 
-#define TAG(x) intel##x##_565
-#include "spantmp.h"
+/* 32 bit, ARGB8888 color spanline and pixel functions
+ */
+#define SPANTMP_PIXEL_FMT GL_BGRA
+#define SPANTMP_PIXEL_TYPE GL_UNSIGNED_INT_8_8_8_8_REV
 
+#define TAG(x)    intel##x##_ARGB8888
+#define TAG2(x,y) intel##x##_ARGB8888##y
+#define GET_PTR(X,Y) (buf + ((Y) * drb->flippedPitch + (X)) * 4)
+#include "spantmp2.h"
+
+
+#define LOCAL_DEPTH_VARS					\
+   struct intel_context *intel = intel_context(ctx);			\
+   __DRIdrawablePrivate *dPriv = intel->driDrawable;		\
+   driRenderbuffer *drb = (driRenderbuffer *) rb;		\
+   const GLuint pitch = drb->pitch * drb->cpp;			\
+   const GLuint bottom = dPriv->h - 1;					\
+   char *buf = (char *) drb->Base.Data +			\
+			dPriv->x * drb->cpp +			\
+			dPriv->y * pitch
+
+#define LOCAL_STENCIL_VARS LOCAL_DEPTH_VARS 
 
 /* 16 bit depthbuffer functions.
  */
@@ -107,48 +100,6 @@ do {								\
 
 #define TAG(x) intel##x##_z16
 #include "depthtmp.h"
-
-
-#undef LOCAL_VARS
-#define LOCAL_VARS						\
-   struct intel_context *intel = intel_context(ctx);			\
-   __DRIdrawablePrivate *dPriv = intel->driDrawable;		\
-   driRenderbuffer *drb = (driRenderbuffer *) rb;		\
-   GLuint pitch = drb->pitch * drb->cpp;			\
-   GLuint height = dPriv->h;					\
-   char *buf = (char *)drb->Base.Data +				\
-			dPriv->x * drb->cpp +			\
-			dPriv->y * pitch;			\
-   GLuint p;							\
-   (void) buf; (void) p
-
-#undef INIT_MONO_PIXEL
-#define INIT_MONO_PIXEL(p,color)\
-	 p = INTEL_PACKCOLOR8888(color[0],color[1],color[2],color[3])
-
-/* 32 bit, 8888 argb color spanline and pixel functions
- */
-#define WRITE_RGBA(_x, _y, r, g, b, a)			\
-    *(GLuint *)(buf + _x*4 + _y*pitch) = ((r << 16) |	\
-					  (g << 8)  |	\
-					  (b << 0)  |	\
-					  (a << 24) )
-
-#define WRITE_PIXEL(_x, _y, p)			\
-    *(GLuint *)(buf + _x*4 + _y*pitch) = p
-
-
-#define READ_RGBA(rgba, _x, _y)					\
-    do {							\
-	GLuint p = *(GLuint *)(buf + _x*4 + _y*pitch);		\
-	rgba[0] = (p >> 16) & 0xff;				\
-	rgba[1] = (p >> 8)  & 0xff;				\
-	rgba[2] = (p >> 0)  & 0xff;				\
-	rgba[3] = (p >> 24) & 0xff;				\
-    } while (0)
-
-#define TAG(x) intel##x##_8888
-#include "spantmp.h"
 
 
 /* 24/8 bit interleaved depth/stencil functions
@@ -245,13 +196,13 @@ intelSetSpanFunctions(driRenderbuffer *drb, const GLvisual *vis)
 {
    if (drb->Base.InternalFormat == GL_RGBA) {
       if (vis->redBits == 5 && vis->greenBits == 6 && vis->blueBits == 5) {
-         intelInitPointers_565(&drb->Base);
+         intelInitPointers_RGB565(&drb->Base);
       }
       else {
          assert(vis->redBits == 8);
          assert(vis->greenBits == 8);
          assert(vis->blueBits == 8);
-         intelInitPointers_8888(&drb->Base);
+         intelInitPointers_ARGB8888(&drb->Base);
       }
    }
    else if (drb->Base.InternalFormat == GL_DEPTH_COMPONENT16) {
