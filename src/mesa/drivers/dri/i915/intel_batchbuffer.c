@@ -169,8 +169,7 @@ static void do_flush_locked( struct intel_batchbuffer *batch,
 
 
    bmUnmapBuffer(batch->bm, batch->buffer);
-
-
+   
    /* Fire the batch buffer, which was uploaded above:
     */
    intel_batch_ioctl(batch->intel, 
@@ -195,13 +194,13 @@ GLuint intel_batchbuffer_flush( struct intel_batchbuffer *batch )
     * performance drain that we would like to avoid.
     */
    if (used & 4) {
-      ((int *)batch->ptr)[0] = intel->vtbl.flush_cmd();
+     ((int *)batch->ptr)[0] = 0; /*intel->vtbl.flush_cmd();*/
       ((int *)batch->ptr)[1] = 0;
       ((int *)batch->ptr)[2] = MI_BATCH_BUFFER_END;
       used += 12;
    }
    else {
-      ((int *)batch->ptr)[0] = intel->vtbl.flush_cmd();
+     ((int *)batch->ptr)[0] = /* intel->vtbl.flush_cmd(); */
       ((int *)batch->ptr)[1] = MI_BATCH_BUFFER_END;
       used += 8;
    }

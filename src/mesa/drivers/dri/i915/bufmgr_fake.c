@@ -350,7 +350,8 @@ static int move_buffers( struct bufmgr *bm,
    drm_ttm_arg_t arg;
    struct block *block, *last_block;
    int ret;
-
+   drm_ttm_buf_arg_t *cur;
+   int size;
 
    DBG("%s\n", __FUNCTION__);
 
@@ -381,6 +382,7 @@ static int move_buffers( struct bufmgr *bm,
 
    arg.num_bufs = 0;
    last_block = NULL;
+   size = 0;
 
    for (i = 0; i <nr; ++i) {
        if (newMem[i] && newMem[i]->has_ttm) {
@@ -396,6 +398,7 @@ static int move_buffers( struct bufmgr *bm,
 		   arg.first = &block->drm_buf;
 	       else
 		   last_block->drm_buf.next = &block->drm_buf;
+	       size += block->drm_buf.num_pages;
 	       arg.num_bufs++;
 	       last_block = block;
 	       block->drm_buf.op = ((flags & BM_MEM_MASK) == BM_MEM_AGP) ?
@@ -406,10 +409,19 @@ static int move_buffers( struct bufmgr *bm,
    }
    arg.op = ttm_bufs;
    arg.do_fence = 0;
-   DBG("Num validated TTM bufs is %d\n", arg.num_bufs);
+   DBG("Num validated TTM bufs is %d pages %d\n", arg.num_bufs, size);
    if (arg.num_bufs) {
-     ret = ioctl(bm->intel->driFd, DRM_IOCTL_TTM, &arg);
-     assert(ret == 0);
+      ret = ioctl(bm->intel->driFd, DRM_IOCTL_TTM, &arg);
+      assert(ret==0);
+      cur = arg.first;
+      for(i=0; i< arg.num_bufs; ++i) {
+         if (cur->ret) {
+	    fprintf(stderr,"Kernel Error. Check dmesg.\n");
+	    fflush(stderr);
+	    assert(0);
+         } 
+        cur = cur->next;
+      }
    }
 
    /*
@@ -529,7 +541,7 @@ static void viaSwapOutWork( struct bufmgr *bm )
    unsigned target;
 
    if (bm->thrashing) {
-      target = 1*1024*1024;
+      target = 6*1024*1024;
    }
    else if (bmIsTexMemLow(bm)) {
       target = 64*1024;
@@ -975,7 +987,7 @@ int bmValidateBufferList( struct bufmgr *bm,
 {
    struct buffer *bufs[BM_LIST_MAX];
    unsigned i;
-
+   int count;
    
 
    DBG("%s\n", __FUNCTION__);
@@ -992,8 +1004,13 @@ int bmValidateBufferList( struct bufmgr *bm,
     * better without more infrastucture...  Which is coming - hooray!
     */
 
-   while (!move_buffers(bm, bufs, list->nr, flags))
-     delayed_free(bm);
+   count = 0;
+   while (!move_buffers(bm, bufs, list->nr, flags)) {
+      delayed_free(bm);
+      if (count++ > 10) {
+	 intelWaitIrq( bm->intel, bm->intel->sarea->last_dispatch + 1);
+      }
+   }
 
    for (i = 0; i < list->nr; i++) {
       if (bufs[i]->block->has_ttm > 1) {
