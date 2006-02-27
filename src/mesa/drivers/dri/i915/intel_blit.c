@@ -249,12 +249,11 @@ void intelEmitCopyBlit( struct intel_context *intel,
 
 
 void intelClearWithBlit(GLcontext *ctx, GLbitfield flags, GLboolean all,
-		      GLint cx1, GLint cy1, GLint cw, GLint ch)
+		      GLint cx, GLint cy, GLint cw, GLint ch)
 {
    struct intel_context *intel = intel_context( ctx );
    intelScreenPrivate *intelScreen = intel->intelScreen;
    GLuint clear_depth, clear_color;
-   GLint cx, cy;
    GLint pitch = intelScreen->front.pitch;
    GLint cpp = intelScreen->cpp;
    GLint i;
@@ -296,10 +295,13 @@ void intelClearWithBlit(GLcontext *ctx, GLbitfield flags, GLboolean all,
    intelFlush( &intel->ctx );
    LOCK_HARDWARE( intel );
    {
+      drm_clip_rect_t clear;
+
       /* flip top to bottom */
-      cy = intel->driDrawable->h-cy1-ch;
-      cx = cx1 + intel->drawX;
-      cy += intel->drawY;
+      clear.x1 = cx + intel->drawX;
+      clear.y1 = intel->driDrawable->y + intel->driDrawable->h - cy - ch;
+      clear.x2 = clear.x1 + cw;
+      clear.y2 = clear.y1 + ch;
 
       /* adjust for page flipping */
       if ( intel->sarea->pf_current_page == 1 ) {
@@ -316,32 +318,15 @@ void intelClearWithBlit(GLcontext *ctx, GLbitfield flags, GLboolean all,
 	 drm_clip_rect_t b;
 
 	 if (!all) {
-	    GLint x = box[i].x1;
-	    GLint y = box[i].y1;
-	    GLint w = box[i].x2 - x;
-	    GLint h = box[i].y2 - y;
-
-	    if (x < cx) w -= cx - x, x = cx; 
-	    if (y < cy) h -= cy - y, y = cy;
-	    if (x + w > cx + cw) w = cx + cw - x;
-	    if (y + h > cy + ch) h = cy + ch - y;
-	    if (w <= 0) continue;
-	    if (h <= 0) continue;
-
-	    b.x1 = x;
-	    b.y1 = y;
-	    b.x2 = x + w;
-	    b.y2 = y + h;      
+	    intel_intersect_cliprects(&b, &clear, box);
 	 } else {
 	    b = *box;
 	 }
 
-
-	 if (b.x1 > b.x2 ||
-	     b.y1 > b.y2 ||
-	     b.x2 > intelScreen->width ||
-	     b.y2 > intelScreen->height)
-	    continue;
+	 _mesa_printf("clear %d,%d..%d,%d, flags %x\n", 
+		      b.x1, b.y1,
+		      b.x2, b.y2, 
+		      flags);
 
 	 if ( flags & BUFFER_BIT_FRONT_LEFT ) {	    
 	    BEGIN_BATCH(6, INTEL_BATCH_NO_CLIPRECTS);
