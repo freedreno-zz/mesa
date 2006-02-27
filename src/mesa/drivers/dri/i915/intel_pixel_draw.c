@@ -173,8 +173,7 @@ static GLboolean do_texture_drawpixels( GLcontext *ctx,
 			   - ctx->Current.RasterPos[2] * .5,
 			   0x00ff00ff, 
 			   srcx, srcx+width, 
-			   srcy+height, srcy,
-			   INTEL_BATCH_CLIPRECTS);
+			   srcy+height, srcy);
    }
 
  out:

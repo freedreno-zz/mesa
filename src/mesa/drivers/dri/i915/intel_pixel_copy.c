@@ -170,8 +170,7 @@ static GLboolean do_texture_copypixels( GLcontext *ctx,
 			   0,	/* XXX: what z value? */
 			   0x00ff00ff, 
 			   srcx, srcx+width, 
-			   srcy, srcy+height,
-			   INTEL_BATCH_CLIPRECTS);
+			   srcy, srcy+height);
    }
 
  out:

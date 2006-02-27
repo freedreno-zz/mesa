@@ -985,8 +985,7 @@ void intel_meta_draw_quad(struct intel_context *intel,
 			  GLfloat z,
 			  GLuint color,
 			  GLfloat s0, GLfloat s1,
-			  GLfloat t0, GLfloat t1,
-			  GLuint flags)
+			  GLfloat t0, GLfloat t1)
 {
    union fi *vb;
 
@@ -997,7 +996,10 @@ void intel_meta_draw_quad(struct intel_context *intel,
 
    intel->vtbl.emit_state( intel );
 
-   intelStartInlinePrimitive( intel, PRIM3D_TRIFAN, flags );  
+   /* All 3d primitives should be emitted with INTEL_BATCH_CLIPRECTS,
+    * otherwise the drawing origin (DR4) might not be set correctly.
+    */
+   intelStartInlinePrimitive( intel, PRIM3D_TRIFAN, INTEL_BATCH_CLIPRECTS );  
    vb = (union fi *)intelExtendInlinePrimitive( intel, 4 * 6 );
 
 

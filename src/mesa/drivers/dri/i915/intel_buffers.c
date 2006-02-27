@@ -218,22 +218,15 @@ static void emit_clip_rect_quads(struct intel_context *intel,
 {
    GLuint i;
 
-   for (i = 0; i < intel->numClipRects; i++) {
-      drm_clip_rect_t rect;
-
-      if (intel_intersect_cliprects(&rect, 
-				    clear,
-				    &intel->pClipRects[i]))
-      {
-	 intel_meta_draw_quad(intel, 
-			      rect.x1, rect.x2, 
-			      rect.y1, rect.y2, 
-			      0,
-			      intel->ClearColor, 
-			      0, 0, 0, 0,
-			      INTEL_BATCH_NO_CLIPRECTS);
-      }
-   }
+   /* XXX: Using INTEL_BATCH_NO_CLIPRECTS here is dangerous as the
+    * drawing origin may not be correctly emitted.
+    */
+   intel_meta_draw_quad(intel, 
+			clear->x1, clear->x2, 
+			clear->y1, clear->y2, 
+			0,
+			intel->ClearColor, 
+			0, 0, 0, 0);
 }
 
 

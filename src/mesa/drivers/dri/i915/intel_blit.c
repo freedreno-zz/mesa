@@ -328,10 +328,11 @@ void intelClearWithBlit(GLcontext *ctx, GLbitfield flags, GLboolean all,
 	    b = *box;
 	 }
 
-	 _mesa_printf("clear %d,%d..%d,%d, flags %x\n", 
-		      b.x1, b.y1,
-		      b.x2, b.y2, 
-		      flags);
+	 if (0)
+	    _mesa_printf("clear %d,%d..%d,%d, flags %x\n", 
+			 b.x1, b.y1,
+			 b.x2, b.y2, 
+			 flags);
 
 	 if ( flags & BUFFER_BIT_FRONT_LEFT ) {	    
 	    BEGIN_BATCH(6, INTEL_BATCH_NO_CLIPRECTS);

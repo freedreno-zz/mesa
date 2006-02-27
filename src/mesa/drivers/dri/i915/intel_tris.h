@@ -57,8 +57,7 @@ void intel_meta_draw_quad(struct intel_context *intel,
 			  GLfloat z,
 			  GLuint color,
 			  GLfloat s0, GLfloat s1,
-			  GLfloat t0, GLfloat t1,
-			  GLuint flags );
+			  GLfloat t0, GLfloat t1);
 
 
 #endif
