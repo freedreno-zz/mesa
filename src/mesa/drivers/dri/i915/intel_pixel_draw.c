@@ -63,6 +63,8 @@ static GLboolean do_texture_drawpixels( GLcontext *ctx,
       fprintf(stderr, "%s\n", __FUNCTION__);
 
    intelFlush( &intel->ctx );
+   intel->vtbl.render_start(intel);
+   intel->vtbl.emit_state(intel);
 
    if (!dst)
       return GL_FALSE;
@@ -109,6 +111,8 @@ static GLboolean do_texture_drawpixels( GLcontext *ctx,
     */
    intel->vtbl.meta_draw_region(intel, dst, intel->depth_region);
 
+   intel->vtbl.meta_import_pixel_state(intel);
+
    src_offset = (GLuint) _mesa_image_address(2, unpack, pixels, width, height,
 					     format, type, 0, 0, 0);
 
@@ -139,11 +143,11 @@ static GLboolean do_texture_drawpixels( GLcontext *ctx,
 
       dstx = x;
       dsty = dPriv->h - (y + height);
-      
+
       srcx = 0;			/* skiprows/pixels already done */
       srcy = 0;
 
-      {
+      if (0) {
 	 GLint orig_x = dstx;
 	 GLint orig_y = dsty;
 
@@ -155,13 +159,18 @@ static GLboolean do_texture_drawpixels( GLcontext *ctx,
       }
 
 
-      /* Just use the regular cliprect mechanism...  Does this need to
-       * even hold the lock???
+      _mesa_printf("draw %d,%d %dx%d\n", dstx,dsty,width,height);
+
+      /* Must use the regular cliprect mechanism in order to get the
+       * drawing origin set correctly.  Otherwise scissor state is in
+       * incorrect coordinate space.  Does this even need to hold the
+       * lock???
        */
       intel_meta_draw_quad(intel, 
-			   dstx, dstx+width, 
-			   dsty, dsty+height, 
-			   0,	/* XXX: what z value? */
+			   dstx, dstx + width * ctx->Pixel.ZoomX, 
+			   dPriv->h - (y + height * ctx->Pixel.ZoomY), 
+			   dPriv->h - (y), 
+			   - ctx->Current.RasterPos[2] * .5,
 			   0x00ff00ff, 
 			   srcx, srcx+width, 
 			   srcy+height, srcy,
@@ -170,7 +179,9 @@ static GLboolean do_texture_drawpixels( GLcontext *ctx,
 
  out:
    intel->vtbl.leave_meta_state(intel);
+   intel_batchbuffer_flush(intel->batch);
    UNLOCK_HARDWARE( intel );
+   _mesa_printf("%s - DONE\n", __FUNCTION__);
    return GL_TRUE;
 }
 
@@ -311,8 +322,7 @@ static GLboolean do_blit_drawpixels( GLcontext *ctx,
 
    bmFinishFence(intel->bm, fence);   
 
-   if (INTEL_DEBUG & DEBUG_PIXEL)
-      _mesa_printf("%s - DONE\n", __FUNCTION__);
+   _mesa_printf("%s - DONE\n", __FUNCTION__);
 
    return GL_TRUE;
 }

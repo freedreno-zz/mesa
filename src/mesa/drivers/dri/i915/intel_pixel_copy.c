@@ -167,6 +167,7 @@ static GLboolean do_texture_copypixels( GLcontext *ctx,
 
  out:
    intel->vtbl.leave_meta_state(intel);
+   intel_batchbuffer_flush(intel->batch);
    UNLOCK_HARDWARE( intel );
    return GL_TRUE;
 }
@@ -202,6 +203,9 @@ static GLboolean do_blit_copypixels( GLcontext *ctx,
 
 
    intelFlush( &intel->ctx );
+   intel->vtbl.render_start(intel);
+   intel->vtbl.emit_state(intel);
+
    LOCK_HARDWARE( intel );
    {
       __DRIdrawablePrivate *dPriv = intel->driDrawable;

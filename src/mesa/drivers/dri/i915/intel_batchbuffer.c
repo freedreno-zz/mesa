@@ -222,9 +222,7 @@ GLuint intel_batchbuffer_flush( struct intel_batchbuffer *batch )
       UNLOCK_HARDWARE(intel);
    }
    else {
-      assert(!(batch->flags & INTEL_BATCH_CLIPRECTS));
-
-      do_flush_locked(batch, used, GL_TRUE);
+      do_flush_locked(batch, used, !(batch->flags & INTEL_BATCH_CLIPRECTS));
    }
 
    /* Reset the buffer:
