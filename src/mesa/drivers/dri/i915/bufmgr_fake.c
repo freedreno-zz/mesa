@@ -494,7 +494,7 @@ static int move_buffers( struct bufmgr *bm,
 	 free_block(bm, newMem[i]);
    }
    
-   _mesa_printf("%s - fail\n", __FUNCTION__);
+   DBG("%s - fail\n", __FUNCTION__);
    return 0;   
 }
 
@@ -1008,7 +1008,7 @@ int bmValidateBufferList( struct bufmgr *bm,
    while (!move_buffers(bm, bufs, list->nr, flags)) {
       delayed_free(bm);
       if (count++ > 10) {
-	 intelWaitIrq( bm->intel, bm->intel->sarea->last_dispatch + 1);
+	 intelWaitIrq( bm->intel, bm->intel->sarea->last_dispatch);
       }
    }
 
