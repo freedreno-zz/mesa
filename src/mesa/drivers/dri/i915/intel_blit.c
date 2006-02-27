@@ -219,8 +219,13 @@ void intelEmitCopyBlit( struct intel_context *intel,
 
    /* Initial y values don't seem to work with negative pitches.  If
     * we adjust the offsets manually (below), it seems to work fine.
+    *
+    * On the other hand, if we always adjust, the hardware doesn't
+    * know which blit directions to use, so overlapping copypixels get
+    * the wrong result.
     */
-   if (0) {
+   if ( dst_pitch > 0 && 
+	src_pitch > 0) {
       BEGIN_BATCH(8, INTEL_BATCH_NO_CLIPRECTS);
       OUT_BATCH( CMD );
       OUT_BATCH( BR13 );

@@ -69,6 +69,10 @@ static struct intel_region *copypix_src_region( struct intel_context *intel,
    return NULL;
 }
 
+
+/* Doesn't work for overlapping regions.  Could do a double copy or
+ * just fallback.
+ */
 static GLboolean do_texture_copypixels( GLcontext *ctx,
 					GLint srcx, GLint srcy, 
 					GLsizei width, GLsizei height,
@@ -99,6 +103,8 @@ static GLboolean do_texture_copypixels( GLcontext *ctx,
    /* Set the 3d engine to draw into the destination region:
     */
    intel->vtbl.meta_draw_region(intel, dst, intel->depth_region);
+
+   intel->vtbl.meta_import_pixel_state(intel);
 
    if (src->cpp == 2) {
       src_format = GL_RGB;
@@ -131,16 +137,16 @@ static GLboolean do_texture_copypixels( GLcontext *ctx,
 
 
       srcy = dPriv->h - srcy - height; 	/* convert from gl to hardware coords */
-      dsty = dPriv->h - dsty - height; 	/* convert from gl to hardware coords */
+
       srcx += dPriv->x;
       srcy += dPriv->y;
 
       /* Clip against the source region.  This is the only source
-       * clipping we do.  Dst is clipped with cliprects below.
+       * clipping we do.  XXX: Just set the texcord wrap mode to clamp
+       * or similar.
        *
-       * TODO: Scissor?
        */
-      {
+      if (0) {
 	 GLint orig_x = srcx;
 	 GLint orig_y = srcy;
 
@@ -148,16 +154,19 @@ static GLboolean do_texture_copypixels( GLcontext *ctx,
 	    goto out;
 
 	 dstx += srcx - orig_x; 
-	 dsty += srcy - orig_y; 
+	 dsty += (srcy - orig_y) * ctx->Pixel.ZoomY; 
       }
-
 
       /* Just use the regular cliprect mechanism...  Does this need to
        * even hold the lock???
        */
       intel_meta_draw_quad(intel, 
-			   dstx, dstx+width, 
-			   dsty, dsty+height, 
+
+			   dstx, 
+			   dstx + width * ctx->Pixel.ZoomX, 
+			   dPriv->h - (dsty + height * ctx->Pixel.ZoomY), 
+			   dPriv->h - (dsty), 
+ 
 			   0,	/* XXX: what z value? */
 			   0x00ff00ff, 
 			   srcx, srcx+width, 
@@ -210,9 +219,10 @@ static GLboolean do_blit_copypixels( GLcontext *ctx,
    {
       __DRIdrawablePrivate *dPriv = intel->driDrawable;
       drm_clip_rect_t *box = dPriv->pClipRects;
+      drm_clip_rect_t dest_rect;
       GLint nbox = dPriv->numClipRects;
-      GLint delta_x = srcx - dstx;
-      GLint delta_y = srcy - dsty;
+      GLint delta_x = 0;      
+      GLint delta_y = 0;      
       GLuint i;
 
 
@@ -228,11 +238,21 @@ static GLboolean do_blit_copypixels( GLcontext *ctx,
        *
        * TODO: Scissor?
        */
-      if (!intel_clip_to_region(ctx, src, &srcx, &srcy, &width, &height)) 
-	 goto out;
+      {
+	 delta_x = srcx - dstx;
+	 delta_y = srcy - dsty;
 
-      dstx = srcx - delta_x;
-      dsty = srcy - delta_y;
+	 if (!intel_clip_to_region(ctx, src, &srcx, &srcy, &width, &height)) 
+	    goto out;
+
+	 dstx = srcx - delta_x;
+	 dsty = srcy - delta_y;
+      }
+
+      dest_rect.x1 = dstx;
+      dest_rect.y1 = dsty;
+      dest_rect.x2 = dstx + width;
+      dest_rect.y2 = dsty + height;
 
       /* Could do slightly more clipping: Eg, take the intersection of
        * the existing set of cliprects and those cliprects translated
@@ -243,25 +263,22 @@ static GLboolean do_blit_copypixels( GLcontext *ctx,
        */
       for (i = 0 ; i < nbox ; i++ )
       {
-	 GLint bx = box[i].x1;
-	 GLint by = box[i].y1;
-	 GLint bw = box[i].x2 - bx;
-	 GLint bh = box[i].y2 - by;
+	 drm_clip_rect_t rect;
 
-	 if (bx < dstx) bw -= dstx - bx, bx = dstx;
-	 if (by < dsty) bh -= dsty - by, by = dsty;
-	 if (bx + bw > dstx + width) bw = dstx + width - bx;
-	 if (by + bh > dsty + height) bh = dsty + height - by;
-	 if (bw <= 0) continue;
-	 if (bh <= 0) continue;
+	 if (!intel_intersect_cliprects(&rect, &dest_rect, &box[i]))
+	    continue;
 
+	 
 	 intelEmitCopyBlit( intel,
 			    dst->cpp,
 			    src->pitch, src->buffer, 0,
 			    dst->pitch, dst->buffer, 0,
-			    bx + delta_x, by + delta_y, /* srcx, srcy */
-			    bx, by, /* dstx, dsty */
-			    bw, bh );
+			    rect.x1 + delta_x, 
+			    rect.y1 + delta_y, /* srcx, srcy */
+			    rect.x1, 
+			    rect.y1, /* dstx, dsty */
+			    rect.x2 - rect.x1, 
+			    rect.y2 - rect.y1 );
       }
    }
  out:
