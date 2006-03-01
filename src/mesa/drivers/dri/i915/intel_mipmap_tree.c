@@ -79,14 +79,13 @@ struct intel_mipmap_tree *intel_miptree_create( struct intel_context *intel,
 
    switch (intel->intelScreen->deviceID) {
    case PCI_CHIP_I945_G:
+/*    case PCI_CHIP_I945_GM: */
       ok = i945_miptree_layout( mt );
       break;
-   case PCI_CHIP_I915_G:
-   case PCI_CHIP_I915_GM:
-      ok = i915_miptree_layout( mt );
-      break;
    default:
-      ok = 0;
+      /* All the i830 chips and the i915 use this layout:
+       */
+      ok = i915_miptree_layout( mt );
       break;
    }
 

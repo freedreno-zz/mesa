@@ -1079,7 +1079,8 @@ void i830InitState( struct i830_context *i830 )
 
    i830->current = &i830->state;
    i830->state.emitted = 0;
-   i830->state.active = (I830_UPLOAD_TEXBLEND(0) |
+   i830->state.active = (I830_UPLOAD_INVARIENT |
+			 I830_UPLOAD_TEXBLEND(0) |
 			 I830_UPLOAD_STIPPLE |
 			 I830_UPLOAD_CTX |
 			 I830_UPLOAD_BUFFERS);

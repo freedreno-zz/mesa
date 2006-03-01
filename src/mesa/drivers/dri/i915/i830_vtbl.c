@@ -377,7 +377,13 @@ static void i830_emit_state( struct intel_context *intel )
    if (dirty & I830_UPLOAD_CTX) {
       if (INTEL_DEBUG & DEBUG_STATE) 
 	 fprintf(stderr, "I830_UPLOAD_CTX:\n"); 
+      emit( i830, state->Ctx, sizeof(state->Ctx) );
 
+   }
+
+   if (dirty & I830_UPLOAD_BUFFERS) {
+      if (INTEL_DEBUG & DEBUG_STATE) 
+	 fprintf(stderr, "I830_UPLOAD_BUFFERS:\n"); 
       BEGIN_BATCH(I830_DEST_SETUP_SIZE+2, 0);
       OUT_BATCH(state->Buffer[I830_DESTREG_CBUFADDR0]);
       OUT_BATCH(state->Buffer[I830_DESTREG_CBUFADDR1]);
@@ -394,12 +400,6 @@ static void i830_emit_state( struct intel_context *intel )
       OUT_BATCH(state->Buffer[I830_DESTREG_SR1]);
       OUT_BATCH(state->Buffer[I830_DESTREG_SR2]);
       ADVANCE_BATCH();
-   }
-
-   if (dirty & I830_UPLOAD_BUFFERS) {
-      if (INTEL_DEBUG & DEBUG_STATE) 
-	 fprintf(stderr, "I830_UPLOAD_BUFFERS:\n"); 
-      emit( i830, state->Buffer, sizeof(state->Buffer) );
    }
 
    if (dirty & I830_UPLOAD_STIPPLE) {

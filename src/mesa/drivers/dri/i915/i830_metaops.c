@@ -317,24 +317,18 @@ static void set_vertex_format( struct intel_context *intel )
 
 static void meta_import_pixel_state( struct intel_context *intel )
 {
-#if 0
    struct i830_context *i830 = i830_context(&intel->ctx);
-   memcpy(i830->meta.Fog, i830->state.Fog, I830_FOG_SETUP_SIZE * 4);
-   
-   i830->meta.Ctx[I830_CTXREG_LIS5] = i830->state.Ctx[I830_CTXREG_LIS5];
-   i830->meta.Ctx[I830_CTXREG_LIS6] = i830->state.Ctx[I830_CTXREG_LIS6];
-   i830->meta.Ctx[I830_CTXREG_STATE4] = i830->state.Ctx[I830_CTXREG_STATE4];
-   i830->meta.Ctx[I830_CTXREG_BLENDCOLOR1] = i830->state.Ctx[I830_CTXREG_BLENDCOLOR1];
-   i830->meta.Ctx[I830_CTXREG_IAB] = i830->state.Ctx[I830_CTXREG_IAB];
+
+   memcpy(i830->meta.Ctx, i830->state.Ctx, I830_CTX_SETUP_SIZE * 4);
+   i830->meta.Ctx[I830_CTXREG_STATE3] &= ~CULLMODE_MASK;
+   i830->meta.Stipple[I830_STPREG_ST1] &= ~ST1_ENABLE;
+   i830->meta.emitted &= ~I830_UPLOAD_CTX;
+
 
    i830->meta.Buffer[I830_DESTREG_SENABLE] = i830->state.Buffer[I830_DESTREG_SENABLE];
    i830->meta.Buffer[I830_DESTREG_SR1] = i830->state.Buffer[I830_DESTREG_SR1];
    i830->meta.Buffer[I830_DESTREG_SR2] = i830->state.Buffer[I830_DESTREG_SR2];
-
-   i830->meta.emitted &= ~I830_UPLOAD_FOG;
    i830->meta.emitted &= ~I830_UPLOAD_BUFFERS;
-   i830->meta.emitted &= ~I830_UPLOAD_CTX;
-#endif
 }
 
 

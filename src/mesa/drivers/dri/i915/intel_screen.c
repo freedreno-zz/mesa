@@ -333,7 +333,6 @@ static GLboolean intelCreateContext( const __GLcontextModes *mesaVis,
    intelScreenPrivate *intelScreen = (intelScreenPrivate *)sPriv->private;
 
    switch (intelScreen->deviceID) {
-#if 0
       /* Don't deal with i830 until texture work complete:
        */
    case PCI_CHIP_845_G:
@@ -342,7 +341,6 @@ static GLboolean intelCreateContext( const __GLcontextModes *mesaVis,
    case PCI_CHIP_I865_G:
       return i830CreateContext( mesaVis, driContextPriv, 
 				sharedContextPrivate );
-#endif
 
    case PCI_CHIP_I915_G:
    case PCI_CHIP_I915_GM:
