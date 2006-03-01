@@ -264,11 +264,6 @@ static void i830_emit_invarient_state( struct intel_context *intel )
 
    BEGIN_BATCH(200, 0);
 
-   OUT_BATCH(_3DSTATE_MAP_CUBE | MAP_UNIT(0));
-   OUT_BATCH(_3DSTATE_MAP_CUBE | MAP_UNIT(1));
-   OUT_BATCH(_3DSTATE_MAP_CUBE | MAP_UNIT(2));
-   OUT_BATCH(_3DSTATE_MAP_CUBE | MAP_UNIT(3));
-
    OUT_BATCH(_3DSTATE_DFLT_DIFFUSE_CMD);
    OUT_BATCH(0);
 

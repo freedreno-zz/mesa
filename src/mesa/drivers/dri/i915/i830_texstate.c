@@ -155,14 +155,15 @@ static GLboolean i830_update_tex_unit( struct intel_context *intel,
 
    {
       if (tObj->Target == GL_TEXTURE_CUBE_MAP)
-	 state[I830_TEXREG_CUBE] = (CUBE_NEGX_ENABLE | 
+	 state[I830_TEXREG_CUBE] = (_3DSTATE_MAP_CUBE | MAP_UNIT(unit) |
+				    CUBE_NEGX_ENABLE | 
 				    CUBE_POSX_ENABLE | 
 				    CUBE_NEGY_ENABLE | 
 				    CUBE_POSY_ENABLE | 
 				    CUBE_NEGZ_ENABLE | 
 				    CUBE_POSZ_ENABLE);
       else
-	 state[I830_TEXREG_CUBE] = 0;
+	 state[I830_TEXREG_CUBE] = (_3DSTATE_MAP_CUBE | MAP_UNIT(unit));
    }
 
 
@@ -245,13 +246,14 @@ static GLboolean i830_update_tex_unit( struct intel_context *intel,
       if (tObj->Target == GL_TEXTURE_3D)
 	 return GL_FALSE;
 	     
-
-      state[I830_TEXREG_MCS] = ss3; /* TEXCOORDS_ARE_NORMAL */
-
-      state[I830_TEXREG_MCS] |= (TEXCOORD_ADDR_V_MODE(translate_wrap_mode(ws)) |
-				 TEXCOORD_ADDR_V_MODE(translate_wrap_mode(wt)));
-
-      state[I830_TEXREG_MCS] |= MAP_UNIT(unit);
+      state[I830_TEXREG_MCS] = (_3DSTATE_MAP_COORD_SET_CMD |
+				MAP_UNIT(unit) |
+				ENABLE_TEXCOORD_PARAMS |
+				ss3 |
+				ENABLE_ADDR_V_CNTL |
+				TEXCOORD_ADDR_V_MODE(translate_wrap_mode(wt)) |
+				ENABLE_ADDR_U_CNTL |
+				TEXCOORD_ADDR_U_MODE(translate_wrap_mode(ws)));
    }
 
 

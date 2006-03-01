@@ -304,8 +304,7 @@ static void set_vertex_format( struct intel_context *intel )
    i830->meta.Ctx[I830_CTXREG_VF] =  (_3DSTATE_VFT0_CMD |
 				      VFT0_TEX_COUNT(1) |
 				      VFT0_DIFFUSE |
-				      VFT0_SPEC |
-				      VFT0_XYZW);
+				      VFT0_XYZ);
    i830->meta.Ctx[I830_CTXREG_VF2] = (_3DSTATE_VFT1_CMD |
 				      VFT1_TEX0_FMT(TEXCOORDFMT_2D) |
 				      VFT1_TEX1_FMT(TEXCOORDFMT_2D) | 
@@ -319,7 +318,23 @@ static void meta_import_pixel_state( struct intel_context *intel )
 {
    struct i830_context *i830 = i830_context(&intel->ctx);
 
-   memcpy(i830->meta.Ctx, i830->state.Ctx, I830_CTX_SETUP_SIZE * 4);
+   i830->meta.Ctx[I830_CTXREG_STATE1] = i830->state.Ctx[I830_CTXREG_STATE1];
+   i830->meta.Ctx[I830_CTXREG_STATE2] = i830->state.Ctx[I830_CTXREG_STATE2];
+   i830->meta.Ctx[I830_CTXREG_STATE3] = i830->state.Ctx[I830_CTXREG_STATE3];
+   i830->meta.Ctx[I830_CTXREG_STATE4] = i830->state.Ctx[I830_CTXREG_STATE4];
+   i830->meta.Ctx[I830_CTXREG_STATE5] = i830->state.Ctx[I830_CTXREG_STATE5];
+   i830->meta.Ctx[I830_CTXREG_IALPHAB] = i830->state.Ctx[I830_CTXREG_IALPHAB];
+   i830->meta.Ctx[I830_CTXREG_STENCILTST] = i830->state.Ctx[I830_CTXREG_STENCILTST];
+   i830->meta.Ctx[I830_CTXREG_ENABLES_1] = i830->state.Ctx[I830_CTXREG_ENABLES_1];
+   i830->meta.Ctx[I830_CTXREG_ENABLES_2] = i830->state.Ctx[I830_CTXREG_ENABLES_2];
+   i830->meta.Ctx[I830_CTXREG_AA] = i830->state.Ctx[I830_CTXREG_AA];
+   i830->meta.Ctx[I830_CTXREG_FOGCOLOR] = i830->state.Ctx[I830_CTXREG_FOGCOLOR];
+   i830->meta.Ctx[I830_CTXREG_BLENDCOLOR0] = i830->state.Ctx[I830_CTXREG_BLENDCOLOR0];
+   i830->meta.Ctx[I830_CTXREG_BLENDCOLOR1] = i830->state.Ctx[I830_CTXREG_BLENDCOLOR1];
+   i830->meta.Ctx[I830_CTXREG_MCSB0] = i830->state.Ctx[I830_CTXREG_MCSB0];
+   i830->meta.Ctx[I830_CTXREG_MCSB1] = i830->state.Ctx[I830_CTXREG_MCSB1];
+   
+
    i830->meta.Ctx[I830_CTXREG_STATE3] &= ~CULLMODE_MASK;
    i830->meta.Stipple[I830_STPREG_ST1] &= ~ST1_ENABLE;
    i830->meta.emitted &= ~I830_UPLOAD_CTX;
