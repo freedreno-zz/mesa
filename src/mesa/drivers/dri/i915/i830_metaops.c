@@ -34,13 +34,15 @@
 #include "intel_screen.h"
 #include "intel_batchbuffer.h"
 #include "intel_ioctl.h"
+#include "intel_regions.h"
 
 #include "i830_context.h"
 #include "i830_reg.h"
 
 /* A large amount of state doesn't need to be uploaded.
  */
-#define ACTIVE (I830_UPLOAD_TEXBLEND(0) |	\
+#define ACTIVE (I830_UPLOAD_INVARIENT |         \
+		I830_UPLOAD_TEXBLEND(0) |	\
 		I830_UPLOAD_STIPPLE |		\
 		I830_UPLOAD_CTX |		\
 		I830_UPLOAD_BUFFERS |		\
@@ -54,20 +56,11 @@ do {						\
    i830->current->emitted &= ~ACTIVE;			\
 } while (0)
 
-/* Operations where the 3D engine is decoupled temporarily from the
- * current GL state and used for other purposes than simply rendering
- * incoming triangles.
- */
-static void set_initial_state( struct intel_context *intel )
-{
-   memcpy(&i830->meta, &i830->initial, sizeof(i830->meta) );
-   i830->meta.active = ACTIVE;
-   i830->meta.emitted = 0;
-}
-
 
 static void set_no_depth_stencil_write( struct intel_context *intel )
 {
+   struct i830_context *i830 = i830_context(&intel->ctx);
+
    /* ctx->Driver.Enable( ctx, GL_STENCIL_TEST, GL_FALSE )
     */
    i830->meta.Ctx[I830_CTXREG_ENABLES_1] &= ~ENABLE_STENCIL_TEST;
@@ -92,6 +85,8 @@ static void set_stencil_replace( struct intel_context *intel,
 				 GLuint s_mask,
 				 GLuint s_clear)
 {
+   struct i830_context *i830 = i830_context(&intel->ctx);
+
    /* ctx->Driver.Enable( ctx, GL_STENCIL_TEST, GL_TRUE )
     */
    i830->meta.Ctx[I830_CTXREG_ENABLES_1] |= ENABLE_STENCIL_TEST;
@@ -142,6 +137,8 @@ static void set_stencil_replace( struct intel_context *intel,
 
 static void set_color_mask( struct intel_context *intel, GLboolean state )
 {
+   struct i830_context *i830 = i830_context(&intel->ctx);
+
    const GLuint mask = ((1 << WRITEMASK_RED_SHIFT) |
 			(1 << WRITEMASK_GREEN_SHIFT) |
 			(1 << WRITEMASK_BLUE_SHIFT) |
@@ -163,6 +160,7 @@ static void set_color_mask( struct intel_context *intel, GLboolean state )
  */
 static void set_no_texture( struct intel_context *intel )
 {
+   struct i830_context *i830 = i830_context(&intel->ctx);
    static const struct gl_tex_env_combine_state comb = {
       GL_NONE, GL_NONE,
       { GL_TEXTURE, 0, 0, }, { GL_TEXTURE, 0, 0, },
@@ -181,9 +179,9 @@ static void set_no_texture( struct intel_context *intel )
 /* Set up a single element blend stage for 'replace' texturing with no
  * funny ops.
  */
-static void enable_texture_blend_replace( struct intel_context *intel,
-					  GLenum format )
+static void set_texture_blend_replace( struct intel_context *intel )
 {
+   struct i830_context *i830 = i830_context(&intel->ctx);
    static const struct gl_tex_env_combine_state comb = {
       GL_REPLACE, GL_REPLACE,
       { GL_TEXTURE, 0, 0, }, { GL_TEXTURE, 0, 0, },
@@ -207,28 +205,80 @@ static void enable_texture_blend_replace( struct intel_context *intel,
 /* Set up an arbitary piece of memory as a rectangular texture
  * (including the front or back buffer).
  */
-static void set_tex_rect_source( struct intel_context *intel,
-				 GLuint offset,
-				 GLuint width, 
-				 GLuint height,
-				 GLuint pitch,
-				 GLuint textureFormat )
+static GLboolean set_tex_rect_source( struct intel_context *intel,
+				      GLuint buffer,
+				      GLuint offset,
+				      GLuint pitch,
+				      GLuint height,
+				      GLenum format,
+				      GLenum type)
 {
-   GLint numLevels = 1;
+   struct i830_context *i830 = i830_context(&intel->ctx);
    GLuint *setup = i830->meta.Tex[0];
+   GLint numLevels = 1;
+   GLuint textureFormat;
+   GLuint cpp;
 
-   pitch *= i830->intel.intelScreen->cpp;
+   /* A full implementation of this would do the upload through
+    * glTexImage2d, and get all the conversion operations at that
+    * point.  We are restricted, but still at least have access to the
+    * fragment program swizzle.
+    */
+   switch (format) {
+   case GL_BGRA:
+      switch (type) {
+      case GL_UNSIGNED_INT_8_8_8_8_REV:
+      case GL_UNSIGNED_BYTE:
+	 textureFormat = (MAPSURF_32BIT | MT_32BIT_ARGB8888);
+	 cpp = 4;
+	 break;
+      default:
+	 return GL_FALSE;
+      }
+      break;
+   case GL_RGBA:
+      switch (type) {
+      case GL_UNSIGNED_INT_8_8_8_8_REV:
+      case GL_UNSIGNED_BYTE:
+	 textureFormat = (MAPSURF_32BIT | MT_32BIT_ABGR8888);
+	 cpp = 4;
+	 break;
+      default:
+	 return GL_FALSE;
+      }
+      break;
+   case GL_BGR:
+      switch (type) {
+      case GL_UNSIGNED_SHORT_5_6_5_REV:
+	 textureFormat = (MAPSURF_16BIT | MT_16BIT_RGB565);
+	 cpp = 2;
+	 break;
+      default:
+	 return GL_FALSE;
+      }
+      break;
+   case GL_RGB:
+      switch (type) {
+      case GL_UNSIGNED_SHORT_5_6_5:
+	 textureFormat = (MAPSURF_16BIT | MT_16BIT_RGB565);
+	 cpp = 2;
+	 break;
+      default:
+	 return GL_FALSE;
+      }
+      break;
 
-/*    fprintf(stderr, "%s: offset: %x w: %d h: %d pitch %d format %x\n", */
-/* 	   __FUNCTION__, offset, width, height, pitch, textureFormat ); */
+   default:
+      return GL_FALSE;
+   }
+
 
    setup[I830_TEXREG_TM0LI] = (_3DSTATE_LOAD_STATE_IMMEDIATE_2 | 
 			       (LOAD_TEXTURE_MAP0 << 0) | 4);
-   setup[I830_TEXREG_TM0S0] = (TM0S0_USE_FENCE | offset);
    setup[I830_TEXREG_TM0S1] = (((height - 1) << TM0S1_HEIGHT_SHIFT) |
-			       ((width - 1) << TM0S1_WIDTH_SHIFT) |
+			       ((pitch - 1) << TM0S1_WIDTH_SHIFT) |
 			       textureFormat);
-   setup[I830_TEXREG_TM0S2] = ((((pitch / 4) - 1) << TM0S2_PITCH_SHIFT));   
+   setup[I830_TEXREG_TM0S2] = (((((pitch * cpp) / 4) - 1) << TM0S2_PITCH_SHIFT));   
    setup[I830_TEXREG_TM0S3] &= ~TM0S3_MAX_MIP_MASK;
    setup[I830_TEXREG_TM0S3] &= ~TM0S3_MIN_MIP_MASK;
    setup[I830_TEXREG_TM0S3] |= ((numLevels - 1)*4) << TM0S3_MIN_MIP_SHIFT;
@@ -244,35 +294,13 @@ static void set_tex_rect_source( struct intel_context *intel,
 			     TEXCOORD_ADDR_U_MODE(TEXCOORDMODE_WRAP));
 
    i830->meta.emitted &= ~I830_UPLOAD_TEX(0);
-}
-
-
-/* Select between front and back draw buffers.
- */
-static void set_draw_offset( struct intel_context *intel,
-			     GLuint offset )
-{
-/*    i830->meta.Buffer[I830_DESTREG_CBUFADDR2] = offset; */
-   i830->meta.emitted &= ~I830_UPLOAD_BUFFERS;
-}
-
-/* Setup an arbitary draw format, useful for targeting
- * texture or agp memory.
- */
-static void set_draw_format( struct intel_context *intel,
-			     GLuint format,
-			     GLuint depth_format)
-{
-   i830->meta.Buffer[I830_DESTREG_DV1] = (DSTORG_HORT_BIAS(0x8) | /* .5 */
-					  DSTORG_VERT_BIAS(0x8) | /* .5 */
-					  format |
-					  DEPTH_IS_Z |
-					  depth_format);
+   return GL_TRUE;
 }
 
 
 static void set_vertex_format( struct intel_context *intel )
 {
+   struct i830_context *i830 = i830_context(&intel->ctx);
    i830->meta.Ctx[I830_CTXREG_VF] =  (_3DSTATE_VFT0_CMD |
 				      VFT0_TEX_COUNT(1) |
 				      VFT0_DIFFUSE |
@@ -284,6 +312,113 @@ static void set_vertex_format( struct intel_context *intel )
 				      VFT1_TEX2_FMT(TEXCOORDFMT_2D) |
 				      VFT1_TEX3_FMT(TEXCOORDFMT_2D));
    i830->meta.emitted &= ~I830_UPLOAD_CTX;
+}
+
+
+static void meta_import_pixel_state( struct intel_context *intel )
+{
+#if 0
+   struct i830_context *i830 = i830_context(&intel->ctx);
+   memcpy(i830->meta.Fog, i830->state.Fog, I830_FOG_SETUP_SIZE * 4);
+   
+   i830->meta.Ctx[I830_CTXREG_LIS5] = i830->state.Ctx[I830_CTXREG_LIS5];
+   i830->meta.Ctx[I830_CTXREG_LIS6] = i830->state.Ctx[I830_CTXREG_LIS6];
+   i830->meta.Ctx[I830_CTXREG_STATE4] = i830->state.Ctx[I830_CTXREG_STATE4];
+   i830->meta.Ctx[I830_CTXREG_BLENDCOLOR1] = i830->state.Ctx[I830_CTXREG_BLENDCOLOR1];
+   i830->meta.Ctx[I830_CTXREG_IAB] = i830->state.Ctx[I830_CTXREG_IAB];
+
+   i830->meta.Buffer[I830_DESTREG_SENABLE] = i830->state.Buffer[I830_DESTREG_SENABLE];
+   i830->meta.Buffer[I830_DESTREG_SR1] = i830->state.Buffer[I830_DESTREG_SR1];
+   i830->meta.Buffer[I830_DESTREG_SR2] = i830->state.Buffer[I830_DESTREG_SR2];
+
+   i830->meta.emitted &= ~I830_UPLOAD_FOG;
+   i830->meta.emitted &= ~I830_UPLOAD_BUFFERS;
+   i830->meta.emitted &= ~I830_UPLOAD_CTX;
+#endif
+}
+
+
+
+/* Select between front and back draw buffers.
+ */
+static void meta_draw_region( struct intel_context *intel,
+			      struct intel_region *draw_region,
+			      struct intel_region *depth_region )
+{
+   struct i830_context *i830 = i830_context(&intel->ctx);
+   GLuint format;
+   GLuint depth_format = DEPTH_FRMT_16_FIXED;
+
+   intel_region_release(intel, &i830->meta.draw_region);
+   intel_region_reference(&i830->meta.draw_region, draw_region);
+   
+   intel_region_release(intel, &i830->meta.depth_region);   
+   intel_region_reference(&i830->meta.depth_region, depth_region);
+
+   /* XXX: 555 support?
+    */
+   if (draw_region->cpp == 2)
+      format = DV_PF_565;
+   else
+      format = DV_PF_8888;
+
+   if (depth_region) {
+      if (depth_region->cpp == 2)
+	 depth_format = DEPTH_FRMT_16_FIXED;
+      else
+	 depth_format = DEPTH_FRMT_24_FIXED_8_OTHER;
+   }
+
+   i830->meta.Buffer[I830_DESTREG_DV1] = (DSTORG_HORT_BIAS(0x8) | /* .5 */
+					  DSTORG_VERT_BIAS(0x8) | /* .5 */
+					  format |
+					  DEPTH_IS_Z |
+					  depth_format);
+
+   i830->meta.emitted &= ~I830_UPLOAD_BUFFERS;
+}
+
+
+/* Operations where the 3D engine is decoupled temporarily from the
+ * current GL state and used for other purposes than simply rendering
+ * incoming triangles.
+ */
+static void install_meta_state( struct intel_context *intel )
+{
+   struct i830_context *i830 = i830_context(&intel->ctx);
+   memcpy(&i830->meta, &i830->initial, sizeof(i830->meta) );
+
+   i830->meta.active = ACTIVE;
+   i830->meta.emitted = 0;
+
+   SET_STATE(i830, meta);
+   set_vertex_format(intel);
+   set_no_texture(intel);
+}
+
+static void leave_meta_state( struct intel_context *intel )
+{
+   struct i830_context *i830 = i830_context(&intel->ctx);
+   intel_region_release(intel, &i830->meta.draw_region);
+   intel_region_release(intel, &i830->meta.depth_region);
+/*    intel_region_release(intel, &i830->meta.tex_region[0]); */
+   SET_STATE(i830, state);
+}
+
+
+
+void i830InitMetaFuncs( struct i830_context *i830 )
+{
+   i830->intel.vtbl.install_meta_state = install_meta_state;
+   i830->intel.vtbl.leave_meta_state = leave_meta_state;
+   i830->intel.vtbl.meta_no_depth_stencil_write = set_no_depth_stencil_write;
+   i830->intel.vtbl.meta_stencil_replace = set_stencil_replace;
+   i830->intel.vtbl.meta_color_mask = set_color_mask;
+   i830->intel.vtbl.meta_no_texture = set_no_texture;
+   i830->intel.vtbl.meta_texture_blend_replace = set_texture_blend_replace;
+   i830->intel.vtbl.meta_tex_rect_source = set_tex_rect_source;
+   i830->intel.vtbl.meta_draw_region = meta_draw_region;
+   i830->intel.vtbl.meta_import_pixel_state = meta_import_pixel_state;
 }
 
 

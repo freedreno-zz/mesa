@@ -132,7 +132,7 @@ static inline GLuint GetTexelOp(GLint unit)
  * partial support for the extension?
  */
 GLuint
-i830SetTexEnvCombine(i830ContextPtr i830,
+i830SetTexEnvCombine(struct i830_context *i830,
 		     const struct gl_tex_env_combine_state * combine,
 		     GLint blendUnit,
 		     GLuint texel_op,
@@ -394,7 +394,7 @@ i830SetTexEnvCombine(i830ContextPtr i830,
 }
 
 
-static void emit_texblend( i830ContextPtr i830, GLuint unit, GLuint blendUnit,
+static void emit_texblend( struct i830_context *i830, GLuint unit, GLuint blendUnit,
 			   GLboolean last_stage )
 {
    struct gl_texture_unit *texUnit = &i830->intel.ctx.Texture.Unit[unit];
@@ -423,7 +423,7 @@ static void emit_texblend( i830ContextPtr i830, GLuint unit, GLuint blendUnit,
    I830_ACTIVESTATE(i830, I830_UPLOAD_TEXBLEND(blendUnit), GL_TRUE);
 }
 
-static void emit_passthrough( i830ContextPtr i830 )
+static void emit_passthrough( struct i830_context *i830 )
 {
    GLuint tmp[I830_TEXBLEND_SIZE], tmp_sz;
    GLuint unit = 0;
@@ -442,7 +442,7 @@ static void emit_passthrough( i830ContextPtr i830 )
    I830_ACTIVESTATE(i830, I830_UPLOAD_TEXBLEND(unit), GL_TRUE);
 }
 
-void i830EmitTextureBlend( i830ContextPtr i830 )
+void i830EmitTextureBlend( struct i830_context *i830 )
 {
    GLcontext *ctx = &i830->intel.ctx;
    GLuint unit, last_stage = 0, blendunit = 0;

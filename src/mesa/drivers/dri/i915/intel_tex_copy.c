@@ -83,7 +83,6 @@ static GLboolean do_copy_texsubimage( struct intel_context *intel,
 {
    GLcontext *ctx = &intel->ctx;
    struct intel_region *src = get_teximage_source(intel, internalFormat);
-   GLuint ret = GL_TRUE;
 
    if (!intelImage->mt || !src)
       return GL_FALSE;
@@ -99,51 +98,45 @@ static GLboolean do_copy_texsubimage( struct intel_context *intel,
       GLint orig_y = y;
       GLuint window_y;
 
-      if (!intel_clip_to_framebuffer(ctx, ctx->DrawBuffer, &x, &y, &width, &height)) {
-	 ret = GL_TRUE;
-	 goto out;
+      if (intel_clip_to_framebuffer(ctx, ctx->DrawBuffer, &x, &y, &width, &height)) {
+	 /* Update dst for clipped src.  Need to also clip the source rect.
+	  */
+	 dstx += x - orig_x;
+	 dsty += y - orig_y;
+
+	 x += dPriv->x;
+
+	 window_y = intel->intelScreen->height - (dPriv->y + dPriv->h);
+
+	 y = window_y + y;
+
+
+
+	 /* A bit of fiddling to get the blitter to work with -ve
+	  * pitches.  But we get a nice inverted blit this way, so it's
+	  * worth it:
+	  */
+	 intelEmitCopyBlit( intel,
+			    intelImage->mt->cpp,
+
+			    -src->pitch, 
+			    src->buffer,
+			    src->height * src->pitch * src->cpp, 
+
+			    intelImage->mt->pitch, 
+			    intelImage->mt->region->buffer,
+			    image_offset,
+
+			    x, y + height, 
+			    dstx, dsty,
+			    width, height );
+
+	 intel_batchbuffer_flush( intel->batch );
       }
-
-      /* Update dst for clipped src.  Need to also clip the source rect.
-       */
-      dstx += x - orig_x;
-      dsty += y - orig_y;
-
-      x += dPriv->x;
-
-      window_y = intel->intelScreen->height - (dPriv->y + dPriv->h);
-
-      y = window_y + y;
-
-
-
-      /* A bit of fiddling to get the blitter to work with -ve
-       * pitches.  But we get a nice inverted blit this way, so it's
-       * worth it:
-       */
-      intelEmitCopyBlit( intel,
-			 intelImage->mt->cpp,
-
-			 -src->pitch, 
-			 src->buffer,
-			 src->height * src->pitch * src->cpp, 
-
-			 intelImage->mt->pitch, 
-			 intelImage->mt->region->buffer,
-			 image_offset,
-
-			 x, y + height, 
-			 dstx, dsty,
-			 width, height );
-
-   out:
-      intel_batchbuffer_flush( intel->batch );
    }
    
 
    UNLOCK_HARDWARE(intel);
-   if (!ret)
-      return GL_FALSE;
 
 #if 0
    /* GL_SGIS_generate_mipmap -- this can be accelerated now.

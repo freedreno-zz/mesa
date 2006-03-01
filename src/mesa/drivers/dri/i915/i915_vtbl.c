@@ -245,7 +245,7 @@ static void i915_emit_state( struct intel_context *intel )
    if (dirty & I915_UPLOAD_BUFFERS) {
       if (INTEL_DEBUG & DEBUG_STATE) fprintf(stderr, "I915_UPLOAD_BUFFERS:\n"); 
 
-      BEGIN_BATCH(I915_DEST_SETUP_SIZE, 0);
+      BEGIN_BATCH(I915_DEST_SETUP_SIZE+2, 0);
       OUT_BATCH(state->Buffer[I915_DESTREG_CBUFADDR0]);
       OUT_BATCH(state->Buffer[I915_DESTREG_CBUFADDR1]);
       OUT_RELOC(state->draw_region->buffer, BM_MEM_AGP|BM_WRITE, 0);
@@ -370,7 +370,6 @@ void i915InitVtbl( struct i915_context *i915 )
 {
    i915->intel.vtbl.check_vertex_size = i915_check_vertex_size;
    i915->intel.vtbl.destroy = i915_destroy_context;
-   i915->intel.vtbl.emit_invarient_state = i915_emit_invarient_state;
    i915->intel.vtbl.emit_state = i915_emit_state;
    i915->intel.vtbl.lost_hardware = i915_lost_hardware;
    i915->intel.vtbl.reduced_primitive_state = i915_reduced_primitive_state;

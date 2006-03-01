@@ -66,6 +66,7 @@ GLboolean intel_check_meta_tex_fragment_ops( GLcontext *ctx )
     * fragment programs on i915.
     */
    return !(ctx->_ImageTransferState ||
+	    ctx->Fog.Enabled ||	/* not done yet */
 	    ctx->Texture._EnabledUnits ||
 	    ctx->FragmentProgram._Enabled);
 }

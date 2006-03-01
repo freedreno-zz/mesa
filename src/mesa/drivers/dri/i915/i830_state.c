@@ -44,7 +44,7 @@ static void
 i830StencilFuncSeparate(GLcontext *ctx, GLenum face, GLenum func, GLint ref,
                         GLuint mask)
 {
-   i830ContextPtr i830 = I830_CONTEXT(ctx);
+   struct i830_context *i830 = i830_context(ctx);
    int test = intel_translate_compare_func(func);
 
    mask = mask & 0xff;
@@ -69,7 +69,7 @@ i830StencilFuncSeparate(GLcontext *ctx, GLenum face, GLenum func, GLint ref,
 static void
 i830StencilMaskSeparate(GLcontext *ctx, GLenum face, GLuint mask)
 {
-   i830ContextPtr i830 = I830_CONTEXT(ctx);
+   struct i830_context *i830 = i830_context(ctx);
 
    if (INTEL_DEBUG&DEBUG_DRI)
       fprintf(stderr, "%s : mask 0x%x\n", __FUNCTION__, mask);
@@ -86,7 +86,7 @@ static void
 i830StencilOpSeparate(GLcontext *ctx, GLenum face, GLenum fail, GLenum zfail,
                       GLenum zpass)
 {
-   i830ContextPtr i830 = I830_CONTEXT(ctx);
+   struct i830_context *i830 = i830_context(ctx);
    int fop, dfop, dpop;
 
    if (INTEL_DEBUG&DEBUG_DRI)
@@ -193,7 +193,7 @@ i830StencilOpSeparate(GLcontext *ctx, GLenum face, GLenum fail, GLenum zfail,
 
 static void i830AlphaFunc(GLcontext *ctx, GLenum func, GLfloat ref)
 {
-   i830ContextPtr i830 = I830_CONTEXT(ctx);
+   struct i830_context *i830 = i830_context(ctx);
    int test = intel_translate_compare_func(func);
    GLubyte refByte;
    GLuint refInt;
@@ -221,7 +221,7 @@ static void i830AlphaFunc(GLcontext *ctx, GLenum func, GLfloat ref)
  */
 static void i830EvalLogicOpBlendState(GLcontext *ctx)
 {
-   i830ContextPtr i830 = I830_CONTEXT(ctx);
+   struct i830_context *i830 = i830_context(ctx);
 
    I830_STATECHANGE(i830, I830_UPLOAD_CTX);
 
@@ -245,7 +245,7 @@ static void i830EvalLogicOpBlendState(GLcontext *ctx)
 
 static void i830BlendColor(GLcontext *ctx, const GLfloat color[4])
 {
-   i830ContextPtr i830 = I830_CONTEXT(ctx);
+   struct i830_context *i830 = i830_context(ctx);
    GLubyte r, g, b, a;
 
    if (INTEL_DEBUG&DEBUG_DRI)
@@ -268,7 +268,7 @@ static void i830BlendColor(GLcontext *ctx, const GLfloat color[4])
  */
 static void i830_set_blend_state( GLcontext * ctx )
 {
-   i830ContextPtr i830 = I830_CONTEXT(ctx);
+   struct i830_context *i830 = i830_context(ctx);
    int funcA;
    int funcRGB;
    int eqnA;
@@ -406,7 +406,7 @@ static void i830BlendFuncSeparate(GLcontext *ctx, GLenum sfactorRGB,
 
 static void i830DepthFunc(GLcontext *ctx, GLenum func)
 {
-   i830ContextPtr i830 = I830_CONTEXT(ctx);
+   struct i830_context *i830 = i830_context(ctx);
    int test = intel_translate_compare_func(func);
 
    if (INTEL_DEBUG&DEBUG_DRI)
@@ -420,7 +420,7 @@ static void i830DepthFunc(GLcontext *ctx, GLenum func)
 
 static void i830DepthMask(GLcontext *ctx, GLboolean flag)
 {
-   i830ContextPtr i830 = I830_CONTEXT(ctx);
+   struct i830_context *i830 = i830_context(ctx);
 
    if (INTEL_DEBUG&DEBUG_DRI)
       fprintf(stderr, "%s flag (%d)\n", __FUNCTION__, flag);
@@ -443,7 +443,7 @@ static void i830DepthMask(GLcontext *ctx, GLboolean flag)
  */
 static void i830PolygonStipple( GLcontext *ctx, const GLubyte *mask )
 {
-   i830ContextPtr i830 = I830_CONTEXT(ctx);
+   struct i830_context *i830 = i830_context(ctx);
    const GLubyte *m = mask;
    GLubyte p[4];
    int i,j,k;
@@ -496,7 +496,7 @@ static void i830PolygonStipple( GLcontext *ctx, const GLubyte *mask )
 static void i830Scissor(GLcontext *ctx, GLint x, GLint y, 
 			GLsizei w, GLsizei h)
 {
-   i830ContextPtr i830 = I830_CONTEXT(ctx);
+   struct i830_context *i830 = i830_context(ctx);
    intelScreenPrivate *screen = i830->intel.intelScreen;
    int x1, y1, x2, y2;
 
@@ -530,7 +530,7 @@ static void i830Scissor(GLcontext *ctx, GLint x, GLint y,
 
 static void i830LogicOp(GLcontext *ctx, GLenum opcode)
 {
-   i830ContextPtr i830 = I830_CONTEXT(ctx);
+   struct i830_context *i830 = i830_context(ctx);
    int tmp = intel_translate_logic_op( opcode );
 
    if (INTEL_DEBUG&DEBUG_DRI)
@@ -545,7 +545,7 @@ static void i830LogicOp(GLcontext *ctx, GLenum opcode)
 
 static void i830CullFaceFrontFace(GLcontext *ctx, GLenum unused)
 {
-   i830ContextPtr i830 = I830_CONTEXT(ctx);
+   struct i830_context *i830 = i830_context(ctx);
    GLuint mode;
 
    if (INTEL_DEBUG&DEBUG_DRI)
@@ -573,7 +573,7 @@ static void i830CullFaceFrontFace(GLcontext *ctx, GLenum unused)
 
 static void i830LineWidth( GLcontext *ctx, GLfloat widthf )
 {
-   i830ContextPtr i830 = I830_CONTEXT( ctx );
+   struct i830_context *i830 = i830_context( ctx );
    int width;
    int state5;
 
@@ -594,7 +594,7 @@ static void i830LineWidth( GLcontext *ctx, GLfloat widthf )
 
 static void i830PointSize(GLcontext *ctx, GLfloat size)
 {
-   i830ContextPtr i830 = I830_CONTEXT(ctx);
+   struct i830_context *i830 = i830_context(ctx);
    GLint point_size = (int)size;
 
    if (INTEL_DEBUG&DEBUG_DRI)
@@ -616,7 +616,7 @@ static void i830ColorMask(GLcontext *ctx,
 			  GLboolean r, GLboolean g,
 			  GLboolean b, GLboolean a)
 {
-   i830ContextPtr i830 = I830_CONTEXT( ctx );
+   struct i830_context *i830 = i830_context( ctx );
    GLuint tmp = 0;
 
    if (INTEL_DEBUG&DEBUG_DRI)
@@ -638,7 +638,7 @@ static void i830ColorMask(GLcontext *ctx,
 
 static void update_specular( GLcontext *ctx )
 {
-   i830ContextPtr i830 = I830_CONTEXT( ctx );
+   struct i830_context *i830 = i830_context( ctx );
 
    I830_STATECHANGE(i830, I830_UPLOAD_CTX);
    i830->state.Ctx[I830_CTXREG_ENABLES_1] &= ~ENABLE_SPEC_ADD_MASK;
@@ -664,7 +664,7 @@ static void i830LightModelfv(GLcontext *ctx, GLenum pname,
  */
 static void i830ShadeModel(GLcontext *ctx, GLenum mode)
 {
-   i830ContextPtr i830 = I830_CONTEXT(ctx);
+   struct i830_context *i830 = i830_context(ctx);
    I830_STATECHANGE(i830, I830_UPLOAD_CTX);
 
 
@@ -690,7 +690,7 @@ static void i830ShadeModel(GLcontext *ctx, GLenum mode)
  */
 static void i830Fogfv(GLcontext *ctx, GLenum pname, const GLfloat *param)
 {
-   i830ContextPtr i830 = I830_CONTEXT(ctx);
+   struct i830_context *i830 = i830_context(ctx);
 
    if (INTEL_DEBUG&DEBUG_DRI)
       fprintf(stderr, "%s\n", __FUNCTION__);
@@ -710,7 +710,7 @@ static void i830Fogfv(GLcontext *ctx, GLenum pname, const GLfloat *param)
 
 static void i830Enable(GLcontext *ctx, GLenum cap, GLboolean state)
 {
-   i830ContextPtr i830 = I830_CONTEXT(ctx);
+   struct i830_context *i830 = i830_context(ctx);
 
    switch(cap) {
    case GL_LIGHTING:
@@ -844,7 +844,7 @@ static void i830Enable(GLcontext *ctx, GLenum cap, GLboolean state)
 }
 
 
-static void i830_init_packets( i830ContextPtr i830 )
+static void i830_init_packets( struct i830_context *i830 )
 {
    intelScreenPrivate *screen = i830->intel.intelScreen;
 
@@ -1067,7 +1067,7 @@ void i830InitStateFuncs( struct dd_function_table *functions )
    functions->StencilOpSeparate = i830StencilOpSeparate;
 }
 
-void i830InitState( i830ContextPtr i830 )
+void i830InitState( struct i830_context *i830 )
 {
    GLcontext *ctx = &i830->intel.ctx;
 

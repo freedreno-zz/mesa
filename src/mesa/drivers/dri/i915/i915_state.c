@@ -896,6 +896,19 @@ static void i915_init_packets( struct i915_context *i915 )
    }
 
 
+#if 0
+   {
+      I915_STATECHANGE(i915, I915_UPLOAD_DEFAULTS);
+      i915->state.Default[I915_DEFREG_C0] = _3DSTATE_DEFAULT_DIFFUSE;
+      i915->state.Default[I915_DEFREG_C1] = 0;
+      i915->state.Default[I915_DEFREG_S0] = _3DSTATE_DEFAULT_SPECULAR;
+      i915->state.Default[I915_DEFREG_S1] = 0;
+      i915->state.Default[I915_DEFREG_Z0] = _3DSTATE_DEFAULT_Z;
+      i915->state.Default[I915_DEFREG_Z1] = 0;
+   }
+#endif
+
+
    /* These will be emitted every at the head of every buffer, unless
     * we get hardware contexts working.
     */

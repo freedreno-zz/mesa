@@ -67,9 +67,9 @@
  * modifying cliprects ???
  */				
 
-static void intel_dump_batchbuffer( unsigned offset,
-				    int *ptr,
-				    int count )
+static void intel_dump_batchbuffer( GLuint offset,
+				    GLuint *ptr,
+				    GLuint count )
 {
    int i;
    fprintf(stderr, "\n\n\nSTART BATCH (%d dwords):\n", count/4);

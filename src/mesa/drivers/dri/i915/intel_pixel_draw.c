@@ -136,6 +136,7 @@ static GLboolean do_texture_drawpixels( GLcontext *ctx,
 
    LOCK_HARDWARE( intel );
 
+   if (intel->driDrawable->numClipRects)
    {
       __DRIdrawablePrivate *dPriv = intel->driDrawable;
       GLint srcx, srcy;
@@ -174,11 +175,10 @@ static GLboolean do_texture_drawpixels( GLcontext *ctx,
 			   0x00ff00ff, 
 			   srcx, srcx+width, 
 			   srcy+height, srcy);
+   out:
+      intel->vtbl.leave_meta_state(intel);
+      intel_batchbuffer_flush(intel->batch);
    }
-
- out:
-   intel->vtbl.leave_meta_state(intel);
-   intel_batchbuffer_flush(intel->batch);
    UNLOCK_HARDWARE( intel );
    _mesa_printf("%s - DONE\n", __FUNCTION__);
    return GL_TRUE;
@@ -215,7 +215,7 @@ static GLboolean do_blit_drawpixels( GLcontext *ctx,
    struct intel_buffer_object *src = intel_buffer_object(unpack->BufferObj);
    GLuint src_offset;
    GLuint rowLength;
-   GLuint fence;
+   GLuint fence = 0;
    
    if (INTEL_DEBUG & DEBUG_PIXEL)
       _mesa_printf("%s\n", __FUNCTION__);
@@ -283,6 +283,8 @@ static GLboolean do_blit_drawpixels( GLcontext *ctx,
 
    intelFlush( &intel->ctx );
    LOCK_HARDWARE( intel );
+
+   if (intel->driDrawable->numClipRects)
    {
       __DRIdrawablePrivate *dPriv = intel->driDrawable;
       int nbox = dPriv->numClipRects;
@@ -314,12 +316,12 @@ static GLboolean do_blit_drawpixels( GLcontext *ctx,
 			    rect.x2 - rect.x1,
 			    rect.y2 - rect.y1 );
       }
+      fence = intel_batchbuffer_flush( intel->batch );
    }
-
-   fence = intel_batchbuffer_flush( intel->batch );
    UNLOCK_HARDWARE( intel );
 
-   bmFinishFence(intel->bm, fence);   
+   if (intel->driDrawable->numClipRects)
+      bmFinishFence(intel->bm, fence);   
 
    _mesa_printf("%s - DONE\n", __FUNCTION__);
 

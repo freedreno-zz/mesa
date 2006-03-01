@@ -5,7 +5,15 @@ include $(TOP)/configs/current
 LIBNAME = i915_dri.so
 
 DRIVER_SOURCES = \
+	i830_context.c \
+	i830_metaops.c \
+	i830_state.c \
+	i830_texblend.c \
+	i830_tex.c \
+	i830_texstate.c \
+	i830_vtbl.c \
 	bufmgr_fake.c \
+	intel_render.c \
 	intel_regions.c \
 	intel_buffer_objects.c \
 	intel_batchbuffer.c \
@@ -41,15 +49,6 @@ DRIVER_SOURCES = \
 	intel_tris.c 
 
 
-DISABLED = \
-	intel_render.c \
-	i830_context.c \
-	i830_metaops.c \
-	i830_state.c \
-	i830_texblend.c \
-	i830_tex.c \
-	i830_texstate.c \
-	i830_vtbl.c 
 
 C_SOURCES = \
 	$(COMMON_SOURCES) \

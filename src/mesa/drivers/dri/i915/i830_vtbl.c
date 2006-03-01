@@ -30,6 +30,7 @@
 #include "i830_reg.h"
 
 #include "intel_batchbuffer.h"
+#include "intel_regions.h"
 
 #include "tnl/t_context.h"
 #include "tnl/t_vertex.h"
@@ -62,7 +63,7 @@ do {									\
 static void i830_render_start( struct intel_context *intel )
 {
    GLcontext *ctx = &intel->ctx;
-   i830ContextPtr i830 = I830_CONTEXT(intel);
+   struct i830_context *i830 = i830_context(ctx);
    TNLcontext *tnl = TNL_CONTEXT(ctx);
    struct vertex_buffer *VB = &tnl->vb;
    GLuint index = tnl->render_inputs;
@@ -189,7 +190,7 @@ static void i830_render_start( struct intel_context *intel )
 static void i830_reduced_primitive_state( struct intel_context *intel,
 					  GLenum rprim )
 {
-    i830ContextPtr i830 = I830_CONTEXT(intel);
+    struct i830_context *i830 = i830_context(&intel->ctx);
     GLuint st1 = i830->state.Stipple[I830_STPREG_ST1];
 
     st1 &= ~ST1_ENABLE;
@@ -220,7 +221,7 @@ static void i830_reduced_primitive_state( struct intel_context *intel,
 static GLboolean i830_check_vertex_size( struct intel_context *intel,
 					 GLuint expected )
 {
-   i830ContextPtr i830 = I830_CONTEXT(intel);
+   struct i830_context *i830 = i830_context(&intel->ctx);
    int vft0 = i830->current->Ctx[I830_CTXREG_VF];
    int vft1 = i830->current->Ctx[I830_CTXREG_VF2];
    int nrtex = (vft0 & VFT0_TEX_COUNT_MASK) >> VFT0_TEX_COUNT_SHIFT;
@@ -330,13 +331,6 @@ static void i830_emit_invarient_state( struct intel_context *intel )
 	     TRI_FAN_PROVOKE_VRTX(2) | 
 	     TRI_STRIP_PROVOKE_VRTX(2));
 
-   OUT_BATCH(_3DSTATE_SCISSOR_ENABLE_CMD | 
-	     DISABLE_SCISSOR_RECT);
-
-   OUT_BATCH(_3DSTATE_SCISSOR_RECT_0_CMD);
-   OUT_BATCH(0);
-   OUT_BATCH(0);
-
    OUT_BATCH(_3DSTATE_VERTEX_TRANSFORM);
    OUT_BATCH(DISABLE_VIEWPORT_TRANSFORM | DISABLE_PERSPECTIVE_DIVIDE);
 
@@ -366,7 +360,7 @@ do {							\
  */
 static void i830_emit_state( struct intel_context *intel )
 {
-   i830ContextPtr i830 = I830_CONTEXT(intel);
+   struct i830_context *i830 = i830_context(&intel->ctx);
    struct i830_hw_state *state = i830->current;
    int i;
    GLuint dirty;
@@ -374,29 +368,76 @@ static void i830_emit_state( struct intel_context *intel )
 
    dirty = state->active & ~state->emitted;
 
+   if (dirty & I830_UPLOAD_INVARIENT) {
+      if (INTEL_DEBUG & DEBUG_STATE) 
+	 fprintf(stderr, "I830_UPLOAD_INVARIENT:\n"); 
+      i830_emit_invarient_state( intel );
+   }
+
    if (dirty & I830_UPLOAD_CTX) {
-      if (VERBOSE) fprintf(stderr, "I830_UPLOAD_CTX:\n"); 
-      emit( i830, state->Ctx, sizeof(state->Ctx) );
+      if (INTEL_DEBUG & DEBUG_STATE) 
+	 fprintf(stderr, "I830_UPLOAD_CTX:\n"); 
+
+      BEGIN_BATCH(I830_DEST_SETUP_SIZE+2, 0);
+      OUT_BATCH(state->Buffer[I830_DESTREG_CBUFADDR0]);
+      OUT_BATCH(state->Buffer[I830_DESTREG_CBUFADDR1]);
+      OUT_RELOC(state->draw_region->buffer, BM_MEM_AGP|BM_WRITE, 0);
+
+      OUT_BATCH(state->Buffer[I830_DESTREG_DBUFADDR0]);
+      OUT_BATCH(state->Buffer[I830_DESTREG_DBUFADDR1]);
+      OUT_RELOC(state->depth_region->buffer, BM_MEM_AGP|BM_WRITE, 0);
+
+      OUT_BATCH(state->Buffer[I830_DESTREG_DV0]);
+      OUT_BATCH(state->Buffer[I830_DESTREG_DV1]);
+      OUT_BATCH(state->Buffer[I830_DESTREG_SENABLE]);
+      OUT_BATCH(state->Buffer[I830_DESTREG_SR0]);
+      OUT_BATCH(state->Buffer[I830_DESTREG_SR1]);
+      OUT_BATCH(state->Buffer[I830_DESTREG_SR2]);
+      ADVANCE_BATCH();
    }
 
    if (dirty & I830_UPLOAD_BUFFERS) {
-      if (VERBOSE) fprintf(stderr, "I830_UPLOAD_BUFFERS:\n"); 
+      if (INTEL_DEBUG & DEBUG_STATE) 
+	 fprintf(stderr, "I830_UPLOAD_BUFFERS:\n"); 
       emit( i830, state->Buffer, sizeof(state->Buffer) );
    }
 
    if (dirty & I830_UPLOAD_STIPPLE) {
-      if (VERBOSE) fprintf(stderr, "I830_UPLOAD_STIPPLE:\n"); 
+      if (INTEL_DEBUG & DEBUG_STATE) 
+	 fprintf(stderr, "I830_UPLOAD_STIPPLE:\n"); 
       emit( i830, state->Stipple, sizeof(state->Stipple) );
    }
 
    for (i = 0; i < I830_TEX_UNITS; i++) {
       if ((dirty & I830_UPLOAD_TEX(i))) { 
- 	 if (VERBOSE) fprintf(stderr, "I830_UPLOAD_TEX(%d):\n", i); 
-	 emit( i830, state->Tex[i], sizeof(state->Tex[i])); 
+ 	 if (INTEL_DEBUG & DEBUG_STATE)
+	    fprintf(stderr, "I830_UPLOAD_TEX(%d):\n", i); 
+
+	 BEGIN_BATCH(I830_TEX_SETUP_SIZE+1, 0);
+	 OUT_BATCH(state->Tex[i][I830_TEXREG_TM0LI]);
+
+	 if (state->tex_buffer[i]) {
+	    OUT_RELOC(state->tex_buffer[i],
+		      BM_MEM_AGP|BM_READ,
+		      state->tex_offset[i] | TM0S0_USE_FENCE);
+	 }
+	 else {
+	    assert(i == 0);
+	    assert(state == &i830->meta);
+	    OUT_BATCH(0);
+	 }
+
+	 OUT_BATCH(state->Tex[i][I830_TEXREG_TM0S1]);
+	 OUT_BATCH(state->Tex[i][I830_TEXREG_TM0S2]);
+	 OUT_BATCH(state->Tex[i][I830_TEXREG_TM0S3]);
+	 OUT_BATCH(state->Tex[i][I830_TEXREG_TM0S4]);
+	 OUT_BATCH(state->Tex[i][I830_TEXREG_MCS]);
+	 OUT_BATCH(state->Tex[i][I830_TEXREG_CUBE]);
       } 
 
       if (dirty & I830_UPLOAD_TEXBLEND(i)) {
-	 if (VERBOSE) fprintf(stderr, "I830_UPLOAD_TEXBLEND(%d):\n", i); 
+	 if (INTEL_DEBUG & DEBUG_STATE) 
+	    fprintf(stderr, "I830_UPLOAD_TEXBLEND(%d):\n", i); 
 	 emit( i830, state->TexBlend[i], 
 	       state->TexBlendWordsUsed[i] * 4 );
       }
@@ -410,46 +451,47 @@ static void i830_destroy_context( struct intel_context *intel )
    _tnl_free_vertices(&intel->ctx);
 }
 
-static void i830_set_draw_offset( struct intel_context *intel, int offset )
+static void i830_set_draw_region( struct intel_context *intel, 
+				  struct intel_region *draw_region,
+				  struct intel_region *depth_region)
 {
-   i830ContextPtr i830 = I830_CONTEXT(intel);
+   struct i830_context *i830 = i830_context(&intel->ctx);
+
+   intel_region_release(intel, &i830->state.draw_region);
+   intel_region_release(intel, &i830->state.depth_region);
+   intel_region_reference(&i830->state.draw_region, draw_region);
+   intel_region_reference(&i830->state.depth_region, depth_region);
+
    I830_STATECHANGE( i830, I830_UPLOAD_BUFFERS );
-/*    i830->state.Buffer[I830_DESTREG_CBUFADDR2] = offset; */
 }
 
 /* This isn't really handled at the moment.
  */
 static void i830_lost_hardware( struct intel_context *intel )
 {
-   I830_CONTEXT(intel)->state.emitted = 0;
+   struct i830_context *i830 = i830_context(&intel->ctx);
+   i830->state.emitted = 0;
 }
 
 
 
-static void i830_emit_flush( struct intel_context *intel )
+static GLuint i830_flush_cmd( void )
 {
-   BATCH_LOCALS;
-
-   BEGIN_BATCH(2, 0);
-   OUT_BATCH( MI_FLUSH | FLUSH_MAP_CACHE ); 
-   OUT_BATCH( 0 );
-   ADVANCE_BATCH();
+   return MI_FLUSH | FLUSH_MAP_CACHE; 
 }
 
 
 
 
-void i830InitVtbl( i830ContextPtr i830 )
+void i830InitVtbl( struct i830_context *i830 )
 {
    i830->intel.vtbl.check_vertex_size = i830_check_vertex_size;
-   i830->intel.vtbl.clear_with_tris = i830ClearWithTris;
    i830->intel.vtbl.destroy = i830_destroy_context;
-   i830->intel.vtbl.emit_invarient_state = i830_emit_invarient_state;
    i830->intel.vtbl.emit_state = i830_emit_state;
    i830->intel.vtbl.lost_hardware = i830_lost_hardware;
    i830->intel.vtbl.reduced_primitive_state = i830_reduced_primitive_state;
-   i830->intel.vtbl.set_draw_offset = i830_set_draw_offset;
+   i830->intel.vtbl.set_draw_region = i830_set_draw_region;
    i830->intel.vtbl.update_texture_state = i830UpdateTextureState;
-   i830->intel.vtbl.emit_flush = i830_emit_flush;
+   i830->intel.vtbl.flush_cmd = i830_flush_cmd;
    i830->intel.vtbl.render_start = i830_render_start;
 }

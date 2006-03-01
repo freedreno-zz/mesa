@@ -113,7 +113,6 @@ struct intel_context
    struct {
       void (*destroy)( struct intel_context *intel ); 
       void (*emit_state)( struct intel_context *intel );
-      void (*emit_invarient_state)( struct intel_context *intel );
       void (*lost_hardware)( struct intel_context *intel );
       void (*update_texture_state)( struct intel_context *intel );
 
@@ -127,10 +126,6 @@ struct intel_context
       void (*reduced_primitive_state)( struct intel_context *intel, GLenum rprim );
 
       GLboolean (*check_vertex_size)( struct intel_context *intel, GLuint expected );
-
-      void (*clear_with_tris)( struct intel_context *intel, GLbitfield mask,
-			       GLboolean all, 
-			       GLint cx, GLint cy, GLint cw, GLint ch);
 
 
       /* Metaops: 

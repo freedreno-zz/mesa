@@ -44,6 +44,7 @@
 #define I915_UPLOAD_CONSTANTS        0x10
 #define I915_UPLOAD_FOG              0x20
 #define I915_UPLOAD_INVARIENT        0x40
+#define I915_UPLOAD_DEFAULTS         0x80
 #define I915_UPLOAD_TEX(i)           (0x00010000<<(i))
 #define I915_UPLOAD_TEX_ALL          (0x00ff0000)
 #define I915_UPLOAD_TEX_0_SHIFT      16
@@ -91,6 +92,15 @@
 #define I915_TEXREG_SS3        4
 #define I915_TEXREG_SS4        5
 #define I915_TEX_SETUP_SIZE    6
+
+#define I915_DEFREG_C0    0
+#define I915_DEFREG_C1    1
+#define I915_DEFREG_S0    2
+#define I915_DEFREG_S1    3
+#define I915_DEFREG_Z0    4
+#define I915_DEFREG_Z1    5
+#define I915_DEF_SETUP_SIZE    6
+
 
 #define I915_MAX_CONSTANT      32
 #define I915_CONSTANT_SIZE     (2+(4*I915_MAX_CONSTANT))
@@ -190,6 +200,7 @@ struct i915_hw_state {
    GLuint Buffer[I915_DEST_SETUP_SIZE];
    GLuint Stipple[I915_STP_SETUP_SIZE];
    GLuint Fog[I915_FOG_SETUP_SIZE];
+   GLuint Defaults[I915_DEF_SETUP_SIZE];
    GLuint Tex[I915_TEX_UNITS][I915_TEX_SETUP_SIZE];
    GLuint Constant[I915_CONSTANT_SIZE];
    GLuint ConstantSize;

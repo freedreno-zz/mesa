@@ -91,6 +91,34 @@ static GLboolean do_texture_copypixels( GLcontext *ctx,
    if (!src || !dst || type != GL_COLOR)
       return GL_FALSE;
 
+   /* Can't handle overlapping regions.  Don't have sufficient control
+    * over rasterization to pull it off in-place.  Punt on these for
+    * now.
+    * 
+    * XXX: do a copy to a temporary. 
+    */
+   {
+      drm_clip_rect_t src;
+      drm_clip_rect_t dst;
+      drm_clip_rect_t tmp;
+      
+      src.x1 = srcx;
+      src.y1 = srcy;
+      src.x2 = srcx + width;
+      src.y2 = srcy + height;
+
+      dst.x1 = dstx;
+      dst.y1 = dsty;
+      dst.x1 = dstx + width * ctx->Pixel.ZoomX;
+      dst.y2 = dsty + height * ctx->Pixel.ZoomY;
+
+
+      if (intel_intersect_cliprects(&tmp, &src, &dst)) {
+	 _mesa_printf("%s: regions overlap\n", __FUNCTION__);
+	 return GL_FALSE;
+      }
+   }
+
    intelFlush( &intel->ctx );
 
    intel->vtbl.install_meta_state(intel);
@@ -131,7 +159,8 @@ static GLboolean do_texture_copypixels( GLcontext *ctx,
 
 
    LOCK_HARDWARE( intel );
-
+   
+   if (intel->driDrawable->numClipRects)
    {
       __DRIdrawablePrivate *dPriv = intel->driDrawable;
 
@@ -171,11 +200,11 @@ static GLboolean do_texture_copypixels( GLcontext *ctx,
 			   0x00ff00ff, 
 			   srcx, srcx+width, 
 			   srcy, srcy+height);
-   }
 
- out:
-   intel->vtbl.leave_meta_state(intel);
-   intel_batchbuffer_flush(intel->batch);
+   out:
+      intel->vtbl.leave_meta_state(intel);
+      intel_batchbuffer_flush(intel->batch);
+   }
    UNLOCK_HARDWARE( intel );
    return GL_TRUE;
 }
@@ -215,6 +244,8 @@ static GLboolean do_blit_copypixels( GLcontext *ctx,
    intel->vtbl.emit_state(intel);
 
    LOCK_HARDWARE( intel );
+
+   if (intel->driDrawable->numClipRects)
    {
       __DRIdrawablePrivate *dPriv = intel->driDrawable;
       drm_clip_rect_t *box = dPriv->pClipRects;
@@ -279,9 +310,10 @@ static GLboolean do_blit_copypixels( GLcontext *ctx,
 			    rect.x2 - rect.x1, 
 			    rect.y2 - rect.y1 );
       }
+
+   out:
+      intel_batchbuffer_flush( intel->batch );
    }
- out:
-   intel_batchbuffer_flush( intel->batch );
    UNLOCK_HARDWARE( intel );
    return GL_TRUE;
 }

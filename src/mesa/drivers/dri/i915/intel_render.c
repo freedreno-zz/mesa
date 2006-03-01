@@ -111,7 +111,7 @@ static void intelDmaPrimitive( struct intel_context *intel, GLenum prim )
    if (0) fprintf(stderr, "%s %s\n", __FUNCTION__, _mesa_lookup_enum_by_nr(prim));
    INTEL_FIREVERTICES(intel);
    intel->vtbl.reduced_primitive_state( intel, reduced_prim[prim] );
-   intelStartInlinePrimitive( intel, hw_prim[prim] );
+   intelStartInlinePrimitive( intel, hw_prim[prim], INTEL_BATCH_CLIPRECTS );
 }
 
 
@@ -120,10 +120,15 @@ static void intelDmaPrimitive( struct intel_context *intel, GLenum prim )
 do {						\
    intelDmaPrimitive( intel, prim );		\
 } while (0)
-#define FLUSH()  INTEL_FIREVERTICES( intel )
+
+#define FLUSH()  				\
+do {						\
+   if (intel->prim.flush) 			\
+      intel->prim.flush(intel);			\
+} while (0)
 
 #define GET_SUBSEQUENT_VB_MAX_VERTS() \
-  (((intel->alloc.size / 2) - 1500) / (intel->vertex_size*4))
+  ((BATCH_SZ - 1500) / (intel->vertex_size*4))
 #define GET_CURRENT_VB_MAX_VERTS() GET_SUBSEQUENT_VB_MAX_VERTS()
 
 #define ALLOC_VERTS( nr ) \
@@ -199,10 +204,6 @@ static GLboolean intel_run_render( GLcontext *ctx,
    struct vertex_buffer *VB = &tnl->vb;
    GLuint i;
 
-   /* disabled
-    */
-   return GL_TRUE;
-
    /* Don't handle clipping or indexed vertices.
     */
    if (intel->RenderIndex != 0 || 
@@ -229,6 +230,9 @@ static GLboolean intel_run_render( GLcontext *ctx,
    }
       
    tnl->Driver.Render.Finish( ctx );
+   
+   if (intel->prim.flush)
+      intel->prim.flush(intel);
 
    return GL_FALSE;     /* finished the pipe */
 }

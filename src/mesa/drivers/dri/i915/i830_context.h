@@ -39,6 +39,7 @@
 #define I830_UPLOAD_CTX              0x1
 #define I830_UPLOAD_BUFFERS          0x2
 #define I830_UPLOAD_STIPPLE          0x4
+#define I830_UPLOAD_INVARIENT        0x8
 #define I830_UPLOAD_TEX(i)           (0x10<<(i))
 #define I830_UPLOAD_TEXBLEND(i)      (0x100<<(i))
 #define I830_UPLOAD_TEX_ALL          (0x0f0)
@@ -48,15 +49,15 @@
  */
 #define I830_DESTREG_CBUFADDR0 0
 #define I830_DESTREG_CBUFADDR1 1
-#define I830_DESTREG_DBUFADDR0 3
-#define I830_DESTREG_DBUFADDR1 4
-#define I830_DESTREG_DV0 6
-#define I830_DESTREG_DV1 7
-#define I830_DESTREG_SENABLE 8
-#define I830_DESTREG_SR0 9
-#define I830_DESTREG_SR1 10
-#define I830_DESTREG_SR2 11
-#define I830_DEST_SETUP_SIZE 12
+#define I830_DESTREG_DBUFADDR0 2
+#define I830_DESTREG_DBUFADDR1 3
+#define I830_DESTREG_DV0 4
+#define I830_DESTREG_DV1 5
+#define I830_DESTREG_SENABLE 6
+#define I830_DESTREG_SR0 7
+#define I830_DESTREG_SR1 8
+#define I830_DESTREG_SR2 9
+#define I830_DEST_SETUP_SIZE 10
 
 #define I830_CTXREG_STATE1		0
 #define I830_CTXREG_STATE2		1
@@ -82,14 +83,13 @@
 #define I830_STP_SETUP_SIZE    2
 
 #define I830_TEXREG_TM0LI      0 /* load immediate 2 texture map n */
-#define I830_TEXREG_TM0S0      1
-#define I830_TEXREG_TM0S1      2
-#define I830_TEXREG_TM0S2      3
-#define I830_TEXREG_TM0S3      4
-#define I830_TEXREG_TM0S4      5
-#define I830_TEXREG_MCS	       6	/* _3DSTATE_MAP_COORD_SETS */
-#define I830_TEXREG_CUBE       7	/* _3DSTATE_MAP_SUBE */
-#define I830_TEX_SETUP_SIZE    8
+#define I830_TEXREG_TM0S1      1
+#define I830_TEXREG_TM0S2      2
+#define I830_TEXREG_TM0S3      3
+#define I830_TEXREG_TM0S4      4
+#define I830_TEXREG_MCS	       5	/* _3DSTATE_MAP_COORD_SETS */
+#define I830_TEXREG_CUBE       6	/* _3DSTATE_MAP_SUBE */
+#define I830_TEX_SETUP_SIZE    7
 
 #define I830_TEXBLEND_SIZE	12	/* (4 args + op) * 2 + COLOR_FACTOR */
 
@@ -108,6 +108,17 @@ struct i830_hw_state {
    GLuint Tex[I830_TEX_UNITS][I830_TEX_SETUP_SIZE];
    GLuint TexBlend[I830_TEX_UNITS][I830_TEXBLEND_SIZE];
    GLuint TexBlendWordsUsed[I830_TEX_UNITS];
+
+   struct intel_region *draw_region;
+   struct intel_region *depth_region;
+
+   /* Regions aren't actually that appropriate here as the memory may
+    * be from a PBO or FBO.  Just use the buffer id.  Will have to do
+    * this for draw and depth for FBO's...
+    */
+   GLuint tex_buffer[I830_TEX_UNITS];
+   GLuint tex_offset[I830_TEX_UNITS];
+   
    GLuint emitted;		/* I810_UPLOAD_* */
    GLuint active;
 };
@@ -116,15 +127,12 @@ struct i830_context
 {
    struct intel_context intel;
    
+   GLuint lodbias_tm0s3[MAX_TEXTURE_UNITS];
    GLuint last_index;
 
    struct i830_hw_state meta, initial, state, *current;
 };
 
-typedef struct i830_context *i830ContextPtr;
-typedef struct i830_texture_object *i830TextureObjectPtr;
-
-#define I830_CONTEXT(ctx)	((i830ContextPtr)(ctx))
 
 
 
@@ -146,7 +154,7 @@ do {						\
 /* i830_vtbl.c
  */
 extern void 
-i830InitVtbl( i830ContextPtr i830 );
+i830InitVtbl( struct i830_context *i830 );
 
 /* i830_context.c
  */
@@ -163,17 +171,14 @@ i830UpdateTextureState( struct intel_context *intel );
 extern void 
 i830InitTextureFuncs( struct dd_function_table *functions );
 
-extern intelTextureObjectPtr
-i830AllocTexObj( struct gl_texture_object *tObj );
-
 /* i830_texblend.c
  */
-extern GLuint i830SetTexEnvCombine(i830ContextPtr i830,
+extern GLuint i830SetTexEnvCombine(struct i830_context *i830,
     const struct gl_tex_env_combine_state * combine, GLint blendUnit,
      GLuint texel_op, GLuint *state, const GLfloat *factor );
 
 extern void 
-i830EmitTextureBlend( i830ContextPtr i830 );
+i830EmitTextureBlend( struct i830_context *i830 );
 
 
 /* i830_state.c
@@ -182,32 +187,25 @@ extern void
 i830InitStateFuncs( struct dd_function_table *functions );
 
 extern void 
-i830EmitState( i830ContextPtr i830 );
+i830EmitState( struct i830_context *i830 );
 
 extern void 
-i830InitState( i830ContextPtr i830 );
+i830InitState( struct i830_context *i830 );
 
 /* i830_metaops.c
  */
-extern GLboolean
-i830TryTextureReadPixels( GLcontext *ctx,
-			  GLint x, GLint y, GLsizei width, GLsizei height,
-			  GLenum format, GLenum type,
-			  const struct gl_pixelstore_attrib *pack,
-			  GLvoid *pixels );
-
-extern GLboolean
-i830TryTextureDrawPixels( GLcontext *ctx,
-			  GLint x, GLint y, GLsizei width, GLsizei height,
-			  GLenum format, GLenum type,
-			  const struct gl_pixelstore_attrib *unpack,
-			  const GLvoid *pixels );
-
 extern void 
-i830ClearWithTris( struct intel_context *intel, GLbitfield mask,
-		   GLboolean all, GLint cx, GLint cy, GLint cw, GLint ch);
+i830InitMetaFuncs( struct i830_context *i830 );
 
+/*======================================================================
+ * Inline conversion functions.  These are better-typed than the
+ * macros used previously:
+ */
+static inline struct i830_context *
+i830_context( GLcontext *ctx )
+{
+   return (struct i830_context *)ctx;
+}
 
-	
 #endif
 

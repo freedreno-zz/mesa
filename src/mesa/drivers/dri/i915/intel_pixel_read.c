@@ -110,49 +110,52 @@ do_texture_readpixels( GLcontext *ctx,
    }
 
    LOCK_HARDWARE( intel );
-   intel->vtbl.install_meta_state(intel);
-   intel->vtbl.meta_no_depth_stencil_write(intel);
 
-   if (!driClipRectToFramebuffer(ctx->ReadBuffer, &x, &y, &width, &height)) {
-      UNLOCK_HARDWARE( intel );
-      SET_STATE(i830, state);
-      fprintf(stderr, "%s: cliprect failed\n", __FUNCTION__);
-      return GL_TRUE;
+   if (intel->driDrawable->numClipRects) {
+      intel->vtbl.install_meta_state(intel);
+      intel->vtbl.meta_no_depth_stencil_write(intel);
+
+      if (!driClipRectToFramebuffer(ctx->ReadBuffer, &x, &y, &width, &height)) {
+	 UNLOCK_HARDWARE( intel );
+	 SET_STATE(i830, state);
+	 fprintf(stderr, "%s: cliprect failed\n", __FUNCTION__);
+	 return GL_TRUE;
+      }
+
+      y = dPriv->h - y - height;
+      x += dPriv->x;
+      y += dPriv->y;
+
+
+      /* Set the frontbuffer up as a large rectangular texture.
+       */
+      intel->vtbl.meta_tex_rect_source( intel,
+					src_region,
+					textureFormat ); 
+   
+   
+      intel->vtbl.meta_texture_blend_replace( i830, glTextureFormat ); 
+
+
+      /* Set the 3d engine to draw into the destination region:
+       */
+
+      intel->vtbl.meta_draw_region(intel, dest_region); 
+      intel->vtbl.meta_draw_format(intel, destFormat, depthFormat ); /* ?? */
+
+
+      /* Draw a single quad, no cliprects:
+       */
+      intel->vtbl.meta_disable_cliprects(intel);
+
+      intel->vtbl.draw_quad(intel, 
+			    0, width, 0, height, 
+			    0x00ff00ff, 
+			    x, x+width, 
+			    y, y+height );
+
+      intel->vtbl.leave_meta_state(intel);
    }
-
-   y = dPriv->h - y - height;
-   x += dPriv->x;
-   y += dPriv->y;
-
-
-   /* Set the frontbuffer up as a large rectangular texture.
-    */
-   intel->vtbl.meta_tex_rect_source( intel,
-				     src_region,
-				     textureFormat ); 
-   
-   
-   intel->vtbl.meta_texture_blend_replace( i830, glTextureFormat ); 
-
-
-   /* Set the 3d engine to draw into the destination region:
-    */
-
-   intel->vtbl.meta_draw_region(intel, dest_region); 
-   intel->vtbl.meta_draw_format(intel, destFormat, depthFormat ); /* ?? */
-
-
-   /* Draw a single quad, no cliprects:
-    */
-   intel->vtbl.meta_disable_cliprects(intel);
-
-   intel->vtbl.draw_quad(intel, 
-			 0, width, 0, height, 
-			 0x00ff00ff, 
-			 x, x+width, 
-			 y, y+height );
-
-   intel->vtbl.leave_meta_state(intel);
    UNLOCK_HARDWARE( intel );
 
    intel_region_wait_fence( ctx, dest_region ); /* required by GL */
@@ -176,7 +179,7 @@ static GLboolean do_blit_readpixels( GLcontext *ctx,
    struct intel_buffer_object *dst = intel_buffer_object(pack->BufferObj);
    GLuint dst_offset;
    GLuint rowLength;
-   GLuint fence;
+   GLuint fence = 0;
 
    if (INTEL_DEBUG & DEBUG_PIXEL)
       _mesa_printf("%s\n", __FUNCTION__);
@@ -237,6 +240,8 @@ static GLboolean do_blit_readpixels( GLcontext *ctx,
     */
    intelFlush( &intel->ctx );
    LOCK_HARDWARE( intel );
+
+   if (intel->driDrawable->numClipRects)
    {
        __DRIdrawablePrivate *dPriv = intel->driDrawable;
       int nbox = dPriv->numClipRects;
@@ -274,10 +279,12 @@ static GLboolean do_blit_readpixels( GLcontext *ctx,
    }
    UNLOCK_HARDWARE( intel );
 
-   bmFinishFence(intel->bm, fence);   
+   if (intel->driDrawable->numClipRects)
+      bmFinishFence(intel->bm, fence);   
 
    if (INTEL_DEBUG & DEBUG_PIXEL)
       _mesa_printf("%s - DONE\n", __FUNCTION__);
+
    return GL_TRUE;
 }
 

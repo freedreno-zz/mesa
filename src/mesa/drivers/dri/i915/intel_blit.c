@@ -67,6 +67,9 @@ void intelCopyBuffer( const __DRIdrawablePrivate *dPriv )
     * should work regardless.
     */
    LOCK_HARDWARE( intel );
+
+   if (intel->driDrawable &&
+       intel->driDrawable->numClipRects)
    {
       intelScreenPrivate *intelScreen = intel->intelScreen;
       __DRIdrawablePrivate *dPriv = intel->driDrawable;
@@ -117,9 +120,9 @@ void intelCopyBuffer( const __DRIdrawablePrivate *dPriv )
 
 	 ADVANCE_BATCH();
       }
-   }
 
-   intel->last_swap_fence = intel_batchbuffer_flush( intel->batch );
+      intel->last_swap_fence = intel_batchbuffer_flush( intel->batch );
+   }
    UNLOCK_HARDWARE( intel );
 }
 
@@ -299,6 +302,8 @@ void intelClearWithBlit(GLcontext *ctx, GLbitfield flags, GLboolean all,
 
    intelFlush( &intel->ctx );
    LOCK_HARDWARE( intel );
+
+   if (intel->driDrawable->numClipRects)
    {
       drm_clip_rect_t clear;
 
@@ -367,8 +372,9 @@ void intelClearWithBlit(GLcontext *ctx, GLbitfield flags, GLboolean all,
 	    ADVANCE_BATCH();
 	 }      
       }
+      intel_batchbuffer_flush( intel->batch );
    }
-   intel_batchbuffer_flush( intel->batch );
+
    UNLOCK_HARDWARE( intel );
 }
 

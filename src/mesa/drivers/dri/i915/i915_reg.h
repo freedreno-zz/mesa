@@ -824,6 +824,10 @@
 #define ST1_ENABLE               (1<<16)
 #define ST1_MASK                 (0xffff)
 
+#define _3DSTATE_DEFAULT_Z          ((0x3<<29)|(0x1d<<24)|(0x98<<16))
+#define _3DSTATE_DEFAULT_DIFFUSE    ((0x3<<29)|(0x1d<<24)|(0x99<<16))
+#define _3DSTATE_DEFAULT_SPECULAR   ((0x3<<29)|(0x1d<<24)|(0x9a<<16))
+
 
 #define MI_FLUSH                   ((0<<29)|(4<<23))
 #define FLUSH_MAP_CACHE            (1<<0)

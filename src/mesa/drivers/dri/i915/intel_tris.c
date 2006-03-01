@@ -48,20 +48,7 @@
 static void intelRenderPrimitive( GLcontext *ctx, GLenum prim );
 static void intelRasterPrimitive( GLcontext *ctx, GLenum rprim, GLuint hwprim );
 
-/* The simplest but least-good technique for integrating new buffer
- * management:
- *
- * LOCK_HARDWARE
- *   validate_buffers
- *   emit_state to batch
- *   emit_vertices to batch
- *   flush batch
- *   fence_buffers
- * UNLOCK_HARDWARE
- *
- * Will look later at ways to get the emit_state and emit_vertices out
- * of the locked region - vertex buffers, second batch buffer for
- * primitives, relocation fixups for texture addresses.
+/*
  */
 static void intel_flush_inline_primitive( struct intel_context *intel )
 {
@@ -581,6 +568,9 @@ intel_fallback_tri( struct intel_context *intel,
 
    if (0)
       fprintf(stderr, "\n%s\n", __FUNCTION__);
+   
+   if (intel->prim.flush)
+      intel->prim.flush(intel);
 
    _swsetup_Translate( ctx, v0, &v[0] );
    _swsetup_Translate( ctx, v1, &v[1] );
@@ -602,14 +592,15 @@ intel_fallback_line( struct intel_context *intel,
    if (0)
       fprintf(stderr, "\n%s\n", __FUNCTION__);
 
+   if (intel->prim.flush)
+      intel->prim.flush(intel);
+
    _swsetup_Translate( ctx, v0, &v[0] );
    _swsetup_Translate( ctx, v1, &v[1] );
    intelSpanRenderStart( ctx );
    _swrast_Line( ctx, &v[0], &v[1] );
    intelSpanRenderFinish( ctx );
 }
-
-
 
 
 /**********************************************************************/
@@ -742,7 +733,6 @@ void intelChooseRenderState(GLcontext *ctx)
 	 intel->draw_tri = intel_draw_triangle;
       }
 
-#if 0
       /* Hook in fallbacks for specific primitives.
        */
       if (flags & ANY_FALLBACK_FLAGS)
@@ -758,8 +748,6 @@ void intelChooseRenderState(GLcontext *ctx)
 
 	 index |= INTEL_FALLBACK_BIT;
       }
-#endif
-
    }
 
    if (intel->RenderIndex != index) {
