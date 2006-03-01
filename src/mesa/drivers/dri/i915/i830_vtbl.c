@@ -344,11 +344,13 @@ static void i830_emit_invarient_state( struct intel_context *intel )
 #define emit( intel, state, size )			\
 do {							\
    int k;						\
-   BEGIN_BATCH(size / sizeof(GLuint), 0);			\
-   for (k = 0 ; k < size / sizeof(GLuint) ; k++)	\
+   BEGIN_BATCH(size / sizeof(GLuint), 0);		\
+   for (k = 0 ; k < size / sizeof(GLuint) ; k++) {	\
+      if (0) _mesa_printf("  0x%08x\n", state[k]);		\
       OUT_BATCH(state[k]);				\
+   }							\
    ADVANCE_BATCH();					\
-} while (0);
+} while (0)
 
 
 /* Push the state into the sarea and/or texture memory.
@@ -432,7 +434,8 @@ static void i830_emit_state( struct intel_context *intel )
 
       if (dirty & I830_UPLOAD_TEXBLEND(i)) {
 	 if (INTEL_DEBUG & DEBUG_STATE) 
-	    fprintf(stderr, "I830_UPLOAD_TEXBLEND(%d):\n", i); 
+	    fprintf(stderr, "I830_UPLOAD_TEXBLEND(%d): %d words\n", i,
+		    state->TexBlendWordsUsed[i]); 
 	 emit( i830, state->TexBlend[i], 
 	       state->TexBlendWordsUsed[i] * 4 );
       }

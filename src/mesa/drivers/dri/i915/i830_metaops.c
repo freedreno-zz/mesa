@@ -42,10 +42,10 @@
 /* A large amount of state doesn't need to be uploaded.
  */
 #define ACTIVE (I830_UPLOAD_INVARIENT |         \
-		I830_UPLOAD_TEXBLEND(0) |	\
-		I830_UPLOAD_STIPPLE |		\
 		I830_UPLOAD_CTX |		\
 		I830_UPLOAD_BUFFERS |		\
+		I830_UPLOAD_STIPPLE |		\
+		I830_UPLOAD_TEXBLEND(0) |	\
 		I830_UPLOAD_TEX(0))		
 
 
@@ -184,8 +184,8 @@ static void set_texture_blend_replace( struct intel_context *intel )
    struct i830_context *i830 = i830_context(&intel->ctx);
    static const struct gl_tex_env_combine_state comb = {
       GL_REPLACE, GL_REPLACE,
-      { GL_TEXTURE, 0, 0, }, { GL_TEXTURE, 0, 0, },
-      { GL_SRC_COLOR, 0, 0 }, { GL_SRC_ALPHA, 0, 0 },
+      { GL_TEXTURE, GL_TEXTURE, GL_TEXTURE, }, { GL_TEXTURE, GL_TEXTURE, GL_TEXTURE, },
+      { GL_SRC_COLOR, GL_SRC_COLOR, GL_SRC_COLOR }, { GL_SRC_ALPHA, GL_SRC_ALPHA, GL_SRC_ALPHA },
       0, 0, 1, 1
    };
 
@@ -272,16 +272,23 @@ static GLboolean set_tex_rect_source( struct intel_context *intel,
       return GL_FALSE;
    }
 
+   i830->meta.tex_buffer[0] = buffer;
+   i830->meta.tex_offset[0] = offset;
 
    setup[I830_TEXREG_TM0LI] = (_3DSTATE_LOAD_STATE_IMMEDIATE_2 | 
 			       (LOAD_TEXTURE_MAP0 << 0) | 4);
    setup[I830_TEXREG_TM0S1] = (((height - 1) << TM0S1_HEIGHT_SHIFT) |
 			       ((pitch - 1) << TM0S1_WIDTH_SHIFT) |
 			       textureFormat);
-   setup[I830_TEXREG_TM0S2] = (((((pitch * cpp) / 4) - 1) << TM0S2_PITCH_SHIFT));   
-   setup[I830_TEXREG_TM0S3] &= ~TM0S3_MAX_MIP_MASK;
-   setup[I830_TEXREG_TM0S3] &= ~TM0S3_MIN_MIP_MASK;
-   setup[I830_TEXREG_TM0S3] |= ((numLevels - 1)*4) << TM0S3_MIN_MIP_SHIFT;
+   setup[I830_TEXREG_TM0S2] = (((((pitch * cpp) / 4) - 1) << TM0S2_PITCH_SHIFT)  |
+			       TM0S2_CUBE_FACE_ENA_MASK);   
+
+   setup[I830_TEXREG_TM0S3] = ( (((numLevels - 1)*4) << TM0S3_MIN_MIP_SHIFT) |
+				(FILTER_NEAREST << TM0S3_MIN_FILTER_SHIFT) |
+				(MIPFILTER_NONE << TM0S3_MIP_FILTER_SHIFT) |
+				(FILTER_NEAREST << TM0S3_MAG_FILTER_SHIFT));
+
+   setup[I830_TEXREG_CUBE] = (_3DSTATE_MAP_CUBE | MAP_UNIT(0));
 
    setup[I830_TEXREG_MCS] = (_3DSTATE_MAP_COORD_SET_CMD |
 			     MAP_UNIT(0) |
