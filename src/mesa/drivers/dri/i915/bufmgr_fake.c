@@ -28,6 +28,8 @@ static int ttmcount = 0;
  * Backdoor mapping will very probably fix this. (texdown-pool)
  */ 
 
+#define NO_TTM
+
 #undef CACHED_TTMS
 
 /*
@@ -41,6 +43,11 @@ static int ttmcount = 0;
  */
 
 #define BATCH_LOCATION 1
+
+#ifdef NO_TTM
+#undef BATCH_LOCATION
+#define BATCH_LOCATION 0
+#endif
 
 #if (BATCH_LOCATION == 2)
 #warning Batch buffers using dynamic TTMS. Making TTMS uncached.
@@ -166,6 +173,10 @@ static struct block *alloc_block( struct bufmgr *bm,
     int ret;
     struct block *block;
     unsigned alignment = ( 1 << align );
+
+#ifdef NO_TTM
+    flags |= BM_NO_TTM;
+#endif
     
     if (!(flags & BM_NO_TTM) 
 #if (BATCH_LOCATION != 2)
