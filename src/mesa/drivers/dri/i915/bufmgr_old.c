@@ -28,6 +28,8 @@ static int ttmcount = 0;
  * Backdoor mapping will very probably fix this. (texdown-pool)
  */ 
 
+#define NO_TTM
+
 #undef CACHED_TTMS
 
 /*
@@ -41,6 +43,11 @@ static int ttmcount = 0;
  */
 
 #define BATCH_LOCATION 1
+
+#ifdef NO_TTM
+#undef BATCH_LOCATION
+#define BATCH_LOCATION 0
+#endif
 
 #if (BATCH_LOCATION == 2)
 #warning Batch buffers using dynamic TTMS. Making TTMS uncached.
@@ -166,8 +173,12 @@ static struct block *alloc_block( struct bufmgr *bm,
     int ret;
     struct block *block;
     unsigned alignment = ( 1 << align );
-  
-	if (!(flags & BM_NO_TTM) 
+
+#ifdef NO_TTM
+    flags |= BM_NO_TTM;
+#endif
+    
+    if (!(flags & BM_NO_TTM) 
 #if (BATCH_LOCATION != 2)
 #warning Disabling dynamic batch buffers
 	&& !(flags & BM_CLIENT)
@@ -192,9 +203,9 @@ static struct block *alloc_block( struct bufmgr *bm,
 	block->drm_buf.next = NULL;
 	
 #ifdef CACHED_TTMS
-	block->drm_buf.flags = DRM_MM_NEW | DRM_MM_CACHED;
+	block->drm_buf.flags = DRM_TTM_FLAG_NEW | DRM_TTM_FLAG_CACHED;
 #else
-	block->drm_buf.flags = DRM_MM_NEW;
+	block->drm_buf.flags = DRM_TTM_FLAG_NEW;
 #endif
 	block->has_ttm = 2;
 	if (block->has_ttm > 1)
@@ -403,7 +414,6 @@ static int move_buffers( struct bufmgr *bm,
 	       last_block = block;
 	       block->drm_buf.op = ((flags & BM_MEM_MASK) == BM_MEM_AGP) ?
 		   ttm_validate : ttm_unbind;
-	       block->drm_buf.fence_type = 0;
 	       block->mem_type = flags & BM_MEM_MASK;
 	   }
        }
@@ -652,7 +662,7 @@ int bmInitPool( struct bufmgr *bm,
        pool->drm_buf.ttm_page_offset = 0;
        pool->drm_buf.num_pages = pool->drm_ttm.size / getpagesize();
        pool->drm_buf.next = NULL;
-       pool->drm_buf.flags = DRM_MM_NEW | DRM_MM_NO_EVICT;
+       pool->drm_buf.flags = DRM_TTM_FLAG_NEW | DRM_TTM_FLAG_PINNED;
        pool->drm_buf.op = ttm_validate;
        pool->drm_ttm.op = ttm_bufs;
        pool->drm_ttm.num_bufs = 1;
@@ -1044,13 +1054,11 @@ unsigned bmFenceBufferList( struct bufmgr *bm, struct bm_buffer_list *list )
    drm_ttm_arg_t arg;
    int ret;
 
-#if 0
    arg.op = ttm_bufs;
    arg.do_fence = 1;
    arg.num_bufs = 0;
    ret = ioctl(bm->intel->driFd, DRM_IOCTL_TTM, &arg);
    assert(ret == 0);
-#endif
 
    DBG("%s (%d bufs)\n", __FUNCTION__, list->nr);
 
@@ -1083,29 +1091,27 @@ unsigned bmFenceBufferList( struct bufmgr *bm, struct bm_buffer_list *list )
  * For now they can stay, but will likely change/move before final:
  */
 unsigned bmSetFence( struct bufmgr *bm )
-{ 
-  /*
-   * drmEmitFence basically does the same for intel, but userspace
-   * doesn't know, and calls the kernel to do this. Bypass libdrm.
-   */
+{
+   assert(bm->intel->locked);
 
-   return bm->intel->sarea->last_enqueue;
+   return intelEmitIrqLocked( bm->intel );
 }
 
 int bmTestFence( struct bufmgr *bm, unsigned fence )
 {
-   drmFence dFence = {0, fence};
-   int retired;
-   
-   assert(!drmTestFence(bm->intel->driFd, dFence, 0, &retired));
-   return retired;
+/*    if (fence % 1024 == 0) */
+/*       _mesa_printf("%d %d\n", fence, bm->intel->sarea->last_dispatch); */
+
+  DBG("fence: %d %d\n", fence,  bm->intel->sarea->last_dispatch);
+   return fence <= bm->intel->sarea->last_dispatch;
 }
 
 void bmFinishFence( struct bufmgr *bm, unsigned fence )
 {
-   drmFence dFence = {0, fence};
-   assert(!drmWaitFence(bm->intel->driFd, dFence));
+   if (!bmTestFence(bm, fence))
+      intelWaitIrq( bm->intel, fence );
 }
+
 
 /* There is a need to tell the hardware to flush various caches
  * before we can start reading and writing video memory.
