@@ -38,7 +38,7 @@
 #include "intel_tex.h"
 #include "intel_blit.h"
 #include "intel_pixel.h"
-#include "bufmgr.h"
+#include "intel_bufmgr.h"
 
 /* Do the best we can using the blitter.  A future project is to use
  * the texture engine and fragment programs for these copies.

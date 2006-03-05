@@ -2,7 +2,7 @@
 #define INTEL_BATCHBUFFER_H
 
 #include "mtypes.h"
-#include "bufmgr.h"
+#include "intel_bufmgr.h"
 
 struct intel_context;
 
@@ -30,8 +30,9 @@ struct intel_batchbuffer {
 
    /* In progress:
     */
-   GLuint offset[BM_LIST_MAX];
-   struct bm_buffer_list *list;   
+   unsigned long offset[MAX_RELOCS];
+   struct _drmMMBufList *list;   
+   GLuint list_count;
    GLubyte *map;
    GLubyte *ptr; 
 

@@ -42,7 +42,7 @@
 #include "intel_pixel.h"
 #include "intel_buffer_objects.h"
 
-#include "bufmgr.h"
+#include "intel_bufmgr.h"
 
 /* For many applications, the new ability to pull the source buffers
  * back out of the GTT and then do the packing/conversion operations

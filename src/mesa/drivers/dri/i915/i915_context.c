@@ -41,7 +41,7 @@
 #include "utils.h"
 #include "i915_reg.h"
 
-#include "bufmgr.h"
+#include "intel_bufmgr.h"
 #include "intel_regions.h"
 #include "intel_batchbuffer.h"
 

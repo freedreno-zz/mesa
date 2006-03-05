@@ -42,7 +42,7 @@
 #include "intel_context.h"
 #include "intel_regions.h"
 #include "intel_blit.h"
-#include "bufmgr.h"
+#include "intel_bufmgr.h"
 
 /* XXX: Thread safety?
  */
@@ -80,7 +80,7 @@ struct intel_region *intel_region_alloc( struct intel_context *intel,
    region->height = height; 	/* needed? */
    region->refcount = 1;
 
-   bmGenBuffers(intel->bm, 1, &region->buffer);
+   bmGenBuffers(intel->bm, 1, &region->buffer, 0);
    bmBufferData(intel->bm, region->buffer, pitch * cpp * height, NULL, 0);
 
    return region;
@@ -120,9 +120,6 @@ struct intel_region *intel_region_create_static( struct intel_context *intel,
 						 GLuint height )
 {
    struct intel_region *region = calloc(sizeof(*region), 1);
-   GLuint size = cpp * pitch * height;
-   GLint pool;
-
    DBG("%s\n", __FUNCTION__);
 
    region->cpp = cpp;
@@ -130,22 +127,13 @@ struct intel_region *intel_region_create_static( struct intel_context *intel,
    region->height = height; 	/* needed? */
    region->refcount = 1;
 
-   /* Recipe for creating a static buffer - create a static pool with
-    * the right offset and size, generate a buffer and use a special
-    * call to bind it to all of the memory in that pool.
+   /*
+    * We use a "shared" buffer type to indicate buffers created and
+    * shared by others.
     */
-   pool = bmInitPool(intel->bm, offset, virtual, size, 
-		     (BM_MEM_AGP |
-		      BM_NO_UPLOAD | 
-		      BM_NO_EVICT | 
-		      BM_NO_MOVE));
-   if (pool < 0) {
-      _mesa_printf("bmInitPool failed for static region\n");
-      exit(1);
-   }
 
-   bmGenBuffers(intel->bm, 1, &region->buffer);
-   bmBufferStatic(intel->bm, region->buffer, size, pool);
+   bmGenBuffers(intel->bm, 1, &region->buffer, DRM_MM_TT | DRM_MM_SHARED);
+   bmSetShared(intel->bm, region->buffer, DRM_MM_TT, offset, virtual);
 
    return region;
 }

@@ -27,7 +27,7 @@
 
 #include "intel_batchbuffer.h"
 #include "intel_ioctl.h"
-#include "bufmgr.h"
+#include "intel_bufmgr.h"
 
 /* Relocations in kernel space:
  *    - pass dma buffer seperately
@@ -91,18 +91,19 @@ static void intel_batchbuffer_reset( struct intel_batchbuffer *batch )
    if (!batch->list) 
       batch->list = bmNewBufferList();
 
-   batch->list->nr = 0;
+   drmMMClearBufList(batch->list);
+   batch->list_count = 0;
    batch->nr_relocs = 0;
    batch->flags = 0;
 
-   bmAddBuffer( batch->list,
+   bmAddBuffer( batch->bm,
+	        batch->list,
 		batch->buffer,
-		0,
+		DRM_MM_TT,
 		NULL,
-		&batch->offset[batch->list->nr]);
+		&batch->offset[batch->list_count++]);
 
-   batch->map = bmMapBuffer(batch->bm, batch->buffer, 
-			    BM_MEM_AGP|BM_MEM_LOCAL|BM_CLIENT|BM_WRITE);
+   batch->map = bmMapBuffer(batch->bm, batch->buffer, DRM_MM_WRITE);
    batch->ptr = batch->map;
 }
 
@@ -116,7 +117,7 @@ struct intel_batchbuffer *intel_batchbuffer_alloc( struct intel_context *intel )
    batch->intel = intel;
    batch->bm = intel->bm;
 
-   bmGenBuffers(intel->bm, 1, &batch->buffer);
+   bmGenBuffers(intel->bm, 1, &batch->buffer, BM_BATCHBUFFER);
    intel_batchbuffer_reset( batch );
    return batch;
 }
@@ -140,43 +141,36 @@ static void do_flush_locked( struct intel_batchbuffer *batch,
 
    bmValidateBufferList( batch->bm, 
 			 batch->list,
-			 BM_MEM_AGP );
+			 DRM_MM_TT );
 
    /* Apply the relocations.  This nasty map indicates to me that the
     * whole task should be done internally by the memory manager, and
     * that dma buffers probably need to be pinned within agp space.
     */
-   ptr = (GLuint *)bmMapBuffer(batch->bm, batch->buffer, 
-			       BM_NO_MOVE|BM_NO_UPLOAD|
-			       BM_NO_EVICT|BM_MEM_AGP|
-			       BM_WRITE);
+   ptr = (GLuint *)bmMapBuffer(batch->bm, batch->buffer, DRM_MM_WRITE);
 
+   
    for (i = 0; i < batch->nr_relocs; i++) {
       struct buffer_reloc *r = &batch->reloc[i];
-
-      assert(r->elem < batch->list->nr);
-
-      DBG("apply fixup at offset 0x%x, elem %d (buf %d, offset 0x%x), delta 0x%x\n",
-	  r->offset, r->elem, batch->list->elem[r->elem].buffer,
-	  batch->offset[r->elem], r->delta);
-
+      
+      assert(r->elem < batch->list_count);
       ptr[r->offset/4] = batch->offset[r->elem] + r->delta;
    }
 
    if (INTEL_DEBUG & DEBUG_DMA)
       intel_dump_batchbuffer( 0, ptr, used );
 
-
-
    bmUnmapBuffer(batch->bm, batch->buffer);
    
    /* Fire the batch buffer, which was uploaded above:
     */
+
+#if 1
    intel_batch_ioctl(batch->intel, 
 		     batch->offset[0],
 		     used,
 		     ignore_cliprects);
-   
+#endif
    batch->last_fence = bmFenceBufferList(batch->bm, batch->list);
 }
 
@@ -248,19 +242,15 @@ GLboolean intel_batchbuffer_emit_reloc( struct intel_batchbuffer *batch,
 
    assert(batch->nr_relocs <= MAX_RELOCS);
 
-   for (i = 0; i < batch->list->nr; i++) 
-      if (buffer == batch->list->elem[i].buffer)
-	 break;
-
-   if (i == batch->list->nr) {
-      if (i == BM_LIST_MAX)
-	 return GL_FALSE;
-
-      bmAddBuffer(batch->list,
+   i = bmScanBufferList(batch->bm, batch->list, buffer);
+   if (i == -1) {
+      i = batch->list_count; 
+      bmAddBuffer(batch->bm,
+		  batch->list,
 		  buffer,
 		  flags,
 		  NULL,
-		  &batch->offset[i]);
+		  &batch->offset[batch->list_count++]);
    }
 
    {

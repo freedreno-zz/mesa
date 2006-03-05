@@ -384,11 +384,11 @@ static void i830_emit_state( struct intel_context *intel )
       BEGIN_BATCH(I830_DEST_SETUP_SIZE+2, 0);
       OUT_BATCH(state->Buffer[I830_DESTREG_CBUFADDR0]);
       OUT_BATCH(state->Buffer[I830_DESTREG_CBUFADDR1]);
-      OUT_RELOC(state->draw_region->buffer, BM_MEM_AGP|BM_WRITE, 0);
+      OUT_RELOC(state->draw_region->buffer, DRM_MM_TT|DRM_MM_WRITE, 0);
 
       OUT_BATCH(state->Buffer[I830_DESTREG_DBUFADDR0]);
       OUT_BATCH(state->Buffer[I830_DESTREG_DBUFADDR1]);
-      OUT_RELOC(state->depth_region->buffer, BM_MEM_AGP|BM_WRITE, 0);
+      OUT_RELOC(state->depth_region->buffer, DRM_MM_TT |DRM_MM_WRITE, 0);
 
       OUT_BATCH(state->Buffer[I830_DESTREG_DV0]);
       OUT_BATCH(state->Buffer[I830_DESTREG_DV1]);
@@ -415,7 +415,7 @@ static void i830_emit_state( struct intel_context *intel )
 
 	 if (state->tex_buffer[i]) {
 	    OUT_RELOC(state->tex_buffer[i],
-		      BM_MEM_AGP|BM_READ,
+		      DRM_MM_TT|DRM_MM_READ,
 		      state->tex_offset[i] | TM0S0_USE_FENCE);
 	 }
 	 else {

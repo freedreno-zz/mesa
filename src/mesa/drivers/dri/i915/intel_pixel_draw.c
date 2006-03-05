@@ -42,7 +42,7 @@
 #include "intel_pixel.h"
 #include "intel_buffer_objects.h"
 #include "intel_tris.h"
-#include "bufmgr.h"
+#include "intel_bufmgr.h"
 
 
 

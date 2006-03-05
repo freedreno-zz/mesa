@@ -32,7 +32,7 @@
 
 #include "intel_context.h"
 #include "intel_buffer_objects.h"
-#include "bufmgr.h"
+#include "intel_bufmgr.h"
 
 
 /* There is some duplication between mesa's bufferobjects and our
@@ -51,7 +51,7 @@ static struct gl_buffer_object *intel_bufferobj_alloc( GLcontext *ctx,
 
    /* XXX:  We generate our own handle, which is different to 'name' above.
     */
-   bmGenBuffers(intel->bm, 1, &obj->buffer);
+   bmGenBuffers(intel->bm, 1, &obj->buffer, 0);
 
    return &obj->Base;
 }

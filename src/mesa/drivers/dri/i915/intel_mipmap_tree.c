@@ -28,7 +28,7 @@
 #include "intel_context.h"
 #include "intel_mipmap_tree.h"
 #include "intel_regions.h"
-#include "bufmgr.h"
+#include "intel_bufmgr.h"
 #include "enums.h"
 
 static GLenum target_to_target( GLenum target )

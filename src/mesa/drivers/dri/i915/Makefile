@@ -12,7 +12,6 @@ DRIVER_SOURCES = \
 	i830_tex.c \
 	i830_texstate.c \
 	i830_vtbl.c \
-	bufmgr_fake.c \
 	intel_render.c \
 	intel_regions.c \
 	intel_buffer_objects.c \
@@ -46,7 +45,8 @@ DRIVER_SOURCES = \
 	intel_screen.c \
 	intel_span.c \
 	intel_state.c \
-	intel_tris.c 
+	intel_tris.c \
+	intel_bufmgr.c
 
 
 

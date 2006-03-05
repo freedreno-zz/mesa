@@ -59,7 +59,7 @@
 #include "intel_regions.h"
 #include "intel_buffer_objects.h"
 
-#include "bufmgr.h"
+#include "intel_bufmgr.h"
 
 #include "utils.h"
 #ifndef INTEL_DEBUG
@@ -251,13 +251,16 @@ void intelFlush( GLcontext *ctx )
    /* XXX: Need to do an MI_FLUSH here.  Actually, the bufmgr_fake.c
     * code will have done one already.
     */
+
+   bmFinishFence( intel->bm, intel->batch->last_fence );
+
 }
 
 void intelFinish( GLcontext *ctx ) 
 {
    struct intel_context *intel = intel_context( ctx );
    intelFlush( ctx );
-   bmFinishFence( intel->bm, intel->last_fence );
+   bmFinishFence( intel->bm, intel->batch->last_fence );
 }
 
 
@@ -385,19 +388,19 @@ GLboolean intelInitContext( struct intel_context *intel,
 
    /* Buffer manager: 
     */
-   intel->bm = bm_fake_intel_Attach( intel );
-
+   intel->bm = bm_intel_Attach( intel );
+#if 0
    bmInitPool(intel->bm,
               intel->intelScreen->tex.offset, /* low offset */
               intel->intelScreen->tex.map, /* low virtual */
               intel->intelScreen->tex.size,
-	      BM_MEM_AGP);
-
+	      DRM_MM_TT);
+#endif
    /* These are still static, but create regions for them.  
     */
    intel->front_region = 
       intel_region_create_static(intel,
-				 BM_MEM_AGP,
+				 DRM_MM_TT,
 				 intelScreen->front.offset,
 				 intelScreen->front.map,
 				 intelScreen->cpp,
@@ -407,7 +410,7 @@ GLboolean intelInitContext( struct intel_context *intel,
 
    intel->back_region = 
       intel_region_create_static(intel,
-				 BM_MEM_AGP,
+				 DRM_MM_TT,
 				 intelScreen->back.offset,
 				 intelScreen->back.map,
 				 intelScreen->cpp,
@@ -418,7 +421,7 @@ GLboolean intelInitContext( struct intel_context *intel,
     */
    intel->depth_region = 
       intel_region_create_static(intel,
-				 BM_MEM_AGP,
+				 DRM_MM_TT,
 				 intelScreen->depth.offset,
 				 intelScreen->depth.map,
 				 intelScreen->cpp,

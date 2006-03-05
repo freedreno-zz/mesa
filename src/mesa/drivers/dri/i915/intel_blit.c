@@ -39,7 +39,7 @@
 #include "intel_blit.h"
 #include "intel_regions.h"
 
-#include "bufmgr.h"
+#include "intel_bufmgr.h"
 
 
 
@@ -58,8 +58,6 @@ void intelCopyBuffer( const __DRIdrawablePrivate *dPriv )
    assert(dPriv->driContextPriv->driverPrivate);
 
    intel = (struct intel_context *) dPriv->driContextPriv->driverPrivate;
-   intelFlush( &intel->ctx );
-
 
    bmFinishFence(intel->bm, intel->last_swap_fence);
 
@@ -106,17 +104,17 @@ void intelCopyBuffer( const __DRIdrawablePrivate *dPriv )
 	 OUT_BATCH( (pbox->y2 << 16) | pbox->x2 );
 
 	 if (intel->sarea->pf_current_page == 0) 
-	    OUT_RELOC( intel->front_region->buffer, BM_MEM_AGP|BM_WRITE, 0 );
+	    OUT_RELOC( intel->front_region->buffer, DRM_MM_TT|DRM_MM_WRITE, 0 );
 	 else
-	    OUT_RELOC( intel->back_region->buffer, BM_MEM_AGP|BM_WRITE, 0 ); 
+	    OUT_RELOC( intel->back_region->buffer, DRM_MM_TT|DRM_MM_WRITE, 0 ); 
 
 	 OUT_BATCH( (pbox->y1 << 16) | pbox->x1 );
 	 OUT_BATCH( BR13 & 0xffff );
 
 	 if (intel->sarea->pf_current_page == 0) 
-	    OUT_RELOC( intel->back_region->buffer, BM_MEM_AGP|BM_READ, 0 ); 
+	    OUT_RELOC( intel->back_region->buffer, DRM_MM_TT|DRM_MM_READ, 0 ); 
 	 else
-	    OUT_RELOC( intel->front_region->buffer, BM_MEM_AGP|BM_READ, 0 );
+	    OUT_RELOC( intel->front_region->buffer, DRM_MM_TT|DRM_MM_READ, 0 );
 
 	 ADVANCE_BATCH();
       }
@@ -164,7 +162,7 @@ void intelEmitFillBlit( struct intel_context *intel,
    OUT_BATCH( BR13 );
    OUT_BATCH( (y << 16) | x );
    OUT_BATCH( ((y+h) << 16) | (x+w) );
-   OUT_RELOC( dst_buffer, BM_MEM_AGP|BM_WRITE, dst_offset );
+   OUT_RELOC( dst_buffer, DRM_MM_TT|DRM_MM_WRITE, dst_offset );
    OUT_BATCH( color );
    ADVANCE_BATCH();
 }
@@ -234,10 +232,10 @@ void intelEmitCopyBlit( struct intel_context *intel,
       OUT_BATCH( BR13 );
       OUT_BATCH( (dst_y << 16) | dst_x );
       OUT_BATCH( (dst_y2 << 16) | dst_x2 );
-      OUT_RELOC( dst_buffer, BM_MEM_AGP|BM_WRITE, dst_offset );	
+      OUT_RELOC( dst_buffer, DRM_MM_TT|DRM_MM_WRITE, dst_offset );	
       OUT_BATCH( (src_y << 16) | src_x );
       OUT_BATCH( ((GLint)src_pitch&0xffff) );
-      OUT_RELOC( src_buffer, BM_MEM_AGP|BM_READ, src_offset ); 
+      OUT_RELOC( src_buffer, DRM_MM_TT|DRM_MM_READ, src_offset ); 
       ADVANCE_BATCH();
    }
    else {
@@ -246,10 +244,10 @@ void intelEmitCopyBlit( struct intel_context *intel,
       OUT_BATCH( BR13 );
       OUT_BATCH( (0 << 16) | dst_x );
       OUT_BATCH( (h << 16) | dst_x2 );
-      OUT_RELOC( dst_buffer, BM_MEM_AGP|BM_WRITE, dst_offset + dst_y * dst_pitch );	
+      OUT_RELOC( dst_buffer, DRM_MM_TT|DRM_MM_WRITE, dst_offset + dst_y * dst_pitch );	
       OUT_BATCH( (0 << 16) | src_x );
       OUT_BATCH( ((GLint)src_pitch&0xffff) );
-      OUT_RELOC( src_buffer, BM_MEM_AGP|BM_READ, src_offset + src_y * src_pitch ); 
+      OUT_RELOC( src_buffer, DRM_MM_TT|DRM_MM_READ, src_offset + src_y * src_pitch ); 
       ADVANCE_BATCH();
    }
 }
@@ -345,7 +343,7 @@ void intelClearWithBlit(GLcontext *ctx, GLbitfield flags, GLboolean all,
 	    OUT_BATCH( BR13 );
 	    OUT_BATCH( (b.y1 << 16) | b.x1 );
 	    OUT_BATCH( (b.y2 << 16) | b.x2 );
-	    OUT_RELOC( intel->front_region->buffer, BM_MEM_AGP|BM_WRITE, 0 );
+	    OUT_RELOC( intel->front_region->buffer, DRM_MM_TT|DRM_MM_WRITE, 0 );
 	    OUT_BATCH( clear_color );
 	    ADVANCE_BATCH();
 	 }
@@ -356,7 +354,7 @@ void intelClearWithBlit(GLcontext *ctx, GLbitfield flags, GLboolean all,
 	    OUT_BATCH( BR13 );
 	    OUT_BATCH( (b.y1 << 16) | b.x1 );
 	    OUT_BATCH( (b.y2 << 16) | b.x2 );
-	    OUT_RELOC( intel->back_region->buffer, BM_MEM_AGP|BM_WRITE, 0 );
+	    OUT_RELOC( intel->back_region->buffer, DRM_MM_TT|DRM_MM_WRITE, 0 );
 	    OUT_BATCH( clear_color );
 	    ADVANCE_BATCH();
 	 }
@@ -367,7 +365,7 @@ void intelClearWithBlit(GLcontext *ctx, GLbitfield flags, GLboolean all,
 	    OUT_BATCH( BR13 );
 	    OUT_BATCH( (b.y1 << 16) | b.x1 );
 	    OUT_BATCH( (b.y2 << 16) | b.x2 );
-	    OUT_RELOC( intel->depth_region->buffer, BM_MEM_AGP|BM_WRITE, 0 );
+	    OUT_RELOC( intel->depth_region->buffer, DRM_MM_TT|DRM_MM_WRITE, 0 );
 	    OUT_BATCH( clear_depth );
 	    ADVANCE_BATCH();
 	 }      

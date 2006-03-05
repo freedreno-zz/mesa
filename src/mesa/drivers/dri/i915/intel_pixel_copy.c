@@ -39,7 +39,7 @@
 #include "intel_regions.h"
 #include "intel_tris.h"
 #include "intel_pixel.h"
-#include "bufmgr.h"
+#include "intel_bufmgr.h"
 
 
 static struct intel_region *copypix_src_region( struct intel_context *intel,
