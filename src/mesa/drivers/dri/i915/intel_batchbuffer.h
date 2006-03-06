@@ -108,7 +108,7 @@ intel_batchbuffer_require_space(struct intel_batchbuffer *batch,
 
 #define BEGIN_BATCH(n, flags) do {				\
    assert(!intel->prim.flush);					\
-   intel_batchbuffer_require_space(intel->batch, n*4, flags);	\
+   intel_batchbuffer_require_space(intel->batch, (n)*4, flags);	\
 } while (0)
 
 #define OUT_BATCH(d)  intel_batchbuffer_emit_dword(intel->batch, d)
