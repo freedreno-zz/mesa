@@ -20,6 +20,8 @@ PROGS = \
 	clearspd \
 	cubemap \
 	drawpix \
+	copypix \
+	drawpix_pbo \
 	fire \
 	fogcoord \
 	fplight \
