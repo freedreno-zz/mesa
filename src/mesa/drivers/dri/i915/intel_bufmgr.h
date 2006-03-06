@@ -41,7 +41,7 @@ struct bufmgr;
 
 struct bufmgr *bm_intel_Attach(struct intel_context *intel);
 
-#define BM_BATCHBUFFER      0x01000000	/* for map - pointer will be accessed
+#define BM_BATCHBUFFER      0x10000000	/* for map - pointer will be accessed
 					 * without dri lock */
 
 /* Stick closely to ARB_vbo semantics - they're well defined and
