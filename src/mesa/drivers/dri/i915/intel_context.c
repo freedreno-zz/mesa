@@ -251,9 +251,6 @@ void intelFlush( GLcontext *ctx )
    /* XXX: Need to do an MI_FLUSH here.  Actually, the bufmgr_fake.c
     * code will have done one already.
     */
-
-   bmFinishFence( intel->bm, intel->batch->last_fence );
-
 }
 
 void intelFinish( GLcontext *ctx ) 
