@@ -687,4 +687,15 @@ extern int __glXGetInternalVersion(void);
 /* Get the unadjusted system time */
 extern int __glXGetUST( int64_t * ust );
 
+/* KW: Temporary hacks to coalesce multiple opens of the same drm
+ * instance.  These should be renamed or moved to libdrm, or the
+ * behaviour of drmOpen/drmClose should change.
+ */
+int drmOpenOnce(void *unused, 
+		const char *BusID,
+		int *newlyopened);
+
+void drmCloseOnce(int fd);
+
+
 #endif /* !__GLX_client_h__ */
