@@ -197,7 +197,7 @@ static const struct tnl_pipeline_stage *intel_pipeline[] = {
    &_tnl_point_attenuation_stage,
    &_tnl_arb_vertex_program_stage,
    &_tnl_vertex_program_stage,
-#if 0
+#if 1
    &_intel_render_stage,     /* ADD: unclipped rastersetup-to-dma */
 #endif
    &_tnl_render_stage,
