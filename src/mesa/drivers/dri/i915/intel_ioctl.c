@@ -91,7 +91,8 @@ void intelWaitIrq( struct intel_context *intel, int seq )
 void intel_batch_ioctl( struct intel_context *intel, 
 			GLuint start_offset,
 			GLuint used,
-			GLboolean ignore_cliprects)
+			GLboolean ignore_cliprects,
+			GLboolean allow_unlock)
 {
    drmI830BatchBuffer batch;
 
@@ -111,6 +112,11 @@ void intel_batch_ioctl( struct intel_context *intel,
     * single buffer.
     */
    if (intel->numClipRects == 0 && !ignore_cliprects) {
+      if (allow_unlock) {
+	 UNLOCK_HARDWARE(intel);
+	 sched_yield();
+	 LOCK_HARDWARE(intel);
+      }
       intel->vtbl.lost_hardware( intel ); 
       return;
    }

@@ -134,7 +134,8 @@ void intel_batchbuffer_free( struct intel_batchbuffer *batch )
  */
 static void do_flush_locked( struct intel_batchbuffer *batch,
 			     GLuint used,
-			     GLboolean ignore_cliprects)
+			     GLboolean ignore_cliprects,
+			     GLboolean allow_unlock)
 {
    GLuint *ptr;
    GLuint i;
@@ -169,7 +170,8 @@ static void do_flush_locked( struct intel_batchbuffer *batch,
    intel_batch_ioctl(batch->intel, 
 		     batch->offset[0],
 		     used,
-		     ignore_cliprects);
+		     ignore_cliprects,
+		     allow_unlock);
 #endif
    batch->last_fence = bmFenceBufferList(batch->bm, batch->list);
 }
@@ -211,11 +213,11 @@ GLuint intel_batchbuffer_flush( struct intel_batchbuffer *batch )
       assert(!(batch->flags & INTEL_BATCH_NO_CLIPRECTS));
 
       LOCK_HARDWARE(intel);
-      do_flush_locked(batch, used, GL_FALSE);
+      do_flush_locked(batch, used, GL_FALSE, GL_TRUE);
       UNLOCK_HARDWARE(intel);
    }
    else {
-      do_flush_locked(batch, used, !(batch->flags & INTEL_BATCH_CLIPRECTS));
+      do_flush_locked(batch, used, !(batch->flags & INTEL_BATCH_CLIPRECTS), GL_FALSE);
    }
 
    /* Reset the buffer:
