@@ -105,7 +105,8 @@ static GLboolean do_texture_drawpixels( GLcontext *ctx,
    /* Is this true?  Also will need to turn depth testing on according
     * to state:
     */
-   intel->vtbl.meta_no_depth_stencil_write(intel);
+   intel->vtbl.meta_no_stencil_write(intel);
+   intel->vtbl.meta_no_depth_write(intel);
 
    /* Set the 3d engine to draw into the destination region:
     */

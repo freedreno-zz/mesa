@@ -144,10 +144,13 @@ struct intel_context
 				    GLuint mask,
 				    GLuint clear );
 
-      void (*meta_no_depth_stencil_write)( struct intel_context *intel );
+      void (*meta_depth_replace)( struct intel_context *intel );
 
-      void (*meta_no_texture)( struct intel_context *intel );
       void (*meta_texture_blend_replace)( struct intel_context *intel );
+
+      void (*meta_no_stencil_write)( struct intel_context *intel );
+      void (*meta_no_depth_write)( struct intel_context *intel );
+      void (*meta_no_texture)( struct intel_context *intel );
 
       void (*meta_import_pixel_state)( struct intel_context *intel );
 

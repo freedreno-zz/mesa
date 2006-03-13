@@ -113,7 +113,8 @@ do_texture_readpixels( GLcontext *ctx,
 
    if (intel->driDrawable->numClipRects) {
       intel->vtbl.install_meta_state(intel);
-      intel->vtbl.meta_no_depth_stencil_write(intel);
+      intel->vtbl.meta_no_depth_write(intel);
+      intel->vtbl.meta_no_stencil_write(intel);
 
       if (!driClipRectToFramebuffer(ctx->ReadBuffer, &x, &y, &width, &height)) {
 	 UNLOCK_HARDWARE( intel );

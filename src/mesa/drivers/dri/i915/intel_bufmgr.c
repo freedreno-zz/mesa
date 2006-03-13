@@ -162,8 +162,11 @@ bmDeleteBuffers(struct bufmgr *bm, unsigned n, unsigned *buffers)
       unsigned i;
       for (i = 0; i < n; i++) {
 	 drmMMBuf *buf = _mesa_HashLookup(bm->hash, buffers[i]);
+	 if (buf) {
+	    drmMMFreeBuffer(bm->driFd, buf);
 
-	 drmMMFreeBuffer(bm->driFd, buf);
+	    _mesa_HashRemove(bm->hash, buffers[i]);
+	 }
       }
    }
    UNLOCK(bm);

@@ -57,7 +57,7 @@ do {						\
 } while (0)
 
 
-static void meta_no_depth_stencil_write( struct intel_context *intel )
+static void meta_no_stencil_write( struct intel_context *intel )
 {
    struct i915_context *i915 = i915_context(&intel->ctx);
 
@@ -66,6 +66,13 @@ static void meta_no_depth_stencil_write( struct intel_context *intel )
    i915->meta.Ctx[I915_CTXREG_LIS5] &= ~(S5_STENCIL_TEST_ENABLE | 
 				       S5_STENCIL_WRITE_ENABLE);
 
+   i915->meta.emitted &= ~I915_UPLOAD_CTX;
+}
+
+static void meta_no_depth_write( struct intel_context *intel )
+{
+   struct i915_context *i915 = i915_context(&intel->ctx);
+
    /* ctx->Driver.Enable( ctx, GL_DEPTH_TEST, GL_FALSE )
     */
    i915->meta.Ctx[I915_CTXREG_LIS6] &= ~(S6_DEPTH_TEST_ENABLE |
@@ -73,6 +80,26 @@ static void meta_no_depth_stencil_write( struct intel_context *intel )
 
    i915->meta.emitted &= ~I915_UPLOAD_CTX;
 }
+
+static void meta_depth_replace( struct intel_context *intel )
+{
+   struct i915_context *i915 = i915_context(&intel->ctx);
+
+   /* ctx->Driver.Enable( ctx, GL_DEPTH_TEST, GL_TRUE )
+    * ctx->Driver.DepthMask( ctx, GL_TRUE )
+    */
+   i915->meta.Ctx[I915_CTXREG_LIS6] |= (S6_DEPTH_TEST_ENABLE |
+					S6_DEPTH_WRITE_ENABLE);
+
+   /* ctx->Driver.DepthFunc( ctx, GL_REPLACE )
+    */
+   i915->meta.Ctx[I915_CTXREG_LIS6] &= ~S6_DEPTH_TEST_FUNC_MASK;
+   i915->meta.Ctx[I915_CTXREG_LIS6] |= 
+      COMPAREFUNC_ALWAYS << S6_DEPTH_TEST_FUNC_SHIFT;
+
+   i915->meta.emitted &= ~I915_UPLOAD_CTX;
+}
+
 
 /* Set stencil unit to replace always with the reference value.
  */
@@ -88,12 +115,6 @@ static void meta_stencil_replace( struct intel_context *intel,
     */
    i915->meta.Ctx[I915_CTXREG_LIS5] |= (S5_STENCIL_TEST_ENABLE | 
 				      S5_STENCIL_WRITE_ENABLE);
-
-
-   /* ctx->Driver.Enable( ctx, GL_DEPTH_TEST, GL_FALSE )
-    */
-   i915->meta.Ctx[I915_CTXREG_LIS6] &= ~(S6_DEPTH_TEST_ENABLE |
-				       S6_DEPTH_WRITE_ENABLE);
 
    /* ctx->Driver.StencilMask( ctx, s_mask )
     */
@@ -504,8 +525,10 @@ void i915InitMetaFuncs( struct i915_context *i915 )
 {
    i915->intel.vtbl.install_meta_state = install_meta_state;
    i915->intel.vtbl.leave_meta_state = leave_meta_state;
-   i915->intel.vtbl.meta_no_depth_stencil_write = meta_no_depth_stencil_write;
+   i915->intel.vtbl.meta_no_depth_write = meta_no_depth_write;
+   i915->intel.vtbl.meta_no_stencil_write = meta_no_stencil_write;
    i915->intel.vtbl.meta_stencil_replace = meta_stencil_replace;
+   i915->intel.vtbl.meta_depth_replace = meta_depth_replace;
    i915->intel.vtbl.meta_color_mask = meta_color_mask;
    i915->intel.vtbl.meta_no_texture = meta_no_texture;
    i915->intel.vtbl.meta_texture_blend_replace = meta_texture_blend_replace;

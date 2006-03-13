@@ -213,19 +213,6 @@ void intelWindowMoved( struct intel_context *intel )
    }
 }
 
-static void emit_clip_rect_quads(struct intel_context *intel,
-				 const drm_clip_rect_t *clear)
-{
-   /* XXX: Using INTEL_BATCH_NO_CLIPRECTS here is dangerous as the
-    * drawing origin may not be correctly emitted.
-    */
-   intel_meta_draw_quad(intel, 
-			clear->x1, clear->x2, 
-			clear->y1, clear->y2, 
-			0,
-			intel->ClearColor, 
-			0, 0, 0, 0);
-}
 
 
 /* A true meta version of this would be very simple and additionally
@@ -239,6 +226,9 @@ static void intelClearWithTris(struct intel_context *intel,
 {
    __DRIdrawablePrivate *dPriv = intel->driDrawable;
    drm_clip_rect_t clear;
+
+   if (INTEL_DEBUG & DEBUG_DRI)
+      _mesa_printf("%s %x\n", __FUNCTION__, mask);
 
    LOCK_HARDWARE(intel);
 
@@ -261,7 +251,7 @@ static void intelClearWithTris(struct intel_context *intel,
       /* Back and stencil cliprects are the same.  Try and do both
        * buffers at once:
        */
-      if (mask & (BUFFER_BIT_BACK_LEFT|BUFFER_BIT_STENCIL)) { 
+      if (mask & (BUFFER_BIT_BACK_LEFT|BUFFER_BIT_STENCIL|BUFFER_BIT_DEPTH)) { 
 	 intel->vtbl.meta_draw_region(intel, 
 				      intel->back_region,
 				      intel->depth_region );
@@ -276,23 +266,43 @@ static void intelClearWithTris(struct intel_context *intel,
 					      intel->ctx.Stencil.WriteMask[0], 
 					      intel->ctx.Stencil.Clear);
 	 else
-	    intel->vtbl.meta_no_depth_stencil_write(intel);
+	    intel->vtbl.meta_no_stencil_write(intel);
+
+	 if (mask & BUFFER_BIT_DEPTH) 
+	    intel->vtbl.meta_depth_replace( intel );
+	 else
+	    intel->vtbl.meta_no_depth_write(intel);
       
-	 /* Do cliprects explicitly:
+	 /* XXX: Using INTEL_BATCH_NO_CLIPRECTS here is dangerous as the
+	  * drawing origin may not be correctly emitted.
 	  */
-	 emit_clip_rect_quads(intel, &clear);
+	 intel_meta_draw_quad(intel, 
+			      clear.x1, clear.x2, 
+			      clear.y1, clear.y2, 
+			      intel->ctx.Depth.Clear,
+			      intel->ClearColor, 
+			      0, 0, 0, 0);
       }
 
       /* Front may have different cliprects: 
        */
       if (mask & BUFFER_BIT_FRONT_LEFT) {
-	 intel->vtbl.meta_no_depth_stencil_write(intel);
+	 intel->vtbl.meta_no_depth_write(intel);
+	 intel->vtbl.meta_no_stencil_write(intel);
 	 intel->vtbl.meta_color_mask(intel, GL_TRUE );
 	 intel->vtbl.meta_draw_region(intel, 
 				      intel->front_region,
 				      intel->depth_region);
 
-	 emit_clip_rect_quads(intel, &clear);
+	 /* XXX: Using INTEL_BATCH_NO_CLIPRECTS here is dangerous as the
+	  * drawing origin may not be correctly emitted.
+	  */
+	 intel_meta_draw_quad(intel, 
+			      clear.x1, clear.x2, 
+			      clear.y1, clear.y2, 
+			      0,
+			      intel->ClearColor, 
+			      0, 0, 0, 0);
       }
 
       intel->vtbl.leave_meta_state( intel );
@@ -339,15 +349,12 @@ static void intelClear(GLcontext *ctx,
       }
    }
 
-   if (mask & BUFFER_BIT_DEPTH) {
-      blit_mask |= BUFFER_BIT_DEPTH;
-   }
 
    if (mask & BUFFER_BIT_STENCIL) {
       if (!intel->hw_stencil) {
 	 swrast_mask |= BUFFER_BIT_STENCIL;
       }
-      else if (ctx->Stencil.WriteMask[0] != 0xff) {
+      else if ((ctx->Stencil.WriteMask[0] & 0xff) != 0xff) {
 	 tri_mask |= BUFFER_BIT_STENCIL;
       } 
       else {
@@ -355,11 +362,21 @@ static void intelClear(GLcontext *ctx,
       }
    }
 
+   /* Do depth with stencil if possible to avoid 2nd pass over the
+    * same buffer.
+    */
+   if (mask & BUFFER_BIT_DEPTH) {
+      if (tri_mask & BUFFER_BIT_STENCIL)
+	 tri_mask |= BUFFER_BIT_DEPTH;
+      else 
+	 blit_mask |= BUFFER_BIT_DEPTH;
+   }
+
    swrast_mask |= (mask & BUFFER_BIT_ACCUM);
 
    intelFlush( ctx );
 
-   if (blit_mask) 
+   if (blit_mask)
       intelClearWithBlit( ctx, blit_mask, all, cx, cy, cw, ch );
 
    if (tri_mask) 

@@ -977,10 +977,10 @@ void intel_meta_draw_quad(struct intel_context *intel,
 {
    union fi *vb;
 
-   if (0)
-      fprintf(stderr, "%s: %f,%f-%f,%f 0x%x %f,%f-%f,%f\n",
+   if (INTEL_DEBUG & DEBUG_DRI)
+      fprintf(stderr, "%s: %f,%f-%f,%f 0x%x %f,%f-%f,%f depth: %f\n",
 	      __FUNCTION__,
-	      x0,y0,x1,y1,color,s0,t0,s1,t1);
+	      x0,y0,x1,y1,color,s0,t0,s1,t1, z);
 
    intel->vtbl.emit_state( intel );
 

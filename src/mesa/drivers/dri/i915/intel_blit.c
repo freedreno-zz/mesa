@@ -266,6 +266,8 @@ void intelClearWithBlit(GLcontext *ctx, GLbitfield flags, GLboolean all,
    GLuint BR13, CMD, D_CMD;
    BATCH_LOCALS;
 
+   if (INTEL_DEBUG & DEBUG_DRI)
+      _mesa_printf("%s %x\n", __FUNCTION__, flags);
    
    clear_color = intel->ClearColor;
    clear_depth = 0;

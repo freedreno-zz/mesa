@@ -57,7 +57,7 @@ do {						\
 } while (0)
 
 
-static void set_no_depth_stencil_write( struct intel_context *intel )
+static void set_no_stencil_write( struct intel_context *intel )
 {
    struct i830_context *i830 = i830_context(&intel->ctx);
 
@@ -68,6 +68,12 @@ static void set_no_depth_stencil_write( struct intel_context *intel )
    i830->meta.Ctx[I830_CTXREG_ENABLES_1] |= DISABLE_STENCIL_TEST;
    i830->meta.Ctx[I830_CTXREG_ENABLES_2] |= DISABLE_STENCIL_WRITE;
 
+   i830->meta.emitted &= ~I830_UPLOAD_CTX;
+}
+
+static void set_no_depth_write( struct intel_context *intel )
+{
+   struct i830_context *i830 = i830_context(&intel->ctx);
 
    /* ctx->Driver.Enable( ctx, GL_DEPTH_TEST, GL_FALSE )
     */
@@ -78,6 +84,30 @@ static void set_no_depth_stencil_write( struct intel_context *intel )
 
    i830->meta.emitted &= ~I830_UPLOAD_CTX;
 }
+
+/* Set depth unit to replace.
+ */
+static void set_depth_replace( struct intel_context *intel )
+{
+   struct i830_context *i830 = i830_context(&intel->ctx);
+
+   /* ctx->Driver.Enable( ctx, GL_DEPTH_TEST, GL_FALSE )
+    * ctx->Driver.DepthMask( ctx, GL_TRUE )
+    */
+   i830->meta.Ctx[I830_CTXREG_ENABLES_1] &= ~ENABLE_DIS_DEPTH_TEST_MASK;
+   i830->meta.Ctx[I830_CTXREG_ENABLES_2] &= ~ENABLE_DIS_DEPTH_WRITE_MASK;
+   i830->meta.Ctx[I830_CTXREG_ENABLES_1] |= ENABLE_DEPTH_TEST;
+   i830->meta.Ctx[I830_CTXREG_ENABLES_2] |= ENABLE_DEPTH_WRITE;
+
+   /* ctx->Driver.DepthFunc( ctx, GL_ALWAYS )
+    */
+   i830->meta.Ctx[I830_CTXREG_STATE3] &= ~DEPTH_TEST_FUNC_MASK;
+   i830->meta.Ctx[I830_CTXREG_STATE3] |= (ENABLE_DEPTH_TEST_FUNC |
+					  DEPTH_TEST_FUNC(COMPAREFUNC_ALWAYS));
+
+   i830->meta.emitted &= ~I830_UPLOAD_CTX;
+}
+
 
 /* Set stencil unit to replace always with the reference value.
  */
@@ -91,14 +121,6 @@ static void set_stencil_replace( struct intel_context *intel,
     */
    i830->meta.Ctx[I830_CTXREG_ENABLES_1] |= ENABLE_STENCIL_TEST;
    i830->meta.Ctx[I830_CTXREG_ENABLES_2] |= ENABLE_STENCIL_WRITE;
-
-
-   /* ctx->Driver.Enable( ctx, GL_DEPTH_TEST, GL_FALSE )
-    */
-   i830->meta.Ctx[I830_CTXREG_ENABLES_1] &= ~ENABLE_DIS_DEPTH_TEST_MASK;
-   i830->meta.Ctx[I830_CTXREG_ENABLES_2] &= ~ENABLE_DIS_DEPTH_WRITE_MASK;
-   i830->meta.Ctx[I830_CTXREG_ENABLES_1] |= DISABLE_DEPTH_TEST;
-   i830->meta.Ctx[I830_CTXREG_ENABLES_2] |= DISABLE_DEPTH_WRITE;
 
    /* ctx->Driver.StencilMask( ctx, s_mask )
     */
@@ -427,8 +449,10 @@ void i830InitMetaFuncs( struct i830_context *i830 )
 {
    i830->intel.vtbl.install_meta_state = install_meta_state;
    i830->intel.vtbl.leave_meta_state = leave_meta_state;
-   i830->intel.vtbl.meta_no_depth_stencil_write = set_no_depth_stencil_write;
+   i830->intel.vtbl.meta_no_depth_write = set_no_depth_write;
+   i830->intel.vtbl.meta_no_stencil_write = set_no_stencil_write;
    i830->intel.vtbl.meta_stencil_replace = set_stencil_replace;
+   i830->intel.vtbl.meta_depth_replace = set_depth_replace;
    i830->intel.vtbl.meta_color_mask = set_color_mask;
    i830->intel.vtbl.meta_no_texture = set_no_texture;
    i830->intel.vtbl.meta_texture_blend_replace = set_texture_blend_replace;
