@@ -42,12 +42,15 @@
 #define DBG 0
 
 #define LOCAL_VARS						\
+   struct intel_context *intel = intel_context(ctx);		\
    driRenderbuffer *drb = (driRenderbuffer *) rb;		\
    const __DRIdrawablePrivate *dPriv = drb->dPriv;		\
    const GLuint bottom = dPriv->h - 1;				\
    GLubyte *buf = (GLubyte *) drb->flippedData			\
       + (dPriv->y * drb->flippedPitch + dPriv->x) * drb->cpp;	\
    GLuint p;							\
+   assert(dPriv->x == intel->drawX); \
+   assert(dPriv->y == intel->drawY); \
    (void) p;
 
 #define Y_FLIP(_y) (bottom - _y)
@@ -78,11 +81,11 @@
 
 
 #define LOCAL_DEPTH_VARS					\
-   struct intel_context *intel = intel_context(ctx);			\
+   struct intel_context *intel = intel_context(ctx);		\
    __DRIdrawablePrivate *dPriv = intel->driDrawable;		\
    driRenderbuffer *drb = (driRenderbuffer *) rb;		\
    const GLuint pitch = drb->pitch * drb->cpp;			\
-   const GLuint bottom = dPriv->h - 1;					\
+   const GLuint bottom = dPriv->h - 1;				\
    char *buf = (char *) drb->Base.Data +			\
 			dPriv->x * drb->cpp +			\
 			dPriv->y * pitch
@@ -132,7 +135,11 @@
 #include "stenciltmp.h"
 
 
-/* Move locking out to get reasonable span performance.
+/**
+ * Prepare for softare rendering.  Map current read/draw framebuffers'
+ * renderbuffes and all currently bound texture objects.
+ *
+ * Old note: Moved locking out to get reasonable span performance.
  */
 void intelSpanRenderStart( GLcontext *ctx )
 {
@@ -157,6 +164,10 @@ void intelSpanRenderStart( GLcontext *ctx )
    }
 }
 
+/**
+ * Called when done softare rendering.  Unmap the buffers we mapped in
+ * the above function.
+ */
 void intelSpanRenderFinish( GLcontext *ctx )
 {
    struct intel_context *intel = intel_context( ctx );
