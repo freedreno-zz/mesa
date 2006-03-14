@@ -32,20 +32,21 @@
 #include "intel_bufmgr.h"		/* for DBG! */
 struct intel_context;
 
-/* A layer on top of the bufmgr buffers that adds a few useful things:
+/**
+ * A layer on top of the bufmgr buffers that adds a few useful things:
  *
  * - Refcounting for local buffer references.
  * - Refcounting for buffer maps
  * - Buffer dimensions - pitch and height.
- * - Blitter commands for copying 2D regions between buffers.
+ * - Blitter commands for copying 2D regions between buffers. (really???)
  */
 struct intel_region {
    GLuint buffer;
    GLuint refcount;
-   GLuint cpp;
-   GLuint pitch;
-   GLuint height;
-   GLubyte *map;
+   GLuint cpp;    /* bytes per pixel */
+   GLuint pitch;  /* in pixels */
+   GLuint height; /* in pixels */
+   GLubyte *map;  /* only non-NULL when region is actually mapped */
    GLuint map_refcount;
 };
 
