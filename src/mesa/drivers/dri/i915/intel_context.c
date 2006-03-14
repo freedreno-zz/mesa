@@ -427,6 +427,7 @@ GLboolean intelInitContext( struct intel_context *intel,
    
    intel->batch = intel_batchbuffer_alloc( intel );
    intel_bufferobj_init( intel );
+   intel_fbo_init( intel );
 
    if (intel->ctx.Mesa_DXTn) {
      _mesa_enable_extension( ctx, "GL_EXT_texture_compression_s3tc" );
