@@ -46,6 +46,7 @@ DRIVER_SOURCES = \
 	intel_span.c \
 	intel_state.c \
 	intel_tris.c \
+	intel_fbo.c \
 	intel_bufmgr.c
 
 
