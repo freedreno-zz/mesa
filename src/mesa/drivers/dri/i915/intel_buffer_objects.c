@@ -35,7 +35,8 @@
 #include "intel_bufmgr.h"
 
 
-/* There is some duplication between mesa's bufferobjects and our
+/**
+ * There is some duplication between mesa's bufferobjects and our
  * bufmgr buffers.  Both have an integer handle and a hashtable to
  * lookup an opaque structure.  It would be nice if the handles and
  * internal structure where somehow shared.
@@ -56,6 +57,11 @@ static struct gl_buffer_object *intel_bufferobj_alloc( GLcontext *ctx,
    return &obj->Base;
 }
 
+
+/**
+ * Deallocate/free a vertex/pixel buffer object.
+ * Called via glDeleteBuffersARB().
+ */
 static void intel_bufferobj_free( GLcontext *ctx, 
 				  struct gl_buffer_object *obj )
 { 
@@ -72,9 +78,11 @@ static void intel_bufferobj_free( GLcontext *ctx,
 
 
 
-/* Allocate space for and store data in a buffer object.  Any data that was
+/**
+ * Allocate space for and store data in a buffer object.  Any data that was
  * previously stored in the buffer object is lost.  If data is NULL,
  * memory will be allocated, but no copy will occur.
+ * Called via glBufferDataARB().
  */
 static void intel_bufferobj_data( GLcontext *ctx, 
 				  GLenum target, 
@@ -98,9 +106,11 @@ static void intel_bufferobj_data( GLcontext *ctx,
 }
 
 
-/* Replace data in a subrange of buffer object.  If the data range
+/**
+ * Replace data in a subrange of buffer object.  If the data range
  * specified by size + offset extends beyond the end of the buffer or
  * if data is NULL, no copy is performed.
+ * Called via glBufferSubDataARB().
  */
 static void intel_bufferobj_subdata( GLcontext *ctx, 
 				     GLenum target, 
@@ -117,7 +127,9 @@ static void intel_bufferobj_subdata( GLcontext *ctx,
 }
 
 
-
+/**
+ * Called via glGetBufferSubDataARB().
+ */
 static void intel_bufferobj_get_subdata( GLcontext *ctx, 
 					 GLenum target, 
 					 GLintptrARB offset,
@@ -134,7 +146,9 @@ static void intel_bufferobj_get_subdata( GLcontext *ctx,
 
 
 
-
+/**
+ * Called via glMapBufferARB().
+ */
 static void *intel_bufferobj_map( GLcontext *ctx, 
 				  GLenum target, 
 				  GLenum access,
@@ -151,6 +165,9 @@ static void *intel_bufferobj_map( GLcontext *ctx,
 }
 
 
+/**
+ * Called via glMapBufferARB().
+ */
 static GLboolean intel_bufferobj_unmap( GLcontext *ctx,
 					GLenum target,
 					struct gl_buffer_object *obj )
@@ -165,7 +182,7 @@ static GLboolean intel_bufferobj_unmap( GLcontext *ctx,
    return GL_TRUE;
 }
 
-GLuint intel_bufferobj_buffer( struct intel_buffer_object *intel_obj )
+GLuint intel_bufferobj_buffer( const struct intel_buffer_object *intel_obj )
 {
    return intel_obj->buffer;
 }  

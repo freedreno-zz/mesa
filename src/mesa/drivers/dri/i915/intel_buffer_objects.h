@@ -34,15 +34,18 @@ struct intel_context;
 struct gl_buffer_object;
 
 
+/**
+ * Intel vertex/pixel buffer object, derived from Mesa's gl_buffer_object.
+ */
 struct intel_buffer_object {
    struct gl_buffer_object Base;
-   GLuint buffer;
+   GLuint buffer;   /* the low-level buffer manager's buffer handle */
 };
 
 
 /* Get the bm buffer associated with a GL bufferobject:
  */
-GLuint intel_bufferobj_buffer( struct intel_buffer_object *obj );
+GLuint intel_bufferobj_buffer( const struct intel_buffer_object *obj );
 
 /* Hook the bufferobject implementation into mesa: 
  */
