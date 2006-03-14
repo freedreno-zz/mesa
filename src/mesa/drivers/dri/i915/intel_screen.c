@@ -41,10 +41,10 @@
 #include "intel_span.h"
 #include "intel_tris.h"
 #include "intel_ioctl.h"
-
-
+#include "intel_fbo.h"
 
 #include "i830_dri.h"
+
 
 PUBLIC const char __driConfigOptions[] =
 DRI_CONF_BEGIN
@@ -234,49 +234,44 @@ static GLboolean intelCreateBuffer( __DRIscreenPrivate *driScrnPriv,
    } else {
       GLboolean swStencil = (mesaVis->stencilBits > 0 && 
 			     mesaVis->depthBits != 24);
+      GLenum rgbFormat = (mesaVis->redBits == 5 ? GL_RGB5 : GL_RGBA8);
 
       struct gl_framebuffer *fb = _mesa_create_framebuffer(mesaVis);
 
+      /* setup the hardware-based renderbuffers */
       {
          driRenderbuffer *frontRb
-            = driNewRenderbuffer(GL_RGBA,
+            = driNewRenderbuffer(rgbFormat,
                                  driScrnPriv->pFB,
                                  screen->cpp,
                                  screen->front.offset, screen->front.pitch,
                                  driDrawPriv);
-         intelSetSpanFunctions(frontRb, mesaVis);
+         intel_set_span_functions(&frontRb->Base);
          _mesa_add_renderbuffer(fb, BUFFER_FRONT_LEFT, &frontRb->Base);
       }
 
       if (mesaVis->doubleBufferMode) {
          driRenderbuffer *backRb
-            = driNewRenderbuffer(GL_RGBA,
+            = driNewRenderbuffer(rgbFormat,
                                  screen->back.map,
                                  screen->cpp,
                                  screen->back.offset, screen->back.pitch,
                                  driDrawPriv);
-         intelSetSpanFunctions(backRb, mesaVis);
+         intel_set_span_functions(&backRb->Base);
          _mesa_add_renderbuffer(fb, BUFFER_BACK_LEFT, &backRb->Base);
       }
 
-      if (mesaVis->depthBits == 16) {
+      if (mesaVis->depthBits > 0) {
+         /* XXX if 32bpp, this should probably be a GL_DEPTH_STENCIL buffer */
+         GLenum depthFormat = (mesaVis->depthBits == 16)
+            ? GL_DEPTH_COMPONENT16 : GL_DEPTH_COMPONENT24;
          driRenderbuffer *depthRb
-            = driNewRenderbuffer(GL_DEPTH_COMPONENT16,
+            = driNewRenderbuffer(depthFormat,
                                  screen->depth.map,
                                  screen->cpp,
                                  screen->depth.offset, screen->depth.pitch,
                                  driDrawPriv);
-         intelSetSpanFunctions(depthRb, mesaVis);
-         _mesa_add_renderbuffer(fb, BUFFER_DEPTH, &depthRb->Base);
-      }
-      else if (mesaVis->depthBits == 24) {
-         driRenderbuffer *depthRb
-            = driNewRenderbuffer(GL_DEPTH_COMPONENT24,
-                                 screen->depth.map,
-                                 screen->cpp,
-                                 screen->depth.offset, screen->depth.pitch,
-                                 driDrawPriv);
-         intelSetSpanFunctions(depthRb, mesaVis);
+         intel_set_span_functions(&depthRb->Base);
          _mesa_add_renderbuffer(fb, BUFFER_DEPTH, &depthRb->Base);
       }
 
@@ -287,10 +282,11 @@ static GLboolean intelCreateBuffer( __DRIscreenPrivate *driScrnPriv,
                                  screen->cpp,
                                  screen->depth.offset, screen->depth.pitch,
                                  driDrawPriv);
-         intelSetSpanFunctions(stencilRb, mesaVis);
+         intel_set_span_functions(&stencilRb->Base);
          _mesa_add_renderbuffer(fb, BUFFER_STENCIL, &stencilRb->Base);
       }
 
+      /* now add any/all software-based renderbuffers we may need */
       _mesa_add_soft_renderbuffers(fb,
                                    GL_FALSE, /* color */
                                    GL_FALSE, /* depth */

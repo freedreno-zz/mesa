@@ -36,6 +36,6 @@ extern void intelSpanRenderFinish( GLcontext *ctx );
 extern void intelSpanRenderStart( GLcontext *ctx );
 
 extern void
-intelSetSpanFunctions(driRenderbuffer *rb, const GLvisual *vis);
+intel_set_span_functions(struct gl_renderbuffer *rb);
 
 #endif

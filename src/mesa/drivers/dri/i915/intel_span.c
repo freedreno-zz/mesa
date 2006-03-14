@@ -199,30 +199,27 @@ void intelInitSpanFuncs( GLcontext *ctx )
 }
 
 
-/**
- * Plug in the Get/Put routines for the given driRenderbuffer.
- */
 void
-intelSetSpanFunctions(driRenderbuffer *drb, const GLvisual *vis)
+intel_set_span_functions(struct gl_renderbuffer *rb)
 {
-   if (drb->Base.InternalFormat == GL_RGBA) {
-      if (vis->redBits == 5 && vis->greenBits == 6 && vis->blueBits == 5) {
-         intelInitPointers_RGB565(&drb->Base);
-      }
-      else {
-         assert(vis->redBits == 8);
-         assert(vis->greenBits == 8);
-         assert(vis->blueBits == 8);
-         intelInitPointers_ARGB8888(&drb->Base);
-      }
+   if (rb->InternalFormat == GL_RGB5) {
+      /* 565 RGB */
+      intelInitPointers_RGB565(rb);
    }
-   else if (drb->Base.InternalFormat == GL_DEPTH_COMPONENT16) {
-      intelInitDepthPointers_z16(&drb->Base);
+   else if (rb->InternalFormat == GL_RGBA8) {
+      /* 8888 RGBA */
+      intelInitPointers_ARGB8888(rb);
    }
-   else if (drb->Base.InternalFormat == GL_DEPTH_COMPONENT24) {
-      intelInitDepthPointers_z24_s8(&drb->Base);
+   else if (rb->InternalFormat == GL_DEPTH_COMPONENT16) {
+      intelInitDepthPointers_z16(rb);
    }
-   else if (drb->Base.InternalFormat == GL_STENCIL_INDEX8_EXT) {
-      intelInitStencilPointers_z24_s8(&drb->Base);
+   else if (rb->InternalFormat == GL_DEPTH_COMPONENT24) {
+      intelInitDepthPointers_z24_s8(rb);
+   }
+   else if (rb->InternalFormat == GL_STENCIL_INDEX8_EXT) {
+      intelInitStencilPointers_z24_s8(rb);
+   }
+   else {
+      _mesa_problem(NULL, "Unexpected InternalFormat in intelSetSpanFunctions");
    }
 }
