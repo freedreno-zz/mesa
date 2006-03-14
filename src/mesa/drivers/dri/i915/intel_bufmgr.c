@@ -92,6 +92,7 @@ bm_intel_Attach(struct intel_context *intel)
    if (nr_bms < BM_MAX)
    {
       struct bufmgr *bm = &bufmgr_pool[nr_bms++];
+      int k;
 
       _mesa_printf("create new bufmgr for fd %d\n", intel->driFd);
 
@@ -101,10 +102,11 @@ bm_intel_Attach(struct intel_context *intel)
       _glthread_INIT_MUTEX(bm->mutex);
 
       drmGetLock(bm->driFd, intel->hHWContext, 0);
-      assert(!drmMMAllocBufferPool(bm->driFd, mmPoolRing, 0,
-				   BM_BATCHBUFFER | DRM_MM_TT |
-				   DRM_MM_NO_EVICT ,
-				   1024 * 1024, 4096, &bm->batchPool));
+      k = drmMMAllocBufferPool(bm->driFd, mmPoolRing, 0,
+                               BM_BATCHBUFFER | DRM_MM_TT |
+                               DRM_MM_NO_EVICT ,
+                               1024 * 1024, 4096, &bm->batchPool);
+      assert(!k);
 
       drmUnlock(bm->driFd, intel->hHWContext);
       return bm;
@@ -125,8 +127,10 @@ bmGenBuffers(struct bufmgr *bm, unsigned n, unsigned *buffers, unsigned flags)
 
       for (i = 0; i < n; i++) {
 	 drmMMBuf *buf = calloc(sizeof(*buf), 1);
+         int k;
 
-	 assert(!drmMMInitBuffer(bm->driFd, bFlags, 12, buf));
+	 k =drmMMInitBuffer(bm->driFd, bFlags, 12, buf);
+         assert(!k);
 	 buf->client_priv = ++bm->buf_nr;
 	 buffers[i] = buf->client_priv;
 	 _mesa_HashInsert(bm->hash, buffers[i], buf);
@@ -142,12 +146,14 @@ bmSetShared(struct bufmgr *bm, unsigned buffer, unsigned flags,
    LOCK(bm);
    {
       drmMMBuf *buf = _mesa_HashLookup(bm->hash, buffer);
+      int k;
 
       buf->flags = DRM_MM_NO_EVICT | DRM_MM_NO_MOVE | DRM_MM_SHARED;
       buf->flags |= flags & DRM_MM_MEMTYPE_MASK;
       buf->offset = offset;
       buf->virtual = virtual;
-      assert(!drmMMAllocBuffer(bm->driFd, 0, NULL, 0, buf));
+      k = drmMMAllocBuffer(bm->driFd, 0, NULL, 0, buf);
+      assert(!k);
    }
    UNLOCK(bm);
 }
@@ -189,18 +195,22 @@ bmBufferData(struct bufmgr *bm,
       assert(!buf->mapped);
 
       if (buf->flags & BM_BATCHBUFFER) {
+         int k;
 
-	 assert(!drmMMFreeBuffer(bm->driFd, buf));
-	 assert(!drmMMAllocBuffer(bm->driFd, size, &bm->batchPool, 1,
-				  buf));
+	 k = drmMMFreeBuffer(bm->driFd, buf);
+         assert(!k);
+	 k = drmMMAllocBuffer(bm->driFd, size, &bm->batchPool, 1, buf);
+         assert(!k);
 
       } else if (!(buf->flags & DRM_MM_SHARED)) {
 
 	 if (buf->size < size || drmBufIsBusy(bm->driFd, buf)) {
-	    assert(!drmMMFreeBuffer(bm->driFd, buf));
+	    int k = drmMMFreeBuffer(bm->driFd, buf);
+            assert(!k);
 	 }
 	 if (!buf->block) {
-	    assert(!drmMMAllocBuffer(bm->driFd, size, NULL, 0, buf));
+	    int k = drmMMAllocBuffer(bm->driFd, size, NULL, 0, buf);
+            assert(!k);
 	 }
 
       }
@@ -368,9 +378,13 @@ unsigned
 bmFenceBufferList(struct bufmgr *bm, struct _drmMMBufList *list)
 {
    drmFence fence;
+   int k;
 
-   assert(!drmMMFenceBuffers(bm->driFd, list));
-   assert(!drmEmitFence(bm->driFd, 0, &fence));
+   k = drmMMFenceBuffers(bm->driFd, list);
+   assert(!k);
+   
+   k =drmEmitFence(bm->driFd, 0, &fence);
+   assert(!k);
 
    return fence.fenceSeq;
 }
@@ -385,8 +399,8 @@ unsigned
 bmSetFence(struct bufmgr *bm)
 {
    drmFence dFence;
-
-   assert(!drmEmitFence(bm->driFd, 0, &dFence));
+   int k = drmEmitFence(bm->driFd, 0, &dFence);
+   assert(!k);
 
    return dFence.fenceSeq;
 }
@@ -396,8 +410,10 @@ bmTestFence(struct bufmgr *bm, unsigned fence)
 {
    drmFence dFence = { 0, fence };
    int retired;
+   int k;
 
-   assert(!drmTestFence(bm->driFd, dFence, 0, &retired));
+   k = drmTestFence(bm->driFd, dFence, 0, &retired);
+   assert(!k);
    return retired;
 }
 
@@ -405,5 +421,6 @@ void
 bmFinishFence(struct bufmgr *bm, unsigned fence)
 {
    drmFence dFence = { 0, fence };
-   assert(!drmWaitFence(bm->driFd, dFence));
+   int k = drmWaitFence(bm->driFd, dFence);
+   assert(!k);
 }
