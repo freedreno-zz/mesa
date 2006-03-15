@@ -28,52 +28,348 @@
 
 #include "imports.h"
 #include "mtypes.h"
-#include "bufferobj.h"
+#include "fbobject.h"
+#include "framebuffer.h"
+#include "renderbuffer.h"
+#include "context.h"
 
 #include "intel_context.h"
-#include "intel_buffer_objects.h"
 #include "intel_bufmgr.h"
 #include "intel_fbo.h"
+#include "intel_regions.h"
+#include "intel_span.h"
 
 
+/**
+ * Create a new framebuffer object.
+ */
 static struct gl_framebuffer *
 intel_new_framebuffer(GLcontext *ctx, GLuint name)
 {
-   return NULL;
+   /* there's no intel_framebuffer at this time, just use Mesa's class */
+   return _mesa_new_framebuffer(ctx, name);
 }
 
 
+static void
+intel_delete_renderbuffer(struct gl_renderbuffer *rb)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   struct intel_context *intel = intel_context(ctx);
+   struct intel_renderbuffer *irb = (struct intel_renderbuffer *) rb;
+
+   if (irb->region) {
+      intel_region_release(intel, &irb->region);
+   }
+
+   _mesa_free(irb);
+}
+
+
+
+/**
+ * Return a pointer to a specific pixel in a renderbuffer.
+ * Note: y=0=bottom.
+ * Called via gl_renderbuffer::GetPointer().
+ */
+static void *
+intel_get_pointer(GLcontext *ctx, struct gl_renderbuffer *rb,
+                  GLint x, GLint y)
+{
+   struct intel_renderbuffer *irb = (struct intel_renderbuffer *) rb;
+
+   /* Actually, we could _always_ return NULL from this function and
+    * be OK.  The swrast code would just use the Get/Put routines as needed.
+    * But by really implementing this function there's a chance for better
+    * performance.
+    */
+   if (irb->region && irb->region->map) {
+      int offset;
+      y = irb->region->height - y - 1;
+      offset = (y * irb->region->pitch + x) * irb->region->cpp;
+      return (void *) (irb->region->map + offset);
+   }
+   else {
+      return NULL;
+   }
+}
+
+
+
+/**
+ * Called via glRenderbufferStorageEXT() to set the format and allocate
+ * storage for a user-created renderbuffer.
+ */
+static GLboolean
+intel_alloc_storage(GLcontext *ctx, struct gl_renderbuffer *rb,
+                    GLenum internalFormat,
+                    GLuint width, GLuint height)
+{
+   struct intel_context *intel = intel_context(ctx);
+   struct intel_renderbuffer *irb = (struct intel_renderbuffer *) rb;
+   const GLenum format = _mesa_base_fbo_format(ctx, internalFormat);
+   GLboolean softwareBuffer = GL_FALSE;
+   int cpp;
+
+   ASSERT(rb->Name != 0);
+
+   /* defaults */
+   rb->RedBits =
+   rb->GreenBits =
+   rb->BlueBits =
+   rb->AlphaBits =
+   rb->IndexBits =
+   rb->DepthBits =
+   rb->StencilBits = 0;
+
+   /* Always assume 32-bit pixels for now */
+   switch (format) {
+   case GL_RGB:
+   case GL_RGBA:
+      rb->RedBits = 8;
+      rb->GreenBits = 8;
+      rb->BlueBits = 8;
+      rb->AlphaBits = 8;
+      cpp = 4;
+      break;
+   case GL_DEPTH_COMPONENT:
+      rb->DepthBits = 24;
+      cpp = 4;
+      break;
+   case GL_STENCIL_INDEX:
+      rb->StencilBits = 8;
+      cpp = 1;
+      softwareBuffer = GL_TRUE;
+      /* XXX software buffer? */
+      break;
+   case GL_DEPTH_STENCIL_EXT:
+      rb->DepthBits = 24;
+      rb->StencilBits = 8;
+      cpp = 4;
+      break;
+   default:
+      _mesa_problem(ctx, "Unexpected format in intel_alloc_storage");
+      return GL_FALSE;
+   }
+
+   /* free old region */
+   if (irb->region) {
+      intel_region_release(intel, &irb->region);
+   }
+
+   if (softwareBuffer) {
+      return _mesa_soft_renderbuffer_storage(ctx, rb, internalFormat,
+                                             width, height);
+   }
+   else {
+      /* hardware renderbuffer */
+      /* alloc new region */
+      irb->region = intel_region_alloc(intel, cpp, width, height);
+      if (!irb->region)
+         return GL_FALSE; /* out of memory? */
+   }
+
+   return GL_TRUE;
+}
+
+
+
+/**
+ * Just an error catcher.
+ */
+static GLboolean
+intel_alloc_storage_nop(GLcontext *ctx, struct gl_renderbuffer *rb,
+                        GLenum internalFormat,
+                        GLuint width, GLuint height)
+{
+   _mesa_problem(ctx, "RenderBuffer storage called for intel window system renderbuffer!");
+   return GL_FALSE;
+}
+
+
+
+/**
+ * Create a new intel_renderbuffer which corresponds to an on-screen window,
+ * not a user-created renderbuffer.
+ * \param width  the screen width
+ * \param height  the screen height
+ */
+struct intel_renderbuffer *
+intel_create_renderbuffer(GLenum intFormat, GLsizei width, GLsizei height,
+                          int offset, void *map)
+{
+   struct intel_renderbuffer *irb;
+   const GLuint name = 0;
+   int cpp;
+
+   irb = CALLOC_STRUCT(intel_renderbuffer);
+   if (!irb)
+      return NULL;
+
+   _mesa_init_renderbuffer(&irb->Base, name);
+
+   switch (intFormat) {
+   case GL_RGB5:
+      irb->Base._BaseFormat = GL_RGBA;
+      irb->Base.RedBits = 5;
+      irb->Base.GreenBits = 6;
+      irb->Base.BlueBits = 5;
+      cpp = 2;
+      break;
+   case GL_RGBA8:
+      irb->Base._BaseFormat = GL_RGBA;
+      irb->Base.RedBits = 8;
+      irb->Base.GreenBits = 8;
+      irb->Base.BlueBits = 8;
+      irb->Base.AlphaBits = 8;
+      cpp = 4;
+      break;
+   case GL_STENCIL_INDEX8_EXT:
+      irb->Base._BaseFormat = GL_STENCIL_INDEX;
+      irb->Base.StencilBits = 8;
+      cpp = 1;
+      break;
+   case GL_DEPTH_COMPONENT16:
+      irb->Base._BaseFormat = GL_DEPTH_COMPONENT;
+      irb->Base.DepthBits = 16;
+      cpp = 2;
+      break;
+   case GL_DEPTH_COMPONENT24:
+      irb->Base._BaseFormat = GL_DEPTH_COMPONENT;
+      irb->Base.DepthBits = 24;
+      cpp = 4;
+      break;
+   case GL_DEPTH24_STENCIL8_EXT:
+      irb->Base._BaseFormat = GL_DEPTH_STENCIL_EXT;
+      irb->Base.DepthBits = 24;
+      irb->Base.StencilBits = 8;
+      cpp = 4;
+      break;
+   default:
+      _mesa_problem(NULL, "Unexpected intFormat in intel_create_renderbuffer");
+      return NULL;
+   }
+
+   /* intel-specific methods */
+   irb->Base.Delete = intel_delete_renderbuffer;
+   irb->Base.AllocStorage = intel_alloc_storage_nop;
+   irb->Base.GetPointer = intel_get_pointer;
+   /* This sets the Get/PutRow/Value functions */
+   intel_set_span_functions(&irb->Base);
+
+#if 0
+   irb->region = intel_region_create_static(intel,
+                                            DRM_MM_TT,
+                                            offset,
+                                            map,
+                                            cpp,
+                                            width, height);
+#endif
+
+   return irb;
+}
+
+
+
+
+/**
+ * Create a new renderbuffer object.
+ * Typically called via glBindRenderbufferEXT().
+ */
 static struct gl_renderbuffer *
 intel_new_renderbuffer(GLcontext *ctx, GLuint name)
 {
-   return NULL;
+   /*struct intel_context *intel = intel_context(ctx);*/
+   struct intel_renderbuffer *irb;
+
+   irb = CALLOC_STRUCT(intel_renderbuffer);
+   if (!irb)
+      return NULL;
+
+   _mesa_init_renderbuffer(&irb->Base, name);
+
+   /* intel-specific methods */
+   irb->Base.Delete = intel_delete_renderbuffer;
+   irb->Base.AllocStorage = intel_alloc_storage;
+   irb->Base.GetPointer = intel_get_pointer;
+
+   return &irb->Base;
 }
 
 
+/**
+ * Called via glBindFramebufferEXT().
+ */
+static void
+intel_bind_framebuffer(GLcontext *ctx, GLenum target,
+                       struct gl_framebuffer *fb)
+{
+   if (target == GL_FRAMEBUFFER_EXT || target == GL_DRAW_FRAMEBUFFER_EXT) {
+      struct intel_context *intel = intel_context(ctx);
+      struct gl_renderbuffer *rbColor, *rbDepth;
+      struct intel_renderbuffer *irbColor, *irbDepth;
+      struct intel_region *colorRegion, *depthRegion;
+
+      /* XXX check that _ColorDrawBuffers[] is up to date? */
+      rbColor = intel->ctx.DrawBuffer->_ColorDrawBuffers[0][0];
+      rbDepth = intel->ctx.DrawBuffer->_DepthBuffer;
+
+      irbColor = (struct intel_renderbuffer *) rbColor;
+      irbDepth = (struct intel_renderbuffer *) rbDepth;
+
+      if (irbColor && irbColor->region)
+         colorRegion = irbColor->region;
+      else
+         colorRegion = NULL;
+
+      if (irbDepth && irbDepth->region)
+         depthRegion = irbDepth->region;
+      else
+         depthRegion = NULL;
+
+      intel->vtbl.set_draw_region(intel, colorRegion, depthRegion);
+   }
+   else {
+      /* don't need to do anything if target == GL_READ_FRAMEBUFFER_EXT */
+   }
+}
+
+
+/**
+ * Called via glFramebufferRenderbufferEXT().
+ */
 static void
 intel_framebuffer_renderbuffer(GLcontext *ctx, 
                                struct gl_framebuffer *fb,
                                GLenum attachment,
                                struct gl_renderbuffer *rb)
 {
+   /* no-op */
 }
 
 
+/**
+ * Called via glFramebufferTexture[123]DEXT().
+ */
 static void
 intel_renderbuffer_texture(GLcontext *ctx,
                            struct gl_renderbuffer_attachment *att,
                            struct gl_texture_object *texObj,
                            GLenum texTarget, GLuint level, GLuint zoffset)
 {
+   /* XXX not done */
 }
 
 
+/**
+ * Called by Mesa when rendering to a texture is done.
+ */
 static void
 intel_finish_render_texture(GLcontext *ctx,
                             struct gl_texture_object *texObj,
                             GLuint face, GLuint level)
 {
-
+   /* XXX not done */
 }
 
 
@@ -83,11 +379,10 @@ intel_finish_render_texture(GLcontext *ctx,
 void
 intel_fbo_init( struct intel_context *intel )
 {
-   GLcontext *ctx = &intel->ctx;
-
-   ctx->Driver.NewFramebuffer = intel_new_framebuffer;
-   ctx->Driver.NewRenderbuffer = intel_new_renderbuffer;
-   ctx->Driver.FramebufferRenderbuffer = intel_framebuffer_renderbuffer;
-   ctx->Driver.RenderbufferTexture = intel_renderbuffer_texture;
-   ctx->Driver.FinishRenderTexture = intel_finish_render_texture;
+   intel->ctx.Driver.NewFramebuffer = intel_new_framebuffer;
+   intel->ctx.Driver.NewRenderbuffer = intel_new_renderbuffer;
+   intel->ctx.Driver.BindFramebuffer = intel_bind_framebuffer;
+   intel->ctx.Driver.FramebufferRenderbuffer = intel_framebuffer_renderbuffer;
+   intel->ctx.Driver.RenderbufferTexture = intel_renderbuffer_texture;
+   intel->ctx.Driver.FinishRenderTexture = intel_finish_render_texture;
 }
