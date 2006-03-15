@@ -919,9 +919,10 @@ put_mono_values_ushort4(GLcontext *ctx, struct gl_renderbuffer *rb,
  * This function also plugs in the appropriate GetPointer, Get/PutRow and
  * Get/PutValues functions.
  */
-static GLboolean
-soft_renderbuffer_storage(GLcontext *ctx, struct gl_renderbuffer *rb,
-                          GLenum internalFormat, GLuint width, GLuint height)
+GLboolean
+_mesa_soft_renderbuffer_storage(GLcontext *ctx, struct gl_renderbuffer *rb,
+                                GLenum internalFormat,
+                                GLuint width, GLuint height)
 {
    GLuint pixelSize;
 
@@ -1141,7 +1142,7 @@ soft_renderbuffer_storage(GLcontext *ctx, struct gl_renderbuffer *rb,
       pixelSize = sizeof(GLuint);
       break;
    default:
-      _mesa_problem(ctx, "Bad internalFormat in soft_renderbuffer_storage");
+      _mesa_problem(ctx, "Bad internalFormat in _mesa_soft_renderbuffer_storage");
       return GL_FALSE;
    }
 
@@ -1492,9 +1493,9 @@ _mesa_new_soft_renderbuffer(GLcontext *ctx, GLuint name)
 {
    struct gl_renderbuffer *rb = _mesa_new_renderbuffer(ctx, name);
    if (rb) {
-      rb->AllocStorage = soft_renderbuffer_storage;
+      rb->AllocStorage = _mesa_soft_renderbuffer_storage;
       /* Normally, one would setup the PutRow, GetRow, etc functions here.
-       * But we're doing that in the soft_renderbuffer_storage() function
+       * But we're doing that in the _mesa_soft_renderbuffer_storage() function
        * instead.
        */
    }
@@ -1560,7 +1561,7 @@ _mesa_add_color_renderbuffers(GLcontext *ctx, struct gl_framebuffer *fb,
             rb->InternalFormat = GL_RGBA16; /* don't really have RGB16 yet */
       }
 
-      rb->AllocStorage = soft_renderbuffer_storage;
+      rb->AllocStorage = _mesa_soft_renderbuffer_storage;
       _mesa_add_renderbuffer(fb, b, rb);
    }
 
@@ -1620,7 +1621,7 @@ _mesa_add_color_index_renderbuffers(GLcontext *ctx, struct gl_framebuffer *fb,
       else {
          rb->InternalFormat = COLOR_INDEX32;
       }
-      rb->AllocStorage = soft_renderbuffer_storage;
+      rb->AllocStorage = _mesa_soft_renderbuffer_storage;
       _mesa_add_renderbuffer(fb, b, rb);
    }
 
@@ -1753,7 +1754,7 @@ _mesa_add_depth_renderbuffer(GLcontext *ctx, struct gl_framebuffer *fb,
       rb->InternalFormat = GL_DEPTH_COMPONENT32;
    }
 
-   rb->AllocStorage = soft_renderbuffer_storage;
+   rb->AllocStorage = _mesa_soft_renderbuffer_storage;
    _mesa_add_renderbuffer(fb, BUFFER_DEPTH, rb);
 
    return GL_TRUE;
@@ -1796,7 +1797,7 @@ _mesa_add_stencil_renderbuffer(GLcontext *ctx, struct gl_framebuffer *fb,
       rb->InternalFormat = GL_STENCIL_INDEX16_EXT;
    }
 
-   rb->AllocStorage = soft_renderbuffer_storage;
+   rb->AllocStorage = _mesa_soft_renderbuffer_storage;
    _mesa_add_renderbuffer(fb, BUFFER_STENCIL, rb);
 
    return GL_TRUE;
@@ -1833,7 +1834,7 @@ _mesa_add_accum_renderbuffer(GLcontext *ctx, struct gl_framebuffer *fb,
    }
 
    rb->InternalFormat = GL_RGBA16;
-   rb->AllocStorage = soft_renderbuffer_storage;
+   rb->AllocStorage = _mesa_soft_renderbuffer_storage;
    _mesa_add_renderbuffer(fb, BUFFER_ACCUM, rb);
 
    return GL_TRUE;
@@ -1882,7 +1883,7 @@ _mesa_add_aux_renderbuffers(GLcontext *ctx, struct gl_framebuffer *fb,
          rb->InternalFormat = GL_RGBA16;
       }
 
-      rb->AllocStorage = soft_renderbuffer_storage;
+      rb->AllocStorage = _mesa_soft_renderbuffer_storage;
       _mesa_add_renderbuffer(fb, BUFFER_AUX0 + i, rb);
    }
    return GL_TRUE;
@@ -2016,7 +2017,7 @@ _mesa_new_depthstencil_renderbuffer(GLcontext *ctx, GLuint name)
 
    /* init fields not covered by _mesa_new_renderbuffer() */
    dsrb->InternalFormat = GL_DEPTH24_STENCIL8_EXT;
-   dsrb->AllocStorage = soft_renderbuffer_storage;
+   dsrb->AllocStorage = _mesa_soft_renderbuffer_storage;
 
    return dsrb;
 }
