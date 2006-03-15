@@ -30,6 +30,7 @@
 #include "mtypes.h"
 #include "colormac.h"
 
+#include "intel_fbo.h"
 #include "intel_screen.h"
 #include "intel_span.h"
 #include "intel_regions.h"
@@ -133,6 +134,68 @@
 
 #define TAG(x) intel##x##_z24_s8
 #include "stenciltmp.h"
+
+
+
+/**
+ * Map or unmap all the renderbuffers which we may need during
+ * software rendering.
+ * XXX in the future, we could probably convey extra information to
+ * reduce the number of mappings needed.  I.e. if doing a glReadPixels
+ * from the depth buffer, we really only need one mapping.
+ */
+static void
+intel_map_unmap_buffers(struct intel_context *intel, GLboolean map)
+{
+   GLcontext *ctx = &intel->ctx;
+   GLuint i, j;
+   struct intel_renderbuffer *irb;
+   
+
+   /* color draw buffers */
+   for (i = 0; i < ctx->Const.MaxDrawBuffers; i++) {
+      for (j = 0; j < ctx->DrawBuffer->_NumColorDrawBuffers[i]; j++) {
+         struct gl_renderbuffer *rb = ctx->DrawBuffer->_ColorDrawBuffers[i][j];
+         irb = (struct intel_renderbuffer *) rb;
+         ASSERT(irb);
+         if (irb->region) {
+            if (map)
+               intel_region_map(intel, irb->region);
+            else
+               intel_region_unmap(intel, irb->region);
+         }
+      }
+   }
+
+   /* color read buffers */
+   irb = (struct intel_renderbuffer *) ctx->ReadBuffer->_ColorReadBuffer;
+   if (irb && irb->region) {
+      if (map)
+         intel_region_map(intel, irb->region);
+      else
+         intel_region_unmap(intel, irb->region);
+   }
+
+   /* depth buffer */
+   /* XXX wrappers? */
+   irb = (struct intel_renderbuffer *) ctx->ReadBuffer->_DepthBuffer;
+   if (irb && irb->region) {
+      if (map)
+         intel_region_map(intel, irb->region);
+      else
+         intel_region_unmap(intel, irb->region);
+   }
+
+   /* stencil buffer */
+   irb = (struct intel_renderbuffer *) ctx->ReadBuffer->_StencilBuffer;
+   if (irb && irb->region) {
+      if (map)
+         intel_region_map(intel, irb->region);
+      else
+         intel_region_unmap(intel, irb->region);
+   }
+}
+
 
 
 /**
