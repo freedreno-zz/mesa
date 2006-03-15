@@ -639,7 +639,8 @@ void i915ValidateTextureProgram( struct i915_context *i915 )
     */
    if (s2 != i915->state.Ctx[I915_CTXREG_LIS2] ||
        s4 != i915->state.Ctx[I915_CTXREG_LIS4]) {
-    
+      int k;
+
       I915_STATECHANGE( i915, I915_UPLOAD_CTX );
 
       i915->tex_program.translated = 0;
@@ -657,7 +658,8 @@ void i915ValidateTextureProgram( struct i915_context *i915 )
       i915->state.Ctx[I915_CTXREG_LIS2] = s2;
       i915->state.Ctx[I915_CTXREG_LIS4] = s4;
 
-      assert(intel->vtbl.check_vertex_size( intel, intel->vertex_size ));
+      k = intel->vtbl.check_vertex_size( intel, intel->vertex_size );
+      assert(k);
    }
 
    if (!i915->tex_program.translated ||

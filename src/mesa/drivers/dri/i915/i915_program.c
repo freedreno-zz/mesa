@@ -144,7 +144,8 @@ GLuint i915_emit_arith( struct i915_fragment_program *p,
    GLuint nr_const = 0;
 
    assert(GET_UREG_TYPE(dest) != REG_TYPE_CONST);
-   assert(dest = UREG(GET_UREG_TYPE(dest), GET_UREG_NR(dest)));
+   dest = UREG(GET_UREG_TYPE(dest), GET_UREG_NR(dest));
+   assert(dest);
 
    if (GET_UREG_TYPE(src0) == REG_TYPE_CONST) c[nr_const++] = 0;
    if (GET_UREG_TYPE(src1) == REG_TYPE_CONST) c[nr_const++] = 1;
@@ -202,7 +203,8 @@ GLuint i915_emit_texld( struct i915_fragment_program *p,
 			  GLuint op )
 {
    assert(GET_UREG_TYPE(dest) != REG_TYPE_CONST);
-   assert(dest = UREG(GET_UREG_TYPE(dest), GET_UREG_NR(dest)));
+   dest = UREG(GET_UREG_TYPE(dest), GET_UREG_NR(dest));
+   assert(dest);
 
    if (GET_UREG_TYPE(coord) != REG_TYPE_T) {
       p->nr_tex_indirect++;
