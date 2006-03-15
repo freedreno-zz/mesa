@@ -117,6 +117,31 @@ static void intelBufferSize(GLframebuffer *buffer,
 }
 
 
+
+/**
+ * Update the following fields for rendering to a user-created FBO:
+ *   intel->numClipRects
+ *   intel->pClipRects
+ *   intel->drawX
+ *   intel->drawY
+ */
+static void intelSetRenderbufferClipRects( struct intel_context *intel )
+{
+   intel->fboRect.x1 = 0;
+   intel->fboRect.y1 = 0;
+   intel->fboRect.x2 = intel->ctx.DrawBuffer->Width;
+   intel->fboRect.y2 = intel->ctx.DrawBuffer->Height;
+   intel->numClipRects = 1;
+   intel->pClipRects = &intel->fboRect;
+   intel->drawX = 0;
+   intel->drawY = 0;
+}
+
+
+/**
+ * As above, but for rendering to front buffer of a window.
+ * \sa intelSetRenderbufferClipRects
+ */
 static void intelSetFrontClipRects( struct intel_context *intel )
 {
    __DRIdrawablePrivate *dPriv = intel->driDrawable;
@@ -130,6 +155,9 @@ static void intelSetFrontClipRects( struct intel_context *intel )
 }
 
 
+/**
+ * As above, but for rendering to back buffer of a window.
+ */
 static void intelSetBackClipRects( struct intel_context *intel )
 {
    __DRIdrawablePrivate *dPriv = intel->driDrawable;
@@ -137,11 +165,13 @@ static void intelSetBackClipRects( struct intel_context *intel )
    if (!dPriv) return;
 
    if (intel->sarea->pf_enabled == 0 && dPriv->numBackClipRects == 0) {
+      /* use the front clip rects */
       intel->numClipRects = dPriv->numClipRects;
       intel->pClipRects = dPriv->pClipRects;
       intel->drawX = dPriv->x;
       intel->drawY = dPriv->y;
    } else {
+      /* use the back clip rects */
       intel->numClipRects = dPriv->numBackClipRects;
       intel->pClipRects = dPriv->pBackClipRects;
       intel->drawX = dPriv->backX;
@@ -183,7 +213,12 @@ static void intelSetBackClipRects( struct intel_context *intel )
 void intelWindowMoved( struct intel_context *intel )
 {
    if (!intel->ctx.DrawBuffer) {
+      /* when would this happen? -BP */
       intelSetFrontClipRects( intel );
+   }
+   else if (intel->ctx.DrawBuffer->Name != 0) {
+      /* drawing to user-created FBO */
+      intelSetRenderbufferClipRects(intel);
    }
    else {
       switch (intel->ctx.DrawBuffer->_ColorDrawBufferMask[0]) {
@@ -460,8 +495,10 @@ static void intelDrawBuffer(GLcontext *ctx, GLenum mode )
    struct intel_context *intel = intel_context(ctx);
    int front = 0;
  
-   if (!ctx->DrawBuffer)
+   if (!ctx->DrawBuffer) {
+      /* XXX I don't think this should ever happen. -BP */
       return;
+   }
 
    switch ( ctx->DrawBuffer->_ColorDrawBufferMask[0] ) {
    case BUFFER_BIT_FRONT_LEFT:
@@ -473,6 +510,7 @@ static void intelDrawBuffer(GLcontext *ctx, GLenum mode )
       FALLBACK( intel, INTEL_FALLBACK_DRAW_BUFFER, GL_FALSE );
       break;
    default:
+      /* GL_FRONT_AND_BACK, GL_NONE, etc */
       FALLBACK( intel, INTEL_FALLBACK_DRAW_BUFFER, GL_TRUE );
       return;
    }
@@ -480,8 +518,14 @@ static void intelDrawBuffer(GLcontext *ctx, GLenum mode )
    if ( intel->sarea->pf_current_page == 1 ) 
       front ^= 1;
    
-   intelSetFrontClipRects( intel );
-
+   if (ctx->DrawBuffer->Name == 0) {
+      /* drawing to window system buffer */
+      intelSetFrontClipRects( intel );
+   }
+   else {
+      /* drawing to user-created FBO */
+      intelSetRenderbufferClipRects(intel);
+   }
 
    if (front) {
       if (intel->draw_region != intel->front_region) {

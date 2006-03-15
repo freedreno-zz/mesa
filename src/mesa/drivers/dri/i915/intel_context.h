@@ -236,6 +236,7 @@ struct intel_context
    int drawY;
    GLuint numClipRects;		/* cliprects for that buffer */
    drm_clip_rect_t *pClipRects;
+   drm_clip_rect_t fboRect;    /* used for FBO rendering */
 
    int perf_boxes;
    int do_irqs;
