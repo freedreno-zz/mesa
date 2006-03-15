@@ -28,6 +28,25 @@
 #ifndef INTEL_FBO_H
 #define INTEL_FBO_H
 
+#include "drirenderbuffer.h"
+
+
+struct intel_context;
+
+
+/**
+ * Intel renderbuffer, derived from gl_renderbuffer.
+ */
+struct intel_renderbuffer {
+   struct gl_renderbuffer Base;
+   struct intel_region *region;
+};
+
+
+extern struct intel_renderbuffer *
+intel_new_intel_renderbuffer(GLuint name, GLenum format, const GLvisual *vis);
+
+
 extern void
 intel_fbo_init( struct intel_context *intel );
 
