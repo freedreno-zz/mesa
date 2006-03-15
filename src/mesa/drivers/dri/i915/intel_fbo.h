@@ -44,7 +44,8 @@ struct intel_renderbuffer {
 
 
 extern struct intel_renderbuffer *
-intel_new_intel_renderbuffer(GLuint name, GLenum format, const GLvisual *vis);
+intel_create_renderbuffer(GLenum intFormat, GLsizei width, GLsizei height,
+                          int offset, void *map);
 
 
 extern void
