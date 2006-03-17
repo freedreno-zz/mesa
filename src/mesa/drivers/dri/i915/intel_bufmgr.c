@@ -48,7 +48,6 @@ struct _mesa_HashTable;
  * there are no mesa callbacks for this.
  */
 
-
 #define BM_MAX 16
 static struct bufmgr
 {
@@ -59,14 +58,35 @@ static struct bufmgr
 
    unsigned buf_nr;			/* for generating ids */
    drmMMPool batchPool;
-   
+
 } bufmgr_pool[BM_MAX];
 
 static int nr_bms;
 
-
 #define LOCK(bm) _glthread_LOCK_MUTEX(bm->mutex)
 #define UNLOCK(bm) _glthread_UNLOCK_MUTEX(bm->mutex)
+
+static void
+bmError(int val, const char *file, const char *function, int line)
+{
+   _mesa_printf("Fatal video memory manager error \"%s\".\n"
+		"Check kernel logs or set the LIBGL_DEBUG\n"
+		"environment variable to \"verbose\" for more info.\n"
+		"Detected in file %s, line %d, function %s.\n",
+		strerror(-val), file, line, function);
+#ifndef NDEBUG
+   exit(-1);
+#else
+   abort();
+#endif
+}
+
+#define BM_CKFATAL(val)					       \
+  do{							       \
+    int tstVal = (val);					       \
+    if (tstVal) 					       \
+      bmError(tstVal, __FILE__, __FUNCTION__, __LINE__);       \
+  } while(0);
 
 /***********************************************************************
  * Public functions
@@ -85,28 +105,26 @@ bm_intel_Attach(struct intel_context *intel)
    for (i = 0; i < nr_bms; i++)
       if (bufmgr_pool[i].driFd == intel->driFd) {
 	 bufmgr_pool[i].refcount++;
-	 _mesa_printf("retrieive old bufmgr for fd %d\n", bufmgr_pool[i].driFd);
+	 _mesa_printf("retrieive old bufmgr for fd %d\n",
+		      bufmgr_pool[i].driFd);
 	 return &bufmgr_pool[i];
       }
 
-   if (nr_bms < BM_MAX)
-   {
+   if (nr_bms < BM_MAX) {
       struct bufmgr *bm = &bufmgr_pool[nr_bms++];
-      int k;
 
       _mesa_printf("create new bufmgr for fd %d\n", intel->driFd);
-
       bm->driFd = intel->driFd;
       bm->hash = _mesa_NewHashTable();
       bm->refcount = 1;
       _glthread_INIT_MUTEX(bm->mutex);
 
       drmGetLock(bm->driFd, intel->hHWContext, 0);
-      k = drmMMAllocBufferPool(bm->driFd, mmPoolRing, 0,
-			       DRM_MM_TT   | DRM_MM_NO_EVICT | 
-			       DRM_MM_READ | DRM_MM_EXE | BM_BATCHBUFFER,
-                               1024 * 1024, 4096, &bm->batchPool);
-      assert(!k);
+      BM_CKFATAL(drmMMAllocBufferPool(bm->driFd, mmPoolRing, 0,
+				      DRM_MM_TT | DRM_MM_NO_EVICT |
+				      DRM_MM_READ | DRM_MM_EXE |
+				      BM_BATCHBUFFER, 1024 * 1024, 4096,
+				      &bm->batchPool));
 
       drmUnlock(bm->driFd, intel->hHWContext);
       return bm;
@@ -123,14 +141,12 @@ bmGenBuffers(struct bufmgr *bm, unsigned n, unsigned *buffers, unsigned flags)
    {
       unsigned i;
       unsigned bFlags =
-	 (flags) ? flags : DRM_MM_TT | DRM_MM_VRAM | DRM_MM_SYSTEM;
+	    (flags) ? flags : DRM_MM_TT | DRM_MM_VRAM | DRM_MM_SYSTEM;
 
       for (i = 0; i < n; i++) {
 	 drmMMBuf *buf = calloc(sizeof(*buf), 1);
-         int k;
 
-	 k =drmMMInitBuffer(bm->driFd, bFlags, 12, buf);
-         assert(!k);
+	 BM_CKFATAL(drmMMInitBuffer(bm->driFd, bFlags, 12, buf));
 	 buf->client_priv = ++bm->buf_nr;
 	 buffers[i] = buf->client_priv;
 	 _mesa_HashInsert(bm->hash, buffers[i], buf);
@@ -146,15 +162,13 @@ bmSetShared(struct bufmgr *bm, unsigned buffer, unsigned flags,
    LOCK(bm);
    {
       drmMMBuf *buf = _mesa_HashLookup(bm->hash, buffer);
-      int k;
 
-      buf->flags = DRM_MM_NO_EVICT | DRM_MM_SHARED 
-	| DRM_MM_WRITE | DRM_MM_READ;
+      buf->flags = DRM_MM_NO_EVICT | DRM_MM_SHARED
+	    | DRM_MM_WRITE | DRM_MM_READ;
       buf->flags |= flags & DRM_MM_MEMTYPE_MASK;
       buf->offset = offset;
       buf->virtual = virtual;
-      k = drmMMAllocBuffer(bm->driFd, 0, NULL, 0, buf);
-      assert(!k);
+      BM_CKFATAL(drmMMAllocBuffer(bm->driFd, 0, NULL, 0, buf));
    }
    UNLOCK(bm);
 }
@@ -165,8 +179,10 @@ bmDeleteBuffers(struct bufmgr *bm, unsigned n, unsigned *buffers)
    LOCK(bm);
    {
       unsigned i;
+
       for (i = 0; i < n; i++) {
 	 drmMMBuf *buf = _mesa_HashLookup(bm->hash, buffers[i]);
+
 	 if (buf) {
 	    drmMMFreeBuffer(bm->driFd, buf);
 
@@ -191,31 +207,25 @@ bmBufferData(struct bufmgr *bm,
 
       DBG("bmBufferData %d sz 0x%x data: %p\n", buffer, size, data);
 
-      assert(!buf->mapped); 
+      assert(!buf->mapped);
 
       if (buf->flags & BM_BATCHBUFFER) {
-         int k;
-	 k = drmMMFreeBuffer(bm->driFd, buf);
-         assert(!k);
-	 k = drmMMAllocBuffer(bm->driFd, size, &bm->batchPool, 1, buf);
-         assert(!k);
-
+	 BM_CKFATAL(drmMMFreeBuffer(bm->driFd, buf));
+	 BM_CKFATAL(drmMMAllocBuffer
+		    (bm->driFd, size, &bm->batchPool, 1, buf));
       } else if (!(buf->flags & DRM_MM_SHARED)) {
 
-	 if (buf->block && (buf->size < size || 
-			    drmBufIsBusy(bm->driFd, buf))) {
-	    int k = drmMMFreeBuffer(bm->driFd, buf);
-            assert(!k);
+	 if (buf->block && (buf->size < size || drmBufIsBusy(bm->driFd, buf))) {
+	    BM_CKFATAL(drmMMFreeBuffer(bm->driFd, buf));
 	 }
 	 if (!buf->block) {
-	    int k = drmMMAllocBuffer(bm->driFd, size, NULL, 0, buf);
-            assert(!k);
+	    BM_CKFATAL(drmMMAllocBuffer(bm->driFd, size, NULL, 0, buf));
 	 }
 
       }
 
       if (data != NULL) {
-	
+
 	 memcpy(drmMMMapBuffer(bm->driFd, buf), data, size);
 	 drmMMUnmapBuffer(bm->driFd, buf);
 
@@ -284,11 +294,11 @@ bmMapBuffer(struct bufmgr *bm, unsigned buffer, unsigned flags)
       DBG("bmMapBuffer %d\n", buffer);
       DBG("Map: Block is 0x%x\n", &buf->block);
 
-      /* assert(!buf->mapped);*/
+      /* assert(!buf->mapped); */
       retval = drmMMMapBuffer(bm->driFd, buf);
    }
    UNLOCK(bm);
-   
+
    return retval;
 }
 
@@ -377,13 +387,9 @@ unsigned
 bmFenceBufferList(struct bufmgr *bm, struct _drmMMBufList *list)
 {
    drmFence fence;
-   int k;
 
-   k = drmMMFenceBuffers(bm->driFd, list);
-   assert(!k);
-   
-   k =drmEmitFence(bm->driFd, 0, &fence);
-   assert(!k);
+   BM_CKFATAL(drmMMFenceBuffers(bm->driFd, list));
+   BM_CKFATAL(drmEmitFence(bm->driFd, 0, &fence));
 
    return fence.fenceSeq;
 }
@@ -398,8 +404,8 @@ unsigned
 bmSetFence(struct bufmgr *bm)
 {
    drmFence dFence;
-   int k = drmEmitFence(bm->driFd, 0, &dFence);
-   assert(!k);
+
+   BM_CKFATAL(drmEmitFence(bm->driFd, 0, &dFence));
 
    return dFence.fenceSeq;
 }
@@ -409,10 +415,8 @@ bmTestFence(struct bufmgr *bm, unsigned fence)
 {
    drmFence dFence = { 0, fence };
    int retired;
-   int k;
 
-   k = drmTestFence(bm->driFd, dFence, 0, &retired);
-   assert(!k);
+   BM_CKFATAL(drmTestFence(bm->driFd, dFence, 0, &retired));
    return retired;
 }
 
@@ -420,6 +424,5 @@ void
 bmFinishFence(struct bufmgr *bm, unsigned fence)
 {
    drmFence dFence = { 0, fence };
-   int k = drmWaitFence(bm->driFd, dFence);
-   assert(!k);
+   BM_CKFATAL(drmWaitFence(bm->driFd, dFence));
 }
