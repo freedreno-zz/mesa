@@ -177,7 +177,7 @@ GLuint intel_finalize_mipmap_tree( struct intel_context *intel, GLuint unit )
     */
    nr_faces = (intelObj->base.Target == GL_TEXTURE_CUBE_MAP) ? 6 : 1;
    for (face = 0; face < nr_faces; face++) {
-      for (i = intelObj->firstLevel; i < intelObj->lastLevel; i++) {
+      for (i = intelObj->firstLevel; i <= intelObj->lastLevel; i++) {
 	 struct intel_texture_image *intelImage = 
 	    intel_texture_image(intelObj->base.Image[face][i]);
 	 
@@ -205,7 +205,7 @@ void intel_tex_map_images( struct intel_context *intel,
    DBG("%s\n", __FUNCTION__);
 
    for (face = 0; face < nr_faces; face++) {
-      for (i = intelObj->firstLevel; i < intelObj->lastLevel; i++) {
+      for (i = intelObj->firstLevel; i <= intelObj->lastLevel; i++) {
 	 struct intel_texture_image *intelImage = 
 	    intel_texture_image(intelObj->base.Image[face][i]);
 
@@ -234,7 +234,7 @@ void intel_tex_unmap_images( struct intel_context *intel,
    GLuint face, i;
 
    for (face = 0; face < nr_faces; face++) {
-      for (i = intelObj->firstLevel; i < intelObj->lastLevel; i++) {
+      for (i = intelObj->firstLevel; i <= intelObj->lastLevel; i++) {
 	 struct intel_texture_image *intelImage = 
 	    intel_texture_image(intelObj->base.Image[face][i]);
 
