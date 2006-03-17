@@ -1230,6 +1230,7 @@ struct gl_texture_image
    GLuint Height;		/**< = 2^HeightLog2 + 2*Border */
    GLuint Depth;		/**< = 2^DepthLog2 + 2*Border */
    GLuint RowStride;		/**< == Width unless IsClientData and padded */
+   GLuint ImageStride;          /**< Stride between images, in texels */
    GLuint Width2;		/**< = Width - 2*Border */
    GLuint Height2;		/**< = Height - 2*Border */
    GLuint Depth2;		/**< = Depth - 2*Border */
