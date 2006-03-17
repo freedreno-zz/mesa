@@ -201,7 +201,12 @@ void intel_miptree_set_image_offset(struct intel_mipmap_tree *mt,
 
 
 
-
+/**
+ * Map a teximage in a mipmap tree.
+ * \param row_stride  returns row stride in bytes
+ * \param image_stride  returns image stride in bytes (for 3D textures).
+ * \return address of mapping
+ */
 GLubyte *intel_miptree_image_map(struct intel_context *intel, 
 				 struct intel_mipmap_tree *mt,
 				 GLuint face,

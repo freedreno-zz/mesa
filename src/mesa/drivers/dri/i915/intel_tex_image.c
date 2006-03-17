@@ -396,5 +396,45 @@ void intelTexImage1D(GLcontext *ctx,
 
 
 
+/**
+ * Need to map texture image into memory before copying image data,
+ * then unmap it.
+ */
+void intelGetTexImage( GLcontext *ctx, GLenum target, GLint level,
+                       GLenum format, GLenum type, GLvoid *pixels,
+                       struct gl_texture_object *texObj,
+                       struct gl_texture_image *texImage )
+{
+   struct intel_context *intel = intel_context( ctx );
+   struct intel_texture_image *intelImage = intel_texture_image(texImage);
 
+   /* Map */
+#ifdef ALL_IMAGES /* XXX Remove this, just for debug/test */
+   intel_tex_map_images(intel, intel_texture_object(texObj));
+#else
+   /* XXX what if intelImage->mt is NULL? */
+   if (intelImage->mt) {
+      intelImage->base.Data = 
+         intel_miptree_image_map(intel, 
+                                 intelImage->mt,
+                                 intelImage->face,
+                                 intelImage->level,
+                                 &intelImage->base.RowStride,
+                                 &intelImage->base.ImageStride);
+   }
+#endif
+
+   _mesa_get_teximage(ctx, target, level, format, type, pixels,
+                      texObj, texImage);
+
+   /* Unmap */
+#ifdef ALL_IMAGES
+   intel_tex_unmap_images(intel, intel_texture_object(texObj));
+#else
+   if (intelImage->mt) {
+      intel_miptree_image_unmap(intel, intelImage->mt);
+      intelImage->base.Data = NULL;
+   }
+#endif
+}
 

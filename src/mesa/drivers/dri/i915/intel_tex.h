@@ -119,6 +119,11 @@ void intelCopyTexSubImage2D( GLcontext *ctx, GLenum target, GLint level,
 			     GLint xoffset, GLint yoffset,
 			     GLint x, GLint y, GLsizei width, GLsizei height );
 
+void intelGetTexImage( GLcontext *ctx, GLenum target, GLint level,
+                       GLenum format, GLenum type, GLvoid *pixels,
+                       struct gl_texture_object *texObj,
+                       struct gl_texture_image *texImage );
+
 GLuint intel_finalize_mipmap_tree( struct intel_context *intel, GLuint unit );
 
 void intel_tex_map_images( struct intel_context *intel,

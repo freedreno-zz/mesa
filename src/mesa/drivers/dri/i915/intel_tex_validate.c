@@ -209,11 +209,6 @@ void intel_tex_map_images( struct intel_context *intel,
 	 struct intel_texture_image *intelImage = 
 	    intel_texture_image(intelObj->base.Image[face][i]);
 
-	 /* XXX: Fallbacks will fail for 3d textures because core mesa
-	  * doesn't have a place to put ImageStride -- assumes each
-	  * teximage's depth slices are packed contiguously.  This
-	  * isn't true for i915.
-	  */
 	 if (intelImage->mt) {
 	    intelImage->base.Data = 
 	       intel_miptree_image_map(intel, 
@@ -221,7 +216,10 @@ void intel_tex_map_images( struct intel_context *intel,
 				       intelImage->face,
 				       intelImage->level,
 				       &intelImage->base.RowStride,
-				       NULL);
+				       &intelImage->base.ImageStride);
+            /* convert stride to texels, not bytes */
+            intelImage->base.RowStride /= intelImage->mt->cpp;
+            intelImage->base.ImageStride /= intelImage->mt->cpp;
 	 }
       }
    }
