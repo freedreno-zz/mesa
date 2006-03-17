@@ -28,6 +28,7 @@
 #include "intel_screen.h"
 #include "intel_context.h"
 #include "intel_blit.h"
+#include "intel_fbo.h"
 #include "intel_tris.h"
 #include "intel_regions.h"
 #include "intel_batchbuffer.h"
@@ -210,17 +211,24 @@ static void intelSetBackClipRects( struct intel_context *intel )
 }
 
 
+/**
+ * This will be called whenever the currently bound window is moved/resized.
+ * Actually, it seems that only window moves which expose new regions
+ * cause this function to be called. (BP)
+ */
 void intelWindowMoved( struct intel_context *intel )
 {
+   GLcontext *ctx = &intel->ctx;
+
    if (!intel->ctx.DrawBuffer) {
       /* when would this happen? -BP */
       intelSetFrontClipRects( intel );
    }
    else if (intel->ctx.DrawBuffer->Name != 0) {
-      /* drawing to user-created FBO */
-      intelSetRenderbufferClipRects(intel);
+      /* drawing to user-created FBO - do nothing */
    }
    else {
+      /* drawing to a window */
       switch (intel->ctx.DrawBuffer->_ColorDrawBufferMask[0]) {
       case BUFFER_BIT_FRONT_LEFT:
 	 intelSetFrontClipRects( intel );
@@ -232,19 +240,19 @@ void intelWindowMoved( struct intel_context *intel )
 	 /* glDrawBuffer(GL_NONE or GL_FRONT_AND_BACK): software fallback */
 	 intelSetFrontClipRects( intel );
       }
+
+      /* this update Mesa's notion of window size */
+      _mesa_resize_framebuffer(ctx, ctx->DrawBuffer,
+                               intel->driDrawable->w, intel->driDrawable->h);
    }
 
    /* Set state we know depends on drawable parameters:
     */
    {
       GLcontext *ctx = &intel->ctx;
-
       ctx->Driver.Scissor( ctx, ctx->Scissor.X, ctx->Scissor.Y,
 			   ctx->Scissor.Width, ctx->Scissor.Height );
       
-      ctx->Driver.DepthRange( ctx, 
-			      ctx->Viewport.Near,
-			      ctx->Viewport.Far );
    }
 }
 
@@ -544,9 +552,14 @@ static void intelDrawBuffer(GLcontext *ctx, GLenum mode )
 				intel->depth_region);
 }
 
+
+
 static void intelReadBuffer( GLcontext *ctx, GLenum mode )
 {
-   /* nothing, until we implement h/w glRead/CopyPixels or CopyTexImage */
+   /* Nothing.
+    * The functions which do framebuffer reads (glReadPixels, glCopyPixels,
+    * etc. are all set just by using ctx->ReadBuffer->_ColorReadBuffer.
+    */
 }
 
 
