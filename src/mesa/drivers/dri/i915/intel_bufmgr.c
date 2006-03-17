@@ -103,8 +103,8 @@ bm_intel_Attach(struct intel_context *intel)
 
       drmGetLock(bm->driFd, intel->hHWContext, 0);
       k = drmMMAllocBufferPool(bm->driFd, mmPoolRing, 0,
-                               BM_BATCHBUFFER | DRM_MM_TT |
-                               DRM_MM_NO_EVICT ,
+			       DRM_MM_TT   | DRM_MM_NO_EVICT | 
+			       DRM_MM_READ | DRM_MM_EXE | BM_BATCHBUFFER,
                                1024 * 1024, 4096, &bm->batchPool);
       assert(!k);
 
@@ -148,7 +148,8 @@ bmSetShared(struct bufmgr *bm, unsigned buffer, unsigned flags,
       drmMMBuf *buf = _mesa_HashLookup(bm->hash, buffer);
       int k;
 
-      buf->flags = DRM_MM_NO_EVICT | DRM_MM_NO_MOVE | DRM_MM_SHARED;
+      buf->flags = DRM_MM_NO_EVICT | DRM_MM_SHARED 
+	| DRM_MM_WRITE | DRM_MM_READ;
       buf->flags |= flags & DRM_MM_MEMTYPE_MASK;
       buf->offset = offset;
       buf->virtual = virtual;
@@ -161,8 +162,6 @@ bmSetShared(struct bufmgr *bm, unsigned buffer, unsigned flags,
 void
 bmDeleteBuffers(struct bufmgr *bm, unsigned n, unsigned *buffers)
 {
-   assert(0);
-
    LOCK(bm);
    {
       unsigned i;
@@ -192,11 +191,10 @@ bmBufferData(struct bufmgr *bm,
 
       DBG("bmBufferData %d sz 0x%x data: %p\n", buffer, size, data);
 
-      assert(!buf->mapped);
+      assert(!buf->mapped); 
 
       if (buf->flags & BM_BATCHBUFFER) {
          int k;
-
 	 k = drmMMFreeBuffer(bm->driFd, buf);
          assert(!k);
 	 k = drmMMAllocBuffer(bm->driFd, size, &bm->batchPool, 1, buf);
@@ -204,7 +202,8 @@ bmBufferData(struct bufmgr *bm,
 
       } else if (!(buf->flags & DRM_MM_SHARED)) {
 
-	 if (buf->size < size || drmBufIsBusy(bm->driFd, buf)) {
+	 if (buf->block && (buf->size < size || 
+			    drmBufIsBusy(bm->driFd, buf))) {
 	    int k = drmMMFreeBuffer(bm->driFd, buf);
             assert(!k);
 	 }
@@ -216,7 +215,7 @@ bmBufferData(struct bufmgr *bm,
       }
 
       if (data != NULL) {
-
+	
 	 memcpy(drmMMMapBuffer(bm->driFd, buf), data, size);
 	 drmMMUnmapBuffer(bm->driFd, buf);
 
@@ -285,7 +284,7 @@ bmMapBuffer(struct bufmgr *bm, unsigned buffer, unsigned flags)
       DBG("bmMapBuffer %d\n", buffer);
       DBG("Map: Block is 0x%x\n", &buf->block);
 
-      assert(!buf->mapped);
+      /* assert(!buf->mapped);*/
       retval = drmMMMapBuffer(bm->driFd, buf);
    }
    UNLOCK(bm);
