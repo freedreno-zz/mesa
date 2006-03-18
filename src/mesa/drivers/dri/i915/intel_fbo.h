@@ -28,10 +28,9 @@
 #ifndef INTEL_FBO_H
 #define INTEL_FBO_H
 
-#include "drirenderbuffer.h"
-
 
 struct intel_context;
+struct intel_region;
 
 
 /**
@@ -40,12 +39,15 @@ struct intel_context;
 struct intel_renderbuffer {
    struct gl_renderbuffer Base;
    struct intel_region *region;
+   void *pfMap;    /* possibly paged flipped map pointer */
+   GLuint pfPitch; /* possibly paged flipped pitch */
+   GLuint Magic; /* for debug/sanity */
 };
 
 
 extern struct intel_renderbuffer *
 intel_create_renderbuffer(GLenum intFormat, GLsizei width, GLsizei height,
-                          int offset, void *map);
+                          int offset, int pitch, int cpp, void *map);
 
 
 extern void

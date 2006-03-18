@@ -33,10 +33,11 @@
 #include "context.h"
 #include "enums.h"
 
-#include "intel_reg.h"
 #include "intel_batchbuffer.h"
-#include "intel_context.h"
 #include "intel_blit.h"
+#include "intel_context.h"
+#include "intel_fbo.h"
+#include "intel_reg.h"
 #include "intel_regions.h"
 
 #include "intel_bufmgr.h"
@@ -66,6 +67,7 @@ void intelCopyBuffer( const __DRIdrawablePrivate *dPriv )
     */
    LOCK_HARDWARE( intel );
 
+   /* XXX FBO: change this to if intel->numClipRects */
    if (intel->driDrawable &&
        intel->driDrawable->numClipRects)
    {
@@ -73,8 +75,8 @@ void intelCopyBuffer( const __DRIdrawablePrivate *dPriv )
       __DRIdrawablePrivate *dPriv = intel->driDrawable;
       int nbox = dPriv->numClipRects;
       drm_clip_rect_t *pbox = dPriv->pClipRects;
-      int pitch = intelScreen->front.pitch;
-      int cpp = intelScreen->cpp;
+      int pitch = intelScreen->front.pitch; /* XXX FBO change */
+      int cpp = intelScreen->cpp; /* XXX FBO change */
       int BR13, CMD;
       int i;
 
@@ -255,15 +257,12 @@ void intelEmitCopyBlit( struct intel_context *intel,
 
 
 void intelClearWithBlit(GLcontext *ctx, GLbitfield flags, GLboolean all,
-		      GLint cx, GLint cy, GLint cw, GLint ch)
+                        GLint cx, GLint cy, GLint cw, GLint ch)
 {
    struct intel_context *intel = intel_context( ctx );
    intelScreenPrivate *intelScreen = intel->intelScreen;
    GLuint clear_depth, clear_color;
-   GLint pitch = intelScreen->front.pitch;
-   GLint cpp = intelScreen->cpp;
-   GLint i;
-   GLuint BR13, CMD, D_CMD;
+   GLbitfield skipBuffer = 0;
    BATCH_LOCALS;
 
    if (INTEL_DEBUG & DEBUG_DRI)
@@ -280,52 +279,55 @@ void intelClearWithBlit(GLcontext *ctx, GLbitfield flags, GLboolean all,
       clear_depth |= (ctx->Stencil.Clear & 0xff) << 24;
    }
 
-   switch(cpp) {
-   case 2: 
-      BR13 = (0xF0 << 16) | (pitch * cpp) | (1<<24);
-      D_CMD = CMD = XY_COLOR_BLT_CMD;
-      break;
-   case 4:
-      BR13 = (0xF0 << 16) | (pitch * cpp) | (1<<24) | (1<<25);
-      CMD = (XY_COLOR_BLT_CMD |
-	     XY_COLOR_BLT_WRITE_ALPHA | 
-	     XY_COLOR_BLT_WRITE_RGB);
-      D_CMD = XY_COLOR_BLT_CMD;
-      if (flags & BUFFER_BIT_DEPTH) D_CMD |= XY_COLOR_BLT_WRITE_RGB;
-      if (flags & BUFFER_BIT_STENCIL) D_CMD |= XY_COLOR_BLT_WRITE_ALPHA;
-      break;
-   default:
-      BR13 = (0xF0 << 16) | (pitch * cpp) | (1<<24);
-      D_CMD = CMD = XY_COLOR_BLT_CMD;
-      break;
+   /* If clearing both depth and stencil, skip BUFFER_BIT_STENCIL in
+    * the loop below.
+    */
+   if ((flags & BUFFER_BIT_DEPTH) && (flags & BUFFER_BIT_STENCIL)) {
+      skipBuffer = BUFFER_BIT_STENCIL;
    }
 
    intelFlush( &intel->ctx );
    LOCK_HARDWARE( intel );
 
-   if (intel->driDrawable->numClipRects)
+   if (intel->numClipRects)
    {
       drm_clip_rect_t clear;
+      int i;
 
-      /* flip top to bottom */
-      clear.x1 = cx + intel->drawX;
-      clear.y1 = intel->driDrawable->y + intel->driDrawable->h - cy - ch;
-      clear.x2 = clear.x1 + cw;
-      clear.y2 = clear.y1 + ch;
+      if (intel->ctx.DrawBuffer->Name == 0) {
+         /* clearing a window */
 
-      /* adjust for page flipping */
-      if ( intel->sarea->pf_current_page == 1 ) {
-	 GLuint tmp = flags;
+         /* flip top to bottom */
+         clear.x1 = cx + intel->drawX;
+         clear.y1 = intel->driDrawable->y + intel->driDrawable->h - cy - ch;
+         clear.x2 = clear.x1 + cw;
+         clear.y2 = clear.y1 + ch;
 
-	 flags &= ~(BUFFER_BIT_FRONT_LEFT | BUFFER_BIT_BACK_LEFT);
-	 if ( tmp & BUFFER_BIT_FRONT_LEFT ) flags |= BUFFER_BIT_BACK_LEFT;
-	 if ( tmp & BUFFER_BIT_BACK_LEFT )  flags |= BUFFER_BIT_FRONT_LEFT;
+         /* adjust for page flipping */
+         if ( intel->sarea->pf_current_page == 1 ) {
+            GLuint tmp = flags;
+
+            flags &= ~(BUFFER_BIT_FRONT_LEFT | BUFFER_BIT_BACK_LEFT);
+            if ( tmp & BUFFER_BIT_FRONT_LEFT ) flags |= BUFFER_BIT_BACK_LEFT;
+            if ( tmp & BUFFER_BIT_BACK_LEFT )  flags |= BUFFER_BIT_FRONT_LEFT;
+         }
+      }
+      else {
+         /* clearing FBO */
+         ASSERT(intel->numClipRects == 1);
+         ASSERT(intel->pClipRects == &intel->fboRect);
+         clear.x1 = cx;
+         clear.y1 = intel->ctx.DrawBuffer->Height - cy - ch;
+         clear.x2 = clear.y1 + cw;
+         clear.y2 = clear.y1 + ch;
+         /* no change to flags */
       }
 
       for (i = 0 ; i < intel->numClipRects ; i++) 
       { 	 
-	 drm_clip_rect_t *box = &intel->pClipRects[i];	 
+	 const drm_clip_rect_t *box = &intel->pClipRects[i];	 
 	 drm_clip_rect_t b;
+         GLuint buf;
 
 	 if (!all) {
 	    intel_intersect_cliprects(&b, &clear, box);
@@ -339,38 +341,67 @@ void intelClearWithBlit(GLcontext *ctx, GLbitfield flags, GLboolean all,
 			 b.x2, b.y2, 
 			 flags);
 
-	 if ( flags & BUFFER_BIT_FRONT_LEFT ) {	    
-	    BEGIN_BATCH(6, INTEL_BATCH_NO_CLIPRECTS);
-	    OUT_BATCH( CMD );
-	    OUT_BATCH( BR13 );
-	    OUT_BATCH( (b.y1 << 16) | b.x1 );
-	    OUT_BATCH( (b.y2 << 16) | b.x2 );
-	    OUT_RELOC( intel->front_region->buffer, DRM_MM_TT|DRM_MM_WRITE, 0 );
-	    OUT_BATCH( clear_color );
-	    ADVANCE_BATCH();
-	 }
+         /* Loop over all renderbuffers */
+         for (buf = 0; buf < BUFFER_COUNT && flags; buf++) {
+            const GLbitfield bufBit = 1 << buf;
+            if ((flags & bufBit) && !(bufBit & skipBuffer)) {
+               /* OK, clear this renderbuffer */
+               const struct intel_renderbuffer *irb
+                  = intel_renderbuffer(ctx->DrawBuffer->
+                                       Attachment[buf].Renderbuffer);
+               GLuint clearVal;
+               GLint pitch, cpp;
+               GLuint BR13, CMD;
 
-	 if ( flags & BUFFER_BIT_BACK_LEFT ) {
-	    BEGIN_BATCH(6, INTEL_BATCH_NO_CLIPRECTS); 
-	    OUT_BATCH( CMD );
-	    OUT_BATCH( BR13 );
-	    OUT_BATCH( (b.y1 << 16) | b.x1 );
-	    OUT_BATCH( (b.y2 << 16) | b.x2 );
-	    OUT_RELOC( intel->back_region->buffer, DRM_MM_TT|DRM_MM_WRITE, 0 );
-	    OUT_BATCH( clear_color );
-	    ADVANCE_BATCH();
-	 }
+               ASSERT(irb);
+               ASSERT(irb->region);
 
-	 if ( flags & (BUFFER_BIT_STENCIL | BUFFER_BIT_DEPTH) ) {
-	    BEGIN_BATCH(6, INTEL_BATCH_NO_CLIPRECTS);
-	    OUT_BATCH( D_CMD );
-	    OUT_BATCH( BR13 );
-	    OUT_BATCH( (b.y1 << 16) | b.x1 );
-	    OUT_BATCH( (b.y2 << 16) | b.x2 );
-	    OUT_RELOC( intel->depth_region->buffer, DRM_MM_TT|DRM_MM_WRITE, 0 );
-	    OUT_BATCH( clear_depth );
-	    ADVANCE_BATCH();
-	 }      
+               pitch = irb->region->pitch;
+               cpp = irb->region->cpp;
+
+               if (cpp == 4) {
+                  BR13 = (0xF0 << 16) | (pitch * cpp) | (1<<24) | (1<<25);
+                  if (buf == BUFFER_DEPTH || buf == BUFFER_STENCIL) {
+                     CMD = XY_COLOR_BLT_CMD;
+                     if (flags & BUFFER_BIT_DEPTH)
+                        CMD |= XY_COLOR_BLT_WRITE_RGB;
+                     if (flags & BUFFER_BIT_STENCIL)
+                        CMD |= XY_COLOR_BLT_WRITE_ALPHA;
+                  }
+                  else {
+                     /* clearing RGBA */
+                     CMD = (XY_COLOR_BLT_CMD |
+                            XY_COLOR_BLT_WRITE_ALPHA | 
+                            XY_COLOR_BLT_WRITE_RGB);
+                  }
+               }
+               else {
+                  ASSERT(cpp == 2 || cpp == 0);
+                  BR13 = (0xF0 << 16) | (pitch * cpp) | (1<<24);
+                  CMD = XY_COLOR_BLT_CMD;
+               }
+
+               if (buf == BUFFER_DEPTH || buf == BUFFER_STENCIL) {
+                  clearVal = clear_depth;
+               }
+               else {
+                  clearVal = clear_color;
+               }
+               /*
+               _mesa_debug(ctx, "hardware blit clear buf %d rb id %d\n",
+                           buf, irb->Base.Name);
+               */
+               BEGIN_BATCH(6, INTEL_BATCH_NO_CLIPRECTS);
+               OUT_BATCH( CMD );
+               OUT_BATCH( BR13 );
+               OUT_BATCH( (b.y1 << 16) | b.x1 );
+               OUT_BATCH( (b.y2 << 16) | b.x2 );
+               OUT_RELOC( irb->region->buffer, DRM_MM_TT|DRM_MM_WRITE, 0 );
+               OUT_BATCH( clearVal );
+               ADVANCE_BATCH();
+               flags &= ~(1 << buf); /* turn off bit, for faster loop exit */
+            }
+         }
       }
       intel_batchbuffer_flush( intel->batch );
    }

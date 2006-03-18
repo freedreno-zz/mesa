@@ -89,9 +89,11 @@ struct intel_region *intel_region_alloc( struct intel_context *intel,
 void intel_region_reference( struct intel_region **dst,
 			     struct intel_region *src)
 {
-   src->refcount++;
    assert(*dst == NULL);
-   *dst = src;
+   if (src) {
+      src->refcount++;
+      *dst = src;
+   }
 }
 
 void intel_region_release( struct intel_context *intel,
@@ -111,7 +113,7 @@ void intel_region_release( struct intel_context *intel,
 }
 
 
-struct intel_region *intel_region_create_static( struct intel_context *intel, 
+struct intel_region *intel_region_create_static( struct intel_context *intel,
 						 GLuint mem_type,
 						 GLuint offset,
 						 void *virtual,

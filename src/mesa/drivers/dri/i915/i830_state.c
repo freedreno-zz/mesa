@@ -1010,7 +1010,7 @@ static void i830_init_packets( struct i830_context *i830 )
    i830->state.Buffer[I830_DESTREG_DBUFADDR0] = _3DSTATE_BUF_INFO_CMD;
    i830->state.Buffer[I830_DESTREG_DBUFADDR1] = 
       (BUF_3D_ID_DEPTH |
-       BUF_3D_PITCH(screen->depth.pitch * screen->cpp) |
+       BUF_3D_PITCH(screen->depth.pitch * screen->cpp) | /* XXX FBO fix */
        BUF_3D_USE_FENCE);
 /*    i830->state.Buffer[I830_DESTREG_DBUFADDR2] = screen->depth.offset; */
 

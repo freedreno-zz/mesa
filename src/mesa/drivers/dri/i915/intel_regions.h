@@ -41,7 +41,7 @@ struct intel_context;
  * - Blitter commands for copying 2D regions between buffers. (really???)
  */
 struct intel_region {
-   GLuint buffer;
+   GLuint buffer; /* buffer manager's buffer ID */
    GLuint refcount;
    GLuint cpp;    /* bytes per pixel */
    GLuint pitch;  /* in pixels */

@@ -82,6 +82,7 @@ struct intel_region *intel_readbuf_region( struct intel_context *intel )
    /* This will have to change to support EXT_fbo's, but is correct
     * for now:
     */
+#if 0 /* XXX FBO */
    switch (ctx->ReadBuffer->_ColorReadBufferIndex) {
    case BUFFER_FRONT_LEFT:
       return intel->front_region;
@@ -91,6 +92,10 @@ struct intel_region *intel_readbuf_region( struct intel_context *intel )
       assert(0);
       return NULL;
    }
+#else
+   struct intel_renderbuffer *irb = intel_renderbuffer(ctx->ReadBuffer->_ColorReadBuffer);
+   return irb->region;
+#endif
 }
 
 
@@ -213,8 +218,7 @@ static void intelSetBackClipRects( struct intel_context *intel )
 
 /**
  * This will be called whenever the currently bound window is moved/resized.
- * Actually, it seems that only window moves which expose new regions
- * cause this function to be called. (BP)
+ * XXX: actually, it seems to NOT be called when the window is only moved (BP).
  */
 void intelWindowMoved( struct intel_context *intel )
 {
@@ -246,14 +250,9 @@ void intelWindowMoved( struct intel_context *intel )
                                intel->driDrawable->w, intel->driDrawable->h);
    }
 
-   /* Set state we know depends on drawable parameters:
-    */
-   {
-      GLcontext *ctx = &intel->ctx;
-      ctx->Driver.Scissor( ctx, ctx->Scissor.X, ctx->Scissor.Y,
-			   ctx->Scissor.Width, ctx->Scissor.Height );
-      
-   }
+   /* Update hardware scissor */
+   ctx->Driver.Scissor( ctx, ctx->Scissor.X, ctx->Scissor.Y,
+                        ctx->Scissor.Width, ctx->Scissor.Height );
 }
 
 
@@ -267,32 +266,28 @@ static void intelClearWithTris(struct intel_context *intel,
 			       GLint cx, GLint cy, 
 			       GLint cw, GLint ch)
 {
-   __DRIdrawablePrivate *dPriv = intel->driDrawable;
+   GLcontext *ctx = &intel->ctx;
    drm_clip_rect_t clear;
 
-   if (INTEL_DEBUG & DEBUG_DRI)
-      _mesa_printf("%s %x\n", __FUNCTION__, mask);
+   if (1/*INTEL_DEBUG & DEBUG_DRI*/)
+      _mesa_printf("%s 0x%x\n", __FUNCTION__, mask);
 
    LOCK_HARDWARE(intel);
 
-   if (intel->driDrawable->numClipRects) {
+   /* XXX FBO: was: intel->driDrawable->numClipRects */
+   if (intel->numClipRects) {
 
       intel->vtbl.install_meta_state(intel);
 
-      if(!all) {
-	 clear.x1 = cx;
-	 clear.y1 = cy;
-	 clear.x2 = cx + cw;
-	 clear.y2 = cy + ch;
-      } else {
-	 clear.x1 = 0;
-	 clear.y1 = 0;
-	 clear.x2 = dPriv->w;
-	 clear.y2 = dPriv->h;
-      }
+      /* note: regardless of 'all', cx, cy, cw, ch are correct */
+      clear.x1 = cx;
+      clear.y1 = cy;
+      clear.x2 = cx + cw;
+      clear.y2 = cy + ch;
 
       /* Back and stencil cliprects are the same.  Try and do both
        * buffers at once:
+       * XXX FBO: This is broken for FBO depth/stencil buffers!
        */
       if (mask & (BUFFER_BIT_BACK_LEFT|BUFFER_BIT_STENCIL|BUFFER_BIT_DEPTH)) { 
 	 intel->vtbl.meta_draw_region(intel, 
@@ -348,6 +343,46 @@ static void intelClearWithTris(struct intel_context *intel,
 			      0, 0, 0, 0);
       }
 
+      /*
+       * User-created RGBA renderbuffers
+       */
+      if (mask & (BUFFER_BIT_COLOR0 |
+                  BUFFER_BIT_COLOR1 |
+                  BUFFER_BIT_COLOR2 |
+                  BUFFER_BIT_COLOR3)) {
+         struct intel_region *depth_region = NULL;
+         GLuint buf;
+
+         ASSERT(ctx->Const.MaxColorAttachments == 4); /* XXX FBO fix */
+
+         for (buf = BUFFER_COLOR0; buf <= BUFFER_COLOR3; buf++) {
+            const GLbitfield bufBit = 1 << buf;
+            if (mask & bufBit) {
+               struct intel_renderbuffer *irb =
+                  intel_renderbuffer(ctx->DrawBuffer->
+                                     Attachment[buf].Renderbuffer);
+               ASSERT(irb);
+               ASSERT(irb->region);
+
+               /* XXX move these three calls outside loop? */
+               intel->vtbl.meta_no_depth_write(intel);
+               intel->vtbl.meta_no_stencil_write(intel);
+               intel->vtbl.meta_color_mask(intel, GL_TRUE );
+               intel->vtbl.meta_draw_region(intel, irb->region, depth_region);
+
+               /* XXX: Using INTEL_BATCH_NO_CLIPRECTS here is dangerous as the
+                * drawing origin may not be correctly emitted.
+                */
+               intel_meta_draw_quad(intel, 
+                                    clear.x1, clear.x2, 
+                                    clear.y1, clear.y2, 
+                                    0,
+                                    intel->ClearColor, 
+                                    0, 0, 0, 0);
+            }
+         }
+      }
+
       intel->vtbl.leave_meta_state( intel );
       intel_batchbuffer_flush( intel->batch );
    }
@@ -357,13 +392,21 @@ static void intelClearWithTris(struct intel_context *intel,
 
 
 
-
+/**
+ * Called by ctx->Driver.Clear.
+ */
 static void intelClear(GLcontext *ctx, 
 		       GLbitfield mask, 
 		       GLboolean all,
 		       GLint cx, GLint cy, 
 		       GLint cw, GLint ch)
 {
+   const GLbitfield colorBufferBits = (BUFFER_BIT_FRONT_LEFT |
+                                       BUFFER_BIT_BACK_LEFT |
+                                       BUFFER_BIT_COLOR0 |
+                                       BUFFER_BIT_COLOR1 |
+                                       BUFFER_BIT_COLOR2 |
+                                       BUFFER_BIT_COLOR3);
    struct intel_context *intel = intel_context( ctx );
    const GLuint colorMask = *((GLuint *) &ctx->Color.ColorMask);
    GLbitfield tri_mask = 0;
@@ -374,30 +417,19 @@ static void intelClear(GLcontext *ctx,
       fprintf(stderr, "%s\n", __FUNCTION__);
 
 
-   if (mask & BUFFER_BIT_FRONT_LEFT) {
-      if (colorMask == ~0) {
-	 blit_mask |= BUFFER_BIT_FRONT_LEFT;
-      } 
-      else {
-	 tri_mask |= BUFFER_BIT_FRONT_LEFT;
-      }
+   /* HW color buffers (front, back, aux, generic FBO, etc) */
+   if (colorMask == ~0) {
+      /* clear all R,G,B,A */
+      blit_mask |= (mask & colorBufferBits);
+   }
+   else {
+      /* glColorMask in effect */
+      tri_mask |= (mask & colorBufferBits);
    }
 
-   if (mask & BUFFER_BIT_BACK_LEFT) {
-      if (colorMask == ~0) {
-	 blit_mask |= BUFFER_BIT_BACK_LEFT;
-      } 
-      else {
-	 tri_mask |= BUFFER_BIT_BACK_LEFT;
-      }
-   }
-
-
-   if (mask & BUFFER_BIT_STENCIL) {
-      if (!intel->hw_stencil) {
-	 swrast_mask |= BUFFER_BIT_STENCIL;
-      }
-      else if ((ctx->Stencil.WriteMask[0] & 0xff) != 0xff) {
+   /* HW stencil */
+   if (intel->hw_stencil && (mask & BUFFER_BIT_STENCIL)) {
+      if ((ctx->Stencil.WriteMask[0] & 0xff) != 0xff) {
 	 tri_mask |= BUFFER_BIT_STENCIL;
       } 
       else {
@@ -409,13 +441,20 @@ static void intelClear(GLcontext *ctx,
     * same buffer.
     */
    if (mask & BUFFER_BIT_DEPTH) {
+      /* XXX is this logic correct?  It looks like the blit routine
+       * can only clear both buffers while the triangle routine can do
+       * one or the other. (BP)
+       */
       if (tri_mask & BUFFER_BIT_STENCIL)
 	 tri_mask |= BUFFER_BIT_DEPTH;
       else 
 	 blit_mask |= BUFFER_BIT_DEPTH;
    }
 
-   swrast_mask |= (mask & BUFFER_BIT_ACCUM);
+   /*
+    * Clear in software whatever can't be done w/ hardware.
+    */
+   swrast_mask = mask & ~tri_mask & ~blit_mask;
 
    intelFlush( ctx );
 
@@ -498,60 +537,107 @@ void intelSwapBuffers( __DRIdrawablePrivate *dPriv )
    }
 }
 
-static void intelDrawBuffer(GLcontext *ctx, GLenum mode )
+
+/**
+ * Called via glDrawBuffer, glBindFramebufferEXT, and from various places
+ * within the driver.
+ * Note: mode parameter is not used.
+ */
+static void
+intelDrawBuffer(GLcontext *ctx, GLenum mode )
 {
    struct intel_context *intel = intel_context(ctx);
-   int front = 0;
+   struct intel_renderbuffer *irb;
+   struct intel_region *colorRegion, *depthRegion;
+   int front = 0; /* drawing to front color buffer? */
  
    if (!ctx->DrawBuffer) {
       /* XXX I don't think this should ever happen. -BP */
       return;
    }
 
-   switch ( ctx->DrawBuffer->_ColorDrawBufferMask[0] ) {
-   case BUFFER_BIT_FRONT_LEFT:
-      front = 1;
-      FALLBACK( intel, INTEL_FALLBACK_DRAW_BUFFER, GL_FALSE );
-      break;
-   case BUFFER_BIT_BACK_LEFT:
-      front = 0;
-      FALLBACK( intel, INTEL_FALLBACK_DRAW_BUFFER, GL_FALSE );
-      break;
-   default:
-      /* GL_FRONT_AND_BACK, GL_NONE, etc */
-      FALLBACK( intel, INTEL_FALLBACK_DRAW_BUFFER, GL_TRUE );
-      return;
+   if (ctx->NewState & (_NEW_BUFFERS | _NEW_COLOR | _NEW_PIXEL)) {
+      _mesa_update_framebuffer(ctx);
    }
 
-   if ( intel->sarea->pf_current_page == 1 ) 
-      front ^= 1;
-   
+   /*
+    * How many color buffers are we drawing into?
+    */
+   if (ctx->DrawBuffer->_NumColorDrawBuffers[0] != 1
+#if 1
+       /* XXX FBO temporary - always use software rendering */
+       || ctx->DrawBuffer->Name != 0
+#endif
+    ) {
+      /* writing to 0 or 2 or 4 color buffers */
+      /*_mesa_debug(ctx, "Software rendering\n");*/
+      FALLBACK( intel, INTEL_FALLBACK_DRAW_BUFFER, GL_TRUE );
+      front = 1; /* might not have back color buffer */
+   }
+   else {
+      /* draw to exactly one color buffer */
+      /*_mesa_debug(ctx, "Hardware rendering\n");*/
+      FALLBACK( intel, INTEL_FALLBACK_DRAW_BUFFER, GL_FALSE );
+      if (ctx->DrawBuffer->_ColorDrawBufferMask[0] == BUFFER_BIT_FRONT_LEFT) {
+         front = 1;
+      }
+   }
+
+   /*
+    * Get the intel_renderbuffer we're drawing into.
+    * And set up cliprects.
+    */
    if (ctx->DrawBuffer->Name == 0) {
       /* drawing to window system buffer */
-      intelSetFrontClipRects( intel );
+      if (intel->sarea->pf_current_page == 1 ) {
+         /* page flipped back/front */
+         front ^= 1;
+      }
+      if (front) {
+         intelSetFrontClipRects( intel );
+         irb = intel_renderbuffer(ctx->DrawBuffer->
+                                  Attachment[BUFFER_FRONT_LEFT].Renderbuffer);
+      }
+      else {
+         intelSetBackClipRects( intel );
+         irb = intel_renderbuffer(ctx->DrawBuffer->
+                                  Attachment[BUFFER_BACK_LEFT].Renderbuffer);
+      }
    }
    else {
       /* drawing to user-created FBO */
       intelSetRenderbufferClipRects(intel);
+      irb = intel_renderbuffer(ctx->DrawBuffer->_ColorDrawBuffers[0][0]);
+      ASSERT(irb);
    }
 
-   if (front) {
-      if (intel->draw_region != intel->front_region) {
-	 intel_region_release(intel, &intel->draw_region);
-	 intel_region_reference(&intel->draw_region, intel->front_region);
-      }
-   } else {
-      if (intel->draw_region != intel->back_region) {
-	 intel_region_release(intel, &intel->draw_region);
-	 intel_region_reference(&intel->draw_region, intel->back_region);
-      }
+   /*
+    * Get color buffer region.
+    */
+   if (irb && irb->region)
+      colorRegion = irb->region;
+   else
+      colorRegion = NULL;
+
+   /*
+    * Unbind old region, bind new region
+    */
+   if (intel->draw_region != colorRegion) {
+      intel_region_release(intel, &intel->draw_region);
+      intel_region_reference(&intel->draw_region, colorRegion);
    }
 
-   intel->vtbl.set_draw_region( intel, 
-				intel->draw_region,
-				intel->depth_region);
+   /*
+    * Get depth buffer region
+    */
+   irb = intel_renderbuffer(ctx->DrawBuffer->_DepthBuffer);
+   if (irb && irb->region)
+      depthRegion = irb->region;
+   else
+      depthRegion = NULL;
+
+   intel->vtbl.set_draw_region( intel, colorRegion, depthRegion );
 }
-
 
 
 static void intelReadBuffer( GLcontext *ctx, GLenum mode )

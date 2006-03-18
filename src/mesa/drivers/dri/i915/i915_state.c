@@ -699,7 +699,7 @@ static void i915Enable(GLcontext *ctx, GLenum cap, GLboolean state)
 
       /* Logicop doesn't seem to work at 16bpp:
        */
-      if (i915->intel.intelScreen->cpp == 2)
+      if (i915->intel.intelScreen->cpp == 2) /* XXX FBO fix */
 	 FALLBACK( &i915->intel, I915_FALLBACK_LOGICOP, state );
       break;
 
@@ -808,7 +808,7 @@ static void i915_init_packets( struct i915_context *i915 )
       i915->state.Ctx[I915_CTXREG_LIS4] = 0;
       i915->state.Ctx[I915_CTXREG_LIS5] = 0;
 
-      if (screen->cpp == 2)
+      if (screen->cpp == 2) /* XXX FBO fix */
 	 i915->state.Ctx[I915_CTXREG_LIS5] |= S5_COLOR_DITHER_ENABLE;
 
 
@@ -858,13 +858,13 @@ static void i915_init_packets( struct i915_context *i915 )
       i915->state.Buffer[I915_DESTREG_CBUFADDR0] = _3DSTATE_BUF_INFO_CMD;
       i915->state.Buffer[I915_DESTREG_CBUFADDR1] = 
 	 (BUF_3D_ID_COLOR_BACK | 
-	  BUF_3D_PITCH(screen->front.pitch * screen->cpp) |
+	  BUF_3D_PITCH(screen->front.pitch * screen->cpp) | /* XXX FBO fix */
 	  BUF_3D_USE_FENCE);
 
       i915->state.Buffer[I915_DESTREG_DBUFADDR0] = _3DSTATE_BUF_INFO_CMD;
       i915->state.Buffer[I915_DESTREG_DBUFADDR1] = 
 	 (BUF_3D_ID_DEPTH |
-	  BUF_3D_PITCH(screen->depth.pitch * screen->cpp) |
+	  BUF_3D_PITCH(screen->depth.pitch * screen->cpp) | /* XXX FBO fix */
 	  BUF_3D_USE_FENCE);
 
       i915->state.Buffer[I915_DESTREG_DV0] = _3DSTATE_DST_BUF_VARS_CMD;

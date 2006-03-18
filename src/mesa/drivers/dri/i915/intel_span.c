@@ -39,20 +39,38 @@
 
 #include "swrast/swrast.h"
 
+/*
+  break intelWriteRGBASpan_ARGB8888
+*/
+
 #undef DBG
 #define DBG 0
 
-#define LOCAL_VARS						\
-   struct intel_context *intel = intel_context(ctx);		\
-   driRenderbuffer *drb = (driRenderbuffer *) rb;		\
-   const __DRIdrawablePrivate *dPriv = drb->dPriv;		\
-   const GLuint bottom = dPriv->h - 1;				\
-   GLubyte *buf = (GLubyte *) drb->flippedData			\
-      + (dPriv->y * drb->flippedPitch + dPriv->x) * drb->cpp;	\
-   GLuint p;							\
-   assert(dPriv->x == intel->drawX); \
-   assert(dPriv->y == intel->drawY); \
+#define LOCAL_VARS							\
+   struct intel_context *intel = intel_context(ctx);			\
+   struct intel_renderbuffer *irb = intel_renderbuffer(rb);		\
+   const GLuint bottom = irb->Base.Height - 1;				\
+   GLubyte *buf = (GLubyte *) irb->pfMap				\
+      + (intel->drawY * irb->pfPitch + intel->drawX) * irb->region->cpp;\
+   GLuint p;								\
+   assert(irb->pfMap);\
    (void) p;
+
+/* XXX FBO: this is identical to the macro in spantmp2.h except we get
+ * the cliprect info from the context, not the driDrawable.
+ * Move this into spantmp2.h someday.
+ */
+#define HW_CLIPLOOP()							\
+   do {									\
+      int _nc = intel->numClipRects;					\
+      while ( _nc-- ) {							\
+	 int minx = intel->pClipRects[_nc].x1 - intel->drawX;		\
+	 int miny = intel->pClipRects[_nc].y1 - intel->drawY;		\
+	 int maxx = intel->pClipRects[_nc].x2 - intel->drawX;		\
+	 int maxy = intel->pClipRects[_nc].y2 - intel->drawY;
+
+
+
 
 #define Y_FLIP(_y) (bottom - _y)
 
@@ -67,7 +85,7 @@
 
 #define TAG(x)    intel##x##_RGB565
 #define TAG2(x,y) intel##x##_RGB565##y
-#define GET_PTR(X,Y) (buf + ((Y) * drb->flippedPitch + (X)) * 2)
+#define GET_PTR(X,Y) (buf + ((Y) * irb->pfPitch + (X)) * 2)
 #include "spantmp2.h"
 
 /* 32 bit, ARGB8888 color spanline and pixel functions
@@ -77,29 +95,28 @@
 
 #define TAG(x)    intel##x##_ARGB8888
 #define TAG2(x,y) intel##x##_ARGB8888##y
-#define GET_PTR(X,Y) (buf + ((Y) * drb->flippedPitch + (X)) * 4)
+#define GET_PTR(X,Y) (buf + ((Y) * irb->pfPitch + (X)) * 4)
 #include "spantmp2.h"
 
 
-#define LOCAL_DEPTH_VARS					\
-   struct intel_context *intel = intel_context(ctx);		\
-   __DRIdrawablePrivate *dPriv = intel->driDrawable;		\
-   driRenderbuffer *drb = (driRenderbuffer *) rb;		\
-   const GLuint pitch = drb->pitch * drb->cpp;			\
-   const GLuint bottom = dPriv->h - 1;				\
-   char *buf = (char *) drb->Base.Data +			\
-			dPriv->x * drb->cpp +			\
-			dPriv->y * pitch
+#define LOCAL_DEPTH_VARS						\
+   struct intel_context *intel = intel_context(ctx);			\
+   struct intel_renderbuffer *irb = intel_renderbuffer(rb);		\
+   const GLuint pitch = irb->pfPitch/***XXX region->pitch*/; /* in pixels */ \
+   const GLuint bottom = rb->Height - 1;				\
+   char *buf = (char *) irb->pfMap/*XXX use region->map*/ +             \
+      (intel->drawY * pitch + intel->drawX) * irb->region->cpp;
+
 
 #define LOCAL_STENCIL_VARS LOCAL_DEPTH_VARS 
 
 /* 16 bit depthbuffer functions.
  */
 #define WRITE_DEPTH( _x, _y, d ) \
-   *(GLushort *)(buf + (_x)*2 + (_y)*pitch)  = d;
+   ((GLushort *)buf)[(_x) + (_y) * pitch] = d;
 
 #define READ_DEPTH( d, _x, _y )	\
-   d = *(GLushort *)(buf + (_x)*2 + (_y)*pitch);	 
+   d = ((GLushort *)buf)[(_x) + (_y) * pitch];
 
 
 #define TAG(x) intel##x##_z16
@@ -108,29 +125,29 @@
 
 /* 24/8 bit interleaved depth/stencil functions
  */
-#define WRITE_DEPTH( _x, _y, d ) {			\
-   GLuint tmp = *(GLuint *)(buf + (_x)*4 + (_y)*pitch);	\
-   tmp &= 0xff000000;					\
-   tmp |= (d) & 0xffffff;				\
-   *(GLuint *)(buf + (_x)*4 + (_y)*pitch) = tmp;		\
+#define WRITE_DEPTH( _x, _y, d ) {				\
+   GLuint tmp = ((GLuint *)buf)[(_x) + (_y) * pitch];		\
+   tmp &= 0xff000000;						\
+   tmp |= (d) & 0xffffff;					\
+   ((GLuint *)buf)[(_x) + (_y) * pitch] = tmp;			\
 }
 
-#define READ_DEPTH( d, _x, _y )		\
-   d = *(GLuint *)(buf + (_x)*4 + (_y)*pitch) & 0xffffff;
+#define READ_DEPTH( d, _x, _y )					\
+   d = ((GLuint *)buf)[(_x) + (_y) * pitch] & 0xffffff;
 
 
 #define TAG(x) intel##x##_z24_s8
 #include "depthtmp.h"
 
-#define WRITE_STENCIL( _x, _y, d ) {			\
-   GLuint tmp = *(GLuint *)(buf + (_x)*4 + (_y)*pitch);	\
-   tmp &= 0xffffff;					\
-   tmp |= ((d)<<24);					\
-   *(GLuint *)(buf + (_x)*4 + (_y)*pitch) = tmp;		\
+#define WRITE_STENCIL( _x, _y, d ) {				\
+   GLuint tmp = ((GLuint *)buf)[(_x) + (_y) * pitch];		\
+   tmp &= 0xffffff;						\
+   tmp |= ((d) << 24);						\
+   ((GLuint *) buf)[(_x) + (_y) * pitch] = tmp;			\
 }
 
-#define READ_STENCIL( d, _x, _y )			\
-   d = *(GLuint *)(buf + (_x)*4 + (_y)*pitch) >> 24;
+#define READ_STENCIL( d, _x, _y )				\
+   d = ((GLuint *)buf)[(_x) + (_y) * pitch] >> 24;
 
 #define TAG(x) intel##x##_z24_s8
 #include "stenciltmp.h"
@@ -150,49 +167,82 @@ intel_map_unmap_buffers(struct intel_context *intel, GLboolean map)
    GLcontext *ctx = &intel->ctx;
    GLuint i, j;
    struct intel_renderbuffer *irb;
-   
 
    /* color draw buffers */
    for (i = 0; i < ctx->Const.MaxDrawBuffers; i++) {
       for (j = 0; j < ctx->DrawBuffer->_NumColorDrawBuffers[i]; j++) {
          struct gl_renderbuffer *rb = ctx->DrawBuffer->_ColorDrawBuffers[i][j];
-         irb = (struct intel_renderbuffer *) rb;
+         irb = intel_renderbuffer(rb);
          ASSERT(irb);
-         if (irb->region) {
-            if (map)
-               intel_region_map(intel, irb->region);
-            else
-               intel_region_unmap(intel, irb->region);
+         if (irb->Base.Name != 0) { /* XXX FBO temporary test */
+            if (irb->region) {
+               if (map)
+                  intel_region_map(intel, irb->region);
+               else
+                  intel_region_unmap(intel, irb->region);
+            }
+            irb->pfMap = irb->region->map;
+            irb->pfPitch = irb->region->pitch;
          }
       }
    }
 
    /* color read buffers */
-   irb = (struct intel_renderbuffer *) ctx->ReadBuffer->_ColorReadBuffer;
-   if (irb && irb->region) {
+   irb = intel_renderbuffer(ctx->ReadBuffer->_ColorReadBuffer);
+   if (irb && irb->region && irb->Base.Name != 0) {
       if (map)
          intel_region_map(intel, irb->region);
       else
          intel_region_unmap(intel, irb->region);
    }
 
-   /* depth buffer */
-   /* XXX wrappers? */
-   irb = (struct intel_renderbuffer *) ctx->ReadBuffer->_DepthBuffer;
-   if (irb && irb->region) {
-      if (map)
-         intel_region_map(intel, irb->region);
-      else
-         intel_region_unmap(intel, irb->region);
+   /* Account for front/back color page flipping.
+    * The span routines use the pfMap and pfPitch fields which will
+    * swap the front/back region map/pitch if we're page flipped.
+    * Do this after mapping, above, so the map field is valid.
+    */
+#if 0
+   if (map && ctx->DrawBuffer->Name == 0) {
+      struct intel_renderbuffer *irbFront = intel_renderbuffer(ctx->DrawBuffer->Attachment[BUFFER_FRONT_LEFT].Renderbuffer);
+      struct intel_renderbuffer *irbBack = intel_renderbuffer(ctx->DrawBuffer->Attachment[BUFFER_BACK_LEFT].Renderbuffer);
+      if (irbBack) {
+         /* double buffered */
+         if (intel->sarea->pf_current_page == 0) {
+            irbFront->pfMap = irbFront->region->map;
+            irbFront->pfPitch = irbFront->region->pitch;
+            irbBack->pfMap = irbBack->region->map;
+            irbBack->pfPitch = irbBack->region->pitch;
+         }
+         else {
+            irbFront->pfMap = irbBack->region->map;
+            irbFront->pfPitch = irbBack->region->pitch;
+            irbBack->pfMap = irbFront->region->map;
+            irbBack->pfPitch = irbFront->region->pitch;
+         }
+      }
+   }
+#endif
+
+   /* depth buffer (Note wrapper!) */
+   if (ctx->DrawBuffer->_DepthBuffer) {
+      irb = intel_renderbuffer(ctx->DrawBuffer->_DepthBuffer->Wrapped);
+      if (irb && irb->region && irb->Base.Name != 0) {
+         if (map)
+            intel_region_map(intel, irb->region);
+         else
+            intel_region_unmap(intel, irb->region);
+      }
    }
 
-   /* stencil buffer */
-   irb = (struct intel_renderbuffer *) ctx->ReadBuffer->_StencilBuffer;
-   if (irb && irb->region) {
-      if (map)
-         intel_region_map(intel, irb->region);
-      else
-         intel_region_unmap(intel, irb->region);
+   /* stencil buffer (Note wrapper!) */
+   if (ctx->DrawBuffer->_StencilBuffer) {
+      irb = intel_renderbuffer(ctx->DrawBuffer->_StencilBuffer->Wrapped);
+      if (irb && irb->region && irb->Base.Name != 0) {
+         if (map)
+            intel_region_map(intel, irb->region);
+         else
+            intel_region_unmap(intel, irb->region);
+      }
    }
 }
 
@@ -212,12 +262,14 @@ void intelSpanRenderStart( GLcontext *ctx )
    intelFlush(&intel->ctx);
    LOCK_HARDWARE(intel);
 
+#if 0
    /* Just map the framebuffer and all textures.  Bufmgr code will
     * take care of waiting on the necessary fences:
     */
    intel_region_map(intel, intel->front_region);
    intel_region_map(intel, intel->back_region);
    intel_region_map(intel, intel->depth_region);
+#endif
 
    for (i = 0; i < ctx->Const.MaxTextureCoordUnits; i++) {
       if (ctx->Texture.Unit[i]._ReallyEnabled) {
@@ -225,6 +277,11 @@ void intelSpanRenderStart( GLcontext *ctx )
 	 intel_tex_map_images(intel, intel_texture_object(texObj));
       }
    }
+
+#if 1
+   /* XXX FBO: enable this code when old DRI screen mappings go away */
+   intel_map_unmap_buffers(intel, GL_TRUE);
+#endif
 }
 
 /**
@@ -240,9 +297,11 @@ void intelSpanRenderFinish( GLcontext *ctx )
 
    /* Now unmap the framebuffer:
     */
+#if 0
    intel_region_unmap(intel, intel->front_region);
    intel_region_unmap(intel, intel->back_region);
    intel_region_unmap(intel, intel->depth_region);
+#endif
 
    for (i = 0; i < ctx->Const.MaxTextureCoordUnits; i++) {
       if (ctx->Texture.Unit[i]._ReallyEnabled) {
@@ -250,6 +309,11 @@ void intelSpanRenderFinish( GLcontext *ctx )
 	 intel_tex_unmap_images(intel, intel_texture_object(texObj));
       }
    }
+
+#if 1
+   /* XXX FBO: enable this code when old DRI screen mappings go away */
+   intel_map_unmap_buffers(intel, GL_FALSE);
+#endif
 
    UNLOCK_HARDWARE( intel );
 }
@@ -276,10 +340,11 @@ intel_set_span_functions(struct gl_renderbuffer *rb)
    else if (rb->InternalFormat == GL_DEPTH_COMPONENT16) {
       intelInitDepthPointers_z16(rb);
    }
-   else if (rb->InternalFormat == GL_DEPTH_COMPONENT24) {
+   else if (rb->InternalFormat == GL_DEPTH_COMPONENT24 || /* XXX FBO remove */
+            rb->InternalFormat == GL_DEPTH24_STENCIL8_EXT) {
       intelInitDepthPointers_z24_s8(rb);
    }
-   else if (rb->InternalFormat == GL_STENCIL_INDEX8_EXT) {
+   else if (rb->InternalFormat == GL_STENCIL_INDEX8_EXT) { /* XXX FBO remove */
       intelInitStencilPointers_z24_s8(rb);
    }
    else {

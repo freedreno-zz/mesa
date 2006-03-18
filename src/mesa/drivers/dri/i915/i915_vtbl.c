@@ -250,9 +250,11 @@ static void i915_emit_state( struct intel_context *intel )
       OUT_BATCH(state->Buffer[I915_DESTREG_CBUFADDR1]);
       OUT_RELOC(state->draw_region->buffer, DRM_MM_TT|DRM_MM_WRITE, 0);
 
-      OUT_BATCH(state->Buffer[I915_DESTREG_DBUFADDR0]);
-      OUT_BATCH(state->Buffer[I915_DESTREG_DBUFADDR1]);
-      OUT_RELOC(state->depth_region->buffer, DRM_MM_TT|DRM_MM_WRITE, 0);
+      if (state->depth_region) {
+         OUT_BATCH(state->Buffer[I915_DESTREG_DBUFADDR0]);
+         OUT_BATCH(state->Buffer[I915_DESTREG_DBUFADDR1]);
+         OUT_RELOC(state->depth_region->buffer, DRM_MM_TT|DRM_MM_WRITE, 0);
+      }
 
       OUT_BATCH(state->Buffer[I915_DESTREG_DV0]);
       OUT_BATCH(state->Buffer[I915_DESTREG_DV1]);

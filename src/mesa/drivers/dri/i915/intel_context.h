@@ -559,6 +559,8 @@ static inline struct intel_texture_image *intel_texture_image( struct gl_texture
    return (struct intel_texture_image *)img;
 }
 
+extern struct intel_renderbuffer *intel_renderbuffer( struct gl_renderbuffer *rb );
+
 
 #endif
 

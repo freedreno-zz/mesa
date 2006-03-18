@@ -79,6 +79,7 @@ int INTEL_DEBUG = (0);
 #define need_GL_EXT_blend_minmax
 #define need_GL_EXT_cull_vertex
 #define need_GL_EXT_fog_coord
+#define need_GL_EXT_framebuffer_object
 #define need_GL_EXT_multi_draw_arrays
 #define need_GL_EXT_secondary_color
 #define need_GL_NV_vertex_program
@@ -166,6 +167,7 @@ const struct dri_extension card_extensions[] =
     { "GL_EXT_blend_subtract",             NULL },
     { "GL_EXT_cull_vertex",                GL_EXT_cull_vertex_functions },
     { "GL_EXT_fog_coord",                  GL_EXT_fog_coord_functions },
+    { "GL_EXT_framebuffer_object",         GL_EXT_framebuffer_object_functions },
     { "GL_EXT_multi_draw_arrays",          GL_EXT_multi_draw_arrays_functions },
     { "GL_EXT_secondary_color",            GL_EXT_secondary_color_functions },
     { "GL_EXT_stencil_wrap",               NULL },
@@ -322,6 +324,8 @@ GLboolean intelInitContext( struct intel_context *intel,
    ctx->Const.MaxPointSizeAA = 3.0;
    ctx->Const.PointSizeGranularity = 1.0;
 
+   ctx->Const.MaxColorAttachments = 4; /* XXX FBO: review this */
+
    /* Initialize the software rasterizer and helper modules. */
    _swrast_CreateContext( ctx );
    _ac_CreateContext( ctx );
@@ -394,6 +398,10 @@ GLboolean intelInitContext( struct intel_context *intel,
               intel->intelScreen->tex.size,
 	      DRM_MM_TT);
 #endif
+
+   /* XXX FBO: these have to go away!
+    * FBO regions should be setup when creating the drawable. */
+
    /* These are still static, but create regions for them.  
     */
    intel->front_region = 
@@ -481,7 +489,7 @@ void intelDestroyContext(__DRIcontextPrivate *driContextPriv)
          /* This share group is about to go away, free our private
           * texture object data.
           */
-	 fprintf(stderr, "do somethign to free texture heaps\n");
+	 fprintf(stderr, "do something to free texture heaps\n");
       }
 
       /* free the Mesa context */
@@ -501,6 +509,8 @@ GLboolean intelMakeCurrent(__DRIcontextPrivate *driContextPriv,
 
    if (driContextPriv) {
       struct intel_context *intel = (struct intel_context *) driContextPriv->driverPrivate;
+      GLframebuffer *drawFb = (GLframebuffer *) driDrawPriv->driverPrivate;
+      GLframebuffer *readFb = (GLframebuffer *) driReadPriv->driverPrivate;
 
       if ( intel->driDrawable != driDrawPriv ) {
 	 /* Shouldn't the readbuffer be stored also? */
@@ -508,9 +518,25 @@ GLboolean intelMakeCurrent(__DRIcontextPrivate *driContextPriv,
 	 intelWindowMoved( intel );
       }
 
-      _mesa_make_current(&intel->ctx,
-			 (GLframebuffer *) driDrawPriv->driverPrivate,
-			 (GLframebuffer *) driReadPriv->driverPrivate);
+      /* XXX temporary fix-ups! */
+      /* if the renderbuffers don't have regions, init them from the context */
+      {
+         struct intel_renderbuffer *irbFront = intel_renderbuffer(drawFb->Attachment[BUFFER_FRONT_LEFT].Renderbuffer);
+         struct intel_renderbuffer *irbBack = intel_renderbuffer(drawFb->Attachment[BUFFER_BACK_LEFT].Renderbuffer);
+         struct intel_renderbuffer *irbDepth = intel_renderbuffer(drawFb->Attachment[BUFFER_DEPTH].Renderbuffer);
+         struct intel_renderbuffer *irbStencil = intel_renderbuffer(drawFb->Attachment[BUFFER_STENCIL].Renderbuffer);
+
+         if (irbFront && !irbFront->region)
+            irbFront->region = intel->front_region;
+         if (irbBack && !irbBack->region)
+            irbBack->region = intel->back_region;
+         if (irbDepth && !irbDepth->region)
+            irbDepth->region = intel->depth_region;
+         if (irbStencil && !irbStencil->region)
+            irbStencil->region = intel->depth_region; /* YES */
+      }
+
+      _mesa_make_current(&intel->ctx, drawFb, readFb);
 
       intel->ctx.Driver.DrawBuffer( &intel->ctx, intel->ctx.Color.DrawBuffer[0] );
    } else {

@@ -28,8 +28,6 @@
 #ifndef _INTEL_SPAN_H
 #define _INTEL_SPAN_H
 
-#include "drirenderbuffer.h"
-
 extern void intelInitSpanFuncs( GLcontext *ctx );
 
 extern void intelSpanRenderFinish( GLcontext *ctx );
