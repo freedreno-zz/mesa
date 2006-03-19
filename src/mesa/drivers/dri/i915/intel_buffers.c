@@ -278,6 +278,7 @@ static void intelClearWithTris(struct intel_context *intel,
 
    /* XXX FBO: was: intel->driDrawable->numClipRects */
    if (intel->numClipRects) {
+      GLuint buf;
 
       intel->vtbl.install_meta_state(intel);
 
@@ -289,7 +290,6 @@ static void intelClearWithTris(struct intel_context *intel,
 
       /* Back and stencil cliprects are the same.  Try and do both
        * buffers at once:
-       * XXX FBO: This is broken for FBO depth/stencil buffers!
        */
       if (mask & (BUFFER_BIT_BACK_LEFT|BUFFER_BIT_STENCIL|BUFFER_BIT_DEPTH)) { 
 	 intel->vtbl.meta_draw_region(intel, 
@@ -321,67 +321,36 @@ static void intelClearWithTris(struct intel_context *intel,
 			      clear.y1, clear.y2, 
 			      intel->ctx.Depth.Clear,
 			      intel->ClearColor, 
-			      0, 0, 0, 0);
+			      0, 0, 0, 0); /* texcoords */
+
+         mask &= ~(BUFFER_BIT_BACK_LEFT|BUFFER_BIT_STENCIL|BUFFER_BIT_DEPTH);
       }
 
-      /* Front may have different cliprects: 
-       */
-      if (mask & BUFFER_BIT_FRONT_LEFT) {
-	 intel->vtbl.meta_no_depth_write(intel);
-	 intel->vtbl.meta_no_stencil_write(intel);
-	 intel->vtbl.meta_color_mask(intel, GL_TRUE );
-	 intel->vtbl.meta_draw_region(intel, 
-				      intel->front_region,
-				      intel->depth_region);
+      /* clear the remaining (color) renderbuffers */
+      for (buf = 0; buf < BUFFER_COUNT && mask; buf++) {
+         const GLuint bufBit = 1 << buf;
+         if (mask & bufBit) {
+            struct intel_renderbuffer *irbColor =
+               intel_renderbuffer(ctx->DrawBuffer->
+                                  Attachment[buf].Renderbuffer);
+            ASSERT(irbColor);
 
-	 /* XXX: Using INTEL_BATCH_NO_CLIPRECTS here is dangerous as the
-	  * drawing origin may not be correctly emitted.
-	  */
-	 intel_meta_draw_quad(intel, 
-			      clear.x1, clear.x2, 
-			      clear.y1, clear.y2, 
-			      0,
-			      intel->ClearColor, 
-			      0, 0, 0, 0);
-      }
+            intel->vtbl.meta_no_depth_write(intel);
+            intel->vtbl.meta_no_stencil_write(intel);
+            intel->vtbl.meta_color_mask(intel, GL_TRUE );
+            intel->vtbl.meta_draw_region(intel, irbColor->region, NULL);
 
-      /*
-       * User-created RGBA renderbuffers
-       */
-      if (mask & (BUFFER_BIT_COLOR0 |
-                  BUFFER_BIT_COLOR1 |
-                  BUFFER_BIT_COLOR2 |
-                  BUFFER_BIT_COLOR3)) {
-         struct intel_region *depth_region = NULL;
-         GLuint buf;
+            /* XXX: Using INTEL_BATCH_NO_CLIPRECTS here is dangerous as the
+             * drawing origin may not be correctly emitted.
+             */
+            intel_meta_draw_quad(intel, 
+                                 clear.x1, clear.x2, 
+                                 clear.y1, clear.y2, 
+                                 0, /* depth clear val */
+                                 intel->ClearColor, 
+                                 0, 0, 0, 0); /* texcoords */
 
-         ASSERT(ctx->Const.MaxColorAttachments == 4); /* XXX FBO fix */
-
-         for (buf = BUFFER_COLOR0; buf <= BUFFER_COLOR3; buf++) {
-            const GLbitfield bufBit = 1 << buf;
-            if (mask & bufBit) {
-               struct intel_renderbuffer *irb =
-                  intel_renderbuffer(ctx->DrawBuffer->
-                                     Attachment[buf].Renderbuffer);
-               ASSERT(irb);
-               ASSERT(irb->region);
-
-               /* XXX move these three calls outside loop? */
-               intel->vtbl.meta_no_depth_write(intel);
-               intel->vtbl.meta_no_stencil_write(intel);
-               intel->vtbl.meta_color_mask(intel, GL_TRUE );
-               intel->vtbl.meta_draw_region(intel, irb->region, depth_region);
-
-               /* XXX: Using INTEL_BATCH_NO_CLIPRECTS here is dangerous as the
-                * drawing origin may not be correctly emitted.
-                */
-               intel_meta_draw_quad(intel, 
-                                    clear.x1, clear.x2, 
-                                    clear.y1, clear.y2, 
-                                    0,
-                                    intel->ClearColor, 
-                                    0, 0, 0, 0);
-            }
+            mask &= ~bufBit;
          }
       }
 
@@ -390,7 +359,6 @@ static void intelClearWithTris(struct intel_context *intel,
    }
    UNLOCK_HARDWARE(intel);
 }
-
 
 
 
@@ -458,10 +426,6 @@ static void intelClear(GLcontext *ctx,
    if (swrast_mask)
       _swrast_Clear( ctx, swrast_mask, all, cx, cy, cw, ch );
 }
-
-
-
-
 
 
 
