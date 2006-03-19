@@ -414,7 +414,7 @@ static void intelClear(GLcontext *ctx,
 
 
    /* HW color buffers (front, back, aux, generic FBO, etc) */
-   if (0/**colorMask == ~0**/) {
+   if (colorMask == ~0) {
       /* clear all R,G,B,A */
       blit_mask |= (mask & BUFFER_BITS_COLOR);
    }
