@@ -319,6 +319,28 @@ enum {
 #define BUFFER_BIT_COLOR6       (1 << BUFFER_COLOR6)
 #define BUFFER_BIT_COLOR7       (1 << BUFFER_COLOR7)
 
+/**
+ * Mask of all the color buffer bits (but not accum).
+ */
+#define BUFFER_BITS_COLOR  (BUFFER_BIT_FRONT_LEFT | \
+                            BUFFER_BIT_BACK_LEFT | \
+                            BUFFER_BIT_FRONT_RIGHT | \
+                            BUFFER_BIT_BACK_RIGHT | \
+                            BUFFER_BIT_AUX0 | \
+                            BUFFER_BIT_AUX1 | \
+                            BUFFER_BIT_AUX2 | \
+                            BUFFER_BIT_AUX3 | \
+                            BUFFER_BIT_COLOR0 | \
+                            BUFFER_BIT_COLOR1 | \
+                            BUFFER_BIT_COLOR2 | \
+                            BUFFER_BIT_COLOR3 | \
+                            BUFFER_BIT_COLOR4 | \
+                            BUFFER_BIT_COLOR5 | \
+                            BUFFER_BIT_COLOR6 | \
+                            BUFFER_BIT_COLOR7)
+
+
+
 
 /**
  * Data structure for color tables
