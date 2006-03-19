@@ -187,6 +187,7 @@ static void intelCalcViewport( GLcontext *ctx )
 {
    struct intel_context *intel = intel_context(ctx);
    const GLfloat *v = ctx->Viewport._WindowMap.m;
+   const GLfloat depthScale = 1.0F / ctx->DrawBuffer->_DepthMaxF;
    GLfloat *m = intel->ViewportMatrix.m;
    GLint h = 0;
 
@@ -200,8 +201,8 @@ static void intelCalcViewport( GLcontext *ctx )
    m[MAT_TX] =   v[MAT_TX] + SUBPIXEL_X;
    m[MAT_SY] = - v[MAT_SY];
    m[MAT_TY] = - v[MAT_TY] + h;
-   m[MAT_SZ] =   v[MAT_SZ] * intel->depth_scale;
-   m[MAT_TZ] =   v[MAT_TZ] * intel->depth_scale;
+   m[MAT_SZ] =   v[MAT_SZ] * depthScale;
+   m[MAT_TZ] =   v[MAT_TZ] * depthScale;
 }
 
 static void intelViewport( GLcontext *ctx,

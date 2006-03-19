@@ -172,10 +172,15 @@ intel_alloc_storage(GLcontext *ctx, struct gl_renderbuffer *rb,
       return GL_FALSE;
    }
 
+   intelFlush(ctx);
+
    /* free old region */
    if (irb->region) {
+      /*LOCK_HARDWARE(intel);*/
       intel_region_release(intel, &irb->region);
+      /*UNLOCK_HARDWARE(intel);*/
    }
+
 
    if (softwareBuffer) {
       return _mesa_soft_renderbuffer_storage(ctx, rb, internalFormat,
@@ -187,7 +192,9 @@ intel_alloc_storage(GLcontext *ctx, struct gl_renderbuffer *rb,
       assert(width > 1);
       assert(height > 1);
       _mesa_debug(ctx, "Allocating %d x %d Intel RBO\n", width, height);
+      /*LOCK_HARDWARE(intel);*/
       irb->region = intel_region_alloc(intel, cpp, width, height);
+      /*UNLOCK_HARDWARE(intel);*/
       if (!irb->region)
          return GL_FALSE; /* out of memory? */
    }
@@ -384,6 +391,8 @@ intel_bind_framebuffer(GLcontext *ctx, GLenum target,
       intel->vtbl.set_draw_region(intel, colorRegion, depthRegion);
 #else
       ctx->Driver.DrawBuffer(ctx, 0); /* second param is ignored */
+      /* Integer depth range depends on depth buffer bits */
+      ctx->Driver.DepthRange(ctx, ctx->Viewport.Near, ctx->Viewport.Far);
 #endif
    }
    else {

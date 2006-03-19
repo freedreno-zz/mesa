@@ -183,7 +183,6 @@ struct intel_context
    GLboolean locked;
 
    GLuint ClearColor;
-   GLuint ClearDepth;
 
    /* Offsets of fields within the current vertex:
     */
@@ -195,10 +194,7 @@ struct intel_context
    struct tnl_attr_map vertex_attrs[VERT_ATTRIB_MAX];
    GLuint vertex_attr_count;
 
-   GLfloat depth_scale;
    GLfloat polygon_offset_scale; /* dependent on depth_scale, bpp */
-   GLuint depth_clear_mask;
-   GLuint stencil_clear_mask;
 
    GLboolean hw_stencil;
    GLboolean hw_stipple;

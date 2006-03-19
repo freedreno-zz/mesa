@@ -60,42 +60,30 @@ GLboolean intel_intersect_cliprects( drm_clip_rect_t *dst,
    return GL_TRUE;
 }
 
+/**
+ * Return pointer to current color drawing region, or NULL.
+ */
 struct intel_region *intel_drawbuf_region( struct intel_context *intel )
 {
-   switch (intel->ctx.DrawBuffer->_ColorDrawBufferMask[0]) {
-   case BUFFER_BIT_FRONT_LEFT:
-      return intel->front_region;
-   case BUFFER_BIT_BACK_LEFT:
-      return intel->back_region;
-   default:
-      /* Not necessary to fallback - could handle either NONE or
-       * FRONT_AND_BACK cases below.
-       */
-      return NULL;		
-   }
+   struct intel_renderbuffer *irbColor =
+      intel_renderbuffer(intel->ctx.DrawBuffer->_ColorDrawBuffers[0][0]);
+   if (irbColor)
+      return irbColor->region;
+   else
+      return NULL;
 }
 
+/**
+ * Return pointer to current color reading region, or NULL.
+ */
 struct intel_region *intel_readbuf_region( struct intel_context *intel )
 {
-   GLcontext *ctx = &intel->ctx;
-
-   /* This will have to change to support EXT_fbo's, but is correct
-    * for now:
-    */
-#if 0 /* XXX FBO */
-   switch (ctx->ReadBuffer->_ColorReadBufferIndex) {
-   case BUFFER_FRONT_LEFT:
-      return intel->front_region;
-   case BUFFER_BACK_LEFT:
-      return intel->back_region;
-   default:
-      assert(0);
+   struct intel_renderbuffer *irb
+      = intel_renderbuffer(intel->ctx.ReadBuffer->_ColorReadBuffer);
+   if (irb)
+      return irb->region;
+   else
       return NULL;
-   }
-#else
-   struct intel_renderbuffer *irb = intel_renderbuffer(ctx->ReadBuffer->_ColorReadBuffer);
-   return irb->region;
-#endif
 }
 
 
@@ -232,6 +220,7 @@ void intelWindowMoved( struct intel_context *intel )
    }
    else if (intel->ctx.DrawBuffer->Name != 0) {
       /* drawing to user-created FBO - do nothing */
+      /* Cliprects would be set from intelDrawBuffer() */
    }
    else {
       /* drawing to a window */
@@ -246,9 +235,11 @@ void intelWindowMoved( struct intel_context *intel )
 	 /* glDrawBuffer(GL_NONE or GL_FRONT_AND_BACK): software fallback */
 	 intelSetFrontClipRects( intel );
       }
+   }
 
-      /* this update Mesa's notion of window size */
-      _mesa_resize_framebuffer(ctx, ctx->DrawBuffer,
+   /* this update Mesa's notion of window size */
+   if (ctx->WinSysDrawBuffer) {
+      _mesa_resize_framebuffer(ctx, ctx->WinSysDrawBuffer,
                                intel->driDrawable->w, intel->driDrawable->h);
    }
 
