@@ -241,10 +241,6 @@ static GLboolean intelCreateBuffer( __DRIscreenPrivate *driScrnPriv,
 
       struct gl_framebuffer *fb = _mesa_create_framebuffer(mesaVis);
 
-      printf("** front addr = %p\n", (void*) driScrnPriv->pFB);
-      printf("** back addr  = %p\n", (void*) screen->back.map);
-      printf("** depth addr = %p\n", (void*) screen->depth.map);
-
       /* setup the hardware-based renderbuffers */
       {
          struct intel_renderbuffer *frontRb
