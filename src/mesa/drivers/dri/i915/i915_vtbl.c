@@ -346,34 +346,38 @@ static void i915_destroy_context( struct intel_context *intel )
  * Set the drawing regions for the color and depth/stencil buffers.
  * This involves setting the pitch, cpp and buffer ID/location.
  * Also set pixel format for color and Z rendering
- * XXX Lots of code duplication with i915 meta_draw_region().
+ * Used for setting both regular and meta state.
  */
-static void i915_set_draw_region( struct intel_context *intel, 
-				  struct intel_region *color_region,
-				  struct intel_region *depth_region)
+void
+i915_state_draw_region(struct intel_context *intel, 
+                       struct i915_hw_state *state,
+                       struct intel_region *color_region,
+                       struct intel_region *depth_region)
 {
    struct i915_context *i915 = i915_context(&intel->ctx);
    GLuint value;
 
-   intel_region_release(intel, &i915->state.draw_region);
-   intel_region_release(intel, &i915->state.depth_region);
-   intel_region_reference(&i915->state.draw_region, color_region);
-   intel_region_reference(&i915->state.depth_region, depth_region);
+   ASSERT(state == &i915->state || state == &i915->meta);
+
+   intel_region_release(intel, &state->draw_region);
+   intel_region_release(intel, &state->depth_region);
+   intel_region_reference(&state->draw_region, color_region);
+   intel_region_reference(&state->depth_region, depth_region);
 
    /*
     * Set stride/cpp values
     */
    if (color_region) {
-      i915->state.Buffer[I915_DESTREG_CBUFADDR0] = _3DSTATE_BUF_INFO_CMD;
-      i915->state.Buffer[I915_DESTREG_CBUFADDR1] = 
+      state->Buffer[I915_DESTREG_CBUFADDR0] = _3DSTATE_BUF_INFO_CMD;
+      state->Buffer[I915_DESTREG_CBUFADDR1] = 
          (BUF_3D_ID_COLOR_BACK | 
           BUF_3D_PITCH(color_region->pitch * color_region->cpp) |
           BUF_3D_USE_FENCE);
    }
 
    if (depth_region) {
-      i915->state.Buffer[I915_DESTREG_DBUFADDR0] = _3DSTATE_BUF_INFO_CMD;
-      i915->state.Buffer[I915_DESTREG_DBUFADDR1] = 
+      state->Buffer[I915_DESTREG_DBUFADDR0] = _3DSTATE_BUF_INFO_CMD;
+      state->Buffer[I915_DESTREG_DBUFADDR1] = 
 	 (BUF_3D_ID_DEPTH |
 	  BUF_3D_PITCH(depth_region->pitch * depth_region->cpp) |
 	  BUF_3D_USE_FENCE);
@@ -398,10 +402,22 @@ static void i915_set_draw_region( struct intel_context *intel,
    else {
       value |= DEPTH_FRMT_16_FIXED;
    }
-   i915->state.Buffer[I915_DESTREG_DV1] = value;
+   state->Buffer[I915_DESTREG_DV1] = value;
 
    I915_STATECHANGE( i915, I915_UPLOAD_BUFFERS );
 }
+
+
+static void
+i915_set_draw_region(struct intel_context *intel, 
+                     struct intel_region *color_region,
+                     struct intel_region *depth_region)
+{
+   struct i915_context *i915 = i915_context(&intel->ctx);
+   i915_state_draw_region(intel, &i915->state, color_region, depth_region);
+}
+
+
 
 static void i915_lost_hardware( struct intel_context *intel )
 {

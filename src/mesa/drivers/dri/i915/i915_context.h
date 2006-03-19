@@ -266,6 +266,12 @@ do {								\
  */
 extern void i915InitVtbl( struct i915_context *i915 );
 
+extern void
+i915_state_draw_region(struct intel_context *intel, 
+                       struct i915_hw_state *state,
+                       struct intel_region *color_region,
+                       struct intel_region *depth_region);
+
 
 
 #define SZ_TO_HW(sz)  ((sz-2)&0x3)
