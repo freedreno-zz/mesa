@@ -856,12 +856,14 @@ static void i915_init_packets( struct i915_context *i915 )
    {
       I915_STATECHANGE(i915, I915_UPLOAD_BUFFERS);
       i915->state.Buffer[I915_DESTREG_CBUFADDR0] = _3DSTATE_BUF_INFO_CMD;
+      /* XXX FBO: remove this?  Also get set in i915_set_draw_region() */
       i915->state.Buffer[I915_DESTREG_CBUFADDR1] = 
 	 (BUF_3D_ID_COLOR_BACK | 
 	  BUF_3D_PITCH(screen->front.pitch * screen->cpp) | /* XXX FBO fix */
 	  BUF_3D_USE_FENCE);
 
       i915->state.Buffer[I915_DESTREG_DBUFADDR0] = _3DSTATE_BUF_INFO_CMD;
+      /* XXX FBO: remove this?  Also get set in i915_set_draw_region() */
       i915->state.Buffer[I915_DESTREG_DBUFADDR1] = 
 	 (BUF_3D_ID_DEPTH |
 	  BUF_3D_PITCH(screen->depth.pitch * screen->cpp) | /* XXX FBO fix */
@@ -869,6 +871,7 @@ static void i915_init_packets( struct i915_context *i915 )
 
       i915->state.Buffer[I915_DESTREG_DV0] = _3DSTATE_DST_BUF_VARS_CMD;
 
+      /* XXX FBO: remove this?  Also get set in i915_set_draw_region() */
       switch (screen->fbFormat) {
       case DV_PF_565:
 	 i915->state.Buffer[I915_DESTREG_DV1] = (DSTORG_HORT_BIAS(0x8) | /* .5 */

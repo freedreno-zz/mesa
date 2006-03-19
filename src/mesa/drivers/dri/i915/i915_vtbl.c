@@ -244,7 +244,6 @@ static void i915_emit_state( struct intel_context *intel )
 
    if (dirty & I915_UPLOAD_BUFFERS) {
       if (INTEL_DEBUG & DEBUG_STATE) fprintf(stderr, "I915_UPLOAD_BUFFERS:\n"); 
-
       BEGIN_BATCH(I915_DEST_SETUP_SIZE+2, 0);
       OUT_BATCH(state->Buffer[I915_DESTREG_CBUFADDR0]);
       OUT_BATCH(state->Buffer[I915_DESTREG_CBUFADDR1]);
@@ -342,16 +341,63 @@ static void i915_destroy_context( struct intel_context *intel )
    _tnl_free_vertices(&intel->ctx);
 }
 
+
+/**
+ * Set the drawing regions for the color and depth/stencil buffers.
+ * This involves setting the pitch, cpp and buffer ID/location.
+ * Also set pixel format for color and Z rendering
+ */
 static void i915_set_draw_region( struct intel_context *intel, 
 				  struct intel_region *draw_region,
 				  struct intel_region *depth_region)
 {
    struct i915_context *i915 = i915_context(&intel->ctx);
+   GLuint value;
 
    intel_region_release(intel, &i915->state.draw_region);
    intel_region_release(intel, &i915->state.depth_region);
    intel_region_reference(&i915->state.draw_region, draw_region);
    intel_region_reference(&i915->state.depth_region, depth_region);
+
+   /*
+    * Set stride/cpp values
+    */
+   if (draw_region) {
+      i915->state.Buffer[I915_DESTREG_CBUFADDR0] = _3DSTATE_BUF_INFO_CMD;
+      i915->state.Buffer[I915_DESTREG_CBUFADDR1] = 
+         (BUF_3D_ID_COLOR_BACK | 
+          BUF_3D_PITCH(draw_region->pitch * draw_region->cpp) |
+          BUF_3D_USE_FENCE);
+   }
+
+   if (depth_region) {
+      i915->state.Buffer[I915_DESTREG_DBUFADDR0] = _3DSTATE_BUF_INFO_CMD;
+      i915->state.Buffer[I915_DESTREG_DBUFADDR1] = 
+	 (BUF_3D_ID_DEPTH |
+	  BUF_3D_PITCH(depth_region->pitch * depth_region->cpp) |
+	  BUF_3D_USE_FENCE);
+   }
+
+   /*
+    * Compute/set I915_DESTREG_DV1 value
+    */
+   value = (DSTORG_HORT_BIAS(0x8) | /* .5 */
+            DSTORG_VERT_BIAS(0x8) | /* .5 */
+            LOD_PRECLAMP_OGL |
+            TEX_DEFAULT_COLOR_OGL);
+   if (draw_region && draw_region->cpp == 4) {
+      value |= DV_PF_8888;
+   }
+   else {
+      value |= (DITHER_FULL_ALWAYS | DV_PF_565);
+   }
+   if (depth_region && depth_region->cpp == 4) {
+      value |= DEPTH_FRMT_24_FIXED_8_OTHER;
+   }
+   else {
+      value |= DEPTH_FRMT_16_FIXED;
+   }
+   i915->state.Buffer[I915_DESTREG_DV1] = value;
 
    I915_STATECHANGE( i915, I915_UPLOAD_BUFFERS );
 }

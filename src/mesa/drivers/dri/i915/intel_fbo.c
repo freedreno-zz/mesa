@@ -138,33 +138,33 @@ intel_alloc_storage(GLcontext *ctx, struct gl_renderbuffer *rb,
    switch (format) {
    case GL_RGB:
    case GL_RGBA:
-      internalFormat = GL_RGBA8;
+      rb->InternalFormat = GL_RGBA8;
+      rb->DataType = GL_UNSIGNED_BYTE;
       rb->RedBits = 8;
       rb->GreenBits = 8;
       rb->BlueBits = 8;
       rb->AlphaBits = 8;
-      rb->DataType = GL_UNSIGNED_BYTE;
       cpp = 4;
       break;
    case GL_DEPTH_COMPONENT:
-      internalFormat = GL_DEPTH24_STENCIL8_EXT;
-      rb->DepthBits = 24;
+      rb->InternalFormat = GL_DEPTH24_STENCIL8_EXT;
       rb->DataType = GL_UNSIGNED_BYTE;
+      rb->DepthBits = 24;
       cpp = 4;
       break;
    case GL_STENCIL_INDEX:
-      internalFormat = GL_STENCIL_INDEX8_EXT;
-      rb->StencilBits = 8;
+      rb->InternalFormat = GL_STENCIL_INDEX8_EXT;
       rb->DataType = GL_UNSIGNED_BYTE;
+      rb->StencilBits = 8;
       cpp = 1;
       softwareBuffer = GL_TRUE;
       /* XXX software buffer? */
       break;
    case GL_DEPTH_STENCIL_EXT:
-      internalFormat = GL_DEPTH24_STENCIL8_EXT;
+      rb->InternalFormat = GL_DEPTH24_STENCIL8_EXT;
+      rb->DataType = GL_UNSIGNED_INT;
       rb->DepthBits = 24;
       rb->StencilBits = 8;
-      rb->DataType = GL_UNSIGNED_INT;
       cpp = 4;
       break;
    default:
@@ -192,7 +192,6 @@ intel_alloc_storage(GLcontext *ctx, struct gl_renderbuffer *rb,
          return GL_FALSE; /* out of memory? */
    }
 
-   rb->InternalFormat = internalFormat;
    rb->Width = width;
    rb->Height = height;
 

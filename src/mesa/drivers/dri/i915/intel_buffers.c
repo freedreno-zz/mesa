@@ -133,6 +133,8 @@ static void intelBufferSize(GLframebuffer *buffer,
  */
 static void intelSetRenderbufferClipRects( struct intel_context *intel )
 {
+   ASSERT(intel->ctx.DrawBuffer->Width > 0);
+   ASSERT(intel->ctx.DrawBuffer->Height > 0);
    intel->fboRect.x1 = 0;
    intel->fboRect.y1 = 0;
    intel->fboRect.x2 = intel->ctx.DrawBuffer->Width;
@@ -556,15 +558,17 @@ intelDrawBuffer(GLcontext *ctx, GLenum mode )
       return;
    }
 
+   /* XXX FBO: Should probably move this into core Mesa */
    if (ctx->NewState & (_NEW_BUFFERS | _NEW_COLOR | _NEW_PIXEL)) {
       _mesa_update_framebuffer(ctx);
+      _mesa_update_draw_buffer_bounds(ctx);
    }
 
    /*
     * How many color buffers are we drawing into?
     */
    if (ctx->DrawBuffer->_NumColorDrawBuffers[0] != 1
-#if 1
+#if 0
        /* XXX FBO temporary - always use software rendering */
        || ctx->DrawBuffer->Name != 0
 #endif
