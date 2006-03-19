@@ -518,7 +518,7 @@ GLboolean intelMakeCurrent(__DRIcontextPrivate *driContextPriv,
 	 intelWindowMoved( intel );
       }
 
-      /* XXX temporary fix-ups! */
+      /* XXX FBO temporary fix-ups! */
       /* if the renderbuffers don't have regions, init them from the context */
       {
          struct intel_renderbuffer *irbFront = intel_renderbuffer(drawFb->Attachment[BUFFER_FRONT_LEFT].Renderbuffer);

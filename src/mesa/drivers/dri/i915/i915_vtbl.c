@@ -346,9 +346,10 @@ static void i915_destroy_context( struct intel_context *intel )
  * Set the drawing regions for the color and depth/stencil buffers.
  * This involves setting the pitch, cpp and buffer ID/location.
  * Also set pixel format for color and Z rendering
+ * XXX Lots of code duplication with i915 meta_draw_region().
  */
 static void i915_set_draw_region( struct intel_context *intel, 
-				  struct intel_region *draw_region,
+				  struct intel_region *color_region,
 				  struct intel_region *depth_region)
 {
    struct i915_context *i915 = i915_context(&intel->ctx);
@@ -356,17 +357,17 @@ static void i915_set_draw_region( struct intel_context *intel,
 
    intel_region_release(intel, &i915->state.draw_region);
    intel_region_release(intel, &i915->state.depth_region);
-   intel_region_reference(&i915->state.draw_region, draw_region);
+   intel_region_reference(&i915->state.draw_region, color_region);
    intel_region_reference(&i915->state.depth_region, depth_region);
 
    /*
     * Set stride/cpp values
     */
-   if (draw_region) {
+   if (color_region) {
       i915->state.Buffer[I915_DESTREG_CBUFADDR0] = _3DSTATE_BUF_INFO_CMD;
       i915->state.Buffer[I915_DESTREG_CBUFADDR1] = 
          (BUF_3D_ID_COLOR_BACK | 
-          BUF_3D_PITCH(draw_region->pitch * draw_region->cpp) |
+          BUF_3D_PITCH(color_region->pitch * color_region->cpp) |
           BUF_3D_USE_FENCE);
    }
 
@@ -385,7 +386,7 @@ static void i915_set_draw_region( struct intel_context *intel,
             DSTORG_VERT_BIAS(0x8) | /* .5 */
             LOD_PRECLAMP_OGL |
             TEX_DEFAULT_COLOR_OGL);
-   if (draw_region && draw_region->cpp == 4) {
+   if (color_region && color_region->cpp == 4) {
       value |= DV_PF_8888;
    }
    else {

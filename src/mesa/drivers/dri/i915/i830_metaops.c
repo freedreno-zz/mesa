@@ -393,6 +393,8 @@ static void meta_draw_region( struct intel_context *intel,
    intel_region_release(intel, &i830->meta.depth_region);   
    intel_region_reference(&i830->meta.depth_region, depth_region);
 
+   /* XXX FBO: grab code from i915 meta_draw_region */
+
    /* XXX: 555 support?
     */
    if (draw_region->cpp == 2)

@@ -428,39 +428,58 @@ static GLboolean meta_tex_rect_source( struct intel_context *intel,
    return GL_TRUE;
 }
 
-/* Select between front and back draw buffers.
+
+/**
+ * Set the color and depth drawing region for meta ops.
+ * XXX Lots of code duplication here with i915_set_draw_region.
  */
 static void meta_draw_region( struct intel_context *intel,
-			      struct intel_region *draw_region,
+			      struct intel_region *color_region,
 			      struct intel_region *depth_region )
 {
    struct i915_context *i915 = i915_context(&intel->ctx);
-   GLuint format;
+   GLuint color_format;
    GLuint depth_format = DEPTH_FRMT_16_FIXED;
 
    intel_region_release(intel, &i915->meta.draw_region);
-   intel_region_reference(&i915->meta.draw_region, draw_region);
+   intel_region_reference(&i915->meta.draw_region, color_region);
    
    intel_region_release(intel, &i915->meta.depth_region);   
    intel_region_reference(&i915->meta.depth_region, depth_region);
 
-   /* XXX: 555 support?
-    */
-   if (draw_region->cpp == 2)
-      format = DV_PF_565;
-   else
-      format = DV_PF_8888;
+
+   if (color_region) {
+      i915->meta.Buffer[I915_DESTREG_CBUFADDR0] = _3DSTATE_BUF_INFO_CMD;
+      i915->meta.Buffer[I915_DESTREG_CBUFADDR1] = 
+         (BUF_3D_ID_COLOR_BACK | 
+          BUF_3D_PITCH(color_region->pitch * color_region->cpp) |
+          BUF_3D_USE_FENCE);
+   }
 
    if (depth_region) {
-      if (depth_region->cpp == 2)
-	 depth_format = DEPTH_FRMT_16_FIXED;
-      else
-	 depth_format = DEPTH_FRMT_24_FIXED_8_OTHER;
+      i915->meta.Buffer[I915_DESTREG_DBUFADDR0] = _3DSTATE_BUF_INFO_CMD;
+      i915->meta.Buffer[I915_DESTREG_DBUFADDR1] = 
+	 (BUF_3D_ID_DEPTH |
+	  BUF_3D_PITCH(depth_region->pitch * depth_region->cpp) |
+	  BUF_3D_USE_FENCE);
    }
+
+
+   /* XXX: 555 support?
+    */
+   if (color_region->cpp == 2)
+      color_format = DV_PF_565;
+   else
+      color_format = DV_PF_8888;
+
+   if (depth_region && depth_region->cpp == 4) 
+      depth_format = DEPTH_FRMT_24_FIXED_8_OTHER;
+   else
+      depth_format = DEPTH_FRMT_16_FIXED;
 
    i915->meta.Buffer[I915_DESTREG_DV1] = (DSTORG_HORT_BIAS(0x8) | /* .5 */
 					  DSTORG_VERT_BIAS(0x8) | /* .5 */
-					  format |
+					  color_format |
 					  LOD_PRECLAMP_OGL |
 					  TEX_DEFAULT_COLOR_OGL |
 					  depth_format);

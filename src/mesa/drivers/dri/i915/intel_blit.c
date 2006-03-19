@@ -255,26 +255,32 @@ void intelEmitCopyBlit( struct intel_context *intel,
 }
 
 
-
+/**
+ * Use blitting to clear the renderbuffers named by 'flags'.
+ * Note: we can't use the ctx->DrawBuffer->_ColorDrawBufferMask field
+ * since that might include software renderbuffers or renderbuffers
+ * which we're clearing with triangles.
+ * \param flags  bitmask of BUFFER_BIT_* values
+ */
 void intelClearWithBlit(GLcontext *ctx, GLbitfield flags, GLboolean all,
                         GLint cx, GLint cy, GLint cw, GLint ch)
 {
    struct intel_context *intel = intel_context( ctx );
-   intelScreenPrivate *intelScreen = intel->intelScreen;
    GLuint clear_depth, clear_color;
-   GLbitfield skipBuffer = 0;
+   GLbitfield skipBuffers = 0;
    BATCH_LOCALS;
 
    if (INTEL_DEBUG & DEBUG_DRI)
       _mesa_printf("%s %x\n", __FUNCTION__, flags);
-   
+
+   /*
+    * Compute values for clearing the buffers.
+    */
    clear_color = intel->ClearColor;
    clear_depth = 0;
-
    if (flags & BUFFER_BIT_DEPTH) {
       clear_depth = (GLuint)(ctx->Depth.Clear * intel->ClearDepth);
    }
-
    if (flags & BUFFER_BIT_STENCIL) {
       clear_depth |= (ctx->Stencil.Clear & 0xff) << 24;
    }
@@ -283,9 +289,10 @@ void intelClearWithBlit(GLcontext *ctx, GLbitfield flags, GLboolean all,
     * the loop below.
     */
    if ((flags & BUFFER_BIT_DEPTH) && (flags & BUFFER_BIT_STENCIL)) {
-      skipBuffer = BUFFER_BIT_STENCIL;
+      skipBuffers = BUFFER_BIT_STENCIL;
    }
 
+   /* XXX Move this flush/lock into the following conditional? */
    intelFlush( &intel->ctx );
    LOCK_HARDWARE( intel );
 
@@ -344,7 +351,7 @@ void intelClearWithBlit(GLcontext *ctx, GLbitfield flags, GLboolean all,
          /* Loop over all renderbuffers */
          for (buf = 0; buf < BUFFER_COUNT && flags; buf++) {
             const GLbitfield bufBit = 1 << buf;
-            if ((flags & bufBit) && !(bufBit & skipBuffer)) {
+            if ((flags & bufBit) && !(bufBit & skipBuffers)) {
                /* OK, clear this renderbuffer */
                const struct intel_renderbuffer *irb
                   = intel_renderbuffer(ctx->DrawBuffer->
@@ -359,6 +366,7 @@ void intelClearWithBlit(GLcontext *ctx, GLbitfield flags, GLboolean all,
                pitch = irb->region->pitch;
                cpp = irb->region->cpp;
 
+               /* Setup the blit command */
                if (cpp == 4) {
                   BR13 = (0xF0 << 16) | (pitch * cpp) | (1<<24) | (1<<25);
                   if (buf == BUFFER_DEPTH || buf == BUFFER_STENCIL) {

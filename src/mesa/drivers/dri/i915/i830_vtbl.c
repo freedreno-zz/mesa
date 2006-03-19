@@ -462,6 +462,8 @@ static void i830_set_draw_region( struct intel_context *intel,
    intel_region_reference(&i830->state.draw_region, draw_region);
    intel_region_reference(&i830->state.depth_region, depth_region);
 
+   /* XXX FBO: Need code from i915_set_draw_region() */
+
    I830_STATECHANGE( i830, I830_UPLOAD_BUFFERS );
 }
 

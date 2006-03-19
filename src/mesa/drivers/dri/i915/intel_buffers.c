@@ -271,7 +271,7 @@ static void intelClearWithTris(struct intel_context *intel,
    GLcontext *ctx = &intel->ctx;
    drm_clip_rect_t clear;
 
-   if (1/*INTEL_DEBUG & DEBUG_DRI*/)
+   if (INTEL_DEBUG & DEBUG_DRI)
       _mesa_printf("%s 0x%x\n", __FUNCTION__, mask);
 
    LOCK_HARDWARE(intel);
@@ -403,12 +403,6 @@ static void intelClear(GLcontext *ctx,
 		       GLint cx, GLint cy, 
 		       GLint cw, GLint ch)
 {
-   const GLbitfield colorBufferBits = (BUFFER_BIT_FRONT_LEFT |
-                                       BUFFER_BIT_BACK_LEFT |
-                                       BUFFER_BIT_COLOR0 |
-                                       BUFFER_BIT_COLOR1 |
-                                       BUFFER_BIT_COLOR2 |
-                                       BUFFER_BIT_COLOR3);
    struct intel_context *intel = intel_context( ctx );
    const GLuint colorMask = *((GLuint *) &ctx->Color.ColorMask);
    GLbitfield tri_mask = 0;
@@ -420,45 +414,40 @@ static void intelClear(GLcontext *ctx,
 
 
    /* HW color buffers (front, back, aux, generic FBO, etc) */
-   if (colorMask == ~0) {
+   if (0/**colorMask == ~0**/) {
       /* clear all R,G,B,A */
-      blit_mask |= (mask & colorBufferBits);
+      blit_mask |= (mask & BUFFER_BITS_COLOR);
    }
    else {
       /* glColorMask in effect */
-      tri_mask |= (mask & colorBufferBits);
+      tri_mask |= (mask & BUFFER_BITS_COLOR);
    }
 
    /* HW stencil */
    if (intel->hw_stencil && (mask & BUFFER_BIT_STENCIL)) {
       if ((ctx->Stencil.WriteMask[0] & 0xff) != 0xff) {
+         /* not clearing all stencil bits, so use triangle clearing */
 	 tri_mask |= BUFFER_BIT_STENCIL;
       } 
       else {
+         /* clearing all stencil bits, use blitting */
 	 blit_mask |= BUFFER_BIT_STENCIL;
       }
    }
 
-   /* Do depth with stencil if possible to avoid 2nd pass over the
-    * same buffer.
-    */
+   /* HW depth */
    if (mask & BUFFER_BIT_DEPTH) {
-      /* XXX is this logic correct?  It looks like the blit routine
-       * can only clear both buffers while the triangle routine can do
-       * one or the other. (BP)
-       */
+      /* clear depth with whatever method is used for stencil (see above) */
       if (tri_mask & BUFFER_BIT_STENCIL)
 	 tri_mask |= BUFFER_BIT_DEPTH;
       else 
 	 blit_mask |= BUFFER_BIT_DEPTH;
    }
 
-   /*
-    * Clear in software whatever can't be done w/ hardware.
-    */
+   /* SW fallback clearing */
    swrast_mask = mask & ~tri_mask & ~blit_mask;
 
-   intelFlush( ctx );
+   intelFlush( ctx ); /* XXX intelClearWithBlit also does this */
 
    if (blit_mask)
       intelClearWithBlit( ctx, blit_mask, all, cx, cy, cw, ch );
@@ -541,12 +530,12 @@ void intelSwapBuffers( __DRIdrawablePrivate *dPriv )
 
 
 /**
- * Called via glDrawBuffer, glBindFramebufferEXT, and from various places
- * within the driver.
+ * Called via glDrawBuffer, glBindFramebufferEXT, MakeCurrent, and from
+ * various places within the driver.
  * Note: mode parameter is not used.
  */
 static void
-intelDrawBuffer(GLcontext *ctx, GLenum mode )
+intelDrawBuffer(GLcontext *ctx, GLenum mode)
 {
    struct intel_context *intel = intel_context(ctx);
    struct intel_renderbuffer *irb;
@@ -554,13 +543,17 @@ intelDrawBuffer(GLcontext *ctx, GLenum mode )
    int front = 0; /* drawing to front color buffer? */
  
    if (!ctx->DrawBuffer) {
-      /* XXX I don't think this should ever happen. -BP */
+      /* this can happen during the initial context initialization */
       return;
    }
 
-   /* XXX FBO: Should probably move this into core Mesa */
+   /* Do this here, note core Mesa, since this function is called from
+    * many places within the driver.
+    */
    if (ctx->NewState & (_NEW_BUFFERS | _NEW_COLOR | _NEW_PIXEL)) {
+      /* this updates the DrawBuffer->_NumColorDrawBuffers fields, etc */
       _mesa_update_framebuffer(ctx);
+      /* this updates the DrawBuffer's Width/Height if it's a FBO */
       _mesa_update_draw_buffer_bounds(ctx);
    }
 
@@ -624,7 +617,7 @@ intelDrawBuffer(GLcontext *ctx, GLenum mode )
       colorRegion = NULL;
 
    /*
-    * Unbind old region, bind new region
+    * Unbind old color region, bind new region
     */
    if (intel->draw_region != colorRegion) {
       intel_region_release(intel, &intel->draw_region);
@@ -639,6 +632,14 @@ intelDrawBuffer(GLcontext *ctx, GLenum mode )
       depthRegion = irb->region;
    else
       depthRegion = NULL;
+
+   /*
+    * Unbind old depth region, bind new region
+    */
+   if (intel->depth_region != depthRegion) {
+      intel_region_release(intel, &intel->depth_region);
+      intel_region_reference(&intel->depth_region, depthRegion);
+   }
 
    intel->vtbl.set_draw_region( intel, colorRegion, depthRegion );
 }
