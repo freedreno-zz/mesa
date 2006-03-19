@@ -29,6 +29,7 @@ SOURCES = antialias.c \
 	dinoshade.c \
 	floattex.c \
 	fbotest1.c \
+	fbotest2.c \
 	fbotexture.c \
 	fog.c \
 	fogcoord.c \
