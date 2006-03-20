@@ -49,6 +49,7 @@
 #include "i830_dri.h"
 #include "i830_common.h"
 
+#include "intel_buffers.h"
 #include "intel_tex.h"
 #include "intel_span.h"
 #include "intel_tris.h"
@@ -447,7 +448,6 @@ GLboolean intelInitContext( struct intel_context *intel,
    INTEL_DEBUG  = driParseDebugString( getenv( "INTEL_DEBUG" ),
 				       debug_control );
 #endif
-
 
    if (getenv("INTEL_NO_RAST")) {
       fprintf(stderr, "disabling 3D rasterization\n");

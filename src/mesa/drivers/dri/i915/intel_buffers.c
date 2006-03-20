@@ -28,6 +28,7 @@
 #include "intel_screen.h"
 #include "intel_context.h"
 #include "intel_blit.h"
+#include "intel_buffers.h"
 #include "intel_fbo.h"
 #include "intel_tris.h"
 #include "intel_regions.h"
@@ -501,19 +502,19 @@ void intelSwapBuffers( __DRIdrawablePrivate *dPriv )
 
 
 /**
- * Called via glDrawBuffer, glBindFramebufferEXT, MakeCurrent, and from
- * various places within the driver.
- * Note: mode parameter is not used.
+ * Update the hardware state for drawing into a window or framebuffer object.
+ * Called by glDrawBuffer, glBindFramebufferEXT, MakeCurrent, and other
+ * places within the driver.
  */
-static void
-intelDrawBuffer(GLcontext *ctx, GLenum mode)
+void
+intel_draw_buffer(GLcontext *ctx, struct gl_framebuffer *fb)
 {
    struct intel_context *intel = intel_context(ctx);
    struct intel_renderbuffer *irb;
    struct intel_region *colorRegion, *depthRegion;
    int front = 0; /* drawing to front color buffer? */
  
-   if (!ctx->DrawBuffer) {
+   if (!fb) {
       /* this can happen during the initial context initialization */
       return;
    }
@@ -528,7 +529,7 @@ intelDrawBuffer(GLcontext *ctx, GLenum mode)
       _mesa_update_draw_buffer_bounds(ctx);
    }
 
-   if (ctx->DrawBuffer->_Status != GL_FRAMEBUFFER_COMPLETE_EXT) {
+   if (fb->_Status != GL_FRAMEBUFFER_COMPLETE_EXT) {
       /* this may occur when we're called by glBindFrameBuffer() during
        * the process of someone setting up renderbuffers, etc.
        */
@@ -539,10 +540,10 @@ intelDrawBuffer(GLcontext *ctx, GLenum mode)
    /*
     * How many color buffers are we drawing into?
     */
-   if (ctx->DrawBuffer->_NumColorDrawBuffers[0] != 1
+   if (fb->_NumColorDrawBuffers[0] != 1
 #if 0
        /* XXX FBO temporary - always use software rendering */
-       || ctx->DrawBuffer->Name != 0
+       || fb->Name != 0
 #endif
     ) {
       /* writing to 0 or 2 or 4 color buffers */
@@ -554,7 +555,7 @@ intelDrawBuffer(GLcontext *ctx, GLenum mode)
       /* draw to exactly one color buffer */
       /*_mesa_debug(ctx, "Hardware rendering\n");*/
       FALLBACK( intel, INTEL_FALLBACK_DRAW_BUFFER, GL_FALSE );
-      if (ctx->DrawBuffer->_ColorDrawBufferMask[0] == BUFFER_BIT_FRONT_LEFT) {
+      if (fb->_ColorDrawBufferMask[0] == BUFFER_BIT_FRONT_LEFT) {
          front = 1;
       }
    }
@@ -563,7 +564,7 @@ intelDrawBuffer(GLcontext *ctx, GLenum mode)
     * Get the intel_renderbuffer we're drawing into.
     * And set up cliprects.
     */
-   if (ctx->DrawBuffer->Name == 0) {
+   if (fb->Name == 0) {
       /* drawing to window system buffer */
       if (intel->sarea->pf_current_page == 1 ) {
          /* page flipped back/front */
@@ -571,19 +572,17 @@ intelDrawBuffer(GLcontext *ctx, GLenum mode)
       }
       if (front) {
          intelSetFrontClipRects( intel );
-         irb = intel_renderbuffer(ctx->DrawBuffer->
-                                  Attachment[BUFFER_FRONT_LEFT].Renderbuffer);
+         irb = intel_renderbuffer(fb->Attachment[BUFFER_FRONT_LEFT].Renderbuffer);
       }
       else {
          intelSetBackClipRects( intel );
-         irb = intel_renderbuffer(ctx->DrawBuffer->
-                                  Attachment[BUFFER_BACK_LEFT].Renderbuffer);
+         irb = intel_renderbuffer(fb->Attachment[BUFFER_BACK_LEFT].Renderbuffer);
       }
    }
    else {
       /* drawing to user-created FBO */
       intelSetRenderbufferClipRects(intel);
-      irb = intel_renderbuffer(ctx->DrawBuffer->_ColorDrawBuffers[0][0]);
+      irb = intel_renderbuffer(fb->_ColorDrawBuffers[0][0]);
       ASSERT(irb);
    }
 
@@ -606,7 +605,7 @@ intelDrawBuffer(GLcontext *ctx, GLenum mode)
    /*
     * Get depth buffer region
     */
-   irb = intel_renderbuffer(ctx->DrawBuffer->_DepthBuffer);
+   irb = intel_renderbuffer(fb->_DepthBuffer);
    if (irb && irb->region)
       depthRegion = irb->region;
    else
@@ -624,14 +623,21 @@ intelDrawBuffer(GLcontext *ctx, GLenum mode)
 }
 
 
-static void intelReadBuffer( GLcontext *ctx, GLenum mode )
+static void
+intelDrawBuffer(GLcontext *ctx, GLenum mode)
+{
+   intel_draw_buffer(ctx, ctx->DrawBuffer);
+}
+
+
+static void 
+intelReadBuffer( GLcontext *ctx, GLenum mode )
 {
    /* Nothing.
     * The functions which do framebuffer reads (glReadPixels, glCopyPixels,
     * etc. are all set just by using ctx->ReadBuffer->_ColorReadBuffer.
     */
 }
-
 
 
 void intelInitBufferFuncs( struct dd_function_table *functions )

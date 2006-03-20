@@ -214,9 +214,9 @@ struct intel_context
    GLubyte *verts;			/* points to tnl->clipspace.vertex_buf */
 
 
-   struct intel_region *front_region;
-   struct intel_region *back_region;
-   struct intel_region *draw_region;
+   struct intel_region *front_region;   /* XXX FBO: obsolete */
+   struct intel_region *back_region;    /* XXX FBO: obsolete */
+   struct intel_region *draw_region;    /* XXX FBO: rename to color_region */
    struct intel_region *depth_region;
 
 
@@ -518,22 +518,6 @@ extern int intel_translate_compare_func( GLenum func );
 extern int intel_translate_stencil_op( GLenum op );
 extern int intel_translate_blend_factor( GLenum factor );
 extern int intel_translate_logic_op( GLenum opcode );
-
-
-/* ================================================================
- * intel_buffers.c:
- */
-void intelInitBufferFuncs( struct dd_function_table *functions );
-
-struct intel_region *intel_readbuf_region( struct intel_context *intel );
-struct intel_region *intel_drawbuf_region( struct intel_context *intel );
-
-extern void intelWindowMoved( struct intel_context *intel );
-
-extern GLboolean intel_intersect_cliprects( drm_clip_rect_t *dest,
-					    const drm_clip_rect_t *a,
-					    const drm_clip_rect_t *b );
-
 
 
 /*======================================================================

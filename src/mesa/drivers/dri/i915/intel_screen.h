@@ -87,7 +87,4 @@ intelMakeCurrent(__DRIcontextPrivate *driContextPriv,
                 __DRIdrawablePrivate *driDrawPriv,
                 __DRIdrawablePrivate *driReadPriv);
 
-extern void
-intelSwapBuffers( __DRIdrawablePrivate *dPriv);
-
 #endif
