@@ -290,9 +290,16 @@ static void intelClearWithTris(struct intel_context *intel,
        * buffers at once:
        */
       if (mask & (BUFFER_BIT_BACK_LEFT|BUFFER_BIT_STENCIL|BUFFER_BIT_DEPTH)) { 
-	 intel->vtbl.meta_draw_region(intel, 
-				      intel->back_region,
-				      intel->depth_region );
+         struct intel_renderbuffer *irbBack =
+            intel_renderbuffer(ctx->DrawBuffer->
+                               Attachment[BUFFER_BACK_LEFT].Renderbuffer);
+         struct intel_renderbuffer *irbDepth =
+            intel_renderbuffer(ctx->DrawBuffer->
+                               Attachment[BUFFER_DEPTH].Renderbuffer);
+         struct intel_region *backRegion = irbBack ? irbBack->region : NULL;
+         struct intel_region *depthRegion = irbDepth ? irbDepth->region : NULL;
+
+	 intel->vtbl.meta_draw_region(intel, backRegion, depthRegion );
 
 	 if (mask & BUFFER_BIT_BACK_LEFT)
 	    intel->vtbl.meta_color_mask(intel, GL_TRUE );
