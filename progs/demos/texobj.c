@@ -92,7 +92,7 @@ static void idle( void )
    dt = t - t0;
    t0 = t;
    Angle += 120.0*dt;
-/*    glutPostRedisplay(); */
+   glutPostRedisplay();
 }
 
 
