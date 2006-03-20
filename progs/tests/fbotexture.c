@@ -17,6 +17,10 @@
 #include <string.h>
 #include <math.h>
 
+/* For debug */
+#define DEPTH 1
+#define STENCIL 1
+
 
 static int Width = 400, Height = 400;
 static int TexWidth = 512, TexHeight = 512;
@@ -76,10 +80,14 @@ RenderTexture(void)
    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
    CheckError(__LINE__);
 
+#if DEPTH
    glEnable(GL_DEPTH_TEST);
+
+#if STENCIL
    glEnable(GL_STENCIL_TEST);
    glStencilFunc(GL_NEVER, 1, ~0);
    glStencilOp(GL_REPLACE, GL_KEEP, GL_REPLACE);
+#endif
 
    CheckError(__LINE__);
 
@@ -93,10 +101,13 @@ RenderTexture(void)
    glEnd();
 
    /* draw teapot where stencil != 1 */
+#if STENCIL
    glStencilFunc(GL_NOTEQUAL, 1, ~0);
    glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+#endif
 
    CheckError(__LINE__);
+#endif
 
 #if 0
    glBegin(GL_POLYGON);
@@ -184,9 +195,13 @@ Reshape(int width, int height)
 static void
 CleanUp(void)
 {
+#if DEPTH
    glDeleteRenderbuffersEXT(1, &DepthRB);
+#endif
+#if STENCIL
    if (!UsePackedDepthStencil)
       glDeleteRenderbuffersEXT(1, &StencilRB);
+#endif
    glDeleteFramebuffersEXT(1, &MyFB);
 
    glDeleteTextures(1, &TexObj);
@@ -253,6 +268,7 @@ Init(int argc, char *argv[])
    glGetIntegerv(GL_FRAMEBUFFER_BINDING_EXT, &i);
    assert(i == MyFB);
 
+#if DEPTH
    /* make depth renderbuffer */
    glGenRenderbuffersEXT(1, &DepthRB);
    assert(DepthRB);
@@ -275,9 +291,11 @@ Init(int argc, char *argv[])
    /* attach DepthRB to MyFB */
    glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT,
                                 GL_RENDERBUFFER_EXT, DepthRB);
+#endif
 
    CheckError(__LINE__);
 
+#if STENCIL
    if (UsePackedDepthStencil) {
       /* DepthRb is a combined depth/stencil renderbuffer */
       glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT,
@@ -303,7 +321,7 @@ Init(int argc, char *argv[])
    CheckError(__LINE__);
    printf("Stencil renderbuffer size = %d bits\n", i);
    assert(i > 0);
-
+#endif
 
    /* bind regular framebuffer */
    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
