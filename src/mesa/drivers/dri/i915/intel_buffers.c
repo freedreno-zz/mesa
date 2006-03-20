@@ -128,8 +128,8 @@ static void intelBufferSize(GLframebuffer *buffer,
  */
 static void intelSetRenderbufferClipRects( struct intel_context *intel )
 {
-   ASSERT(intel->ctx.DrawBuffer->Width > 0);
-   ASSERT(intel->ctx.DrawBuffer->Height > 0);
+   assert(intel->ctx.DrawBuffer->Width > 0);
+   assert(intel->ctx.DrawBuffer->Height > 0);
    intel->fboRect.x1 = 0;
    intel->fboRect.y1 = 0;
    intel->fboRect.x2 = intel->ctx.DrawBuffer->Width;
@@ -519,6 +519,14 @@ intelDrawBuffer(GLcontext *ctx, GLenum mode)
       _mesa_update_framebuffer(ctx);
       /* this updates the DrawBuffer's Width/Height if it's a FBO */
       _mesa_update_draw_buffer_bounds(ctx);
+   }
+
+   if (ctx->DrawBuffer->_Status != GL_FRAMEBUFFER_COMPLETE_EXT) {
+      /* this may occur when we're called by glBindFrameBuffer() during
+       * the process of someone setting up renderbuffers, etc.
+       */
+      _mesa_debug(ctx, "DrawBuffer: incomplete user FBO\n");
+      return;
    }
 
    /*

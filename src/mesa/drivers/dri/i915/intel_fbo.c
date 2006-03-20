@@ -428,7 +428,7 @@ intel_framebuffer_renderbuffer(GLcontext *ctx,
 
 
 static struct intel_renderbuffer *
-intel_wrap_texture(GLcontext *ctx)
+intel_wrap_texture(GLcontext *ctx, struct gl_texture_image *texImage)
 {
    const GLuint name = ~0; /* XXX OK? */
    struct intel_renderbuffer *irb;
@@ -442,7 +442,19 @@ intel_wrap_texture(GLcontext *ctx)
 
    _mesa_init_renderbuffer(&irb->Base, name);
    irb->Magic = MAGIC; /* XXX FBO temporary */
+   irb->Base.Width = texImage->Width;
+   irb->Base.Height = texImage->Height;
+   irb->Base.InternalFormat = texImage->InternalFormat; /* XXX fix? */
+   irb->Base._BaseFormat = texImage->TexFormat->BaseFormat;
+   irb->Base.DataType = GL_UNSIGNED_BYTE; /* FBO XXX fix */
+   irb->Base.RedBits = texImage->TexFormat->RedBits;
+   irb->Base.GreenBits = texImage->TexFormat->GreenBits;
+   irb->Base.BlueBits = texImage->TexFormat->BlueBits;
+   irb->Base.AlphaBits = texImage->TexFormat->AlphaBits;
+   irb->Base.DepthBits = texImage->TexFormat->DepthBits;
+
    irb->Base.Delete = intel_delete_renderbuffer;
+   /* XXX span funcs */
 
    return irb;
 }
@@ -469,7 +481,7 @@ intel_renderbuffer_texture(GLcontext *ctx,
    ASSERT(newImage);
 
    if (!irb) {
-      irb = intel_wrap_texture(ctx);
+      irb = intel_wrap_texture(ctx, newImage);
       if (!irb) {
          _mesa_error(ctx, GL_OUT_OF_MEMORY, "render to texture");
          return;
@@ -484,11 +496,15 @@ intel_renderbuffer_texture(GLcontext *ctx,
    intel_region_reference(&irb->region, intel_image->mt->region);
 
    if (newImage->TexFormat == &_mesa_texformat_argb8888) {
-      _mesa_debug(ctx, "****** Render to texture OK\n");
+      _mesa_debug(ctx, "Render to texture OK\n");
    }
    else {
-      _mesa_debug(ctx, "****** Render to texture BAD FORMAT\n");
+      _mesa_debug(ctx, "Render to texture BAD FORMAT\n");
    }
+
+   ctx->Driver.DrawBuffer(ctx, 0); /* second param is ignored */
+
+
 }
 
 
@@ -511,15 +527,9 @@ intel_finish_render_texture(GLcontext *ctx,
 
    _mesa_debug(ctx, "intel_finish_render_texture, refcount=%d\n", irb->Base.RefCount);
 
+   /* should never hit zero here */
+   assert(irb->Base.RefCount > 0);
 
-   if (irb->Base.RefCount <= 0) {
-      _mesa_debug(ctx, "%s refcount == 0!\n", __FUNCTION__);
-#if 0
-      irb->Base.Delete(&irb->Base);
-#endif
-   }
-
-   /* XXX not finished? */
 }
 
 
