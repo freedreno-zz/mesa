@@ -27,6 +27,7 @@
 
 #include "glheader.h"
 #include "enums.h"
+#include "image.h"
 #include "mtypes.h"
 #include "macros.h"
 #include "swrast/swrast.h"
@@ -180,7 +181,8 @@ static GLboolean do_texture_copypixels( GLcontext *ctx,
 	 GLint orig_x = srcx;
 	 GLint orig_y = srcy;
 
-	 if (!intel_clip_to_region(ctx, src, &srcx, &srcy, &width, &height)) 
+	 if (!_mesa_clip_to_region(ctx, 0, 0, src->pitch, src->height,
+                                   &srcx, &srcy, &width, &height)) 
 	    goto out;
 
 	 dstx += srcx - orig_x; 
@@ -273,7 +275,8 @@ static GLboolean do_blit_copypixels( GLcontext *ctx,
 	 delta_x = srcx - dstx;
 	 delta_y = srcy - dsty;
 
-	 if (!intel_clip_to_region(ctx, src, &srcx, &srcy, &width, &height)) 
+	 if (!_mesa_clip_to_region(ctx, 0, 0, src->pitch, src->height,
+                                   &srcx, &srcy, &width, &height)) 
 	    goto out;
 
 	 dstx = srcx - delta_x;

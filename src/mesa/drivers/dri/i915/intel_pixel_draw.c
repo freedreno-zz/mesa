@@ -150,10 +150,11 @@ static GLboolean do_texture_drawpixels( GLcontext *ctx,
       srcy = 0;
 
       if (0) {
-	 GLint orig_x = dstx;
-	 GLint orig_y = dsty;
+	 const GLint orig_x = dstx;
+	 const GLint orig_y = dsty;
 
-	 if (!intel_clip_to_region(ctx, dst, &dstx, &dsty, &width, &height)) 
+	 if (!_mesa_clip_to_region(ctx, 0, 0, dst->pitch, dst->height,
+                                   &dstx, &dsty, &width, &height)) 
 	    goto out;
 
 	 srcx += dstx - orig_x; 

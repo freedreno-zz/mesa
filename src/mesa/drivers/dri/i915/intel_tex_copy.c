@@ -27,6 +27,7 @@
 
 #include "mtypes.h"
 #include "enums.h"
+#include "image.h"
 #include "teximage.h"
 #include "swrast/swrast.h"
 
@@ -94,11 +95,13 @@ static GLboolean do_copy_texsubimage( struct intel_context *intel,
       GLuint image_offset = intel_miptree_image_offset(intelImage->mt, 
 						       intelImage->face,
 						       intelImage->level);
-      GLint orig_x = x;
-      GLint orig_y = y;
+      const GLint orig_x = x;
+      const GLint orig_y = y;
       GLuint window_y;
+      const struct gl_framebuffer *fb = ctx->DrawBuffer;
 
-      if (intel_clip_to_framebuffer(ctx, ctx->DrawBuffer, &x, &y, &width, &height)) {
+      if (_mesa_clip_to_region(ctx, fb->_Xmin, fb->_Ymin, fb->_Xmax, fb->_Ymax,
+                               &x, &y, &width, &height)) {
 	 /* Update dst for clipped src.  Need to also clip the source rect.
 	  */
 	 dstx += x - orig_x;

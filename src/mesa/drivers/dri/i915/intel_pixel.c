@@ -34,6 +34,10 @@
 #include "intel_regions.h"
 
 
+/**
+ * Check if any fragment operations are in effect which might effect
+ * glDraw/CopyPixels.
+ */
 GLboolean intel_check_blit_fragment_ops( GLcontext *ctx )
 {
    if (ctx->NewState)
@@ -75,6 +79,11 @@ GLboolean intel_check_meta_tex_fragment_ops( GLcontext *ctx )
  * format of the pixels in the region.  For now this code assumes that
  * the region is a display surface and hence is either ARGB8888 or
  * RGB565.
+ * XXX FBO: If we'd pass in the intel_renderbuffer instead of region, we'd
+ * know the buffer's pixel format.
+ *
+ * \param format  as given to glDraw/ReadPixels
+ * \param type  as given to glDraw/ReadPixels
  */
 GLboolean intel_check_blit_format( struct intel_region *region,
 				   GLenum format, GLenum type )
@@ -99,114 +108,6 @@ GLboolean intel_check_blit_format( struct intel_region *region,
 
    return GL_FALSE;
 }
-
-
-GLboolean intel_clip_to_framebuffer( GLcontext *ctx,
-				     const GLframebuffer *buffer,
-				     GLint *x, GLint *y,
-				     GLsizei *width, GLsizei *height )
-{
-   /* left clipping */
-   if (*x < buffer->_Xmin) {
-      *width -= (buffer->_Xmin - *x);
-      *x = buffer->_Xmin;
-   }
-
-   /* right clipping */
-   if (*x + *width > buffer->_Xmax)
-      *width -= (*x + *width - buffer->_Xmax - 1);
-
-   if (*width <= 0)
-      return GL_FALSE;
-
-   /* bottom clipping */
-   if (*y < buffer->_Ymin) {
-      *height -= (buffer->_Ymin - *y);
-      *y = buffer->_Ymin;
-   }
-
-   /* top clipping */
-   if (*y + *height > buffer->_Ymax)
-      *height -= (*y + *height - buffer->_Ymax - 1);
-
-   if (*height <= 0)
-      return GL_FALSE;
-
-   return GL_TRUE;
-}
-
-
-
-GLboolean intel_clip_to_drawable( GLcontext *ctx,
-				  const __DRIdrawablePrivate *dPriv,
-				  GLint *x, GLint *y,
-				  GLsizei *width, GLsizei *height )
-{
-   /* left clipping */
-   if (*x < dPriv->x) {
-      *width -= (dPriv->x - *x);
-      *x = dPriv->x;
-   }
-
-   /* right clipping */
-   if (*x + *width > dPriv->x + dPriv->w)
-      *width -= (*x + *width) - (dPriv->x + dPriv->w);
-
-   if (*width <= 0)
-      return GL_FALSE;
-
-   /* bottom clipping */
-   if (*y < dPriv->y) {
-      *height -= (dPriv->y - *y);
-      *y = dPriv->y;
-   }
-
-   /* top clipping */
-   if (*y + *height > dPriv->y + dPriv->h)
-      *height -= (*y + *height) - (dPriv->y + dPriv->w);
-
-   if (*height <= 0)
-      return GL_FALSE;
-
-   return GL_TRUE;
-}
-
-
-GLboolean intel_clip_to_region( GLcontext *ctx,
-				const struct intel_region *region,
-				GLint *x, GLint *y,
-				GLsizei *width, GLsizei *height )
-{
-   /* left clipping */
-   if (*x < 0) {
-      *width -= (0 - *x);
-      *x = 0;
-   }
-
-   /* right clipping */
-   if (*x + *width > region->pitch)
-      *width -= (*x + *width) - region->pitch;
-
-   if (*width <= 0)
-      return GL_FALSE;
-
-   /* bottom clipping */
-   if (*y < 0) {
-      *height -= (0 - *y);
-      *y = 0;
-   }
-
-   /* top clipping */
-   if (*y + *height > region->height)
-      *height -= (*y + *height) - region->height;
-
-   if (*height <= 0)
-      return GL_FALSE;
-
-   return GL_TRUE;
-}
-
-
 
 
 void intelInitPixelFuncs( struct dd_function_table *functions )
