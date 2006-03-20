@@ -272,9 +272,9 @@ void intelEmitCopyBlit( struct intel_context *intel,
  * Note: we can't use the ctx->DrawBuffer->_ColorDrawBufferMask field
  * since that might include software renderbuffers or renderbuffers
  * which we're clearing with triangles.
- * \param flags  bitmask of BUFFER_BIT_* values
+ * \param mask  bitmask of BUFFER_BIT_* values indicating buffers to clear
  */
-void intelClearWithBlit(GLcontext *ctx, GLbitfield flags, GLboolean all,
+void intelClearWithBlit(GLcontext *ctx, GLbitfield mask, GLboolean all,
                         GLint cx, GLint cy, GLint cw, GLint ch)
 {
    struct intel_context *intel = intel_context( ctx );
@@ -283,24 +283,24 @@ void intelClearWithBlit(GLcontext *ctx, GLbitfield flags, GLboolean all,
    BATCH_LOCALS;
 
    if (INTEL_DEBUG & DEBUG_DRI)
-      _mesa_printf("%s %x\n", __FUNCTION__, flags);
+      _mesa_printf("%s %x\n", __FUNCTION__, mask);
 
    /*
     * Compute values for clearing the buffers.
     */
    clear_color = intel->ClearColor;
    clear_depth = 0;
-   if (flags & BUFFER_BIT_DEPTH) {
+   if (mask & BUFFER_BIT_DEPTH) {
       clear_depth = (GLuint) (ctx->DrawBuffer->_DepthMax * ctx->Depth.Clear);
    }
-   if (flags & BUFFER_BIT_STENCIL) {
+   if (mask & BUFFER_BIT_STENCIL) {
       clear_depth |= (ctx->Stencil.Clear & 0xff) << 24;
    }
 
    /* If clearing both depth and stencil, skip BUFFER_BIT_STENCIL in
     * the loop below.
     */
-   if ((flags & BUFFER_BIT_DEPTH) && (flags & BUFFER_BIT_STENCIL)) {
+   if ((mask & BUFFER_BIT_DEPTH) && (mask & BUFFER_BIT_STENCIL)) {
       skipBuffers = BUFFER_BIT_STENCIL;
    }
 
@@ -324,11 +324,10 @@ void intelClearWithBlit(GLcontext *ctx, GLbitfield flags, GLboolean all,
 
          /* adjust for page flipping */
          if ( intel->sarea->pf_current_page == 1 ) {
-            GLuint tmp = flags;
-
-            flags &= ~(BUFFER_BIT_FRONT_LEFT | BUFFER_BIT_BACK_LEFT);
-            if ( tmp & BUFFER_BIT_FRONT_LEFT ) flags |= BUFFER_BIT_BACK_LEFT;
-            if ( tmp & BUFFER_BIT_BACK_LEFT )  flags |= BUFFER_BIT_FRONT_LEFT;
+            const GLuint tmp = mask;
+            mask &= ~(BUFFER_BIT_FRONT_LEFT | BUFFER_BIT_BACK_LEFT);
+            if ( tmp & BUFFER_BIT_FRONT_LEFT ) mask |= BUFFER_BIT_BACK_LEFT;
+            if ( tmp & BUFFER_BIT_BACK_LEFT )  mask |= BUFFER_BIT_FRONT_LEFT;
          }
       }
       else {
@@ -339,7 +338,7 @@ void intelClearWithBlit(GLcontext *ctx, GLbitfield flags, GLboolean all,
          clear.y1 = intel->ctx.DrawBuffer->Height - cy - ch;
          clear.x2 = clear.y1 + cw;
          clear.y2 = clear.y1 + ch;
-         /* no change to flags */
+         /* no change to mask */
       }
 
       for (i = 0 ; i < intel->numClipRects ; i++) 
@@ -347,6 +346,7 @@ void intelClearWithBlit(GLcontext *ctx, GLbitfield flags, GLboolean all,
 	 const drm_clip_rect_t *box = &intel->pClipRects[i];	 
 	 drm_clip_rect_t b;
          GLuint buf;
+         GLuint clearMask = mask; /* use copy, since we modify it below */
 
 	 if (!all) {
 	    intel_intersect_cliprects(&b, &clear, box);
@@ -355,15 +355,15 @@ void intelClearWithBlit(GLcontext *ctx, GLbitfield flags, GLboolean all,
 	 }
 
 	 if (0)
-	    _mesa_printf("clear %d,%d..%d,%d, flags %x\n", 
+	    _mesa_printf("clear %d,%d..%d,%d, mask %x\n", 
 			 b.x1, b.y1,
 			 b.x2, b.y2, 
-			 flags);
+			 mask);
 
          /* Loop over all renderbuffers */
-         for (buf = 0; buf < BUFFER_COUNT && flags; buf++) {
+         for (buf = 0; buf < BUFFER_COUNT && clearMask; buf++) {
             const GLbitfield bufBit = 1 << buf;
-            if ((flags & bufBit) && !(bufBit & skipBuffers)) {
+            if ((clearMask & bufBit) && !(bufBit & skipBuffers)) {
                /* OK, clear this renderbuffer */
                const struct intel_renderbuffer *irb
                   = intel_renderbuffer(ctx->DrawBuffer->
@@ -383,9 +383,9 @@ void intelClearWithBlit(GLcontext *ctx, GLbitfield flags, GLboolean all,
                   BR13 = (0xF0 << 16) | (pitch * cpp) | (1<<24) | (1<<25);
                   if (buf == BUFFER_DEPTH || buf == BUFFER_STENCIL) {
                      CMD = XY_COLOR_BLT_CMD;
-                     if (flags & BUFFER_BIT_DEPTH)
+                     if (clearMask & BUFFER_BIT_DEPTH)
                         CMD |= XY_COLOR_BLT_WRITE_RGB;
-                     if (flags & BUFFER_BIT_STENCIL)
+                     if (clearMask & BUFFER_BIT_STENCIL)
                         CMD |= XY_COLOR_BLT_WRITE_ALPHA;
                   }
                   else {
@@ -419,7 +419,7 @@ void intelClearWithBlit(GLcontext *ctx, GLbitfield flags, GLboolean all,
                OUT_RELOC( irb->region->buffer, DRM_MM_TT|DRM_MM_WRITE, 0 );
                OUT_BATCH( clearVal );
                ADVANCE_BATCH();
-               flags &= ~(1 << buf); /* turn off bit, for faster loop exit */
+               clearMask &= ~(1 << buf); /* turn off bit, for faster loop exit */
             }
          }
       }
