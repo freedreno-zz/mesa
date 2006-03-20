@@ -15,7 +15,7 @@
 
 #include "../util/readtex.c"  /* a hack, I know */
 
-#define IMAGE_FILE "../images/girl.rgb"
+#define IMAGE_FILE "../images/tree2.rgba"
 
 static int ImgWidth, ImgHeight;
 static GLenum ImgFormat;
