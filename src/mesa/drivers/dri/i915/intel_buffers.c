@@ -36,6 +36,10 @@
 #include "framebuffer.h"
 #include "swrast/swrast.h"
 
+
+/**
+ * XXX move this into a new dri/common/cliprects.c file.
+ */
 GLboolean intel_intersect_cliprects( drm_clip_rect_t *dst,
 				     const drm_clip_rect_t *a,
 				     const drm_clip_rect_t *b )
@@ -97,6 +101,9 @@ static void intelBufferSize(GLframebuffer *buffer,
    /* Need to lock to make sure the driDrawable is uptodate.  This
     * information is used to resize Mesa's software buffers, so it has
     * to be correct.
+    */
+   /* XXX This isn't 100% correct, the given buffer might not be
+    * bound to the current context!
     */
    LOCK_HARDWARE(intel);
    if (intel->driDrawable) {
@@ -464,22 +471,24 @@ static void intelPageFlip( const __DRIdrawablePrivate *dPriv )
 
 void intelSwapBuffers( __DRIdrawablePrivate *dPriv )
 {
-   if (dPriv->driContextPriv && dPriv->driContextPriv->driverPrivate) {
-      struct intel_context *intel;
-      GLcontext *ctx;
-      intel = (struct intel_context *) dPriv->driContextPriv->driverPrivate;
-      ctx = &intel->ctx;
-      if (ctx->Visual.doubleBufferMode) {
-	 _mesa_notifySwapBuffers( ctx );  /* flush pending rendering comands */
+   if (dPriv->driverPrivate) {
+      const struct gl_framebuffer *fb
+         = (struct gl_framebuffer *) dPriv->driverPrivate;
+      if (fb->Visual.doubleBufferMode) {
+         GET_CURRENT_CONTEXT(ctx);
+         if (ctx && ctx->DrawBuffer == fb) {
+            _mesa_notifySwapBuffers( ctx );  /* flush pending rendering */
+         }
 	 if ( 0 /*intel->doPageFlip*/ ) { /* doPageFlip is never set !!! */
 	    intelPageFlip( dPriv );
 	 } else {
 	    intelCopyBuffer( dPriv );
 	 }
       }
-   } else {
-      /* XXX this shouldn't be an error but we can't handle it for now */
-      fprintf(stderr, "%s: drawable has no context!\n", __FUNCTION__);
+   }
+   else {
+      _mesa_problem(NULL,
+                    "dPriv has no gl_framebuffer pointer in intelSwapBuffers");
    }
 }
 
