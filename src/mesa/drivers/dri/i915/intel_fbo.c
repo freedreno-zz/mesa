@@ -32,10 +32,12 @@
 #include "framebuffer.h"
 #include "renderbuffer.h"
 #include "context.h"
+#include "texformat.h"
 
 #include "intel_context.h"
 #include "intel_bufmgr.h"
 #include "intel_fbo.h"
+#include "intel_mipmap_tree.h"
 #include "intel_regions.h"
 #include "intel_span.h"
 
@@ -425,6 +427,27 @@ intel_framebuffer_renderbuffer(GLcontext *ctx,
 }
 
 
+static struct intel_renderbuffer *
+intel_wrap_texture(GLcontext *ctx)
+{
+   const GLuint name = ~0; /* XXX OK? */
+   struct intel_renderbuffer *irb;
+
+   /* make an intel_renderbuffer to wrap the texture image */
+   irb = CALLOC_STRUCT(intel_renderbuffer);
+   if (!irb) {
+      _mesa_error(ctx, GL_OUT_OF_MEMORY, "glFramebufferTexture");
+      return NULL;
+   }
+
+   _mesa_init_renderbuffer(&irb->Base, name);
+   irb->Magic = MAGIC; /* XXX FBO temporary */
+   irb->Base.Delete = intel_delete_renderbuffer;
+
+   return irb;
+}
+
+
 /**
  * Called via glFramebufferTexture[123]DEXT().
  */
@@ -435,26 +458,36 @@ intel_renderbuffer_texture(GLcontext *ctx,
 {
    struct gl_texture_image *newImage
       = att->Texture->Image[att->CubeMapFace][att->TextureLevel];
-   struct intel_renderbuffer *irb;
-   const GLuint name = ~0; /* XXX OK? */
 
-   /* make an intel_renderbuffer to wrap the texture image */
-   irb = CALLOC_STRUCT(intel_renderbuffer);
+   struct intel_renderbuffer *irb
+      = intel_renderbuffer(att->Renderbuffer);
+
+   struct intel_texture_image *intel_image;
+
+   (void) fb;
+
+   ASSERT(newImage);
+
    if (!irb) {
-      _mesa_error(ctx, GL_OUT_OF_MEMORY, "glFramebufferTexture");
-      return;
+      irb = intel_wrap_texture(ctx);
+      if (!irb) {
+         _mesa_error(ctx, GL_OUT_OF_MEMORY, "render to texture");
+         return;
+      }
+      att->Renderbuffer = &irb->Base;
    }
 
-   irb->Magic = MAGIC; /* XXX FBO temporary */
-   _mesa_init_renderbuffer(&irb->Base, name);
+   irb->Base.RefCount++;
 
-   /* Set the attachment's renderbuffer which wraps the texture */
-   ASSERT(!att->Renderbuffer);
-   att->Renderbuffer = &irb->Base;
+   intel_image = intel_texture_image(newImage);
 
-   switch (newImage->TexFormat->MesaFormat) {
-   default:
-      break;
+   intel_region_reference(&irb->region, intel_image->mt->region);
+
+   if (newImage->TexFormat == &_mesa_texformat_argb8888) {
+      _mesa_debug(ctx, "****** Render to texture OK\n");
+   }
+   else {
+      _mesa_debug(ctx, "****** Render to texture BAD FORMAT\n");
    }
 }
 
@@ -466,7 +499,27 @@ static void
 intel_finish_render_texture(GLcontext *ctx,
                            struct gl_renderbuffer_attachment *att)
 {
-   /* XXX not done */
+   struct intel_context *intel = intel_context(ctx);
+   struct intel_renderbuffer *irb
+      = intel_renderbuffer(att->Renderbuffer);
+
+   assert(irb);
+
+   intel_region_release(intel, &irb->region);
+
+   irb->Base.RefCount--;
+
+   _mesa_debug(ctx, "intel_finish_render_texture, refcount=%d\n", irb->Base.RefCount);
+
+
+   if (irb->Base.RefCount <= 0) {
+      _mesa_debug(ctx, "%s refcount == 0!\n", __FUNCTION__);
+#if 0
+      irb->Base.Delete(&irb->Base);
+#endif
+   }
+
+   /* XXX not finished? */
 }
 
 
