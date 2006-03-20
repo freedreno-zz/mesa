@@ -36,18 +36,24 @@
 #include "intel_batchbuffer.h"
 #include "intel_mipmap_tree.h"
 #include "intel_regions.h"
+#include "intel_fbo.h"
 #include "intel_tex.h"
 #include "intel_blit.h"
 #include "intel_pixel.h"
 #include "intel_bufmgr.h"
 
-/* Do the best we can using the blitter.  A future project is to use
+
+/**
+ * Get the intel_region which is the source for any glCopyTex[Sub]Image call.
+ *
+ * Do the best we can using the blitter.  A future project is to use
  * the texture engine and fragment programs for these copies.
  */
-
-static struct intel_region *get_teximage_source( struct intel_context *intel,
-						 GLenum internalFormat )
+static const struct intel_region *
+get_teximage_source(struct intel_context *intel, GLenum internalFormat)
 {
+   struct intel_renderbuffer *irb;
+
    if (0)
       _mesa_printf("%s %s\n", __FUNCTION__, 
 		   _mesa_lookup_enum_by_nr(internalFormat));
@@ -55,13 +61,17 @@ static struct intel_region *get_teximage_source( struct intel_context *intel,
    switch (internalFormat) {
    case GL_DEPTH_COMPONENT:
    case GL_DEPTH_COMPONENT16_ARB:
-      if (intel->intelScreen->cpp == 2)
-	 return intel->depth_region;
+      irb = intel_renderbuffer(intel->ctx.ReadBuffer->
+                               Attachment[BUFFER_DEPTH].Renderbuffer);
+      if (irb && irb->region && irb->region->cpp == 2)
+	 return irb->region;
       return NULL;
    case GL_DEPTH24_STENCIL8_EXT:
    case GL_DEPTH_STENCIL_EXT:
-      if (intel->intelScreen->cpp == 4)
-	 return intel->depth_region;
+      irb = intel_renderbuffer(intel->ctx.ReadBuffer->
+                               Attachment[BUFFER_DEPTH].Renderbuffer);
+      if (irb && irb->region && irb->region->cpp == 4)
+	 return irb->region;
       return NULL;
    case GL_RGBA:
       return intel_readbuf_region( intel );
@@ -83,7 +93,7 @@ static GLboolean do_copy_texsubimage( struct intel_context *intel,
 				      GLsizei width, GLsizei height )
 {
    GLcontext *ctx = &intel->ctx;
-   struct intel_region *src = get_teximage_source(intel, internalFormat);
+   const struct intel_region *src = get_teximage_source(intel, internalFormat);
 
    if (!intelImage->mt || !src)
       return GL_FALSE;
@@ -143,6 +153,7 @@ static GLboolean do_copy_texsubimage( struct intel_context *intel,
 
 #if 0
    /* GL_SGIS_generate_mipmap -- this can be accelerated now.
+    * XXX Add a ctx->Driver.GenerateMipmaps() function?
     */
    if (level == texObj->BaseLevel && 
        texObj->GenerateMipmap) {
