@@ -42,7 +42,7 @@
 
 #define MAGIC 0x12345678
 
-
+/* XXX FBO: move this to intel_context.h (inlined) */
 struct intel_renderbuffer *intel_renderbuffer( struct gl_renderbuffer *rb )
 {
    struct intel_renderbuffer *irb = (struct intel_renderbuffer *) rb;
@@ -51,6 +51,7 @@ struct intel_renderbuffer *intel_renderbuffer( struct gl_renderbuffer *rb )
    }
    return irb;
 }
+
 
 /**
  * Create a new framebuffer object.
@@ -245,10 +246,12 @@ intel_create_renderbuffer(GLenum intFormat, GLsizei width, GLsizei height,
    const GLuint name = 0;
 
    irb = CALLOC_STRUCT(intel_renderbuffer);
-   if (!irb)
+   if (!irb) {
+      _mesa_error(ctx, GL_OUT_OF_MEMORY, "creating renderbuffer");
       return NULL;
+   }
 
-   irb->Magic = MAGIC;
+   irb->Magic = MAGIC; /* XXX FBO temporary */
 
    _mesa_init_renderbuffer(&irb->Base, name);
 
@@ -338,8 +341,10 @@ intel_new_renderbuffer(GLcontext *ctx, GLuint name)
    struct intel_renderbuffer *irb;
 
    irb = CALLOC_STRUCT(intel_renderbuffer);
-   if (!irb)
+   if (!irb) {
+      _mesa_error(ctx, GL_OUT_OF_MEMORY, "creating renderbuffer");
       return NULL;
+   }
 
    irb->Magic = MAGIC;
 
@@ -414,6 +419,9 @@ intel_framebuffer_renderbuffer(GLcontext *ctx,
                fb->Name, rb->Name);
 
    _mesa_framebuffer_renderbuffer(ctx, fb, attachment, rb);
+
+
+
 }
 
 
@@ -422,11 +430,32 @@ intel_framebuffer_renderbuffer(GLcontext *ctx,
  */
 static void
 intel_renderbuffer_texture(GLcontext *ctx,
-                           struct gl_renderbuffer_attachment *att,
-                           struct gl_texture_object *texObj,
-                           GLenum texTarget, GLuint level, GLuint zoffset)
+                           struct gl_framebuffer *fb,
+                           struct gl_renderbuffer_attachment *att)
 {
-   /* XXX not done */
+   struct gl_texture_image *newImage
+      = att->Texture->Image[att->CubeMapFace][att->TextureLevel];
+   struct intel_renderbuffer *irb;
+   const GLuint name = ~0; /* XXX OK? */
+
+   /* make an intel_renderbuffer to wrap the texture image */
+   irb = CALLOC_STRUCT(intel_renderbuffer);
+   if (!irb) {
+      _mesa_error(ctx, GL_OUT_OF_MEMORY, "glFramebufferTexture");
+      return;
+   }
+
+   irb->Magic = MAGIC; /* XXX FBO temporary */
+   _mesa_init_renderbuffer(&irb->Base, name);
+
+   /* Set the attachment's renderbuffer which wraps the texture */
+   ASSERT(!att->Renderbuffer);
+   att->Renderbuffer = &irb->Base;
+
+   switch (newImage->TexFormat->MesaFormat) {
+   default:
+      break;
+   }
 }
 
 
@@ -435,8 +464,7 @@ intel_renderbuffer_texture(GLcontext *ctx,
  */
 static void
 intel_finish_render_texture(GLcontext *ctx,
-                            struct gl_texture_object *texObj,
-                            GLuint face, GLuint level)
+                           struct gl_renderbuffer_attachment *att)
 {
    /* XXX not done */
 }
