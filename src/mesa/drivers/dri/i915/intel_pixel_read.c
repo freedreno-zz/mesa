@@ -189,7 +189,7 @@ static GLboolean do_blit_readpixels( GLcontext *ctx,
       return GL_FALSE;
 
    if (dst) {
-      /* This validation should be done by core mesa:
+      /* XXX This validation should be done by core mesa:
        */
       if (!_mesa_validate_pbo_access(2, pack, width, height, 1,
                                      format, type, pixels)) {
@@ -231,7 +231,7 @@ static GLboolean do_blit_readpixels( GLcontext *ctx,
       rowLength = -rowLength;
    }
 
-
+   /* XXX 64-bit cast? */
    dst_offset = (GLuint) _mesa_image_address(2, pack, pixels, width, height,
 					     format, type, 0, 0, 0);
 
