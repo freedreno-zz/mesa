@@ -49,7 +49,8 @@
 #define LOCAL_VARS							\
    struct intel_context *intel = intel_context(ctx);			\
    struct intel_renderbuffer *irb = intel_renderbuffer(rb);		\
-   const GLuint bottom = irb->Base.Height - 1;				\
+   const GLint yScale = irb->RenderToTexture ? 1 : -1;			\
+   const GLint yBias = irb->RenderToTexture ? 0 : irb->Base.Height - 1;	\
    GLubyte *buf = (GLubyte *) irb->pfMap				\
       + (intel->drawY * irb->pfPitch + intel->drawX) * irb->region->cpp;\
    GLuint p;								\
@@ -72,7 +73,7 @@
 
 
 
-#define Y_FLIP(_y) (bottom - _y)
+#define Y_FLIP(_y) ((_y) * yScale + yBias)
 
 #define HW_LOCK()
 
@@ -103,7 +104,8 @@
    struct intel_context *intel = intel_context(ctx);			\
    struct intel_renderbuffer *irb = intel_renderbuffer(rb);		\
    const GLuint pitch = irb->pfPitch/***XXX region->pitch*/; /* in pixels */ \
-   const GLuint bottom = rb->Height - 1;				\
+   const GLint yScale = irb->RenderToTexture ? 1 : -1;			\
+   const GLint yBias = irb->RenderToTexture ? 0 : irb->Base.Height - 1;	\
    char *buf = (char *) irb->pfMap/*XXX use region->map*/ +             \
       (intel->drawY * pitch + intel->drawX) * irb->region->cpp;
 
