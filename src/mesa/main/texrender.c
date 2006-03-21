@@ -195,6 +195,7 @@ wrap_texture(GLcontext *ctx, struct gl_renderbuffer_attachment *att)
    trb->Base.DepthBits = trb->TexImage->TexFormat->DepthBits;
 
    att->Renderbuffer = &(trb->Base);
+   trb->Base.RefCount++;
 }
 
 
@@ -241,3 +242,14 @@ _mesa_renderbuffer_texture(GLcontext *ctx,
 }
 
 
+void
+_mesa_finish_render_texture(GLcontext *ctx,
+                            struct gl_renderbuffer_attachment *att)
+{
+   if (att->Renderbuffer) {
+      att->Renderbuffer->RefCount--;
+   }
+   if (att->Renderbuffer->RefCount <= 0) {
+      _mesa_debug(ctx, "%s refcount == 0!\n", __FUNCTION__);
+   }
+}
