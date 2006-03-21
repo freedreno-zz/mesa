@@ -270,8 +270,8 @@ static GLboolean intelCreateBuffer( __DRIscreenPrivate *driScrnPriv,
       if (mesaVis->depthBits == 24 && mesaVis->stencilBits == 8) {
          /* combined depth/stencil buffer */
          struct intel_renderbuffer *depthStencilRb
-            = intel_create_renderbuffer(/**GL_DEPTH24_STENCIL8_EXT,**/
-                                        GL_DEPTH_COMPONENT24,
+            = intel_create_renderbuffer(
+                                        GL_DEPTH24_STENCIL8_EXT,
                                         screen->width, screen->height,
                                         screen->depth.offset,
                                         screen->depth.pitch,
@@ -280,17 +280,6 @@ static GLboolean intelCreateBuffer( __DRIscreenPrivate *driScrnPriv,
          intel_set_span_functions(&depthStencilRb->Base);
          /* note: bind RB to two attachment points */
          _mesa_add_renderbuffer(fb, BUFFER_DEPTH, &depthStencilRb->Base);
-#if 1
-         /* XXX TEMP: separate stencil */
-         depthStencilRb
-            = intel_create_renderbuffer(GL_STENCIL_INDEX8_EXT,
-                                        screen->width, screen->height,
-                                        screen->depth.offset,
-                                        screen->depth.pitch,
-                                        screen->cpp, /* 4! */
-                                        screen->depth.map);
-         intel_set_span_functions(&depthStencilRb->Base);
-#endif
          _mesa_add_renderbuffer(fb, BUFFER_STENCIL, &depthStencilRb->Base);
       }
       else if (mesaVis->depthBits == 16) {

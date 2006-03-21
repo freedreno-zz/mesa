@@ -35,6 +35,7 @@
 #include "texformat.h"
 
 #include "intel_context.h"
+#include "intel_buffers.h"
 #include "intel_bufmgr.h"
 #include "intel_fbo.h"
 #include "intel_mipmap_tree.h"
@@ -190,14 +191,14 @@ intel_alloc_renderbuffer_storage(GLcontext *ctx, struct gl_renderbuffer *rb,
    case GL_DEPTH_COMPONENT24:
    case GL_DEPTH_COMPONENT32:
       rb->InternalFormat = GL_DEPTH24_STENCIL8_EXT;
-      rb->DataType = GL_UNSIGNED_INT;
+      rb->DataType = GL_UNSIGNED_INT_24_8_EXT;
       rb->DepthBits = 24;
       cpp = 4;
       break;
    case GL_DEPTH_STENCIL_EXT:
    case GL_DEPTH24_STENCIL8_EXT:
       rb->InternalFormat = GL_DEPTH24_STENCIL8_EXT;
-      rb->DataType = GL_UNSIGNED_INT;
+      rb->DataType = GL_UNSIGNED_INT_24_8_EXT;
       rb->DepthBits = 24;
       rb->StencilBits = 8;
       cpp = 4;
@@ -336,7 +337,7 @@ intel_create_renderbuffer(GLenum intFormat, GLsizei width, GLsizei height,
       irb->Base._BaseFormat = GL_DEPTH_STENCIL_EXT;
       irb->Base.DepthBits = 24;
       irb->Base.StencilBits = 8;
-      irb->Base.DataType = GL_UNSIGNED_INT;
+      irb->Base.DataType = GL_UNSIGNED_INT_24_8_EXT;
       cpp = 4;
       break;
    default:
@@ -409,7 +410,7 @@ intel_bind_framebuffer(GLcontext *ctx, GLenum target,
    _mesa_debug(ctx, "%s %d\n", __FUNCTION__, fb->Name);
 
    if (target == GL_FRAMEBUFFER_EXT || target == GL_DRAW_FRAMEBUFFER_EXT) {
-      ctx->Driver.DrawBuffer(ctx, 0); /* second param is ignored */
+      intel_draw_buffer(ctx, fb);
       /* Integer depth range depends on depth buffer bits */
       ctx->Driver.DepthRange(ctx, ctx->Viewport.Near, ctx->Viewport.Far);
    }
@@ -432,7 +433,7 @@ intel_framebuffer_renderbuffer(GLcontext *ctx,
                fb->Name, rb->Name);
 
    _mesa_framebuffer_renderbuffer(ctx, fb, attachment, rb);
-   ctx->Driver.DrawBuffer(ctx, 0); /* second param is ignored */
+   intel_draw_buffer(ctx, fb);
 }
 
 
@@ -531,7 +532,7 @@ intel_renderbuffer_texture(GLcontext *ctx,
    intel_image = intel_texture_image(newImage);
    intel_region_reference(&irb->region, intel_image->mt->region);
 
-   ctx->Driver.DrawBuffer(ctx, 0); /* second param is ignored */
+   intel_draw_buffer(ctx, fb);
 }
 
 

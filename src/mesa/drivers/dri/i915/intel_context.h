@@ -57,8 +57,10 @@ typedef void (*intel_point_func)(struct intel_context *, intelVertex *);
 
 #define INTEL_FALLBACK_DRAW_BUFFER	 0x1
 #define INTEL_FALLBACK_READ_BUFFER	 0x2
-#define INTEL_FALLBACK_USER		 0x4
-#define INTEL_FALLBACK_RENDERMODE	 0x8
+#define INTEL_FALLBACK_DEPTH_BUFFER      0x4
+#define INTEL_FALLBACK_STENCIL_BUFFER    0x8
+#define INTEL_FALLBACK_USER		 0x10
+#define INTEL_FALLBACK_RENDERMODE	 0x20
 
 extern void intelFallback( struct intel_context *intel, GLuint bit, GLboolean mode );
 #define FALLBACK( intel, bit, mode ) intelFallback( intel, bit, mode )

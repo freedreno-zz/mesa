@@ -532,8 +532,9 @@ GLboolean intelMakeCurrent(__DRIcontextPrivate *driContextPriv,
 
       _mesa_make_current(&intel->ctx, drawFb, readFb);
 
-      intel->ctx.Driver.DrawBuffer( &intel->ctx, intel->ctx.Color.DrawBuffer[0] );
-   } else {
+      intel_draw_buffer(&intel->ctx, drawFb);
+   }
+   else {
       _mesa_make_current(NULL, NULL, NULL);
    }
 

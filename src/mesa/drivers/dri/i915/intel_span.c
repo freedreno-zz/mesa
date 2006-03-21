@@ -110,8 +110,9 @@
 
 #define LOCAL_STENCIL_VARS LOCAL_DEPTH_VARS 
 
-/* 16 bit depthbuffer functions.
- */
+/**
+ ** 16-bit depthbuffer functions.
+ **/
 #define WRITE_DEPTH( _x, _y, d ) \
    ((GLushort *)buf)[(_x) + (_y) * pitch] = d;
 
@@ -123,22 +124,31 @@
 #include "depthtmp.h"
 
 
-/* 24/8 bit interleaved depth/stencil functions
- */
+/**
+ ** 24/8-bit interleaved depth/stencil functions
+ ** Note: we're actually reading back combined depth+stencil values.
+ ** The wrappers in main/depthstencil.c are used to extract the depth
+ ** and stencil values.
+ **/
+/* Change ZZZS -> SZZZ */
 #define WRITE_DEPTH( _x, _y, d ) {				\
-   GLuint tmp = ((GLuint *)buf)[(_x) + (_y) * pitch];		\
-   tmp &= 0xff000000;						\
-   tmp |= (d) & 0xffffff;					\
+   GLuint tmp = ((d) >> 8) | ((d) << 24);			\
    ((GLuint *)buf)[(_x) + (_y) * pitch] = tmp;			\
 }
 
-#define READ_DEPTH( d, _x, _y )					\
-   d = ((GLuint *)buf)[(_x) + (_y) * pitch] & 0xffffff;
-
+/* Change SZZZ -> ZZZS */
+#define READ_DEPTH( d, _x, _y ) {				\
+   GLuint tmp = ((GLuint *)buf)[(_x) + (_y) * pitch];		\
+   d = (tmp << 8) | (tmp >> 24);				\
+}
 
 #define TAG(x) intel##x##_z24_s8
 #include "depthtmp.h"
 
+
+/**
+ ** 8-bit stencil function (XXX FBO: This is obsolete)
+ **/
 #define WRITE_STENCIL( _x, _y, d ) {				\
    GLuint tmp = ((GLuint *)buf)[(_x) + (_y) * pitch];		\
    tmp &= 0xffffff;						\
@@ -278,10 +288,7 @@ void intelSpanRenderStart( GLcontext *ctx )
       }
    }
 
-#if 1
-   /* XXX FBO: enable this code when old DRI screen mappings go away */
    intel_map_unmap_buffers(intel, GL_TRUE);
-#endif
 }
 
 /**
@@ -310,13 +317,11 @@ void intelSpanRenderFinish( GLcontext *ctx )
       }
    }
 
-#if 1
-   /* XXX FBO: enable this code when old DRI screen mappings go away */
    intel_map_unmap_buffers(intel, GL_FALSE);
-#endif
 
    UNLOCK_HARDWARE( intel );
 }
+
 
 void intelInitSpanFuncs( GLcontext *ctx )
 {
@@ -326,6 +331,10 @@ void intelInitSpanFuncs( GLcontext *ctx )
 }
 
 
+/**
+ * Plug in appropriate span read/write functions for the given renderbuffer.
+ * These are used for the software fallbacks.
+ */
 void
 intel_set_span_functions(struct gl_renderbuffer *rb)
 {
