@@ -170,6 +170,9 @@ const struct dri_extension card_extensions[] =
     { "GL_EXT_fog_coord",                  GL_EXT_fog_coord_functions },
     { "GL_EXT_framebuffer_object",         GL_EXT_framebuffer_object_functions },
     { "GL_EXT_multi_draw_arrays",          GL_EXT_multi_draw_arrays_functions },
+#if 1 /* XXX FBO temporary? */
+    { "GL_EXT_packed_depth_stencil",       NULL },
+#endif
     { "GL_EXT_secondary_color",            GL_EXT_secondary_color_functions },
     { "GL_EXT_stencil_wrap",               NULL },
     { "GL_EXT_texture_edge_clamp",         NULL },
@@ -346,7 +349,6 @@ GLboolean intelInitContext( struct intel_context *intel,
    intel->driFd = sPriv->fd;
    intel->driHwLock = (drmLock *) &sPriv->pSAREA->lock;
 
-   intel->hw_stencil = mesaVis->stencilBits && mesaVis->depthBits == 24;
    intel->hw_stipple = 1;
 
    /* XXX FBO: this doesn't seem to be used anywhere */

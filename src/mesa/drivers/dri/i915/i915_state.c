@@ -36,6 +36,7 @@
 
 #include "texmem.h"
 
+#include "intel_fbo.h"
 #include "intel_screen.h"
 #include "intel_batchbuffer.h"
 
@@ -672,6 +673,7 @@ static void i915Hint(GLcontext *ctx, GLenum target, GLenum state)
 static void i915Enable(GLcontext *ctx, GLenum cap, GLboolean state)
 {
    struct i915_context *i915 = I915_CONTEXT(ctx);
+   int hw_stencil;
 
    switch(cap) {
    case GL_TEXTURE_2D:
@@ -750,16 +752,24 @@ static void i915Enable(GLcontext *ctx, GLenum cap, GLboolean state)
       break;
 
    case GL_STENCIL_TEST:
-      if (i915->intel.hw_stencil) {
-	 I915_STATECHANGE(i915, I915_UPLOAD_CTX);
-	 if (state)
-	    i915->state.Ctx[I915_CTXREG_LIS5] |= (S5_STENCIL_TEST_ENABLE |
-						S5_STENCIL_WRITE_ENABLE);
-	 else
-	    i915->state.Ctx[I915_CTXREG_LIS5] &= ~(S5_STENCIL_TEST_ENABLE | 
-						 S5_STENCIL_WRITE_ENABLE);
-      } else {
-	 FALLBACK( &i915->intel, I915_FALLBACK_STENCIL, state );
+      {
+         GLboolean hw_stencil = GL_FALSE;
+         if (ctx->DrawBuffer) {
+            struct intel_renderbuffer *irbStencil
+               = intel_get_renderbuffer(ctx->DrawBuffer, BUFFER_STENCIL);
+            hw_stencil = (irbStencil && irbStencil->region);
+         }
+         if (hw_stencil) {
+            I915_STATECHANGE(i915, I915_UPLOAD_CTX);
+            if (state)
+               i915->state.Ctx[I915_CTXREG_LIS5] |= (S5_STENCIL_TEST_ENABLE |
+                                                   S5_STENCIL_WRITE_ENABLE);
+            else
+               i915->state.Ctx[I915_CTXREG_LIS5] &= ~(S5_STENCIL_TEST_ENABLE | 
+                                                    S5_STENCIL_WRITE_ENABLE);
+         } else {
+            FALLBACK( &i915->intel, I915_FALLBACK_STENCIL, state );
+         }
       }
       break;
 

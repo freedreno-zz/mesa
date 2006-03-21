@@ -36,6 +36,7 @@
 
 #include "intel_screen.h"
 #include "intel_batchbuffer.h"
+#include "intel_fbo.h"
 
 #include "i830_context.h"
 #include "i830_reg.h"
@@ -806,20 +807,28 @@ static void i830Enable(GLcontext *ctx, GLenum cap, GLboolean state)
       break;
 
    case GL_STENCIL_TEST:
-      if (i830->intel.hw_stencil) {
-	 I830_STATECHANGE(i830, I830_UPLOAD_CTX);
+      {
+         GLboolean hw_stencil = GL_FALSE;
+         if (ctx->DrawBuffer) {
+            struct intel_renderbuffer *irbStencil
+               = intel_get_renderbuffer(ctx->DrawBuffer, BUFFER_STENCIL);
+            hw_stencil = (irbStencil && irbStencil->region);
+         }
+         if (hw_stencil) {
+            I830_STATECHANGE(i830, I830_UPLOAD_CTX);
 
-	 if (state) {
-	    i830->state.Ctx[I830_CTXREG_ENABLES_1] |= ENABLE_STENCIL_TEST;
-	    i830->state.Ctx[I830_CTXREG_ENABLES_2] |= ENABLE_STENCIL_WRITE;
-	 } else {
-	    i830->state.Ctx[I830_CTXREG_ENABLES_1] &= ~ENABLE_STENCIL_TEST;
-	    i830->state.Ctx[I830_CTXREG_ENABLES_2] &= ~ENABLE_STENCIL_WRITE;
-	    i830->state.Ctx[I830_CTXREG_ENABLES_1] |= DISABLE_STENCIL_TEST;
-	    i830->state.Ctx[I830_CTXREG_ENABLES_2] |= DISABLE_STENCIL_WRITE;
-	 }
-      } else {
-	 FALLBACK( &i830->intel, I830_FALLBACK_STENCIL, state );
+            if (state) {
+               i830->state.Ctx[I830_CTXREG_ENABLES_1] |= ENABLE_STENCIL_TEST;
+               i830->state.Ctx[I830_CTXREG_ENABLES_2] |= ENABLE_STENCIL_WRITE;
+            } else {
+               i830->state.Ctx[I830_CTXREG_ENABLES_1] &= ~ENABLE_STENCIL_TEST;
+               i830->state.Ctx[I830_CTXREG_ENABLES_2] &= ~ENABLE_STENCIL_WRITE;
+               i830->state.Ctx[I830_CTXREG_ENABLES_1] |= DISABLE_STENCIL_TEST;
+               i830->state.Ctx[I830_CTXREG_ENABLES_2] |= DISABLE_STENCIL_WRITE;
+            }
+         } else {
+            FALLBACK( &i830->intel, I830_FALLBACK_STENCIL, state );
+         }
       }
       break;
 
@@ -902,6 +911,7 @@ static void i830_init_packets( struct i830_context *i830 )
 					     DISABLE_COLOR_BLEND |
 					     DISABLE_DEPTH_TEST);
 
+#if 000 /* XXX all the stencil enable state is set in i830Enable(), right? */
    if (i830->intel.hw_stencil) {
       i830->state.Ctx[I830_CTXREG_ENABLES_2] = (_3DSTATE_ENABLES_2_CMD |
 						ENABLE_STENCIL_WRITE |
@@ -911,7 +921,9 @@ static void i830_init_packets( struct i830_context *i830 )
 						/* set no color comps disabled */
 						ENABLE_COLOR_WRITE |
 						ENABLE_DEPTH_WRITE);
-   } else {
+   } else
+#endif
+   {
       i830->state.Ctx[I830_CTXREG_ENABLES_2] = (_3DSTATE_ENABLES_2_CMD |
 						DISABLE_STENCIL_WRITE |
 						ENABLE_TEX_CACHE |

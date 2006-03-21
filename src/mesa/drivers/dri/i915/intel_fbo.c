@@ -43,16 +43,24 @@
 #include "intel_span.h"
 
 
-#define MAGIC 0x12345678
+#define INTEL_RB_CLASS 0x12345678
+
 
 /* XXX FBO: move this to intel_context.h (inlined) */
+/**
+ * Return a gl_renderbuffer ptr casted to intel_renderbuffer.
+ * NULL will be returned if the rb isn't really an intel_renderbuffer.
+ * This is determiend by checking the ClassID.
+ */
 struct intel_renderbuffer *intel_renderbuffer( struct gl_renderbuffer *rb )
 {
    struct intel_renderbuffer *irb = (struct intel_renderbuffer *) rb;
-   if (irb) {
-      assert(irb->Magic == 0x12345678);
+   if (irb && irb->Base.ClassID == INTEL_RB_CLASS) {
+      /*_mesa_warning(NULL, "Returning non-intel Rb\n");*/
+      return irb;
    }
-   return irb;
+   else
+      return NULL;
 }
 
 
@@ -161,7 +169,7 @@ intel_alloc_renderbuffer_storage(GLcontext *ctx, struct gl_renderbuffer *rb,
    case GL_R3_G3_B2:
    case GL_RGB4:
    case GL_RGB5:
-      rb->InternalFormat = GL_RGB5;
+      rb->_ActualFormat = GL_RGB5;
       rb->DataType = GL_UNSIGNED_BYTE;
       rb->RedBits = 5;
       rb->GreenBits = 6;
@@ -181,7 +189,7 @@ intel_alloc_renderbuffer_storage(GLcontext *ctx, struct gl_renderbuffer *rb,
    case GL_RGB10_A2:
    case GL_RGBA12:
    case GL_RGBA16:
-      rb->InternalFormat = GL_RGBA8;
+      rb->_ActualFormat = GL_RGBA8;
       rb->DataType = GL_UNSIGNED_BYTE;
       rb->RedBits = 8;
       rb->GreenBits = 8;
@@ -194,7 +202,7 @@ intel_alloc_renderbuffer_storage(GLcontext *ctx, struct gl_renderbuffer *rb,
    case GL_STENCIL_INDEX4_EXT:
    case GL_STENCIL_INDEX8_EXT:
    case GL_STENCIL_INDEX16_EXT:
-      rb->InternalFormat = GL_STENCIL_INDEX8_EXT;
+      rb->_ActualFormat = GL_STENCIL_INDEX8_EXT;
       rb->DataType = GL_UNSIGNED_BYTE;
       rb->StencilBits = 8;
       cpp = 1;
@@ -202,7 +210,7 @@ intel_alloc_renderbuffer_storage(GLcontext *ctx, struct gl_renderbuffer *rb,
       /* XXX software buffer? */
       break;
    case GL_DEPTH_COMPONENT16:
-      rb->InternalFormat = GL_DEPTH_COMPONENT16;
+      rb->_ActualFormat = GL_DEPTH_COMPONENT16;
       rb->DataType = GL_UNSIGNED_SHORT;
       rb->DepthBits = 16;
       cpp = 2;
@@ -210,14 +218,14 @@ intel_alloc_renderbuffer_storage(GLcontext *ctx, struct gl_renderbuffer *rb,
    case GL_DEPTH_COMPONENT:
    case GL_DEPTH_COMPONENT24:
    case GL_DEPTH_COMPONENT32:
-      rb->InternalFormat = GL_DEPTH24_STENCIL8_EXT;
+      rb->_ActualFormat = GL_DEPTH24_STENCIL8_EXT;
       rb->DataType = GL_UNSIGNED_INT_24_8_EXT;
       rb->DepthBits = 24;
       cpp = 4;
       break;
    case GL_DEPTH_STENCIL_EXT:
    case GL_DEPTH24_STENCIL8_EXT:
-      rb->InternalFormat = GL_DEPTH24_STENCIL8_EXT;
+      rb->_ActualFormat = GL_DEPTH24_STENCIL8_EXT;
       rb->DataType = GL_UNSIGNED_INT_24_8_EXT;
       rb->DepthBits = 24;
       rb->StencilBits = 8;
@@ -279,7 +287,7 @@ intel_alloc_window_storage(GLcontext *ctx, struct gl_renderbuffer *rb,
    ASSERT(rb->Name == 0);
    rb->Width = width;
    rb->Height = height;
-   rb->InternalFormat = internalFormat;
+   rb->_ActualFormat = internalFormat;
    return GL_TRUE;
 }
 
@@ -316,9 +324,8 @@ intel_create_renderbuffer(GLenum intFormat, GLsizei width, GLsizei height,
       return NULL;
    }
 
-   irb->Magic = MAGIC; /* XXX FBO temporary */
-
    _mesa_init_renderbuffer(&irb->Base, name);
+   irb->Base.ClassID = INTEL_RB_CLASS;
 
    switch (intFormat) {
    case GL_RGB5:
@@ -368,7 +375,7 @@ intel_create_renderbuffer(GLenum intFormat, GLsizei width, GLsizei height,
       return NULL;
    }
 
-   irb->Base.InternalFormat = intFormat;
+   irb->Base._ActualFormat = intFormat;
 
    /* intel-specific methods */
    irb->Base.Delete = intel_delete_renderbuffer;
@@ -409,9 +416,8 @@ intel_new_renderbuffer(GLcontext *ctx, GLuint name)
       return NULL;
    }
 
-   irb->Magic = MAGIC;
-
    _mesa_init_renderbuffer(&irb->Base, name);
+   irb->Base.ClassID = INTEL_RB_CLASS;
 
    /* intel-specific methods */
    irb->Base.Delete = intel_delete_renderbuffer;
@@ -481,28 +487,30 @@ intel_wrap_texture(GLcontext *ctx, struct gl_texture_image *texImage)
    }
 
    _mesa_init_renderbuffer(&irb->Base, name);
-   irb->Magic = MAGIC; /* XXX FBO temporary */
+   irb->Base.ClassID = INTEL_RB_CLASS;
 
    if (texImage->TexFormat == &_mesa_texformat_argb8888) {
-      irb->Base.InternalFormat = GL_RGBA8;
+      irb->Base._ActualFormat = GL_RGBA8;
       irb->Base._BaseFormat = GL_RGBA;
       _mesa_debug(ctx, "Render to RGBA8 texture OK\n");
    }
    else if (texImage->TexFormat == &_mesa_texformat_rgb565) {
-      irb->Base.InternalFormat = GL_RGB5;
+      irb->Base._ActualFormat = GL_RGB5;
       irb->Base._BaseFormat = GL_RGB;
       _mesa_debug(ctx, "Render to RGB5 texture OK\n");
    }
    else if (texImage->TexFormat == &_mesa_texformat_depth_component16) {
-      irb->Base.InternalFormat = GL_DEPTH_COMPONENT16;
+      irb->Base._ActualFormat = GL_DEPTH_COMPONENT16;
       irb->Base._BaseFormat = GL_DEPTH_COMPONENT;
       _mesa_debug(ctx, "Render to DEPTH16 texture OK\n");
    }
    else {
       _mesa_debug(ctx, "Render to texture BAD FORMAT\n");
-      /* XXX will need to use software rendering! */
+      _mesa_free(irb);
+      return NULL;
    }
 
+   irb->Base.InternalFormat = irb->Base._ActualFormat;
    irb->Base.Width = texImage->Width;
    irb->Base.Height = texImage->Height;
    irb->Base.DataType = GL_UNSIGNED_BYTE; /* FBO XXX fix */
@@ -545,21 +553,25 @@ intel_renderbuffer_texture(GLcontext *ctx,
 
    if (!irb) {
       irb = intel_wrap_texture(ctx, newImage);
-      if (!irb) {
-         _mesa_error(ctx, GL_OUT_OF_MEMORY, "render to texture");
-         return;
-      }
-      att->Renderbuffer = &irb->Base;
    }
 
-   irb->Base.RefCount++;
+   if (irb) {
+      /* hardware rendering to texture */
+      irb->Base.RefCount++;
 
-   /* hook into the region */
-   /* XXX mipmap level / cube face */
-   intel_image = intel_texture_image(newImage);
-   intel_region_reference(&irb->region, intel_image->mt->region);
+      /* hook into the region */
+      /* XXX mipmap level / cube face */
+      intel_image = intel_texture_image(newImage);
+      intel_region_reference(&irb->region, intel_image->mt->region);
+      
+      att->Renderbuffer = &irb->Base;
 
-   intel_draw_buffer(ctx, fb);
+      intel_draw_buffer(ctx, fb);
+   }
+   else {
+      /* fallback to software rendering */
+      _mesa_problem(ctx, "Render to texture - unsupported hw format");
+   }
 }
 
 

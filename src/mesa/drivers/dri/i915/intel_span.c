@@ -342,25 +342,25 @@ void intelInitSpanFuncs( GLcontext *ctx )
 void
 intel_set_span_functions(struct gl_renderbuffer *rb)
 {
-   if (rb->InternalFormat == GL_RGB5) {
+   if (rb->_ActualFormat == GL_RGB5) {
       /* 565 RGB */
       intelInitPointers_RGB565(rb);
    }
-   else if (rb->InternalFormat == GL_RGBA8) {
+   else if (rb->_ActualFormat == GL_RGBA8) {
       /* 8888 RGBA */
       intelInitPointers_ARGB8888(rb);
    }
-   else if (rb->InternalFormat == GL_DEPTH_COMPONENT16) {
+   else if (rb->_ActualFormat == GL_DEPTH_COMPONENT16) {
       intelInitDepthPointers_z16(rb);
    }
-   else if (rb->InternalFormat == GL_DEPTH_COMPONENT24 || /* XXX FBO remove */
-            rb->InternalFormat == GL_DEPTH24_STENCIL8_EXT) {
+   else if (rb->_ActualFormat == GL_DEPTH_COMPONENT24 || /* XXX FBO remove */
+            rb->_ActualFormat == GL_DEPTH24_STENCIL8_EXT) {
       intelInitDepthPointers_z24_s8(rb);
    }
-   else if (rb->InternalFormat == GL_STENCIL_INDEX8_EXT) { /* XXX FBO remove */
+   else if (rb->_ActualFormat == GL_STENCIL_INDEX8_EXT) { /* XXX FBO remove */
       intelInitStencilPointers_z24_s8(rb);
    }
    else {
-      _mesa_problem(NULL, "Unexpected InternalFormat in intelSetSpanFunctions");
+      _mesa_problem(NULL, "Unexpected _ActualFormat in intelSetSpanFunctions");
    }
 }

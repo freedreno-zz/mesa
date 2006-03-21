@@ -394,14 +394,19 @@ static void intelClear(GLcontext *ctx,
    }
 
    /* HW stencil */
-   if (intel->hw_stencil && (mask & BUFFER_BIT_STENCIL)) {
-      if ((ctx->Stencil.WriteMask[0] & 0xff) != 0xff) {
-         /* not clearing all stencil bits, so use triangle clearing */
-	 tri_mask |= BUFFER_BIT_STENCIL;
-      } 
-      else {
-         /* clearing all stencil bits, use blitting */
-	 blit_mask |= BUFFER_BIT_STENCIL;
+   if (mask & BUFFER_BIT_STENCIL) {
+      const struct intel_region *stencilRegion
+         = intel_get_rb_region(ctx->DrawBuffer, BUFFER_STENCIL);
+      if (stencilRegion) {
+         /* have hw stencil */
+         if ((ctx->Stencil.WriteMask[0] & 0xff) != 0xff) {
+            /* not clearing all stencil bits, so use triangle clearing */
+            tri_mask |= BUFFER_BIT_STENCIL;
+         } 
+         else {
+            /* clearing all stencil bits, use blitting */
+            blit_mask |= BUFFER_BIT_STENCIL;
+         }
       }
    }
 
@@ -544,7 +549,7 @@ intel_draw_buffer(GLcontext *ctx, struct gl_framebuffer *fb)
    if (fb->_NumColorDrawBuffers[0] != 1
 #if 0
        /* XXX FBO temporary - always use software rendering */
-       || fb->Name != 0
+       || 1
 #endif
     ) {
       /* writing to 0 or 2 or 4 color buffers */
@@ -636,15 +641,19 @@ intel_draw_buffer(GLcontext *ctx, struct gl_framebuffer *fb)
    irbStencil = intel_get_renderbuffer(fb, BUFFER_STENCIL);
    if (irbStencil) {
       if (irbStencil == irbDepth && irbStencil->region) {
+         ASSERT(irbStencil->Base._ActualFormat == GL_DEPTH24_STENCIL8_EXT);
          FALLBACK(intel, INTEL_FALLBACK_STENCIL_BUFFER, GL_FALSE);
+         /* need to re-compute stencil hw state */
+         ctx->Driver.Enable(ctx, GL_STENCIL_TEST, ctx->Stencil.Enabled);
       }
       else {
          FALLBACK(intel, INTEL_FALLBACK_STENCIL_BUFFER, GL_TRUE);
-         ASSERT(irbStencil->Base.InternalFormat == GL_DEPTH24_STENCIL8_EXT);
       }
    }
    else {
       FALLBACK(intel, INTEL_FALLBACK_STENCIL_BUFFER, GL_FALSE);
+      /* need to re-compute stencil hw state */
+      ctx->Driver.Enable(ctx, GL_STENCIL_TEST, ctx->Stencil.Enabled);
    }
 
    intel->vtbl.set_draw_region( intel, colorRegion, depthRegion );

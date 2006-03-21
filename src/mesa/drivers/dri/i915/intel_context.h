@@ -198,7 +198,6 @@ struct intel_context
 
    GLfloat polygon_offset_scale; /* dependent on depth_scale, bpp */
 
-   GLboolean hw_stencil;
    GLboolean hw_stipple;
    
    /* AGP memory buffer manager:
