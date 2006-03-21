@@ -163,6 +163,8 @@ bmSetShared(struct bufmgr *bm, unsigned buffer, unsigned flags,
    {
       drmMMBuf *buf = _mesa_HashLookup(bm->hash, buffer);
 
+      assert(buf);
+
       buf->flags = DRM_MM_NO_EVICT | DRM_MM_SHARED
 	    | DRM_MM_WRITE | DRM_MM_READ;
       buf->flags |= flags & DRM_MM_MEMTYPE_MASK;
@@ -207,6 +209,7 @@ bmBufferData(struct bufmgr *bm,
 
       DBG("bmBufferData %d sz 0x%x data: %p\n", buffer, size, data);
 
+      assert(buf);
       assert(!buf->mapped);
 
       if (buf->flags & BM_BATCHBUFFER) {
@@ -247,6 +250,7 @@ bmBufferSubData(struct bufmgr *bm,
 
       DBG("bmBufferSubdata %d offset 0x%x sz 0x%x\n", buffer, offset, size);
 
+      assert(buf);
       drmBufWaitBusy(bm->driFd, buf);
 
       if (size) {
@@ -270,6 +274,7 @@ bmBufferGetSubData(struct bufmgr *bm,
 
       DBG("bmBufferSubdata %d offset 0x%x sz 0x%x\n", buffer, offset, size);
 
+      assert(buf);
       drmBufWaitBusy(bm->driFd, buf);
 
       if (size) {
@@ -294,6 +299,7 @@ bmMapBuffer(struct bufmgr *bm, unsigned buffer, unsigned flags)
       DBG("bmMapBuffer %d\n", buffer);
       DBG("Map: Block is 0x%x\n", &buf->block);
 
+      assert(buf);
       /* assert(!buf->mapped); */
       retval = drmMMMapBuffer(bm->driFd, buf);
    }
@@ -342,6 +348,7 @@ bmAddBuffer(struct bufmgr *bm,
 {
    drmMMBuf *buf = (drmMMBuf *) _mesa_HashLookup(bm->hash, buffer);
 
+   assert(buf);
    return drmMMBufListAdd(list, buf, 0, flags, memtype_return, offset_return);
 }
 
@@ -357,6 +364,7 @@ bmScanBufferList(struct bufmgr *bm,
 {
    drmMMBuf *buf = (drmMMBuf *) _mesa_HashLookup(bm->hash, buffer);
 
+   assert(buf);
    return drmMMScanBufList(list, buf);
 }
 
