@@ -2043,14 +2043,16 @@ struct gl_shared_state
  */
 struct gl_renderbuffer
 {
+   GLuint ClassID;        /**< Useful for drivers */
    GLuint Name;
    GLint RefCount;
    GLuint Width, Height;
-   GLenum InternalFormat; /* The user-specified value */
-   GLenum _BaseFormat;    /* Either GL_RGB, GL_RGBA, GL_DEPTH_COMPONENT or */
-                          /* GL_STENCIL_INDEX. */
-   GLenum DataType;       /* Type of values passed to the Get/Put functions */
-   GLubyte RedBits;       /**< Bits per image component */
+   GLenum InternalFormat; /**< The user-specified format */
+   GLenum _ActualFormat;  /**< The driver-chosen format */
+   GLenum _BaseFormat;    /**< Either GL_RGB, GL_RGBA, GL_DEPTH_COMPONENT or
+                               GL_STENCIL_INDEX. */
+   GLenum DataType;      /**< Type of values passed to the Get/Put functions */
+   GLubyte RedBits;      /**< Bits of red per pixel */
    GLubyte GreenBits;
    GLubyte BlueBits;
    GLubyte AlphaBits;

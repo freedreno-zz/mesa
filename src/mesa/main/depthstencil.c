@@ -59,9 +59,9 @@ static void
 delete_wrapper(struct gl_renderbuffer *rb)
 {
    struct gl_renderbuffer *dsrb = rb->Wrapped;
-   assert(dsrb);
-   assert(rb->InternalFormat == GL_DEPTH_COMPONENT24 ||
-          rb->InternalFormat == GL_STENCIL_INDEX8_EXT);
+   ASSERT(dsrb);
+   ASSERT(rb->_ActualFormat == GL_DEPTH_COMPONENT24 ||
+          rb->_ActualFormat == GL_STENCIL_INDEX8_EXT);
    /* decrement refcount on the wrapped buffer and delete it if necessary */
    dsrb->RefCount--;
    if (dsrb->RefCount <= 0) {
@@ -84,6 +84,7 @@ get_row_z24(GLcontext *ctx, struct gl_renderbuffer *z24rb, GLuint count,
    GLuint *dst = (GLuint *) values;
    const GLuint *src = (const GLuint *) dsrb->GetPointer(ctx, dsrb, x, y);
    ASSERT(z24rb->DataType == GL_UNSIGNED_INT);
+   ASSERT(dsrb->_ActualFormat == GL_DEPTH24_STENCIL8_EXT);
    ASSERT(dsrb->DataType == GL_UNSIGNED_INT_24_8_EXT);
    if (!src) {
       dsrb->GetRow(ctx, dsrb, count, x, y, temp);
@@ -102,6 +103,7 @@ get_values_z24(GLcontext *ctx, struct gl_renderbuffer *z24rb, GLuint count,
    GLuint temp[MAX_WIDTH], i;
    GLuint *dst = (GLuint *) values;
    ASSERT(z24rb->DataType == GL_UNSIGNED_INT);
+   ASSERT(dsrb->_ActualFormat == GL_DEPTH24_STENCIL8_EXT);
    ASSERT(dsrb->DataType == GL_UNSIGNED_INT_24_8_EXT);
    ASSERT(count <= MAX_WIDTH);
    /* don't bother trying direct access */
@@ -119,6 +121,7 @@ put_row_z24(GLcontext *ctx, struct gl_renderbuffer *z24rb, GLuint count,
    const GLuint *src = (const GLuint *) values;
    GLuint *dst = (GLuint *) dsrb->GetPointer(ctx, dsrb, x, y);
    ASSERT(z24rb->DataType == GL_UNSIGNED_INT);
+   ASSERT(dsrb->_ActualFormat == GL_DEPTH24_STENCIL8_EXT);
    ASSERT(dsrb->DataType == GL_UNSIGNED_INT_24_8_EXT);
    if (dst) {
       /* direct access */
@@ -150,6 +153,7 @@ put_mono_row_z24(GLcontext *ctx, struct gl_renderbuffer *z24rb, GLuint count,
    const GLuint shiftedVal = *((GLuint *) value) << 8;
    GLuint *dst = (GLuint *) dsrb->GetPointer(ctx, dsrb, x, y);
    ASSERT(z24rb->DataType == GL_UNSIGNED_INT);
+   ASSERT(dsrb->_ActualFormat == GL_DEPTH24_STENCIL8_EXT);
    ASSERT(dsrb->DataType == GL_UNSIGNED_INT_24_8_EXT);
    if (dst) {
       /* direct access */
@@ -181,6 +185,7 @@ put_values_z24(GLcontext *ctx, struct gl_renderbuffer *z24rb, GLuint count,
    struct gl_renderbuffer *dsrb = z24rb->Wrapped;
    const GLubyte *src = (const GLubyte *) values;
    ASSERT(z24rb->DataType == GL_UNSIGNED_INT);
+   ASSERT(dsrb->_ActualFormat == GL_DEPTH24_STENCIL8_EXT);
    ASSERT(dsrb->DataType == GL_UNSIGNED_INT_24_8_EXT);
    if (dsrb->GetPointer(ctx, dsrb, 0, 0)) {
       /* direct access */
@@ -236,6 +241,7 @@ _mesa_new_z24_renderbuffer_wrapper(GLcontext *ctx,
    struct gl_renderbuffer *z24rb;
 
    ASSERT(dsrb->_BaseFormat == GL_DEPTH_STENCIL_EXT);
+   ASSERT(dsrb->_ActualFormat == GL_DEPTH24_STENCIL8_EXT);
    ASSERT(dsrb->DataType == GL_UNSIGNED_INT_24_8_EXT);
 
    z24rb = _mesa_new_renderbuffer(ctx, 0);
@@ -248,6 +254,7 @@ _mesa_new_z24_renderbuffer_wrapper(GLcontext *ctx,
    z24rb->Width = dsrb->Width;
    z24rb->Height = dsrb->Height;
    z24rb->InternalFormat = GL_DEPTH_COMPONENT24_ARB;
+   z24rb->_ActualFormat = GL_DEPTH_COMPONENT24_ARB;
    z24rb->_BaseFormat = GL_DEPTH_COMPONENT;
    z24rb->DataType = GL_UNSIGNED_INT;
    z24rb->DepthBits = 24;
@@ -279,6 +286,7 @@ get_row_s8(GLcontext *ctx, struct gl_renderbuffer *s8rb, GLuint count,
    GLubyte *dst = (GLubyte *) values;
    const GLuint *src = (const GLuint *) dsrb->GetPointer(ctx, dsrb, x, y);
    ASSERT(s8rb->DataType == GL_UNSIGNED_BYTE);
+   ASSERT(dsrb->_ActualFormat == GL_DEPTH24_STENCIL8_EXT);
    ASSERT(dsrb->DataType == GL_UNSIGNED_INT_24_8_EXT);
    if (!src) {
       dsrb->GetRow(ctx, dsrb, count, x, y, temp);
@@ -297,6 +305,7 @@ get_values_s8(GLcontext *ctx, struct gl_renderbuffer *s8rb, GLuint count,
    GLuint temp[MAX_WIDTH], i;
    GLubyte *dst = (GLubyte *) values;
    ASSERT(s8rb->DataType == GL_UNSIGNED_BYTE);
+   ASSERT(dsrb->_ActualFormat == GL_DEPTH24_STENCIL8_EXT);
    ASSERT(dsrb->DataType == GL_UNSIGNED_INT_24_8_EXT);
    ASSERT(count <= MAX_WIDTH);
    /* don't bother trying direct access */
@@ -314,6 +323,7 @@ put_row_s8(GLcontext *ctx, struct gl_renderbuffer *s8rb, GLuint count,
    const GLubyte *src = (const GLubyte *) values;
    GLuint *dst = (GLuint *) dsrb->GetPointer(ctx, dsrb, x, y);
    ASSERT(s8rb->DataType == GL_UNSIGNED_BYTE);
+   ASSERT(dsrb->_ActualFormat == GL_DEPTH24_STENCIL8_EXT);
    ASSERT(dsrb->DataType == GL_UNSIGNED_INT_24_8_EXT);
    if (dst) {
       /* direct access */
@@ -345,6 +355,7 @@ put_mono_row_s8(GLcontext *ctx, struct gl_renderbuffer *s8rb, GLuint count,
    const GLubyte val = *((GLubyte *) value);
    GLuint *dst = (GLuint *) dsrb->GetPointer(ctx, dsrb, x, y);
    ASSERT(s8rb->DataType == GL_UNSIGNED_BYTE);
+   ASSERT(dsrb->_ActualFormat == GL_DEPTH24_STENCIL8_EXT);
    ASSERT(dsrb->DataType == GL_UNSIGNED_INT_24_8_EXT);
    if (dst) {
       /* direct access */
@@ -376,6 +387,7 @@ put_values_s8(GLcontext *ctx, struct gl_renderbuffer *s8rb, GLuint count,
    struct gl_renderbuffer *dsrb = s8rb->Wrapped;
    const GLubyte *src = (const GLubyte *) values;
    ASSERT(s8rb->DataType == GL_UNSIGNED_BYTE);
+   ASSERT(dsrb->_ActualFormat == GL_DEPTH24_STENCIL8_EXT);
    ASSERT(dsrb->DataType == GL_UNSIGNED_INT_24_8_EXT);
    if (dsrb->GetPointer(ctx, dsrb, 0, 0)) {
       /* direct access */
@@ -430,6 +442,7 @@ _mesa_new_s8_renderbuffer_wrapper(GLcontext *ctx, struct gl_renderbuffer *dsrb)
    struct gl_renderbuffer *s8rb;
 
    ASSERT(dsrb->_BaseFormat == GL_DEPTH_STENCIL_EXT);
+   ASSERT(dsrb->_ActualFormat == GL_DEPTH24_STENCIL8_EXT);
    ASSERT(dsrb->DataType == GL_UNSIGNED_INT_24_8_EXT);
 
    s8rb = _mesa_new_renderbuffer(ctx, 0);
@@ -442,6 +455,7 @@ _mesa_new_s8_renderbuffer_wrapper(GLcontext *ctx, struct gl_renderbuffer *dsrb)
    s8rb->Width = dsrb->Width;
    s8rb->Height = dsrb->Height;
    s8rb->InternalFormat = GL_STENCIL_INDEX8_EXT;
+   s8rb->_ActualFormat = GL_STENCIL_INDEX8_EXT;
    s8rb->_BaseFormat = GL_STENCIL_INDEX;
    s8rb->DataType = GL_UNSIGNED_BYTE;
    s8rb->StencilBits = 8;
@@ -479,11 +493,11 @@ _mesa_merge_depth_stencil_buffers(GLcontext *ctx,
    ASSERT(depth);
    ASSERT(stencil);
 
-   ASSERT(dest->InternalFormat == GL_DEPTH24_STENCIL8_EXT);
+   ASSERT(dest->_ActualFormat == GL_DEPTH24_STENCIL8_EXT);
    ASSERT(dest->DataType == GL_UNSIGNED_INT_24_8_EXT);
-   ASSERT(depth->InternalFormat == GL_DEPTH_COMPONENT24);
+   ASSERT(depth->_ActualFormat == GL_DEPTH_COMPONENT24);
    ASSERT(depth->DataType == GL_UNSIGNED_INT);
-   ASSERT(stencil->InternalFormat == GL_STENCIL_INDEX8_EXT);
+   ASSERT(stencil->_ActualFormat == GL_STENCIL_INDEX8_EXT);
    ASSERT(stencil->DataType == GL_UNSIGNED_BYTE);
 
    ASSERT(dest->Width == depth->Width);
@@ -523,11 +537,11 @@ _mesa_split_depth_stencil_buffer(GLcontext *ctx,
    ASSERT(depth);
    ASSERT(stencil);
 
-   ASSERT(source->InternalFormat == GL_DEPTH24_STENCIL8_EXT);
+   ASSERT(source->_ActualFormat == GL_DEPTH24_STENCIL8_EXT);
    ASSERT(source->DataType == GL_UNSIGNED_INT_24_8_EXT);
-   ASSERT(depth->InternalFormat == GL_DEPTH_COMPONENT24);
+   ASSERT(depth->_ActualFormat == GL_DEPTH_COMPONENT24);
    ASSERT(depth->DataType == GL_UNSIGNED_INT);
-   ASSERT(stencil->InternalFormat == GL_STENCIL_INDEX8_EXT);
+   ASSERT(stencil->_ActualFormat == GL_STENCIL_INDEX8_EXT);
    ASSERT(stencil->DataType == GL_UNSIGNED_BYTE);
 
    ASSERT(source->Width == depth->Width);

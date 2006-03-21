@@ -787,14 +787,16 @@ _mesa_RenderbufferStorageEXT(GLenum target, GLenum internalFormat,
    }
 
    /* Now allocate the storage */
+   rb->_ActualFormat = 0; /* This MUST get set by the AllocStorage func */
    ASSERT(rb->AllocStorage);
    if (rb->AllocStorage(ctx, rb, internalFormat, width, height)) {
       /* No error - check/set fields now */
+      assert(rb->_ActualFormat);
       assert(rb->Width == width);
       assert(rb->Height == height);
-      assert(rb->InternalFormat);
       assert(rb->RedBits || rb->GreenBits || rb->BlueBits || rb->AlphaBits ||
              rb->DepthBits || rb->StencilBits || rb->IndexBits);
+      rb->InternalFormat = internalFormat;
       rb->_BaseFormat = baseFormat;
    }
    else {
@@ -802,6 +804,7 @@ _mesa_RenderbufferStorageEXT(GLenum target, GLenum internalFormat,
       rb->Width = 0;
       rb->Height = 0;
       rb->InternalFormat = GL_NONE;
+      rb->_ActualFormat = GL_NONE;
       rb->_BaseFormat = GL_NONE;
       rb->RedBits =
       rb->GreenBits =

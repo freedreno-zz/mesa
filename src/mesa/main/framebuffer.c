@@ -233,6 +233,7 @@ _mesa_resize_framebuffer(GLcontext *ctx, struct gl_framebuffer *fb,
          struct gl_renderbuffer *rb = att->Renderbuffer;
          /* only resize if size is changing */
          if (rb->Width != width || rb->Height != height) {
+            /* could just as well pass rb->_ActualFormat here */
             if (rb->AllocStorage(ctx, rb, rb->InternalFormat, width, height)) {
                rb->Width = width;
                rb->Height = height;
