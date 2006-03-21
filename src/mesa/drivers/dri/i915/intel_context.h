@@ -219,7 +219,7 @@ struct intel_context
    struct intel_region *front_region;   /* XXX FBO: obsolete */
    struct intel_region *back_region;    /* XXX FBO: obsolete */
    struct intel_region *draw_region;    /* XXX FBO: rename to color_region */
-   struct intel_region *depth_region;
+   struct intel_region *depth_region;   /**< currently bound depth/Z region */
 
 
    /* Fallback rasterization functions 
@@ -228,20 +228,22 @@ struct intel_context
    intel_line_func draw_line;
    intel_tri_func draw_tri;
 
-   /* These refer to the current draw (front vs. back) buffer:
+   /* These refer to the current drawing buffer:
     */
-   int drawX;			/* origin of drawable in draw buffer */
-   int drawY;
-   GLuint numClipRects;		/* cliprects for that buffer */
+   int drawX, drawY;            /**< origin of drawing area within region */
+   GLuint numClipRects;		/**< cliprects for drawing */
    drm_clip_rect_t *pClipRects;
-   drm_clip_rect_t fboRect;    /* used for FBO rendering */
+   drm_clip_rect_t fboRect;     /**< cliprect for FBO rendering */
 
    int perf_boxes;
    int do_irqs;
 
+   /* XXX these seem to be unused */
+#if 0
    GLboolean scissor;
    drm_clip_rect_t draw_rect;
    drm_clip_rect_t scissor_rect;
+#endif
 
    drm_context_t hHWContext;
    drmLock *driHwLock;
