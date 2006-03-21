@@ -96,7 +96,7 @@ driNewRenderbuffer(GLenum format, GLvoid *addr,
       }
       else {
          /* Stencil */
-         ASSERT(format == GL_STENCIL_INDEX8);
+         ASSERT(format == GL_STENCIL_INDEX8_EXT);
          drb->Base._BaseFormat = GL_STENCIL_INDEX;
          drb->Base.DataType = GL_UNSIGNED_BYTE;
       }
