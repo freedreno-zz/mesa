@@ -243,11 +243,14 @@ intel_alloc_renderbuffer_storage(GLcontext *ctx, struct gl_renderbuffer *rb,
                                              width, height);
    }
    else {
+      /* Choose a pitch to match hardware requirements:
+       */
+      GLuint pitch = ((cpp * width + 63) & ~63) / cpp;
+
       /* alloc hardware renderbuffer */
-      _mesa_debug(ctx, "Allocating %d x %d Intel RBO\n", width, height);
-      /*LOCK_HARDWARE(intel);*/
-      irb->region = intel_region_alloc(intel, cpp, width, height);
-      /*UNLOCK_HARDWARE(intel);*/
+      _mesa_debug(ctx, "Allocating %d x %d Intel RBO (pitch %d)\n", width, height, pitch);
+
+      irb->region = intel_region_alloc(intel, cpp, pitch, height);
       if (!irb->region)
          return GL_FALSE; /* out of memory? */
 
