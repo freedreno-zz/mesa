@@ -427,7 +427,9 @@ static void
 intel_bind_framebuffer(GLcontext *ctx, GLenum target,
                        struct gl_framebuffer *fb)
 {
+   /*
    _mesa_debug(ctx, "%s %d\n", __FUNCTION__, fb->Name);
+   */
 
    if (target == GL_FRAMEBUFFER_EXT || target == GL_DRAW_FRAMEBUFFER_EXT) {
       intel_draw_buffer(ctx, fb);
@@ -511,6 +513,8 @@ intel_wrap_texture(GLcontext *ctx, struct gl_texture_image *texImage)
    irb->Base.AllocStorage = intel_nop_alloc_storage;
    intel_set_span_functions(&irb->Base);
 
+   irb->RenderToTexture = GL_TRUE;
+
    return irb;
 }
 
@@ -573,9 +577,10 @@ intel_finish_render_texture(GLcontext *ctx,
 
    irb->Base.RefCount--;
 
+   /*
    _mesa_debug(ctx, "intel_finish_render_texture, refcount=%d\n",
                irb->Base.RefCount);
-   _mesa_debug(ctx, "draw x,y = %d, %d\n", intel->drawX, intel->drawY);
+   */
 
    /* should never hit zero here */
    assert(irb->Base.RefCount > 0);

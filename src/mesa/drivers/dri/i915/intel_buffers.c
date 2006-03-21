@@ -520,8 +520,6 @@ intel_draw_buffer(GLcontext *ctx, struct gl_framebuffer *fb)
       return;
    }
 
-   _mesa_debug(ctx, "%s %d\n", __FUNCTION__, fb->Name);
-
    /* Do this here, note core Mesa, since this function is called from
     * many places within the driver.
     */
@@ -650,6 +648,10 @@ intel_draw_buffer(GLcontext *ctx, struct gl_framebuffer *fb)
    }
 
    intel->vtbl.set_draw_region( intel, colorRegion, depthRegion );
+
+   /* update viewport since it depends on window size */
+   ctx->Driver.Viewport(ctx, ctx->Viewport.X, ctx->Viewport.Y,
+                        ctx->Viewport.Width, ctx->Viewport.Height);
 }
 
 

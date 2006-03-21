@@ -35,6 +35,7 @@
 
 #include "intel_screen.h"
 #include "intel_context.h"
+#include "intel_fbo.h"
 #include "intel_regions.h"
 #include "swrast/swrast.h"
 
@@ -183,26 +184,49 @@ static void intelClearColor(GLcontext *ctx, const GLfloat color[4])
 }
 
 
+/**
+ * Update the viewport transformation matrix.  Depends on:
+ *  - viewport pos/size
+ *  - depthrange
+ *  - window pos/size or FBO size
+ */
 static void intelCalcViewport( GLcontext *ctx )
 {
    struct intel_context *intel = intel_context(ctx);
    const GLfloat *v = ctx->Viewport._WindowMap.m;
    const GLfloat depthScale = 1.0F / ctx->DrawBuffer->_DepthMaxF;
    GLfloat *m = intel->ViewportMatrix.m;
-   GLint h = 0;
+   GLfloat yScale, yBias;
 
-   if (intel->driDrawable) 
-      h = intel->driDrawable->h + SUBPIXEL_Y;
+   if (ctx->DrawBuffer->Name) {
+      /* User created FBO */
+      struct intel_renderbuffer *irb
+         = intel_renderbuffer(ctx->DrawBuffer->_ColorDrawBuffers[0][0]);
+      if (irb && !irb->RenderToTexture) {
+         /* y=0=top */
+         yScale = -1.0;
+         yBias = irb->Base.Height;
+      }
+      else {
+         /* y=0=bottom */
+         yScale = 1.0;
+         yBias = 0.0;
+      }
+   }
+   else {
+      /* window buffer, y=0=top */
+      yScale = -1.0;
+      yBias = (intel->driDrawable) ? intel->driDrawable->h : 0.0F;
+   }
 
-   /* See also intel_translate_vertex.  SUBPIXEL adjustments can be done
-    * via state vars, too.
-    */
-   m[MAT_SX] =   v[MAT_SX];
-   m[MAT_TX] =   v[MAT_TX] + SUBPIXEL_X;
-   m[MAT_SY] = - v[MAT_SY];
-   m[MAT_TY] = - v[MAT_TY] + h;
-   m[MAT_SZ] =   v[MAT_SZ] * depthScale;
-   m[MAT_TZ] =   v[MAT_TZ] * depthScale;
+   m[MAT_SX] = v[MAT_SX];
+   m[MAT_TX] = v[MAT_TX] + SUBPIXEL_X;
+
+   m[MAT_SY] = v[MAT_SY] * yScale;
+   m[MAT_TY] = v[MAT_TY] * yScale + yBias + SUBPIXEL_Y;
+
+   m[MAT_SZ] = v[MAT_SZ] * depthScale;
+   m[MAT_TZ] = v[MAT_TZ] * depthScale;
 }
 
 static void intelViewport( GLcontext *ctx,
@@ -328,5 +352,6 @@ void intelInitState( GLcontext *ctx )
                                   ctx->Stencil.ZPassFunc[1]);
 
 
+   /* XXX this isn't really needed */
    ctx->Driver.DrawBuffer( ctx, ctx->Color.DrawBuffer[0] );
 }

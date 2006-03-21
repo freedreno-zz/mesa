@@ -42,6 +42,7 @@ struct intel_renderbuffer {
    void *pfMap;    /* possibly paged flipped map pointer */
    GLuint pfPitch; /* possibly paged flipped pitch */
    GLuint Magic; /* for debug/sanity */
+   GLboolean RenderToTexture; /* RTT? */
 };
 
 
