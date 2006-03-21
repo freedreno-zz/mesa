@@ -56,6 +56,26 @@ struct intel_renderbuffer *intel_renderbuffer( struct gl_renderbuffer *rb )
 }
 
 
+struct intel_renderbuffer *
+intel_get_renderbuffer(struct gl_framebuffer *fb, GLuint attIndex)
+{
+   return intel_renderbuffer(fb->Attachment[attIndex].Renderbuffer);
+}
+
+
+struct intel_region *
+intel_get_rb_region(struct gl_framebuffer *fb, GLuint attIndex)
+{
+   struct intel_renderbuffer *irb
+      = intel_renderbuffer(fb->Attachment[attIndex].Renderbuffer);
+   if (irb)
+      return irb->region;
+   else
+      return NULL;
+}
+
+
+
 /**
  * Create a new framebuffer object.
  */
@@ -555,6 +575,7 @@ intel_finish_render_texture(GLcontext *ctx,
 
    _mesa_debug(ctx, "intel_finish_render_texture, refcount=%d\n",
                irb->Base.RefCount);
+   _mesa_debug(ctx, "draw x,y = %d, %d\n", intel->drawX, intel->drawY);
 
    /* should never hit zero here */
    assert(irb->Base.RefCount > 0);

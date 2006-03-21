@@ -73,27 +73,25 @@ void intelCopyBuffer( const __DRIdrawablePrivate *dPriv )
       const intelScreenPrivate *intelScreen = intel->intelScreen;
       /* XXX why are we declaring a new dPriv (already passed as param!) */
       const __DRIdrawablePrivate *dPriv = intel->driDrawable;
-      const struct gl_framebuffer *fb
-         = (const struct gl_framebuffer *) dPriv->driverPrivate;
-      const struct intel_renderbuffer *irbFront
-         = intel_renderbuffer(fb->Attachment[BUFFER_FRONT_LEFT].Renderbuffer);
-      const struct intel_renderbuffer *irbBack
-         = intel_renderbuffer(fb->Attachment[BUFFER_BACK_LEFT].Renderbuffer);
+      struct gl_framebuffer *fb
+         = (struct gl_framebuffer *) dPriv->driverPrivate;
+      const struct intel_region *frontRegion
+         = intel_get_rb_region(fb, BUFFER_FRONT_LEFT);
+      const struct intel_region *backRegion
+         = intel_get_rb_region(fb, BUFFER_BACK_LEFT);
       const int nbox = dPriv->numClipRects;
       const drm_clip_rect_t *pbox = dPriv->pClipRects;
-      const int pitch = irbFront->region->pitch;
-      const int cpp= irbFront->region->cpp;
+      const int pitch = frontRegion->pitch;
+      const int cpp= frontRegion->cpp;
       int BR13, CMD;
       int i;
 
       ASSERT(fb);
       ASSERT(fb->Name == 0); /* Not a user-created FBO */
-      ASSERT(irbFront);
-      ASSERT(irbBack);
-      ASSERT(irbFront->region);
-      ASSERT(irbBack->region);
-      ASSERT(irbFront->region->pitch == irbBack->region->pitch);
-      ASSERT(irbFront->region->cpp == irbBack->region->cpp);
+      ASSERT(frontRegion);
+      ASSERT(backRegion);
+      ASSERT(frontRegion->pitch == backRegion->pitch);
+      ASSERT(frontRegion->cpp == backRegion->cpp);
 
       if (cpp == 2) {
 	 BR13 = (pitch * cpp) | (0xCC << 16) | (1<<24);
@@ -120,16 +118,16 @@ void intelCopyBuffer( const __DRIdrawablePrivate *dPriv )
 	 OUT_BATCH( (pbox->y2 << 16) | pbox->x2 );
 
 	 if (intel->sarea->pf_current_page == 0) 
-	    OUT_RELOC( irbFront->region->buffer, DRM_MM_TT|DRM_MM_WRITE, 0 );
+	    OUT_RELOC( frontRegion->buffer, DRM_MM_TT|DRM_MM_WRITE, 0 );
 	 else
-	    OUT_RELOC( irbBack->region->buffer, DRM_MM_TT|DRM_MM_WRITE, 0 ); 
+	    OUT_RELOC( backRegion->buffer, DRM_MM_TT|DRM_MM_WRITE, 0 ); 
 	 OUT_BATCH( (pbox->y1 << 16) | pbox->x1 );
 	 OUT_BATCH( BR13 & 0xffff );
 
 	 if (intel->sarea->pf_current_page == 0) 
-	    OUT_RELOC( irbBack->region->buffer, DRM_MM_TT|DRM_MM_READ, 0 ); 
+	    OUT_RELOC( backRegion->buffer, DRM_MM_TT|DRM_MM_READ, 0 ); 
 	 else
-	    OUT_RELOC( irbFront->region->buffer, DRM_MM_TT|DRM_MM_READ, 0 );
+	    OUT_RELOC( frontRegion->buffer, DRM_MM_TT|DRM_MM_READ, 0 );
 
 	 ADVANCE_BATCH();
       }

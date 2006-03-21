@@ -213,8 +213,10 @@ intel_map_unmap_buffers(struct intel_context *intel, GLboolean map)
     */
 #if 0
    if (map && ctx->DrawBuffer->Name == 0) {
-      struct intel_renderbuffer *irbFront = intel_renderbuffer(ctx->DrawBuffer->Attachment[BUFFER_FRONT_LEFT].Renderbuffer);
-      struct intel_renderbuffer *irbBack = intel_renderbuffer(ctx->DrawBuffer->Attachment[BUFFER_BACK_LEFT].Renderbuffer);
+      struct intel_renderbuffer *irbFront
+         = intel_get_renderbuffer(ctx->DrawBuffer, BUFFER_FRONT_LEFT);
+      struct intel_renderbuffer *irbBack
+         = intel_get_renderbuffer(ctx->DrawBuffer, BUFFER_BACK_LEFT);
       if (irbBack) {
          /* double buffered */
          if (intel->sarea->pf_current_page == 0) {

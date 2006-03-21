@@ -53,4 +53,17 @@ intel_create_renderbuffer(GLenum intFormat, GLsizei width, GLsizei height,
 extern void
 intel_fbo_init( struct intel_context *intel );
 
+
+/* XXX make inline or macro */
+extern struct intel_renderbuffer *
+intel_get_renderbuffer(struct gl_framebuffer *fb, GLuint attIndex);
+
+
+/* XXX make inline or macro */
+extern struct intel_region *
+intel_get_rb_region(struct gl_framebuffer *fb, GLuint attIndex);
+
+
+
+
 #endif /* INTEL_FBO_H */

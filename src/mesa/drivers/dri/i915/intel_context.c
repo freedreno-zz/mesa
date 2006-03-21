@@ -515,10 +515,14 @@ GLboolean intelMakeCurrent(__DRIcontextPrivate *driContextPriv,
       /* XXX FBO temporary fix-ups! */
       /* if the renderbuffers don't have regions, init them from the context */
       {
-         struct intel_renderbuffer *irbFront = intel_renderbuffer(drawFb->Attachment[BUFFER_FRONT_LEFT].Renderbuffer);
-         struct intel_renderbuffer *irbBack = intel_renderbuffer(drawFb->Attachment[BUFFER_BACK_LEFT].Renderbuffer);
-         struct intel_renderbuffer *irbDepth = intel_renderbuffer(drawFb->Attachment[BUFFER_DEPTH].Renderbuffer);
-         struct intel_renderbuffer *irbStencil = intel_renderbuffer(drawFb->Attachment[BUFFER_STENCIL].Renderbuffer);
+         struct intel_renderbuffer *irbFront
+            = intel_get_renderbuffer(drawFb, BUFFER_FRONT_LEFT);
+         struct intel_renderbuffer *irbBack
+            = intel_get_renderbuffer(drawFb, BUFFER_BACK_LEFT);
+         struct intel_renderbuffer *irbDepth
+            = intel_get_renderbuffer(drawFb, BUFFER_DEPTH);
+         struct intel_renderbuffer *irbStencil
+            = intel_get_renderbuffer(drawFb, BUFFER_STENCIL);
 
          if (irbFront && !irbFront->region)
             irbFront->region = intel->front_region;

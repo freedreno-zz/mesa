@@ -62,15 +62,13 @@ get_teximage_source(struct intel_context *intel, GLenum internalFormat)
    switch (internalFormat) {
    case GL_DEPTH_COMPONENT:
    case GL_DEPTH_COMPONENT16_ARB:
-      irb = intel_renderbuffer(intel->ctx.ReadBuffer->
-                               Attachment[BUFFER_DEPTH].Renderbuffer);
+      irb = intel_get_renderbuffer(intel->ctx.ReadBuffer, BUFFER_DEPTH);
       if (irb && irb->region && irb->region->cpp == 2)
 	 return irb->region;
       return NULL;
    case GL_DEPTH24_STENCIL8_EXT:
    case GL_DEPTH_STENCIL_EXT:
-      irb = intel_renderbuffer(intel->ctx.ReadBuffer->
-                               Attachment[BUFFER_DEPTH].Renderbuffer);
+      irb = intel_get_renderbuffer(intel->ctx.ReadBuffer, BUFFER_DEPTH);
       if (irb && irb->region && irb->region->cpp == 4)
 	 return irb->region;
       return NULL;

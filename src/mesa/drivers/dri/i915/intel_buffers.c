@@ -291,14 +291,10 @@ static void intelClearWithTris(struct intel_context *intel,
        * buffers at once:
        */
       if (mask & (BUFFER_BIT_BACK_LEFT|BUFFER_BIT_STENCIL|BUFFER_BIT_DEPTH)) { 
-         struct intel_renderbuffer *irbBack =
-            intel_renderbuffer(ctx->DrawBuffer->
-                               Attachment[BUFFER_BACK_LEFT].Renderbuffer);
-         struct intel_renderbuffer *irbDepth =
-            intel_renderbuffer(ctx->DrawBuffer->
-                               Attachment[BUFFER_DEPTH].Renderbuffer);
-         struct intel_region *backRegion = irbBack ? irbBack->region : NULL;
-         struct intel_region *depthRegion = irbDepth ? irbDepth->region : NULL;
+         struct intel_region *backRegion
+            = intel_get_rb_region(ctx->DrawBuffer, BUFFER_BACK_LEFT);
+         struct intel_region *depthRegion
+            = intel_get_rb_region(ctx->DrawBuffer, BUFFER_DEPTH);
 
 	 intel->vtbl.meta_draw_region(intel, backRegion, depthRegion );
 
@@ -515,14 +511,16 @@ void
 intel_draw_buffer(GLcontext *ctx, struct gl_framebuffer *fb)
 {
    struct intel_context *intel = intel_context(ctx);
-   struct intel_renderbuffer *irb, *irbDepth, *irbStencil;
    struct intel_region *colorRegion, *depthRegion;
+   struct intel_renderbuffer *irbDepth, *irbStencil;
    int front = 0; /* drawing to front color buffer? */
  
    if (!fb) {
       /* this can happen during the initial context initialization */
       return;
    }
+
+   _mesa_debug(ctx, "%s %d\n", __FUNCTION__, fb->Name);
 
    /* Do this here, note core Mesa, since this function is called from
     * many places within the driver.
@@ -577,27 +575,21 @@ intel_draw_buffer(GLcontext *ctx, struct gl_framebuffer *fb)
       }
       if (front) {
          intelSetFrontClipRects( intel );
-         irb = intel_renderbuffer(fb->Attachment[BUFFER_FRONT_LEFT].Renderbuffer);
+         colorRegion = intel_get_rb_region(fb, BUFFER_FRONT_LEFT);
       }
       else {
          intelSetBackClipRects( intel );
-         irb = intel_renderbuffer(fb->Attachment[BUFFER_BACK_LEFT].Renderbuffer);
+         colorRegion = intel_get_rb_region(fb, BUFFER_BACK_LEFT);
       }
    }
    else {
       /* drawing to user-created FBO */
+      struct intel_renderbuffer *irb;
       intelSetRenderbufferClipRects(intel);
       irb = intel_renderbuffer(fb->_ColorDrawBuffers[0][0]);
+      colorRegion = (irb && irb->region) ? irb->region : NULL;
       ASSERT(irb);
    }
-
-   /***
-    *** Get color buffer region.
-    ***/
-   if (irb && irb->region)
-      colorRegion = irb->region;
-   else
-      colorRegion = NULL;
 
    /*
     * Unbind old color region, bind new region
@@ -612,7 +604,7 @@ intel_draw_buffer(GLcontext *ctx, struct gl_framebuffer *fb)
     *** Get depth buffer region and check if we need a software fallback.
     *** Note the BUFFER_DEPTH attachment is usually a DEPTH_STENCIL buffer.
     ***/
-   irbDepth = intel_renderbuffer(fb->Attachment[BUFFER_DEPTH].Renderbuffer);
+   irbDepth = intel_get_renderbuffer(fb, BUFFER_DEPTH);
    if (irbDepth) {
       if (irbDepth->region) {
          FALLBACK(intel, INTEL_FALLBACK_DEPTH_BUFFER, GL_FALSE);
@@ -643,12 +635,15 @@ intel_draw_buffer(GLcontext *ctx, struct gl_framebuffer *fb)
     *** This can only be hardware accelerated if we're using a
     *** combined DEPTH_STENCIL buffer (for now anyway).
     ***/
-   irbStencil =intel_renderbuffer(fb->Attachment[BUFFER_STENCIL].Renderbuffer);
+   irbStencil = intel_get_renderbuffer(fb, BUFFER_STENCIL);
    if (irbStencil) {
-      if (irbStencil == irbDepth && irbStencil->region)
+      if (irbStencil == irbDepth && irbStencil->region) {
          FALLBACK(intel, INTEL_FALLBACK_STENCIL_BUFFER, GL_FALSE);
-      else
+      }
+      else {
          FALLBACK(intel, INTEL_FALLBACK_STENCIL_BUFFER, GL_TRUE);
+         ASSERT(irbStencil->Base.InternalFormat == GL_DEPTH24_STENCIL8_EXT);
+      }
    }
    else {
       FALLBACK(intel, INTEL_FALLBACK_STENCIL_BUFFER, GL_FALSE);
@@ -668,9 +663,16 @@ intelDrawBuffer(GLcontext *ctx, GLenum mode)
 static void 
 intelReadBuffer( GLcontext *ctx, GLenum mode )
 {
-   /* Nothing.
-    * The functions which do framebuffer reads (glReadPixels, glCopyPixels,
-    * etc. are all set just by using ctx->ReadBuffer->_ColorReadBuffer.
+   if (ctx->ReadBuffer == ctx->DrawBuffer) {
+      /* This will update FBO completeness status.
+       * A framebuffer will be incomplete if the GL_READ_BUFFER setting
+       * refers to a missing renderbuffer.  Calling glReadBuffer can set
+       * that straight and can make the drawing buffer complete.
+       */
+      intel_draw_buffer(ctx, ctx->DrawBuffer);
+   }
+   /* Generally, functions which read pixels (glReadPixels, glCopyPixels, etc)
+    * reference ctx->ReadBuffer and do appropriate state checks.
     */
 }
 
