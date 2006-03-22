@@ -86,8 +86,6 @@ set_depth_renderbuffer(struct gl_framebuffer *fb,
    fb->_DepthBuffer = rb;
    if (rb) {
       rb->RefCount++;
-      ASSERT(rb->_BaseFormat == GL_DEPTH_COMPONENT ||
-             rb->_BaseFormat == GL_DEPTH_STENCIL_EXT);
    }
 }
 
@@ -109,8 +107,6 @@ set_stencil_renderbuffer(struct gl_framebuffer *fb,
    fb->_StencilBuffer = rb;
    if (rb) {
       rb->RefCount++;
-      ASSERT(rb->_BaseFormat == GL_STENCIL_INDEX ||
-             rb->_BaseFormat == GL_DEPTH_STENCIL_EXT);
    }
 }
 
