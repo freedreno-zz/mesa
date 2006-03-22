@@ -2,7 +2,7 @@
  * Mesa 3-D graphics library
  * Version:  6.5
  *
- * Copyright (C) 1999-2005  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2006  Brian Paul   All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -31,6 +31,7 @@
 #include "macros.h"
 #include "imports.h"
 #include "pixel.h"
+#include "state.h"
 
 #include "s_context.h"
 #include "s_drawpix.h"
@@ -67,9 +68,9 @@ fast_draw_pixels(GLcontext *ctx, GLint x, GLint y,
    if (ctx->Texture._EnabledCoordUnits)
       _swrast_span_default_texcoords(ctx, &span);
 
-   if ((SWRAST_CONTEXT(ctx)->_RasterMask & ~CLIP_BIT) == 0
+   if ((swrast->_RasterMask & ~CLIP_BIT) == 0
        && ctx->Texture._EnabledCoordUnits == 0
-       && unpack->Alignment == 1
+       && unpack->Alignment == 1 /* XXX may not really need this */
        && !unpack->SwapBytes
        && !unpack->LsbFirst) {
 
@@ -694,7 +695,7 @@ draw_rgba_pixels( GLcontext *ctx, GLint x, GLint y,
    if (ctx->Texture._EnabledCoordUnits)
       _swrast_span_default_texcoords(ctx, &span);
 
-   if (SWRAST_CONTEXT(ctx)->_RasterMask == 0 && !zoom && x >= 0 && y >= 0
+   if (swrast->_RasterMask == 0 && !zoom && x >= 0 && y >= 0
        && x + width <= (GLint) ctx->DrawBuffer->Width
        && y + height <= (GLint) ctx->DrawBuffer->Height
        && ctx->DrawBuffer->_NumColorDrawBuffers[0] == 1) {
@@ -967,6 +968,11 @@ _swrast_DrawPixels( GLcontext *ctx,
 {
    SWcontext *swrast = SWRAST_CONTEXT(ctx);
 
+   RENDER_START(swrast,ctx);
+
+   if (ctx->NewState)
+      _mesa_update_state(ctx);
+
    if (swrast->NewState)
       _swrast_validate_derived( ctx );
 
@@ -977,7 +983,7 @@ _swrast_DrawPixels( GLcontext *ctx,
                                      format, type, pixels)) {
          _mesa_error(ctx, GL_INVALID_OPERATION,
                      "glDrawPixels(invalid PBO access)");
-         return;
+         goto end;
       }
       buf = (GLubyte *) ctx->Driver.MapBuffer(ctx, GL_PIXEL_UNPACK_BUFFER_EXT,
                                               GL_READ_ONLY_ARB,
@@ -985,12 +991,10 @@ _swrast_DrawPixels( GLcontext *ctx,
       if (!buf) {
          /* buffer is already mapped - that's an error */
          _mesa_error(ctx, GL_INVALID_OPERATION, "glDrawPixels(PBO is mapped)");
-         return;
+         goto end;
       }
       pixels = ADD_POINTERS(buf, pixels);
    }
-
-   RENDER_START(swrast,ctx);
 
    switch (format) {
    case GL_STENCIL_INDEX:
@@ -1026,6 +1030,8 @@ _swrast_DrawPixels( GLcontext *ctx,
       _mesa_problem(ctx, "unexpected format in _swrast_DrawPixels");
       /* don't return yet, clean-up */
    }
+
+end:
 
    RENDER_FINISH(swrast,ctx);
 
