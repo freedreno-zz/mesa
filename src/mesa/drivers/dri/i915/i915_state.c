@@ -673,7 +673,6 @@ static void i915Hint(GLcontext *ctx, GLenum target, GLenum state)
 static void i915Enable(GLcontext *ctx, GLenum cap, GLboolean state)
 {
    struct i915_context *i915 = I915_CONTEXT(ctx);
-   int hw_stencil;
 
    switch(cap) {
    case GL_TEXTURE_2D:
