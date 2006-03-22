@@ -131,8 +131,7 @@ unmap_regions(GLcontext *ctx,
  * driRb should be a depth/stencil or stencil renderbuffer.
  */
 void
-intel_undo_depth_stencil_pairing(GLcontext *ctx,
-                                 struct intel_renderbuffer *irb)
+intel_unpair_depth_stencil(GLcontext *ctx, struct intel_renderbuffer *irb)
 {
    if (irb->PairedStencil) {
       /* irb is a depth/stencil buffer */
@@ -183,10 +182,16 @@ intel_undo_depth_stencil_pairing(GLcontext *ctx,
 
 
 /**
- * Must be called if NewState & _NEW_BUFFER
+ * Examine the depth and stencil renderbuffers which are attached to the
+ * framebuffer.  If both depth and stencil are attached, make sure that the
+ * renderbuffers are 'paired' (combined).  If only depth or only stencil is
+ * attached, undo any previous pairing.
+ *
+ * Must be called if NewState & _NEW_BUFFER (when renderbuffer attachments
+ * change, for example).
  */
 void
-intel_validate_depth_stencil(GLcontext *ctx, struct gl_framebuffer *fb)
+intel_validate_paired_depth_stencil(GLcontext *ctx, struct gl_framebuffer *fb)
 {
    struct intel_renderbuffer *depthRb, *stencilRb;
 
@@ -213,10 +218,10 @@ intel_validate_depth_stencil(GLcontext *ctx, struct gl_framebuffer *fb)
          else {
             /* need to setup pairing/interleaving */
             if (depthRb->PairedStencil) {
-               intel_undo_depth_stencil_pairing(ctx, depthRb);
+               intel_unpair_depth_stencil(ctx, depthRb);
             }
             if (stencilRb->PairedDepth) {
-               intel_undo_depth_stencil_pairing(ctx, stencilRb);
+               intel_unpair_depth_stencil(ctx, stencilRb);
             }
 
             ASSERT(depthRb->Base._ActualFormat == GL_DEPTH24_STENCIL8_EXT);
@@ -242,7 +247,7 @@ intel_validate_depth_stencil(GLcontext *ctx, struct gl_framebuffer *fb)
       */
       /* intel_undo any previous pairing */
       if (depthRb->PairedStencil) {
-         intel_undo_depth_stencil_pairing(ctx, depthRb);
+         intel_unpair_depth_stencil(ctx, depthRb);
       }
    }
    else if (stencilRb) {
@@ -252,17 +257,21 @@ intel_validate_depth_stencil(GLcontext *ctx, struct gl_framebuffer *fb)
        */
       /* undo any previous pairing */
       if (stencilRb->PairedDepth) {
-         intel_undo_depth_stencil_pairing(ctx, stencilRb);
+         intel_unpair_depth_stencil(ctx, stencilRb);
       }
       if (stencilRb->Base._ActualFormat == GL_STENCIL_INDEX8_EXT) {
-         /* promote buffer to GL_DEPTH24_STENCIL8 */
+         /* promote buffer to GL_DEPTH24_STENCIL8 for hw rendering */
          _mesa_promote_stencil(ctx, &stencilRb->Base);
          ASSERT(stencilRb->Base._ActualFormat == GL_DEPTH24_STENCIL8_EXT);
       }
    }
 
    _mesa_update_depth_buffer(ctx, fb, BUFFER_DEPTH);
-   _mesa_update_stencil_buffer(ctx, fb, BUFFER_DEPTH); /* Yes, not STENCIL */
+   if (depthRb)
+      _mesa_update_stencil_buffer(ctx, fb, BUFFER_DEPTH);
+   else
+      _mesa_update_stencil_buffer(ctx, fb, BUFFER_STENCIL);
+
 
    /* The hardware should use fb->Attachment[BUFFER_DEPTH].Renderbuffer
     * first, if present, then fb->Attachment[BUFFER_STENCIL].Renderbuffer

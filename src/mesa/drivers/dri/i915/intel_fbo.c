@@ -105,7 +105,7 @@ intel_delete_renderbuffer(struct gl_renderbuffer *rb)
    ASSERT(irb);
 
    if (irb->PairedStencil || irb->PairedDepth) {
-      intel_undo_depth_stencil_pairing(ctx, irb);
+      intel_unpair_depth_stencil(ctx, irb);
    }
 
    if (intel && irb->region) {
