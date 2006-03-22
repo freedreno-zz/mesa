@@ -36,6 +36,7 @@
 #include "renderbuffer.h"
 #include "state.h"
 #include "teximage.h"
+#include "texobj.h"
 #include "texstore.h"
 
 
@@ -66,8 +67,8 @@ static struct gl_renderbuffer DummyRenderbuffer;
 /**
  * Helper routine for getting a gl_renderbuffer.
  */
-static struct gl_renderbuffer *
-lookup_renderbuffer(GLcontext *ctx, GLuint id)
+struct gl_renderbuffer *
+_mesa_lookup_renderbuffer(GLcontext *ctx, GLuint id)
 {
    struct gl_renderbuffer *rb;
 
@@ -83,8 +84,8 @@ lookup_renderbuffer(GLcontext *ctx, GLuint id)
 /**
  * Helper routine for getting a gl_framebuffer.
  */
-static struct gl_framebuffer *
-lookup_framebuffer(GLcontext *ctx, GLuint id)
+struct gl_framebuffer *
+_mesa_lookup_framebuffer(GLcontext *ctx, GLuint id)
 {
    struct gl_framebuffer *fb;
 
@@ -554,7 +555,7 @@ _mesa_IsRenderbufferEXT(GLuint renderbuffer)
    GET_CURRENT_CONTEXT(ctx);
    ASSERT_OUTSIDE_BEGIN_END_WITH_RETVAL(ctx, GL_FALSE);
    if (renderbuffer) {
-      struct gl_renderbuffer *rb = lookup_renderbuffer(ctx, renderbuffer);
+      struct gl_renderbuffer *rb = _mesa_lookup_renderbuffer(ctx, renderbuffer);
       if (rb != NULL && rb != &DummyRenderbuffer)
          return GL_TRUE;
    }
@@ -579,7 +580,7 @@ _mesa_BindRenderbufferEXT(GLenum target, GLuint renderbuffer)
    FLUSH_VERTICES(ctx, _NEW_BUFFERS);
 
    if (renderbuffer) {
-      newRb = lookup_renderbuffer(ctx, renderbuffer);
+      newRb = _mesa_lookup_renderbuffer(ctx, renderbuffer);
       if (newRb == &DummyRenderbuffer) {
          /* ID was reserved, but no real renderbuffer object made yet */
          newRb = NULL;
@@ -626,7 +627,7 @@ _mesa_DeleteRenderbuffersEXT(GLsizei n, const GLuint *renderbuffers)
    for (i = 0; i < n; i++) {
       if (renderbuffers[i] > 0) {
 	 struct gl_renderbuffer *rb;
-	 rb = lookup_renderbuffer(ctx, renderbuffers[i]);
+	 rb = _mesa_lookup_renderbuffer(ctx, renderbuffers[i]);
 	 if (rb) {
             /* check if deleting currently bound renderbuffer object */
             if (rb == ctx->CurrentRenderbuffer) {
@@ -887,7 +888,7 @@ _mesa_IsFramebufferEXT(GLuint framebuffer)
    GET_CURRENT_CONTEXT(ctx);
    ASSERT_OUTSIDE_BEGIN_END_WITH_RETVAL(ctx, GL_FALSE);
    if (framebuffer) {
-      struct gl_framebuffer *rb = lookup_framebuffer(ctx, framebuffer);
+      struct gl_framebuffer *rb = _mesa_lookup_framebuffer(ctx, framebuffer);
       if (rb != NULL && rb != &DummyFramebuffer)
          return GL_TRUE;
    }
@@ -957,7 +958,7 @@ _mesa_BindFramebufferEXT(GLenum target, GLuint framebuffer)
 
    if (framebuffer) {
       /* Binding a user-created framebuffer object */
-      newFb = lookup_framebuffer(ctx, framebuffer);
+      newFb = _mesa_lookup_framebuffer(ctx, framebuffer);
       if (newFb == &DummyFramebuffer) {
          /* ID was reserved, but no real framebuffer object made yet */
          newFb = NULL;
@@ -1030,7 +1031,7 @@ _mesa_DeleteFramebuffersEXT(GLsizei n, const GLuint *framebuffers)
    for (i = 0; i < n; i++) {
       if (framebuffers[i] > 0) {
 	 struct gl_framebuffer *fb;
-	 fb = lookup_framebuffer(ctx, framebuffers[i]);
+	 fb = _mesa_lookup_framebuffer(ctx, framebuffers[i]);
 	 if (fb) {
             ASSERT(fb == &DummyFramebuffer || fb->Name == framebuffers[i]);
 
@@ -1213,8 +1214,7 @@ _mesa_FramebufferTexture1DEXT(GLenum target, GLenum attachment,
    FLUSH_VERTICES(ctx, _NEW_BUFFERS);
 
    if (texture) {
-      struct gl_texture_object *texObj = (struct gl_texture_object *)
-	 _mesa_HashLookup(ctx->Shared->TexObjects, texture);
+      struct gl_texture_object *texObj = _mesa_lookup_texture(ctx, texture);
       if (!texObj) {
 	 _mesa_error(ctx, GL_INVALID_VALUE,
 		     "glFramebufferTexture1DEXT(texture)");
@@ -1261,8 +1261,7 @@ _mesa_FramebufferTexture2DEXT(GLenum target, GLenum attachment,
    FLUSH_VERTICES(ctx, _NEW_BUFFERS);
 
    if (texture) {
-      struct gl_texture_object *texObj = (struct gl_texture_object *)
-	 _mesa_HashLookup(ctx->Shared->TexObjects, texture);
+      struct gl_texture_object *texObj = _mesa_lookup_texture(ctx, texture);
       if (!texObj) {
 	 _mesa_error(ctx, GL_INVALID_VALUE,
 		     "glFramebufferTexture2DEXT(texture)");
@@ -1313,8 +1312,7 @@ _mesa_FramebufferTexture3DEXT(GLenum target, GLenum attachment,
 
    if (texture) {
       const GLint maxSize = 1 << (ctx->Const.Max3DTextureLevels - 1);
-      struct gl_texture_object *texObj = (struct gl_texture_object *)
-	 _mesa_HashLookup(ctx->Shared->TexObjects, texture);
+      struct gl_texture_object *texObj = _mesa_lookup_texture(ctx, texture);
       if (!texObj) {
 	 _mesa_error(ctx, GL_INVALID_VALUE,
 		     "glFramebufferTexture3DEXT(texture)");
@@ -1399,7 +1397,7 @@ _mesa_FramebufferRenderbufferEXT(GLenum target, GLenum attachment,
    }
 
    if (renderbuffer) {
-      rb = lookup_renderbuffer(ctx, renderbuffer);
+      rb = _mesa_lookup_renderbuffer(ctx, renderbuffer);
       if (!rb) {
 	 _mesa_error(ctx, GL_INVALID_OPERATION,
 		     "glFramebufferRenderbufferEXT(renderbuffer)");
