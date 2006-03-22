@@ -305,7 +305,7 @@ static GLboolean intelCreateBuffer( __DRIscreenPrivate *driScrnPriv,
                                         screen->cpp, /* 2! */
                                         screen->depth.map);
          intel_set_span_functions(&depthRb->Base);
-         _mesa_add_renderbuffer(fb, BUFFER_BACK_LEFT, &depthRb->Base);
+         _mesa_add_renderbuffer(fb, BUFFER_DEPTH, &depthRb->Base);
       }
 
       /* now add any/all software-based renderbuffers we may need */
