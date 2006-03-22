@@ -70,6 +70,52 @@ compute_depth_max(struct gl_framebuffer *fb)
 
 
 /**
+ * Set the framebuffer's _DepthBuffer field, taking care of
+ * reference counts, etc.
+ */
+static void
+set_depth_renderbuffer(struct gl_framebuffer *fb,
+                       struct gl_renderbuffer *rb)
+{
+   if (fb->_DepthBuffer) {
+      fb->_DepthBuffer->RefCount--;
+      if (fb->_DepthBuffer->RefCount <= 0) {
+         fb->_DepthBuffer->Delete(fb->_DepthBuffer);
+      }
+   }
+   fb->_DepthBuffer = rb;
+   if (rb) {
+      rb->RefCount++;
+      ASSERT(rb->_BaseFormat == GL_DEPTH_COMPONENT ||
+             rb->_BaseFormat == GL_DEPTH_STENCIL_EXT);
+   }
+}
+
+
+/**
+ * Set the framebuffer's _StencilBuffer field, taking care of
+ * reference counts, etc.
+ */
+static void
+set_stencil_renderbuffer(struct gl_framebuffer *fb,
+                         struct gl_renderbuffer *rb)
+{
+   if (fb->_StencilBuffer) {
+      fb->_StencilBuffer->RefCount--;
+      if (fb->_StencilBuffer->RefCount <= 0) {
+         fb->_StencilBuffer->Delete(fb->_StencilBuffer);
+      }
+   }
+   fb->_StencilBuffer = rb;
+   if (rb) {
+      rb->RefCount++;
+      ASSERT(rb->_BaseFormat == GL_STENCIL_INDEX ||
+             rb->_BaseFormat == GL_DEPTH_STENCIL_EXT);
+   }
+}
+
+
+/**
  * Create and initialize a gl_framebuffer object.
  * This is intended for creating _window_system_ framebuffers, not generic
  * framebuffer objects ala GL_EXT_framebuffer_object.
@@ -189,22 +235,9 @@ _mesa_free_framebuffer_data(struct gl_framebuffer *fb)
       att->Renderbuffer = NULL;
    }
 
-   if (fb->_DepthBuffer) {
-      struct gl_renderbuffer *rb = fb->_DepthBuffer;
-      rb->RefCount--;
-      if (rb->RefCount <= 0) {
-         rb->Delete(rb);
-      }
-      fb->_DepthBuffer = NULL;
-   }
-   if (fb->_StencilBuffer) {
-      struct gl_renderbuffer *rb = fb->_StencilBuffer;
-      rb->RefCount--;
-      if (rb->RefCount <= 0) {
-         rb->Delete(rb);
-      }
-      fb->_StencilBuffer = NULL;
-   }
+   /* unbind depth/stencil to decr ref counts */
+   set_depth_renderbuffer(fb, NULL);
+   set_stencil_renderbuffer(fb, NULL);
 }
 
 
@@ -401,41 +434,58 @@ _mesa_update_framebuffer_visual(struct gl_framebuffer *fb)
 
 
 /**
- * Helper function for _mesa_update_framebuffer().
- * Set the actual depth renderbuffer for the given framebuffer.
- * Take care of reference counts, etc.
+ * Update the framebuffer's _DepthBuffer field.
+ * If the currently attached depth buffer is a combined GL_DEPTH_STENCIL
+ * renderbuffer, create and install a depth wrapper/adaptor.
  */
-static void
-set_depth_renderbuffer(struct gl_framebuffer *fb,
-                       struct gl_renderbuffer *rb)
+void
+_mesa_update_depth_buffer(GLcontext *ctx, struct gl_framebuffer *fb)
 {
-   if (fb->_DepthBuffer) {
-      fb->_DepthBuffer->RefCount--;
-      if (fb->_DepthBuffer->RefCount <= 0) {
-         fb->_DepthBuffer->Delete(fb->_DepthBuffer);
+   struct gl_renderbuffer *depthRb
+      = fb->Attachment[BUFFER_DEPTH].Renderbuffer;
+
+   if (depthRb && depthRb->_BaseFormat == GL_DEPTH_STENCIL_EXT) {
+      /* The attached depth buffer is a GL_DEPTH_STENCIL renderbuffer */
+      if (!fb->_DepthBuffer || fb->_DepthBuffer->Wrapped != depthRb) {
+         /* need to update wrapper */
+         struct gl_renderbuffer *wrapper
+            = _mesa_new_z24_renderbuffer_wrapper(ctx, depthRb);
+         set_depth_renderbuffer(fb, wrapper);
+         ASSERT(fb->_DepthBuffer->Wrapped == depthRb);
       }
    }
-   fb->_DepthBuffer = rb;
-   if (rb)
-      rb->RefCount++;
+   else {
+      /* depthRb may be null */
+      set_depth_renderbuffer(fb, depthRb);
+   }
 }
 
+
 /**
- * \sa set_depth_renderbuffer.
+ * Update the framebuffer's _StencilBuffer field.
+ * If the currently attached depth buffer is a combined GL_DEPTH_STENCIL
+ * renderbuffer, create and install a stencil wrapper/adaptor.
  */
-static void
-set_stencil_renderbuffer(struct gl_framebuffer *fb,
-                         struct gl_renderbuffer *rb)
+void
+_mesa_update_stencil_buffer(GLcontext *ctx, struct gl_framebuffer *fb)
 {
-   if (fb->_StencilBuffer) {
-      fb->_StencilBuffer->RefCount--;
-      if (fb->_StencilBuffer->RefCount <= 0) {
-         fb->_StencilBuffer->Delete(fb->_StencilBuffer);
+   struct gl_renderbuffer *stencilRb
+      = fb->Attachment[BUFFER_STENCIL].Renderbuffer;
+
+   if (stencilRb && stencilRb->_BaseFormat == GL_DEPTH_STENCIL_EXT) {
+      /* The attached stencil buffer is a GL_DEPTH_STENCIL renderbuffer */
+      if (!fb->_StencilBuffer || fb->_StencilBuffer->Wrapped != stencilRb) {
+         /* need to update wrapper */
+         struct gl_renderbuffer *wrapper
+            = _mesa_new_s8_renderbuffer_wrapper(ctx, stencilRb);
+         set_stencil_renderbuffer(fb, wrapper);
+         ASSERT(fb->_StencilBuffer->Wrapped == stencilRb);
       }
    }
-   fb->_StencilBuffer = rb;
-   if (rb)
-      rb->RefCount++;
+   else {
+      /* stencilRb may be null */
+      set_stencil_renderbuffer(fb, stencilRb);
+   }
 }
 
 
@@ -511,43 +561,13 @@ _mesa_update_framebuffer(GLcontext *ctx)
     * and/or stencil attachment points.  If either of the DEPTH or STENCIL
     * renderbuffer attachments are GL_DEPTH_STENCIL buffers, we need to set
     * up depth/stencil renderbuffer wrappers.
+    *
+    * When done, fb->_DepthBuffer and fb->_StencilBuffer will be set to
+    * the BUFFER_DEPTH and BUFFER_STENCIL buffers, or suitable wrappers
+    * around a GL_DEPTH_STENCIL buffer.
     */
-   {
-      struct gl_renderbuffer *depthRb
-         = fb->Attachment[BUFFER_DEPTH].Renderbuffer;
-      struct gl_renderbuffer *stencilRb
-         = fb->Attachment[BUFFER_STENCIL].Renderbuffer;
-
-      if (depthRb && depthRb->_BaseFormat == GL_DEPTH_STENCIL_EXT) {
-         /* The attached depth buffer is a GL_DEPTH_STENCIL renderbuffer */
-         if (!fb->_DepthBuffer || fb->_DepthBuffer->Wrapped != depthRb) {
-            /* need to update wrapper */
-            struct gl_renderbuffer *wrapper
-               = _mesa_new_z24_renderbuffer_wrapper(ctx, depthRb);
-            set_depth_renderbuffer(fb, wrapper);
-            assert(fb->_DepthBuffer->Wrapped == depthRb);
-         }
-      }
-      else {
-         /* depthRb may be null */
-         set_depth_renderbuffer(fb, depthRb);
-      }
-
-      if (stencilRb && stencilRb->_BaseFormat == GL_DEPTH_STENCIL_EXT) {
-         /* The attached stencil buffer is a GL_DEPTH_STENCIL renderbuffer */
-         if (!fb->_StencilBuffer || fb->_StencilBuffer->Wrapped != stencilRb) {
-            /* need to update wrapper */
-            struct gl_renderbuffer *wrapper
-               = _mesa_new_s8_renderbuffer_wrapper(ctx, stencilRb);
-            set_stencil_renderbuffer(fb, wrapper);
-            assert(fb->_StencilBuffer->Wrapped == stencilRb);
-         }
-      }
-      else {
-         /* stencilRb may be null */
-         set_stencil_renderbuffer(fb, stencilRb);
-      }
-   }
+   _mesa_update_depth_buffer(ctx, fb);
+   _mesa_update_stencil_buffer(ctx, fb);
 
    compute_depth_max(fb);
 }
