@@ -329,6 +329,7 @@ intel_create_renderbuffer(GLenum intFormat, GLsizei width, GLsizei height,
 
    switch (intFormat) {
    case GL_RGB5:
+      irb->Base._ActualFormat = GL_RGB5;
       irb->Base._BaseFormat = GL_RGBA;
       irb->Base.RedBits = 5;
       irb->Base.GreenBits = 6;
@@ -337,6 +338,7 @@ intel_create_renderbuffer(GLenum intFormat, GLsizei width, GLsizei height,
       cpp = 2;
       break;
    case GL_RGBA8:
+      irb->Base._ActualFormat = GL_RGBA8;
       irb->Base._BaseFormat = GL_RGBA;
       irb->Base.RedBits = 8;
       irb->Base.GreenBits = 8;
@@ -346,24 +348,28 @@ intel_create_renderbuffer(GLenum intFormat, GLsizei width, GLsizei height,
       cpp = 4;
       break;
    case GL_STENCIL_INDEX8_EXT:
+      irb->Base._ActualFormat = GL_STENCIL_INDEX8_EXT;
       irb->Base._BaseFormat = GL_STENCIL_INDEX;
       irb->Base.StencilBits = 8;
       irb->Base.DataType = GL_UNSIGNED_BYTE;
       cpp = 1;
       break;
    case GL_DEPTH_COMPONENT16:
+      irb->Base._ActualFormat = GL_DEPTH_COMPONENT16;
       irb->Base._BaseFormat = GL_DEPTH_COMPONENT;
       irb->Base.DepthBits = 16;
       irb->Base.DataType = GL_UNSIGNED_SHORT;
       cpp = 2;
       break;
    case GL_DEPTH_COMPONENT24:
+      irb->Base._ActualFormat = GL_DEPTH24_STENCIL8_EXT;
       irb->Base._BaseFormat = GL_DEPTH_COMPONENT;
       irb->Base.DepthBits = 24;
       irb->Base.DataType = GL_UNSIGNED_INT;
       cpp = 4;
       break;
    case GL_DEPTH24_STENCIL8_EXT:
+      irb->Base._ActualFormat = GL_DEPTH24_STENCIL8_EXT;
       irb->Base._BaseFormat = GL_DEPTH_STENCIL_EXT;
       irb->Base.DepthBits = 24;
       irb->Base.StencilBits = 8;
@@ -375,7 +381,7 @@ intel_create_renderbuffer(GLenum intFormat, GLsizei width, GLsizei height,
       return NULL;
    }
 
-   irb->Base._ActualFormat = intFormat;
+   irb->Base.InternalFormat = intFormat;
 
    /* intel-specific methods */
    irb->Base.Delete = intel_delete_renderbuffer;
