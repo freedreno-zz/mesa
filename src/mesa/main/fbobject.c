@@ -787,8 +787,17 @@ _mesa_RenderbufferStorageEXT(GLenum target, GLenum internalFormat,
       return;
    }
 
+   /* These MUST get set by the AllocStorage func */
+   rb->_ActualFormat = 0;
+   rb->RedBits =
+   rb->GreenBits =
+   rb->BlueBits =
+   rb->AlphaBits =
+   rb->IndexBits =
+   rb->DepthBits =
+   rb->StencilBits = 0;
+
    /* Now allocate the storage */
-   rb->_ActualFormat = 0; /* This MUST get set by the AllocStorage func */
    ASSERT(rb->AllocStorage);
    if (rb->AllocStorage(ctx, rb, internalFormat, width, height)) {
       /* No error - check/set fields now */
@@ -896,22 +905,36 @@ _mesa_IsFramebufferEXT(GLuint framebuffer)
 }
 
 
+static void
+check_begin_texture_render(GLcontext *ctx, struct gl_framebuffer *fb)
+{
+   GLuint i;
+   ASSERT(ctx->Driver.RenderbufferTexture);
+   for (i = 0; i < BUFFER_COUNT; i++) {
+      struct gl_renderbuffer_attachment *att = fb->Attachment + i;
+      struct gl_texture_object *texObj = att->Texture;
+      if (texObj) {
+         ctx->Driver.RenderbufferTexture(ctx, fb, att);
+      }
+   }
+}
+
+
 /**
  * Examine all the framebuffer's attachments to see if any are textures.
  * If so, call ctx->Driver.FinishRenderTexture() for each texture to
  * notify the device driver that the texture image may have changed.
  */
 static void
-check_texture_render(GLcontext *ctx, struct gl_framebuffer *fb)
+check_end_texture_render(GLcontext *ctx, struct gl_framebuffer *fb)
 {
-   if (ctx->Driver.FinishRenderTexture) {
-      GLuint i;
-      for (i = 0; i < BUFFER_COUNT; i++) {
-         struct gl_renderbuffer_attachment *att = fb->Attachment + i;
-         struct gl_texture_object *texObj = att->Texture;
-         if (texObj) {
-            ctx->Driver.FinishRenderTexture(ctx, att);
-         }
+   GLuint i;
+   ASSERT(ctx->Driver.FinishRenderTexture);
+   for (i = 0; i < BUFFER_COUNT; i++) {
+      struct gl_renderbuffer_attachment *att = fb->Attachment + i;
+      struct gl_texture_object *texObj = att->Texture;
+      if (texObj) {
+         ctx->Driver.FinishRenderTexture(ctx, att);
       }
    }
 }
@@ -925,6 +948,12 @@ _mesa_BindFramebufferEXT(GLenum target, GLuint framebuffer)
    GET_CURRENT_CONTEXT(ctx);
 
    ASSERT_OUTSIDE_BEGIN_END(ctx);
+
+   if (!ctx->Extensions.EXT_framebuffer_object) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glBindFramebufferEXT(unsupported)");
+      return;
+   }
 
    switch (target) {
 #if FEATURE_EXT_framebuffer_blit
@@ -984,7 +1013,12 @@ _mesa_BindFramebufferEXT(GLenum target, GLuint framebuffer)
       newFb = ctx->WinSysDrawBuffer;
    }
 
+   ASSERT(newFb);
    ASSERT(newFb != &DummyFramebuffer);
+
+   /*
+    * XXX check if re-binding same buffer and skip some of this code.
+    */
 
    if (bindReadBuf) {
       oldFb = ctx->ReadBuffer;
@@ -1001,9 +1035,7 @@ _mesa_BindFramebufferEXT(GLenum target, GLuint framebuffer)
       oldFb = ctx->DrawBuffer;
       if (oldFb && oldFb->Name != 0) {
          /* check if old FB had any texture attachments */
-         if (ctx->Driver.FinishRenderTexture) {
-            check_texture_render(ctx, oldFb);
-         }
+         check_end_texture_render(ctx, oldFb);
          /* check if time to delete this framebuffer */
          oldFb->RefCount--;
          if (oldFb->RefCount == 0) {
@@ -1011,6 +1043,10 @@ _mesa_BindFramebufferEXT(GLenum target, GLuint framebuffer)
          }
       }
       ctx->DrawBuffer = newFb;
+      if (newFb->Name != 0) {
+         /* check if newly bound framebuffer has any texture attachments */
+         check_begin_texture_render(ctx, newFb);
+      }
    }
 
    if (ctx->Driver.BindFramebuffer) {
