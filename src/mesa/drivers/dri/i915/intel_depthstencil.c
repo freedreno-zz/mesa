@@ -237,7 +237,9 @@ intel_validate_depth_stencil(GLcontext *ctx, struct gl_framebuffer *fb)
       /* Depth buffer but no stencil buffer.
        * We'll use a GL_DEPTH24_STENCIL8 buffer and ignore the stencil bits.
        */
+      /* can't assert this until storage is allocated:
       ASSERT(depthRb->Base._ActualFormat == GL_DEPTH24_STENCIL8_EXT);
+      */
       /* intel_undo any previous pairing */
       if (depthRb->PairedStencil) {
          intel_undo_depth_stencil_pairing(ctx, depthRb);
@@ -255,8 +257,8 @@ intel_validate_depth_stencil(GLcontext *ctx, struct gl_framebuffer *fb)
       if (stencilRb->Base._ActualFormat == GL_STENCIL_INDEX8_EXT) {
          /* promote buffer to GL_DEPTH24_STENCIL8 */
          _mesa_promote_stencil(ctx, &stencilRb->Base);
+         ASSERT(stencilRb->Base._ActualFormat == GL_DEPTH24_STENCIL8_EXT);
       }
-      ASSERT(stencilRb->Base._ActualFormat == GL_DEPTH24_STENCIL8_EXT);
    }
 
    _mesa_update_depth_buffer(ctx, fb, BUFFER_DEPTH);
