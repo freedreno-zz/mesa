@@ -267,7 +267,7 @@ intel_validate_paired_depth_stencil(GLcontext *ctx, struct gl_framebuffer *fb)
    }
 
    _mesa_update_depth_buffer(ctx, fb, BUFFER_DEPTH);
-   if (depthRb)
+   if (depthRb && depthRb->PairedStencil)
       _mesa_update_stencil_buffer(ctx, fb, BUFFER_DEPTH);
    else
       _mesa_update_stencil_buffer(ctx, fb, BUFFER_STENCIL);
