@@ -147,6 +147,12 @@ static GLboolean intelInitDriver(__DRIscreenPrivate *sPriv)
       return GL_FALSE;
    }
 
+#if 0
+
+   /*
+    * FIXME: Remove this code and its references.
+    */
+
    intelScreen->tex.offset = gDRIPriv->textureOffset;
    intelScreen->logTextureGranularity = gDRIPriv->logTextureGranularity;
    intelScreen->tex.handle = gDRIPriv->textures;
@@ -164,7 +170,14 @@ static GLboolean intelInitDriver(__DRIscreenPrivate *sPriv)
       sPriv->private = NULL;
       return GL_FALSE;
    }
-			 
+	
+#else
+   intelScreen->tex.offset = 0;
+   intelScreen->logTextureGranularity = 0;
+   intelScreen->tex.handle = 0;
+   intelScreen->tex.size = 0;
+#endif
+		 
    intelScreen->sarea_priv_offset = gDRIPriv->sarea_priv_offset;
    
    if (1) intelPrintDRIInfo(intelScreen, sPriv, gDRIPriv);

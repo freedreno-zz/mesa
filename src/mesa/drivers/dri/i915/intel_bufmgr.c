@@ -186,7 +186,7 @@ bmDeleteBuffers(struct bufmgr *bm, unsigned n, unsigned *buffers)
 	 drmMMBuf *buf = _mesa_HashLookup(bm->hash, buffers[i]);
 
 	 if (buf) {
-	    drmMMFreeBuffer(bm->driFd, buf);
+	    BM_CKFATAL(drmMMFreeBuffer(bm->driFd, buf));
 
 	    _mesa_HashRemove(bm->hash, buffers[i]);
 	 }
@@ -380,7 +380,8 @@ int
 bmValidateBufferList(struct bufmgr *bm,
 		     struct _drmMMBufList *list, unsigned flags)
 {
-   return drmMMValidateBuffers(bm->driFd, list);
+   BM_CKFATAL(drmMMValidateBuffers(bm->driFd, list));
+   return 0;
 }
 
 /* After commands are emitted but before unlocking, this must be
