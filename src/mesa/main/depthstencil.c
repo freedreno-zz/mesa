@@ -53,7 +53,7 @@ nop_get_pointer(GLcontext *ctx, struct gl_renderbuffer *rb, GLint x, GLint y)
 
 
 /**
- * Delete a depth or stencil renderbuffer.
+ * Delete a depth or stencil wrapper renderbuffer.
  */
 static void
 delete_wrapper(struct gl_renderbuffer *rb)
@@ -69,6 +69,30 @@ delete_wrapper(struct gl_renderbuffer *rb)
    }
    _mesa_free(rb);
 }
+
+
+/**
+ * Realloc storage for wrapper.
+ */
+static GLboolean
+alloc_wrapper_storage(GLcontext *ctx, struct gl_renderbuffer *rb,
+                      GLenum internalFormat, GLuint width, GLuint height)
+{
+   /* just pass this on to the wrapped renderbuffer */
+   struct gl_renderbuffer *dsrb = rb->Wrapped;
+   GLboolean retVal;
+
+   ASSERT(dsrb->_ActualFormat == GL_DEPTH24_STENCIL8_EXT);
+
+   retVal = dsrb->AllocStorage(ctx, dsrb, dsrb->InternalFormat, width, height);
+   if (retVal) {
+      rb->Width = width;
+      rb->Height = height;
+   }
+   return retVal;
+}
+
+
 
 
 /*======================================================================
@@ -259,6 +283,7 @@ _mesa_new_z24_renderbuffer_wrapper(GLcontext *ctx,
    z24rb->DepthBits = 24;
    z24rb->Data = NULL;
    z24rb->Delete = delete_wrapper;
+   z24rb->AllocStorage = alloc_wrapper_storage;
    z24rb->GetPointer = nop_get_pointer;
    z24rb->GetRow = get_row_z24;
    z24rb->GetValues = get_values_z24;
@@ -459,6 +484,7 @@ _mesa_new_s8_renderbuffer_wrapper(GLcontext *ctx, struct gl_renderbuffer *dsrb)
    s8rb->StencilBits = 8;
    s8rb->Data = NULL;
    s8rb->Delete = delete_wrapper;
+   s8rb->AllocStorage = alloc_wrapper_storage;
    s8rb->GetPointer = nop_get_pointer;
    s8rb->GetRow = get_row_s8;
    s8rb->GetValues = get_values_s8;
