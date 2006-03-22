@@ -253,6 +253,10 @@ _mesa_resize_framebuffer(GLcontext *ctx, struct gl_framebuffer *fb,
 {
    GLuint i;
 
+   /* XXX I think we could check if the size is not changing
+    * and return early.
+    */
+
    /* For window system framebuffers, Name is zero */
    assert(fb->Name == 0);
 
@@ -264,12 +268,31 @@ _mesa_resize_framebuffer(GLcontext *ctx, struct gl_framebuffer *fb,
          if (rb->Width != width || rb->Height != height) {
             /* could just as well pass rb->_ActualFormat here */
             if (rb->AllocStorage(ctx, rb, rb->InternalFormat, width, height)) {
-               rb->Width = width;
-               rb->Height = height;
+               ASSERT(rb->Width == width);
+               ASSERT(rb->Height == height);
             }
             else {
                _mesa_error(ctx, GL_OUT_OF_MEMORY, "Resizing framebuffer");
+               /* no return */
             }
+         }
+      }
+   }
+
+   if (fb->_DepthBuffer) {
+      struct gl_renderbuffer *rb = fb->_DepthBuffer;
+      if (rb->Width != width || rb->Height != height) {
+         if (!rb->AllocStorage(ctx, rb, rb->InternalFormat, width, height)) {
+            _mesa_error(ctx, GL_OUT_OF_MEMORY, "Resizing framebuffer");
+         }
+      }
+   }
+
+   if (fb->_StencilBuffer) {
+      struct gl_renderbuffer *rb = fb->_StencilBuffer;
+      if (rb->Width != width || rb->Height != height) {
+         if (!rb->AllocStorage(ctx, rb, rb->InternalFormat, width, height)) {
+            _mesa_error(ctx, GL_OUT_OF_MEMORY, "Resizing framebuffer");
          }
       }
    }
@@ -278,8 +301,7 @@ _mesa_resize_framebuffer(GLcontext *ctx, struct gl_framebuffer *fb,
    fb->Height = height;
 
    /* to update scissor / window bounds */
-   if (ctx)
-      ctx->NewState |= _NEW_BUFFERS;
+   _mesa_update_draw_buffer_bounds(ctx);
 }
 
 
