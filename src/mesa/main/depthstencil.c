@@ -240,7 +240,6 @@ _mesa_new_z24_renderbuffer_wrapper(GLcontext *ctx,
 {
    struct gl_renderbuffer *z24rb;
 
-   ASSERT(dsrb->_BaseFormat == GL_DEPTH_STENCIL_EXT);
    ASSERT(dsrb->_ActualFormat == GL_DEPTH24_STENCIL8_EXT);
    ASSERT(dsrb->DataType == GL_UNSIGNED_INT_24_8_EXT);
 
@@ -441,7 +440,6 @@ _mesa_new_s8_renderbuffer_wrapper(GLcontext *ctx, struct gl_renderbuffer *dsrb)
 {
    struct gl_renderbuffer *s8rb;
 
-   ASSERT(dsrb->_BaseFormat == GL_DEPTH_STENCIL_EXT);
    ASSERT(dsrb->_ActualFormat == GL_DEPTH24_STENCIL8_EXT);
    ASSERT(dsrb->DataType == GL_UNSIGNED_INT_24_8_EXT);
 
@@ -475,6 +473,16 @@ _mesa_new_s8_renderbuffer_wrapper(GLcontext *ctx, struct gl_renderbuffer *dsrb)
 
 
 
+/**
+ ** The following functions are useful for hardware drivers that only
+ ** implement combined depth/stencil buffers.
+ ** The GL_EXT_framebuffer_object extension allows indepedent depth and
+ ** stencil buffers to be used in any combination.
+ ** Therefore, we sometimes have to merge separate depth and stencil
+ ** renderbuffers into a single depth+stencil renderbuffer.  And sometimes
+ ** we have to split combined depth+stencil renderbuffers into separate
+ ** renderbuffers.
+ **/
 
 
 /**
@@ -482,6 +490,7 @@ _mesa_new_s8_renderbuffer_wrapper(GLcontext *ctx, struct gl_renderbuffer *dsrb)
  * the values into a separate stencil renderbuffer.
  * \param dsRb  the source depth/stencil renderbuffer
  * \param stencilRb  the destination stencil renderbuffer
+ *                   (either 8-bit or 32-bit)
  */
 void
 _mesa_extract_stencil(GLcontext *ctx,
@@ -495,9 +504,8 @@ _mesa_extract_stencil(GLcontext *ctx,
 
    ASSERT(dsRb->_ActualFormat == GL_DEPTH24_STENCIL8_EXT);
    ASSERT(dsRb->DataType == GL_UNSIGNED_INT_24_8_EXT);
-   ASSERT(stencilRb->_ActualFormat == GL_STENCIL_INDEX8_EXT);
-   ASSERT(stencilRb->DataType == GL_UNSIGNED_BYTE);
-
+   ASSERT(stencilRb->_ActualFormat == GL_DEPTH24_STENCIL8_EXT ||
+          stencilRb->_ActualFormat == GL_STENCIL_INDEX8_EXT);
    ASSERT(dsRb->Width == stencilRb->Width);
    ASSERT(dsRb->Height == stencilRb->Height);
 
@@ -506,11 +514,11 @@ _mesa_extract_stencil(GLcontext *ctx,
 
    for (row = 0; row < height; row++) {
       GLuint depthStencil[MAX_WIDTH];
-      GLuint i;
       dsRb->GetRow(ctx, dsRb, width, 0, row, depthStencil);
       if (stencilRb->_ActualFormat == GL_STENCIL_INDEX8_EXT) {
          /* 8bpp stencil */
          GLubyte stencil[MAX_WIDTH];
+         GLuint i;
          for (i = 0; i < width; i++) {
             stencil[i] = depthStencil[i] & 0xff;
          }
@@ -518,12 +526,10 @@ _mesa_extract_stencil(GLcontext *ctx,
       }
       else {
          /* 32bpp stencil */
-         GLuint stencil[MAX_WIDTH];
+         /* the 24 depth bits will be ignored */
          ASSERT(stencilRb->_ActualFormat == GL_DEPTH24_STENCIL8_EXT);
-         for (i = 0; i < width; i++) {
-            stencil[i] = depthStencil[i] & 0xff;
-         }
-         stencilRb->PutRow(ctx, stencilRb, width, 0, row, stencil, NULL);
+         ASSERT(stencilRb->DataType == GL_UNSIGNED_INT_24_8_EXT);
+         stencilRb->PutRow(ctx, stencilRb, width, 0, row, depthStencil, NULL);
       }
    }
 }
@@ -533,7 +539,7 @@ _mesa_extract_stencil(GLcontext *ctx,
  * Copy stencil values from a stencil renderbuffer into a combined
  * depth/stencil renderbuffer.
  * \param dsRb  the destination depth/stencil renderbuffer
- * \param stencilRb  the source stencil buffer
+ * \param stencilRb  the source stencil buffer (either 8-bit or 32-bit)
  */
 void
 _mesa_insert_stencil(GLcontext *ctx,
@@ -547,8 +553,8 @@ _mesa_insert_stencil(GLcontext *ctx,
 
    ASSERT(dsRb->_ActualFormat == GL_DEPTH24_STENCIL8_EXT);
    ASSERT(dsRb->DataType == GL_UNSIGNED_INT_24_8_EXT);
-   ASSERT(stencilRb->_ActualFormat == GL_STENCIL_INDEX8_EXT);
-   ASSERT(stencilRb->DataType == GL_UNSIGNED_BYTE);
+   ASSERT(stencilRb->_ActualFormat == GL_DEPTH24_STENCIL8_EXT ||
+          stencilRb->_ActualFormat == GL_STENCIL_INDEX8_EXT);
 
    ASSERT(dsRb->Width == stencilRb->Width);
    ASSERT(dsRb->Height == stencilRb->Height);
@@ -558,24 +564,30 @@ _mesa_insert_stencil(GLcontext *ctx,
 
    for (row = 0; row < height; row++) {
       GLuint depthStencil[MAX_WIDTH];
-      GLuint i;
+
       dsRb->GetRow(ctx, dsRb, width, 0, row, depthStencil);
+
       if (stencilRb->_ActualFormat == GL_STENCIL_INDEX8_EXT) {
          /* 8bpp stencil */
          GLubyte stencil[MAX_WIDTH];
+         GLuint i;
+         stencilRb->GetRow(ctx, stencilRb, width, 0, row, stencil);
          for (i = 0; i < width; i++) {
             depthStencil[i] = (depthStencil[i] & 0xffffff00) | stencil[i];
          }
       }
       else {
-         /* 32bpp stencil */
-         GLuint stencil[MAX_WIDTH];
+         /* 32bpp stencil buffer */
+         GLuint stencil[MAX_WIDTH], i;
          ASSERT(stencilRb->_ActualFormat == GL_DEPTH24_STENCIL8_EXT);
+         ASSERT(stencilRb->DataType == GL_UNSIGNED_INT_24_8_EXT);
+         stencilRb->GetRow(ctx, stencilRb, width, 0, row, stencil);
          for (i = 0; i < width; i++) {
-            depthStencil[i] = ((depthStencil[i] & 0xffffff00)
-                               | (stencil[i] & 0xff));
+            depthStencil[i]
+               = (depthStencil[i] & 0xffffff00) | (stencil[i] & 0xff);
          }
       }
+
       dsRb->PutRow(ctx, dsRb, width, 0, row, depthStencil, NULL);
    }
 }
