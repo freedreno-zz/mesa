@@ -42,6 +42,9 @@ struct intel_renderbuffer {
    void *pfMap;    /* possibly paged flipped map pointer */
    GLuint pfPitch; /* possibly paged flipped pitch */
    GLboolean RenderToTexture; /* RTT? */
+
+   GLuint PairedDepth;   /**< only used if this is a depth renderbuffer */
+   GLuint PairedStencil; /**< only used if this is a stencil renderbuffer */
 };
 
 

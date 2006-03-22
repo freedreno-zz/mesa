@@ -37,11 +37,11 @@
 #include "intel_context.h"
 #include "intel_buffers.h"
 #include "intel_bufmgr.h"
+#include "intel_depthstencil.h"
 #include "intel_fbo.h"
 #include "intel_mipmap_tree.h"
 #include "intel_regions.h"
 #include "intel_span.h"
-
 
 #define INTEL_RB_CLASS 0x12345678
 
@@ -102,6 +102,12 @@ intel_delete_renderbuffer(struct gl_renderbuffer *rb)
    struct intel_context *intel = intel_context(ctx);
    struct intel_renderbuffer *irb = intel_renderbuffer(rb);
 
+   ASSERT(irb);
+
+   if (irb->PairedStencil || irb->PairedDepth) {
+      intel_undo_depth_stencil_pairing(ctx, irb);
+   }
+
    if (intel && irb->region) {
       intel_region_release(intel, &irb->region);
    }
@@ -156,15 +162,6 @@ intel_alloc_renderbuffer_storage(GLcontext *ctx, struct gl_renderbuffer *rb,
 
    ASSERT(rb->Name != 0);
 
-   /* defaults */
-   rb->RedBits =
-   rb->GreenBits =
-   rb->BlueBits =
-   rb->AlphaBits =
-   rb->IndexBits =
-   rb->DepthBits =
-   rb->StencilBits = 0;
-
    switch (internalFormat) {
    case GL_R3_G3_B2:
    case GL_RGB4:
@@ -202,12 +199,11 @@ intel_alloc_renderbuffer_storage(GLcontext *ctx, struct gl_renderbuffer *rb,
    case GL_STENCIL_INDEX4_EXT:
    case GL_STENCIL_INDEX8_EXT:
    case GL_STENCIL_INDEX16_EXT:
-      rb->_ActualFormat = GL_STENCIL_INDEX8_EXT;
-      rb->DataType = GL_UNSIGNED_BYTE;
+      /* alloc a depth+stencil buffer */
+      rb->_ActualFormat = GL_DEPTH24_STENCIL8_EXT;
+      rb->DataType = GL_UNSIGNED_INT_24_8_EXT;
       rb->StencilBits = 8;
-      cpp = 1;
-      softwareBuffer = GL_TRUE;
-      /* XXX software buffer? */
+      cpp = 4;
       break;
    case GL_DEPTH_COMPONENT16:
       rb->_ActualFormat = GL_DEPTH_COMPONENT16;

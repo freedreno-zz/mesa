@@ -29,6 +29,7 @@
 #include "intel_context.h"
 #include "intel_blit.h"
 #include "intel_buffers.h"
+#include "intel_depthstencil.h"
 #include "intel_fbo.h"
 #include "intel_tris.h"
 #include "intel_regions.h"
@@ -516,8 +517,8 @@ void
 intel_draw_buffer(GLcontext *ctx, struct gl_framebuffer *fb)
 {
    struct intel_context *intel = intel_context(ctx);
-   struct intel_region *colorRegion, *depthRegion;
-   struct intel_renderbuffer *irbDepth, *irbStencil;
+   struct intel_region *colorRegion, *depthRegion = NULL;
+   struct intel_renderbuffer *irbDepth = NULL, *irbStencil = NULL;
    int front = 0; /* drawing to front color buffer? */
  
    if (!fb) {
@@ -533,6 +534,8 @@ intel_draw_buffer(GLcontext *ctx, struct gl_framebuffer *fb)
       _mesa_update_framebuffer(ctx);
       /* this updates the DrawBuffer's Width/Height if it's a FBO */
       _mesa_update_draw_buffer_bounds(ctx);
+
+      intel_validate_depth_stencil(ctx, fb);
    }
 
    if (fb->_Status != GL_FRAMEBUFFER_COMPLETE_EXT) {
@@ -607,8 +610,13 @@ intel_draw_buffer(GLcontext *ctx, struct gl_framebuffer *fb)
     *** Get depth buffer region and check if we need a software fallback.
     *** Note the BUFFER_DEPTH attachment is usually a DEPTH_STENCIL buffer.
     ***/
+#if 0
    irbDepth = intel_get_renderbuffer(fb, BUFFER_DEPTH);
    if (irbDepth) {
+#else
+   if (fb->_DepthBuffer && fb->_DepthBuffer->Wrapped) {
+      irbDepth = intel_renderbuffer(fb->_DepthBuffer->Wrapped);
+#endif
       if (irbDepth->region) {
          FALLBACK(intel, INTEL_FALLBACK_DEPTH_BUFFER, GL_FALSE);
          depthRegion = irbDepth->region;
@@ -638,9 +646,15 @@ intel_draw_buffer(GLcontext *ctx, struct gl_framebuffer *fb)
     *** This can only be hardware accelerated if we're using a
     *** combined DEPTH_STENCIL buffer (for now anyway).
     ***/
+#if 0
    irbStencil = intel_get_renderbuffer(fb, BUFFER_STENCIL);
    if (irbStencil) {
-      if (irbStencil == irbDepth && irbStencil->region) {
+#else
+   if (fb->_StencilBuffer && fb->_StencilBuffer->Wrapped) {
+      irbStencil = intel_renderbuffer(fb->_StencilBuffer->Wrapped);
+#endif
+      if ((irbStencil == irbDepth && irbStencil->region) /***||
+        (irbStencil->PairedDepth == irbDepth->Base.Name)**/) {
          ASSERT(irbStencil->Base._ActualFormat == GL_DEPTH24_STENCIL8_EXT);
          FALLBACK(intel, INTEL_FALLBACK_STENCIL_BUFFER, GL_FALSE);
          /* need to re-compute stencil hw state */
@@ -651,10 +665,14 @@ intel_draw_buffer(GLcontext *ctx, struct gl_framebuffer *fb)
       }
    }
    else {
+      /* XXX FBO: instead of FALSE, pass ctx->Stencil.Enabled ??? */
       FALLBACK(intel, INTEL_FALLBACK_STENCIL_BUFFER, GL_FALSE);
       /* need to re-compute stencil hw state */
       ctx->Driver.Enable(ctx, GL_STENCIL_TEST, ctx->Stencil.Enabled);
    }
+   /*
+   _mesa_debug(ctx, "STENCIL FALLBACK: 0x%x\n", intel->Fallback );
+   */
 
    intel->vtbl.set_draw_region( intel, colorRegion, depthRegion );
 
