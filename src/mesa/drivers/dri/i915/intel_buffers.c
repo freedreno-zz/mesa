@@ -387,6 +387,7 @@ static void intelClear(GLcontext *ctx,
    /* HW color buffers (front, back, aux, generic FBO, etc) */
    if (colorMask == ~0) {
       /* clear all R,G,B,A */
+      /* XXX FBO: need to check if colorbuffers are software RBOs! */
       blit_mask |= (mask & BUFFER_BITS_COLOR);
    }
    else {
@@ -544,7 +545,8 @@ intel_draw_buffer(GLcontext *ctx, struct gl_framebuffer *fb)
       return;
    }
 
-   intel_validate_paired_depth_stencil(ctx, fb);
+   if (fb->Name)
+      intel_validate_paired_depth_stencil(ctx, fb);
 
    /*
     * How many color buffers are we drawing into?
@@ -594,7 +596,6 @@ intel_draw_buffer(GLcontext *ctx, struct gl_framebuffer *fb)
       intelSetRenderbufferClipRects(intel);
       irb = intel_renderbuffer(fb->_ColorDrawBuffers[0][0]);
       colorRegion = (irb && irb->region) ? irb->region : NULL;
-      ASSERT(irb);
    }
 
    /***
@@ -648,6 +649,7 @@ intel_draw_buffer(GLcontext *ctx, struct gl_framebuffer *fb)
    /**
     ** Release old regions, reference new regions
     **/
+#if 0 /* XXX FBO: this seems to be redundant with i915_state_draw_region() */
    if (intel->draw_region != colorRegion) {
       intel_region_release(intel, &intel->draw_region);
       intel_region_reference(&intel->draw_region, colorRegion);
@@ -656,6 +658,7 @@ intel_draw_buffer(GLcontext *ctx, struct gl_framebuffer *fb)
       intel_region_release(intel, &intel->depth_region);
       intel_region_reference(&intel->depth_region, depthRegion);
    }
+#endif
 
    intel->vtbl.set_draw_region( intel, colorRegion, depthRegion );
 
