@@ -245,7 +245,8 @@ _mesa_framebuffer_renderbuffer(GLcontext *ctx, struct gl_framebuffer *fb,
    struct gl_renderbuffer_attachment *att;
 
    _glthread_LOCK_MUTEX(fb->Mutex);
-   _glthread_LOCK_MUTEX(rb->Mutex);
+   if (rb)
+      _glthread_LOCK_MUTEX(rb->Mutex);
 
    att = _mesa_get_attachment(ctx, fb, attachment);
    ASSERT(att);
@@ -257,7 +258,8 @@ _mesa_framebuffer_renderbuffer(GLcontext *ctx, struct gl_framebuffer *fb,
       _mesa_remove_attachment(ctx, att);
    }
 
-   _glthread_UNLOCK_MUTEX(rb->Mutex);
+   if (rb)
+      _glthread_UNLOCK_MUTEX(rb->Mutex);
    _glthread_UNLOCK_MUTEX(fb->Mutex);
 }
 
