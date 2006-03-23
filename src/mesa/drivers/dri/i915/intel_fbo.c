@@ -471,7 +471,9 @@ intel_framebuffer_renderbuffer(GLcontext *ctx,
                                struct gl_renderbuffer *rb)
 {
    _mesa_debug(ctx, "Intel FramebufferRenderbuffer %u %u\n",
-               fb->Name, rb->Name);
+               fb->Name, rb ? rb->Name : 0);
+
+   intelFlush(ctx);
 
    _mesa_framebuffer_renderbuffer(ctx, fb, attachment, rb);
    intel_draw_buffer(ctx, fb);
