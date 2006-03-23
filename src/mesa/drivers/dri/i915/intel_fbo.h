@@ -35,6 +35,9 @@ struct intel_region;
 
 /**
  * Intel renderbuffer, derived from gl_renderbuffer.
+ * Note: The PairedDepth and PairedStencil fields use renderbuffer IDs,
+ * not pointers because in some circumstances a deleted renderbuffer could
+ * result in a dangling pointer here.
  */
 struct intel_renderbuffer {
    struct gl_renderbuffer Base;
