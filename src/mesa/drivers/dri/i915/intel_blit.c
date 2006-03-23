@@ -58,7 +58,17 @@ void intelCopyBuffer( const __DRIdrawablePrivate *dPriv )
    assert(dPriv->driContextPriv);
    assert(dPriv->driContextPriv->driverPrivate);
 
+#if 00
+   /* XXX This context may not be the current one!  Leads to nested locking
+    * if threading.
+    */
    intel = (struct intel_context *) dPriv->driContextPriv->driverPrivate;
+#else
+   {
+      GET_CURRENT_CONTEXT(ctx);
+      intel = (struct intel_context *) ctx;
+   }
+#endif
 
    bmFinishFence(intel->bm, intel->last_swap_fence);
 
