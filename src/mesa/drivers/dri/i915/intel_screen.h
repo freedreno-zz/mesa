@@ -57,7 +57,7 @@ typedef struct
 
    int cpp;         /* for front and back buffers */
    int bitsPerPixel;  /* unused */
-   int fbFormat;
+   int fbFormat;  /* XXX FBO: this is obsolete - remove after i830 updates */
 
    int logTextureGranularity;
    
