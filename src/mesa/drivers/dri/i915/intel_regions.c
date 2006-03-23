@@ -103,8 +103,11 @@ void intel_region_release( struct intel_context *intel,
       return;
 
    DBG("%s %d\n", __FUNCTION__, (*region)->refcount-1);
-   
-   if (--(*region)->refcount == 0) {
+
+   ASSERT((*region)->refcount > 0);
+   (*region)->refcount--;
+
+   if ((*region)->refcount == 0) {
       assert((*region)->map_refcount == 0);
       bmDeleteBuffers(intel->bm, 1, &(*region)->buffer);
       free(*region);
