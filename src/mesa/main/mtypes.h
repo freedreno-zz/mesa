@@ -2043,6 +2043,7 @@ struct gl_shared_state
  */
 struct gl_renderbuffer
 {
+   _glthread_Mutex Mutex;		   /**< for thread safety */
    GLuint ClassID;        /**< Useful for drivers */
    GLuint Name;
    GLint RefCount;
@@ -2160,6 +2161,7 @@ struct gl_renderbuffer_attachment
  */
 struct gl_framebuffer
 {
+   _glthread_Mutex Mutex;		   /**< for thread safety */
    GLuint Name;      /* if zero, this is a window system framebuffer */
    GLint RefCount;
 

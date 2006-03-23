@@ -224,6 +224,7 @@ _mesa_set_renderbuffer_attachment(GLcontext *ctx,
                                   struct gl_renderbuffer_attachment *att,
                                   struct gl_renderbuffer *rb)
 {
+   /* XXX check if re-doing same attachment, exit early */
    _mesa_remove_attachment(ctx, att);
    att->Type = GL_RENDERBUFFER_EXT;
    att->Renderbuffer = rb;
@@ -243,6 +244,9 @@ _mesa_framebuffer_renderbuffer(GLcontext *ctx, struct gl_framebuffer *fb,
 {
    struct gl_renderbuffer_attachment *att;
 
+   _glthread_LOCK_MUTEX(fb->Mutex);
+   _glthread_LOCK_MUTEX(rb->Mutex);
+
    att = _mesa_get_attachment(ctx, fb, attachment);
    ASSERT(att);
 
@@ -252,6 +256,9 @@ _mesa_framebuffer_renderbuffer(GLcontext *ctx, struct gl_framebuffer *fb,
    else {
       _mesa_remove_attachment(ctx, att);
    }
+
+   _glthread_UNLOCK_MUTEX(rb->Mutex);
+   _glthread_UNLOCK_MUTEX(fb->Mutex);
 }
 
 
@@ -1001,10 +1008,12 @@ _mesa_BindFramebufferEXT(GLenum target, GLuint framebuffer)
 	 }
          _mesa_HashInsert(ctx->Shared->FrameBuffers, framebuffer, newFb);
       }
+      _glthread_LOCK_MUTEX(newFb->Mutex);
       if (bindReadBuf)
          newFb->RefCount++;
       if (bindDrawBuf)
          newFb->RefCount++;
+      _glthread_UNLOCK_MUTEX(newFb->Mutex);
    }
    else {
       /* Binding the window system framebuffer (which was originally set
@@ -1023,10 +1032,12 @@ _mesa_BindFramebufferEXT(GLenum target, GLuint framebuffer)
    if (bindReadBuf) {
       oldFb = ctx->ReadBuffer;
       if (oldFb && oldFb->Name != 0) {
+         _glthread_LOCK_MUTEX(oldFb->Mutex);
          oldFb->RefCount--;
          if (oldFb->RefCount == 0) {
             oldFb->Delete(oldFb);
          }
+         _glthread_UNLOCK_MUTEX(oldFb->Mutex);
       }
       ctx->ReadBuffer = newFb;
    }
@@ -1037,10 +1048,12 @@ _mesa_BindFramebufferEXT(GLenum target, GLuint framebuffer)
          /* check if old FB had any texture attachments */
          check_end_texture_render(ctx, oldFb);
          /* check if time to delete this framebuffer */
+         _glthread_LOCK_MUTEX(oldFb->Mutex);
          oldFb->RefCount--;
          if (oldFb->RefCount == 0) {
             oldFb->Delete(oldFb);
          }
+         _glthread_UNLOCK_MUTEX(oldFb->Mutex);
       }
       ctx->DrawBuffer = newFb;
       if (newFb->Name != 0) {
@@ -1085,10 +1098,12 @@ _mesa_DeleteFramebuffersEXT(GLsizei n, const GLuint *framebuffers)
                /* But the object will not be freed until it's no longer
                 * bound in any context.
                 */
+               _glthread_LOCK_MUTEX(fb->Mutex);
                fb->RefCount--;
                if (fb->RefCount == 0) {
                   fb->Delete(fb);
                }
+               _glthread_UNLOCK_MUTEX(fb->Mutex);
 	    }
 	 }
       }
@@ -1282,6 +1297,7 @@ framebuffer_texture(GLuint dims, GLenum target, GLenum attachment,
 
    FLUSH_VERTICES(ctx, _NEW_BUFFERS);
 
+   _glthread_LOCK_MUTEX(fb->Mutex);
    if (texObj) {
       _mesa_set_texture_attachment(ctx, fb, att, texObj, textarget,
                                    level, zoffset);
@@ -1289,6 +1305,7 @@ framebuffer_texture(GLuint dims, GLenum target, GLenum attachment,
    else {
       _mesa_remove_attachment(ctx, att);
    }
+   _glthread_UNLOCK_MUTEX(fb->Mutex);
 }
 
 

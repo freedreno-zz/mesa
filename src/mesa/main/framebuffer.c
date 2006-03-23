@@ -169,6 +169,8 @@ _mesa_initialize_framebuffer(struct gl_framebuffer *fb, const GLvisual *visual)
 
    _mesa_bzero(fb, sizeof(struct gl_framebuffer));
 
+   _glthread_INIT_MUTEX(fb->Mutex);
+
    /* save the visual */
    fb->Visual = *visual;
 
@@ -201,6 +203,7 @@ void
 _mesa_destroy_framebuffer(struct gl_framebuffer *fb)
 {
    if (fb) {
+      _glthread_DESTROY_MUTEX(fb->Mutex);
       _mesa_free_framebuffer_data(fb);
       _mesa_free(fb);
    }

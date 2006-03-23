@@ -1450,6 +1450,8 @@ nop_get_pointer(GLcontext *ctx, struct gl_renderbuffer *rb, GLint x, GLint y)
 void
 _mesa_init_renderbuffer(struct gl_renderbuffer *rb, GLuint name)
 {
+   _glthread_INIT_MUTEX(rb->Mutex);
+
    rb->ClassID = 0;
    rb->Name = name;
    rb->RefCount = 1;
@@ -1513,6 +1515,7 @@ _mesa_delete_renderbuffer(struct gl_renderbuffer *rb)
    if (rb->Data) {
       _mesa_free(rb->Data);
    }
+   _glthread_INIT_MUTEX(rb->Mutex);
    _mesa_free(rb);
 }
 
