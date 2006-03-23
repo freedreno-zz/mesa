@@ -444,6 +444,11 @@ intel_bind_framebuffer(GLcontext *ctx, GLenum target,
    /*
    _mesa_debug(ctx, "%s %d\n", __FUNCTION__, fb->Name);
    */
+   /* XXX FBO: putting this flush here fixes a rendering offset bug.
+    * Not sure why this is needed when _mesa_BindFrameBuffer does
+    * a FLUSH_VERTICES().
+    */
+   intelFlush(ctx);
 
    if (target == GL_FRAMEBUFFER_EXT || target == GL_DRAW_FRAMEBUFFER_EXT) {
       intel_draw_buffer(ctx, fb);
