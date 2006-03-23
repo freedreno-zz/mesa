@@ -510,7 +510,7 @@ intel_wrap_texture(GLcontext *ctx, struct gl_texture_image *texImage)
       _mesa_debug(ctx, "Render to DEPTH16 texture OK\n");
    }
    else {
-      _mesa_debug(ctx, "Render to texture BAD FORMAT\n");
+      _mesa_debug(ctx, "Render to texture BAD FORMAT %d\n", texImage->TexFormat->MesaFormat);
       _mesa_free(irb);
       return NULL;
    }
@@ -564,11 +564,17 @@ intel_renderbuffer_texture(GLcontext *ctx,
       /* hardware rendering to texture */
       irb->Base.RefCount++;
 
+      /*
+      _mesa_debug(ctx, "Begin render texture (tid %u) tex %u\n",
+                  _glthread_GetID(), att->Texture->Name);
+      */
+
       /* hook into the region */
       /* XXX mipmap level / cube face */
       intel_image = intel_texture_image(newImage);
-      intel_region_reference(&irb->region, intel_image->mt->region);
-      
+      if (irb->region != intel_image->mt->region)
+         intel_region_reference(&irb->region, intel_image->mt->region);
+
       att->Renderbuffer = &irb->Base;
 
       intel_draw_buffer(ctx, fb);
@@ -592,6 +598,11 @@ intel_finish_render_texture(GLcontext *ctx,
    struct intel_context *intel = intel_context(ctx);
    struct intel_renderbuffer *irb
       = intel_renderbuffer(att->Renderbuffer);
+
+   /*
+   _mesa_debug(ctx, "End render texture (tid %u) tex %u\n",
+               _glthread_GetID(), att->Texture->Name);
+   */
 
    if (irb) {
       /* hardware */
