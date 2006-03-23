@@ -33,6 +33,7 @@
 #include "renderbuffer.h"
 #include "context.h"
 #include "texformat.h"
+#include "texrender.h"
 
 #include "intel_context.h"
 #include "intel_buffers.h"
@@ -257,6 +258,8 @@ intel_alloc_renderbuffer_storage(GLcontext *ctx, struct gl_renderbuffer *rb,
       irb->region = intel_region_alloc(intel, cpp, pitch, height);
       if (!irb->region)
          return GL_FALSE; /* out of memory? */
+
+      ASSERT(irb->region->buffer);
 
       rb->Width = width;
       rb->Height = height;
@@ -573,6 +576,8 @@ intel_renderbuffer_texture(GLcontext *ctx,
    else {
       /* fallback to software rendering */
       _mesa_problem(ctx, "Render to texture - unsupported hw format");
+      _mesa_renderbuffer_texture(ctx, fb, att);
+      /* XXX FBO: Need to map the buffer (or in intelSpanRenderStart???) */
    }
 }
 
@@ -588,19 +593,25 @@ intel_finish_render_texture(GLcontext *ctx,
    struct intel_renderbuffer *irb
       = intel_renderbuffer(att->Renderbuffer);
 
-   assert(irb);
+   if (irb) {
+      /* hardware */
+      intel_region_release(intel, &irb->region);
 
-   intel_region_release(intel, &irb->region);
+      irb->Base.RefCount--;
 
-   irb->Base.RefCount--;
+      /*
+      _mesa_debug(ctx, "intel_finish_render_texture, refcount=%d\n",
+                  irb->Base.RefCount);
+      */
 
-   /*
-   _mesa_debug(ctx, "intel_finish_render_texture, refcount=%d\n",
-               irb->Base.RefCount);
-   */
-
-   /* should never hit zero here */
-   assert(irb->Base.RefCount > 0);
+      /* should never hit zero here */
+      assert(irb->Base.RefCount > 0);
+   }
+   else {
+      /* software */
+      _mesa_finish_render_texture(ctx, att);
+      /* XXX FBO: Need to unmap the buffer (or in intelSpanRenderStart???) */
+   }
 }
 
 
