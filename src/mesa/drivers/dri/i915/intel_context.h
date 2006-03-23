@@ -369,13 +369,6 @@ do {						\
   ((a<<24) | (r<<16) | (g<<8) | b)
 
 
-#define INTEL_PACKCOLOR(format, r,  g,  b, a)		\
-(format == DV_PF_555 ? INTEL_PACKCOLOR1555(r,g,b,a) :	\
- (format == DV_PF_565 ? INTEL_PACKCOLOR565(r,g,b) :	\
-  (format == DV_PF_8888 ? INTEL_PACKCOLOR8888(r,g,b,a) :	\
-   0)))
-
-
 
 /* ================================================================
  * From linux kernel i386 header files, copes with odd sizes better
