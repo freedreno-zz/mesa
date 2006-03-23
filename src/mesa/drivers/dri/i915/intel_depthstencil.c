@@ -128,7 +128,7 @@ unmap_regions(GLcontext *ctx,
 
 /**
  * Undo the pairing/interleaving between depth and stencil buffers.
- * driRb should be a depth/stencil or stencil renderbuffer.
+ * irb should be a depth/stencil or stencil renderbuffer.
  */
 void
 intel_unpair_depth_stencil(GLcontext *ctx, struct intel_renderbuffer *irb)
@@ -216,7 +216,7 @@ intel_validate_paired_depth_stencil(GLcontext *ctx, struct gl_framebuffer *fb)
             ASSERT(stencilRb->PairedDepth == depthRb->Base.Name);
          }
          else {
-            /* need to setup pairing/interleaving */
+            /* need to setup new pairing/interleaving */
             if (depthRb->PairedStencil) {
                intel_unpair_depth_stencil(ctx, depthRb);
             }
@@ -266,6 +266,7 @@ intel_validate_paired_depth_stencil(GLcontext *ctx, struct gl_framebuffer *fb)
       }
    }
 
+   /* Finally, update the fb->_DepthBuffer and fb->_StencilBuffer fields */
    _mesa_update_depth_buffer(ctx, fb, BUFFER_DEPTH);
    if (depthRb && depthRb->PairedStencil)
       _mesa_update_stencil_buffer(ctx, fb, BUFFER_DEPTH);
