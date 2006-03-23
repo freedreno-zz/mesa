@@ -184,7 +184,8 @@ struct intel_context
 
    GLboolean locked;
 
-   GLuint ClearColor;
+   GLuint ClearColor565;
+   GLuint ClearColor8888;
 
    /* Offsets of fields within the current vertex:
     */

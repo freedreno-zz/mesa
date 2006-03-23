@@ -277,7 +277,7 @@ void intelClearWithBlit(GLcontext *ctx, GLbitfield mask, GLboolean all,
                         GLint cx, GLint cy, GLint cw, GLint ch)
 {
    struct intel_context *intel = intel_context( ctx );
-   GLuint clear_depth, clear_color;
+   GLuint clear_depth;
    GLbitfield skipBuffers = 0;
    BATCH_LOCALS;
 
@@ -287,7 +287,6 @@ void intelClearWithBlit(GLcontext *ctx, GLbitfield mask, GLboolean all,
    /*
     * Compute values for clearing the buffers.
     */
-   clear_color = intel->ClearColor;
    clear_depth = 0;
    if (mask & BUFFER_BIT_DEPTH) {
       clear_depth = (GLuint) (ctx->DrawBuffer->_DepthMax * ctx->Depth.Clear);
@@ -404,7 +403,8 @@ void intelClearWithBlit(GLcontext *ctx, GLbitfield mask, GLboolean all,
                   clearVal = clear_depth;
                }
                else {
-                  clearVal = clear_color;
+                  clearVal = (cpp == 4)
+                     ? intel->ClearColor8888 : intel->ClearColor565;
                }
                /*
                _mesa_debug(ctx, "hardware blit clear buf %d rb id %d\n",

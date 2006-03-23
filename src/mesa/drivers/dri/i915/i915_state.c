@@ -881,6 +881,7 @@ static void i915_init_packets( struct i915_context *i915 )
       i915->state.Buffer[I915_DESTREG_DV0] = _3DSTATE_DST_BUF_VARS_CMD;
 
       /* XXX FBO: remove this?  Also get set in i915_set_draw_region() */
+#if 0 /* seems we don't need this */
       switch (screen->fbFormat) {
       case DV_PF_565:
 	 i915->state.Buffer[I915_DESTREG_DV1] = (DSTORG_HORT_BIAS(0x8) | /* .5 */
@@ -900,6 +901,8 @@ static void i915_init_packets( struct i915_context *i915 )
 					       DEPTH_FRMT_24_FIXED_8_OTHER);
 	 break;
       }
+#endif
+
       i915->state.Buffer[I915_DESTREG_SENABLE] = (_3DSTATE_SCISSOR_ENABLE_CMD |
 						DISABLE_SCISSOR_RECT);
       i915->state.Buffer[I915_DESTREG_SR0] = _3DSTATE_SCISSOR_RECT_0_CMD;

@@ -296,6 +296,8 @@ static void intelClearWithTris(struct intel_context *intel,
             = intel_get_rb_region(ctx->DrawBuffer, BUFFER_BACK_LEFT);
          struct intel_region *depthRegion
             = intel_get_rb_region(ctx->DrawBuffer, BUFFER_DEPTH);
+         const GLuint clearColor = (backRegion && backRegion->cpp == 4)
+            ? intel->ClearColor8888 : intel->ClearColor565;
 
 	 intel->vtbl.meta_draw_region(intel, backRegion, depthRegion );
 
@@ -323,7 +325,7 @@ static void intelClearWithTris(struct intel_context *intel,
 			      clear.x1, clear.x2, 
 			      clear.y1, clear.y2, 
 			      intel->ctx.Depth.Clear,
-			      intel->ClearColor, 
+			      clearColor, 
 			      0, 0, 0, 0); /* texcoords */
 
          mask &= ~(BUFFER_BIT_BACK_LEFT|BUFFER_BIT_STENCIL|BUFFER_BIT_DEPTH);
@@ -336,6 +338,9 @@ static void intelClearWithTris(struct intel_context *intel,
             struct intel_renderbuffer *irbColor =
                intel_renderbuffer(ctx->DrawBuffer->
                                   Attachment[buf].Renderbuffer);
+            GLuint color = (irbColor->region->cpp == 4)
+               ? intel->ClearColor8888 : intel->ClearColor565;
+
             ASSERT(irbColor);
 
             intel->vtbl.meta_no_depth_write(intel);
@@ -350,7 +355,7 @@ static void intelClearWithTris(struct intel_context *intel,
                                  clear.x1, clear.x2, 
                                  clear.y1, clear.y2, 
                                  0, /* depth clear val */
-                                 intel->ClearColor, 
+                                 color,
                                  0, 0, 0, 0); /* texcoords */
 
             mask &= ~bufBit;
