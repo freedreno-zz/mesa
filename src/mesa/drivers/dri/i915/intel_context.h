@@ -183,6 +183,8 @@ struct intel_context
    } prim;
 
    GLboolean locked;
+   char *prevLockFile;
+   int prevLockLine;
 
    GLuint ClearColor565;
    GLuint ClearColor8888;
@@ -266,19 +268,17 @@ struct intel_context
 #define DEBUG_LOCKING	1
 
 #if DEBUG_LOCKING
-extern char *prevLockFile;
-extern int prevLockLine;
 
 #define DEBUG_LOCK()							\
    do {									\
-      prevLockFile = (__FILE__);					\
-      prevLockLine = (__LINE__);					\
+      intel->prevLockFile = (__FILE__);					\
+      intel->prevLockLine = (__LINE__);					\
    } while (0)
 
 #define DEBUG_RESET()							\
    do {									\
-      prevLockFile = 0;							\
-      prevLockLine = 0;							\
+      intel->prevLockFile = 0;						\
+      intel->prevLockLine = 0;						\
    } while (0)
 
 /* Slightly less broken way of detecting recursive locking in a
@@ -297,7 +297,8 @@ extern int prevLockLine;
 	   (DRM_LOCK_HELD | intel->hHWContext) ) {			\
 	 fprintf( stderr,						\
 		  "LOCK SET!\n\tPrevious %s:%d\n\tCurrent: %s:%d\n",	\
-		  prevLockFile, prevLockLine, __FILE__, __LINE__ );	\
+		  intel->prevLockFile, intel->prevLockLine,		\
+		  __FILE__, __LINE__ );					\
 	 abort();							\
       }									\
    } while (0)
@@ -324,7 +325,7 @@ do {							\
         (DRM_LOCK_HELD|(intel)->hHWContext), __ret);	\
     if (__ret)						\
         intelGetLock( (intel), 0 );			\
-      DEBUG_LOCK();					\
+     DEBUG_LOCK();					\
     (intel)->locked = 1;				\
 }while (0)
  
@@ -373,6 +374,7 @@ do {						\
 /* ================================================================
  * From linux kernel i386 header files, copes with odd sizes better
  * than COPY_DWORDS would:
+ * XXX Put this in src/mesa/main/imports.h ???
  */
 #if defined(i386) || defined(__i386__)
 static inline void * __memcpy(void * to, const void * from, size_t n)

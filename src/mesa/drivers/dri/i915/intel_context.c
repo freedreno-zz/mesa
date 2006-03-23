@@ -87,15 +87,6 @@ int INTEL_DEBUG = (0);
 #include "extension_helper.h"
 
 
-#if DEBUG_LOCKING
-char *prevLockFile;
-int prevLockLine;
-#endif
-
-/***************************************
- * Mesa's Driver Functions
- ***************************************/
-
 #define DRIVER_DATE                     "20060212"
 
 static const GLubyte *intelGetString( GLcontext *ctx, GLenum name )
