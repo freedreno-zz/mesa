@@ -526,14 +526,18 @@ GLboolean intelMakeCurrent(__DRIcontextPrivate *driContextPriv,
          struct intel_renderbuffer *irbStencil
             = intel_get_renderbuffer(drawFb, BUFFER_STENCIL);
 
-         if (irbFront && !irbFront->region)
-            irbFront->region = intel->front_region;
-         if (irbBack && !irbBack->region)
-            irbBack->region = intel->back_region;
-         if (irbDepth && !irbDepth->region)
-            irbDepth->region = intel->depth_region;
-         if (irbStencil && !irbStencil->region)
-            irbStencil->region = intel->depth_region; /* YES */
+         if (irbFront && !irbFront->region) {
+            intel_region_reference(&irbFront->region, intel->front_region);
+         }
+         if (irbBack && !irbBack->region) {
+            intel_region_reference(&irbBack->region, intel->back_region);
+         }
+         if (irbDepth && !irbDepth->region) {
+            intel_region_reference(&irbDepth->region, intel->depth_region);
+         }
+         if (irbStencil && !irbStencil->region) {
+            intel_region_reference(&irbStencil->region, intel->depth_region);
+         }
       }
 
       _mesa_make_current(&intel->ctx, drawFb, readFb);
