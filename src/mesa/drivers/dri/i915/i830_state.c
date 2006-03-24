@@ -498,14 +498,13 @@ static void i830Scissor(GLcontext *ctx, GLint x, GLint y,
 			GLsizei w, GLsizei h)
 {
    struct i830_context *i830 = i830_context(ctx);
-   intelScreenPrivate *screen = i830->intel.intelScreen;
    int x1, y1, x2, y2;
 
-   if (!i830->intel.driDrawable)
+   if (!ctx->DrawBuffer)
       return;
 
    x1 = x;
-   y1 = i830->intel.driDrawable->h - (y + h);
+   y1 = ctx->DrawBuffer->Height - (y + h);
    x2 = x + w - 1;
    y2 = y1 + h - 1;
 
@@ -513,16 +512,10 @@ static void i830Scissor(GLcontext *ctx, GLint x, GLint y,
       fprintf(stderr, "[%s] x(%d) y(%d) w(%d) h(%d)\n", __FUNCTION__,
 	      x, y, w, h);
 
-   if (x1 < 0) x1 = 0;
-   if (y1 < 0) y1 = 0;
-   if (x2 < 0) x2 = 0;
-   if (y2 < 0) y2 = 0;
-
-   if (x2 >= screen->width) x2 = screen->width-1;
-   if (y2 >= screen->height) y2 = screen->height-1;
-   if (x1 >= screen->width) x1 = screen->width-1;
-   if (y1 >= screen->height) y1 = screen->height-1;
-
+   x1 = CLAMP(x1, 0, ctx->DrawBuffer->Width - 1);
+   y1 = CLAMP(y1, 0, ctx->DrawBuffer->Height - 1);
+   x2 = CLAMP(x2, 0, ctx->DrawBuffer->Width - 1);
+   y2 = CLAMP(y2, 0, ctx->DrawBuffer->Height - 1);
 
    I830_STATECHANGE(i830, I830_UPLOAD_BUFFERS);
    i830->state.Buffer[I830_DESTREG_SR1] = (y1 << 16) | (x1 & 0xffff);
