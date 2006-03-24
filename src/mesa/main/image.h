@@ -217,8 +217,7 @@ _mesa_clip_readpixels(const GLcontext *ctx,
                       struct gl_pixelstore_attrib *pack);
 
 extern GLboolean
-_mesa_clip_to_region(GLcontext *ctx,
-                     GLint xmin, GLint ymin,
+_mesa_clip_to_region(GLint xmin, GLint ymin,
                      GLint xmax, GLint ymax,
                      GLint *x, GLint *y,
                      GLsizei *width, GLsizei *height );

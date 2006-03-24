@@ -182,7 +182,7 @@ static GLboolean do_texture_copypixels( GLcontext *ctx,
 	 GLint orig_x = srcx;
 	 GLint orig_y = srcy;
 
-	 if (!_mesa_clip_to_region(ctx, 0, 0, src->pitch, src->height,
+	 if (!_mesa_clip_to_region(0, 0, src->pitch, src->height,
                                    &srcx, &srcy, &width, &height)) 
 	    goto out;
 
@@ -276,7 +276,7 @@ static GLboolean do_blit_copypixels( GLcontext *ctx,
 	 delta_x = srcx - dstx;
 	 delta_y = srcy - dsty;
 
-	 if (!_mesa_clip_to_region(ctx, 0, 0, src->pitch, src->height,
+	 if (!_mesa_clip_to_region(0, 0, src->pitch, src->height,
                                    &srcx, &srcy, &width, &height)) 
 	    goto out;
 

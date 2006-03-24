@@ -109,7 +109,7 @@ static GLboolean do_copy_texsubimage( struct intel_context *intel,
       GLuint window_y;
       const struct gl_framebuffer *fb = ctx->DrawBuffer;
 
-      if (_mesa_clip_to_region(ctx, fb->_Xmin, fb->_Ymin, fb->_Xmax, fb->_Ymax,
+      if (_mesa_clip_to_region(fb->_Xmin, fb->_Ymin, fb->_Xmax, fb->_Ymax,
                                &x, &y, &width, &height)) {
 	 /* Update dst for clipped src.  Need to also clip the source rect.
 	  */

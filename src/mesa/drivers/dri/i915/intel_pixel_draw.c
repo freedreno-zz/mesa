@@ -154,7 +154,7 @@ static GLboolean do_texture_drawpixels( GLcontext *ctx,
 	 const GLint orig_x = dstx;
 	 const GLint orig_y = dsty;
 
-	 if (!_mesa_clip_to_region(ctx, 0, 0, dst->pitch, dst->height,
+	 if (!_mesa_clip_to_region(0, 0, dst->pitch, dst->height,
                                    &dstx, &dsty, &width, &height)) 
 	    goto out;
 
