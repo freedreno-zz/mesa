@@ -118,7 +118,7 @@ static GLboolean i915_update_tex_unit( struct intel_context *intel,
    struct i915_context *i915 = i915_context(ctx);
    struct gl_texture_object *tObj = ctx->Texture.Unit[unit]._Current;
    struct intel_texture_object *intelObj = intel_texture_object(tObj);
-   struct gl_texture_image *firstImage = tObj->Image[0][intelObj->firstLevel];
+   struct gl_texture_image *firstImage;
    GLuint *state = i915->state.Tex[unit];
 
    memset(state, 0, sizeof(state));
@@ -127,6 +127,11 @@ static GLboolean i915_update_tex_unit( struct intel_context *intel,
 
    if (!intel_finalize_mipmap_tree(intel, unit))
       return GL_FALSE;   
+
+   /* Get first image here, since intelObj->firstLevel will get set in
+    * the intel_finalize_mipmap_tree() call above.
+    */
+   firstImage = tObj->Image[0][intelObj->firstLevel];
 
 /*    intel_region_reference(&i915->state.tex_region[unit], */
 /* 			  intelObj->mt->region); */

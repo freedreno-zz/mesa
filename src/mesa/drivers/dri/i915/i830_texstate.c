@@ -124,13 +124,18 @@ static GLboolean i830_update_tex_unit( struct intel_context *intel,
    struct i830_context *i830 = i830_context(ctx);
    struct gl_texture_object *tObj = ctx->Texture.Unit[unit]._Current;
    struct intel_texture_object *intelObj = intel_texture_object(tObj);
-   struct gl_texture_image *firstImage = tObj->Image[0][intelObj->firstLevel];
+   struct gl_texture_image *firstImage;
    GLuint *state = i830->state.Tex[unit];
 
    memset(state, 0, sizeof(state));
 
    if (!intel_finalize_mipmap_tree(intel, unit))
       return GL_FALSE;   
+
+   /* Get first image here, since intelObj->firstLevel will get set in
+    * the intel_finalize_mipmap_tree() call above.
+    */
+   firstImage = tObj->Image[0][intelObj->firstLevel];
 
    i830->state.tex_buffer[unit] = intelObj->mt->region->buffer;
    i830->state.tex_offset[unit] = intel_miptree_image_offset(intelObj->mt, 0,
