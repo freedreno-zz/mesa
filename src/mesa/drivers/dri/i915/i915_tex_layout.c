@@ -281,7 +281,9 @@ GLboolean i945_miptree_layout( struct intel_mipmap_tree *mt )
       break;
    }
 
-   default: {
+   case GL_TEXTURE_1D:
+   case GL_TEXTURE_2D:
+   case GL_TEXTURE_RECTANGLE_ARB: {
       GLuint x = 0;
       GLuint y = 0;
       GLuint width = mt->width0;
@@ -321,7 +323,10 @@ GLboolean i945_miptree_layout( struct intel_mipmap_tree *mt )
       }
       break;
    }
+   default:
+      _mesa_problem(NULL, "Unexpected tex target in i945_miptree_layout()");
    }
+   
    DBG("%s: %dx%dx%d - sz 0x%x\n", __FUNCTION__, 
 		mt->pitch, 
 		mt->total_height,
