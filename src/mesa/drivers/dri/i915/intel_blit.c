@@ -50,25 +50,22 @@
  */
 void intelCopyBuffer( const __DRIdrawablePrivate *dPriv ) 
 {
+   GET_CURRENT_CONTEXT(ctx);
    struct intel_context *intel;
 
    DBG("%s\n", __FUNCTION__);
 
    assert(dPriv);
-   assert(dPriv->driContextPriv);
-   assert(dPriv->driContextPriv->driverPrivate);
 
-#if 00
-   /* XXX This context may not be the current one!  Leads to nested locking
-    * if threading.
+   /* We need a rendering context in order to issue the blit cmd.
+    * Use the current context.
+    * XXX need to fix this someday.
     */
-   intel = (struct intel_context *) dPriv->driContextPriv->driverPrivate;
-#else
-   {
-      GET_CURRENT_CONTEXT(ctx);
-      intel = (struct intel_context *) ctx;
+   if (!ctx) {
+      _mesa_problem(NULL, "No current context in intelCopyBuffer()");
+      return;
    }
-#endif
+   intel = (struct intel_context *) ctx;
 
    bmFinishFence(intel->bm, intel->last_swap_fence);
 
@@ -81,8 +78,6 @@ void intelCopyBuffer( const __DRIdrawablePrivate *dPriv )
        intel->driDrawable->numClipRects)
    {
       const intelScreenPrivate *intelScreen = intel->intelScreen;
-      /* XXX why are we declaring a new dPriv (already passed as param!) */
-      const __DRIdrawablePrivate *dPriv = intel->driDrawable;
       struct gl_framebuffer *fb
          = (struct gl_framebuffer *) dPriv->driverPrivate;
       const struct intel_region *frontRegion
@@ -92,7 +87,7 @@ void intelCopyBuffer( const __DRIdrawablePrivate *dPriv )
       const int nbox = dPriv->numClipRects;
       const drm_clip_rect_t *pbox = dPriv->pClipRects;
       const int pitch = frontRegion->pitch;
-      const int cpp= frontRegion->cpp;
+      const int cpp = frontRegion->cpp;
       int BR13, CMD;
       int i;
 
