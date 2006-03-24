@@ -670,6 +670,10 @@ intel_draw_buffer(GLcontext *ctx, struct gl_framebuffer *fb)
    /* update viewport since it depends on window size */
    ctx->Driver.Viewport(ctx, ctx->Viewport.X, ctx->Viewport.Y,
                         ctx->Viewport.Width, ctx->Viewport.Height);
+
+   /* Update hardware scissor */
+   ctx->Driver.Scissor( ctx, ctx->Scissor.X, ctx->Scissor.Y,
+                        ctx->Scissor.Width, ctx->Scissor.Height );
 }
 
 
