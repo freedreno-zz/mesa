@@ -2,7 +2,7 @@
  * Mesa 3-D graphics library
  * Version:  6.5
  *
- * Copyright (C) 1999-2005  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2006  Brian Paul   All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -40,6 +40,7 @@
 #include "texenvprogram.h"
 #include "mtypes.h"
 #include "math/m_xform.h"
+#include "shaderobjects.h"
 
 
 
@@ -63,6 +64,35 @@ static const struct gl_tex_env_combine_state default_combine_state = {
 };
 
 
+/**
+ * Copy a texture binding.  Helper used by _mesa_copy_texture_state().
+ */
+static void
+copy_texture_binding(const GLcontext *ctx,
+                     struct gl_texture_object **dst,
+                     struct gl_texture_object *src)
+{
+   /* only copy if names differ (per OpenGL SI) */
+   if ((*dst)->Name != src->Name) {
+      /* unbind/delete dest binding which we're changing */
+      (*dst)->RefCount--;
+      if ((*dst)->RefCount == 0) {
+         /* time to delete this texture object */
+         ASSERT((*dst)->Name != 0);
+         ASSERT(ctx->Driver.DeleteTexture);
+         /* XXX cast-away const, unfortunately */
+         (*ctx->Driver.DeleteTexture)((GLcontext *) ctx, *dst);
+      }
+      /* make new binding, incrementing ref count */
+      *dst = src;
+      src->RefCount++;
+   }
+}
+
+
+/**
+ * Used by glXCopyContext to copy texture state from one context to another.
+ */
 void
 _mesa_copy_texture_state( const GLcontext *src, GLcontext *dst )
 {
@@ -112,17 +142,17 @@ _mesa_copy_texture_state( const GLcontext *src, GLcontext *dst )
       dst->Texture.Unit[i].Combine.ScaleShiftRGB = src->Texture.Unit[i].Combine.ScaleShiftRGB;
       dst->Texture.Unit[i].Combine.ScaleShiftA = src->Texture.Unit[i].Combine.ScaleShiftA;
 
-      /* texture object state */
-      _mesa_copy_texture_object(dst->Texture.Unit[i].Current1D,
-                                src->Texture.Unit[i].Current1D);
-      _mesa_copy_texture_object(dst->Texture.Unit[i].Current2D,
-                                src->Texture.Unit[i].Current2D);
-      _mesa_copy_texture_object(dst->Texture.Unit[i].Current3D,
-                                src->Texture.Unit[i].Current3D);
-      _mesa_copy_texture_object(dst->Texture.Unit[i].CurrentCubeMap,
-                                src->Texture.Unit[i].CurrentCubeMap);
-      _mesa_copy_texture_object(dst->Texture.Unit[i].CurrentRect,
-                                src->Texture.Unit[i].CurrentRect);
+      /* copy texture object bindings, not contents of texture objects */
+      copy_texture_binding(src, &dst->Texture.Unit[i].Current1D,
+                           src->Texture.Unit[i].Current1D);
+      copy_texture_binding(src, &dst->Texture.Unit[i].Current2D,
+                           src->Texture.Unit[i].Current2D);
+      copy_texture_binding(src, &dst->Texture.Unit[i].Current3D,
+                           src->Texture.Unit[i].Current3D);
+      copy_texture_binding(src, &dst->Texture.Unit[i].CurrentCubeMap,
+                           src->Texture.Unit[i].CurrentCubeMap);
+      copy_texture_binding(src, &dst->Texture.Unit[i].CurrentRect,
+                           src->Texture.Unit[i].CurrentRect);
    }
 }
 
@@ -2692,7 +2722,7 @@ _mesa_ClientActiveTextureARB( GLenum target )
    GLuint texUnit = target - GL_TEXTURE0;
    ASSERT_OUTSIDE_BEGIN_END(ctx);
 
-   if (texUnit > ctx->Const.MaxTextureUnits) {
+   if (texUnit >= ctx->Const.MaxTextureUnits) {
       _mesa_error(ctx, GL_INVALID_ENUM, "glClientActiveTexture(target)");
       return;
    }
@@ -2739,6 +2769,27 @@ update_texture_matrices( GLcontext *ctx )
 
 
 /**
+ * Helper function for determining which texture object (1D, 2D, cube, etc)
+ * should actually be used.
+ */
+static void
+texture_override(GLcontext *ctx,
+                 struct gl_texture_unit *texUnit, GLbitfield enableBits,
+                 struct gl_texture_object *texObj, GLuint textureBit)
+{
+   if (!texUnit->_ReallyEnabled && (enableBits & textureBit)) {
+      if (!texObj->Complete) {
+         _mesa_test_texobj_completeness(ctx, texObj);
+      }
+      if (texObj->Complete) {
+         texUnit->_ReallyEnabled = textureBit;
+         texUnit->_Current = texObj;
+      }
+   }
+}
+
+
+/**
  * \note This routine refers to derived texture matrix values to
  * compute the ENABLE_TEXMAT flags, but is only called on
  * _NEW_TEXTURE.  On changes to _NEW_TEXTURE_MATRIX, the ENABLE_TEXMAT
@@ -2760,9 +2811,8 @@ update_texture_state( GLcontext *ctx )
    ctx->Texture._TexMatEnabled = 0;
    ctx->Texture._TexGenEnabled = 0;
 
-   /* Update texture unit state.
-    * XXX this loop should probably be broken into separate loops for
-    * texture coord units and texture image units.
+   /*
+    * Update texture unit state.
     */
    for (unit = 0; unit < ctx->Const.MaxTextureUnits; unit++) {
       struct gl_texture_unit *texUnit = &ctx->Texture.Unit[unit];
@@ -2786,60 +2836,16 @@ update_texture_state( GLcontext *ctx )
        * complete.  That's the one we'll use for texturing.  If we're using
        * a fragment program we're guaranteed that bitcount(enabledBits) <= 1.
        */
-      if (enableBits & TEXTURE_CUBE_BIT) {
-         struct gl_texture_object *texObj = texUnit->CurrentCubeMap;
-         if (!texObj->Complete) {
-            _mesa_test_texobj_completeness(ctx, texObj);
-         }
-         if (texObj->Complete) {
-            texUnit->_ReallyEnabled = TEXTURE_CUBE_BIT;
-            texUnit->_Current = texObj;
-         }
-      }
-
-      if (!texUnit->_ReallyEnabled && (enableBits & TEXTURE_3D_BIT)) {
-         struct gl_texture_object *texObj = texUnit->Current3D;
-         if (!texObj->Complete) {
-            _mesa_test_texobj_completeness(ctx, texObj);
-         }
-         if (texObj->Complete) {
-            texUnit->_ReallyEnabled = TEXTURE_3D_BIT;
-            texUnit->_Current = texObj;
-         }
-      }
-
-      if (!texUnit->_ReallyEnabled && (enableBits & TEXTURE_RECT_BIT)) {
-         struct gl_texture_object *texObj = texUnit->CurrentRect;
-         if (!texObj->Complete) {
-            _mesa_test_texobj_completeness(ctx, texObj);
-         }
-         if (texObj->Complete) {
-            texUnit->_ReallyEnabled = TEXTURE_RECT_BIT;
-            texUnit->_Current = texObj;
-         }
-      }
-
-      if (!texUnit->_ReallyEnabled && (enableBits & TEXTURE_2D_BIT)) {
-         struct gl_texture_object *texObj = texUnit->Current2D;
-         if (!texObj->Complete) {
-            _mesa_test_texobj_completeness(ctx, texObj);
-         }
-         if (texObj->Complete) {
-            texUnit->_ReallyEnabled = TEXTURE_2D_BIT;
-            texUnit->_Current = texObj;
-         }
-      }
-
-      if (!texUnit->_ReallyEnabled && (enableBits & TEXTURE_1D_BIT)) {
-         struct gl_texture_object *texObj = texUnit->Current1D;
-         if (!texObj->Complete) {
-            _mesa_test_texobj_completeness(ctx, texObj);
-         }
-         if (texObj->Complete) {
-            texUnit->_ReallyEnabled = TEXTURE_1D_BIT;
-            texUnit->_Current = texObj;
-         }
-      }
+      texture_override(ctx, texUnit, enableBits,
+                       texUnit->CurrentCubeMap, TEXTURE_CUBE_BIT);
+      texture_override(ctx, texUnit, enableBits,
+                       texUnit->Current3D, TEXTURE_3D_BIT);
+      texture_override(ctx, texUnit, enableBits,
+                       texUnit->CurrentRect, TEXTURE_RECT_BIT);
+      texture_override(ctx, texUnit, enableBits,
+                       texUnit->Current2D, TEXTURE_2D_BIT);
+      texture_override(ctx, texUnit, enableBits,
+                       texUnit->Current1D, TEXTURE_1D_BIT);
 
       if (!texUnit->_ReallyEnabled) {
          continue;
@@ -2852,13 +2858,14 @@ update_texture_state( GLcontext *ctx )
 	 texUnit->_CurrentCombine = & texUnit->Combine;
       }
       else {
-         GLenum format = texUnit->_Current->Image[0][0]->_BaseFormat;
+         const struct gl_texture_object *texObj = texUnit->_Current;
+         GLenum format = texObj->Image[0][texObj->BaseLevel]->_BaseFormat;
          if (format == GL_COLOR_INDEX) {
             format = GL_RGBA;  /* a bit of a hack */
          }
          else if (format == GL_DEPTH_COMPONENT
                   || format == GL_DEPTH_STENCIL_EXT) {
-            format = texUnit->_Current->DepthMode;
+            format = texObj->DepthMode;
          }
 	 calculate_derived_texenv(&texUnit->_EnvMode, texUnit->EnvMode, format);
 	 texUnit->_CurrentCombine = & texUnit->_EnvMode;
