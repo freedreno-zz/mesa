@@ -1036,10 +1036,10 @@ _mesa_BindFramebufferEXT(GLenum target, GLuint framebuffer)
       if (oldFb && oldFb->Name != 0) {
          _glthread_LOCK_MUTEX(oldFb->Mutex);
          oldFb->RefCount--;
+         _glthread_UNLOCK_MUTEX(oldFb->Mutex);
          if (oldFb->RefCount == 0) {
             oldFb->Delete(oldFb);
          }
-         _glthread_UNLOCK_MUTEX(oldFb->Mutex);
       }
       ctx->ReadBuffer = newFb;
    }
@@ -1102,10 +1102,10 @@ _mesa_DeleteFramebuffersEXT(GLsizei n, const GLuint *framebuffers)
                 */
                _glthread_LOCK_MUTEX(fb->Mutex);
                fb->RefCount--;
+               _glthread_UNLOCK_MUTEX(fb->Mutex);
                if (fb->RefCount == 0) {
                   fb->Delete(fb);
                }
-               _glthread_UNLOCK_MUTEX(fb->Mutex);
 	    }
 	 }
       }
