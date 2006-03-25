@@ -100,13 +100,11 @@ static GLboolean do_copy_texsubimage( struct intel_context *intel,
    intelFlush(ctx);
    LOCK_HARDWARE(intel);
    {
-      __DRIdrawablePrivate *dPriv = intel->driDrawable;
       GLuint image_offset = intel_miptree_image_offset(intelImage->mt, 
 						       intelImage->face,
 						       intelImage->level);
       const GLint orig_x = x;
       const GLint orig_y = y;
-      GLuint window_y;
       const struct gl_framebuffer *fb = ctx->DrawBuffer;
 
       if (_mesa_clip_to_region(fb->_Xmin, fb->_Ymin, fb->_Xmax, fb->_Ymax,
@@ -116,12 +114,20 @@ static GLboolean do_copy_texsubimage( struct intel_context *intel,
 	 dstx += x - orig_x;
 	 dsty += y - orig_y;
 
-	 x += dPriv->x;
-
-	 window_y = intel->intelScreen->height - (dPriv->y + dPriv->h);
-
-	 y = window_y + y;
-
+         if (ctx->ReadBuffer->Name == 0) {
+            /* reading from a window, adjust x, y */
+            __DRIdrawablePrivate *dPriv = intel->driDrawable;
+            GLuint window_y;
+            /* window_y = position of window on screen if y=0=bottom */
+            window_y = intel->intelScreen->height - (dPriv->y + dPriv->h);
+            y = window_y + y;
+            x += dPriv->x;
+         }
+         else {
+            /* reading from a FBO */
+            /* invert Y */
+            y = ctx->ReadBuffer->Height - y - 1;
+         }
 
 
 	 /* A bit of fiddling to get the blitter to work with -ve
@@ -248,6 +254,8 @@ void intelCopyTexSubImage1D( GLcontext *ctx, GLenum target, GLint level,
    struct gl_texture_unit *texUnit = &ctx->Texture.Unit[ctx->Texture.CurrentUnit];
    struct gl_texture_image *texImage = _mesa_select_tex_image(ctx, texUnit, target, level);
    GLenum internalFormat = texImage->InternalFormat;
+
+   /* XXX need to check <border> as in above function? */
 
    /* Need to check texture is compatible with source format. 
     */
