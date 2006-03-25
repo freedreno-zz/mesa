@@ -47,7 +47,6 @@
 #include "intel_screen.h"
 
 #include "i830_dri.h"
-#include "i830_common.h"
 
 #include "intel_buffers.h"
 #include "intel_tex.h"
@@ -480,7 +479,7 @@ void intelDestroyContext(__DRIcontextPrivate *driContextPriv)
       }
 
       /* free the Mesa context */
-      _mesa_destroy_context(&intel->ctx);
+      _mesa_free_context_data(&intel->ctx);
    }
 }
 
