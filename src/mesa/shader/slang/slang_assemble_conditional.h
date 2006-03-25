@@ -1,8 +1,8 @@
 /*
  * Mesa 3-D graphics library
- * Version:  6.3
+ * Version:  6.5
  *
- * Copyright (C) 2005  Brian Paul   All Rights Reserved.
+ * Copyright (C) 2005-2006  Brian Paul   All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -25,39 +25,23 @@
 #if !defined SLANG_ASSEMBLE_CONDITIONAL_H
 #define SLANG_ASSEMBLE_CONDITIONAL_H
 
-#include "slang_assemble.h"
-
 #if defined __cplusplus
 extern "C" {
 #endif
 
-int _slang_assemble_logicaland (slang_assembly_file *file, slang_operation *op,
-	slang_assembly_flow_control *flow, slang_assembly_name_space *space,
-	slang_assembly_local_info *info);
+GLboolean _slang_assemble_logicaland (slang_assemble_ctx *, struct slang_operation_ *);
 
-int _slang_assemble_logicalor (slang_assembly_file *file, slang_operation *op,
-	slang_assembly_flow_control *flow, slang_assembly_name_space *space,
-	slang_assembly_local_info *info);
+GLboolean _slang_assemble_logicalor (slang_assemble_ctx *, struct slang_operation_ *);
 
-int _slang_assemble_select (slang_assembly_file *file, slang_operation *op,
-	slang_assembly_flow_control *flow, slang_assembly_name_space *space,
-	slang_assembly_local_info *info);
+GLboolean _slang_assemble_select (slang_assemble_ctx *, struct slang_operation_ *);
 
-int _slang_assemble_for (slang_assembly_file *file, slang_operation *op,
-	slang_assembly_flow_control *flow, slang_assembly_name_space *space,
-	slang_assembly_local_info *info);
+GLboolean _slang_assemble_for (slang_assemble_ctx *, struct slang_operation_ *);
 
-int _slang_assemble_do (slang_assembly_file *file, slang_operation *op,
-	slang_assembly_flow_control *flow, slang_assembly_name_space *space,
-	slang_assembly_local_info *info);
+GLboolean _slang_assemble_do (slang_assemble_ctx *, struct slang_operation_ *);
 
-int _slang_assemble_while (slang_assembly_file *file, slang_operation *op,
-	slang_assembly_flow_control *flow, slang_assembly_name_space *space,
-	slang_assembly_local_info *info);
+GLboolean _slang_assemble_while (slang_assemble_ctx *, struct slang_operation_ *);
 
-int _slang_assemble_if (slang_assembly_file *file, slang_operation *op,
-	slang_assembly_flow_control *flow, slang_assembly_name_space *space,
-	slang_assembly_local_info *info);
+GLboolean _slang_assemble_if (slang_assemble_ctx *, struct slang_operation_ *);
 
 #ifdef __cplusplus
 }

@@ -33,7 +33,7 @@
  * Mesa 3-D graphics library
  * Version:  6.5
  *
- * Copyright (C) 1999-2005  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2006  Brian Paul   All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -71,6 +71,14 @@ extern int vsnprintf(char *str, size_t count, const char *fmt, va_list arg);
 #endif
 #endif
 
+/* If we don't actually want to use the libcwrapper junk (even though we're
+ * building an Xorg server module), then just undef IN_MODULE to signal that to
+ * the following code.  It's left around for now to allow compiling of newish
+ * Mesa with older servers, but this whole mess should go away at some point.
+ */
+#ifdef NO_LIBCWRAPPER
+#undef IN_MODULE
+#endif
 
 /**********************************************************************/
 /** \name Memory */
@@ -289,6 +297,17 @@ _mesa_sin(double a)
 #endif
 }
 
+/** Single precision wrapper around either sin() or xf86sin() */
+float
+_mesa_sinf(float a)
+{
+#if defined(XFree86LOADER) && defined(IN_MODULE)
+   return (float) xf86sin((double) a);
+#else
+   return (float) sin((double) a);
+#endif
+}
+
 /** Wrapper around either cos() or xf86cos() */
 double
 _mesa_cos(double a)
@@ -297,6 +316,28 @@ _mesa_cos(double a)
    return xf86cos(a);
 #else
    return cos(a);
+#endif
+}
+
+/** Single precision wrapper around either asin() or xf86asin() */
+float
+_mesa_asinf(float x)
+{
+#if defined(XFree86LOADER) && defined(IN_MODULE)
+   return (float) xf86asin((double) x);
+#else
+   return (float) asin((double) x);
+#endif
+}
+
+/** Single precision wrapper around either atan() or xf86atan() */
+float
+_mesa_atanf(float x)
+{
+#if defined(XFree86LOADER) && defined(IN_MODULE)
+   return (float) xf86atan((double) x);
+#else
+   return (float) atan((double) x);
 #endif
 }
 
@@ -960,9 +1001,9 @@ _mesa_warning( GLcontext *ctx, const char *fmtString, ... )
 #endif
    if (debug) {
 #if defined(XFree86LOADER) && defined(IN_MODULE)
-      xf86fprintf(stderr, "Mesa warning: %s", str);
+      xf86fprintf(stderr, "Mesa warning: %s\n", str);
 #else
-      fprintf(stderr, "Mesa warning: %s", str);
+      fprintf(stderr, "Mesa warning: %s\n", str);
 #endif
    }
 }

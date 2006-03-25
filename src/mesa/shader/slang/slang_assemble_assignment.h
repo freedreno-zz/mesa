@@ -1,8 +1,8 @@
 /*
  * Mesa 3-D graphics library
- * Version:  6.3
+ * Version:  6.5
  *
- * Copyright (C) 2005  Brian Paul   All Rights Reserved.
+ * Copyright (C) 2005-2006  Brian Paul   All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -25,17 +25,14 @@
 #if !defined SLANG_ASSEMBLE_ASSIGNMENT_H
 #define SLANG_ASSEMBLE_ASSIGNMENT_H
 
-#include "slang_assemble.h"
-
 #if defined __cplusplus
 extern "C" {
 #endif
 
-int _slang_assemble_assignment (slang_assembly_file *, slang_operation *,
-	slang_assembly_name_space *, slang_assembly_local_info *);
+GLboolean _slang_assemble_assignment (slang_assemble_ctx *, struct slang_operation_ *);
 
-int _slang_assemble_assign (slang_assembly_file *, slang_operation *, const char *, int ref,
-	slang_assembly_name_space *, slang_assembly_local_info *);
+GLboolean _slang_assemble_assign (slang_assemble_ctx *, struct slang_operation_ *, const char *,
+	slang_ref_type);
 
 #ifdef __cplusplus
 }

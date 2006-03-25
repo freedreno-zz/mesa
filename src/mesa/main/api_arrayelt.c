@@ -2,7 +2,7 @@
  * Mesa 3-D graphics library
  * Version:  6.5
  *
- * Copyright (C) 1999-2005  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2006  Brian Paul   All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -29,10 +29,8 @@
 #include "glheader.h"
 #include "api_arrayelt.h"
 #include "context.h"
-#include "glapi.h"
 #include "imports.h"
 #include "macros.h"
-#include "mtypes.h"
 #include "glapioffsets.h"
 #include "dispatch.h"
 
@@ -145,41 +143,9 @@ static const int NormalFuncs[8] = {
    _gloffset_Normal3dv,
 };
 
-#if defined(IN_DRI_DRIVER)
+/* Note: _gloffset_* for these may not be a compile-time constant. */
 static int SecondaryColorFuncs[8];
-static int FogCoordFuncs[8] = {
-   -1,
-   -1,
-   -1,
-   -1,
-   -1,
-   -1,
-    0,
-    0,
-};
-#else
-static const int SecondaryColorFuncs[8] = {
-   _gloffset_SecondaryColor3bvEXT,
-   _gloffset_SecondaryColor3ubvEXT,
-   _gloffset_SecondaryColor3svEXT,
-   _gloffset_SecondaryColor3usvEXT,
-   _gloffset_SecondaryColor3ivEXT,
-   _gloffset_SecondaryColor3uivEXT,
-   _gloffset_SecondaryColor3fvEXT,
-   _gloffset_SecondaryColor3dvEXT,
-};
-
-static const int FogCoordFuncs[8] = {
-   -1,
-   -1,
-   -1,
-   -1,
-   -1,
-   -1,
-   _gloffset_FogCoordfvEXT,
-   _gloffset_FogCoorddvEXT
-};
-#endif
+static int FogCoordFuncs[8];
 
 /**********************************************************************/
 
@@ -622,7 +588,7 @@ GLboolean _ae_create_context( GLcontext *ctx )
    if (ctx->aelt_context)
       return GL_TRUE;
 
-#if defined(IN_DRI_DRIVER)
+   /* These _gloffset_* values may not be compile-time constants */
    SecondaryColorFuncs[0] = _gloffset_SecondaryColor3bvEXT;
    SecondaryColorFuncs[1] = _gloffset_SecondaryColor3ubvEXT;
    SecondaryColorFuncs[2] = _gloffset_SecondaryColor3svEXT;
@@ -632,9 +598,14 @@ GLboolean _ae_create_context( GLcontext *ctx )
    SecondaryColorFuncs[6] = _gloffset_SecondaryColor3fvEXT;
    SecondaryColorFuncs[7] = _gloffset_SecondaryColor3dvEXT;
 
+   FogCoordFuncs[0] = -1;
+   FogCoordFuncs[1] = -1;
+   FogCoordFuncs[2] = -1;
+   FogCoordFuncs[3] = -1;
+   FogCoordFuncs[4] = -1;
+   FogCoordFuncs[5] = -1;
    FogCoordFuncs[6] = _gloffset_FogCoordfvEXT;
    FogCoordFuncs[7] = _gloffset_FogCoorddvEXT;
-#endif
 
    ctx->aelt_context = MALLOC( sizeof(AEcontext) );
    if (!ctx->aelt_context)
@@ -699,7 +670,7 @@ static void _ae_update_state( GLcontext *ctx )
       aa++;
    }
    for (i = 0; i < ctx->Const.MaxTextureCoordUnits; i++) {
-      if (ctx->Array.TexCoord[i].Enabled) {
+      if (ctx->Array.TexCoord[i].Enabled && ctx->Array.TexCoord[i].Ptr) {
          /* NOTE: we use generic glVertexAttrib functions here.
           * If we ever de-alias conventional/generic vertex attribs this
           * will have to change.
@@ -714,7 +685,8 @@ static void _ae_update_state( GLcontext *ctx )
 
    /* generic vertex attribute arrays */
    for (i = 1; i < VERT_ATTRIB_MAX; i++) {  /* skip zero! */
-      if (ctx->Array.VertexAttrib[i].Enabled) {
+      if (ctx->Array.VertexAttrib[i].Enabled &&
+            ctx->Array.VertexAttrib[i].Ptr) {
          struct gl_client_array *attribArray = &ctx->Array.VertexAttrib[i];
          at->array = attribArray;
          /* Note: we can't grab the _glapi_Dispatch->VertexAttrib1fvNV

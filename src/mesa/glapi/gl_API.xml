@@ -10447,8 +10447,8 @@
     <function name="GenProgramsNV" offset="582">
         <param name="n" type="GLsizei" counter="true"/>
         <param name="programs" type="GLuint *" output="true" count="n"/>
-        <glx vendorpriv="1295"/>
-    </function>
+        <glx vendorpriv="1295" always_array="true"/>
+     </function>
 
     <!-- This isn't 100% correct.  Currently, the only valid value of pname
          is GL_PROGRAM_PARAMETER_NV, and the count for that pname is always
@@ -11495,6 +11495,25 @@
         <param name="id" type="GLuint"/>
         <param name="pname" type="GLenum"/>
         <param name="params" type="GLuint64EXT *"/>
+    </function>
+</category>
+
+<category name="GL_EXT_framebuffer_blit" number="316">
+    <enum name="GL_READ_FRAMEBUFFER_EXT" value="0x8CA8"/>
+    <enum name="GL_DRAW_FRAMEBUFFER_EXT" value="0x8CA9"/>
+    <enum name="GL_DRAW_FRAMEBUFFER_BINDING_EXT" value="0x8CA6"/>
+    <enum name="GL_READ_FRAMEBUFFER_BINDING_EXT" value="0x8CAA"/>
+    <function name="BlitFramebufferEXT" offset="818">
+        <param name="srcX0" type="GLint"/>
+        <param name="srcY0" type="GLint"/>
+        <param name="srcX1" type="GLint"/>
+        <param name="srcY1" type="GLint"/>
+        <param name="dstX0" type="GLint"/>
+        <param name="dstY0" type="GLint"/>
+        <param name="dstX1" type="GLint"/>
+        <param name="dstY1" type="GLint"/>
+        <param name="mask" type="GLbitfield"/>
+        <param name="filter" type="GLenum"/>
     </function>
 </category>
 

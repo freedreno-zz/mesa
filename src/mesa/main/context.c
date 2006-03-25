@@ -8,7 +8,7 @@
  * Mesa 3-D graphics library
  * Version:  6.5
  *
- * Copyright (C) 1999-2005  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2006  Brian Paul   All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -605,7 +605,7 @@ _glthread_DECLARE_STATIC_MUTEX(OneTimeLock);
  * and sets the glapi callbacks if the \c MESA_DEBUG environment variable is
  * defined.
  *
- * \sa _mesa_init_lists(), _math_init().
+ * \sa _math_init().
  */
 static void
 one_time_init( GLcontext *ctx )
@@ -623,8 +623,6 @@ one_time_init( GLcontext *ctx )
       assert( sizeof(GLushort) == 2 );
       assert( sizeof(GLint) == 4 );
       assert( sizeof(GLuint) == 4 );
-
-      _mesa_init_lists();
 
 #if _HAVE_FULL_GL
       _math_init();
@@ -845,8 +843,8 @@ free_shared_state( GLcontext *ctx, struct gl_shared_state *ss )
    }
    _mesa_DeleteHashTable(ss->TexObjects);
 
-#if FEATURE_NV_vertex_program
-   /* Free vertex programs */
+#if defined(FEATURE_NV_vertex_program) || defined(FEATURE_NV_fragment_program)
+   /* Free vertex/fragment programs */
    while (1) {
       GLuint prog = _mesa_HashFirstEntry(ss->Programs);
       if (prog) {
@@ -868,15 +866,33 @@ free_shared_state( GLcontext *ctx, struct gl_shared_state *ss )
 #if FEATURE_ARB_fragment_program
    _mesa_delete_program(ctx, ss->DefaultFragmentProgram);
 #endif
+
 #if FEATURE_ATI_fragment_shader
-   _mesa_free(ss->DefaultFragmentShader);
+   /* Free ATI fragment shaders */
+   while (1) {
+      GLuint prog = _mesa_HashFirstEntry(ss->ATIShaders);
+      if (prog) {
+         struct ati_fragment_shader *s = (struct ati_fragment_shader *)
+            _mesa_HashLookup(ss->ATIShaders, prog);
+         ASSERT(s);
+         _mesa_delete_ati_fragment_shader(ctx, s);
+         _mesa_HashRemove(ss->ATIShaders, prog);
+      }
+      else {
+         break;
+      }
+   }
+   _mesa_DeleteHashTable(ss->ATIShaders);
+   _mesa_delete_ati_fragment_shader(ctx, ss->DefaultFragmentShader);
 #endif
 
 #if FEATURE_ARB_vertex_buffer_object
    _mesa_DeleteHashTable(ss->BufferObjects);
 #endif
 
+#if FEATURE_ARB_shader_objects
    _mesa_DeleteHashTable (ss->GL2Objects);
+#endif
 
 #if FEATURE_EXT_framebuffer_object
    _mesa_DeleteHashTable(ss->FrameBuffers);
@@ -1404,7 +1420,7 @@ _mesa_copy_context( const GLcontext *src, GLcontext *dst, GLuint mask )
    if (mask & GL_LIGHTING_BIT) {
       GLuint i;
       /* begin with memcpy */
-      MEMCPY( &dst->Light, &src->Light, sizeof(struct gl_light) );
+      dst->Light = src->Light;
       /* fixup linked lists to prevent pointer insanity */
       make_empty_list( &(dst->Light.EnabledList) );
       for (i = 0; i < MAX_LIGHTS; i++) {
@@ -1479,6 +1495,11 @@ _mesa_copy_context( const GLcontext *src, GLcontext *dst, GLuint mask )
 /**
  * Check if the given context can render into the given framebuffer
  * by checking visual attributes.
+ *
+ * XXX this may go away someday because we're moving toward more freedom
+ * in binding contexts to drawables with different visual attributes.
+ * The GL_EXT_f_b_o extension is prompting some of that.
+ *
  * \return GL_TRUE if compatible, GL_FALSE otherwise.
  */
 static GLboolean 
@@ -1492,8 +1513,11 @@ check_compatible(const GLcontext *ctx, const GLframebuffer *buffer)
 
    if (ctxvis->rgbMode != bufvis->rgbMode)
       return GL_FALSE;
+#if 0
+   /* disabling this fixes the fgl_glxgears pbuffer demo */
    if (ctxvis->doubleBufferMode && !bufvis->doubleBufferMode)
       return GL_FALSE;
+#endif
    if (ctxvis->stereoMode && !bufvis->stereoMode)
       return GL_FALSE;
    if (ctxvis->haveAccumBuffer && !bufvis->haveAccumBuffer)
@@ -1558,23 +1582,22 @@ _mesa_make_current( GLcontext *newCtx, GLframebuffer *drawBuffer,
 
    /* Check that the context's and framebuffer's visuals are compatible.
     */
-   if (newCtx && drawBuffer && newCtx->DrawBuffer != drawBuffer) {
-      if (!check_compatible(newCtx, drawBuffer))
+   if (newCtx && drawBuffer && newCtx->WinSysDrawBuffer != drawBuffer) {
+      if (!check_compatible(newCtx, drawBuffer)) {
+         _mesa_warning(newCtx,
+              "MakeCurrent: incompatible visuals for context and drawbuffer");
          return;
+      }
    }
-   if (newCtx && readBuffer && newCtx->ReadBuffer != readBuffer) {
-      if (!check_compatible(newCtx, readBuffer))
+   if (newCtx && readBuffer && newCtx->WinSysReadBuffer != readBuffer) {
+      if (!check_compatible(newCtx, readBuffer)) {
+         _mesa_warning(newCtx,
+              "MakeCurrent: incompatible visuals for context and readbuffer");
          return;
+      }
    }
 
-#if !defined(IN_DRI_DRIVER)
-   /* We call this function periodically (just here for now) in
-    * order to detect when multithreading has begun.  In a DRI driver, this
-    * step is done by the driver loader (e.g., libGL).
-    */
-   _glapi_check_multithread();
-#endif /* !defined(IN_DRI_DRIVER) */
-
+   /* We used to call _glapi_check_multithread() here.  Now do it in drivers */
    _glapi_set_context((void *) newCtx);
    ASSERT(_mesa_get_current_context() == newCtx);
 
@@ -1591,9 +1614,15 @@ _mesa_make_current( GLcontext *newCtx, GLframebuffer *drawBuffer,
          ASSERT(readBuffer->Name == 0);
          newCtx->WinSysDrawBuffer = drawBuffer;
          newCtx->WinSysReadBuffer = readBuffer;
-         /* don't replace user-buffer bindings with window system buffer */
+
+         /*
+          * Only set the context's Draw/ReadBuffer fields if they're NULL
+          * or not bound to a user-created FBO.
+          */
          if (!newCtx->DrawBuffer || newCtx->DrawBuffer->Name == 0) {
             newCtx->DrawBuffer = drawBuffer;
+         }
+         if (!newCtx->ReadBuffer || newCtx->ReadBuffer->Name == 0) {
             newCtx->ReadBuffer = readBuffer;
          }
 

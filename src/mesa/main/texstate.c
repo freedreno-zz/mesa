@@ -2801,6 +2801,8 @@ static void
 update_texture_state( GLcontext *ctx )
 {
    GLuint unit;
+   struct gl2_program_intf **prog = ctx->ShaderObjects.CurrentProgram;
+   GLbitfield progteximageusage[MAX_TEXTURE_IMAGE_UNITS];
 
    ctx->NewState |= _NEW_TEXTURE; /* TODO: only set this if there are 
 				   * actual changes. 
@@ -2810,6 +2812,15 @@ update_texture_state( GLcontext *ctx )
    ctx->Texture._GenFlags = 0;
    ctx->Texture._TexMatEnabled = 0;
    ctx->Texture._TexGenEnabled = 0;
+
+   /*
+    * Grab texture image usage state from shader program. It must be
+    * grabbed every time uniform sampler changes, so maybe there is a
+    * better place to perform these rather expensive computations.
+    */
+   if (ctx->ShaderObjects._FragmentShaderPresent) {
+      (**prog).GetTextureImageUsage (prog, progteximageusage);
+   }
 
    /*
     * Update texture unit state.
@@ -2823,7 +2834,10 @@ update_texture_state( GLcontext *ctx )
       texUnit->_GenFlags = 0;
 
       /* Get the bitmask of texture enables */
-      if (ctx->FragmentProgram._Enabled) {
+      if (ctx->ShaderObjects._FragmentShaderPresent) {
+         enableBits = progteximageusage[unit];
+      }
+      else if (ctx->FragmentProgram._Enabled) {
          enableBits = ctx->FragmentProgram.Current->TexturesUsed[unit];
       }
       else {
@@ -2945,7 +2959,10 @@ update_texture_state( GLcontext *ctx )
    /* Fragment programs may need texture coordinates but not the
     * corresponding texture images.
     */
-   if (ctx->FragmentProgram._Enabled) {
+   if (ctx->ShaderObjects.CurrentProgram != NULL) {
+      ctx->Texture._EnabledCoordUnits |= (1 << ctx->Const.MaxTextureCoordUnits) - 1;
+   }
+   else if (ctx->FragmentProgram._Enabled) {
       ctx->Texture._EnabledCoordUnits |=
          (ctx->FragmentProgram.Current->Base.InputsRead >> FRAG_ATTRIB_TEX0);
    }

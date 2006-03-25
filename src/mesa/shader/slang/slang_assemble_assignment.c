@@ -1,8 +1,8 @@
 /*
  * Mesa 3-D graphics library
- * Version:  6.3
+ * Version:  6.5
  *
- * Copyright (C) 2005  Brian Paul   All Rights Reserved.
+ * Copyright (C) 2005-2006  Brian Paul   All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -29,52 +29,66 @@
  */
 
 #include "imports.h"
-#include "slang_assemble_assignment.h"
-#include "slang_assemble_typeinfo.h"
+#include "slang_assemble.h"
 #include "slang_storage.h"
-#include "slang_utility.h"
 
 /*
-	_slang_assemble_assignment()
+ * _slang_assemble_assignment()
+ *
+ * Copies values on the stack (<component 0> to <component N-1>) to a memory
+ * location pointed by <addr of variable>.
+ *
+ * in:
+ *      +------------------+
+ *      | addr of variable |
+ *      +------------------+
+ *      | component N-1    |
+ *      | ...              |
+ *      | component 0      |
+ *      +------------------+
+ *
+ * out:
+ *      +------------------+
+ *      | addr of variable |
+ *      +------------------+
+ */
 
-	copies values on the stack (<component 0> to <component N-1>) to a memory
-	location pointed by <addr of variable>;
-
-	in:
-		+------------------+
-		| addr of variable |
-		+------------------+
-		| component N-1    |
-		| ...              |
-		| component 0      |
-		+------------------+
-
-	out:
-		+------------------+
-		| addr of variable |
-		+------------------+
-*/
-/* TODO: add support for swizzle mask */
-static int assign_aggregate (slang_assembly_file *file, const slang_storage_aggregate *agg,
-	unsigned int *index, unsigned int size, slang_assembly_local_info *info)
+static GLboolean assign_aggregate (slang_assemble_ctx *A, const slang_storage_aggregate *agg,
+	GLuint *index, GLuint size)
 {
-	unsigned int i;
+	GLuint i;
 
 	for (i = 0; i < agg->count; i++)
 	{
-		const slang_storage_array *arr = agg->arrays + i;
-		unsigned int j;
+		const slang_storage_array *arr = &agg->arrays[i];
+		GLuint j;
 
 		for (j = 0; j < arr->length; j++)
 		{
 			if (arr->type == slang_stor_aggregate)
 			{
-				if (!assign_aggregate (file, arr->aggregate, index, size, info))
-					return 0;
+				if (!assign_aggregate (A, arr->aggregate, index, size))
+					return GL_FALSE;
 			}
 			else
 			{
+				GLuint dst_addr_loc, dst_offset;
 				slang_assembly_type ty;
+
+				/* calculate the distance from top of the stack to the destination address */
+				dst_addr_loc = size - *index;
+
+				/* calculate the offset within destination variable to write */
+				if (A->swz.num_components != 0)
+				{
+					/* swizzle the index to get the actual offset */
+					dst_offset = A->swz.swizzle[*index / 4] * 4;
+				}
+				else
+				{
+					/* no swizzling - write sequentially */
+					dst_offset = *index;
+				}
 
 				switch (arr->type)
 				{
@@ -90,98 +104,91 @@ static int assign_aggregate (slang_assembly_file *file, const slang_storage_aggr
 				default:
 					break;
 				}
-				if (!slang_assembly_file_push_label2 (file, ty, size - *index, *index))
-					return 0;
+				if (!slang_assembly_file_push_label2 (A->file, ty, dst_addr_loc, dst_offset))
+					return GL_FALSE;
+
 				*index += 4;
 			}
 		}
 	}
-	return 1;
+
+	return GL_TRUE;
 }
 
-int _slang_assemble_assignment (slang_assembly_file *file, slang_operation *op,
-	slang_assembly_name_space *space, slang_assembly_local_info *info)
+GLboolean _slang_assemble_assignment (slang_assemble_ctx *A, slang_operation *op)
 {
 	slang_assembly_typeinfo ti;
-	int result;
+	GLboolean result = GL_FALSE;
 	slang_storage_aggregate agg;
-	unsigned int index, size;
+	GLuint index, size;
 
-	slang_assembly_typeinfo_construct (&ti);
-	if (!_slang_typeof_operation (op, space, &ti))
-	{
-		slang_assembly_typeinfo_destruct (&ti);
-		return 0;
-	}
+	if (!slang_assembly_typeinfo_construct (&ti))
+		return GL_FALSE;
+	if (!_slang_typeof_operation (A, op, &ti))
+		goto end1;
 
-	slang_storage_aggregate_construct (&agg);
-	if (!_slang_aggregate_variable (&agg, &ti.spec, NULL, space->funcs, space->structs))
-	{
-		slang_storage_aggregate_destruct (&agg);
-		slang_assembly_typeinfo_destruct (&ti);
-		return 0;
-	}
+	if (!slang_storage_aggregate_construct (&agg))
+		goto end1;
+	if (!_slang_aggregate_variable (&agg, &ti.spec, 0, A->space.funcs, A->space.structs,
+			A->space.vars, A->mach, A->file, A->atoms))
+		goto end;
 
 	index = 0;
 	size = _slang_sizeof_aggregate (&agg);
-	result = assign_aggregate (file, &agg, &index, size, info);
+	result = assign_aggregate (A, &agg, &index, size);
 
+end1:
 	slang_storage_aggregate_destruct (&agg);
+end:
 	slang_assembly_typeinfo_destruct (&ti);
 	return result;
 }
 
 /*
-	_slang_assemble_assign()
+ * _slang_assemble_assign()
+ *
+ * Performs unary (pre ++ and --) or binary (=, +=, -=, *=, /=) assignment on the operation's
+ * children.
+ */
 
-	performs unary (pre ++ and --) or binary (=, +=, -=, *=, /=) assignment on the operation's
-	children
-*/
-
-int dereference (slang_assembly_file *file, slang_operation *op,
-	slang_assembly_name_space *space, slang_assembly_local_info *info);
-
-int call_function_name (slang_assembly_file *file, const char *name, slang_operation *params,
-	unsigned int param_count, int assignment, slang_assembly_name_space *space,
-	slang_assembly_local_info *info);
-
-int _slang_assemble_assign (slang_assembly_file *file, slang_operation *op, const char *oper,
-	int ref, slang_assembly_name_space *space, slang_assembly_local_info *info)
+GLboolean _slang_assemble_assign (slang_assemble_ctx *A, slang_operation *op, const char *oper,
+	slang_ref_type ref)
 {
-	slang_assembly_stack_info stk;
-	slang_assembly_flow_control flow;
+	slang_swizzle swz;
 
-	if (!ref)
+	if (ref == slang_ref_forbid)
 	{
-		if (!slang_assembly_file_push_label2 (file, slang_asm_local_addr, info->addr_tmp, 4))
-			return 0;
+		if (!slang_assembly_file_push_label2 (A->file, slang_asm_local_addr, A->local.addr_tmp, 4))
+			return GL_FALSE;
 	}
 
 	if (slang_string_compare ("=", oper) == 0)
 	{
-		if (!_slang_assemble_operation (file, op->children, 1, &flow, space, info, &stk))
-			return 0;
-		if (!_slang_assemble_operation (file, op->children + 1, 0, &flow, space, info, &stk))
-			return 0;
-		if (!_slang_assemble_assignment (file, op->children, space, info))
-			return 0;
+		if (!_slang_assemble_operation (A, &op->children[0], slang_ref_force))
+			return GL_FALSE;
+		swz = A->swz;
+		if (!_slang_assemble_operation (A, &op->children[1], slang_ref_forbid))
+			return GL_FALSE;
+		A->swz = swz;
+		if (!_slang_assemble_assignment (A, op->children))
+			return GL_FALSE;
 	}
 	else
 	{
-		if (!call_function_name (file, oper, op->children, op->num_children, 1, space, info))
-			return 0;
+		if (!_slang_assemble_function_call_name (A, oper, op->children, op->num_children, GL_TRUE))
+			return GL_FALSE;
 	}
 
-	if (!ref)
+	if (ref == slang_ref_forbid)
 	{
-		if (!slang_assembly_file_push (file, slang_asm_addr_copy))
-			return 0;
-		if (!slang_assembly_file_push_label (file, slang_asm_local_free, 4))
-			return 0;
-		if (!dereference (file, op->children, space, info))
-			return 0;
+		if (!slang_assembly_file_push (A->file, slang_asm_addr_copy))
+			return GL_FALSE;
+		if (!slang_assembly_file_push_label (A->file, slang_asm_local_free, 4))
+			return GL_FALSE;
+		if (!_slang_dereference (A, op->children))
+			return GL_FALSE;
 	}
 
-	return 1;
+	return GL_TRUE;
 }
 

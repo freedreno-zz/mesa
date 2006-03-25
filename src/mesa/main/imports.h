@@ -2,7 +2,7 @@
  * Mesa 3-D graphics library
  * Version:  6.5
  *
- * Copyright (C) 1999-2005  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2006  Brian Paul   All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -161,7 +161,7 @@ typedef union { GLfloat f; GLint i; } fi_type;
  ***/
 #if 0 /* _mesa_sqrtf() not accurate enough - temporarily disabled */
 #  define SQRTF(X)  _mesa_sqrtf(X)
-#elif defined(XFree86LOADER) && defined(IN_MODULE)
+#elif defined(XFree86LOADER) && defined(IN_MODULE) && !defined(NO_LIBCWRAPPER)
 #  define SQRTF(X)  (float) xf86sqrt((float) (X))
 #else
 #  define SQRTF(X)  (float) sqrt((float) (X))
@@ -209,7 +209,7 @@ static INLINE GLfloat LOG2(GLfloat val)
    num.f = ((-1.0f/3) * num.f + 2) * num.f - 2.0f/3;
    return num.f + log_2;
 }
-#elif defined(XFree86LOADER) && defined(IN_MODULE)
+#elif defined(XFree86LOADER) && defined(IN_MODULE) && !defined(NO_LIBCWRAPPER)
 #define LOG2(x) ((GLfloat) (xf86log(x) * 1.442695))
 #else
 /*
@@ -281,7 +281,7 @@ static INLINE int GET_FLOAT_BITS( float x )
  *** LDEXPF: multiply value by an integral power of two
  *** FREXPF: extract mantissa and exponent from value
  ***/
-#if defined(XFree86LOADER) && defined(IN_MODULE)
+#if defined(XFree86LOADER) && defined(IN_MODULE) && !defined(NO_LIBCWRAPPER)
 #define CEILF(x)   ((GLfloat) xf86ceil(x))
 #define FLOORF(x)  ((GLfloat) xf86floor(x))
 #define FABSF(x)   ((GLfloat) xf86fabs(x))
@@ -573,6 +573,28 @@ do {                                                                    \
 } while (0)
 #endif
 #define END_FAST_MATH(x)  _watcom_end_fast_math(&x)
+
+#elif defined(_MSC_VER) && defined(_M_IX86)
+#define DEFAULT_X86_FPU		0x037f /* See GCC comments above */
+#define FAST_X86_FPU		0x003f /* See GCC comments above */
+#if defined(NO_FAST_MATH)
+#define START_FAST_MATH(x) do {\
+	static GLuint mask = DEFAULT_X86_FPU;\
+	__asm fnstcw word ptr [x]\
+	__asm fldcw word ptr [mask]\
+} while(0)
+#else
+#define START_FAST_MATH(x) do {\
+	static GLuint mask = FAST_X86_FPU;\
+	__asm fnstcw word ptr [x]\
+	__asm fldcw word ptr [mask]\
+} while(0)
+#endif
+#define END_FAST_MATH(x) do {\
+	__asm fnclex\
+	__asm fldcw word ptr [x]\
+} while(0)
+
 #else
 #define START_FAST_MATH(x)  x = 0
 #define END_FAST_MATH(x)  (void)(x)
@@ -629,8 +651,17 @@ _mesa_memcmp( const void *s1, const void *s2, size_t n );
 extern double
 _mesa_sin(double a);
 
+extern float
+_mesa_sinf(float a);
+
 extern double
 _mesa_cos(double a);
+
+extern float
+_mesa_asinf(float x);
+
+extern float
+_mesa_atanf(float x);
 
 extern double
 _mesa_sqrtd(double x);

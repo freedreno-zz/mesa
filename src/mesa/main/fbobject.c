@@ -937,13 +937,14 @@ check_begin_texture_render(GLcontext *ctx, struct gl_framebuffer *fb)
 static void
 check_end_texture_render(GLcontext *ctx, struct gl_framebuffer *fb)
 {
-   GLuint i;
-   ASSERT(ctx->Driver.FinishRenderTexture);
-   for (i = 0; i < BUFFER_COUNT; i++) {
-      struct gl_renderbuffer_attachment *att = fb->Attachment + i;
-      struct gl_texture_object *texObj = att->Texture;
-      if (texObj) {
-         ctx->Driver.FinishRenderTexture(ctx, att);
+   if (ctx->Driver.FinishRenderTexture) {
+      GLuint i;
+      for (i = 0; i < BUFFER_COUNT; i++) {
+         struct gl_renderbuffer_attachment *att = fb->Attachment + i;
+         struct gl_texture_object *texObj = att->Texture;
+         if (texObj) {
+            ctx->Driver.FinishRenderTexture(ctx, att);
+         }
       }
    }
 }
@@ -1062,6 +1063,10 @@ _mesa_BindFramebufferEXT(GLenum target, GLuint framebuffer)
          /* check if newly bound framebuffer has any texture attachments */
          check_begin_texture_render(ctx, newFb);
       }
+   }
+
+   if (ctx->Driver.BindFramebuffer) {
+      ctx->Driver.BindFramebuffer(ctx, target, newFb);
    }
 
    if (ctx->Driver.BindFramebuffer) {

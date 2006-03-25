@@ -1198,7 +1198,9 @@ _mesa_soft_renderbuffer_storage(GLcontext *ctx, struct gl_renderbuffer *rb,
    if (rb->Data == NULL) {
       rb->Width = 0;
       rb->Height = 0;
-      _mesa_error(ctx, GL_OUT_OF_MEMORY, "software renderbuffer allocation");
+      _mesa_error(ctx, GL_OUT_OF_MEMORY,
+                  "software renderbuffer allocation (%d x %d x %d)",
+                  width, height, pixelSize);
       return GL_FALSE;
    }
 

@@ -179,7 +179,7 @@ _mesa_enable_sw_extensions(GLcontext *ctx)
 #if FEATURE_ARB_fragment_program
    ctx->Extensions.ARB_fragment_program = GL_TRUE;
 #endif
-#if 0 && FEATURE_ARB_fragment_shader
+#if FEATURE_ARB_fragment_shader
    ctx->Extensions.ARB_fragment_shader = GL_TRUE;
 #endif
    /*ctx->Extensions.ARB_half_float_pixel = GL_TRUE;*/
@@ -189,10 +189,10 @@ _mesa_enable_sw_extensions(GLcontext *ctx)
    ctx->Extensions.ARB_occlusion_query = GL_TRUE;
 #endif
    ctx->Extensions.ARB_point_sprite = GL_TRUE;
-#if 0 && FEATURE_ARB_shader_objects
+#if FEATURE_ARB_shader_objects
    ctx->Extensions.ARB_shader_objects = GL_TRUE;
 #endif
-#if 0 && FEATURE_ARB_shading_language_100
+#if FEATURE_ARB_shading_language_100
    ctx->Extensions.ARB_shading_language_100 = GL_TRUE;
 #endif
    ctx->Extensions.ARB_shadow = GL_TRUE;
@@ -207,7 +207,7 @@ _mesa_enable_sw_extensions(GLcontext *ctx)
 #if FEATURE_ARB_vertex_program
    ctx->Extensions.ARB_vertex_program = GL_TRUE;
 #endif
-#if 0 && FEATURE_ARB_vertex_shader
+#if FEATURE_ARB_vertex_shader
    ctx->Extensions.ARB_vertex_shader = GL_TRUE;
 #endif
 #if FEATURE_ARB_vertex_buffer_object
@@ -229,6 +229,8 @@ _mesa_enable_sw_extensions(GLcontext *ctx)
    ctx->Extensions.EXT_fog_coord = GL_TRUE;
 #if FEATURE_EXT_framebuffer_object
    ctx->Extensions.EXT_framebuffer_object = GL_TRUE;
+#endif
+#if FEATURE_EXT_framebuffer_blit
    ctx->Extensions.EXT_framebuffer_blit = GL_TRUE;
 #endif
    ctx->Extensions.EXT_histogram = GL_TRUE;
@@ -365,19 +367,19 @@ void
 _mesa_enable_2_0_extensions(GLcontext *ctx)
 {
    ctx->Extensions.ARB_draw_buffers = GL_TRUE;
-#if 0 && FEATURE_ARB_fragment_shader
+#if FEATURE_ARB_fragment_shader
    ctx->Extensions.ARB_fragment_shader = GL_TRUE;
 #endif
    ctx->Extensions.ARB_point_sprite = GL_TRUE;
    ctx->Extensions.ARB_texture_non_power_of_two = GL_TRUE;
-#if 0 && FEATURE_ARB_shader_objects
+#if FEATURE_ARB_shader_objects
    ctx->Extensions.ARB_shader_objects = GL_TRUE;
 #endif
-#if 0 && FEATURE_ARB_shading_language_100
+#if FEATURE_ARB_shading_language_100
    ctx->Extensions.ARB_shading_language_100 = GL_TRUE;
 #endif
    ctx->Extensions.EXT_stencil_two_side = GL_FALSE; /* yes, turn it off */
-#if 0 && FEATURE_ARB_vertex_shader
+#if FEATURE_ARB_vertex_shader
    ctx->Extensions.ARB_vertex_shader = GL_TRUE;
 #endif
 }

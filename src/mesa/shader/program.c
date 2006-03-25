@@ -107,14 +107,14 @@ _mesa_init_program(GLcontext *ctx)
 void
 _mesa_free_program_data(GLcontext *ctx)
 {
-#if FEATURE_NV_vertex_program
+#if FEATURE_NV_vertex_program || FEATURE_ARB_vertex_program
    if (ctx->VertexProgram.Current) {
       ctx->VertexProgram.Current->Base.RefCount--;
       if (ctx->VertexProgram.Current->Base.RefCount <= 0)
          ctx->Driver.DeleteProgram(ctx, &(ctx->VertexProgram.Current->Base));
    }
 #endif
-#if FEATURE_NV_fragment_program
+#if FEATURE_NV_fragment_program || FEATURE_ARB_fragment_program
    if (ctx->FragmentProgram.Current) {
       ctx->FragmentProgram.Current->Base.RefCount--;
       if (ctx->FragmentProgram.Current->Base.RefCount <= 0)
@@ -1699,10 +1699,9 @@ _mesa_BindProgram(GLenum target, GLuint id)
 
    FLUSH_VERTICES(ctx, _NEW_PROGRAM);
 
-   if ((target == GL_VERTEX_PROGRAM_NV
-        && ctx->Extensions.NV_vertex_program) ||
-       (target == GL_VERTEX_PROGRAM_ARB
-        && ctx->Extensions.ARB_vertex_program)) {
+   if ((target == GL_VERTEX_PROGRAM_ARB) && /* == GL_VERTEX_PROGRAM_NV */
+        (ctx->Extensions.NV_vertex_program ||
+         ctx->Extensions.ARB_vertex_program)) {
       /*** Vertex program binding ***/
       struct vertex_program *curProg = ctx->VertexProgram.Current;
       if (curProg->Base.Id == id) {
@@ -1750,7 +1749,7 @@ _mesa_BindProgram(GLenum target, GLuint id)
    if (id == 0) {
       /* Bind default program */
       prog = NULL;
-      if (target == GL_VERTEX_PROGRAM_NV || target == GL_VERTEX_PROGRAM_ARB)
+      if (target == GL_VERTEX_PROGRAM_ARB) /* == GL_VERTEX_PROGRAM_NV */
          prog = ctx->Shared->DefaultVertexProgram;
       else
          prog = ctx->Shared->DefaultFragmentProgram;
@@ -1775,7 +1774,7 @@ _mesa_BindProgram(GLenum target, GLuint id)
    }
 
    /* bind now */
-   if (target == GL_VERTEX_PROGRAM_NV || target == GL_VERTEX_PROGRAM_ARB) {
+   if (target == GL_VERTEX_PROGRAM_ARB) { /* == GL_VERTEX_PROGRAM_NV */
       ctx->VertexProgram.Current = (struct vertex_program *) prog;
    }
    else if (target == GL_FRAGMENT_PROGRAM_NV || target == GL_FRAGMENT_PROGRAM_ARB) {
@@ -1820,7 +1819,7 @@ _mesa_DeletePrograms(GLsizei n, const GLuint *ids)
          }
          else if (prog) {
             /* Unbind program if necessary */
-            if (prog->Target == GL_VERTEX_PROGRAM_NV ||
+            if (prog->Target == GL_VERTEX_PROGRAM_ARB || /* == GL_VERTEX_PROGRAM_NV */
                 prog->Target == GL_VERTEX_STATE_PROGRAM_NV) {
                if (ctx->VertexProgram.Current &&
                    ctx->VertexProgram.Current->Base.Id == ids[i]) {
@@ -1996,7 +1995,7 @@ _mesa_GetProgramRegisterfvMESA(GLenum target,
    reg[len] = 0;
 
    switch (target) {
-      case GL_VERTEX_PROGRAM_NV:
+      case GL_VERTEX_PROGRAM_ARB: /* == GL_VERTEX_PROGRAM_NV */
          if (!ctx->Extensions.ARB_vertex_program &&
              !ctx->Extensions.NV_vertex_program) {
             _mesa_error(ctx, GL_INVALID_ENUM,
