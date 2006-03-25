@@ -254,7 +254,8 @@ bmBufferSubData(struct bufmgr *bm,
       drmBufWaitBusy(bm->driFd, buf);
 
       if (size) {
-	 memcpy(drmMMMapBuffer(bm->driFd, buf) + offset, data, size);
+	 memcpy((unsigned char *) drmMMMapBuffer(bm->driFd, buf) + offset,
+                data, size);
 	 drmMMUnmapBuffer(bm->driFd, buf);
       }
    }
@@ -278,7 +279,9 @@ bmBufferGetSubData(struct bufmgr *bm,
       drmBufWaitBusy(bm->driFd, buf);
 
       if (size) {
-	 memcpy(data, drmMMMapBuffer(bm->driFd, buf) + offset, size);
+	 memcpy(data,
+                (unsigned char *) drmMMMapBuffer(bm->driFd, buf) + offset,
+                size);
 	 drmMMUnmapBuffer(bm->driFd, buf);
       }
    }
@@ -422,9 +425,11 @@ bmSetFence(struct bufmgr *bm)
 int
 bmTestFence(struct bufmgr *bm, unsigned fence)
 {
-   drmFence dFence = { 0, fence };
+   drmFence dFence;
    int retired;
 
+   dFence.fenceType = 0;
+   dFence.fenceSeq = fence;
    BM_CKFATAL(drmTestFence(bm->driFd, dFence, 0, &retired));
    return retired;
 }
@@ -432,6 +437,8 @@ bmTestFence(struct bufmgr *bm, unsigned fence)
 void
 bmFinishFence(struct bufmgr *bm, unsigned fence)
 {
-   drmFence dFence = { 0, fence };
+   drmFence dFence;
+   dFence.fenceType = 0;
+   dFence.fenceSeq = fence;
    BM_CKFATAL(drmWaitFence(bm->driFd, dFence));
 }
