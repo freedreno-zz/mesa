@@ -57,6 +57,9 @@
  */
 
 
+/**
+ * Describes the location of each texture image within a texture region.
+ */
 struct intel_mipmap_offset {
    GLuint offset; 
    GLuint width;
@@ -74,7 +77,7 @@ struct intel_mipmap_tree {
    GLuint first_level;
    GLuint last_level;
 
-   GLuint width0, height0, depth0;
+   GLuint width0, height0, depth0; /**< Level zero image dimensions */
    GLuint cpp;
    GLboolean compressed;
 

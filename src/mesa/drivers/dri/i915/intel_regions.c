@@ -145,7 +145,9 @@ struct intel_region *intel_region_create_static( struct intel_context *intel,
 
 
 
-
+/*
+ * XXX Move this into core Mesa?
+ */
 static void _mesa_copy_rect( GLubyte *dst,
 			     GLuint cpp,
 			     GLuint dst_pitch,

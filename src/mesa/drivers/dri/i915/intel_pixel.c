@@ -43,7 +43,7 @@ GLboolean intel_check_blit_fragment_ops( GLcontext *ctx )
    if (ctx->NewState)
       _mesa_update_state(ctx);
 
-   /* Scissor could be done with the blitter:
+   /* XXX Note: Scissor could be done with the blitter:
     */
    return !(ctx->_ImageTransferState ||
 	    ctx->Color.AlphaEnabled || 
