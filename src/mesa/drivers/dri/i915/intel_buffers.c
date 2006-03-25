@@ -384,10 +384,10 @@ static void intelClear(GLcontext *ctx,
    GLbitfield tri_mask = 0;
    GLbitfield blit_mask = 0;
    GLbitfield swrast_mask = 0;
+   GLuint i;
 
    if (0)
       fprintf(stderr, "%s\n", __FUNCTION__);
-
 
    /* HW color buffers (front, back, aux, generic FBO, etc) */
    if (colorMask == ~0) {
@@ -428,6 +428,18 @@ static void intelClear(GLcontext *ctx,
 
    /* SW fallback clearing */
    swrast_mask = mask & ~tri_mask & ~blit_mask;
+
+   for (i = 0; i < BUFFER_COUNT; i++) {
+      GLuint bufBit = 1 << i;
+      if ((blit_mask | tri_mask) & bufBit) {
+         if (!ctx->DrawBuffer->Attachment[i].Renderbuffer->ClassID) {
+            blit_mask &= ~bufBit;
+            tri_mask &= ~bufBit;
+            swrast_mask |= bufBit;
+         }
+      }
+   }
+
 
    intelFlush( ctx ); /* XXX intelClearWithBlit also does this */
 
@@ -601,6 +613,13 @@ intel_draw_buffer(GLcontext *ctx, struct gl_framebuffer *fb)
       intelSetRenderbufferClipRects(intel);
       irb = intel_renderbuffer(fb->_ColorDrawBuffers[0][0]);
       colorRegion = (irb && irb->region) ? irb->region : NULL;
+   }
+
+   if (!colorRegion) {
+      FALLBACK( intel, INTEL_FALLBACK_DRAW_BUFFER, GL_TRUE );
+   }
+   else {
+      FALLBACK( intel, INTEL_FALLBACK_DRAW_BUFFER, GL_FALSE );
    }
 
    /***

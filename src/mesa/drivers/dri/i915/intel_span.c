@@ -172,6 +172,11 @@
  * XXX in the future, we could probably convey extra information to
  * reduce the number of mappings needed.  I.e. if doing a glReadPixels
  * from the depth buffer, we really only need one mapping.
+ *
+ * XXX Rewrite this function someday.
+ * We can probably just loop over all the renderbuffer attachments,
+ * map/unmap all of them, and not worry about the _ColorDrawBuffers
+ * _ColorReadBuffer, _DepthBuffer or _StencilBuffer fields.
  */
 static void
 intel_map_unmap_buffers(struct intel_context *intel, GLboolean map)
@@ -185,9 +190,8 @@ intel_map_unmap_buffers(struct intel_context *intel, GLboolean map)
       for (j = 0; j < ctx->DrawBuffer->_NumColorDrawBuffers[i]; j++) {
          struct gl_renderbuffer *rb = ctx->DrawBuffer->_ColorDrawBuffers[i][j];
          irb = intel_renderbuffer(rb);
-         /* XXX FBO: check irb != NULL to catch software RBs??? */
-         ASSERT(irb);
-         if (irb->Base.Name != 0) { /* XXX FBO temporary test */
+         if (irb && irb->Base.Name != 0) { /* XXX FBO temporary test */
+            /* this is a user-created intel_renderbuffer */
             if (irb->region) {
                if (map)
                   intel_region_map(intel, irb->region);
@@ -196,6 +200,24 @@ intel_map_unmap_buffers(struct intel_context *intel, GLboolean map)
             }
             irb->pfMap = irb->region->map;
             irb->pfPitch = irb->region->pitch;
+         }
+      }
+   }
+
+   /* check for render to textures */
+   for (i = 0; i < BUFFER_COUNT; i++) {
+      struct gl_renderbuffer_attachment *att = ctx->DrawBuffer->Attachment + i;
+      struct gl_texture_object *tex = att->Texture;
+      if (tex) {
+         /* render to texture */
+         ASSERT(att->Renderbuffer);
+         if (map) {
+            struct gl_texture_image *texImg;
+            texImg = tex->Image[att->CubeMapFace][att->TextureLevel];
+            intel_tex_map_images(intel, intel_texture_object(tex));
+         }
+         else {
+            intel_tex_unmap_images(intel, intel_texture_object(tex));
          }
       }
    }
@@ -242,10 +264,16 @@ intel_map_unmap_buffers(struct intel_context *intel, GLboolean map)
    if (ctx->DrawBuffer->_DepthBuffer) {
       irb = intel_renderbuffer(ctx->DrawBuffer->_DepthBuffer->Wrapped);
       if (irb && irb->region && irb->Base.Name != 0) {
-         if (map)
+         if (map) {
             intel_region_map(intel, irb->region);
-         else
+            irb->pfMap = irb->region->map;
+            irb->pfPitch = irb->region->pitch;
+         }
+         else {
             intel_region_unmap(intel, irb->region);
+            irb->pfMap = NULL;
+            irb->pfPitch = 0;
+         }
       }
    }
 
@@ -253,10 +281,16 @@ intel_map_unmap_buffers(struct intel_context *intel, GLboolean map)
    if (ctx->DrawBuffer->_StencilBuffer) {
       irb = intel_renderbuffer(ctx->DrawBuffer->_StencilBuffer->Wrapped);
       if (irb && irb->region && irb->Base.Name != 0) {
-         if (map)
+         if (map) {
             intel_region_map(intel, irb->region);
-         else
+            irb->pfMap = irb->region->map;
+            irb->pfPitch = irb->region->pitch;
+         }
+         else {
             intel_region_unmap(intel, irb->region);
+            irb->pfMap = NULL;
+            irb->pfPitch = 0;
+         }
       }
    }
 }

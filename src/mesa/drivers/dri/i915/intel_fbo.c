@@ -120,29 +120,15 @@ intel_delete_renderbuffer(struct gl_renderbuffer *rb)
 
 /**
  * Return a pointer to a specific pixel in a renderbuffer.
- * Note: y=0=bottom.
- * Called via gl_renderbuffer::GetPointer().
  */
 static void *
 intel_get_pointer(GLcontext *ctx, struct gl_renderbuffer *rb,
                   GLint x, GLint y)
 {
-   struct intel_renderbuffer *irb = intel_renderbuffer(rb);
-
-   /* Actually, we could _always_ return NULL from this function and
-    * be OK.  The swrast code would just use the Get/Put routines as needed.
-    * But by really implementing this function there's a chance for better
-    * performance.
+   /* By returning NULL we force all software rendering to go through
+    * the span routines.
     */
-   if (irb->region && irb->region->map) {
-      int offset;
-      y = irb->region->height - y - 1;
-      offset = (y * irb->region->pitch + x) * irb->region->cpp;
-      return (void *) (irb->region->map + offset);
-   }
-   else {
-      return NULL;
-   }
+   return NULL;
 }
 
 
@@ -572,9 +558,7 @@ intel_renderbuffer_texture(GLcontext *ctx,
       }
       else {
          /* fallback to software rendering */
-         _mesa_problem(ctx, "Render to texture - unsupported hw format");
          _mesa_renderbuffer_texture(ctx, fb, att);
-         /* XXX FBO: Need to map the buffer (or in intelSpanRenderStart???) */
          return;
       }
    }
