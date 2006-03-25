@@ -53,6 +53,6 @@ extern void
 intel_draw_buffer(GLcontext *ctx, struct gl_framebuffer *fb);
 
 extern void
-intelInitBufferFuncs(struct dd_function_table *functions);;
+intelInitBufferFuncs(struct dd_function_table *functions);
 
 #endif /* INTEL_BUFFERS_H */
