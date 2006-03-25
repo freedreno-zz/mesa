@@ -2172,7 +2172,7 @@ update_fbo_texture(GLcontext *ctx, struct gl_texture_object *texObj,
              att->CubeMapFace == face) {
             ASSERT(att->Texture->Image[att->CubeMapFace][att->TextureLevel]);
             /* Tell driver about the new renderbuffer texture */
-            ctx->Driver.RenderbufferTexture(ctx, ctx->DrawBuffer, att);
+            ctx->Driver.RenderTexture(ctx, ctx->DrawBuffer, att);
          }
       }
    }

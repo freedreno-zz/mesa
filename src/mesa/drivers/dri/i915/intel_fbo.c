@@ -531,13 +531,15 @@ intel_wrap_texture(GLcontext *ctx, struct gl_texture_image *texImage)
 
 
 /**
- * Called via glFramebufferTexture[123]DEXT() to prepare for rendering
- * into texture memory.
+ * Called by glFramebufferTexture[123]DEXT() (and other places) to
+ * prepare for rendering into texture memory.  This might be called
+ * many times to choose different texture levels, cube faces, etc
+ * before intel_finish_render_texture() is ever called.
  */
 static void
-intel_renderbuffer_texture(GLcontext *ctx,
-                           struct gl_framebuffer *fb,
-                           struct gl_renderbuffer_attachment *att)
+intel_render_texture(GLcontext *ctx,
+                     struct gl_framebuffer *fb,
+                     struct gl_renderbuffer_attachment *att)
 {
    struct gl_texture_image *newImage
       = att->Texture->Image[att->CubeMapFace][att->TextureLevel];
@@ -558,7 +560,7 @@ intel_renderbuffer_texture(GLcontext *ctx,
       }
       else {
          /* fallback to software rendering */
-         _mesa_renderbuffer_texture(ctx, fb, att);
+         _mesa_render_texture(ctx, fb, att);
          return;
       }
    }
@@ -631,6 +633,6 @@ intel_fbo_init( struct intel_context *intel )
    intel->ctx.Driver.NewRenderbuffer = intel_new_renderbuffer;
    intel->ctx.Driver.BindFramebuffer = intel_bind_framebuffer;
    intel->ctx.Driver.FramebufferRenderbuffer = intel_framebuffer_renderbuffer;
-   intel->ctx.Driver.RenderbufferTexture = intel_renderbuffer_texture;
+   intel->ctx.Driver.RenderTexture = intel_render_texture;
    intel->ctx.Driver.FinishRenderTexture = intel_finish_render_texture;
 }

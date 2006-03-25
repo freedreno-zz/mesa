@@ -807,9 +807,9 @@ struct dd_function_table {
                                    struct gl_framebuffer *fb,
                                    GLenum attachment,
                                    struct gl_renderbuffer *rb);
-   void (*RenderbufferTexture)(GLcontext *ctx,
-                               struct gl_framebuffer *fb,
-                               struct gl_renderbuffer_attachment *att);
+   void (*RenderTexture)(GLcontext *ctx,
+                         struct gl_framebuffer *fb,
+                         struct gl_renderbuffer_attachment *att);
    void (*FinishRenderTexture)(GLcontext *ctx,
                                struct gl_renderbuffer_attachment *att);
    /*@}*/

@@ -210,7 +210,7 @@ _mesa_set_texture_attachment(GLcontext *ctx,
    att->Complete = GL_FALSE;
 
    if (att->Texture->Image[att->CubeMapFace][att->TextureLevel]) {
-      ctx->Driver.RenderbufferTexture(ctx, fb, att);
+      ctx->Driver.RenderTexture(ctx, fb, att);
    }
 }
 
@@ -918,12 +918,12 @@ static void
 check_begin_texture_render(GLcontext *ctx, struct gl_framebuffer *fb)
 {
    GLuint i;
-   ASSERT(ctx->Driver.RenderbufferTexture);
+   ASSERT(ctx->Driver.RenderTexture);
    for (i = 0; i < BUFFER_COUNT; i++) {
       struct gl_renderbuffer_attachment *att = fb->Attachment + i;
       struct gl_texture_object *texObj = att->Texture;
       if (texObj) {
-         ctx->Driver.RenderbufferTexture(ctx, fb, att);
+         ctx->Driver.RenderTexture(ctx, fb, att);
       }
    }
 }
