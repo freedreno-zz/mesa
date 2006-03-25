@@ -223,9 +223,11 @@ _mesa_free_framebuffer_data(struct gl_framebuffer *fb)
 
    for (i = 0; i < BUFFER_COUNT; i++) {
       struct gl_renderbuffer_attachment *att = &fb->Attachment[i];
-      if (att->Type == GL_RENDERBUFFER_EXT && att->Renderbuffer) {
+      if (att->Renderbuffer) {
          struct gl_renderbuffer *rb = att->Renderbuffer;
+         _glthread_LOCK_MUTEX(rb->Mutex);
          rb->RefCount--;
+         _glthread_UNLOCK_MUTEX(rb->Mutex);
          if (rb->RefCount == 0) {
             rb->Delete(rb);
          }
