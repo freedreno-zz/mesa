@@ -58,7 +58,7 @@ void intel_bufferobj_init( struct intel_context *intel );
  * the Name == 0 test is the only way to identify them and avoid
  * casting them erroneously to our structs.
  */
-static inline struct intel_buffer_object *
+static INLINE struct intel_buffer_object *
 intel_buffer_object( struct gl_buffer_object *obj )
 {
    if (obj->Name)

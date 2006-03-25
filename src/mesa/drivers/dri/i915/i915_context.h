@@ -347,7 +347,7 @@ extern void i915InitFragProgFuncs( struct dd_function_table *functions );
  * Inline conversion functions.  These are better-typed than the
  * macros used previously:
  */
-static inline struct i915_context *
+static INLINE struct i915_context *
 i915_context( GLcontext *ctx )
 {
    return (struct i915_context *)ctx;

@@ -377,7 +377,7 @@ do {						\
  * XXX Put this in src/mesa/main/imports.h ???
  */
 #if defined(i386) || defined(__i386__)
-static inline void * __memcpy(void * to, const void * from, size_t n)
+static INLINE void * __memcpy(void * to, const void * from, size_t n)
 {
    int d0, d1, d2;
    __asm__ __volatile__(
@@ -523,17 +523,17 @@ extern int intel_translate_logic_op( GLenum opcode );
  * Inline conversion functions.  
  * These are better-typed than the macros used previously:
  */
-static inline struct intel_context *intel_context( GLcontext *ctx )
+static INLINE struct intel_context *intel_context( GLcontext *ctx )
 {
    return (struct intel_context *)ctx;
 }
 
-static inline struct intel_texture_object *intel_texture_object( struct gl_texture_object *obj )
+static INLINE struct intel_texture_object *intel_texture_object( struct gl_texture_object *obj )
 {
    return (struct intel_texture_object *)obj;
 }
 
-static inline struct intel_texture_image *intel_texture_image( struct gl_texture_image *img )
+static INLINE struct intel_texture_image *intel_texture_image( struct gl_texture_image *img )
 {
    return (struct intel_texture_image *)img;
 }

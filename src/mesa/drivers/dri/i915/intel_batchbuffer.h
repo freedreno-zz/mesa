@@ -72,14 +72,14 @@ GLboolean intel_batchbuffer_emit_reloc( struct intel_batchbuffer *batch,
  * be passed as structs rather than dwords, but that's a little bit of
  * work...
  */
-static inline GLuint 
+static INLINE GLuint 
 intel_batchbuffer_space( struct intel_batchbuffer *batch )
 {
    return (BATCH_SZ - BATCH_RESERVED) - (batch->ptr - batch->map);
 }
 
 
-static inline void 
+static INLINE void 
 intel_batchbuffer_emit_dword(struct intel_batchbuffer *batch,
 			     GLuint dword)
 {
@@ -89,7 +89,7 @@ intel_batchbuffer_emit_dword(struct intel_batchbuffer *batch,
    batch->ptr += 4;
 }
 
-static inline void 
+static INLINE void 
 intel_batchbuffer_require_space(struct intel_batchbuffer *batch,
 				GLuint sz,
 				GLuint flags)

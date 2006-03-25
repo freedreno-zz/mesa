@@ -201,7 +201,7 @@ i830InitMetaFuncs( struct i830_context *i830 );
  * Inline conversion functions.  These are better-typed than the
  * macros used previously:
  */
-static inline struct i830_context *
+static INLINE struct i830_context *
 i830_context( GLcontext *ctx )
 {
    return (struct i830_context *)ctx;
