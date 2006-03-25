@@ -420,7 +420,8 @@ void intelClearWithBlit(GLcontext *ctx, GLbitfield mask, GLboolean all,
                OUT_BATCH( BR13 );
                OUT_BATCH( (b.y1 << 16) | b.x1 );
                OUT_BATCH( (b.y2 << 16) | b.x2 );
-               OUT_RELOC( irb->region->buffer, DRM_MM_TT|DRM_MM_WRITE, 0 );
+               OUT_RELOC( irb->region->buffer, DRM_MM_TT|DRM_MM_WRITE,
+                          irb->region->draw_offset );
                OUT_BATCH( clearVal );
                ADVANCE_BATCH();
                clearMask &= ~bufBit; /* turn off bit, for faster loop exit */

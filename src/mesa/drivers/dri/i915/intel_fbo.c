@@ -470,8 +470,10 @@ intel_framebuffer_renderbuffer(GLcontext *ctx,
                                GLenum attachment,
                                struct gl_renderbuffer *rb)
 {
+   /*
    _mesa_debug(ctx, "Intel FramebufferRenderbuffer %u %u\n",
                fb->Name, rb ? rb->Name : 0);
+   */
 
    intelFlush(ctx);
 
@@ -488,7 +490,7 @@ intel_framebuffer_renderbuffer(GLcontext *ctx,
 static struct intel_renderbuffer *
 intel_wrap_texture(GLcontext *ctx, struct gl_texture_image *texImage)
 {
-   const GLuint name = ~0; /* XXX OK? */
+   const GLuint name = ~0; /* not significant, but distinct for debugging */
    struct intel_renderbuffer *irb;
 
    /* make an intel_renderbuffer to wrap the texture image */
@@ -553,11 +555,10 @@ intel_renderbuffer_texture(GLcontext *ctx,
 {
    struct gl_texture_image *newImage
       = att->Texture->Image[att->CubeMapFace][att->TextureLevel];
-
    struct intel_renderbuffer *irb
       = intel_renderbuffer(att->Renderbuffer);
-
    struct intel_texture_image *intel_image;
+   GLuint imageOffset;
 
    (void) fb;
 
@@ -565,33 +566,45 @@ intel_renderbuffer_texture(GLcontext *ctx,
 
    if (!irb) {
       irb = intel_wrap_texture(ctx, newImage);
+      if (irb) {
+         /* bind the wrapper to the attachment point */
+         att->Renderbuffer = &irb->Base;
+      }
+      else {
+         /* fallback to software rendering */
+         _mesa_problem(ctx, "Render to texture - unsupported hw format");
+         _mesa_renderbuffer_texture(ctx, fb, att);
+         /* XXX FBO: Need to map the buffer (or in intelSpanRenderStart???) */
+         return;
+      }
    }
 
-   if (irb) {
-      /* hardware rendering to texture */
-      irb->Base.RefCount++;
+   /*
+   _mesa_debug(ctx, "Begin render texture tex=%u w=%d h=%d refcount=%d\n",
+               att->Texture->Name, newImage->Width, newImage->Height,
+               irb->Base.RefCount);
+   */
 
-      /*
-      _mesa_debug(ctx, "Begin render texture (tid %u) tex %u\n",
-                  _glthread_GetID(), att->Texture->Name);
-      */
+   /* point the renderbufer's region to the texture image region */
+   intel_image = intel_texture_image(newImage);
+   if (irb->region != intel_image->mt->region)
+      intel_region_reference(&irb->region, intel_image->mt->region);
 
-      /* hook into the region */
-      /* XXX mipmap level / cube face */
-      intel_image = intel_texture_image(newImage);
-      if (irb->region != intel_image->mt->region)
-         intel_region_reference(&irb->region, intel_image->mt->region);
-
-      att->Renderbuffer = &irb->Base;
-
-      intel_draw_buffer(ctx, fb);
+   /* compute offset of the particular 2D image within the texture region */
+   imageOffset = intel_miptree_image_offset(intel_image->mt,
+                                            att->CubeMapFace,
+                                            att->TextureLevel);
+   if (att->Texture->Target == GL_TEXTURE_3D) {
+      GLuint imgStride = intel_miptree_depth_image_stride(intel_image->mt,
+                                                          att->CubeMapFace,
+                                                          att->TextureLevel);
+      imageOffset += imgStride * att->Zoffset;
    }
-   else {
-      /* fallback to software rendering */
-      _mesa_problem(ctx, "Render to texture - unsupported hw format");
-      _mesa_renderbuffer_texture(ctx, fb, att);
-      /* XXX FBO: Need to map the buffer (or in intelSpanRenderStart???) */
-   }
+   /* store that offset in the region */
+   intel_image->mt->region->draw_offset = imageOffset;
+
+   /* update drawing region, etc */
+   intel_draw_buffer(ctx, fb);
 }
 
 
@@ -612,21 +625,11 @@ intel_finish_render_texture(GLcontext *ctx,
    */
 
    if (irb) {
-      /* hardware */
+      /* just release the region */
       intel_region_release(intel, &irb->region);
-
-      irb->Base.RefCount--;
-
-      /*
-      _mesa_debug(ctx, "intel_finish_render_texture, refcount=%d\n",
-                  irb->Base.RefCount);
-      */
-
-      /* should never hit zero here */
-      assert(irb->Base.RefCount > 0);
    }
-   else {
-      /* software */
+   else if (att->Renderbuffer) {
+      /* software fallback */
       _mesa_finish_render_texture(ctx, att);
       /* XXX FBO: Need to unmap the buffer (or in intelSpanRenderStart???) */
    }

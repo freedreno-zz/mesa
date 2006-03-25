@@ -41,14 +41,17 @@ struct intel_context;
  * - Blitter commands for copying 2D regions between buffers. (really???)
  */
 struct intel_region {
-   GLuint buffer; /* buffer manager's buffer ID */
-   GLuint refcount;
-   GLuint cpp;    /* bytes per pixel */
-   GLuint pitch;  /* in pixels */
-   GLuint height; /* in pixels */
-   GLubyte *map;  /* only non-NULL when region is actually mapped */
-   GLuint map_refcount;
+   GLuint buffer;   /**< buffer manager's buffer ID */
+   GLuint refcount; /**< Reference count for region */
+   GLuint cpp;      /**< bytes per pixel */
+   GLuint pitch;    /**< in pixels */
+   GLuint height;   /**< in pixels */
+   GLubyte *map;    /**< only non-NULL when region is actually mapped */
+   GLuint map_refcount;  /**< Reference count for mapping */
+
+   GLuint draw_offset; /**< Offset of drawing address within the region */
 };
+
 
 /* Allocate a refcounted region.  Pointers to regions should only be
  * copied by calling intel_reference_region().

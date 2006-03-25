@@ -247,12 +247,14 @@ static void i915_emit_state( struct intel_context *intel )
       BEGIN_BATCH(I915_DEST_SETUP_SIZE+2, 0);
       OUT_BATCH(state->Buffer[I915_DESTREG_CBUFADDR0]);
       OUT_BATCH(state->Buffer[I915_DESTREG_CBUFADDR1]);
-      OUT_RELOC(state->draw_region->buffer, DRM_MM_TT|DRM_MM_WRITE, 0);
+      OUT_RELOC(state->draw_region->buffer, DRM_MM_TT|DRM_MM_WRITE,
+                state->draw_region->draw_offset);
 
       if (state->depth_region) {
          OUT_BATCH(state->Buffer[I915_DESTREG_DBUFADDR0]);
          OUT_BATCH(state->Buffer[I915_DESTREG_DBUFADDR1]);
-         OUT_RELOC(state->depth_region->buffer, DRM_MM_TT|DRM_MM_WRITE, 0);
+         OUT_RELOC(state->depth_region->buffer, DRM_MM_TT|DRM_MM_WRITE,
+                   state->depth_region->draw_offset);
       }
 
       OUT_BATCH(state->Buffer[I915_DESTREG_DV0]);
