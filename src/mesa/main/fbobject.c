@@ -1068,10 +1068,6 @@ _mesa_BindFramebufferEXT(GLenum target, GLuint framebuffer)
    if (ctx->Driver.BindFramebuffer) {
       ctx->Driver.BindFramebuffer(ctx, target, newFb);
    }
-
-   if (ctx->Driver.BindFramebuffer) {
-      ctx->Driver.BindFramebuffer(ctx, target, newFb);
-   }
 }
 
 

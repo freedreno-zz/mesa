@@ -250,14 +250,4 @@ _mesa_finish_render_texture(GLcontext *ctx,
    /* The renderbuffer texture wrapper will get deleted by the
     * normal mechanism for deleting renderbuffers.
     */
-#if 0
-   if (att->Renderbuffer) {
-      att->Renderbuffer->RefCount--;
-   }
-   if (att->Renderbuffer->RefCount <= 0) {
-      _mesa_debug(ctx, "%s refcount == 0!\n", __FUNCTION__);
-   }
-#endif
 }
-
-
