@@ -119,7 +119,7 @@ int bmScanBufferList(struct bufmgr *bm,
 unsigned bmSetFence(struct bufmgr *);
 int bmTestFence(struct bufmgr *, unsigned fence);
 void bmFinishFence(struct bufmgr *, unsigned fence);
-
+unsigned bmInitFence(struct bufmgr *bm);
 void bmSetShared(struct bufmgr *bm, unsigned buffer,
 		 unsigned flags, unsigned long offset, void *virtual);
 

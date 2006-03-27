@@ -58,7 +58,7 @@ static struct bufmgr
 
    unsigned buf_nr;			/* for generating ids */
    drmMMPool batchPool;
-
+   drmFence initFence;
 } bufmgr_pool[BM_MAX];
 
 static int nr_bms;
@@ -126,6 +126,8 @@ bm_intel_Attach(struct intel_context *intel)
 				      BM_BATCHBUFFER, 1024 * 1024, 4096,
 				      &bm->batchPool));
 
+      
+      BM_CKFATAL(drmEmitFence(bm->driFd, 0, &bm->initFence));
       drmUnlock(bm->driFd, intel->hHWContext);
       return bm;
    }
@@ -441,4 +443,11 @@ bmFinishFence(struct bufmgr *bm, unsigned fence)
    dFence.fenceType = 0;
    dFence.fenceSeq = fence;
    BM_CKFATAL(drmWaitFence(bm->driFd, dFence));
+   bm->initFence = dFence;
+}
+
+unsigned
+bmInitFence(struct bufmgr *bm)
+{
+   return bm->initFence.fenceSeq;
 }

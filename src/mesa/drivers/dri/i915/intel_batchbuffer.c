@@ -118,6 +118,7 @@ struct intel_batchbuffer *intel_batchbuffer_alloc( struct intel_context *intel )
    batch->bm = intel->bm;
 
    bmGenBuffers(intel->bm, 1, &batch->buffer, BM_BATCHBUFFER);
+   batch->last_fence = bmInitFence(batch->bm);
    intel_batchbuffer_reset( batch );
    return batch;
 }

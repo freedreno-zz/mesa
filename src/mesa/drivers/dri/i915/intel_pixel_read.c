@@ -181,7 +181,7 @@ static GLboolean do_blit_readpixels( GLcontext *ctx,
    struct intel_buffer_object *dst = intel_buffer_object(pack->BufferObj);
    GLuint dst_offset;
    GLuint rowLength;
-   GLuint fence = 0;
+   GLuint fence = bmInitFence(intel->bm);
 
    if (INTEL_DEBUG & DEBUG_PIXEL)
       _mesa_printf("%s\n", __FUNCTION__);
