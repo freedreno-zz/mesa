@@ -265,7 +265,7 @@ struct intel_context
 };
 
 
-#define DEBUG_LOCKING	1
+#define DEBUG_LOCKING	0
 
 #if DEBUG_LOCKING
 

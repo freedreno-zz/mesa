@@ -542,6 +542,8 @@ GLboolean intelMakeCurrent(__DRIcontextPrivate *driContextPriv,
    return GL_TRUE;
 }
 
+_glthread_DECLARE_STATIC_MUTEX(lockMutex);
+
 void intelGetLock( struct intel_context *intel, GLuint flags )
 {
    __DRIdrawablePrivate *dPriv = intel->driDrawable;
@@ -549,7 +551,10 @@ void intelGetLock( struct intel_context *intel, GLuint flags )
    drmI830Sarea * sarea = intel->sarea;
    int me = intel->hHWContext;
 
+   _glthread_LOCK_MUTEX(lockMutex);                   
+
    drmGetLock(intel->driFd, intel->hHWContext, flags);
+
 
    /* If the window moved, may need to set a new cliprect now.
     *
@@ -558,6 +563,10 @@ void intelGetLock( struct intel_context *intel, GLuint flags )
     */
    if (dPriv)
       DRI_VALIDATE_DRAWABLE_INFO(sPriv, dPriv);
+
+
+   _glthread_UNLOCK_MUTEX(lockMutex);
+
 
    /* Lost context?
     */
