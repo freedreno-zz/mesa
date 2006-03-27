@@ -190,7 +190,7 @@ intel_map_unmap_buffers(struct intel_context *intel, GLboolean map)
       for (j = 0; j < ctx->DrawBuffer->_NumColorDrawBuffers[i]; j++) {
          struct gl_renderbuffer *rb = ctx->DrawBuffer->_ColorDrawBuffers[i][j];
          irb = intel_renderbuffer(rb);
-         if (irb && irb->Base.Name != 0) { /* XXX FBO temporary test */
+         if (irb) {
             /* this is a user-created intel_renderbuffer */
             if (irb->region) {
                if (map)
