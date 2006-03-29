@@ -175,6 +175,17 @@ static void do_flush_locked( struct intel_batchbuffer *batch,
 		     allow_unlock);
 #endif
    batch->last_fence = bmFenceBufferList(batch->bm, batch->list);
+   if (!batch->intel->last_swap_fence_retired) {
+      int retired;
+      drmFence dFence = {0,batch->intel->last_swap_fence};
+ 
+     /*FIXME: Temporary fix for fence ageing
+      *
+      */
+      if (!drmTestFence(batch->intel->driFd, dFence, 0, &retired)) {
+	 batch->intel->last_swap_fence_retired = retired; 
+      }
+   }	  
 }
 
 

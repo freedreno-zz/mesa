@@ -422,6 +422,7 @@ GLboolean intelInitContext( struct intel_context *intel,
 				 intelScreen->height);
    
    intel->batch = intel_batchbuffer_alloc( intel );
+   intel->last_swap_fence_retired = GL_TRUE;
    intel->last_swap_fence = bmInitFence(intel->bm);
    intel_bufferobj_init( intel );
    intel_fbo_init( intel );

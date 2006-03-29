@@ -172,6 +172,7 @@ struct intel_context
    
    GLuint last_fence;
    GLuint last_swap_fence;
+   GLboolean last_swap_fence_retired;
 
    struct intel_batchbuffer *batch;
 

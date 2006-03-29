@@ -67,7 +67,13 @@ void intelCopyBuffer( const __DRIdrawablePrivate *dPriv )
    }
    intel = (struct intel_context *) ctx;
 
-   bmFinishFence(intel->bm, intel->last_swap_fence);
+   /* FIXME: Temporary fix for fence ageing.
+    * 
+    */
+
+   if (!intel->last_swap_fence_retired) {
+      bmFinishFence(intel->bm, intel->last_swap_fence);
+   }
 
    /* The LOCK_HARDWARE is required for the cliprects.  Buffer offsets
     * should work regardless.
@@ -138,6 +144,7 @@ void intelCopyBuffer( const __DRIdrawablePrivate *dPriv )
       }
 
       intel->last_swap_fence = intel_batchbuffer_flush( intel->batch );
+      intel->last_swap_fence_retired = GL_FALSE;
    }
    UNLOCK_HARDWARE( intel );
 }
