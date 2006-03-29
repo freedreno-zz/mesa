@@ -224,11 +224,13 @@ intel_map_unmap_buffers(struct intel_context *intel, GLboolean map)
 
    /* color read buffers */
    irb = intel_renderbuffer(ctx->ReadBuffer->_ColorReadBuffer);
-   if (irb && irb->region && irb->Base.Name != 0) {
+   if (irb && irb->region) {
       if (map)
          intel_region_map(intel, irb->region);
       else
          intel_region_unmap(intel, irb->region);
+      irb->pfMap = irb->region->map;
+      irb->pfPitch = irb->region->pitch;
    }
 
    /* Account for front/back color page flipping.
