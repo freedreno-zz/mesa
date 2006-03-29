@@ -74,7 +74,6 @@ static GLboolean do_texture_drawpixels( GLcontext *ctx,
       if (!_mesa_validate_pbo_access(2, unpack, width, height, 1,
                                      format, type, pixels)) {
          _mesa_error(ctx, GL_INVALID_OPERATION, "glDrawPixels");
-	 _mesa_printf("%s - _mesa_validate_pbo_access\n", __FUNCTION__);
          return GL_TRUE;
       }
    }
@@ -96,7 +95,8 @@ static GLboolean do_texture_drawpixels( GLcontext *ctx,
     * possible.
     */
    if (!intel_check_meta_tex_fragment_ops(ctx)) {
-      _mesa_printf("%s - bad GL fragment state for metaops texture\n", __FUNCTION__);
+      if (INTEL_DEBUG & DEBUG_PIXEL)
+	 _mesa_printf("%s - bad GL fragment state for metaops texture\n", __FUNCTION__);
       return GL_FALSE;
    }
 
@@ -163,7 +163,8 @@ static GLboolean do_texture_drawpixels( GLcontext *ctx,
       }
 
 
-      _mesa_printf("draw %d,%d %dx%d\n", dstx,dsty,width,height);
+      if (INTEL_DEBUG & DEBUG_PIXEL)
+	 _mesa_printf("draw %d,%d %dx%d\n", dstx,dsty,width,height);
 
       /* Must use the regular cliprect mechanism in order to get the
        * drawing origin set correctly.  Otherwise scissor state is in
@@ -183,7 +184,6 @@ static GLboolean do_texture_drawpixels( GLcontext *ctx,
       intel_batchbuffer_flush(intel->batch);
    }
    UNLOCK_HARDWARE( intel );
-   _mesa_printf("%s - DONE\n", __FUNCTION__);
    return GL_TRUE;
 }
 
@@ -225,7 +225,8 @@ static GLboolean do_blit_drawpixels( GLcontext *ctx,
    
    
    if (!dest) {
-      _mesa_printf("%s - no dest\n", __FUNCTION__);
+      if (INTEL_DEBUG & DEBUG_PIXEL)
+	 _mesa_printf("%s - no dest\n", __FUNCTION__);
       return GL_FALSE;
    }
 
@@ -235,30 +236,32 @@ static GLboolean do_blit_drawpixels( GLcontext *ctx,
       if (!_mesa_validate_pbo_access(2, unpack, width, height, 1,
                                      format, type, pixels)) {
          _mesa_error(ctx, GL_INVALID_OPERATION, "glDrawPixels");
-	 _mesa_printf("%s - _mesa_validate_pbo_access\n", __FUNCTION__);
-
          return GL_TRUE;
       }
    }
    else {
       /* PBO only for now:
        */
-      _mesa_printf("%s - not PBO\n", __FUNCTION__);
+      if (INTEL_DEBUG & DEBUG_PIXEL)
+	 _mesa_printf("%s - not PBO\n", __FUNCTION__);
       return GL_FALSE;
    }
    
    if (!intel_check_blit_format(dest, format, type)) {
-      _mesa_printf("%s - bad format for blit\n", __FUNCTION__);
+      if (INTEL_DEBUG & DEBUG_PIXEL)
+	 _mesa_printf("%s - bad format for blit\n", __FUNCTION__);
       return GL_FALSE;
    }
 
    if (!intel_check_meta_tex_fragment_ops(ctx)) {
-      _mesa_printf("%s - bad GL fragment state for meta tex\n", __FUNCTION__);
+      if (INTEL_DEBUG & DEBUG_PIXEL)
+	 _mesa_printf("%s - bad GL fragment state for meta tex\n", __FUNCTION__);
       return GL_FALSE;
    }
 
    if (ctx->Pixel.ZoomX != 1.0F) {
-      _mesa_printf("%s - bad PixelZoomX for blit\n", __FUNCTION__);
+      if (INTEL_DEBUG & DEBUG_PIXEL)
+	 _mesa_printf("%s - bad PixelZoomX for blit\n", __FUNCTION__);
       return GL_FALSE;
    }
 
@@ -269,7 +272,8 @@ static GLboolean do_blit_drawpixels( GLcontext *ctx,
       rowLength = width;
 
    if (ctx->Pixel.ZoomY == -1.0F) {
-      _mesa_printf("%s - bad PixelZoomY for blit\n", __FUNCTION__);
+      if (INTEL_DEBUG & DEBUG_PIXEL)
+	 _mesa_printf("%s - bad PixelZoomY for blit\n", __FUNCTION__);
       return GL_FALSE;		/* later */
       y -= height;
    }
@@ -277,7 +281,8 @@ static GLboolean do_blit_drawpixels( GLcontext *ctx,
       rowLength = -rowLength;
    }
    else {
-      _mesa_printf("%s - bad PixelZoomY for blit\n", __FUNCTION__);
+      if (INTEL_DEBUG & DEBUG_PIXEL)
+	 _mesa_printf("%s - bad PixelZoomY for blit\n", __FUNCTION__);
       return GL_FALSE;
    }
 
@@ -326,7 +331,8 @@ static GLboolean do_blit_drawpixels( GLcontext *ctx,
    if (intel->driDrawable->numClipRects)
       bmFinishFence(intel->bm, fence);   
 
-   _mesa_printf("%s - DONE\n", __FUNCTION__);
+   if (INTEL_DEBUG & DEBUG_PIXEL)
+      _mesa_printf("%s - DONE\n", __FUNCTION__);
 
    return GL_TRUE;
 }
@@ -350,7 +356,8 @@ void intelDrawPixels( GLcontext *ctx,
       return;
 
 
-   _mesa_printf("%s: fallback to swrast\n", __FUNCTION__);
+   if (INTEL_DEBUG & DEBUG_PIXEL)
+      _mesa_printf("%s: fallback to swrast\n", __FUNCTION__);
 
    _swrast_DrawPixels( ctx, x, y, width, height, format, type,
 		       unpack, pixels );

@@ -485,7 +485,8 @@ void intelDestroyContext(__DRIcontextPrivate *driContextPriv)
          /* This share group is about to go away, free our private
           * texture object data.
           */
-	 fprintf(stderr, "do something to free texture heaps\n");
+	 if (INTEL_DEBUG & DEBUG_TEXTURE)
+	    fprintf(stderr, "do something to free texture heaps\n");
       }
 
       /* free the Mesa context */

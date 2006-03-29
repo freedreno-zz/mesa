@@ -247,8 +247,10 @@ static void intelTexImage(GLcontext *ctx,
    
    if (!intelObj->mt) {
       guess_and_alloc_mipmap_tree(intel, intelObj, intelImage);
-      if (!intelObj->mt)
-	 _mesa_printf("guess_and_alloc_mipmap_tree: failed\n");
+      if (!intelObj->mt) {
+	 if (INTEL_DEBUG & DEBUG_TEXTURE)
+	    _mesa_printf("guess_and_alloc_mipmap_tree: failed\n");
+      }
    }
 
 
@@ -265,8 +267,10 @@ static void intelTexImage(GLcontext *ctx,
       assert(intelImage->mt);
    }
 
-   if (!intelImage->mt)
-      _mesa_printf("XXX: Image did not fit into tree - storing in local memory!\n");
+   if (!intelImage->mt) {
+      if (INTEL_DEBUG & DEBUG_TEXTURE)
+	 _mesa_printf("XXX: Image did not fit into tree - storing in local memory!\n");
+   }
 
    /* intelCopyTexImage calls this function with pixels == NULL, with
     * the expectation that the mipmap tree will be set up but nothing

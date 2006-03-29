@@ -100,11 +100,12 @@ GLboolean intel_check_blit_format( struct intel_region *region,
        format == GL_BGR ) {
       return GL_TRUE;
    }
-   
-   fprintf(stderr, "%s: bad format for blit (cpp %d, type %s format %s)\n", 
-	   __FUNCTION__, region->cpp, 
-	   _mesa_lookup_enum_by_nr(type),
-	   _mesa_lookup_enum_by_nr(format));
+
+   if (INTEL_DEBUG & DEBUG_PIXEL)
+      fprintf(stderr, "%s: bad format for blit (cpp %d, type %s format %s)\n", 
+	      __FUNCTION__, region->cpp, 
+	      _mesa_lookup_enum_by_nr(type),
+	      _mesa_lookup_enum_by_nr(format));
 
    return GL_FALSE;
 }

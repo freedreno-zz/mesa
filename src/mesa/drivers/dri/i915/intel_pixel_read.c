@@ -93,7 +93,8 @@ do_texture_readpixels( GLcontext *ctx,
 	pack->SwapBytes ||
 	pack->LsbFirst ||
 	!pack->Invert) {
-      fprintf(stderr, "%s: check_color failed\n", __FUNCTION__);
+      if (INTEL_DEBUG & DEBUG_PIXEL)
+	 fprintf(stderr, "%s: check_color failed\n", __FUNCTION__);
       return GL_FALSE;
    }
 
@@ -103,10 +104,11 @@ do_texture_readpixels( GLcontext *ctx,
 				     dest_region,
 				     type, format))
    {
-      fprintf(stderr, "%s: couldn't set dest %s/%s\n",
-	      __FUNCTION__,
-	      _mesa_lookup_enum_by_nr(type),
-	      _mesa_lookup_enum_by_nr(format));
+      if (INTEL_DEBUG & DEBUG_PIXEL)
+	 fprintf(stderr, "%s: couldn't set dest %s/%s\n",
+		 __FUNCTION__,
+		 _mesa_lookup_enum_by_nr(type),
+		 _mesa_lookup_enum_by_nr(format));
       return GL_FALSE;
    }
 
@@ -120,7 +122,8 @@ do_texture_readpixels( GLcontext *ctx,
       if (!driClipRectToFramebuffer(ctx->ReadBuffer, &x, &y, &width, &height)) {
 	 UNLOCK_HARDWARE( intel );
 	 SET_STATE(i830, state);
-	 fprintf(stderr, "%s: cliprect failed\n", __FUNCTION__);
+	 if (INTEL_DEBUG & DEBUG_PIXEL)
+	    fprintf(stderr, "%s: cliprect failed\n", __FUNCTION__);
 	 return GL_TRUE;
       }
 
@@ -195,27 +198,28 @@ static GLboolean do_blit_readpixels( GLcontext *ctx,
       if (!_mesa_validate_pbo_access(2, pack, width, height, 1,
                                      format, type, pixels)) {
          _mesa_error(ctx, GL_INVALID_OPERATION, "glDrawPixels");
-	 _mesa_printf("%s - _mesa_validate_pbo_access\n", __FUNCTION__);
-
          return GL_TRUE;
       }
    }
    else {
       /* PBO only for now:
        */
-      _mesa_printf("%s - not PBO\n", __FUNCTION__);
+      if (INTEL_DEBUG & DEBUG_PIXEL)
+	 _mesa_printf("%s - not PBO\n", __FUNCTION__);
       return GL_FALSE;
    }
 
    
    if (ctx->_ImageTransferState ||
        !intel_check_blit_format(src, format, type)) {
-      _mesa_printf("%s - bad format for blit\n", __FUNCTION__);
+      if (INTEL_DEBUG & DEBUG_PIXEL)
+	 _mesa_printf("%s - bad format for blit\n", __FUNCTION__);
       return GL_FALSE;
    }
 
    if (pack->Alignment != 1 || pack->SwapBytes || pack->LsbFirst) {
-      _mesa_printf("%s: bad packing params\n", __FUNCTION__);
+      if (INTEL_DEBUG & DEBUG_PIXEL)
+	 _mesa_printf("%s: bad packing params\n", __FUNCTION__);
       return GL_FALSE;
    }
 
@@ -225,7 +229,8 @@ static GLboolean do_blit_readpixels( GLcontext *ctx,
       rowLength = width;
 
    if (pack->Invert) {
-      _mesa_printf("%s: MESA_PACK_INVERT not done yet\n", __FUNCTION__);
+      if (INTEL_DEBUG & DEBUG_PIXEL)
+	 _mesa_printf("%s: MESA_PACK_INVERT not done yet\n", __FUNCTION__);
       return GL_FALSE;
    }
    else {
@@ -308,7 +313,8 @@ intelReadPixels( GLcontext *ctx,
    if (do_texture_readpixels(ctx, x, y, width, height, format, type, pack, pixels))
       return;
 
-   _mesa_printf("%s: fallback to swrast\n", __FUNCTION__);
+   if (INTEL_DEBUG & DEBUG_PIXEL)
+      _mesa_printf("%s: fallback to swrast\n", __FUNCTION__);
 
    _swrast_ReadPixels( ctx, x, y, width, height, format, type, pack, pixels);
 }

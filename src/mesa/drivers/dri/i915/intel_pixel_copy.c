@@ -116,7 +116,8 @@ static GLboolean do_texture_copypixels( GLcontext *ctx,
 
 
       if (intel_intersect_cliprects(&tmp, &src, &dst)) {
-	 _mesa_printf("%s: regions overlap\n", __FUNCTION__);
+	 if (INTEL_DEBUG & DEBUG_PIXEL)
+	    _mesa_printf("%s: regions overlap\n", __FUNCTION__);
 	 return GL_FALSE;
       }
    }
@@ -339,7 +340,9 @@ void intelCopyPixels( GLcontext *ctx,
    if (do_texture_copypixels( ctx, srcx, srcy, width, height, destx, desty, type))
       return;
 
-   _mesa_printf("fallback to _swrast_CopyPixels\n");
+   if (INTEL_DEBUG & DEBUG_PIXEL)
+      _mesa_printf("fallback to _swrast_CopyPixels\n");
+
    _swrast_CopyPixels( ctx, srcx, srcy, width, height, destx, desty, type);
 }
 
