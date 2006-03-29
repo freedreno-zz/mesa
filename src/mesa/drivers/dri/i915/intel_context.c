@@ -86,7 +86,11 @@ int INTEL_DEBUG = (0);
 #include "extension_helper.h"
 
 
-#define DRIVER_DATE                     "20060212"
+#define DRIVER_DATE                     "20060329"
+
+_glthread_Mutex lockMutex;
+static GLboolean lockMutexInit = GL_FALSE;
+
 
 static const GLubyte *intelGetString( GLcontext *ctx, GLenum name )
 {
@@ -303,6 +307,10 @@ GLboolean intelInitContext( struct intel_context *intel,
    intel->driScreen = sPriv;
    intel->sarea = saPriv;
 
+   if (!lockMutexInit) {
+      lockMutexInit = GL_TRUE;
+      _glthread_INIT_MUTEX(lockMutex);
+   }
 
    ctx->Const.MaxTextureMaxAnisotropy = 2.0;
 
@@ -543,16 +551,12 @@ GLboolean intelMakeCurrent(__DRIcontextPrivate *driContextPriv,
    return GL_TRUE;
 }
 
-_glthread_DECLARE_STATIC_MUTEX(lockMutex);
-
 void intelGetLock( struct intel_context *intel, GLuint flags )
 {
    __DRIdrawablePrivate *dPriv = intel->driDrawable;
    __DRIscreenPrivate *sPriv = intel->driScreen;
    drmI830Sarea * sarea = intel->sarea;
    int me = intel->hHWContext;
-
-   _glthread_LOCK_MUTEX(lockMutex);                   
 
    drmGetLock(intel->driFd, intel->hHWContext, flags);
 
@@ -564,10 +568,6 @@ void intelGetLock( struct intel_context *intel, GLuint flags )
     */
    if (dPriv)
       DRI_VALIDATE_DRAWABLE_INFO(sPriv, dPriv);
-
-
-   _glthread_UNLOCK_MUTEX(lockMutex);
-
 
    /* Lost context?
     */

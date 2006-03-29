@@ -266,7 +266,7 @@ struct intel_context
 };
 
 
-#define DEBUG_LOCKING	0
+#define DEBUG_LOCKING 1
 
 #if DEBUG_LOCKING
 
@@ -312,7 +312,7 @@ struct intel_context
 
 #endif
 
-
+extern _glthread_Mutex lockMutex;
 
 
 /* Lock the hardware and validate our state.  
@@ -320,6 +320,7 @@ struct intel_context
 #define LOCK_HARDWARE( intel )				\
 do {							\
     char __ret=0;					\
+    _glthread_LOCK_MUTEX(lockMutex);                    \
     DEBUG_CHECK_LOCK();					\
     assert(!(intel)->locked);				\
     DRM_CAS((intel)->driHwLock, (intel)->hHWContext,	\
@@ -342,6 +343,7 @@ do {									\
    }									\
    DRM_UNLOCK((intel)->driFd, (intel)->driHwLock, (intel)->hHWContext);	\
    DEBUG_RESET();							\
+   _glthread_UNLOCK_MUTEX(lockMutex);                                   \
 } while (0)
 
 
