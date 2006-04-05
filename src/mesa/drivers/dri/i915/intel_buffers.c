@@ -558,7 +558,7 @@ intel_draw_buffer(GLcontext *ctx, struct gl_framebuffer *fb)
       /* this may occur when we're called by glBindFrameBuffer() during
        * the process of someone setting up renderbuffers, etc.
        */
-      _mesa_debug(ctx, "DrawBuffer: incomplete user FBO\n");
+      /*_mesa_debug(ctx, "DrawBuffer: incomplete user FBO\n");*/
       return;
    }
 
