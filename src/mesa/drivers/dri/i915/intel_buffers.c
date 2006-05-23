@@ -615,6 +615,14 @@ intel_draw_buffer(GLcontext *ctx, struct gl_framebuffer *fb)
       colorRegion = (irb && irb->region) ? irb->region : NULL;
    }
 
+   /* Update culling direction which changes depending on the
+    * orientation of the buffer:
+    */
+   if (ctx->Driver.FrontFace)
+      ctx->Driver.FrontFace(ctx, ctx->Polygon.FrontFace);
+   else
+      ctx->NewState |= _NEW_POLYGON;
+
    if (!colorRegion) {
       FALLBACK( intel, INTEL_FALLBACK_DRAW_BUFFER, GL_TRUE );
    }

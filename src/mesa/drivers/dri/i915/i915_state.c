@@ -395,7 +395,8 @@ static void i915CullFaceFrontFace(GLcontext *ctx, GLenum unused)
    GLuint mode;
 
    if (INTEL_DEBUG&DEBUG_DRI)
-      fprintf(stderr, "%s\n", __FUNCTION__);
+      fprintf(stderr, "%s %d\n", __FUNCTION__, 
+	      ctx->DrawBuffer ? ctx->DrawBuffer->Name : 0);
 
    if (!ctx->Polygon.CullFlag) {
       mode = S4_CULLMODE_NONE;
@@ -403,6 +404,8 @@ static void i915CullFaceFrontFace(GLcontext *ctx, GLenum unused)
    else if (ctx->Polygon.CullFaceMode != GL_FRONT_AND_BACK) {
       mode = S4_CULLMODE_CW;
 
+      if (ctx->DrawBuffer && ctx->DrawBuffer->Name != 0) 
+	 mode ^= (S4_CULLMODE_CW ^ S4_CULLMODE_CCW);
       if (ctx->Polygon.CullFaceMode == GL_FRONT)
 	 mode ^= (S4_CULLMODE_CW ^ S4_CULLMODE_CCW);
       if (ctx->Polygon.FrontFace != GL_CCW)
