@@ -99,23 +99,24 @@ static GLboolean do_texture_copypixels( GLcontext *ctx,
     * 
     * XXX: do a copy to a temporary. 
     */
+   if (src->buffer == dst->buffer)
    {
-      drm_clip_rect_t src;
-      drm_clip_rect_t dst;
+      drm_clip_rect_t srcbox;
+      drm_clip_rect_t dstbox;
       drm_clip_rect_t tmp;
       
-      src.x1 = srcx;
-      src.y1 = srcy;
-      src.x2 = srcx + width;
-      src.y2 = srcy + height;
+      srcbox.x1 = srcx;
+      srcbox.y1 = srcy;
+      srcbox.x2 = srcx + width;
+      srcbox.y2 = srcy + height;
 
-      dst.x1 = dstx;
-      dst.y1 = dsty;
-      dst.x1 = dstx + width * ctx->Pixel.ZoomX;
-      dst.y2 = dsty + height * ctx->Pixel.ZoomY;
+      dstbox.x1 = dstx;
+      dstbox.y1 = dsty;
+      dstbox.x1 = dstx + width * ctx->Pixel.ZoomX;
+      dstbox.y2 = dsty + height * ctx->Pixel.ZoomY;
 
 
-      if (intel_intersect_cliprects(&tmp, &src, &dst)) {
+      if (intel_intersect_cliprects(&tmp, &srcbox, &dstbox)) {
 	 if (INTEL_DEBUG & DEBUG_PIXEL)
 	    _mesa_printf("%s: regions overlap\n", __FUNCTION__);
 	 return GL_FALSE;
