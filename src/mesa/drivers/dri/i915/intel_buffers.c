@@ -282,7 +282,20 @@ static void intelClearWithTris(struct intel_context *intel,
 
       intel->vtbl.install_meta_state(intel);
 
-      /* note: regardless of 'all', cx, cy, cw, ch are correct */
+
+      /* Refresh the cx/y/w/h values as they may have been invalidated
+       * by a new window position or size picked up when we did
+       * LOCK_HARDWARE above.  The values passed by mesa are not
+       * reliable.
+       */
+      {
+	  cx = ctx->DrawBuffer->_Xmin;
+	  cy = ctx->DrawBuffer->_Ymin;
+	  ch = ctx->DrawBuffer->_Ymax - ctx->DrawBuffer->_Ymin;
+	  cw  = ctx->DrawBuffer->_Xmax - ctx->DrawBuffer->_Xmin;
+      }
+
+      /* note: regardless of 'all', cx, cy, cw, ch are now correct */
       clear.x1 = cx;
       clear.y1 = cy;
       clear.x2 = cx + cw;

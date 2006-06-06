@@ -323,6 +323,18 @@ void intelClearWithBlit(GLcontext *ctx, GLbitfield mask, GLboolean all,
       drm_clip_rect_t clear;
       int i;
 
+      /* Refresh the cx/y/w/h values as they may have been invalidated
+       * by a new window position or size picked up when we did
+       * LOCK_HARDWARE above.  The values passed by mesa are not
+       * reliable.
+       */
+      {
+	  cx = ctx->DrawBuffer->_Xmin;
+	  cy = ctx->DrawBuffer->_Ymin;
+	  ch = ctx->DrawBuffer->_Ymax - ctx->DrawBuffer->_Ymin;
+	  cw  = ctx->DrawBuffer->_Xmax - ctx->DrawBuffer->_Xmin;
+      }
+
       if (intel->ctx.DrawBuffer->Name == 0) {
          /* clearing a window */
 
