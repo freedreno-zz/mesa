@@ -492,17 +492,14 @@ intel_wrap_texture(GLcontext *ctx, struct gl_texture_image *texImage)
    if (texImage->TexFormat == &_mesa_texformat_argb8888) {
       irb->Base._ActualFormat = GL_RGBA8;
       irb->Base._BaseFormat = GL_RGBA;
-      _mesa_debug(ctx, "Render to RGBA8 texture OK\n");
    }
    else if (texImage->TexFormat == &_mesa_texformat_rgb565) {
       irb->Base._ActualFormat = GL_RGB5;
       irb->Base._BaseFormat = GL_RGB;
-      _mesa_debug(ctx, "Render to RGB5 texture OK\n");
    }
    else if (texImage->TexFormat == &_mesa_texformat_depth_component16) {
       irb->Base._ActualFormat = GL_DEPTH_COMPONENT16;
       irb->Base._BaseFormat = GL_DEPTH_COMPONENT;
-      _mesa_debug(ctx, "Render to DEPTH16 texture OK\n");
    }
    else {
       _mesa_debug(ctx, "Render to texture BAD FORMAT %d\n", texImage->TexFormat->MesaFormat);
