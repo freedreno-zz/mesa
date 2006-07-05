@@ -138,7 +138,7 @@ static void i915_emit_invarient_state( struct intel_context *intel )
 {
    BATCH_LOCALS;
 
-   BEGIN_BATCH( 200, 0 );
+   BEGIN_BATCH( 20, 0 );
 
    OUT_BATCH(_3DSTATE_AA_CMD |
 	     AA_LINE_ECAAR_WIDTH_ENABLE |
@@ -183,14 +183,6 @@ static void i915_emit_invarient_state( struct intel_context *intel )
 	     (1));
    OUT_BATCH(0);
  
-   /* XXX: Use this */
-   OUT_BATCH(_3DSTATE_SCISSOR_ENABLE_CMD | 
-	     DISABLE_SCISSOR_RECT);
-
-   OUT_BATCH(_3DSTATE_SCISSOR_RECT_0_CMD);
-   OUT_BATCH(0);
-   OUT_BATCH(0);
-
    OUT_BATCH(_3DSTATE_DEPTH_SUBRECT_DISABLE);
 
    OUT_BATCH(_3DSTATE_LOAD_INDIRECT | 0); /* disable indirect state */
