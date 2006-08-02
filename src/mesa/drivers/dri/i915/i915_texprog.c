@@ -536,7 +536,7 @@ static void emit_program_fini( struct i915_fragment_program *p )
 }
 
 
-static void i915EmitTextureProgram( i915ContextPtr i915 )
+static void i915EmitTextureProgram( struct i915_context *i915 )
 {
    GLcontext *ctx = &i915->intel.ctx;
    struct i915_fragment_program *p = &i915->tex_program;
@@ -570,9 +570,9 @@ static void i915EmitTextureProgram( i915ContextPtr i915 )
 }
 
 
-void i915ValidateTextureProgram( i915ContextPtr i915 )
+void i915ValidateTextureProgram( struct i915_context *i915 )
 {
-   intelContextPtr intel = &i915->intel;
+   struct intel_context *intel = &i915->intel;
    GLcontext *ctx = &intel->ctx;
    TNLcontext *tnl = TNL_CONTEXT(ctx);
    struct vertex_buffer *VB = &tnl->vb;
@@ -642,7 +642,8 @@ void i915ValidateTextureProgram( i915ContextPtr i915 )
     */
    if (s2 != i915->state.Ctx[I915_CTXREG_LIS2] ||
        s4 != i915->state.Ctx[I915_CTXREG_LIS4]) {
-    
+      int k;
+
       I915_STATECHANGE( i915, I915_UPLOAD_CTX );
 
       i915->tex_program.translated = 0;
@@ -660,7 +661,8 @@ void i915ValidateTextureProgram( i915ContextPtr i915 )
       i915->state.Ctx[I915_CTXREG_LIS2] = s2;
       i915->state.Ctx[I915_CTXREG_LIS4] = s4;
 
-      assert(intel->vtbl.check_vertex_size( intel, intel->vertex_size ));
+      k = intel->vtbl.check_vertex_size( intel, intel->vertex_size );
+      assert(k);
    }
 
    if (!i915->tex_program.translated ||

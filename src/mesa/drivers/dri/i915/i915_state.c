@@ -36,6 +36,7 @@
 
 #include "texmem.h"
 
+#include "intel_fbo.h"
 #include "intel_screen.h"
 #include "intel_batchbuffer.h"
 
@@ -48,7 +49,7 @@ static void
 i915StencilFuncSeparate(GLcontext *ctx, GLenum face, GLenum func, GLint ref,
                         GLuint mask)
 {
-   i915ContextPtr i915 = I915_CONTEXT(ctx);
+   struct i915_context *i915 = I915_CONTEXT(ctx);
    int test = intel_translate_compare_func( func );
 
    mask = mask & 0xff;
@@ -73,7 +74,7 @@ i915StencilFuncSeparate(GLcontext *ctx, GLenum face, GLenum func, GLint ref,
 static void
 i915StencilMaskSeparate(GLcontext *ctx, GLenum face, GLuint mask)
 {
-   i915ContextPtr i915 = I915_CONTEXT(ctx);
+   struct i915_context *i915 = I915_CONTEXT(ctx);
 
    if (INTEL_DEBUG&DEBUG_DRI)
       fprintf(stderr, "%s : mask 0x%x\n", __FUNCTION__, mask);
@@ -91,7 +92,7 @@ static void
 i915StencilOpSeparate(GLcontext *ctx, GLenum face, GLenum fail, GLenum zfail,
                       GLenum zpass)
 {
-   i915ContextPtr i915 = I915_CONTEXT(ctx);
+   struct i915_context *i915 = I915_CONTEXT(ctx);
    int fop = intel_translate_stencil_op(fail); 
    int dfop = intel_translate_stencil_op(zfail); 
    int dpop = intel_translate_stencil_op(zpass);
@@ -116,7 +117,7 @@ i915StencilOpSeparate(GLcontext *ctx, GLenum face, GLenum fail, GLenum zfail,
 
 static void i915AlphaFunc(GLcontext *ctx, GLenum func, GLfloat ref)
 {
-   i915ContextPtr i915 = I915_CONTEXT(ctx);
+   struct i915_context *i915 = I915_CONTEXT(ctx);
    int test = intel_translate_compare_func( func );
    GLubyte refByte;
 
@@ -137,7 +138,7 @@ static void i915AlphaFunc(GLcontext *ctx, GLenum func, GLfloat ref)
  */
 static void i915EvalLogicOpBlendState(GLcontext *ctx)
 {
-   i915ContextPtr i915 = I915_CONTEXT(ctx);
+   struct i915_context *i915 = I915_CONTEXT(ctx);
 
    I915_STATECHANGE(i915, I915_UPLOAD_CTX);
 
@@ -157,7 +158,7 @@ static void i915EvalLogicOpBlendState(GLcontext *ctx)
 
 static void i915BlendColor(GLcontext *ctx, const GLfloat color[4])
 {
-   i915ContextPtr i915 = I915_CONTEXT(ctx);
+   struct i915_context *i915 = I915_CONTEXT(ctx);
    GLubyte r, g, b, a;
 
    if (INTEL_DEBUG&DEBUG_DRI)
@@ -194,7 +195,7 @@ static GLuint translate_blend_equation( GLenum mode )
 
 static void i915UpdateBlendState( GLcontext *ctx )
 {
-   i915ContextPtr i915 = I915_CONTEXT(ctx);
+   struct i915_context *i915 = I915_CONTEXT(ctx);
    GLuint iab = (i915->state.Ctx[I915_CTXREG_IAB] & 
 		 ~(IAB_SRC_FACTOR_MASK |
 		   IAB_DST_FACTOR_MASK |
@@ -261,7 +262,7 @@ static void i915BlendEquationSeparate(GLcontext *ctx, GLenum eqRGB,
 
 static void i915DepthFunc(GLcontext *ctx, GLenum func)
 {
-   i915ContextPtr i915 = I915_CONTEXT(ctx);
+   struct i915_context *i915 = I915_CONTEXT(ctx);
    int test = intel_translate_compare_func( func );
 
    if (INTEL_DEBUG&DEBUG_DRI)
@@ -274,7 +275,7 @@ static void i915DepthFunc(GLcontext *ctx, GLenum func)
 
 static void i915DepthMask(GLcontext *ctx, GLboolean flag)
 {
-   i915ContextPtr i915 = I915_CONTEXT(ctx);
+   struct i915_context *i915 = I915_CONTEXT(ctx);
 
    if (INTEL_DEBUG&DEBUG_DRI)
       fprintf(stderr, "%s flag (%d)\n", __FUNCTION__, flag);
@@ -295,7 +296,7 @@ static void i915DepthMask(GLcontext *ctx, GLboolean flag)
  */
 static void i915PolygonStipple( GLcontext *ctx, const GLubyte *mask )
 {
-   i915ContextPtr i915 = I915_CONTEXT(ctx);
+   struct i915_context *i915 = I915_CONTEXT(ctx);
    const GLubyte *m = mask;
    GLubyte p[4];
    int i,j,k;
@@ -348,15 +349,14 @@ static void i915PolygonStipple( GLcontext *ctx, const GLubyte *mask )
 static void i915Scissor(GLcontext *ctx, GLint x, GLint y, 
 			GLsizei w, GLsizei h)
 {
-   i915ContextPtr i915 = I915_CONTEXT(ctx);
-   intelScreenPrivate *screen = i915->intel.intelScreen;
+   struct i915_context *i915 = I915_CONTEXT(ctx);
    int x1, y1, x2, y2;
 
-   if (!i915->intel.driDrawable)
+   if (!ctx->DrawBuffer)
       return;
 
    x1 = x;
-   y1 = i915->intel.driDrawable->h - (y + h);
+   y1 = ctx->DrawBuffer->Height - (y + h);
    x2 = x + w - 1;
    y2 = y1 + h - 1;
 
@@ -364,16 +364,10 @@ static void i915Scissor(GLcontext *ctx, GLint x, GLint y,
       fprintf(stderr, "[%s] x(%d) y(%d) w(%d) h(%d)\n", __FUNCTION__,
 	      x, y, w, h);
 
-   if (x1 < 0) x1 = 0;
-   if (y1 < 0) y1 = 0;
-   if (x2 < 0) x2 = 0;
-   if (y2 < 0) y2 = 0;
-
-   if (x2 >= screen->width) x2 = screen->width-1;
-   if (y2 >= screen->height) y2 = screen->height-1;
-   if (x1 >= screen->width) x1 = screen->width-1;
-   if (y1 >= screen->height) y1 = screen->height-1;
-
+   x1 = CLAMP(x1, 0, ctx->DrawBuffer->Width - 1);
+   y1 = CLAMP(y1, 0, ctx->DrawBuffer->Height - 1);
+   x2 = CLAMP(x2, 0, ctx->DrawBuffer->Width - 1);
+   y2 = CLAMP(y2, 0, ctx->DrawBuffer->Height - 1);
 
    I915_STATECHANGE(i915, I915_UPLOAD_BUFFERS);
    i915->state.Buffer[I915_DESTREG_SR1] = (y1 << 16) | (x1 & 0xffff);
@@ -382,7 +376,7 @@ static void i915Scissor(GLcontext *ctx, GLint x, GLint y,
 
 static void i915LogicOp(GLcontext *ctx, GLenum opcode)
 {
-   i915ContextPtr i915 = I915_CONTEXT(ctx);
+   struct i915_context *i915 = I915_CONTEXT(ctx);
    int tmp = intel_translate_logic_op(opcode);
 
    if (INTEL_DEBUG&DEBUG_DRI)
@@ -397,11 +391,12 @@ static void i915LogicOp(GLcontext *ctx, GLenum opcode)
 
 static void i915CullFaceFrontFace(GLcontext *ctx, GLenum unused)
 {
-   i915ContextPtr i915 = I915_CONTEXT(ctx);
+   struct i915_context *i915 = I915_CONTEXT(ctx);
    GLuint mode;
 
    if (INTEL_DEBUG&DEBUG_DRI)
-      fprintf(stderr, "%s\n", __FUNCTION__);
+      fprintf(stderr, "%s %d\n", __FUNCTION__, 
+	      ctx->DrawBuffer ? ctx->DrawBuffer->Name : 0);
 
    if (!ctx->Polygon.CullFlag) {
       mode = S4_CULLMODE_NONE;
@@ -409,6 +404,8 @@ static void i915CullFaceFrontFace(GLcontext *ctx, GLenum unused)
    else if (ctx->Polygon.CullFaceMode != GL_FRONT_AND_BACK) {
       mode = S4_CULLMODE_CW;
 
+      if (ctx->DrawBuffer && ctx->DrawBuffer->Name != 0) 
+	 mode ^= (S4_CULLMODE_CW ^ S4_CULLMODE_CCW);
       if (ctx->Polygon.CullFaceMode == GL_FRONT)
 	 mode ^= (S4_CULLMODE_CW ^ S4_CULLMODE_CCW);
       if (ctx->Polygon.FrontFace != GL_CCW)
@@ -425,7 +422,7 @@ static void i915CullFaceFrontFace(GLcontext *ctx, GLenum unused)
 
 static void i915LineWidth( GLcontext *ctx, GLfloat widthf )
 {
-   i915ContextPtr i915 = I915_CONTEXT( ctx );
+   struct i915_context *i915 = I915_CONTEXT( ctx );
    int lis4 = i915->state.Ctx[I915_CTXREG_LIS4] & ~S4_LINE_WIDTH_MASK;
    int width;
 
@@ -444,7 +441,7 @@ static void i915LineWidth( GLcontext *ctx, GLfloat widthf )
 
 static void i915PointSize(GLcontext *ctx, GLfloat size)
 {
-   i915ContextPtr i915 = I915_CONTEXT(ctx);
+   struct i915_context *i915 = I915_CONTEXT(ctx);
    int lis4 = i915->state.Ctx[I915_CTXREG_LIS4] & ~S4_POINT_WIDTH_MASK;
    GLint point_size = (int)size;
 
@@ -469,7 +466,7 @@ static void i915ColorMask(GLcontext *ctx,
 			 GLboolean r, GLboolean g,
 			 GLboolean b, GLboolean a)
 {
-   i915ContextPtr i915 = I915_CONTEXT( ctx );
+   struct i915_context *i915 = I915_CONTEXT( ctx );
    GLuint tmp = i915->state.Ctx[I915_CTXREG_LIS5] & ~S5_WRITEDISABLE_MASK;
 
    if (INTEL_DEBUG&DEBUG_DRI)
@@ -490,7 +487,7 @@ static void update_specular( GLcontext *ctx )
 {
    /* A hack to trigger the rebuild of the fragment program.
     */
-   INTEL_CONTEXT(ctx)->NewGLState |= _NEW_TEXTURE;
+   intel_context(ctx)->NewGLState |= _NEW_TEXTURE;
    I915_CONTEXT(ctx)->tex_program.translated = 0; 
 }
 
@@ -507,7 +504,7 @@ static void i915LightModelfv(GLcontext *ctx, GLenum pname,
 
 static void i915ShadeModel(GLcontext *ctx, GLenum mode)
 {
-   i915ContextPtr i915 = I915_CONTEXT(ctx);
+   struct i915_context *i915 = I915_CONTEXT(ctx);
    I915_STATECHANGE(i915, I915_UPLOAD_CTX);
 
    if (mode == GL_SMOOTH) {
@@ -526,7 +523,7 @@ static void i915ShadeModel(GLcontext *ctx, GLenum mode)
  */
 void i915_update_fog( GLcontext *ctx )
 {
-   i915ContextPtr i915 = I915_CONTEXT(ctx);
+   struct i915_context *i915 = I915_CONTEXT(ctx);
    GLenum mode;
    GLboolean enabled;
    GLboolean try_pixel_fog;
@@ -619,7 +616,7 @@ void i915_update_fog( GLcontext *ctx )
 
 static void i915Fogfv(GLcontext *ctx, GLenum pname, const GLfloat *param)
 {
-   i915ContextPtr i915 = I915_CONTEXT(ctx);
+   struct i915_context *i915 = I915_CONTEXT(ctx);
 
    switch (pname) {
    case GL_FOG_COORDINATE_SOURCE_EXT: 
@@ -671,7 +668,7 @@ static void i915Hint(GLcontext *ctx, GLenum target, GLenum state)
 
 static void i915Enable(GLcontext *ctx, GLenum cap, GLboolean state)
 {
-   i915ContextPtr i915 = I915_CONTEXT(ctx);
+   struct i915_context *i915 = I915_CONTEXT(ctx);
 
    switch(cap) {
    case GL_TEXTURE_2D:
@@ -699,7 +696,7 @@ static void i915Enable(GLcontext *ctx, GLenum cap, GLboolean state)
 
       /* Logicop doesn't seem to work at 16bpp:
        */
-      if (i915->intel.intelScreen->cpp == 2)
+      if (i915->intel.intelScreen->cpp == 2) /* XXX FBO fix */
 	 FALLBACK( &i915->intel, I915_FALLBACK_LOGICOP, state );
       break;
 
@@ -750,16 +747,24 @@ static void i915Enable(GLcontext *ctx, GLenum cap, GLboolean state)
       break;
 
    case GL_STENCIL_TEST:
-      if (i915->intel.hw_stencil) {
-	 I915_STATECHANGE(i915, I915_UPLOAD_CTX);
-	 if (state)
-	    i915->state.Ctx[I915_CTXREG_LIS5] |= (S5_STENCIL_TEST_ENABLE |
-						S5_STENCIL_WRITE_ENABLE);
-	 else
-	    i915->state.Ctx[I915_CTXREG_LIS5] &= ~(S5_STENCIL_TEST_ENABLE | 
-						 S5_STENCIL_WRITE_ENABLE);
-      } else {
-	 FALLBACK( &i915->intel, I915_FALLBACK_STENCIL, state );
+      {
+         GLboolean hw_stencil = GL_FALSE;
+         if (ctx->DrawBuffer) {
+            struct intel_renderbuffer *irbStencil
+               = intel_get_renderbuffer(ctx->DrawBuffer, BUFFER_STENCIL);
+            hw_stencil = (irbStencil && irbStencil->region);
+         }
+         if (hw_stencil) {
+            I915_STATECHANGE(i915, I915_UPLOAD_CTX);
+            if (state)
+               i915->state.Ctx[I915_CTXREG_LIS5] |= (S5_STENCIL_TEST_ENABLE |
+                                                   S5_STENCIL_WRITE_ENABLE);
+            else
+               i915->state.Ctx[I915_CTXREG_LIS5] &= ~(S5_STENCIL_TEST_ENABLE | 
+                                                    S5_STENCIL_WRITE_ENABLE);
+         } else {
+            FALLBACK( &i915->intel, I915_FALLBACK_STENCIL, state );
+         }
       }
       break;
 
@@ -793,7 +798,7 @@ static void i915Enable(GLcontext *ctx, GLenum cap, GLboolean state)
 }
 
 
-static void i915_init_packets( i915ContextPtr i915 )
+static void i915_init_packets( struct i915_context *i915 )
 {
    intelScreenPrivate *screen = i915->intel.intelScreen;
 
@@ -816,7 +821,7 @@ static void i915_init_packets( i915ContextPtr i915 )
       i915->state.Ctx[I915_CTXREG_LIS4] = 0;
       i915->state.Ctx[I915_CTXREG_LIS5] = 0;
 
-      if (screen->cpp == 2)
+      if (screen->cpp == 2) /* XXX FBO fix */
 	 i915->state.Ctx[I915_CTXREG_LIS5] |= S5_COLOR_DITHER_ENABLE;
 
 
@@ -830,7 +835,6 @@ static void i915_init_packets( i915ContextPtr i915 )
 					   STENCIL_TEST_MASK(0xff) |
 					   ENABLE_STENCIL_WRITE_MASK |
 					   STENCIL_WRITE_MASK(0xff));
-
 
       i915->state.Ctx[I915_CTXREG_IAB] = (_3DSTATE_INDEPENDENT_ALPHA_BLEND_CMD |
 					IAB_MODIFY_ENABLE |
@@ -866,27 +870,24 @@ static void i915_init_packets( i915ContextPtr i915 )
       I915_STATECHANGE(i915, I915_UPLOAD_BUFFERS);
       /* color buffer offset/stride */
       i915->state.Buffer[I915_DESTREG_CBUFADDR0] = _3DSTATE_BUF_INFO_CMD;
+      /* XXX FBO: remove this?  Also get set in i915_set_draw_region() */
       i915->state.Buffer[I915_DESTREG_CBUFADDR1] = 
 	 (BUF_3D_ID_COLOR_BACK | 
 	  BUF_3D_PITCH(screen->front.pitch) |  /* pitch in bytes */
 	  BUF_3D_USE_FENCE);
-      /*i915->state.Buffer[I915_DESTREG_CBUFADDR2] is the offset */
 
-
-      /* depth/Z buffer offset/stride */
       i915->state.Buffer[I915_DESTREG_DBUFADDR0] = _3DSTATE_BUF_INFO_CMD;
+      /* XXX FBO: remove this?  Also get set in i915_set_draw_region() */
       i915->state.Buffer[I915_DESTREG_DBUFADDR1] = 
 	 (BUF_3D_ID_DEPTH |
 	  BUF_3D_PITCH(screen->depth.pitch) |  /* pitch in bytes */
 	  BUF_3D_USE_FENCE);
-      i915->state.Buffer[I915_DESTREG_DBUFADDR2] = screen->depth.offset;
-
 
       i915->state.Buffer[I915_DESTREG_DV0] = _3DSTATE_DST_BUF_VARS_CMD;
 
-      /* color/depth pixel format */
+      /* XXX FBO: remove this?  Also get set in i915_set_draw_region() */
+#if 0 /* seems we don't need this */
       switch (screen->fbFormat) {
-      case DV_PF_555:
       case DV_PF_565:
 	 i915->state.Buffer[I915_DESTREG_DV1] = (DSTORG_HORT_BIAS(0x8) | /* .5 */
 					       DSTORG_VERT_BIAS(0x8) | /* .5 */
@@ -905,6 +906,8 @@ static void i915_init_packets( i915ContextPtr i915 )
 					       DEPTH_FRMT_24_FIXED_8_OTHER);
 	 break;
       }
+#endif
+
 
       /* scissor */
       i915->state.Buffer[I915_DESTREG_SENABLE] = (_3DSTATE_SCISSOR_ENABLE_CMD |
@@ -915,13 +918,27 @@ static void i915_init_packets( i915ContextPtr i915 )
    }
 
 
+#if 0
+   {
+      I915_STATECHANGE(i915, I915_UPLOAD_DEFAULTS);
+      i915->state.Default[I915_DEFREG_C0] = _3DSTATE_DEFAULT_DIFFUSE;
+      i915->state.Default[I915_DEFREG_C1] = 0;
+      i915->state.Default[I915_DEFREG_S0] = _3DSTATE_DEFAULT_SPECULAR;
+      i915->state.Default[I915_DEFREG_S1] = 0;
+      i915->state.Default[I915_DEFREG_Z0] = _3DSTATE_DEFAULT_Z;
+      i915->state.Default[I915_DEFREG_Z1] = 0;
+   }
+#endif
+
+
    /* These will be emitted every at the head of every buffer, unless
     * we get hardware contexts working.
     */
    i915->state.active = (I915_UPLOAD_PROGRAM | 
-			I915_UPLOAD_STIPPLE | 
-			I915_UPLOAD_CTX | 
-			I915_UPLOAD_BUFFERS);
+			 I915_UPLOAD_STIPPLE | 
+			 I915_UPLOAD_CTX | 
+			 I915_UPLOAD_BUFFERS |
+			 I915_UPLOAD_INVARIENT);
 }
 
 void i915InitStateFunctions( struct dd_function_table *functions )
@@ -951,7 +968,7 @@ void i915InitStateFunctions( struct dd_function_table *functions )
 }
 
 
-void i915InitState( i915ContextPtr i915 )
+void i915InitState( struct i915_context *i915 )
 {
    GLcontext *ctx = &i915->intel.ctx;
 

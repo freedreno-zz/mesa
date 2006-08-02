@@ -36,6 +36,7 @@
 
 #include "intel_screen.h"
 #include "intel_batchbuffer.h"
+#include "intel_fbo.h"
 
 #include "i830_context.h"
 #include "i830_reg.h"
@@ -44,7 +45,7 @@ static void
 i830StencilFuncSeparate(GLcontext *ctx, GLenum face, GLenum func, GLint ref,
                         GLuint mask)
 {
-   i830ContextPtr i830 = I830_CONTEXT(ctx);
+   struct i830_context *i830 = i830_context(ctx);
    int test = intel_translate_compare_func(func);
 
    mask = mask & 0xff;
@@ -69,7 +70,7 @@ i830StencilFuncSeparate(GLcontext *ctx, GLenum face, GLenum func, GLint ref,
 static void
 i830StencilMaskSeparate(GLcontext *ctx, GLenum face, GLuint mask)
 {
-   i830ContextPtr i830 = I830_CONTEXT(ctx);
+   struct i830_context *i830 = i830_context(ctx);
 
    if (INTEL_DEBUG&DEBUG_DRI)
       fprintf(stderr, "%s : mask 0x%x\n", __FUNCTION__, mask);
@@ -86,7 +87,7 @@ static void
 i830StencilOpSeparate(GLcontext *ctx, GLenum face, GLenum fail, GLenum zfail,
                       GLenum zpass)
 {
-   i830ContextPtr i830 = I830_CONTEXT(ctx);
+   struct i830_context *i830 = i830_context(ctx);
    int fop, dfop, dpop;
 
    if (INTEL_DEBUG&DEBUG_DRI)
@@ -193,7 +194,7 @@ i830StencilOpSeparate(GLcontext *ctx, GLenum face, GLenum fail, GLenum zfail,
 
 static void i830AlphaFunc(GLcontext *ctx, GLenum func, GLfloat ref)
 {
-   i830ContextPtr i830 = I830_CONTEXT(ctx);
+   struct i830_context *i830 = i830_context(ctx);
    int test = intel_translate_compare_func(func);
    GLubyte refByte;
    GLuint refInt;
@@ -221,7 +222,7 @@ static void i830AlphaFunc(GLcontext *ctx, GLenum func, GLfloat ref)
  */
 static void i830EvalLogicOpBlendState(GLcontext *ctx)
 {
-   i830ContextPtr i830 = I830_CONTEXT(ctx);
+   struct i830_context *i830 = i830_context(ctx);
 
    I830_STATECHANGE(i830, I830_UPLOAD_CTX);
 
@@ -245,7 +246,7 @@ static void i830EvalLogicOpBlendState(GLcontext *ctx)
 
 static void i830BlendColor(GLcontext *ctx, const GLfloat color[4])
 {
-   i830ContextPtr i830 = I830_CONTEXT(ctx);
+   struct i830_context *i830 = i830_context(ctx);
    GLubyte r, g, b, a;
 
    if (INTEL_DEBUG&DEBUG_DRI)
@@ -268,7 +269,7 @@ static void i830BlendColor(GLcontext *ctx, const GLfloat color[4])
  */
 static void i830_set_blend_state( GLcontext * ctx )
 {
-   i830ContextPtr i830 = I830_CONTEXT(ctx);
+   struct i830_context *i830 = i830_context(ctx);
    int funcA;
    int funcRGB;
    int eqnA;
@@ -406,7 +407,7 @@ static void i830BlendFuncSeparate(GLcontext *ctx, GLenum sfactorRGB,
 
 static void i830DepthFunc(GLcontext *ctx, GLenum func)
 {
-   i830ContextPtr i830 = I830_CONTEXT(ctx);
+   struct i830_context *i830 = i830_context(ctx);
    int test = intel_translate_compare_func(func);
 
    if (INTEL_DEBUG&DEBUG_DRI)
@@ -420,7 +421,7 @@ static void i830DepthFunc(GLcontext *ctx, GLenum func)
 
 static void i830DepthMask(GLcontext *ctx, GLboolean flag)
 {
-   i830ContextPtr i830 = I830_CONTEXT(ctx);
+   struct i830_context *i830 = i830_context(ctx);
 
    if (INTEL_DEBUG&DEBUG_DRI)
       fprintf(stderr, "%s flag (%d)\n", __FUNCTION__, flag);
@@ -443,7 +444,7 @@ static void i830DepthMask(GLcontext *ctx, GLboolean flag)
  */
 static void i830PolygonStipple( GLcontext *ctx, const GLubyte *mask )
 {
-   i830ContextPtr i830 = I830_CONTEXT(ctx);
+   struct i830_context *i830 = i830_context(ctx);
    const GLubyte *m = mask;
    GLubyte p[4];
    int i,j,k;
@@ -496,15 +497,14 @@ static void i830PolygonStipple( GLcontext *ctx, const GLubyte *mask )
 static void i830Scissor(GLcontext *ctx, GLint x, GLint y, 
 			GLsizei w, GLsizei h)
 {
-   i830ContextPtr i830 = I830_CONTEXT(ctx);
-   intelScreenPrivate *screen = i830->intel.intelScreen;
+   struct i830_context *i830 = i830_context(ctx);
    int x1, y1, x2, y2;
 
-   if (!i830->intel.driDrawable)
+   if (!ctx->DrawBuffer)
       return;
 
    x1 = x;
-   y1 = i830->intel.driDrawable->h - (y + h);
+   y1 = ctx->DrawBuffer->Height - (y + h);
    x2 = x + w - 1;
    y2 = y1 + h - 1;
 
@@ -512,16 +512,10 @@ static void i830Scissor(GLcontext *ctx, GLint x, GLint y,
       fprintf(stderr, "[%s] x(%d) y(%d) w(%d) h(%d)\n", __FUNCTION__,
 	      x, y, w, h);
 
-   if (x1 < 0) x1 = 0;
-   if (y1 < 0) y1 = 0;
-   if (x2 < 0) x2 = 0;
-   if (y2 < 0) y2 = 0;
-
-   if (x2 >= screen->width) x2 = screen->width-1;
-   if (y2 >= screen->height) y2 = screen->height-1;
-   if (x1 >= screen->width) x1 = screen->width-1;
-   if (y1 >= screen->height) y1 = screen->height-1;
-
+   x1 = CLAMP(x1, 0, ctx->DrawBuffer->Width - 1);
+   y1 = CLAMP(y1, 0, ctx->DrawBuffer->Height - 1);
+   x2 = CLAMP(x2, 0, ctx->DrawBuffer->Width - 1);
+   y2 = CLAMP(y2, 0, ctx->DrawBuffer->Height - 1);
 
    I830_STATECHANGE(i830, I830_UPLOAD_BUFFERS);
    i830->state.Buffer[I830_DESTREG_SR1] = (y1 << 16) | (x1 & 0xffff);
@@ -530,7 +524,7 @@ static void i830Scissor(GLcontext *ctx, GLint x, GLint y,
 
 static void i830LogicOp(GLcontext *ctx, GLenum opcode)
 {
-   i830ContextPtr i830 = I830_CONTEXT(ctx);
+   struct i830_context *i830 = i830_context(ctx);
    int tmp = intel_translate_logic_op( opcode );
 
    if (INTEL_DEBUG&DEBUG_DRI)
@@ -545,7 +539,7 @@ static void i830LogicOp(GLcontext *ctx, GLenum opcode)
 
 static void i830CullFaceFrontFace(GLcontext *ctx, GLenum unused)
 {
-   i830ContextPtr i830 = I830_CONTEXT(ctx);
+   struct i830_context *i830 = i830_context(ctx);
    GLuint mode;
 
    if (INTEL_DEBUG&DEBUG_DRI)
@@ -573,7 +567,7 @@ static void i830CullFaceFrontFace(GLcontext *ctx, GLenum unused)
 
 static void i830LineWidth( GLcontext *ctx, GLfloat widthf )
 {
-   i830ContextPtr i830 = I830_CONTEXT( ctx );
+   struct i830_context *i830 = i830_context( ctx );
    int width;
    int state5;
 
@@ -594,7 +588,7 @@ static void i830LineWidth( GLcontext *ctx, GLfloat widthf )
 
 static void i830PointSize(GLcontext *ctx, GLfloat size)
 {
-   i830ContextPtr i830 = I830_CONTEXT(ctx);
+   struct i830_context *i830 = i830_context(ctx);
    GLint point_size = (int)size;
 
    if (INTEL_DEBUG&DEBUG_DRI)
@@ -616,7 +610,7 @@ static void i830ColorMask(GLcontext *ctx,
 			  GLboolean r, GLboolean g,
 			  GLboolean b, GLboolean a)
 {
-   i830ContextPtr i830 = I830_CONTEXT( ctx );
+   struct i830_context *i830 = i830_context( ctx );
    GLuint tmp = 0;
 
    if (INTEL_DEBUG&DEBUG_DRI)
@@ -638,7 +632,7 @@ static void i830ColorMask(GLcontext *ctx,
 
 static void update_specular( GLcontext *ctx )
 {
-   i830ContextPtr i830 = I830_CONTEXT( ctx );
+   struct i830_context *i830 = i830_context( ctx );
 
    I830_STATECHANGE(i830, I830_UPLOAD_CTX);
    i830->state.Ctx[I830_CTXREG_ENABLES_1] &= ~ENABLE_SPEC_ADD_MASK;
@@ -664,7 +658,7 @@ static void i830LightModelfv(GLcontext *ctx, GLenum pname,
  */
 static void i830ShadeModel(GLcontext *ctx, GLenum mode)
 {
-   i830ContextPtr i830 = I830_CONTEXT(ctx);
+   struct i830_context *i830 = i830_context(ctx);
    I830_STATECHANGE(i830, I830_UPLOAD_CTX);
 
 
@@ -690,7 +684,7 @@ static void i830ShadeModel(GLcontext *ctx, GLenum mode)
  */
 static void i830Fogfv(GLcontext *ctx, GLenum pname, const GLfloat *param)
 {
-   i830ContextPtr i830 = I830_CONTEXT(ctx);
+   struct i830_context *i830 = i830_context(ctx);
 
    if (INTEL_DEBUG&DEBUG_DRI)
       fprintf(stderr, "%s\n", __FUNCTION__);
@@ -710,7 +704,7 @@ static void i830Fogfv(GLcontext *ctx, GLenum pname, const GLfloat *param)
 
 static void i830Enable(GLcontext *ctx, GLenum cap, GLboolean state)
 {
-   i830ContextPtr i830 = I830_CONTEXT(ctx);
+   struct i830_context *i830 = i830_context(ctx);
 
    switch(cap) {
    case GL_LIGHTING:
@@ -806,20 +800,28 @@ static void i830Enable(GLcontext *ctx, GLenum cap, GLboolean state)
       break;
 
    case GL_STENCIL_TEST:
-      if (i830->intel.hw_stencil) {
-	 I830_STATECHANGE(i830, I830_UPLOAD_CTX);
+      {
+         GLboolean hw_stencil = GL_FALSE;
+         if (ctx->DrawBuffer) {
+            struct intel_renderbuffer *irbStencil
+               = intel_get_renderbuffer(ctx->DrawBuffer, BUFFER_STENCIL);
+            hw_stencil = (irbStencil && irbStencil->region);
+         }
+         if (hw_stencil) {
+            I830_STATECHANGE(i830, I830_UPLOAD_CTX);
 
-	 if (state) {
-	    i830->state.Ctx[I830_CTXREG_ENABLES_1] |= ENABLE_STENCIL_TEST;
-	    i830->state.Ctx[I830_CTXREG_ENABLES_2] |= ENABLE_STENCIL_WRITE;
-	 } else {
-	    i830->state.Ctx[I830_CTXREG_ENABLES_1] &= ~ENABLE_STENCIL_TEST;
-	    i830->state.Ctx[I830_CTXREG_ENABLES_2] &= ~ENABLE_STENCIL_WRITE;
-	    i830->state.Ctx[I830_CTXREG_ENABLES_1] |= DISABLE_STENCIL_TEST;
-	    i830->state.Ctx[I830_CTXREG_ENABLES_2] |= DISABLE_STENCIL_WRITE;
-	 }
-      } else {
-	 FALLBACK( &i830->intel, I830_FALLBACK_STENCIL, state );
+            if (state) {
+               i830->state.Ctx[I830_CTXREG_ENABLES_1] |= ENABLE_STENCIL_TEST;
+               i830->state.Ctx[I830_CTXREG_ENABLES_2] |= ENABLE_STENCIL_WRITE;
+            } else {
+               i830->state.Ctx[I830_CTXREG_ENABLES_1] &= ~ENABLE_STENCIL_TEST;
+               i830->state.Ctx[I830_CTXREG_ENABLES_2] &= ~ENABLE_STENCIL_WRITE;
+               i830->state.Ctx[I830_CTXREG_ENABLES_1] |= DISABLE_STENCIL_TEST;
+               i830->state.Ctx[I830_CTXREG_ENABLES_2] |= DISABLE_STENCIL_WRITE;
+            }
+         } else {
+            FALLBACK( &i830->intel, I830_FALLBACK_STENCIL, state );
+         }
       }
       break;
 
@@ -844,7 +846,7 @@ static void i830Enable(GLcontext *ctx, GLenum cap, GLboolean state)
 }
 
 
-static void i830_init_packets( i830ContextPtr i830 )
+static void i830_init_packets( struct i830_context *i830 )
 {
    intelScreenPrivate *screen = i830->intel.intelScreen;
 
@@ -902,6 +904,7 @@ static void i830_init_packets( i830ContextPtr i830 )
 					     DISABLE_COLOR_BLEND |
 					     DISABLE_DEPTH_TEST);
 
+#if 000 /* XXX all the stencil enable state is set in i830Enable(), right? */
    if (i830->intel.hw_stencil) {
       i830->state.Ctx[I830_CTXREG_ENABLES_2] = (_3DSTATE_ENABLES_2_CMD |
 						ENABLE_STENCIL_WRITE |
@@ -911,7 +914,9 @@ static void i830_init_packets( i830ContextPtr i830 )
 						/* set no color comps disabled */
 						ENABLE_COLOR_WRITE |
 						ENABLE_DEPTH_WRITE);
-   } else {
+   } else
+#endif
+   {
       i830->state.Ctx[I830_CTXREG_ENABLES_2] = (_3DSTATE_ENABLES_2_CMD |
 						DISABLE_STENCIL_WRITE |
 						ENABLE_TEX_CACHE |
@@ -1012,13 +1017,10 @@ static void i830_init_packets( i830ContextPtr i830 )
       (BUF_3D_ID_DEPTH |
        BUF_3D_PITCH(screen->depth.pitch) |  /* pitch in bytes */
        BUF_3D_USE_FENCE);
-   i830->state.Buffer[I830_DESTREG_DBUFADDR2] = screen->depth.offset;
-
 
    i830->state.Buffer[I830_DESTREG_DV0] = _3DSTATE_DST_BUF_VARS_CMD;
 
    switch (screen->fbFormat) {
-   case DV_PF_555:
    case DV_PF_565:
       i830->state.Buffer[I830_DESTREG_DV1] = (DSTORG_HORT_BIAS(0x8) | /* .5 */
 					      DSTORG_VERT_BIAS(0x8) | /* .5 */
@@ -1068,7 +1070,7 @@ void i830InitStateFuncs( struct dd_function_table *functions )
    functions->StencilOpSeparate = i830StencilOpSeparate;
 }
 
-void i830InitState( i830ContextPtr i830 )
+void i830InitState( struct i830_context *i830 )
 {
    GLcontext *ctx = &i830->intel.ctx;
 
@@ -1080,7 +1082,8 @@ void i830InitState( i830ContextPtr i830 )
 
    i830->current = &i830->state;
    i830->state.emitted = 0;
-   i830->state.active = (I830_UPLOAD_TEXBLEND(0) |
+   i830->state.active = (I830_UPLOAD_INVARIENT |
+			 I830_UPLOAD_TEXBLEND(0) |
 			 I830_UPLOAD_STIPPLE |
 			 I830_UPLOAD_CTX |
 			 I830_UPLOAD_BUFFERS);

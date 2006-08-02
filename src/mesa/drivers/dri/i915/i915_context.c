@@ -41,6 +41,10 @@
 #include "utils.h"
 #include "i915_reg.h"
 
+#include "intel_bufmgr.h"
+#include "intel_regions.h"
+#include "intel_batchbuffer.h"
+
 /***************************************
  * Mesa's Driver Functions
  ***************************************/
@@ -65,7 +69,7 @@ static void i915InvalidateState( GLcontext *ctx, GLuint new_state )
    _ac_InvalidateState( ctx, new_state );
    _tnl_InvalidateState( ctx, new_state );
    _tnl_invalidate_vertex_state( ctx, new_state );
-   INTEL_CONTEXT(ctx)->NewGLState |= new_state;
+   intel_context(ctx)->NewGLState |= new_state;
 
    /* Todo: gather state values under which tracked parameters become
     * invalidated, add callbacks for things like
@@ -99,14 +103,16 @@ GLboolean i915CreateContext( const __GLcontextModes *mesaVis,
 			    void *sharedContextPrivate)
 {
    struct dd_function_table functions;
-   i915ContextPtr i915 = (i915ContextPtr) CALLOC_STRUCT(i915_context);
-   intelContextPtr intel = &i915->intel;
+   struct i915_context *i915 = (struct i915_context *) CALLOC_STRUCT(i915_context);
+   struct intel_context *intel = &i915->intel;
    GLcontext *ctx = &intel->ctx;
-   GLuint i;
 
    if (!i915) return GL_FALSE;
 
+   _mesa_printf( "\ntexmem branch (i915, drop3)\n\n");
+   
    i915InitVtbl( i915 );
+   i915InitMetaFuncs( i915 );
 
    i915InitDriverFunctions( &functions );
 
@@ -120,49 +126,28 @@ GLboolean i915CreateContext( const __GLcontextModes *mesaVis,
    ctx->Const.MaxTextureImageUnits = I915_TEX_UNITS;
    ctx->Const.MaxTextureCoordUnits = I915_TEX_UNITS;
 
-   intel->nr_heaps = 1;
-   intel->texture_heaps[0] = 
-      driCreateTextureHeap( 0, intel,
-			    intel->intelScreen->tex.size,
-			    12,
-			    I830_NR_TEX_REGIONS,
-			    intel->sarea->texList,
-			    (unsigned *) & intel->sarea->texAge,
-			    & intel->swapped,
-			    sizeof( struct i915_texture_object ),
-			    (destroy_texture_object_t *)intelDestroyTexObj );
 
-   /* FIXME: driCalculateMaxTextureLevels assumes that mipmaps are
-    * tightly packed, but they're not in Intel graphics
-    * hardware.
+   /* Advertise the full hardware capabilities.  The new memory
+    * manager should cope much better with overload situations:
     */
+   ctx->Const.MaxTextureLevels = 12;
+   ctx->Const.Max3DTextureLevels = 9;
+   ctx->Const.MaxCubeTextureLevels = 12;
+   ctx->Const.MaxTextureRectSize = (1<<11);
    ctx->Const.MaxTextureUnits = I915_TEX_UNITS;
-   i = driQueryOptioni( &intel->intelScreen->optionCache, "allow_large_textures");
-   driCalculateMaxTextureLevels( intel->texture_heaps,
-				 intel->nr_heaps,
-				 &intel->ctx.Const,
-				 4,
-				 11, /* max 2D texture size is 2048x2048 */
-				 8,  /* 3D texture */
-				 11, /* cube texture. */
-				 11, /* rect texture */
-				 12,
-				 GL_FALSE,
-				 i );
 
    /* GL_ARB_fragment_program limits - don't think Mesa actually
     * validates programs against these, and in any case one ARB
     * instruction can translate to more than one HW instruction, so
     * we'll still have to check and fallback each time.
-    */
-   
+    */   
    ctx->Const.FragmentProgram.MaxNativeTemps = I915_MAX_TEMPORARY;
    ctx->Const.FragmentProgram.MaxNativeAttribs = 11; /* 8 tex, 2 color, fog */
    ctx->Const.FragmentProgram.MaxNativeParameters = I915_MAX_CONSTANT;
    ctx->Const.FragmentProgram.MaxNativeAluInstructions = I915_MAX_ALU_INSN;
    ctx->Const.FragmentProgram.MaxNativeTexInstructions = I915_MAX_TEX_INSN;
    ctx->Const.FragmentProgram.MaxNativeInstructions = (I915_MAX_ALU_INSN + 
-						I915_MAX_TEX_INSN);
+						       I915_MAX_TEX_INSN);
    ctx->Const.FragmentProgram.MaxNativeTexIndirections = I915_MAX_TEX_INDIRECT;
    ctx->Const.FragmentProgram.MaxNativeAddressRegs = 0; /* I don't think we have one */
 

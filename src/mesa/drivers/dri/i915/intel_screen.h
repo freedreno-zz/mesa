@@ -29,13 +29,15 @@
 #define _INTEL_INIT_H_
 
 #include <sys/time.h>
-#include "xmlconfig.h"
 #include "dri_util.h"
 #include "intel_rotate.h"
 #include "i830_common.h"
+#include "xmlconfig.h"
 
 
-/* This roughly corresponds to a gl_renderbuffer (Mesa 6.4) */
+/* XXX: change name or eliminate to avoid conflict with "struct
+ * intel_region"!!!
+ */
 typedef struct {
    drm_handle_t handle;
    drmSize size;        /* region size in bytes */
@@ -58,7 +60,8 @@ typedef struct
    int mem;         /* unused */
    
    int cpp;         /* for front and back buffers */
-   int fbFormat;
+/*    int bitsPerPixel;   */
+   int fbFormat;  /* XXX FBO: this is obsolete - remove after i830 updates */
 
    int logTextureGranularity;
    

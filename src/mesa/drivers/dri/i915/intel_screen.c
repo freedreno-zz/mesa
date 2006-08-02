@@ -38,10 +38,12 @@
 
 #include "intel_screen.h"
 
+#include "intel_buffers.h"
 #include "intel_tex.h"
 #include "intel_span.h"
 #include "intel_tris.h"
 #include "intel_ioctl.h"
+#include "intel_fbo.h"
 
 #include "i830_dri.h"
 
@@ -283,15 +285,12 @@ static GLboolean intelInitDriver(__DRIscreenPrivate *sPriv)
    intelScreen->cpp = gDRIPriv->cpp;
 
    switch (gDRIPriv->bitsPerPixel) {
-   case 15: intelScreen->fbFormat = DV_PF_555; break;
    case 16: intelScreen->fbFormat = DV_PF_565; break;
    case 32: intelScreen->fbFormat = DV_PF_8888; break;
+   default: exit(1); break;
    }
 			 
    intelUpdateScreenFromSAREA(intelScreen, sarea);
-
-   if (0)
-      intelPrintDRIInfo(intelScreen, sPriv, gDRIPriv);
 
    if (!intelMapScreenRegions(sPriv)) {
       fprintf(stderr,"\nERROR!  mapping regions\n");
@@ -299,6 +298,28 @@ static GLboolean intelInitDriver(__DRIscreenPrivate *sPriv)
       sPriv->private = NULL;
       return GL_FALSE;
    }
+
+#if 0
+
+   /*
+    * FIXME: Remove this code and its references.
+    */
+
+   intelScreen->tex.offset = gDRIPriv->textureOffset;
+   intelScreen->logTextureGranularity = gDRIPriv->logTextureGranularity;
+   intelScreen->tex.handle = gDRIPriv->textures;
+   intelScreen->tex.size = gDRIPriv->textureSize;
+
+#else
+   intelScreen->tex.offset = 0;
+   intelScreen->logTextureGranularity = 0;
+   intelScreen->tex.handle = 0;
+   intelScreen->tex.size = 0;
+#endif
+		 
+   intelScreen->sarea_priv_offset = gDRIPriv->sarea_priv_offset;
+   
+   if (1) intelPrintDRIInfo(intelScreen, sPriv, gDRIPriv);
 
    intelScreen->drmMinor = sPriv->drmMinor;
 
@@ -340,14 +361,8 @@ static GLboolean intelInitDriver(__DRIscreenPrivate *sPriv)
       (*glx_enable_extension)( psc, "GLX_MESA_swap_control" );
       (*glx_enable_extension)( psc, "GLX_MESA_swap_frame_usage" );
       (*glx_enable_extension)( psc, "GLX_SGI_make_current_read" );
-      (*glx_enable_extension)( psc, "GLX_MESA_allocate_memory" );
-      (*glx_enable_extension)( psc, "GLX_MESA_copy_sub_buffer" );
    }
    
-   sPriv->psc->allocateMemory = (void *) intelAllocateMemoryMESA;
-   sPriv->psc->freeMemory     = (void *) intelFreeMemoryMESA;
-   sPriv->psc->memoryOffset   = (void *) intelGetMemoryOffsetMESA;
-
    return GL_TRUE;
 }
 		
@@ -362,6 +377,9 @@ static void intelDestroyScreen(__DRIscreenPrivate *sPriv)
 }
 
 
+/**
+ * This is called when we need to set up GL rendering to a new X window.
+ */
 static GLboolean intelCreateBuffer( __DRIscreenPrivate *driScrnPriv,
 				    __DRIdrawablePrivate *driDrawPriv,
 				    const __GLcontextModes *mesaVis,
@@ -374,70 +392,71 @@ static GLboolean intelCreateBuffer( __DRIscreenPrivate *driScrnPriv,
    } else {
       GLboolean swStencil = (mesaVis->stencilBits > 0 && 
 			     mesaVis->depthBits != 24);
+      GLenum rgbFormat = (mesaVis->redBits == 5 ? GL_RGB5 : GL_RGBA8);
 
       struct gl_framebuffer *fb = _mesa_create_framebuffer(mesaVis);
 
+      /* setup the hardware-based renderbuffers */
       {
-         driRenderbuffer *frontRb
-            = driNewRenderbuffer(GL_RGBA,
-                                 screen->front.map,
-                                 screen->cpp,
-                                 screen->front.offset, screen->front.pitch,
-                                 driDrawPriv);
-         intelSetSpanFunctions(frontRb, mesaVis);
+         struct intel_renderbuffer *frontRb
+            = intel_create_renderbuffer(rgbFormat,
+                                        screen->width, screen->height,
+                                        screen->front.offset,
+                                        screen->front.pitch,
+                                        screen->cpp,
+                                        screen->front.map);
+         intel_set_span_functions(&frontRb->Base);
          _mesa_add_renderbuffer(fb, BUFFER_FRONT_LEFT, &frontRb->Base);
       }
 
       if (mesaVis->doubleBufferMode) {
-         driRenderbuffer *backRb
-            = driNewRenderbuffer(GL_RGBA,
-                                 screen->back.map,
-                                 screen->cpp,
-                                 screen->back.offset, screen->back.pitch,
-                                 driDrawPriv);
-         intelSetSpanFunctions(backRb, mesaVis);
+         struct intel_renderbuffer *backRb
+            = intel_create_renderbuffer(rgbFormat,
+                                        screen->width, screen->height,
+                                        screen->back.offset,
+                                        screen->back.pitch,
+                                        screen->cpp,
+                                        screen->back.map);
+         intel_set_span_functions(&backRb->Base);
          _mesa_add_renderbuffer(fb, BUFFER_BACK_LEFT, &backRb->Base);
       }
 
-      if (mesaVis->depthBits == 16) {
-         driRenderbuffer *depthRb
-            = driNewRenderbuffer(GL_DEPTH_COMPONENT16,
-                                 screen->depth.map,
-                                 screen->cpp,
-                                 screen->depth.offset, screen->depth.pitch,
-                                 driDrawPriv);
-         intelSetSpanFunctions(depthRb, mesaVis);
-         _mesa_add_renderbuffer(fb, BUFFER_DEPTH, &depthRb->Base);
+      if (mesaVis->depthBits == 24 && mesaVis->stencilBits == 8) {
+         /* combined depth/stencil buffer */
+         struct intel_renderbuffer *depthStencilRb
+            = intel_create_renderbuffer(
+                                        GL_DEPTH24_STENCIL8_EXT,
+                                        screen->width, screen->height,
+                                        screen->depth.offset,
+                                        screen->depth.pitch,
+                                        screen->cpp, /* 4! */
+                                        screen->depth.map);
+         intel_set_span_functions(&depthStencilRb->Base);
+         /* note: bind RB to two attachment points */
+         _mesa_add_renderbuffer(fb, BUFFER_DEPTH, &depthStencilRb->Base);
+         _mesa_add_renderbuffer(fb, BUFFER_STENCIL, &depthStencilRb->Base);
       }
-      else if (mesaVis->depthBits == 24) {
-         driRenderbuffer *depthRb
-            = driNewRenderbuffer(GL_DEPTH_COMPONENT24,
-                                 screen->depth.map,
-                                 screen->cpp,
-                                 screen->depth.offset, screen->depth.pitch,
-                                 driDrawPriv);
-         intelSetSpanFunctions(depthRb, mesaVis);
+      else if (mesaVis->depthBits == 16) {
+         /* just 16-bit depth buffer, no hw stencil */
+         struct intel_renderbuffer *depthRb
+            = intel_create_renderbuffer(GL_DEPTH_COMPONENT16,
+                                        screen->width, screen->height,
+                                        screen->depth.offset,
+                                        screen->depth.pitch,
+                                        screen->cpp, /* 2! */
+                                        screen->depth.map);
+         intel_set_span_functions(&depthRb->Base);
          _mesa_add_renderbuffer(fb, BUFFER_DEPTH, &depthRb->Base);
       }
 
-      if (mesaVis->stencilBits > 0 && !swStencil) {
-         driRenderbuffer *stencilRb
-            = driNewRenderbuffer(GL_STENCIL_INDEX8_EXT,
-                                 screen->depth.map,
-                                 screen->cpp,
-                                 screen->depth.offset, screen->depth.pitch,
-                                 driDrawPriv);
-         intelSetSpanFunctions(stencilRb, mesaVis);
-         _mesa_add_renderbuffer(fb, BUFFER_STENCIL, &stencilRb->Base);
-      }
-
+      /* now add any/all software-based renderbuffers we may need */
       _mesa_add_soft_renderbuffers(fb,
-                                   GL_FALSE, /* color */
-                                   GL_FALSE, /* depth */
+                                   GL_FALSE, /* never sw color */
+                                   GL_FALSE, /* never sw depth */
                                    swStencil,
                                    mesaVis->accumRedBits > 0,
-                                   GL_FALSE, /* alpha */
-                                   GL_FALSE /* aux */);
+                                   GL_FALSE, /* never sw alpha */
+                                   GL_FALSE  /* never sw aux */);
       driDrawPriv->driverPrivate = (void *) fb;
 
       return (driDrawPriv->driverPrivate != NULL);
@@ -456,7 +475,7 @@ static void intelDestroyBuffer(__DRIdrawablePrivate *driDrawPriv)
 static int
 intelGetSwapInfo( __DRIdrawablePrivate *dPriv, __DRIswapInfo * sInfo )
 {
-   intelContextPtr intel;
+   struct intel_context *intel;
 
    if ( (dPriv == NULL) || (dPriv->driContextPriv == NULL)
 	|| (dPriv->driContextPriv->driverPrivate == NULL)
@@ -500,6 +519,8 @@ static GLboolean intelCreateContext( const __GLcontextModes *mesaVis,
    intelScreenPrivate *intelScreen = (intelScreenPrivate *)sPriv->private;
 
    switch (intelScreen->deviceID) {
+      /* Don't deal with i830 until texture work complete:
+       */
    case PCI_CHIP_845_G:
    case PCI_CHIP_I830_M:
    case PCI_CHIP_I855_GM:
@@ -646,7 +667,7 @@ void * __driCreateNewScreen_20050727( __DRInativeDisplay *dpy, int scrn, __DRIsc
    __DRIscreenPrivate *psp;
    static const __DRIversion ddx_expected = { 1, 5, 0 };
    static const __DRIversion dri_expected = { 4, 0, 0 };
-   static const __DRIversion drm_expected = { 1, 4, 0 };
+   static const __DRIversion drm_expected = { 1, 5, 1 };
 
    dri_interface = interface;
 

@@ -435,7 +435,7 @@
 #define LOGICOP_MASK			(0xf<<18)
 #define MODE4_ENABLE_STENCIL_TEST_MASK	((1<<17)|(0xff00))
 #define ENABLE_STENCIL_TEST_MASK	(1<<17)
-#define STENCIL_TEST_MASK(x)		((x)<<8)
+#define STENCIL_TEST_MASK(x)		(((x)&0xff)<<8)
 #define MODE4_ENABLE_STENCIL_WRITE_MASK	((1<<16)|(0x00ff))
 #define ENABLE_STENCIL_WRITE_MASK	(1<<16)
 #define STENCIL_WRITE_MASK(x)		((x)&0xff)
@@ -826,10 +826,14 @@
 #define ST1_ENABLE               (1<<16)
 #define ST1_MASK                 (0xffff)
 
+#define _3DSTATE_DEFAULT_Z          ((0x3<<29)|(0x1d<<24)|(0x98<<16))
+#define _3DSTATE_DEFAULT_DIFFUSE    ((0x3<<29)|(0x1d<<24)|(0x99<<16))
+#define _3DSTATE_DEFAULT_SPECULAR   ((0x3<<29)|(0x1d<<24)|(0x9a<<16))
 
-#define MI_FLUSH           ((0<<29)|(4<<23))
-#define FLUSH_MAP_CACHE    (1<<0)
-#define FLUSH_RENDER_CACHE (1<<1)
+
+#define MI_FLUSH                   ((0<<29)|(4<<23))
+#define FLUSH_MAP_CACHE            (1<<0)
+#define INHIBIT_FLUSH_RENDER_CACHE (1<<2)
 
 
 #endif
