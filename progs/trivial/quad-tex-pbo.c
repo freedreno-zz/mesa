@@ -52,9 +52,11 @@ static void Init(void)
 
       for (s = 0; s < SIZE; s++) {
 	 for (t = 0; t < SIZE; t++) {
-	    tex2d[t][s][0] = s*255/(SIZE-1);
+	    /* bgra:
+	     */
+	    tex2d[t][s][0] = 0x30;
 	    tex2d[t][s][1] = t*255/(SIZE-1);
-	    tex2d[t][s][2] = 0x30;
+	    tex2d[t][s][2] = s*255/(SIZE-1);
 	    tex2d[t][s][3] = 0xff;
 	 }
       }
@@ -76,7 +78,7 @@ static void Init(void)
       glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
       glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_EXT, DrawPBO);
       glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, SIZE, SIZE, 0,
-		   GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, NULL);
+		   GL_BGRA, GL_UNSIGNED_BYTE, NULL);
       glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_EXT, 0);
       glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
       glEnable(GL_TEXTURE_2D);
