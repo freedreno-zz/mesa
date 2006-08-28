@@ -65,18 +65,18 @@ GLboolean i915_miptree_layout( struct intel_mipmap_tree *mt )
       mt->pitch = ((dim * mt->cpp * 2 + 3) & ~3) / mt->cpp;
       mt->total_height = dim * 4;
       
+      for (level = mt->first_level; level <= mt->last_level; level++) 
+	 intel_miptree_set_level_info(mt, level, 6,
+				      0, 0,
+				      mt->pitch, mt->total_height, 1);
+
       for ( face = 0 ; face < 6 ; face++) {
 	 GLuint x = initial_offsets[face][0] * dim;
 	 GLuint y = initial_offsets[face][1] * dim;
 	 GLuint d = dim;
 	 
 	 for (level = mt->first_level; level <= mt->last_level; level++) {
-	    intel_miptree_set_level_info(mt, level, 1,
-					 0, mt->total_height,
-					 d, d, 1);
-
-	    intel_miptree_set_image_offset(mt, face, level,
-					   x, y);
+	    intel_miptree_set_image_offset(mt, level, face, x, y);
 
 	    if (d == 0)
 	       _mesa_printf("cube mipmap %d/%d (%d..%d) is 0x0\n",
@@ -189,6 +189,14 @@ GLboolean i945_miptree_layout( struct intel_mipmap_tree *mt )
 
       mt->total_height = dim * 4 + 4;
 
+      /* Set all the levels to effectively occupy the whole rectangular region. 
+       */
+      for ( level = mt->first_level ; level <= mt->last_level ; level++ ) 
+	 intel_miptree_set_level_info(mt, level, 6,
+				      0, 0,
+				      mt->pitch, mt->total_height, 1);
+
+
       
       for ( face = 0 ; face < 6 ; face++) {
 	 GLuint x = initial_offsets[face][0] * dim;
@@ -205,11 +213,7 @@ GLboolean i945_miptree_layout( struct intel_mipmap_tree *mt )
 	 }
 
 	 for ( level = mt->first_level ; level <= mt->last_level ; level++ ) {
-	    intel_miptree_set_level_info(mt, level, 1,
-					   x, y,
-					   d, d, 1);
-
-	    intel_miptree_set_image_offset(mt, face, level,
+	    intel_miptree_set_image_offset(mt, level, face,
 					   x, y);
 
 	    d >>= 1;
@@ -256,41 +260,53 @@ GLboolean i945_miptree_layout( struct intel_mipmap_tree *mt )
       GLuint width  = mt->width0;
       GLuint height = mt->height0;
       GLuint depth = mt->depth0;
-      GLuint depth_pack_pitch;
-      GLuint depth_packing = 0;
+      GLuint pack_x_pitch, pack_x_nr;
+      GLuint pack_y_pitch;
+      GLuint level;
 
       mt->pitch = ((mt->width0 * mt->cpp + 3) & ~3) / mt->cpp;
       mt->total_height = 0;
 
-      depth_pack_pitch = mt->pitch * mt->cpp;
+      pack_y_pitch = MAX2(mt->height0, 2);
+      pack_x_pitch = mt->pitch;
+      pack_x_nr = 1;
 
       for ( level = mt->first_level ; level <= mt->last_level ; level++ ) {
+	 GLuint nr_images = mt->target == GL_TEXTURE_3D ? depth : 6;
+	 GLint x = 0;
+	 GLint y = 0;
+	 GLint q, j;
+	    
+	 intel_miptree_set_level_info(mt, level, nr_images,
+				      0, mt->total_height,
+				      width, height, depth);
 
-	 intel_miptree_set_image_offset(mt, level, depth,
-					0, mt->total_height);
-/* 					width, height, depth); */
+	 for (q = 0; q < nr_images;) {
+	    for (j = 0; j < pack_x_nr && q < nr_images; j++, q++) {
+	       intel_miptree_set_image_offset(mt, level, q, x, y);
+	       x += pack_x_pitch;
+	    }
+
+	    x = 0;
+	    y += pack_y_pitch;	    
+	 }
 
 
+	 mt->total_height += y;
 
-	 mt->total_height += MAX2(2, height) * MAX2((depth >> depth_packing), 1);
+	 if (pack_x_pitch > 4) {
+	    pack_x_pitch >>= 1;
+	    pack_x_nr <<= 1;
+	    assert(pack_x_pitch * pack_x_nr <= mt->pitch);
+	 }
 
-	 /* When alignment dominates, can't increase depth packing?
-	  * Or does pitch grow???  What are the alignment constraints,
-	  * anyway?
-	  */
-	 if (depth_pack_pitch > 4) {
-	    depth_packing++;
-	    depth_pack_pitch >>= 2; /* KW: is this right?? */
+	 if (pack_y_pitch > 2) {
+	    pack_y_pitch >>= 1;
 	 }
 
 	 width  = minify(width);
 	 height = minify(height);
 	 depth  = minify(depth);
-
-	 /* XXX: Not sure how 3d textures work on i945 - where did
-	  * t->depth_pitch get set in the old code.  Did it ever work?
-	  * Fix up later.
-	  */
       }
       break;
    }
@@ -308,8 +324,8 @@ GLboolean i945_miptree_layout( struct intel_mipmap_tree *mt )
 
       for ( level = mt->first_level ; level <= mt->last_level ; level++ ) {
 	 intel_miptree_set_level_info(mt, level, 1,
-					x, y,
-					width, height, 1);
+				      x, y,
+				      width, height, 1);
 
 	 
 	 /* LPT change: step right after second mipmap.
@@ -336,10 +352,10 @@ GLboolean i945_miptree_layout( struct intel_mipmap_tree *mt )
    }
    
    DBG("%s: %dx%dx%d - sz 0x%x\n", __FUNCTION__, 
-		mt->pitch, 
-		mt->total_height,
-		mt->cpp,
-		mt->pitch * mt->total_height * mt->cpp );
+       mt->pitch, 
+       mt->total_height,
+       mt->cpp,
+       mt->pitch * mt->total_height * mt->cpp );
 	
    return GL_TRUE;
 }
