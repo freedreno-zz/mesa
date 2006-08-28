@@ -159,7 +159,8 @@ static GLboolean check_pbo_blit( GLint internalFormat,
    case 4:
    case GL_RGBA:
       return (format == GL_BGRA &&
-	      type == GL_UNSIGNED_INT_8_8_8_8_REV &&
+	      (type == GL_UNSIGNED_BYTE ||
+	       type == GL_UNSIGNED_INT_8_8_8_8_REV) &&
 	      mesa_format == &_mesa_texformat_argb8888);
    case 3:
    case GL_RGB:

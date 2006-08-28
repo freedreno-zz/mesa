@@ -164,10 +164,10 @@ GLboolean intel_miptree_match_image( struct intel_mipmap_tree *mt,
        image->IsCompressed != mt->compressed)
       return GL_FALSE;
 
-   _mesa_printf("%s: %d/%d %d/%d %d/%d\n", __FUNCTION__,
-		image->Width, mt->level[level].width,
-		image->Height, mt->level[level].height,
-		image->Depth, mt->level[level].depth);
+   DBG("%s: %d/%d %d/%d %d/%d\n", __FUNCTION__,
+       image->Width, mt->level[level].width,
+       image->Height, mt->level[level].height,
+       image->Depth, mt->level[level].depth);
 
    /* Test image dimensions against the base level image adjusted for
     * minification.  This will also catch images not present in the
@@ -197,8 +197,8 @@ void intel_miptree_set_level_info(struct intel_mipmap_tree *mt,
    mt->level[level].level_offset = (x + y * mt->pitch) * mt->cpp;
    mt->level[level].nr_images = nr_images;
 
-   _mesa_printf("%s level %d img size: %d,%d level_offset 0x%x\n", __FUNCTION__, level, w, h, 
-		mt->level[level].level_offset);
+   DBG("%s level %d size: %d,%d,%d offset %d,%d (0x%x)\n", __FUNCTION__, level, w, h, d,
+       x, y, mt->level[level].level_offset);
 
    /* Not sure when this would happen, but anyway: 
     */
@@ -220,13 +220,16 @@ void intel_miptree_set_image_offset(struct intel_mipmap_tree *mt,
 				    GLuint img,
 				    GLuint x, GLuint y)
 {
-   _mesa_printf("%s level %d img %d pos %d,%d\n", __FUNCTION__, level, img, x, y);
-
-   if (img == 0)
+   if (img == 0 && level == 0)
       assert(x == 0 && y == 0);
+   
+   assert(img < mt->level[level].nr_images);
 
-   if (img > 0)
-      mt->level[level].image_offset[img] = (x + y * mt->pitch) * mt->cpp;
+   mt->level[level].image_offset[img] = (x + y * mt->pitch);
+
+   DBG("%s level %d img %d pos %d,%d image_offset %x\n", 
+       __FUNCTION__, level, img, x, y,
+       mt->level[level].image_offset[img]);
 }
 
 
@@ -255,7 +258,7 @@ GLuint intel_miptree_image_offset(struct intel_mipmap_tree *mt,
 {
    if (mt->target == GL_TEXTURE_CUBE_MAP_ARB)
       return (mt->level[level].level_offset +
-	      mt->level[level].image_offset[face]);
+	      mt->level[level].image_offset[face] * mt->cpp);
    else
       return mt->level[level].level_offset;
 }
