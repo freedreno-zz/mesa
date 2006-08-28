@@ -307,6 +307,9 @@ bmMapBuffer(struct bufmgr *bm, unsigned buffer, unsigned flags)
 
       assert(buf);
       /* assert(!buf->mapped); */
+
+      drmBufWaitBusy(bm->driFd, buf);
+
       retval = drmMMMapBuffer(bm->driFd, buf);
    }
    UNLOCK(bm);
