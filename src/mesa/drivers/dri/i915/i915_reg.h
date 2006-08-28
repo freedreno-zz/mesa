@@ -425,8 +425,10 @@
 #define S7_DEPTH_OFFSET_CONST_MASK     ~0
 
 /* 3DSTATE_MAP_DEINTERLACER_PARAMETERS */
-/* 3DSTATE_MAP_PALETTE_LOAD_32, p206 */
 
+/* 3DSTATE_MAP_PALETTE_LOAD_32, p206 */
+#define _3DSTATE_MAP_PALETTE_LOAD_32    (CMD_3D|(0x1d<<24)|(0x8f<<16))
+/* subsequent dwords up to length (max 16) are ARGB8888 color values */
 
 /* _3DSTATE_MODES_4, p218 */
 #define _3DSTATE_MODES_4_CMD		(CMD_3D|(0x0d<<24))
