@@ -50,7 +50,6 @@ PROGS = \
 	spectex \
 	spriteblast \
 	stex3d \
-	streaming_rect \
 	teapot \
 	terrain \
 	tessdemo \
