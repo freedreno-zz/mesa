@@ -43,6 +43,7 @@
 
 #include "intel_bufmgr.h"
 
+#define FILE_DEBUG_FLAG DEBUG_BLIT
 
 /**
  * Copy the back color buffer to the front color buffer. 
@@ -75,7 +76,7 @@ void intelCopyBuffer( const __DRIdrawablePrivate *dPriv,
     */
 
    if (!intel->last_swap_fence_retired) {
-      bmFinishFence(intel->bm, intel->last_swap_fence);
+      bmFinishFence(intel, intel->last_swap_fence);
    }
 
    
@@ -196,7 +197,7 @@ void intelCopyBuffer( const __DRIdrawablePrivate *dPriv,
 void intelEmitFillBlit( struct intel_context *intel,
 			GLuint cpp,
 			GLshort dst_pitch,
-			GLuint dst_buffer,
+			struct buffer *dst_buffer,
 			GLuint dst_offset,
 			GLshort x, GLshort y, 
 			GLshort w, GLshort h,
@@ -223,7 +224,7 @@ void intelEmitFillBlit( struct intel_context *intel,
       return;
    }
 
-   DBG("%s dst:buf(%d)/%d+%d %d,%d sz:%dx%d\n",
+   DBG("%s dst:buf(%p)/%d+%d %d,%d sz:%dx%d\n",
        __FUNCTION__,
        dst_buffer, dst_pitch, dst_offset, x, y,
        w,h);
@@ -245,10 +246,10 @@ void intelEmitFillBlit( struct intel_context *intel,
 void intelEmitCopyBlit( struct intel_context *intel,
 			GLuint cpp,
 			GLshort src_pitch,
-			GLuint  src_buffer,
+			struct buffer *src_buffer,
 			GLuint  src_offset,
 			GLshort dst_pitch,
-			GLuint  dst_buffer,
+			struct buffer *dst_buffer,
 			GLuint  dst_offset,
 			GLshort src_x, GLshort src_y,
 			GLshort dst_x, GLshort dst_y,
@@ -260,7 +261,7 @@ void intelEmitCopyBlit( struct intel_context *intel,
    BATCH_LOCALS;
 
 
-   DBG("%s src:buf(%d)/%d+%d %d,%d dst:buf(%d)/%d+%d %d,%d sz:%dx%d\n",
+   DBG("%s src:buf(%p)/%d+%d %d,%d dst:buf(%p)/%d+%d %d,%d sz:%dx%d\n",
        __FUNCTION__,
        src_buffer, src_pitch, src_offset, src_x, src_y,
        dst_buffer, dst_pitch, dst_offset, dst_x, dst_y,

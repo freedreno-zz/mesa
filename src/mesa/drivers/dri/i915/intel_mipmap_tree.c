@@ -31,6 +31,8 @@
 #include "intel_bufmgr.h"
 #include "enums.h"
 
+#define FILE_DEBUG_FLAG DEBUG_TEXTURE
+
 static GLenum target_to_target( GLenum target )
 {
    switch (target) {

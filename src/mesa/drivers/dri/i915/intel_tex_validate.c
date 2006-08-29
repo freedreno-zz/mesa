@@ -6,6 +6,8 @@
 #include "intel_tex.h"
 #include "intel_bufmgr.h"
 
+#define FILE_DEBUG_FLAG DEBUG_TEXTURE
+
 /**
  * Compute which mipmap levels that really need to be sent to the hardware.
  * This depends on the base image size, GL_TEXTURE_MIN_LOD,

@@ -215,12 +215,12 @@ static const struct dri_debug_control debug_control[] =
     { "fall",  DEBUG_FALLBACKS },
     { "tex",   DEBUG_TEXTURE },
     { "ioctl", DEBUG_IOCTL },
-    { "prim",  DEBUG_PRIMS },
+    { "blit",  DEBUG_BLIT },
     { "vert",  DEBUG_VERTS },
     { "state", DEBUG_STATE },
     { "verb",  DEBUG_VERBOSE },
     { "dri",   DEBUG_DRI },
-    { "dma",   DEBUG_DMA },
+    { "bat",   DEBUG_BATCH },
     { "san",   DEBUG_SANITY },
     { "sync",  DEBUG_SYNC },
     { "sleep", DEBUG_SLEEP },
@@ -363,7 +363,7 @@ void intelFinish( GLcontext *ctx )
 {
    struct intel_context *intel = intel_context( ctx );
    intelFlush( ctx );
-   bmFinishFence( intel->bm, intel->batch->last_fence );
+   bmFinishFence( intel, intel->batch->last_fence );
    intelCheckFrontRotate(ctx);
 }
 
@@ -508,7 +508,7 @@ GLboolean intelInitContext( struct intel_context *intel,
 
    intel->batch = intel_batchbuffer_alloc( intel );
    intel->last_swap_fence_retired = GL_TRUE;
-   intel->last_swap_fence = bmInitFence(intel->bm);
+   intel->last_swap_fence = bmInitFence(intel);
 
    intel_recreate_static_regions( intel );
    intel_bufferobj_init( intel );

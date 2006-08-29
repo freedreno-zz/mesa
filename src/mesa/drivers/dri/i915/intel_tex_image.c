@@ -18,10 +18,12 @@
 #include "intel_context.h"
 #include "intel_mipmap_tree.h"
 #include "intel_buffer_objects.h"
+#include "intel_batchbuffer.h"
 #include "intel_tex.h"
 #include "intel_ioctl.h"
 #include "intel_blit.h"
 
+#define FILE_DEBUG_FLAG DEBUG_TEXTURE
 
 /* Functions to store texture images.  Where possible, mipmap_tree's
  * will be created or further instantiated with image data, otherwise

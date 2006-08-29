@@ -35,6 +35,7 @@
 #include "intel_tex.h"
 #include "intel_mipmap_tree.h"
 
+#define FILE_DEBUG_FLAG DEBUG_TEXTURE
 
 static void intelTexSubimage (GLcontext *ctx,
 			      GLint dims,

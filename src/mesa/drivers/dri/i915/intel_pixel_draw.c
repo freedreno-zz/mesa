@@ -218,7 +218,7 @@ static GLboolean do_blit_drawpixels( GLcontext *ctx,
    struct intel_buffer_object *src = intel_buffer_object(unpack->BufferObj);
    GLuint src_offset;
    GLuint rowLength;
-   GLuint fence = bmInitFence(intel->bm);
+   GLuint fence = bmInitFence(intel);
    
    if (INTEL_DEBUG & DEBUG_PIXEL)
       _mesa_printf("%s\n", __FUNCTION__);
@@ -329,7 +329,7 @@ static GLboolean do_blit_drawpixels( GLcontext *ctx,
    UNLOCK_HARDWARE( intel );
 
    if (intel->driDrawable->numClipRects)
-      bmFinishFence(intel->bm, fence);   
+      bmFinishFence(intel, fence);   
 
    if (INTEL_DEBUG & DEBUG_PIXEL)
       _mesa_printf("%s - DONE\n", __FUNCTION__);

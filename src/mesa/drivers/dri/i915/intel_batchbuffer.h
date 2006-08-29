@@ -24,7 +24,7 @@ struct intel_batchbuffer {
    struct bufmgr *bm;
    struct intel_context *intel;
 
-   GLuint buffer;
+   struct buffer *buffer;
    GLuint last_fence;
    GLuint flags;
 
@@ -65,7 +65,7 @@ void intel_batchbuffer_release_space(struct intel_batchbuffer *batch,
 				   GLuint bytes);
 
 GLboolean intel_batchbuffer_emit_reloc( struct intel_batchbuffer *batch,
-					GLuint buffer,
+					struct buffer *buffer,
 					GLuint flags,
 					GLuint offset );
 

@@ -116,7 +116,7 @@ struct i830_hw_state {
     * be from a PBO or FBO.  Just use the buffer id.  Will have to do
     * this for draw and depth for FBO's...
     */
-   GLuint tex_buffer[I830_TEX_UNITS];
+   struct buffer *tex_buffer[I830_TEX_UNITS];
    GLuint tex_offset[I830_TEX_UNITS];
    
    GLuint emitted;		/* I810_UPLOAD_* */

@@ -43,6 +43,8 @@
 #include "drm.h"
 #include "intel_bufmgr.h"
 
+#define FILE_DEBUG_FLAG DEBUG_IOCTL
+
 int intelEmitIrqLocked( struct intel_context *intel )
 {
    drmI830IrqEmit ie;
@@ -60,8 +62,7 @@ int intelEmitIrqLocked( struct intel_context *intel )
       exit(1);
    }   
 
-   if (0)
-      fprintf(stderr, "%s -->  %d\n", __FUNCTION__, seq );
+   DBG("%s -->  %d\n", __FUNCTION__, seq );
 
    return seq;
 }
@@ -70,8 +71,7 @@ void intelWaitIrq( struct intel_context *intel, int seq )
 {
    int ret;
       
-   if (0)
-      fprintf(stderr, "%s %d\n", __FUNCTION__, seq );
+   DBG("%s %d\n", __FUNCTION__, seq );
 
    intel->iw.irq_seq = seq;
 	 
@@ -97,14 +97,13 @@ void intel_batch_ioctl( struct intel_context *intel,
    assert(intel->locked);
    assert(used);
 
-   if (0)
-      fprintf(stderr, "%s used %d offset %x..%x ignore_cliprects %d\n",
-	      __FUNCTION__, 
-	      used, 
-	      start_offset,
-	      start_offset + used,
-	      ignore_cliprects);
-
+   DBG("%s used %d offset %x..%x ignore_cliprects %d\n",
+       __FUNCTION__, 
+       used, 
+       start_offset,
+       start_offset + used,
+       ignore_cliprects);
+   
    /* Throw away non-effective packets.  Won't work once we have
     * hardware contexts which would preserve statechanges beyond a
     * single buffer.
@@ -127,20 +126,18 @@ void intel_batch_ioctl( struct intel_context *intel,
    batch.DR4 = ((((GLuint)intel->drawX) & 0xffff) | 
 		(((GLuint)intel->drawY) << 16));
       
-   if (INTEL_DEBUG & DEBUG_DMA)
-      fprintf(stderr, "%s: 0x%x..0x%x DR4: %x cliprects: %d\n",
-	      __FUNCTION__, 
-	      batch.start, 
-	      batch.start + batch.used * 4,
-	      batch.DR4, batch.num_cliprects);
-#if 1
+   DBG("%s: 0x%x..0x%x DR4: %x cliprects: %d\n",
+       __FUNCTION__, 
+       batch.start, 
+       batch.start + batch.used * 4,
+       batch.DR4, batch.num_cliprects);
+
    if (drmCommandWrite (intel->driFd, DRM_I830_BATCHBUFFER, &batch, 
 			sizeof(batch))) {
       fprintf(stderr, "DRM_I830_BATCHBUFFER: %d\n",  -errno);
       UNLOCK_HARDWARE(intel);
       exit(1);
    }
-#endif
       
    /* FIXME: use hardware contexts to avoid 'losing' hardware after
     * each buffer flush.

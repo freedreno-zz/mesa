@@ -82,7 +82,7 @@ static void intel_dump_batchbuffer( GLuint offset,
 
 void intel_batchbuffer_reset( struct intel_batchbuffer *batch )
 {
-   bmBufferData(batch->bm,
+   bmBufferData(batch->intel,
 		batch->buffer,
 		BATCH_SZ,
 		NULL,
@@ -96,14 +96,14 @@ void intel_batchbuffer_reset( struct intel_batchbuffer *batch )
    batch->nr_relocs = 0;
    batch->flags = 0;
 
-   bmAddBuffer( batch->bm,
+   bmAddBuffer( batch->intel,
 	        batch->list,
 		batch->buffer,
 		DRM_MM_TT,
 		NULL,
 		&batch->offset[batch->list_count++]);
 
-   batch->map = bmMapBuffer(batch->bm, batch->buffer, DRM_MM_WRITE);
+   batch->map = bmMapBuffer(batch->intel, batch->buffer, DRM_MM_WRITE);
    batch->ptr = batch->map;
 }
 
@@ -115,10 +115,9 @@ struct intel_batchbuffer *intel_batchbuffer_alloc( struct intel_context *intel )
    struct intel_batchbuffer *batch = calloc(sizeof(*batch), 1);
 
    batch->intel = intel;
-   batch->bm = intel->bm;
 
-   bmGenBuffers(intel->bm, 1, &batch->buffer, BM_BATCHBUFFER);
-   batch->last_fence = bmInitFence(batch->bm);
+   bmGenBuffers(intel, "batchbuffer", 1, &batch->buffer, BM_BATCHBUFFER);
+   batch->last_fence = bmInitFence(batch->intel);
    intel_batchbuffer_reset( batch );
    return batch;
 }
@@ -126,7 +125,7 @@ struct intel_batchbuffer *intel_batchbuffer_alloc( struct intel_context *intel )
 void intel_batchbuffer_free( struct intel_batchbuffer *batch )
 {
    if (batch->map)
-      bmUnmapBuffer(batch->bm, batch->buffer);
+      bmUnmapBuffer(batch->intel, batch->buffer);
    
    free(batch);
 }
@@ -141,7 +140,7 @@ static void do_flush_locked( struct intel_batchbuffer *batch,
    GLuint *ptr;
    GLuint i;
 
-   bmValidateBufferList( batch->bm, 
+   bmValidateBufferList( batch->intel, 
 			 batch->list,
 			 DRM_MM_TT );
 
@@ -149,7 +148,7 @@ static void do_flush_locked( struct intel_batchbuffer *batch,
     * whole task should be done internally by the memory manager, and
     * that dma buffers probably need to be pinned within agp space.
     */
-   ptr = (GLuint *)bmMapBuffer(batch->bm, batch->buffer, DRM_MM_WRITE);
+   ptr = (GLuint *)bmMapBuffer(batch->intel, batch->buffer, DRM_MM_WRITE);
 
    
    for (i = 0; i < batch->nr_relocs; i++) {
@@ -159,22 +158,20 @@ static void do_flush_locked( struct intel_batchbuffer *batch,
       ptr[r->offset/4] = batch->offset[r->elem] + r->delta;
    }
 
-   if (INTEL_DEBUG & DEBUG_DMA)
+   if (INTEL_DEBUG & DEBUG_BATCH)
       intel_dump_batchbuffer( 0, ptr, used );
 
-   bmUnmapBuffer(batch->bm, batch->buffer);
+   bmUnmapBuffer(batch->intel, batch->buffer);
    
    /* Fire the batch buffer, which was uploaded above:
     */
-
-#if 1
    intel_batch_ioctl(batch->intel, 
 		     batch->offset[0],
 		     used,
 		     ignore_cliprects,
 		     allow_unlock);
-#endif
-   batch->last_fence = bmFenceBufferList(batch->bm, batch->list);
+
+   batch->last_fence = bmFenceBufferList(batch->intel, batch->list);
    if (!batch->intel->last_swap_fence_retired) {
       int retired;
       drmFence dFence = {0,batch->intel->last_swap_fence};
@@ -213,7 +210,7 @@ GLuint intel_batchbuffer_flush( struct intel_batchbuffer *batch )
       used += 8;
    }
 
-   bmUnmapBuffer(batch->bm, batch->buffer);
+   bmUnmapBuffer(batch->intel, batch->buffer);
    batch->ptr = NULL;
    batch->map = NULL;
 
@@ -241,7 +238,7 @@ GLuint intel_batchbuffer_flush( struct intel_batchbuffer *batch )
 
 void intel_batchbuffer_finish( struct intel_batchbuffer *batch )
 {   
-   bmFinishFence(batch->bm, 
+   bmFinishFence(batch->intel, 
 		 intel_batchbuffer_flush(batch));
 }
    
@@ -249,7 +246,7 @@ void intel_batchbuffer_finish( struct intel_batchbuffer *batch )
 /*  This is the only way buffers get added to the validate list.
  */
 GLboolean intel_batchbuffer_emit_reloc( struct intel_batchbuffer *batch,
-					GLuint buffer,
+					struct buffer *buffer,
 					GLuint flags,
 					GLuint delta )
 {
@@ -257,10 +254,10 @@ GLboolean intel_batchbuffer_emit_reloc( struct intel_batchbuffer *batch,
 
    assert(batch->nr_relocs <= MAX_RELOCS);
 
-   i = bmScanBufferList(batch->bm, batch->list, buffer);
+   i = bmScanBufferList(batch->intel, batch->list, buffer);
    if (i == -1) {
       i = batch->list_count; 
-      bmAddBuffer(batch->bm,
+      bmAddBuffer(batch->intel,
 		  batch->list,
 		  buffer,
 		  flags,

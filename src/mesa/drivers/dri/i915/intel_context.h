@@ -50,6 +50,7 @@
 
 struct intel_region;
 struct intel_context;
+struct buffer;
 
 typedef void (*intel_tri_func)(struct intel_context *, intelVertex *, intelVertex *,
 							  intelVertex *);
@@ -158,7 +159,7 @@ struct intel_context
       void (*meta_import_pixel_state)( struct intel_context *intel );
 
       GLboolean (*meta_tex_rect_source)( struct intel_context *intel,
-					 GLuint buffer,
+					 struct buffer *buffer,
 					 GLuint offset,
 					 GLuint pitch,
 					 GLuint height,
@@ -428,16 +429,19 @@ extern int INTEL_DEBUG;
 #define DEBUG_TEXTURE	0x1
 #define DEBUG_STATE	0x2
 #define DEBUG_IOCTL	0x4
-#define DEBUG_PRIMS	0x8
+#define DEBUG_BLIT	0x8
 #define DEBUG_VERTS	0x10
 #define DEBUG_FALLBACKS	0x20
 #define DEBUG_VERBOSE	0x40
 #define DEBUG_DRI       0x80
-#define DEBUG_DMA       0x100
+#define DEBUG_BATCH     0x100
 #define DEBUG_SANITY    0x200
 #define DEBUG_SYNC      0x400
 #define DEBUG_SLEEP     0x800
 #define DEBUG_PIXEL     0x1000
+#define DEBUG_BUFMGR    0x2000
+
+#define DBG(...)  do { if (INTEL_DEBUG & FILE_DEBUG_FLAG) _mesa_printf(__VA_ARGS__); } while(0)
 
 
 #define PCI_CHIP_845_G			0x2562

@@ -227,7 +227,7 @@ static void set_texture_blend_replace( struct intel_context *intel )
  * (including the front or back buffer).
  */
 static GLboolean set_tex_rect_source( struct intel_context *intel,
-				      GLuint buffer,
+				      struct buffer *buffer,
 				      GLuint offset,
 				      GLuint pitch,
 				      GLuint height,

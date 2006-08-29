@@ -31,7 +31,6 @@
 #include "intel_context.h"
 #include "intel_ioctl.h"
 
-#include "hash.h"
 #include "simple_list.h"
 #include "mm.h"
 #include "imports.h"
@@ -40,21 +39,26 @@
 #include <unistd.h>
 #include <drm.h>
 
-struct _mesa_HashTable;
+#define FILE_DEBUG_FLAG DEBUG_BUFMGR
 
 /* The buffer manager is really part of the gl_shared_state struct.
  * TODO: Organize for the bufmgr to be created/deleted with the shared
  * state and stored within the DriverData of that struct.  Currently
  * there are no mesa callbacks for this.
  */
+struct buffer {
+   drmMMBuf drm_buf;
+   const char *name;
+   int refcount;
+};
+
 
 #define BM_MAX 16
 static struct bufmgr
 {
    _glthread_Mutex mutex;	/**< for thread safety */
-   int driFd;
    int refcount;
-   struct _mesa_HashTable *hash;
+   int driFd;
 
    unsigned buf_nr;			/* for generating ids */
    drmMMPool batchPool;
@@ -115,7 +119,6 @@ bm_intel_Attach(struct intel_context *intel)
 
       _mesa_printf("create new bufmgr for fd %d\n", intel->driFd);
       bm->driFd = intel->driFd;
-      bm->hash = _mesa_NewHashTable();
       bm->refcount = 1;
       _glthread_INIT_MUTEX(bm->mutex);
 
@@ -137,8 +140,12 @@ bm_intel_Attach(struct intel_context *intel)
 }
 
 void
-bmGenBuffers(struct bufmgr *bm, unsigned n, unsigned *buffers, unsigned flags)
+bmGenBuffers(struct intel_context *intel, 
+	     const char *name,
+	     unsigned n, struct buffer **buffers, unsigned flags)
 {
+   struct bufmgr *bm = intel->bm;
+
    LOCK(bm);
    {
       unsigned i;
@@ -146,52 +153,49 @@ bmGenBuffers(struct bufmgr *bm, unsigned n, unsigned *buffers, unsigned flags)
 	    (flags) ? flags : DRM_MM_TT | DRM_MM_VRAM | DRM_MM_SYSTEM;
 
       for (i = 0; i < n; i++) {
-	 drmMMBuf *buf = calloc(sizeof(*buf), 1);
+	 struct buffer *buf = calloc(sizeof(*buf), 1);
 
-	 BM_CKFATAL(drmMMInitBuffer(bm->driFd, bFlags, 12, buf));
-	 buf->client_priv = ++bm->buf_nr;
-	 buffers[i] = buf->client_priv;
-	 _mesa_HashInsert(bm->hash, buffers[i], buf);
+	 BM_CKFATAL(drmMMInitBuffer(bm->driFd, bFlags, 12, &buf->drm_buf));
+	 buf->refcount = 1;
+	 buf->name = name;
+	 buffers[i] = buf;
       }
    }
    UNLOCK(bm);
 }
 
 void
-bmSetShared(struct bufmgr *bm, unsigned buffer, unsigned flags,
+bmSetShared(struct intel_context *intel, struct buffer *buffer, unsigned flags,
 	    unsigned long offset, void *virtual)
 {
+   struct bufmgr *bm = intel->bm;
+
    LOCK(bm);
    {
-      drmMMBuf *buf = _mesa_HashLookup(bm->hash, buffer);
-
-      assert(buf);
-
-      buf->flags = DRM_MM_NO_EVICT | DRM_MM_SHARED
+      buffer->drm_buf.flags = DRM_MM_NO_EVICT | DRM_MM_SHARED
 	    | DRM_MM_WRITE | DRM_MM_READ;
-      buf->flags |= flags & DRM_MM_MEMTYPE_MASK;
-      buf->offset = offset;
-      buf->virtual = virtual;
-      BM_CKFATAL(drmMMAllocBuffer(bm->driFd, 0, NULL, 0, buf));
+      buffer->drm_buf.flags |= flags & DRM_MM_MEMTYPE_MASK;
+      buffer->drm_buf.offset = offset;
+      buffer->drm_buf.virtual = virtual;
+      BM_CKFATAL(drmMMAllocBuffer(bm->driFd, 0, NULL, 0, &buffer->drm_buf));
    }
    UNLOCK(bm);
 }
 
 void
-bmDeleteBuffers(struct bufmgr *bm, unsigned n, unsigned *buffers)
+bmDeleteBuffers(struct intel_context *intel, unsigned n, struct buffer **buffers)
 {
+   struct bufmgr *bm = intel->bm;
+
    LOCK(bm);
    {
       unsigned i;
 
       for (i = 0; i < n; i++) {
-	 drmMMBuf *buf = _mesa_HashLookup(bm->hash, buffers[i]);
+	 struct buffer *buf = buffers[i];
 
-	 if (buf) {
-	    BM_CKFATAL(drmMMFreeBuffer(bm->driFd, buf));
-
-	    _mesa_HashRemove(bm->hash, buffers[i]);
-	 }
+	 if (buf) 
+	    BM_CKFATAL(drmMMFreeBuffer(bm->driFd, &buf->drm_buf));
       }
    }
    UNLOCK(bm);
@@ -202,12 +206,14 @@ bmDeleteBuffers(struct bufmgr *bm, unsigned n, unsigned *buffers)
  */
 
 void
-bmBufferData(struct bufmgr *bm,
-	     unsigned buffer, unsigned size, const void *data, unsigned flags)
+bmBufferData(struct intel_context *intel,
+	     struct buffer *buffer, unsigned size, const void *data, unsigned flags)
 {
+   struct bufmgr *bm = intel->bm;
+
    LOCK(bm);
    {
-      drmMMBuf *buf = (drmMMBuf *) _mesa_HashLookup(bm->hash, buffer);
+      drmMMBuf *buf = &buffer->drm_buf;
 
       DBG("bmBufferData %d sz 0x%x data: %p\n", buffer, size, data);
 
@@ -243,13 +249,15 @@ bmBufferData(struct bufmgr *bm,
 /* Update the buffer in place, in whatever space it is currently resident:
  */
 void
-bmBufferSubData(struct bufmgr *bm,
-		unsigned buffer,
+bmBufferSubData(struct intel_context *intel,
+		struct buffer *buffer,
 		unsigned offset, unsigned size, const void *data)
 {
+   struct bufmgr *bm = intel->bm;
+
    LOCK(bm);
    {
-      drmMMBuf *buf = (drmMMBuf *) _mesa_HashLookup(bm->hash, buffer);
+      drmMMBuf *buf = &buffer->drm_buf;
 
       DBG("bmBufferSubdata %d offset 0x%x sz 0x%x\n", buffer, offset, size);
 
@@ -268,13 +276,15 @@ bmBufferSubData(struct bufmgr *bm,
 /* Extract data from the buffer:
  */
 void
-bmBufferGetSubData(struct bufmgr *bm,
-		   unsigned buffer,
+bmBufferGetSubData(struct intel_context *intel,
+		   struct buffer *buffer,
 		   unsigned offset, unsigned size, void *data)
 {
+   struct bufmgr *bm = intel->bm;
+
    LOCK(bm);
    {
-      drmMMBuf *buf = (drmMMBuf *) _mesa_HashLookup(bm->hash, buffer);
+      drmMMBuf *buf = &buffer->drm_buf;
 
       DBG("bmBufferSubdata %d offset 0x%x sz 0x%x\n", buffer, offset, size);
 
@@ -294,13 +304,15 @@ bmBufferGetSubData(struct bufmgr *bm,
 /* Return a pointer to whatever space the buffer is currently resident in:
  */
 void *
-bmMapBuffer(struct bufmgr *bm, unsigned buffer, unsigned flags)
+bmMapBuffer(struct intel_context *intel, 
+	    struct buffer *buffer, unsigned flags)
 {
+   struct bufmgr *bm = intel->bm;
    void *retval;
 
    LOCK(bm);
    {
-      drmMMBuf *buf = (drmMMBuf *) _mesa_HashLookup(bm->hash, buffer);
+      drmMMBuf *buf = &buffer->drm_buf;
 
       DBG("bmMapBuffer %d\n", buffer);
       DBG("Map: Block is 0x%x\n", &buf->block);
@@ -318,11 +330,14 @@ bmMapBuffer(struct bufmgr *bm, unsigned buffer, unsigned flags)
 }
 
 void
-bmUnmapBuffer(struct bufmgr *bm, unsigned buffer)
+bmUnmapBuffer(struct intel_context *intel, 
+	      struct buffer *buffer)
 {
+   struct bufmgr *bm = intel->bm;
+
    LOCK(bm);
    {
-      drmMMBuf *buf = (drmMMBuf *) _mesa_HashLookup(bm->hash, buffer);
+      drmMMBuf *buf = &buffer->drm_buf;
 
       if (!buf)
 	 goto out;
@@ -349,16 +364,14 @@ bmNewBufferList(void)
 }
 
 int
-bmAddBuffer(struct bufmgr *bm,
+bmAddBuffer(struct intel_context *intel,
 	    struct _drmMMBufList *list,
-	    unsigned buffer,
+	    struct buffer *buffer,
 	    unsigned flags,
 	    unsigned *memtype_return, unsigned long *offset_return)
 {
-   drmMMBuf *buf = (drmMMBuf *) _mesa_HashLookup(bm->hash, buffer);
-
-   assert(buf);
-   return drmMMBufListAdd(list, buf, 0, flags, memtype_return, offset_return);
+   assert(buffer);
+   return drmMMBufListAdd(list, &buffer->drm_buf, 0, flags, memtype_return, offset_return);
 }
 
 void
@@ -368,13 +381,10 @@ bmFreeBufferList(struct _drmMMBufList *list)
 }
 
 int
-bmScanBufferList(struct bufmgr *bm,
-		 struct _drmMMBufList *list, unsigned buffer)
+bmScanBufferList(struct intel_context *intel,
+		 struct _drmMMBufList *list, struct buffer *buffer)
 {
-   drmMMBuf *buf = (drmMMBuf *) _mesa_HashLookup(bm->hash, buffer);
-
-   assert(buf);
-   return drmMMScanBufList(list, buf);
+   return drmMMScanBufList(list, &buffer->drm_buf);
 }
 
 /* To be called prior to emitting commands to hardware which reference
@@ -386,10 +396,10 @@ bmScanBufferList(struct bufmgr *bm,
  */
 
 int
-bmValidateBufferList(struct bufmgr *bm,
+bmValidateBufferList(struct intel_context *intel,
 		     struct _drmMMBufList *list, unsigned flags)
 {
-   BM_CKFATAL(drmMMValidateBuffers(bm->driFd, list));
+   BM_CKFATAL(drmMMValidateBuffers(intel->driFd, list));
    return 0;
 }
 
@@ -402,12 +412,12 @@ bmValidateBufferList(struct bufmgr *bm,
  * through the drm and without callbacks or whatever into the driver.
  */
 unsigned
-bmFenceBufferList(struct bufmgr *bm, struct _drmMMBufList *list)
+bmFenceBufferList(struct intel_context *intel, struct _drmMMBufList *list)
 {
    drmFence fence;
 
-   BM_CKFATAL(drmMMFenceBuffers(bm->driFd, list));
-   BM_CKFATAL(drmEmitFence(bm->driFd, 0, &fence));
+   BM_CKFATAL(drmMMFenceBuffers(intel->driFd, list));
+   BM_CKFATAL(drmEmitFence(intel->driFd, 0, &fence));
 
    return fence.fenceSeq;
 }
@@ -419,39 +429,39 @@ bmFenceBufferList(struct bufmgr *bm, struct _drmMMBufList *list)
  * For now they can stay, but will likely change/move before final:
  */
 unsigned
-bmSetFence(struct bufmgr *bm)
+bmSetFence(struct intel_context *intel)
 {
    drmFence dFence;
 
-   BM_CKFATAL(drmEmitFence(bm->driFd, 0, &dFence));
+   BM_CKFATAL(drmEmitFence(intel->driFd, 0, &dFence));
 
    return dFence.fenceSeq;
 }
 
 int
-bmTestFence(struct bufmgr *bm, unsigned fence)
+bmTestFence(struct intel_context *intel, unsigned fence)
 {
    drmFence dFence;
    int retired;
 
    dFence.fenceType = 0;
    dFence.fenceSeq = fence;
-   BM_CKFATAL(drmTestFence(bm->driFd, dFence, 0, &retired));
+   BM_CKFATAL(drmTestFence(intel->driFd, dFence, 0, &retired));
    return retired;
 }
 
 void
-bmFinishFence(struct bufmgr *bm, unsigned fence)
+bmFinishFence(struct intel_context *intel, unsigned fence)
 {
    drmFence dFence;
    dFence.fenceType = 0;
    dFence.fenceSeq = fence;
-   BM_CKFATAL(drmWaitFence(bm->driFd, dFence));
-   bm->initFence = dFence;
+   BM_CKFATAL(drmWaitFence(intel->driFd, dFence));
+   intel->bm->initFence = dFence;
 }
 
 unsigned
-bmInitFence(struct bufmgr *bm)
+bmInitFence(struct intel_context *intel)
 {
-   return bm->initFence.fenceSeq;
+   return intel->bm->initFence.fenceSeq;
 }

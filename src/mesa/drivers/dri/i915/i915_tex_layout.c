@@ -32,6 +32,8 @@
 #include "intel_mipmap_tree.h"
 #include "macros.h"
 
+#define FILE_DEBUG_FLAG DEBUG_TEXTURE
+
 static GLint initial_offsets[6][2] = { {0,0},
 				       {0,2},
 				       {1,0},

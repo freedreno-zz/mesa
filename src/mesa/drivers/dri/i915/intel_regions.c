@@ -44,13 +44,16 @@
 #include "intel_blit.h"
 #include "intel_bufmgr.h"
 
+#define FILE_DEBUG_FLAG DEBUG_BUFMGR
+
+
 /* XXX: Thread safety?
  */
 GLubyte *intel_region_map(struct intel_context *intel, struct intel_region *region)
 {
    DBG("%s\n", __FUNCTION__);
    if (!region->map_refcount++) {
-      region->map = bmMapBuffer(intel->bm, region->buffer, 0);
+      region->map = bmMapBuffer(intel, region->buffer, 0);
    }
 
    return region->map;
@@ -61,7 +64,7 @@ void intel_region_unmap(struct intel_context *intel,
 {
    DBG("%s\n", __FUNCTION__);
    if (!--region->map_refcount) {
-      bmUnmapBuffer(intel->bm, region->buffer);
+      bmUnmapBuffer(intel, region->buffer);
       region->map = NULL;
    }
 }
@@ -80,8 +83,8 @@ struct intel_region *intel_region_alloc( struct intel_context *intel,
    region->height = height; 	/* needed? */
    region->refcount = 1;
 
-   bmGenBuffers(intel->bm, 1, &region->buffer, 0);
-   bmBufferData(intel->bm, region->buffer, pitch * cpp * height, NULL, 0);
+   bmGenBuffers(intel, "region", 1, &region->buffer, 0);
+   bmBufferData(intel, region->buffer, pitch * cpp * height, NULL, 0);
 
    return region;
 }
@@ -109,7 +112,7 @@ void intel_region_release( struct intel_context *intel,
 
    if ((*region)->refcount == 0) {
       assert((*region)->map_refcount == 0);
-      bmDeleteBuffers(intel->bm, 1, &(*region)->buffer);
+      bmDeleteBuffers(intel, 1, &(*region)->buffer);
       free(*region);
    }
    *region = NULL;
@@ -137,8 +140,8 @@ struct intel_region *intel_region_create_static( struct intel_context *intel,
     * shared by others.
     */
 
-   bmGenBuffers(intel->bm, 1, &region->buffer, DRM_MM_TT | DRM_MM_SHARED);
-   bmSetShared(intel->bm, region->buffer, DRM_MM_TT, offset, virtual);
+   bmGenBuffers(intel, "static region", 1, &region->buffer, DRM_MM_TT | DRM_MM_SHARED);
+   bmSetShared(intel, region->buffer, DRM_MM_TT, offset, virtual);
 
    return region;
 }

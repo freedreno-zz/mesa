@@ -394,9 +394,8 @@ void intelRotateWindow(struct intel_context *intel,
 		       GLuint srcBuf)
 {
    intelScreenPrivate *screen = intel->intelScreen;
-   const GLuint cpp = screen->cpp;
    drm_clip_rect_t fullRect;
-   GLuint srcOffset, srcPitch;
+   struct intel_region *src;
    const drm_clip_rect_t *clipRects;
    int numClipRects;
    int i;
@@ -447,7 +446,18 @@ void intelRotateWindow(struct intel_context *intel,
 				 intel->rotated_region,
 				 NULL ); /* ? */
 
-   if (cpp == 4) {
+   if (srcBuf == BUFFER_BIT_FRONT_LEFT) {
+      src = intel->front_region;
+      clipRects = dPriv->pClipRects;
+      numClipRects = dPriv->numClipRects;
+   }
+   else {
+      src = intel->back_region;
+      clipRects = dPriv->pBackClipRects;
+      numClipRects = dPriv->numBackClipRects;
+   }
+
+   if (src->cpp == 4) {
       format = GL_BGRA;
       type = GL_UNSIGNED_BYTE;
    }
@@ -456,25 +466,12 @@ void intelRotateWindow(struct intel_context *intel,
       type = GL_UNSIGNED_SHORT_5_6_5_REV;
    }
 
-   if (srcBuf == BUFFER_BIT_FRONT_LEFT) {
-      srcPitch = screen->front.pitch;   /* in bytes */
-      srcOffset = screen->front.offset; /* bytes */
-      clipRects = dPriv->pClipRects;
-      numClipRects = dPriv->numClipRects;
-   }
-   else {
-      srcPitch = screen->back.pitch;   /* in bytes */
-      srcOffset = screen->back.offset; /* bytes */
-      clipRects = dPriv->pBackClipRects;
-      numClipRects = dPriv->numBackClipRects;
-   }
-
    /* set the whole screen up as a texture to avoid alignment issues */
    intel->vtbl.meta_tex_rect_source(intel,
-				    srcOffset, /* XXX */
+				    src->buffer,
 				    screen->width,
 				    screen->height,
-				    srcPitch,
+				    src->pitch,
 				    format, 
 				    type);
 

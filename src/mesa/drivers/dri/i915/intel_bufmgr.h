@@ -31,13 +31,11 @@
 
 #include "intel_context.h"
 
-/* Note that this is destined to be external to Mesa, so don't use GL
- * types like GLuint, etc.
- */
 
 /* The buffer manager context.  Opaque.
  */
 struct bufmgr;
+struct buffer;
 
 struct bufmgr *bm_intel_Attach(struct intel_context *intel);
 
@@ -48,30 +46,32 @@ struct bufmgr *bm_intel_Attach(struct intel_context *intel);
  * understood, and drivers can just pass the calls through without too
  * much thunking.
  */
-void bmGenBuffers(struct bufmgr *, unsigned n, unsigned *buffers,
+void bmGenBuffers(struct intel_context *, 
+		  const char *name, 
+		  unsigned n, struct buffer **buffers,
 		  unsigned flags);
 
-void bmDeleteBuffers(struct bufmgr *, unsigned n, unsigned *buffers);
+void bmDeleteBuffers(struct intel_context *, unsigned n, struct buffer **buffers);
 
 /* The driver has more intimate knowledge of the hardare than a GL
  * client would, so flags here is more proscriptive than the usage
  * values in the ARB_vbo interface:
  */
-void bmBufferData(struct bufmgr *,
-		  unsigned buffer,
+void bmBufferData(struct intel_context *,
+		  struct buffer *buffer,
 		  unsigned size, const void *data, unsigned flags);
 
-void bmBufferSubData(struct bufmgr *,
-		     unsigned buffer,
+void bmBufferSubData(struct intel_context *,
+		     struct buffer *buffer,
 		     unsigned offset, unsigned size, const void *data);
 
-void bmBufferGetSubData(struct bufmgr *,
-			unsigned buffer,
+void bmBufferGetSubData(struct intel_context *,
+			struct buffer *buffer,
 			unsigned offset, unsigned size, void *data);
 
-void *bmMapBuffer(struct bufmgr *, unsigned buffer, unsigned access);
+void *bmMapBuffer(struct intel_context *, struct buffer *buffer, unsigned access);
 
-void bmUnmapBuffer(struct bufmgr *, unsigned buffer);
+void bmUnmapBuffer(struct intel_context *, struct buffer *buffer);
 
 /* To be called prior to emitting commands to hardware which reference
  * these buffers.  
@@ -94,21 +94,21 @@ void bmUnmapBuffer(struct bufmgr *, unsigned buffer);
  */
 struct _drmMMBufList *bmNewBufferList(void);
 
-int bmAddBuffer(struct bufmgr *bm,
+int bmAddBuffer(struct intel_context *,
 		struct _drmMMBufList *list,
-		unsigned buffer,
+		struct buffer *buffer,
 		unsigned flags,
 		unsigned *pool_return, unsigned long *offset_return);
 
-int bmValidateBufferList(struct bufmgr *,
+int bmValidateBufferList(struct intel_context *,
 			 struct _drmMMBufList *, unsigned flags);
 
-unsigned bmFenceBufferList(struct bufmgr *, struct _drmMMBufList *);
+unsigned bmFenceBufferList(struct intel_context *, struct _drmMMBufList *);
 
 void bmFreeBufferList(struct _drmMMBufList *);
 
-int bmScanBufferList(struct bufmgr *bm,
-		     struct _drmMMBufList *list, unsigned buffer);
+int bmScanBufferList(struct intel_context *,
+		     struct _drmMMBufList *list, struct buffer *buffer);
 
 /* This functionality is used by the buffer manager, not really sure
  * if we need to be exposing it in this way, probably libdrm will
@@ -116,17 +116,11 @@ int bmScanBufferList(struct bufmgr *bm,
  *
  * For now they can stay, but will likely change/move before final:
  */
-unsigned bmSetFence(struct bufmgr *);
-int bmTestFence(struct bufmgr *, unsigned fence);
-void bmFinishFence(struct bufmgr *, unsigned fence);
-unsigned bmInitFence(struct bufmgr *bm);
-void bmSetShared(struct bufmgr *bm, unsigned buffer,
+unsigned bmSetFence(struct intel_context *);
+int bmTestFence(struct intel_context *, unsigned fence);
+void bmFinishFence(struct intel_context *, unsigned fence);
+unsigned bmInitFence(struct intel_context *);
+void bmSetShared(struct intel_context *, struct buffer *buffer,
 		 unsigned flags, unsigned long offset, void *virtual);
-
-extern int INTEL_DEBUG;
-
-#define DEBUG_BUFMGR 0x2000
-
-#define DBG(...)  do { if (INTEL_DEBUG & DEBUG_BUFMGR) _mesa_printf(__VA_ARGS__); } while(0)
 
 #endif

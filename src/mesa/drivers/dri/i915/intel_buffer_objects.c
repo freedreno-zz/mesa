@@ -52,7 +52,7 @@ static struct gl_buffer_object *intel_bufferobj_alloc( GLcontext *ctx,
 
    /* XXX:  We generate our own handle, which is different to 'name' above.
     */
-   bmGenBuffers(intel->bm, 1, &obj->buffer, 0);
+   bmGenBuffers(intel, "bufferobj", 1, &obj->buffer, 0);
 
    return &obj->Base;
 }
@@ -71,7 +71,7 @@ static void intel_bufferobj_free( GLcontext *ctx,
    assert(intel_obj);
 
    if (intel_obj->buffer) 
-      bmDeleteBuffers( intel->bm, 1, &intel_obj->buffer );
+      bmDeleteBuffers( intel, 1, &intel_obj->buffer );
   
    _mesa_free(intel_obj);
 }
@@ -102,7 +102,7 @@ static void intel_bufferobj_data( GLcontext *ctx,
    obj->Size = size;
    obj->Usage = usage;
 
-   bmBufferData(intel->bm, intel_obj->buffer, size, data, 0);
+   bmBufferData(intel, intel_obj->buffer, size, data, 0);
 }
 
 
@@ -123,7 +123,7 @@ static void intel_bufferobj_subdata( GLcontext *ctx,
    struct intel_buffer_object *intel_obj = intel_buffer_object(obj);
 
    assert(intel_obj);
-   bmBufferSubData(intel->bm, intel_obj->buffer, offset, size, data);
+   bmBufferSubData(intel, intel_obj->buffer, offset, size, data);
 }
 
 
@@ -141,7 +141,7 @@ static void intel_bufferobj_get_subdata( GLcontext *ctx,
    struct intel_buffer_object *intel_obj = intel_buffer_object(obj);
 
    assert(intel_obj);
-   bmBufferGetSubData(intel->bm, intel_obj->buffer, offset, size, data);
+   bmBufferGetSubData(intel, intel_obj->buffer, offset, size, data);
 }
 
 
@@ -160,7 +160,7 @@ static void *intel_bufferobj_map( GLcontext *ctx,
    /* XXX: Translate access to flags arg below:
     */
    assert(intel_obj);
-   obj->Pointer = bmMapBuffer(intel->bm, intel_obj->buffer, 0);
+   obj->Pointer = bmMapBuffer(intel, intel_obj->buffer, 0);
    return obj->Pointer;
 }
 
@@ -177,12 +177,12 @@ static GLboolean intel_bufferobj_unmap( GLcontext *ctx,
 
    assert(intel_obj);
    assert(obj->Pointer);
-   bmUnmapBuffer(intel->bm, intel_obj->buffer);
+   bmUnmapBuffer(intel, intel_obj->buffer);
    obj->Pointer = NULL;
    return GL_TRUE;
 }
 
-GLuint intel_bufferobj_buffer( const struct intel_buffer_object *intel_obj )
+struct buffer *intel_bufferobj_buffer( const struct intel_buffer_object *intel_obj )
 {
    return intel_obj->buffer;
 }  

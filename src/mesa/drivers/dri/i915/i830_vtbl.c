@@ -28,12 +28,12 @@
 
 #include "i830_context.h"
 #include "i830_reg.h"
-
 #include "intel_batchbuffer.h"
 #include "intel_regions.h"
-
 #include "tnl/t_context.h"
 #include "tnl/t_vertex.h"
+
+#define FILE_DEBUG_FLAG DEBUG_STATE
 
 static GLboolean i830_check_vertex_size( struct intel_context *intel,
 					 GLuint expected );
@@ -409,21 +409,18 @@ static void i830_emit_state( struct intel_context *intel )
 				   0);
 
    if (dirty & I830_UPLOAD_INVARIENT) {
-      if (INTEL_DEBUG & DEBUG_STATE) 
-	 fprintf(stderr, "I830_UPLOAD_INVARIENT:\n"); 
+      DBG("I830_UPLOAD_INVARIENT:\n"); 
       i830_emit_invarient_state( intel );
    }
 
    if (dirty & I830_UPLOAD_CTX) {
-      if (INTEL_DEBUG & DEBUG_STATE) 
-	 fprintf(stderr, "I830_UPLOAD_CTX:\n"); 
+      DBG("I830_UPLOAD_CTX:\n"); 
       emit( i830, state->Ctx, sizeof(state->Ctx) );
 
    }
 
    if (dirty & I830_UPLOAD_BUFFERS) {
-      if (INTEL_DEBUG & DEBUG_STATE) 
-	 fprintf(stderr, "I830_UPLOAD_BUFFERS:\n"); 
+      DBG("I830_UPLOAD_BUFFERS:\n"); 
       BEGIN_BATCH(I830_DEST_SETUP_SIZE+2, 0);
       OUT_BATCH(state->Buffer[I830_DESTREG_CBUFADDR0]);
       OUT_BATCH(state->Buffer[I830_DESTREG_CBUFADDR1]);
@@ -445,15 +442,13 @@ static void i830_emit_state( struct intel_context *intel )
    }
 
    if (dirty & I830_UPLOAD_STIPPLE) {
-      if (INTEL_DEBUG & DEBUG_STATE) 
-	 fprintf(stderr, "I830_UPLOAD_STIPPLE:\n"); 
+      DBG("I830_UPLOAD_STIPPLE:\n"); 
       emit( i830, state->Stipple, sizeof(state->Stipple) );
    }
 
    for (i = 0; i < I830_TEX_UNITS; i++) {
       if ((dirty & I830_UPLOAD_TEX(i))) { 
- 	 if (INTEL_DEBUG & DEBUG_STATE)
-	    fprintf(stderr, "I830_UPLOAD_TEX(%d):\n", i); 
+	 DBG("I830_UPLOAD_TEX(%d):\n", i); 
 
 	 BEGIN_BATCH(I830_TEX_SETUP_SIZE+1, 0);
 	 OUT_BATCH(state->Tex[i][I830_TEXREG_TM0LI]);
@@ -478,9 +473,8 @@ static void i830_emit_state( struct intel_context *intel )
       } 
 
       if (dirty & I830_UPLOAD_TEXBLEND(i)) {
-	 if (INTEL_DEBUG & DEBUG_STATE) 
-	    fprintf(stderr, "I830_UPLOAD_TEXBLEND(%d): %d words\n", i,
-		    state->TexBlendWordsUsed[i]); 
+	 DBG("I830_UPLOAD_TEXBLEND(%d): %d words\n", i,
+	     state->TexBlendWordsUsed[i]); 
 	 emit( i830, state->TexBlend[i], 
 	       state->TexBlendWordsUsed[i] * 4 );
       }
