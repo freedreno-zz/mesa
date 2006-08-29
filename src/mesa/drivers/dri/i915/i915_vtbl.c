@@ -48,12 +48,7 @@ static void i915_render_start( struct intel_context *intel )
    GLcontext *ctx = &intel->ctx;
    struct i915_context *i915 = i915_context(&intel->ctx);
 
-   if (ctx->FragmentProgram._Active) 
-      i915ValidateFragmentProgram( i915 );
-   else {
-      assert(!ctx->_MaintainTexEnvProgram);
-      i915ValidateTextureProgram( i915 );
-   }
+   i915ValidateFragmentProgram( i915 );
 }
 
 

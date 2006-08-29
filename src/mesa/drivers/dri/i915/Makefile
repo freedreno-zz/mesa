@@ -40,7 +40,6 @@ DRIVER_SOURCES = \
 	i915_metaops.c \
 	i915_program.c \
 	i915_state.c \
-	i915_texprog.c \
 	i915_vtbl.c \
 	intel_context.c \
 	intel_ioctl.c \
