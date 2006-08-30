@@ -45,7 +45,6 @@
 
 static void i915_render_start( struct intel_context *intel )
 {
-   GLcontext *ctx = &intel->ctx;
    struct i915_context *i915 = i915_context(&intel->ctx);
 
    i915ValidateFragmentProgram( i915 );

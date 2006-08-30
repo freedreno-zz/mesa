@@ -31,6 +31,7 @@
 #include "mtypes.h"
 
 struct intel_context;
+struct intel_region;
 struct gl_buffer_object;
 
 
@@ -40,12 +41,18 @@ struct gl_buffer_object;
 struct intel_buffer_object {
    struct gl_buffer_object Base;
    struct buffer *buffer;   /* the low-level buffer manager's buffer handle */
+   
+   struct intel_region *region; /* Is there a zero-copy texture
+				   associated with this (pixel)
+				   buffer object? */
 };
 
 
 /* Get the bm buffer associated with a GL bufferobject:
  */
-struct buffer *intel_bufferobj_buffer( const struct intel_buffer_object *obj );
+struct buffer *intel_bufferobj_buffer( struct intel_context *intel,
+				       struct intel_buffer_object *obj,
+				       GLuint flag );
 
 /* Hook the bufferobject implementation into mesa: 
  */
@@ -66,5 +73,13 @@ intel_buffer_object( struct gl_buffer_object *obj )
    else
       return NULL;
 }
+
+/* Helpers for zerocopy image uploads.  See also intel_regions.h:
+ */
+void intel_bufferobj_cow( struct intel_context *intel,
+			  struct intel_buffer_object *intel_obj );
+void intel_bufferobj_release_region( struct intel_context *intel,
+				     struct intel_buffer_object *intel_obj );
+
 
 #endif

@@ -153,9 +153,9 @@ static GLuint target_to_face( GLenum target )
 /* There are actually quite a few combinations this will work for,
  * more than what I've listed here.
  */
-static GLboolean check_pbo_blit( GLint internalFormat,
-				 GLenum format, GLenum type, 
-				 const struct gl_texture_format *mesa_format )
+static GLboolean check_pbo_format( GLint internalFormat,
+				   GLenum format, GLenum type, 
+				   const struct gl_texture_format *mesa_format )
 {
    switch (internalFormat) {
    case 4:
@@ -178,7 +178,8 @@ static GLboolean check_pbo_blit( GLint internalFormat,
 }
 
 
-
+/* XXX: Do this for TexSubImage also:
+ */
 static GLboolean try_pbo_upload( struct intel_context *intel,
 				 struct intel_texture_image *intelImage,
 				 const struct gl_pixelstore_attrib *unpack,
@@ -187,11 +188,11 @@ static GLboolean try_pbo_upload( struct intel_context *intel,
 				 GLenum format, GLenum type, 
 				 const void *pixels)
 {
-   struct intel_buffer_object *intelObj = intel_buffer_object(unpack->BufferObj);
+   struct intel_buffer_object *pbo = intel_buffer_object(unpack->BufferObj);
    GLuint src_offset, src_stride;
    GLuint dst_offset, dst_stride;
 
-   if (!intelObj ||
+   if (!pbo ||
        intel->ctx._ImageTransferState ||
        unpack->SkipPixels ||
        unpack->SkipRows) {
@@ -199,11 +200,6 @@ static GLboolean try_pbo_upload( struct intel_context *intel,
       return GL_FALSE;
    }
     
-   if (!check_pbo_blit(internalFormat, format, type, intelImage->base.TexFormat)) {
-      _mesa_printf("%s - bad format for blit\n", __FUNCTION__);
-      return GL_FALSE;
-   }
-
    src_offset = (GLuint) pixels;
 
    if (unpack->RowLength > 0)
@@ -219,23 +215,81 @@ static GLboolean try_pbo_upload( struct intel_context *intel,
 
    intelFlush( &intel->ctx );
    LOCK_HARDWARE( intel );
+   {
+      struct buffer *src_buffer = intel_bufferobj_buffer(intel, pbo, INTEL_READ);
+      struct buffer *dst_buffer = intel_region_buffer(intel, intelImage->mt->region, 
+						      INTEL_WRITE_FULL);
 
-   intelEmitCopyBlit( intel,
-		      intelImage->mt->cpp,
-		      src_stride, intel_bufferobj_buffer(intelObj), src_offset,
-		      dst_stride, intelImage->mt->region->buffer, dst_offset,
-		      0, 
-		      0,
-		      0, 
-		      0,
-		      width,
-		      height );
 
-   intel_batchbuffer_flush( intel->batch );   
+      intelEmitCopyBlit( intel,
+			 intelImage->mt->cpp,
+			 src_stride, src_buffer, src_offset,
+			 dst_stride, dst_buffer, dst_offset,
+			 0, 
+			 0,
+			 0, 
+			 0,
+			 width,
+			 height );
+
+      intel_batchbuffer_flush( intel->batch );   
+   }
    UNLOCK_HARDWARE( intel );
 
    return GL_TRUE;
 }
+
+
+
+static GLboolean try_pbo_zcopy( struct intel_context *intel,
+				 struct intel_texture_image *intelImage,
+				 const struct gl_pixelstore_attrib *unpack,
+				 GLint internalFormat,
+				 GLint width, GLint height,
+				 GLenum format, GLenum type, 
+				 const void *pixels)
+{
+   struct intel_buffer_object *pbo = intel_buffer_object(unpack->BufferObj);
+   GLuint src_offset, src_stride;
+   GLuint dst_offset, dst_stride;
+
+   if (!pbo ||
+       intel->ctx._ImageTransferState ||
+       unpack->SkipPixels ||
+       unpack->SkipRows) {
+      _mesa_printf("%s: failure 1\n", __FUNCTION__);
+      return GL_FALSE;
+   }
+    
+   src_offset = (GLuint) pixels;
+
+   if (unpack->RowLength > 0)
+      src_stride = unpack->RowLength;
+   else
+      src_stride = width;
+
+   dst_offset = intel_miptree_image_offset(intelImage->mt, 
+					   intelImage->face, 
+					   intelImage->level);
+
+   dst_stride = intelImage->mt->pitch;
+
+   if (src_stride != dst_stride ||
+       dst_offset != 0 ||
+       src_offset != 0) {
+      _mesa_printf("%s: failure 2\n", __FUNCTION__);
+      return GL_FALSE;
+   }
+
+   intel_region_attach_pbo( intel,
+			    intelImage->mt->region,
+			    pbo );
+
+   return GL_TRUE;
+}
+    
+      
+
 
 
 
@@ -345,43 +399,57 @@ static void intelTexImage(GLcontext *ctx,
    }
 
 
+   assert(!intelImage->mt);
+
    if (intelObj->mt && 
-       intelObj->mt != intelImage->mt &&
        intel_miptree_match_image(intelObj->mt, &intelImage->base,
 				 intelImage->face, intelImage->level)) {
       
-      if (intelImage->mt) {
-	 intel_miptree_release(intel, &intelImage->mt);
-      }
-
       intel_miptree_reference(&intelImage->mt, intelObj->mt);
       assert(intelImage->mt);
    }
 
-   if (!intelImage->mt) {
-      if (INTEL_DEBUG & DEBUG_TEXTURE)
-	 _mesa_printf("XXX: Image did not fit into tree - storing in local memory!\n");
-   }
+   if (!intelImage->mt) 
+      DBG("XXX: Image did not fit into tree - storing in local memory!\n");
 
-
-   /* Attempt to use the blitter for PBO image uploads: 
-    *
-    * Next step would be texturing directly from PBO's.
+   /* PBO fastpaths:
     */
    if (dims <= 2 &&
        intelImage->mt &&
-       intel_buffer_object(unpack->BufferObj)) {
+       intel_buffer_object(unpack->BufferObj) &&
+       check_pbo_format(internalFormat, format, 
+			type, intelImage->base.TexFormat)) {
 
-      _mesa_printf("trying pbo upload\n");
+      DBG("trying pbo upload\n");
+
+      /* Attempt to texture directly from PBO data (zero copy upload).
+       * This is about twice as fast as regular uploads:
+       */
+      if (intelObj->mt == intelImage->mt && 
+	  intelObj->mt->first_level == level &&
+	  intelObj->mt->last_level == level) {
+
+	 if (try_pbo_zcopy(intel, intelImage, unpack,
+			   internalFormat,
+			   width, height, format, type, pixels)) {
+
+	    DBG("pbo zcopy upload succeeded\n");
+	    return;
+	 }
+      }	   
+
       
+      /* Otherwise, attempt to use the blitter for PBO image uploads.
+       * This is about 20% faster than regular uploads:
+       */
       if (try_pbo_upload(intel, intelImage, unpack, 
 			 internalFormat,
 			 width, height, format, type, pixels)) {
-	 _mesa_printf("pbo upload succeeded\n");
+	 DBG("pbo upload succeeded\n");
 	 return;
       }
 
-      _mesa_printf("pbo upload failed\n");
+      DBG("pbo upload failed\n");
    }
 
       

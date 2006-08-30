@@ -43,6 +43,7 @@
 #include "intel_regions.h"
 #include "intel_blit.h"
 #include "intel_bufmgr.h"
+#include "intel_buffer_objects.h"
 
 #define FILE_DEBUG_FLAG DEBUG_BUFMGR
 
@@ -53,6 +54,9 @@ GLubyte *intel_region_map(struct intel_context *intel, struct intel_region *regi
 {
    DBG("%s\n", __FUNCTION__);
    if (!region->map_refcount++) {
+      if (region->pbo)
+	 intel_region_cow(intel, region);
+
       region->map = bmMapBuffer(intel, region->buffer, 0);
    }
 
@@ -112,7 +116,12 @@ void intel_region_release( struct intel_context *intel,
 
    if ((*region)->refcount == 0) {
       assert((*region)->map_refcount == 0);
-      bmDeleteBuffers(intel, 1, &(*region)->buffer);
+
+      if ((*region)->pbo) 
+	 intel_region_release_pbo( intel, *region );
+      else
+	 bmDeleteBuffers(intel, 1, &(*region)->buffer);
+
       free(*region);
    }
    *region = NULL;
@@ -203,6 +212,17 @@ void intel_region_data(struct intel_context *intel,
 {
    DBG("%s\n", __FUNCTION__);
 
+   if (dst->pbo) {
+      if (dstx == 0 && 
+	  dsty == 0 && 
+	  width == dst->pitch && 
+	  height == dst->height)
+	 intel_region_release_pbo(intel, dst);
+      else
+	 intel_region_cow(intel, dst);
+   }
+	 
+
    LOCK_HARDWARE(intel);
    
    _mesa_copy_rect(intel_region_map(intel, dst) + dst_offset,
@@ -234,6 +254,16 @@ void intel_region_copy( struct intel_context *intel,
 {
    DBG("%s\n", __FUNCTION__);
 
+   if (dst->pbo) {
+      if (dstx == 0 && 
+	  dsty == 0 && 
+	  width == dst->pitch && 
+	  height == dst->height)
+	 intel_region_release_pbo(intel, dst);
+      else
+	 intel_region_cow(intel, dst);
+   }
+
    assert(src->cpp == dst->cpp);
 
    intelEmitCopyBlit(intel,
@@ -257,6 +287,16 @@ void intel_region_fill( struct intel_context *intel,
 {
    DBG("%s\n", __FUNCTION__);
    
+   if (dst->pbo) {
+      if (dstx == 0 && 
+	  dsty == 0 && 
+	  width == dst->pitch && 
+	  height == dst->height)
+	 intel_region_release_pbo(intel, dst);
+      else
+	 intel_region_cow(intel, dst);
+   }
+
    intelEmitFillBlit(intel,
 		     dst->cpp,
 		     dst->pitch, dst->buffer, dst_offset, 
@@ -265,3 +305,96 @@ void intel_region_fill( struct intel_context *intel,
 		     color );
 }
 
+/* Attach to a pbo, discarding our data.  Effectively zero-copy upload
+ * the pbo's data.
+ */
+void intel_region_attach_pbo( struct intel_context *intel,
+			       struct intel_region *region,
+			       struct intel_buffer_object *pbo )
+{
+   if (region->pbo == pbo)
+      return;
+
+   /* If there is already a pbo attached, break the cow tie now.
+    * Don't call intel_region_release_pbo() as that would
+    * unnecessarily allocate a new buffer we would have to immediately
+    * discard.
+    */
+   if (region->pbo) {
+      region->pbo->region = NULL;
+      region->pbo = NULL;
+      region->buffer = NULL;	/* refcount? */
+   }
+
+   if (region->buffer) {
+      bmDeleteBuffers(intel, 1, region->buffer);
+   }
+
+   region->pbo = pbo;
+   region->pbo->region = region;
+   region->buffer = pbo->buffer;	/* refcount? */
+
+   _mesa_printf("%s attach buffer %p from pbo\n", region->buffer);
+}
+
+
+/* Break the COW tie to the pbo.  The pbo gets to keep the data.
+ */
+void intel_region_release_pbo( struct intel_context *intel,
+			       struct intel_region *region )
+{
+   assert(region->buffer == region->pbo->buffer);
+   region->pbo->region = NULL;   
+   region->pbo = NULL;
+   region->buffer = NULL;	/* refcount? */
+
+   bmGenBuffers(intel, "region", 1, &region->buffer, 0);
+   bmBufferData(intel, region->buffer, 
+		region->cpp * region->pitch * region->height, NULL, 0);
+}
+
+/* Break the COW tie to the pbo.  Both the pbo and the region end up
+ * with a copy of the data.
+ */
+void intel_region_cow( struct intel_context *intel,
+		       struct intel_region *region )
+{
+   struct intel_buffer_object *pbo = region->pbo;
+
+   intel_region_release_pbo(intel, region);
+
+   assert(region->cpp * 
+	  region->pitch * 
+	  region->height == pbo->Base.Size);
+
+   _mesa_printf("%s (%d bytes)\n", __FUNCTION__, pbo->Base.Size);
+
+   /* Now blit from the texture buffer to the new buffer: 
+    */
+
+   /* LOCKING??? */
+   intelEmitCopyBlit( intel,
+		      region->cpp,
+		      region->pitch, 
+		      region->buffer, 0,
+		      region->pitch, 
+		      pbo->buffer, 0,
+		      0,0,
+		      0,0,
+		      region->pitch,
+		      region->height );
+}
+
+struct buffer *intel_region_buffer( struct intel_context *intel,
+				    struct intel_region *region,
+				    GLuint flag )
+{
+   if (region->pbo) {
+      if (flag == INTEL_WRITE_PART)
+	 intel_region_cow(intel, region);
+      else if (flag == INTEL_WRITE_FULL)
+	 intel_region_release_pbo(intel, region);
+   }
+
+   return region->buffer;
+}  

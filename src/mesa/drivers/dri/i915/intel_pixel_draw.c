@@ -299,6 +299,7 @@ static GLboolean do_blit_drawpixels( GLcontext *ctx,
       drm_clip_rect_t *box = dPriv->pClipRects;
       drm_clip_rect_t rect;
       drm_clip_rect_t dest_rect;
+      struct buffer *src_buffer = intel_bufferobj_buffer(intel, src, INTEL_READ);
       int i;
       
       dest_rect.x1 = dPriv->x + x;
@@ -314,7 +315,7 @@ static GLboolean do_blit_drawpixels( GLcontext *ctx,
 	 intelEmitCopyBlit( intel,
 			    dest->cpp,
 			    rowLength, 
-			    intel_bufferobj_buffer(src), src_offset,
+			    src_buffer, src_offset,
 			    dest->pitch, 
 			    dest->buffer, 0,
 			    rect.x1 - dest_rect.x1, 

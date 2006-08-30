@@ -31,6 +31,7 @@
 #include "mtypes.h"
 #include "intel_bufmgr.h"		/* for DBG! */
 struct intel_context;
+struct intel_buffer_object;
 
 /**
  * A layer on top of the bufmgr buffers that adds a few useful things:
@@ -50,6 +51,8 @@ struct intel_region {
    GLuint map_refcount;  /**< Reference count for mapping */
 
    GLuint draw_offset; /**< Offset of drawing address within the region */
+
+   struct intel_buffer_object *pbo; /* zero-copy uploads */
 };
 
 
@@ -115,5 +118,18 @@ void intel_region_fill( struct intel_context *intel,
 			GLuint width, GLuint height,
 			GLuint color );
 
+/* Helpers for zerocopy uploads, particularly texture image uploads:
+ */
+void intel_region_attach_pbo( struct intel_context *intel,
+			       struct intel_region *region,
+			      struct intel_buffer_object *pbo );
+void intel_region_release_pbo( struct intel_context *intel,
+			       struct intel_region *region );
+void intel_region_cow( struct intel_context *intel,
+		       struct intel_region *region );
+
+struct buffer *intel_region_buffer( struct intel_context *intel,
+				    struct intel_region *region,
+				    GLuint flag );
 
 #endif

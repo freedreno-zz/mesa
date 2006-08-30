@@ -250,6 +250,13 @@ static GLboolean do_blit_readpixels( GLcontext *ctx,
 
    if (intel->driDrawable->numClipRects)
    {
+      GLboolean all = (width * height * src->cpp == dst->Base.Size &&
+		       x == 0 &&
+		       dst_offset == 0);
+		       
+      struct buffer *dst_buffer = intel_bufferobj_buffer(intel, dst, 
+							 all ? INTEL_WRITE_FULL : 
+							 INTEL_WRITE_PART);
        __DRIdrawablePrivate *dPriv = intel->driDrawable;
       int nbox = dPriv->numClipRects;
       drm_clip_rect_t *box = dPriv->pClipRects;
@@ -273,7 +280,7 @@ static GLboolean do_blit_readpixels( GLcontext *ctx,
 			    src->cpp,
 			    src->pitch, src->buffer, 0,
 			    rowLength, 
-			    intel_bufferobj_buffer(dst), dst_offset,
+			    dst_buffer, dst_offset,
 			    rect.x1, 
 			    rect.y1,
 			    rect.x1 - src_rect.x1, 

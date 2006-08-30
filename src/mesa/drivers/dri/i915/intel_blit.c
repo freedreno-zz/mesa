@@ -438,6 +438,10 @@ void intelClearWithBlit(GLcontext *ctx, GLbitfield mask, GLboolean all,
                const struct intel_renderbuffer *irb
                   = intel_renderbuffer(ctx->DrawBuffer->
                                        Attachment[buf].Renderbuffer);
+	       struct buffer *write_buffer = 
+		  intel_region_buffer(intel, irb->region,
+				      all ? INTEL_WRITE_FULL : INTEL_WRITE_PART);
+
                GLuint clearVal;
                GLint pitch, cpp;
                GLuint BR13, CMD;
@@ -448,7 +452,7 @@ void intelClearWithBlit(GLcontext *ctx, GLbitfield mask, GLboolean all,
                pitch = irb->region->pitch;
                cpp = irb->region->cpp;
 
-	       DBG("%s dst:buf(%d)/%d+%d %d,%d sz:%dx%d\n",
+	       DBG("%s dst:buf(%p)/%d+%d %d,%d sz:%dx%d\n",
 		   __FUNCTION__,
 		   irb->region->buffer, (pitch * cpp), 
 		   irb->region->draw_offset, 
@@ -495,7 +499,7 @@ void intelClearWithBlit(GLcontext *ctx, GLbitfield mask, GLboolean all,
                OUT_BATCH( BR13 );
                OUT_BATCH( (b.y1 << 16) | b.x1 );
                OUT_BATCH( (b.y2 << 16) | b.x2 );
-               OUT_RELOC( irb->region->buffer, DRM_MM_TT|DRM_MM_WRITE,
+               OUT_RELOC( write_buffer, DRM_MM_TT|DRM_MM_WRITE,
                           irb->region->draw_offset );
                OUT_BATCH( clearVal );
                ADVANCE_BATCH();
