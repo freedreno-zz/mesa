@@ -372,7 +372,9 @@ void intel_region_cow( struct intel_context *intel,
    /* Now blit from the texture buffer to the new buffer: 
     */
 
-   /* LOCKING??? */
+   intel_batchbuffer_flush( intel->batch );
+
+   LOCK_HARDWARE(intel);
    intelEmitCopyBlit( intel,
 		      region->cpp,
 		      region->pitch, 
@@ -383,6 +385,9 @@ void intel_region_cow( struct intel_context *intel,
 		      0,0,
 		      region->pitch,
 		      region->height );
+
+   intel_batchbuffer_flush( intel->batch );
+   UNLOCK_HARDWARE(intel);
 }
 
 struct buffer *intel_region_buffer( struct intel_context *intel,
