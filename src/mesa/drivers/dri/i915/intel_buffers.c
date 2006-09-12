@@ -42,21 +42,28 @@
 /**
  * XXX move this into a new dri/common/cliprects.c file.
  */
-GLboolean intel_intersect_cliprects( drm_clip_rect_t *dst,
-				     const drm_clip_rect_t *a,
-				     const drm_clip_rect_t *b )
+GLboolean
+intel_intersect_cliprects(drm_clip_rect_t * dst,
+                          const drm_clip_rect_t * a,
+                          const drm_clip_rect_t * b)
 {
    GLint bx = b->x1;
    GLint by = b->y1;
    GLint bw = b->x2 - bx;
    GLint bh = b->y2 - by;
 
-   if (bx < a->x1) bw -= a->x1 - bx, bx = a->x1;
-   if (by < a->y1) bh -= a->y1 - by, by = a->y1;
-   if (bx + bw > a->x2) bw = a->x2 - bx;
-   if (by + bh > a->y2) bh = a->y2 - by;
-   if (bw <= 0) return GL_FALSE;
-   if (bh <= 0) return GL_FALSE;
+   if (bx < a->x1)
+      bw -= a->x1 - bx, bx = a->x1;
+   if (by < a->y1)
+      bh -= a->y1 - by, by = a->y1;
+   if (bx + bw > a->x2)
+      bw = a->x2 - bx;
+   if (by + bh > a->y2)
+      bh = a->y2 - by;
+   if (bw <= 0)
+      return GL_FALSE;
+   if (bh <= 0)
+      return GL_FALSE;
 
    dst->x1 = bx;
    dst->y1 = by;
@@ -69,7 +76,8 @@ GLboolean intel_intersect_cliprects( drm_clip_rect_t *dst,
 /**
  * Return pointer to current color drawing region, or NULL.
  */
-struct intel_region *intel_drawbuf_region( struct intel_context *intel )
+struct intel_region *
+intel_drawbuf_region(struct intel_context *intel)
 {
    struct intel_renderbuffer *irbColor =
       intel_renderbuffer(intel->ctx.DrawBuffer->_ColorDrawBuffers[0][0]);
@@ -82,7 +90,8 @@ struct intel_region *intel_drawbuf_region( struct intel_context *intel )
 /**
  * Return pointer to current color reading region, or NULL.
  */
-struct intel_region *intel_readbuf_region( struct intel_context *intel )
+struct intel_region *
+intel_readbuf_region(struct intel_context *intel)
 {
    struct intel_renderbuffer *irb
       = intel_renderbuffer(intel->ctx.ReadBuffer->_ColorReadBuffer);
@@ -94,9 +103,8 @@ struct intel_region *intel_readbuf_region( struct intel_context *intel )
 
 
 
-static void intelBufferSize(GLframebuffer *buffer,
-			    GLuint *width, 
-			    GLuint *height)
+static void
+intelBufferSize(GLframebuffer * buffer, GLuint * width, GLuint * height)
 {
    GET_CURRENT_CONTEXT(ctx);
    struct intel_context *intel = intel_context(ctx);
@@ -128,7 +136,8 @@ static void intelBufferSize(GLframebuffer *buffer,
  *   intel->drawX
  *   intel->drawY
  */
-static void intelSetRenderbufferClipRects( struct intel_context *intel )
+static void
+intelSetRenderbufferClipRects(struct intel_context *intel)
 {
    assert(intel->ctx.DrawBuffer->Width > 0);
    assert(intel->ctx.DrawBuffer->Height > 0);
@@ -147,11 +156,13 @@ static void intelSetRenderbufferClipRects( struct intel_context *intel )
  * As above, but for rendering to front buffer of a window.
  * \sa intelSetRenderbufferClipRects
  */
-static void intelSetFrontClipRects( struct intel_context *intel )
+static void
+intelSetFrontClipRects(struct intel_context *intel)
 {
    __DRIdrawablePrivate *dPriv = intel->driDrawable;
 
-   if (!dPriv) return;
+   if (!dPriv)
+      return;
 
    intel->numClipRects = dPriv->numClipRects;
    intel->pClipRects = dPriv->pClipRects;
@@ -163,11 +174,13 @@ static void intelSetFrontClipRects( struct intel_context *intel )
 /**
  * As above, but for rendering to back buffer of a window.
  */
-static void intelSetBackClipRects( struct intel_context *intel )
+static void
+intelSetBackClipRects(struct intel_context *intel)
 {
    __DRIdrawablePrivate *dPriv = intel->driDrawable;
 
-   if (!dPriv) return;
+   if (!dPriv)
+      return;
 
    if (intel->sarea->pf_enabled == 0 && dPriv->numBackClipRects == 0) {
       /* use the front clip rects */
@@ -175,41 +188,45 @@ static void intelSetBackClipRects( struct intel_context *intel )
       intel->pClipRects = dPriv->pClipRects;
       intel->drawX = dPriv->x;
       intel->drawY = dPriv->y;
-   } else {
+   }
+   else {
       /* use the back clip rects */
       intel->numClipRects = dPriv->numBackClipRects;
       intel->pClipRects = dPriv->pBackClipRects;
       intel->drawX = dPriv->backX;
       intel->drawY = dPriv->backY;
-      
+
       if (dPriv->numBackClipRects == 1 &&
-	  dPriv->x == dPriv->backX &&
-	  dPriv->y == dPriv->backY) {
-      
-	 /* Repeat the calculation of the back cliprect dimensions here
-	  * as early versions of dri.a in the Xserver are incorrect.  Try
-	  * very hard not to restrict future versions of dri.a which
-	  * might eg. allocate truly private back buffers.
-	  */
-	 int x1, y1;
-	 int x2, y2;
-	 
-	 x1 = dPriv->x;
-	 y1 = dPriv->y;      
-	 x2 = dPriv->x + dPriv->w;
-	 y2 = dPriv->y + dPriv->h;
-	 
-	 if (x1 < 0) x1 = 0;
-	 if (y1 < 0) y1 = 0;
-	 if (x2 > intel->intelScreen->width) x2 = intel->intelScreen->width;
-	 if (y2 > intel->intelScreen->height) y2 = intel->intelScreen->height;
+          dPriv->x == dPriv->backX && dPriv->y == dPriv->backY) {
 
-	 if (x1 == dPriv->pBackClipRects[0].x1 &&
-	     y1 == dPriv->pBackClipRects[0].y1) {
+         /* Repeat the calculation of the back cliprect dimensions here
+          * as early versions of dri.a in the Xserver are incorrect.  Try
+          * very hard not to restrict future versions of dri.a which
+          * might eg. allocate truly private back buffers.
+          */
+         int x1, y1;
+         int x2, y2;
 
-	    dPriv->pBackClipRects[0].x2 = x2;
-	    dPriv->pBackClipRects[0].y2 = y2;
-	 }
+         x1 = dPriv->x;
+         y1 = dPriv->y;
+         x2 = dPriv->x + dPriv->w;
+         y2 = dPriv->y + dPriv->h;
+
+         if (x1 < 0)
+            x1 = 0;
+         if (y1 < 0)
+            y1 = 0;
+         if (x2 > intel->intelScreen->width)
+            x2 = intel->intelScreen->width;
+         if (y2 > intel->intelScreen->height)
+            y2 = intel->intelScreen->height;
+
+         if (x1 == dPriv->pBackClipRects[0].x1 &&
+             y1 == dPriv->pBackClipRects[0].y1) {
+
+            dPriv->pBackClipRects[0].x2 = x2;
+            dPriv->pBackClipRects[0].y2 = y2;
+         }
       }
    }
 }
@@ -219,13 +236,14 @@ static void intelSetBackClipRects( struct intel_context *intel )
  * This will be called whenever the currently bound window is moved/resized.
  * XXX: actually, it seems to NOT be called when the window is only moved (BP).
  */
-void intelWindowMoved( struct intel_context *intel )
+void
+intelWindowMoved(struct intel_context *intel)
 {
    GLcontext *ctx = &intel->ctx;
 
    if (!intel->ctx.DrawBuffer) {
       /* when would this happen? -BP */
-      intelSetFrontClipRects( intel );
+      intelSetFrontClipRects(intel);
    }
    else if (intel->ctx.DrawBuffer->Name != 0) {
       /* drawing to user-created FBO - do nothing */
@@ -235,14 +253,14 @@ void intelWindowMoved( struct intel_context *intel )
       /* drawing to a window */
       switch (intel->ctx.DrawBuffer->_ColorDrawBufferMask[0]) {
       case BUFFER_BIT_FRONT_LEFT:
-	 intelSetFrontClipRects( intel );
-	 break;
+         intelSetFrontClipRects(intel);
+         break;
       case BUFFER_BIT_BACK_LEFT:
-	 intelSetBackClipRects( intel );
-	 break;
+         intelSetBackClipRects(intel);
+         break;
       default:
-	 /* glDrawBuffer(GL_NONE or GL_FRONT_AND_BACK): software fallback */
-	 intelSetFrontClipRects( intel );
+         /* glDrawBuffer(GL_NONE or GL_FRONT_AND_BACK): software fallback */
+         intelSetFrontClipRects(intel);
       }
    }
 
@@ -253,8 +271,8 @@ void intelWindowMoved( struct intel_context *intel )
    }
 
    /* Update hardware scissor */
-   ctx->Driver.Scissor( ctx, ctx->Scissor.X, ctx->Scissor.Y,
-                        ctx->Scissor.Width, ctx->Scissor.Height );
+   ctx->Driver.Scissor(ctx, ctx->Scissor.X, ctx->Scissor.Y,
+                       ctx->Scissor.Width, ctx->Scissor.Height);
 }
 
 
@@ -262,11 +280,10 @@ void intelWindowMoved( struct intel_context *intel )
 /* A true meta version of this would be very simple and additionally
  * machine independent.  Maybe we'll get there one day.
  */
-static void intelClearWithTris(struct intel_context *intel, 
-			       GLbitfield mask,
-			       GLboolean all,
-			       GLint cx, GLint cy, 
-			       GLint cw, GLint ch)
+static void
+intelClearWithTris(struct intel_context *intel,
+                   GLbitfield mask,
+                   GLboolean all, GLint cx, GLint cy, GLint cw, GLint ch)
 {
    GLcontext *ctx = &intel->ctx;
    drm_clip_rect_t clear;
@@ -289,10 +306,10 @@ static void intelClearWithTris(struct intel_context *intel,
        * reliable.
        */
       {
-	  cx = ctx->DrawBuffer->_Xmin;
-	  cy = ctx->DrawBuffer->_Ymin;
-	  ch = ctx->DrawBuffer->_Ymax - ctx->DrawBuffer->_Ymin;
-	  cw  = ctx->DrawBuffer->_Xmax - ctx->DrawBuffer->_Xmin;
+         cx = ctx->DrawBuffer->_Xmin;
+         cy = ctx->DrawBuffer->_Ymin;
+         ch = ctx->DrawBuffer->_Ymax - ctx->DrawBuffer->_Ymin;
+         cw = ctx->DrawBuffer->_Xmax - ctx->DrawBuffer->_Xmin;
       }
 
       /* note: regardless of 'all', cx, cy, cw, ch are now correct */
@@ -304,44 +321,41 @@ static void intelClearWithTris(struct intel_context *intel,
       /* Back and stencil cliprects are the same.  Try and do both
        * buffers at once:
        */
-      if (mask & (BUFFER_BIT_BACK_LEFT|BUFFER_BIT_STENCIL|BUFFER_BIT_DEPTH)) { 
-         struct intel_region *backRegion
-            = intel_get_rb_region(ctx->DrawBuffer, BUFFER_BACK_LEFT);
-         struct intel_region *depthRegion
-            = intel_get_rb_region(ctx->DrawBuffer, BUFFER_DEPTH);
+      if (mask &
+          (BUFFER_BIT_BACK_LEFT | BUFFER_BIT_STENCIL | BUFFER_BIT_DEPTH)) {
+         struct intel_region *backRegion =
+            intel_get_rb_region(ctx->DrawBuffer, BUFFER_BACK_LEFT);
+         struct intel_region *depthRegion =
+            intel_get_rb_region(ctx->DrawBuffer, BUFFER_DEPTH);
          const GLuint clearColor = (backRegion && backRegion->cpp == 4)
             ? intel->ClearColor8888 : intel->ClearColor565;
 
-	 intel->vtbl.meta_draw_region(intel, backRegion, depthRegion );
+         intel->vtbl.meta_draw_region(intel, backRegion, depthRegion);
 
-	 if (mask & BUFFER_BIT_BACK_LEFT)
-	    intel->vtbl.meta_color_mask(intel, GL_TRUE );
-	 else
-	    intel->vtbl.meta_color_mask(intel, GL_FALSE );
+         if (mask & BUFFER_BIT_BACK_LEFT)
+            intel->vtbl.meta_color_mask(intel, GL_TRUE);
+         else
+            intel->vtbl.meta_color_mask(intel, GL_FALSE);
 
-	 if (mask & BUFFER_BIT_STENCIL) 
-	    intel->vtbl.meta_stencil_replace( intel, 
-					      intel->ctx.Stencil.WriteMask[0], 
-					      intel->ctx.Stencil.Clear);
-	 else
-	    intel->vtbl.meta_no_stencil_write(intel);
+         if (mask & BUFFER_BIT_STENCIL)
+            intel->vtbl.meta_stencil_replace(intel,
+                                             intel->ctx.Stencil.WriteMask[0],
+                                             intel->ctx.Stencil.Clear);
+         else
+            intel->vtbl.meta_no_stencil_write(intel);
 
-	 if (mask & BUFFER_BIT_DEPTH) 
-	    intel->vtbl.meta_depth_replace( intel );
-	 else
-	    intel->vtbl.meta_no_depth_write(intel);
-      
-	 /* XXX: Using INTEL_BATCH_NO_CLIPRECTS here is dangerous as the
-	  * drawing origin may not be correctly emitted.
-	  */
-	 intel_meta_draw_quad(intel, 
-			      clear.x1, clear.x2, 
-			      clear.y1, clear.y2, 
-			      intel->ctx.Depth.Clear,
-			      clearColor, 
-			      0, 0, 0, 0); /* texcoords */
+         if (mask & BUFFER_BIT_DEPTH)
+            intel->vtbl.meta_depth_replace(intel);
+         else
+            intel->vtbl.meta_no_depth_write(intel);
 
-         mask &= ~(BUFFER_BIT_BACK_LEFT|BUFFER_BIT_STENCIL|BUFFER_BIT_DEPTH);
+         /* XXX: Using INTEL_BATCH_NO_CLIPRECTS here is dangerous as the
+          * drawing origin may not be correctly emitted.
+          */
+         intel_meta_draw_quad(intel, clear.x1, clear.x2, clear.y1, clear.y2, intel->ctx.Depth.Clear, clearColor, 0, 0, 0, 0);   /* texcoords */
+
+         mask &=
+            ~(BUFFER_BIT_BACK_LEFT | BUFFER_BIT_STENCIL | BUFFER_BIT_DEPTH);
       }
 
       /* clear the remaining (color) renderbuffers */
@@ -358,25 +372,21 @@ static void intelClearWithTris(struct intel_context *intel,
 
             intel->vtbl.meta_no_depth_write(intel);
             intel->vtbl.meta_no_stencil_write(intel);
-            intel->vtbl.meta_color_mask(intel, GL_TRUE );
+            intel->vtbl.meta_color_mask(intel, GL_TRUE);
             intel->vtbl.meta_draw_region(intel, irbColor->region, NULL);
 
             /* XXX: Using INTEL_BATCH_NO_CLIPRECTS here is dangerous as the
              * drawing origin may not be correctly emitted.
              */
-            intel_meta_draw_quad(intel, 
-                                 clear.x1, clear.x2, 
-                                 clear.y1, clear.y2, 
-                                 0, /* depth clear val */
-                                 color,
-                                 0, 0, 0, 0); /* texcoords */
+            intel_meta_draw_quad(intel, clear.x1, clear.x2, clear.y1, clear.y2, 0,      /* depth clear val */
+                                 color, 0, 0, 0, 0);    /* texcoords */
 
             mask &= ~bufBit;
          }
       }
 
-      intel->vtbl.leave_meta_state( intel );
-      intel_batchbuffer_flush( intel->batch );
+      intel->vtbl.leave_meta_state(intel);
+      intel_batchbuffer_flush(intel->batch);
    }
    UNLOCK_HARDWARE(intel);
 }
@@ -389,9 +399,9 @@ static void intelClearWithTris(struct intel_context *intel,
  * color buffer.
  * srcBuf is BUFFER_BIT_FRONT_LEFT or BUFFER_BIT_BACK_LEFT to indicate the source.
  */
-void intelRotateWindow(struct intel_context *intel,
-		       __DRIdrawablePrivate *dPriv, 
-		       GLuint srcBuf)
+void
+intelRotateWindow(struct intel_context *intel,
+                  __DRIdrawablePrivate * dPriv, GLuint srcBuf)
 {
    intelScreenPrivate *screen = intel->intelScreen;
    drm_clip_rect_t fullRect;
@@ -408,7 +418,7 @@ void intelRotateWindow(struct intel_context *intel,
    /*
     * set up hardware state
     */
-   intelFlush( &intel->ctx );
+   intelFlush(&intel->ctx);
 
    LOCK_HARDWARE(intel);
 
@@ -418,10 +428,10 @@ void intelRotateWindow(struct intel_context *intel,
    }
 
    intel->vtbl.install_meta_state(intel);
-   
-   intel->vtbl.meta_no_depth_write( intel );
-   intel->vtbl.meta_no_stencil_write( intel );
-   intel->vtbl.meta_color_mask( intel, GL_FALSE );
+
+   intel->vtbl.meta_no_depth_write(intel);
+   intel->vtbl.meta_no_stencil_write(intel);
+   intel->vtbl.meta_color_mask(intel, GL_FALSE);
 
 
    /* save current drawing origin and cliprects (restored at end) */
@@ -442,9 +452,7 @@ void intelRotateWindow(struct intel_context *intel,
    intel->numClipRects = 1;
    intel->pClipRects = &fullRect;
 
-   intel->vtbl.meta_draw_region( intel, 
-				 intel->rotated_region,
-				 NULL ); /* ? */
+   intel->vtbl.meta_draw_region(intel, intel->rotated_region, NULL);    /* ? */
 
    if (srcBuf == BUFFER_BIT_FRONT_LEFT) {
       src = intel->front_region;
@@ -468,12 +476,9 @@ void intelRotateWindow(struct intel_context *intel,
 
    /* set the whole screen up as a texture to avoid alignment issues */
    intel->vtbl.meta_tex_rect_source(intel,
-				    src->buffer,
-				    screen->width,
-				    screen->height,
-				    src->pitch,
-				    format, 
-				    type);
+                                    src->buffer,
+                                    screen->width,
+                                    screen->height, src->pitch, format, type);
 
    intel->vtbl.meta_texture_blend_replace(intel);
 
@@ -489,16 +494,24 @@ void intelRotateWindow(struct intel_context *intel,
       int j;
 
       /* build vertices for four corners of clip rect */
-      verts[0][0] = srcX0;  verts[0][1] = srcY0;
-      verts[1][0] = srcX1;  verts[1][1] = srcY0;
-      verts[2][0] = srcX1;  verts[2][1] = srcY1;
-      verts[3][0] = srcX0;  verts[3][1] = srcY1;
+      verts[0][0] = srcX0;
+      verts[0][1] = srcY0;
+      verts[1][0] = srcX1;
+      verts[1][1] = srcY0;
+      verts[2][0] = srcX1;
+      verts[2][1] = srcY1;
+      verts[3][0] = srcX0;
+      verts[3][1] = srcY1;
 
       /* .. and texcoords */
-      tex[0][0] = srcX0;  tex[0][1] = srcY0;
-      tex[1][0] = srcX1;  tex[1][1] = srcY0;
-      tex[2][0] = srcX1;  tex[2][1] = srcY1;
-      tex[3][0] = srcX0;  tex[3][1] = srcY1;
+      tex[0][0] = srcX0;
+      tex[0][1] = srcY0;
+      tex[1][0] = srcX1;
+      tex[1][1] = srcY0;
+      tex[2][0] = srcX1;
+      tex[2][1] = srcY1;
+      tex[3][0] = srcX0;
+      tex[3][1] = srcY1;
 
       /* transform coords to rotated screen coords */
 
@@ -510,10 +523,10 @@ void intelRotateWindow(struct intel_context *intel,
       /* draw polygon to map source image to dest region */
       intel_meta_draw_poly(intel, 4, verts, 0, 0, tex);
 
-   } /* cliprect loop */
+   }                            /* cliprect loop */
 
-   intel->vtbl.leave_meta_state( intel );
-   intel_batchbuffer_flush( intel->batch );
+   intel->vtbl.leave_meta_state(intel);
+   intel_batchbuffer_flush(intel->batch);
 
    /* restore original drawing origin and cliprects */
    intel->drawX = xOrig;
@@ -528,14 +541,13 @@ void intelRotateWindow(struct intel_context *intel,
 /**
  * Called by ctx->Driver.Clear.
  */
-static void intelClear(GLcontext *ctx, 
-		       GLbitfield mask, 
-		       GLboolean all,
-		       GLint cx, GLint cy, 
-		       GLint cw, GLint ch)
+static void
+intelClear(GLcontext * ctx,
+           GLbitfield mask,
+           GLboolean all, GLint cx, GLint cy, GLint cw, GLint ch)
 {
-   struct intel_context *intel = intel_context( ctx );
-   const GLuint colorMask = *((GLuint *) &ctx->Color.ColorMask);
+   struct intel_context *intel = intel_context(ctx);
+   const GLuint colorMask = *((GLuint *) & ctx->Color.ColorMask);
    GLbitfield tri_mask = 0;
    GLbitfield blit_mask = 0;
    GLbitfield swrast_mask = 0;
@@ -564,7 +576,7 @@ static void intelClear(GLcontext *ctx,
          if ((ctx->Stencil.WriteMask[0] & 0xff) != 0xff) {
             /* not clearing all stencil bits, so use triangle clearing */
             tri_mask |= BUFFER_BIT_STENCIL;
-         } 
+         }
          else {
             /* clearing all stencil bits, use blitting */
             blit_mask |= BUFFER_BIT_STENCIL;
@@ -576,9 +588,9 @@ static void intelClear(GLcontext *ctx,
    if (mask & BUFFER_BIT_DEPTH) {
       /* clear depth with whatever method is used for stencil (see above) */
       if (tri_mask & BUFFER_BIT_STENCIL)
-	 tri_mask |= BUFFER_BIT_DEPTH;
-      else 
-	 blit_mask |= BUFFER_BIT_DEPTH;
+         tri_mask |= BUFFER_BIT_DEPTH;
+      else
+         blit_mask |= BUFFER_BIT_DEPTH;
    }
 
    /* SW fallback clearing */
@@ -596,23 +608,24 @@ static void intelClear(GLcontext *ctx,
    }
 
 
-   intelFlush( ctx ); /* XXX intelClearWithBlit also does this */
+   intelFlush(ctx);             /* XXX intelClearWithBlit also does this */
 
    if (blit_mask)
-      intelClearWithBlit( ctx, blit_mask, all, cx, cy, cw, ch );
+      intelClearWithBlit(ctx, blit_mask, all, cx, cy, cw, ch);
 
-   if (tri_mask) 
-      intelClearWithTris( intel, tri_mask, all, cx, cy, cw, ch);
+   if (tri_mask)
+      intelClearWithTris(intel, tri_mask, all, cx, cy, cw, ch);
 
    if (swrast_mask)
-      _swrast_Clear( ctx, swrast_mask, all, cx, cy, cw, ch );
+      _swrast_Clear(ctx, swrast_mask, all, cx, cy, cw, ch);
 }
 
 
 
 /* Flip the front & back buffers
  */
-static void intelPageFlip( const __DRIdrawablePrivate *dPriv )
+static void
+intelPageFlip(const __DRIdrawablePrivate * dPriv)
 {
 #if 0
    struct intel_context *intel;
@@ -627,32 +640,33 @@ static void intelPageFlip( const __DRIdrawablePrivate *dPriv )
 
    intel = (struct intel_context *) dPriv->driContextPriv->driverPrivate;
 
-   intelFlush( &intel->ctx );
-   LOCK_HARDWARE( intel );
+   intelFlush(&intel->ctx);
+   LOCK_HARDWARE(intel);
 
    if (dPriv->pClipRects) {
-      *(drm_clip_rect_t *)intel->sarea->boxes = dPriv->pClipRects[0];
+      *(drm_clip_rect_t *) intel->sarea->boxes = dPriv->pClipRects[0];
       intel->sarea->nbox = 1;
    }
 
-   ret = drmCommandNone(intel->driFd, DRM_I830_FLIP); 
+   ret = drmCommandNone(intel->driFd, DRM_I830_FLIP);
    if (ret) {
       fprintf(stderr, "%s: %d\n", __FUNCTION__, ret);
-      UNLOCK_HARDWARE( intel );
+      UNLOCK_HARDWARE(intel);
       exit(1);
    }
 
    tmp = intel->sarea->last_enqueue;
-   intelRefillBatchLocked( intel );
-   UNLOCK_HARDWARE( intel );
+   intelRefillBatchLocked(intel);
+   UNLOCK_HARDWARE(intel);
 
 
-   intelSetDrawBuffer( &intel->ctx, intel->ctx.Color.DriverDrawBuffer );
+   intelSetDrawBuffer(&intel->ctx, intel->ctx.Color.DriverDrawBuffer);
 #endif
 }
 
 #if 0
-void intelSwapBuffers( __DRIdrawablePrivate *dPriv )
+void
+intelSwapBuffers(__DRIdrawablePrivate * dPriv)
 {
    if (dPriv->driverPrivate) {
       const struct gl_framebuffer *fb
@@ -660,13 +674,14 @@ void intelSwapBuffers( __DRIdrawablePrivate *dPriv )
       if (fb->Visual.doubleBufferMode) {
          GET_CURRENT_CONTEXT(ctx);
          if (ctx && ctx->DrawBuffer == fb) {
-            _mesa_notifySwapBuffers( ctx );  /* flush pending rendering */
+            _mesa_notifySwapBuffers(ctx);       /* flush pending rendering */
          }
-	 if ( 0 /*intel->doPageFlip*/ ) { /* doPageFlip is never set !!! */
-	    intelPageFlip( dPriv );
-	 } else {
-	    intelCopyBuffer( dPriv );
-	 }
+         if (0 /*intel->doPageFlip */ ) {       /* doPageFlip is never set !!! */
+            intelPageFlip(dPriv);
+         }
+         else {
+            intelCopyBuffer(dPriv);
+         }
       }
    }
    else {
@@ -677,50 +692,54 @@ void intelSwapBuffers( __DRIdrawablePrivate *dPriv )
 #else
 /* Trunk version:
  */
-void intelSwapBuffers( __DRIdrawablePrivate *dPriv )
+void
+intelSwapBuffers(__DRIdrawablePrivate * dPriv)
 {
    if (dPriv->driContextPriv && dPriv->driContextPriv->driverPrivate) {
-      struct intel_context *intel = 
-	 (struct intel_context *) dPriv->driContextPriv->driverPrivate;
+      struct intel_context *intel =
+         (struct intel_context *) dPriv->driContextPriv->driverPrivate;
       GLcontext *ctx = &intel->ctx;
 
       if (ctx->Visual.doubleBufferMode) {
          intelScreenPrivate *screen = intel->intelScreen;
-	 _mesa_notifySwapBuffers( ctx );  /* flush pending rendering comands */
-	 if ( 0 /*intel->doPageFlip*/ ) { /* doPageFlip is never set !!! */
-	    intelPageFlip( dPriv );
-	 } else {
-	    intelCopyBuffer( dPriv, NULL );
-	 }
+         _mesa_notifySwapBuffers(ctx);  /* flush pending rendering comands */
+         if (0 /*intel->doPageFlip */ ) {       /* doPageFlip is never set !!! */
+            intelPageFlip(dPriv);
+         }
+         else {
+            intelCopyBuffer(dPriv, NULL);
+         }
          if (screen->current_rotation != 0) {
             intelRotateWindow(intel, dPriv, BUFFER_BIT_FRONT_LEFT);
          }
       }
-   } else {
+   }
+   else {
       /* XXX this shouldn't be an error but we can't handle it for now */
       fprintf(stderr, "%s: drawable has no context!\n", __FUNCTION__);
    }
 }
 #endif
 
-void intelCopySubBuffer( __DRIdrawablePrivate *dPriv,
-			 int x, int y, int w, int h )
+void
+intelCopySubBuffer(__DRIdrawablePrivate * dPriv, int x, int y, int w, int h)
 {
    if (dPriv->driContextPriv && dPriv->driContextPriv->driverPrivate) {
-      struct intel_context *intel = 
-	 (struct intel_context *) dPriv->driContextPriv->driverPrivate;
+      struct intel_context *intel =
+         (struct intel_context *) dPriv->driContextPriv->driverPrivate;
       GLcontext *ctx = &intel->ctx;
 
       if (ctx->Visual.doubleBufferMode) {
-	 drm_clip_rect_t rect;
-	 rect.x1 = x + dPriv->x;
-	 rect.y1 = (dPriv->h - y - h) + dPriv->y;
-	 rect.x2 = rect.x1 + w;
-	 rect.y2 = rect.y1 + h;
-	 _mesa_notifySwapBuffers( ctx );  /* flush pending rendering comands */
-	 intelCopyBuffer( dPriv, &rect );
+         drm_clip_rect_t rect;
+         rect.x1 = x + dPriv->x;
+         rect.y1 = (dPriv->h - y - h) + dPriv->y;
+         rect.x2 = rect.x1 + w;
+         rect.y2 = rect.y1 + h;
+         _mesa_notifySwapBuffers(ctx);  /* flush pending rendering comands */
+         intelCopyBuffer(dPriv, &rect);
       }
-   } else {
+   }
+   else {
       /* XXX this shouldn't be an error but we can't handle it for now */
       fprintf(stderr, "%s: drawable has no context!\n", __FUNCTION__);
    }
@@ -738,13 +757,13 @@ void intelCopySubBuffer( __DRIdrawablePrivate *dPriv,
  * color buffers.
  */
 void
-intel_draw_buffer(GLcontext *ctx, struct gl_framebuffer *fb)
+intel_draw_buffer(GLcontext * ctx, struct gl_framebuffer *fb)
 {
    struct intel_context *intel = intel_context(ctx);
    struct intel_region *colorRegion, *depthRegion = NULL;
    struct intel_renderbuffer *irbDepth = NULL, *irbStencil = NULL;
-   int front = 0; /* drawing to front color buffer? */
- 
+   int front = 0;               /* drawing to front color buffer? */
+
    if (!fb) {
       /* this can happen during the initial context initialization */
       return;
@@ -779,16 +798,16 @@ intel_draw_buffer(GLcontext *ctx, struct gl_framebuffer *fb)
        /* XXX FBO temporary - always use software rendering */
        || 1
 #endif
-    ) {
+      ) {
       /* writing to 0 or 2 or 4 color buffers */
       /*_mesa_debug(ctx, "Software rendering\n");*/
-      FALLBACK( intel, INTEL_FALLBACK_DRAW_BUFFER, GL_TRUE );
-      front = 1; /* might not have back color buffer */
+      FALLBACK(intel, INTEL_FALLBACK_DRAW_BUFFER, GL_TRUE);
+      front = 1;                /* might not have back color buffer */
    }
    else {
       /* draw to exactly one color buffer */
       /*_mesa_debug(ctx, "Hardware rendering\n");*/
-      FALLBACK( intel, INTEL_FALLBACK_DRAW_BUFFER, GL_FALSE );
+      FALLBACK(intel, INTEL_FALLBACK_DRAW_BUFFER, GL_FALSE);
       if (fb->_ColorDrawBufferMask[0] == BUFFER_BIT_FRONT_LEFT) {
          front = 1;
       }
@@ -800,16 +819,16 @@ intel_draw_buffer(GLcontext *ctx, struct gl_framebuffer *fb)
     */
    if (fb->Name == 0) {
       /* drawing to window system buffer */
-      if (intel->sarea->pf_current_page == 1 ) {
+      if (intel->sarea->pf_current_page == 1) {
          /* page flipped back/front */
          front ^= 1;
       }
       if (front) {
-         intelSetFrontClipRects( intel );
+         intelSetFrontClipRects(intel);
          colorRegion = intel_get_rb_region(fb, BUFFER_FRONT_LEFT);
       }
       else {
-         intelSetBackClipRects( intel );
+         intelSetBackClipRects(intel);
          colorRegion = intel_get_rb_region(fb, BUFFER_BACK_LEFT);
       }
    }
@@ -830,10 +849,10 @@ intel_draw_buffer(GLcontext *ctx, struct gl_framebuffer *fb)
       ctx->NewState |= _NEW_POLYGON;
 
    if (!colorRegion) {
-      FALLBACK( intel, INTEL_FALLBACK_DRAW_BUFFER, GL_TRUE );
+      FALLBACK(intel, INTEL_FALLBACK_DRAW_BUFFER, GL_TRUE);
    }
    else {
-      FALLBACK( intel, INTEL_FALLBACK_DRAW_BUFFER, GL_FALSE );
+      FALLBACK(intel, INTEL_FALLBACK_DRAW_BUFFER, GL_FALSE);
    }
 
    /***
@@ -887,7 +906,7 @@ intel_draw_buffer(GLcontext *ctx, struct gl_framebuffer *fb)
    /**
     ** Release old regions, reference new regions
     **/
-#if 0 /* XXX FBO: this seems to be redundant with i915_state_draw_region() */
+#if 0                           /* XXX FBO: this seems to be redundant with i915_state_draw_region() */
    if (intel->draw_region != colorRegion) {
       intel_region_release(intel, &intel->draw_region);
       intel_region_reference(&intel->draw_region, colorRegion);
@@ -898,27 +917,27 @@ intel_draw_buffer(GLcontext *ctx, struct gl_framebuffer *fb)
    }
 #endif
 
-   intel->vtbl.set_draw_region( intel, colorRegion, depthRegion );
+   intel->vtbl.set_draw_region(intel, colorRegion, depthRegion);
 
    /* update viewport since it depends on window size */
    ctx->Driver.Viewport(ctx, ctx->Viewport.X, ctx->Viewport.Y,
                         ctx->Viewport.Width, ctx->Viewport.Height);
 
    /* Update hardware scissor */
-   ctx->Driver.Scissor( ctx, ctx->Scissor.X, ctx->Scissor.Y,
-                        ctx->Scissor.Width, ctx->Scissor.Height );
+   ctx->Driver.Scissor(ctx, ctx->Scissor.X, ctx->Scissor.Y,
+                       ctx->Scissor.Width, ctx->Scissor.Height);
 }
 
 
 static void
-intelDrawBuffer(GLcontext *ctx, GLenum mode)
+intelDrawBuffer(GLcontext * ctx, GLenum mode)
 {
    intel_draw_buffer(ctx, ctx->DrawBuffer);
 }
 
 
-static void 
-intelReadBuffer( GLcontext *ctx, GLenum mode )
+static void
+intelReadBuffer(GLcontext * ctx, GLenum mode)
 {
    if (ctx->ReadBuffer == ctx->DrawBuffer) {
       /* This will update FBO completeness status.
@@ -934,7 +953,8 @@ intelReadBuffer( GLcontext *ctx, GLenum mode )
 }
 
 
-void intelInitBufferFuncs( struct dd_function_table *functions )
+void
+intelInitBufferFuncs(struct dd_function_table *functions)
 {
    functions->Clear = intelClear;
    functions->GetBufferSize = intelBufferSize;

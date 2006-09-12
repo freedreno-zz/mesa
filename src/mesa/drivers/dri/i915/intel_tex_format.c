@@ -12,35 +12,34 @@
  * immediately after sampling...
  */
 const struct gl_texture_format *
-intelChooseTextureFormat( GLcontext *ctx, GLint internalFormat,
-                          GLenum format, GLenum type )
+intelChooseTextureFormat(GLcontext * ctx, GLint internalFormat,
+                         GLenum format, GLenum type)
 {
-   struct intel_context *intel = intel_context( ctx );
+   struct intel_context *intel = intel_context(ctx);
    const GLboolean do32bpt = (intel->intelScreen->cpp == 4);
 
-   switch ( internalFormat ) {
+   switch (internalFormat) {
    case 4:
    case GL_RGBA:
    case GL_COMPRESSED_RGBA:
-      if ( format == GL_BGRA ) {
-	 if ( type == GL_UNSIGNED_BYTE ||
-	      type == GL_UNSIGNED_INT_8_8_8_8_REV ) {
-	    return &_mesa_texformat_argb8888;
-	 }
-         else if ( type == GL_UNSIGNED_SHORT_4_4_4_4_REV ) {
+      if (format == GL_BGRA) {
+         if (type == GL_UNSIGNED_BYTE || type == GL_UNSIGNED_INT_8_8_8_8_REV) {
+            return &_mesa_texformat_argb8888;
+         }
+         else if (type == GL_UNSIGNED_SHORT_4_4_4_4_REV) {
             return &_mesa_texformat_argb4444;
-	 }
-         else if ( type == GL_UNSIGNED_SHORT_1_5_5_5_REV ) {
-	    return &_mesa_texformat_argb1555;
-	 }
+         }
+         else if (type == GL_UNSIGNED_SHORT_1_5_5_5_REV) {
+            return &_mesa_texformat_argb1555;
+         }
       }
       return do32bpt ? &_mesa_texformat_argb8888 : &_mesa_texformat_argb4444;
 
    case 3:
    case GL_RGB:
    case GL_COMPRESSED_RGB:
-      if ( format == GL_RGB && type == GL_UNSIGNED_SHORT_5_6_5 ) {
-	 return &_mesa_texformat_rgb565;
+      if (format == GL_RGB && type == GL_UNSIGNED_SHORT_5_6_5) {
+         return &_mesa_texformat_rgb565;
       }
       return do32bpt ? &_mesa_texformat_argb8888 : &_mesa_texformat_rgb565;
 
@@ -105,29 +104,28 @@ intelChooseTextureFormat( GLcontext *ctx, GLint internalFormat,
       return &_mesa_texformat_i8;
 
    case GL_YCBCR_MESA:
-      if (type == GL_UNSIGNED_SHORT_8_8_MESA ||
-	  type == GL_UNSIGNED_BYTE)
+      if (type == GL_UNSIGNED_SHORT_8_8_MESA || type == GL_UNSIGNED_BYTE)
          return &_mesa_texformat_ycbcr;
       else
          return &_mesa_texformat_ycbcr_rev;
 
    case GL_COMPRESSED_RGB_FXT1_3DFX:
-     return &_mesa_texformat_rgb_fxt1;
+      return &_mesa_texformat_rgb_fxt1;
    case GL_COMPRESSED_RGBA_FXT1_3DFX:
-     return &_mesa_texformat_rgba_fxt1;
+      return &_mesa_texformat_rgba_fxt1;
 
    case GL_RGB_S3TC:
    case GL_RGB4_S3TC:
    case GL_COMPRESSED_RGB_S3TC_DXT1_EXT:
-     return &_mesa_texformat_rgb_dxt1;
+      return &_mesa_texformat_rgb_dxt1;
 
    case GL_COMPRESSED_RGBA_S3TC_DXT1_EXT:
-     return &_mesa_texformat_rgba_dxt1;
+      return &_mesa_texformat_rgba_dxt1;
 
    case GL_RGBA_S3TC:
    case GL_RGBA4_S3TC:
    case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
-     return &_mesa_texformat_rgba_dxt3;
+      return &_mesa_texformat_rgba_dxt3;
 
    case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
       return &_mesa_texformat_rgba_dxt5;
@@ -139,11 +137,10 @@ intelChooseTextureFormat( GLcontext *ctx, GLint internalFormat,
       return &_mesa_texformat_z16;
 
    default:
-      fprintf(stderr, "unexpected texture format %s in %s\n", 
-	      _mesa_lookup_enum_by_nr(internalFormat),
-	      __FUNCTION__);
+      fprintf(stderr, "unexpected texture format %s in %s\n",
+              _mesa_lookup_enum_by_nr(internalFormat), __FUNCTION__);
       return NULL;
    }
 
-   return NULL; /* never get here */
+   return NULL;                 /* never get here */
 }

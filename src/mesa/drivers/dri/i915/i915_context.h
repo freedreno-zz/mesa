@@ -114,13 +114,14 @@
 /* Hardware version of a parsed fragment program.  "Derived" from the
  * mesa fragment_program struct.
  */
-struct i915_fragment_program {
+struct i915_fragment_program
+{
    struct gl_fragment_program FragProg;
 
    GLboolean translated;
    GLboolean params_uptodate;
    GLboolean on_hardware;
-   GLboolean error;		/* If program is malformed for any reason. */
+   GLboolean error;             /* If program is malformed for any reason. */
 
    GLuint nr_tex_indirect;
    GLuint nr_tex_insn;
@@ -142,22 +143,22 @@ struct i915_fragment_program {
    GLuint constant_flags[I915_MAX_CONSTANT];
    GLuint nr_constants;
 
-   GLuint *csr;			/* Cursor, points into program.
-				 */
+   GLuint *csr;                 /* Cursor, points into program.
+                                 */
 
-   GLuint *decl;		/* Cursor, points into declarations.
-				 */
-   
-   GLuint decl_s;		/* flags for which s regs need to be decl'd */
-   GLuint decl_t;		/* flags for which t regs need to be decl'd */
+   GLuint *decl;                /* Cursor, points into declarations.
+                                 */
 
-   GLuint temp_flag;		/* Tracks temporary regs which are in
-				 * use.
-				 */
+   GLuint decl_s;               /* flags for which s regs need to be decl'd */
+   GLuint decl_t;               /* flags for which t regs need to be decl'd */
 
-   GLuint utemp_flag;		/* Tracks TYPE_U temporary regs which are in
-				 * use.
-				 */
+   GLuint temp_flag;            /* Tracks temporary regs which are in
+                                 * use.
+                                 */
+
+   GLuint utemp_flag;           /* Tracks TYPE_U temporary regs which are in
+                                 * use.
+                                 */
 
 
 
@@ -166,24 +167,25 @@ struct i915_fragment_program {
    GLuint wpos_tex;
    GLboolean depth_written;
 
-   struct { 
-      GLuint reg;		/* Hardware constant idx */
-      const GLfloat *values; 	/* Pointer to tracked values */
+   struct
+   {
+      GLuint reg;               /* Hardware constant idx */
+      const GLfloat *values;    /* Pointer to tracked values */
    } param[I915_MAX_CONSTANT];
    GLuint nr_params;
-      
+
 
    /* Helpers for i915_texprog.c:
     */
-   GLuint src_texture;		/* Reg containing sampled texture color,
-				 * else UREG_BAD.
-				 */
+   GLuint src_texture;          /* Reg containing sampled texture color,
+                                 * else UREG_BAD.
+                                 */
 
-   GLuint src_previous;		/* Reg containing color from previous 
-				 * stage.  May need to be decl'd.
-				 */
+   GLuint src_previous;         /* Reg containing color from previous 
+                                 * stage.  May need to be decl'd.
+                                 */
 
-   GLuint last_tex_stage;	/* Number of last enabled texture unit */
+   GLuint last_tex_stage;       /* Number of last enabled texture unit */
 
    struct vertex_buffer *VB;
 };
@@ -197,7 +199,8 @@ struct i915_fragment_program {
 #define I915_TEX_UNITS 8
 
 
-struct i915_hw_state {
+struct i915_hw_state
+{
    GLuint Ctx[I915_CTX_SETUP_SIZE];
    GLuint Buffer[I915_DEST_SETUP_SIZE];
    GLuint Stipple[I915_STP_SETUP_SIZE];
@@ -208,7 +211,7 @@ struct i915_hw_state {
    GLuint ConstantSize;
    GLuint Program[I915_PROGRAM_SIZE];
    GLuint ProgramSize;
-   
+
    /* Region pointers for relocation: 
     */
    struct intel_region *draw_region;
@@ -219,19 +222,19 @@ struct i915_hw_state {
     * be from a PBO or FBO.  Just use the buffer id.  Will have to do
     * this for draw and depth for FBO's...
     */
-   struct buffer *tex_buffer[I915_TEX_UNITS];
+   struct _DriBufferObject *tex_buffer[I915_TEX_UNITS];
    GLuint tex_offset[I915_TEX_UNITS];
-   
 
-   GLuint active;		/* I915_UPLOAD_* */
-   GLuint emitted;		/* I915_UPLOAD_* */
+
+   GLuint active;               /* I915_UPLOAD_* */
+   GLuint emitted;              /* I915_UPLOAD_* */
 };
 
 #define I915_FOG_PIXEL  2
 #define I915_FOG_VERTEX 1
 #define I915_FOG_NONE   0
 
-struct i915_context 
+struct i915_context
 {
    struct intel_context intel;
 
@@ -266,10 +269,10 @@ do {								\
 /*======================================================================
  * i915_vtbl.c
  */
-extern void i915InitVtbl( struct i915_context *i915 );
+extern void i915InitVtbl(struct i915_context *i915);
 
 extern void
-i915_state_draw_region(struct intel_context *intel, 
+i915_state_draw_region(struct intel_context *intel,
                        struct i915_hw_state *state,
                        struct intel_region *color_region,
                        struct intel_region *depth_region);
@@ -301,58 +304,58 @@ do {									\
 /*======================================================================
  * i915_context.c
  */
-extern GLboolean i915CreateContext( const __GLcontextModes *mesaVis,
-				    __DRIcontextPrivate *driContextPriv,
-				    void *sharedContextPrivate);
+extern GLboolean i915CreateContext(const __GLcontextModes * mesaVis,
+                                   __DRIcontextPrivate * driContextPriv,
+                                   void *sharedContextPrivate);
 
 
 /*======================================================================
  * i915_texprog.c
  */
-extern void i915ValidateTextureProgram( struct i915_context *i915 );
+extern void i915ValidateTextureProgram(struct i915_context *i915);
 
 
 /*======================================================================
  * i915_debug.c
  */
-extern void i915_disassemble_program( const GLuint *program, GLuint sz );
-extern void i915_print_ureg( const char *msg, GLuint ureg );
+extern void i915_disassemble_program(const GLuint * program, GLuint sz);
+extern void i915_print_ureg(const char *msg, GLuint ureg);
 
 
 /*======================================================================
  * i915_state.c
  */
-extern void i915InitStateFunctions( struct dd_function_table *functions );
-extern void i915InitState( struct i915_context *i915 );
-extern void i915_update_fog( GLcontext *ctx );
+extern void i915InitStateFunctions(struct dd_function_table *functions);
+extern void i915InitState(struct i915_context *i915);
+extern void i915_update_fog(GLcontext * ctx);
 
 
 /*======================================================================
  * i915_tex.c
  */
-extern void i915UpdateTextureState( struct intel_context *intel );
-extern void i915InitTextureFuncs( struct dd_function_table *functions );
+extern void i915UpdateTextureState(struct intel_context *intel);
+extern void i915InitTextureFuncs(struct dd_function_table *functions);
 
 /*======================================================================
  * i915_metaops.c
  */
-void i915InitMetaFuncs( struct i915_context *i915 );
+void i915InitMetaFuncs(struct i915_context *i915);
 
 
 /*======================================================================
  * i915_fragprog.c
  */
-extern void i915ValidateFragmentProgram( struct i915_context *i915 );
-extern void i915InitFragProgFuncs( struct dd_function_table *functions );
+extern void i915ValidateFragmentProgram(struct i915_context *i915);
+extern void i915InitFragProgFuncs(struct dd_function_table *functions);
 
 /*======================================================================
  * Inline conversion functions.  These are better-typed than the
  * macros used previously:
  */
 static INLINE struct i915_context *
-i915_context( GLcontext *ctx )
+i915_context(GLcontext * ctx)
 {
-   return (struct i915_context *)ctx;
+   return (struct i915_context *) ctx;
 }
 
 
@@ -360,6 +363,5 @@ i915_context( GLcontext *ctx )
 #define I915_CONTEXT(ctx)	i915_context(ctx)
 
 
-	
-#endif
 
+#endif

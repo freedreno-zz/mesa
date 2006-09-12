@@ -33,38 +33,39 @@
 #include "intel_rotate.h"
 #include "i830_common.h"
 #include "xmlconfig.h"
-
+#include "dri_bufpool.h"
 
 /* XXX: change name or eliminate to avoid conflict with "struct
  * intel_region"!!!
  */
-typedef struct {
+typedef struct
+{
    drm_handle_t handle;
-   drmSize size;        /* region size in bytes */
-   char *map;           /* memory map */
-   int offset;          /* from start of video mem, in bytes */
-   int pitch;           /* row stride, in bytes */
+   drmSize size;                /* region size in bytes */
+   char *map;                   /* memory map */
+   int offset;                  /* from start of video mem, in bytes */
+   int pitch;                   /* row stride, in bytes */
 } intelRegion;
 
-typedef struct 
+typedef struct
 {
    intelRegion front;
    intelRegion back;
    intelRegion rotated;
    intelRegion depth;
    intelRegion tex;
-   
+
    int deviceID;
    int width;
    int height;
-   int mem;         /* unused */
-   
-   int cpp;         /* for front and back buffers */
+   int mem;                     /* unused */
+
+   int cpp;                     /* for front and back buffers */
 /*    int bitsPerPixel;   */
-   int fbFormat;  /* XXX FBO: this is obsolete - remove after i830 updates */
+   int fbFormat;                /* XXX FBO: this is obsolete - remove after i830 updates */
 
    int logTextureGranularity;
-   
+
    __DRIscreenPrivate *driScrnPriv;
    unsigned int sarea_priv_offset;
 
@@ -75,41 +76,45 @@ typedef struct
 
    struct matrix23 rotMatrix;
 
-   int current_rotation;  /* 0, 90, 180 or 270 */
+   int current_rotation;        /* 0, 90, 180 or 270 */
    int rotatedWidth, rotatedHeight;
 
    /**
    * Configuration cache with default values for all contexts
    */
    driOptionCache optionCache;
+   struct _DriBufferPool *batchPool;
+   struct _DriBufferPool *texPool;
+   struct _DriBufferPool *regionPool;
+   struct _DriBufferPool *staticPool;
 } intelScreenPrivate;
 
 
-extern GLboolean
-intelMapScreenRegions(__DRIscreenPrivate *sPriv);
+extern GLboolean intelMapScreenRegions(__DRIscreenPrivate * sPriv);
+
+extern void intelUnmapScreenRegions(intelScreenPrivate * intelScreen);
 
 extern void
-intelUnmapScreenRegions(intelScreenPrivate *intelScreen);
+intelUpdateScreenFromSAREA(intelScreenPrivate * intelScreen,
+                           drmI830Sarea * sarea);
 
-extern void
-intelUpdateScreenFromSAREA(intelScreenPrivate *intelScreen,
-                           drmI830Sarea *sarea);
+extern void intelDestroyContext(__DRIcontextPrivate * driContextPriv);
 
-extern void
-intelDestroyContext(__DRIcontextPrivate *driContextPriv);
-
-extern GLboolean
-intelUnbindContext(__DRIcontextPrivate *driContextPriv);
+extern GLboolean intelUnbindContext(__DRIcontextPrivate * driContextPriv);
 
 extern GLboolean
-intelMakeCurrent(__DRIcontextPrivate *driContextPriv,
-                 __DRIdrawablePrivate *driDrawPriv,
-                 __DRIdrawablePrivate *driReadPriv);
+intelMakeCurrent(__DRIcontextPrivate * driContextPriv,
+                 __DRIdrawablePrivate * driDrawPriv,
+                 __DRIdrawablePrivate * driReadPriv);
+
+extern void intelSwapBuffers(__DRIdrawablePrivate * dPriv);
 
 extern void
-intelSwapBuffers(__DRIdrawablePrivate *dPriv);
+intelCopySubBuffer(__DRIdrawablePrivate * dPriv, int x, int y, int w, int h);
 
-extern void
-intelCopySubBuffer( __DRIdrawablePrivate *dPriv, int x, int y, int w, int h );
+extern struct _DriBufferPool *driBatchPoolInit(int fd, unsigned flags,
+                                               unsigned long bufSize,
+                                               unsigned numBufs,
+                                               unsigned checkDelayed);
 
 #endif

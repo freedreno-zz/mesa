@@ -45,13 +45,14 @@
 
 
 
-static void i915TexEnv( GLcontext *ctx, GLenum target, 
-			GLenum pname, const GLfloat *param )
+static void
+i915TexEnv(GLcontext * ctx, GLenum target,
+           GLenum pname, const GLfloat * param)
 {
-   struct i915_context *i915 = I915_CONTEXT( ctx );
+   struct i915_context *i915 = I915_CONTEXT(ctx);
 
    switch (pname) {
-   case GL_TEXTURE_ENV_COLOR: 	/* Should be a tracked param */
+   case GL_TEXTURE_ENV_COLOR:  /* Should be a tracked param */
    case GL_TEXTURE_ENV_MODE:
    case GL_COMBINE_RGB:
    case GL_COMBINE_ALPHA:
@@ -69,18 +70,21 @@ static void i915TexEnv( GLcontext *ctx, GLenum target,
    case GL_OPERAND2_ALPHA:
    case GL_RGB_SCALE:
    case GL_ALPHA_SCALE:
-      i915->tex_program.translated = 0; 
+      i915->tex_program.translated = 0;
       break;
 
-   case GL_TEXTURE_LOD_BIAS: {
-      GLuint unit = ctx->Texture.CurrentUnit;
-      GLint b = (int) ((*param) * 16.0);
-      if (b > 255) b = 255;
-      if (b < -256) b = -256;
-      I915_STATECHANGE(i915, I915_UPLOAD_TEX(unit));
-      i915->lodbias_ss2[unit] = ((b << SS2_LOD_BIAS_SHIFT) & SS2_LOD_BIAS_MASK);
-      break;
-   }
+   case GL_TEXTURE_LOD_BIAS:{
+         GLuint unit = ctx->Texture.CurrentUnit;
+         GLint b = (int) ((*param) * 16.0);
+         if (b > 255)
+            b = 255;
+         if (b < -256)
+            b = -256;
+         I915_STATECHANGE(i915, I915_UPLOAD_TEX(unit));
+         i915->lodbias_ss2[unit] =
+            ((b << SS2_LOD_BIAS_SHIFT) & SS2_LOD_BIAS_MASK);
+         break;
+      }
 
    default:
       break;
@@ -88,19 +92,21 @@ static void i915TexEnv( GLcontext *ctx, GLenum target,
 }
 
 
-static void i915BindTexture( GLcontext *ctx, GLenum target,
-                             struct gl_texture_object *texobj )
+static void
+i915BindTexture(GLcontext * ctx, GLenum target,
+                struct gl_texture_object *texobj)
 {
    /* Need this if image format changes between bound textures.
     * Could try and shortcircuit by checking for differences in
     * state between incoming and outgoing textures:
     */
-   I915_CONTEXT(ctx)->tex_program.translated = 0; 
+   I915_CONTEXT(ctx)->tex_program.translated = 0;
 }
 
 
 
-void i915InitTextureFuncs( struct dd_function_table *functions )
+void
+i915InitTextureFuncs(struct dd_function_table *functions)
 {
    functions->BindTexture = i915BindTexture;
    functions->TexEnv = i915TexEnv;

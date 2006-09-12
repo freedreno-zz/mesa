@@ -38,7 +38,8 @@
  * Check if any fragment operations are in effect which might effect
  * glDraw/CopyPixels.
  */
-GLboolean intel_check_blit_fragment_ops( GLcontext *ctx )
+GLboolean
+intel_check_blit_fragment_ops(GLcontext * ctx)
 {
    if (ctx->NewState)
       _mesa_update_state(ctx);
@@ -46,22 +47,22 @@ GLboolean intel_check_blit_fragment_ops( GLcontext *ctx )
    /* XXX Note: Scissor could be done with the blitter:
     */
    return !(ctx->_ImageTransferState ||
-	    ctx->Color.AlphaEnabled || 
-	    ctx->Depth.Test ||
-	    ctx->Fog.Enabled ||
-	    ctx->Scissor.Enabled ||
-	    ctx->Stencil.Enabled ||
-	    !ctx->Color.ColorMask[0] ||
-	    !ctx->Color.ColorMask[1] ||
-	    !ctx->Color.ColorMask[2] ||
-	    !ctx->Color.ColorMask[3] ||
-	    ctx->Color.ColorLogicOpEnabled ||
-	    ctx->Texture._EnabledUnits ||
-	    ctx->FragmentProgram._Enabled);
+            ctx->Color.AlphaEnabled ||
+            ctx->Depth.Test ||
+            ctx->Fog.Enabled ||
+            ctx->Scissor.Enabled ||
+            ctx->Stencil.Enabled ||
+            !ctx->Color.ColorMask[0] ||
+            !ctx->Color.ColorMask[1] ||
+            !ctx->Color.ColorMask[2] ||
+            !ctx->Color.ColorMask[3] ||
+            ctx->Color.ColorLogicOpEnabled ||
+            ctx->Texture._EnabledUnits || ctx->FragmentProgram._Enabled);
 }
 
 
-GLboolean intel_check_meta_tex_fragment_ops( GLcontext *ctx )
+GLboolean
+intel_check_meta_tex_fragment_ops(GLcontext * ctx)
 {
    if (ctx->NewState)
       _mesa_update_state(ctx);
@@ -69,10 +70,8 @@ GLboolean intel_check_meta_tex_fragment_ops( GLcontext *ctx )
    /* Some of _ImageTransferState (scale, bias) could be done with
     * fragment programs on i915.
     */
-   return !(ctx->_ImageTransferState ||
-	    ctx->Fog.Enabled ||	/* not done yet */
-	    ctx->Texture._EnabledUnits ||
-	    ctx->FragmentProgram._Enabled);
+   return !(ctx->_ImageTransferState || ctx->Fog.Enabled ||     /* not done yet */
+            ctx->Texture._EnabledUnits || ctx->FragmentProgram._Enabled);
 }
 
 /* The intel_region struct doesn't really do enough to capture the
@@ -85,38 +84,36 @@ GLboolean intel_check_meta_tex_fragment_ops( GLcontext *ctx )
  * \param format  as given to glDraw/ReadPixels
  * \param type  as given to glDraw/ReadPixels
  */
-GLboolean intel_check_blit_format( struct intel_region *region,
-				   GLenum format, GLenum type )
+GLboolean
+intel_check_blit_format(struct intel_region * region,
+                        GLenum format, GLenum type)
 {
    if (region->cpp == 4 &&
        (type == GL_UNSIGNED_INT_8_8_8_8_REV ||
-	type == GL_UNSIGNED_BYTE) &&        
-       format == GL_BGRA ) {
+        type == GL_UNSIGNED_BYTE) && format == GL_BGRA) {
       return GL_TRUE;
    }
-   
-   if (region->cpp == 2 && 
-       type == GL_UNSIGNED_SHORT_5_6_5_REV && 
-       format == GL_BGR ) {
+
+   if (region->cpp == 2 &&
+       type == GL_UNSIGNED_SHORT_5_6_5_REV && format == GL_BGR) {
       return GL_TRUE;
    }
 
    if (INTEL_DEBUG & DEBUG_PIXEL)
-      fprintf(stderr, "%s: bad format for blit (cpp %d, type %s format %s)\n", 
-	      __FUNCTION__, region->cpp, 
-	      _mesa_lookup_enum_by_nr(type),
-	      _mesa_lookup_enum_by_nr(format));
+      fprintf(stderr, "%s: bad format for blit (cpp %d, type %s format %s)\n",
+              __FUNCTION__, region->cpp,
+              _mesa_lookup_enum_by_nr(type), _mesa_lookup_enum_by_nr(format));
 
    return GL_FALSE;
 }
 
 
-void intelInitPixelFuncs( struct dd_function_table *functions )
+void
+intelInitPixelFuncs(struct dd_function_table *functions)
 {
    functions->Accum = _swrast_Accum;
    functions->Bitmap = _swrast_Bitmap;
    functions->CopyPixels = intelCopyPixels;
-   functions->ReadPixels = intelReadPixels;  
-   functions->DrawPixels = intelDrawPixels; 
+   functions->ReadPixels = intelReadPixels;
+   functions->DrawPixels = intelDrawPixels;
 }
-

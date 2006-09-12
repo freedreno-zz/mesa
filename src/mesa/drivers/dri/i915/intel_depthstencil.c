@@ -89,7 +89,7 @@
 
 
 static void
-map_regions(GLcontext *ctx, 
+map_regions(GLcontext * ctx,
             struct intel_renderbuffer *depthRb,
             struct intel_renderbuffer *stencilRb)
 {
@@ -107,7 +107,7 @@ map_regions(GLcontext *ctx,
 }
 
 static void
-unmap_regions(GLcontext *ctx, 
+unmap_regions(GLcontext * ctx,
               struct intel_renderbuffer *depthRb,
               struct intel_renderbuffer *stencilRb)
 {
@@ -131,7 +131,7 @@ unmap_regions(GLcontext *ctx,
  * irb should be a depth/stencil or stencil renderbuffer.
  */
 void
-intel_unpair_depth_stencil(GLcontext *ctx, struct intel_renderbuffer *irb)
+intel_unpair_depth_stencil(GLcontext * ctx, struct intel_renderbuffer *irb)
 {
    if (irb->PairedStencil) {
       /* irb is a depth/stencil buffer */
@@ -191,7 +191,8 @@ intel_unpair_depth_stencil(GLcontext *ctx, struct intel_renderbuffer *irb)
  * change, for example).
  */
 void
-intel_validate_paired_depth_stencil(GLcontext *ctx, struct gl_framebuffer *fb)
+intel_validate_paired_depth_stencil(GLcontext * ctx,
+                                    struct gl_framebuffer *fb)
 {
    struct intel_renderbuffer *depthRb, *stencilRb;
 
@@ -243,8 +244,8 @@ intel_validate_paired_depth_stencil(GLcontext *ctx, struct gl_framebuffer *fb)
        * We'll use a GL_DEPTH24_STENCIL8 buffer and ignore the stencil bits.
        */
       /* can't assert this until storage is allocated:
-      ASSERT(depthRb->Base._ActualFormat == GL_DEPTH24_STENCIL8_EXT);
-      */
+         ASSERT(depthRb->Base._ActualFormat == GL_DEPTH24_STENCIL8_EXT);
+       */
       /* intel_undo any previous pairing */
       if (depthRb->PairedStencil) {
          intel_unpair_depth_stencil(ctx, depthRb);

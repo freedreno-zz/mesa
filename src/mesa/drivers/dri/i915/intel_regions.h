@@ -29,7 +29,7 @@
 #define INTEL_REGIONS_H
 
 #include "mtypes.h"
-#include "intel_bufmgr.h"		/* for DBG! */
+
 struct intel_context;
 struct intel_buffer_object;
 
@@ -41,8 +41,9 @@ struct intel_buffer_object;
  * - Buffer dimensions - pitch and height.
  * - Blitter commands for copying 2D regions between buffers. (really???)
  */
-struct intel_region {
-   struct buffer *buffer;   /**< buffer manager's buffer ID */
+struct intel_region
+{
+   struct _DriBufferObject *buffer;   /**< buffer manager's buffer ID */
    GLuint refcount; /**< Reference count for region */
    GLuint cpp;      /**< bytes per pixel */
    GLuint pitch;    /**< in pixels */
@@ -52,84 +53,78 @@ struct intel_region {
 
    GLuint draw_offset; /**< Offset of drawing address within the region */
 
-   struct intel_buffer_object *pbo; /* zero-copy uploads */
+   struct intel_buffer_object *pbo;     /* zero-copy uploads */
 };
 
 
 /* Allocate a refcounted region.  Pointers to regions should only be
  * copied by calling intel_reference_region().
  */
-struct intel_region *intel_region_alloc( struct intel_context *intel,
-					 GLuint cpp,
-					 GLuint pitch, 
-					 GLuint height );
+struct intel_region *intel_region_alloc(struct intel_context *intel,
+                                        GLuint cpp,
+                                        GLuint pitch, GLuint height);
 
-void intel_region_reference( struct intel_region **dst, 
-			     struct intel_region *src );
+void intel_region_reference(struct intel_region **dst,
+                            struct intel_region *src);
 
 void intel_region_release(struct intel_context *intel,
-			  struct intel_region **ib );
+                          struct intel_region **ib);
 
 
-struct intel_region *intel_region_create_static( struct intel_context *intel,
-						 GLuint mem_type,
-						 GLuint offset,
-						 void *virtual,
-						 GLuint cpp,
-						 GLuint pitch,
-						 GLuint height );
+struct intel_region *intel_region_create_static(struct intel_context *intel,
+                                                GLuint mem_type,
+                                                GLuint offset,
+                                                void *virtual,
+                                                GLuint cpp,
+                                                GLuint pitch, GLuint height);
 
 /* Map/unmap regions.  This is refcounted also: 
  */
-GLubyte *intel_region_map(struct intel_context *intel, 
-		       struct intel_region *ib);
+GLubyte *intel_region_map(struct intel_context *intel,
+                          struct intel_region *ib);
 
-void intel_region_unmap(struct intel_context *intel,
-			struct intel_region *ib);
+void intel_region_unmap(struct intel_context *intel, struct intel_region *ib);
 
 
 /* Upload data to a rectangular sub-region
  */
-void intel_region_data(struct intel_context *intel, 
-		       struct intel_region *dest,
-		       GLuint dest_offset,
-		       GLuint destx, GLuint desty,
-		       void *src, GLuint src_stride,
-		       GLuint srcx, GLuint srcy,
-		       GLuint width, GLuint height);
-			  
+void intel_region_data(struct intel_context *intel,
+                       struct intel_region *dest,
+                       GLuint dest_offset,
+                       GLuint destx, GLuint desty,
+                       void *src, GLuint src_stride,
+                       GLuint srcx, GLuint srcy, GLuint width, GLuint height);
+
 /* Copy rectangular sub-regions
  */
-void intel_region_copy( struct intel_context *intel,
-			struct intel_region *dest,
-			GLuint dest_offset,
-			GLuint destx, GLuint desty,
-			struct intel_region *src,
-			GLuint src_offset,
-			GLuint srcx, GLuint srcy,
-			GLuint width, GLuint height );
+void intel_region_copy(struct intel_context *intel,
+                       struct intel_region *dest,
+                       GLuint dest_offset,
+                       GLuint destx, GLuint desty,
+                       struct intel_region *src,
+                       GLuint src_offset,
+                       GLuint srcx, GLuint srcy, GLuint width, GLuint height);
 
 /* Fill a rectangular sub-region
  */
-void intel_region_fill( struct intel_context *intel,
-			struct intel_region *dest,
-			GLuint dest_offset,
-			GLuint destx, GLuint desty,
-			GLuint width, GLuint height,
-			GLuint color );
+void intel_region_fill(struct intel_context *intel,
+                       struct intel_region *dest,
+                       GLuint dest_offset,
+                       GLuint destx, GLuint desty,
+                       GLuint width, GLuint height, GLuint color);
 
 /* Helpers for zerocopy uploads, particularly texture image uploads:
  */
-void intel_region_attach_pbo( struct intel_context *intel,
-			       struct intel_region *region,
-			      struct intel_buffer_object *pbo );
-void intel_region_release_pbo( struct intel_context *intel,
-			       struct intel_region *region );
-void intel_region_cow( struct intel_context *intel,
-		       struct intel_region *region );
+void intel_region_attach_pbo(struct intel_context *intel,
+                             struct intel_region *region,
+                             struct intel_buffer_object *pbo);
+void intel_region_release_pbo(struct intel_context *intel,
+                              struct intel_region *region);
+void intel_region_cow(struct intel_context *intel,
+                      struct intel_region *region);
 
-struct buffer *intel_region_buffer( struct intel_context *intel,
-				    struct intel_region *region,
-				    GLuint flag );
+struct _DriBufferObject *intel_region_buffer(struct intel_context *intel,
+                                             struct intel_region *region,
+                                             GLuint flag);
 
 #endif

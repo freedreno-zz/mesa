@@ -43,19 +43,19 @@
 #include "intel_pixel.h"
 #include "intel_buffer_objects.h"
 #include "intel_tris.h"
-#include "intel_bufmgr.h"
 
 
 
-static GLboolean do_texture_drawpixels( GLcontext *ctx,
-					GLint x, GLint y, 
-					GLsizei width, GLsizei height,
-					GLenum format, GLenum type,
-					const struct gl_pixelstore_attrib *unpack,
-					const GLvoid *pixels )
+static GLboolean
+do_texture_drawpixels(GLcontext * ctx,
+                      GLint x, GLint y,
+                      GLsizei width, GLsizei height,
+                      GLenum format, GLenum type,
+                      const struct gl_pixelstore_attrib *unpack,
+                      const GLvoid * pixels)
 {
-   struct intel_context *intel = intel_context( ctx );
-   struct intel_region *dst = intel_drawbuf_region( intel );
+   struct intel_context *intel = intel_context(ctx);
+   struct intel_region *dst = intel_drawbuf_region(intel);
    struct intel_buffer_object *src = intel_buffer_object(unpack->BufferObj);
    GLuint rowLength = unpack->RowLength ? unpack->RowLength : width;
    GLuint src_offset;
@@ -63,7 +63,7 @@ static GLboolean do_texture_drawpixels( GLcontext *ctx,
    if (INTEL_DEBUG & DEBUG_PIXEL)
       fprintf(stderr, "%s\n", __FUNCTION__);
 
-   intelFlush( &intel->ctx );
+   intelFlush(&intel->ctx);
    intel->vtbl.render_start(intel);
    intel->vtbl.emit_state(intel);
 
@@ -96,7 +96,8 @@ static GLboolean do_texture_drawpixels( GLcontext *ctx,
     */
    if (!intel_check_meta_tex_fragment_ops(ctx)) {
       if (INTEL_DEBUG & DEBUG_PIXEL)
-	 _mesa_printf("%s - bad GL fragment state for metaops texture\n", __FUNCTION__);
+         _mesa_printf("%s - bad GL fragment state for metaops texture\n",
+                      __FUNCTION__);
       return GL_FALSE;
    }
 
@@ -116,7 +117,7 @@ static GLboolean do_texture_drawpixels( GLcontext *ctx,
    intel->vtbl.meta_import_pixel_state(intel);
 
    src_offset = (GLuint) _mesa_image_address(2, unpack, pixels, width, height,
-					     format, type, 0, 0, 0);
+                                             format, type, 0, 0, 0);
 
 
    /* Setup the pbo up as a rectangular texture, if possible.
@@ -126,20 +127,18 @@ static GLboolean do_texture_drawpixels( GLcontext *ctx,
     * The major exception is any 24bit texture, like RGB888, for which
     * there is no hardware support.  
     */
-   if (!intel->vtbl.meta_tex_rect_source( intel, src->buffer, src_offset,
-					  rowLength, height,
-					  format, type )) {
+   if (!intel->vtbl.meta_tex_rect_source(intel, src->buffer, src_offset,
+                                         rowLength, height, format, type)) {
       intel->vtbl.leave_meta_state(intel);
       return GL_FALSE;
    }
-      
-   intel->vtbl.meta_texture_blend_replace( intel ); 
+
+   intel->vtbl.meta_texture_blend_replace(intel);
 
 
-   LOCK_HARDWARE( intel );
+   LOCK_HARDWARE(intel);
 
-   if (intel->driDrawable->numClipRects)
-   {
+   if (intel->driDrawable->numClipRects) {
       __DRIdrawablePrivate *dPriv = intel->driDrawable;
       GLint srcx, srcy;
       GLint dstx, dsty;
@@ -147,43 +146,42 @@ static GLboolean do_texture_drawpixels( GLcontext *ctx,
       dstx = x;
       dsty = dPriv->h - (y + height);
 
-      srcx = 0;			/* skiprows/pixels already done */
+      srcx = 0;                 /* skiprows/pixels already done */
       srcy = 0;
 
       if (0) {
-	 const GLint orig_x = dstx;
-	 const GLint orig_y = dsty;
+         const GLint orig_x = dstx;
+         const GLint orig_y = dsty;
 
-	 if (!_mesa_clip_to_region(0, 0, dst->pitch, dst->height,
-                                   &dstx, &dsty, &width, &height)) 
-	    goto out;
+         if (!_mesa_clip_to_region(0, 0, dst->pitch, dst->height,
+                                   &dstx, &dsty, &width, &height))
+            goto out;
 
-	 srcx += dstx - orig_x; 
-	 srcy += dsty - orig_y; 
+         srcx += dstx - orig_x;
+         srcy += dsty - orig_y;
       }
 
 
       if (INTEL_DEBUG & DEBUG_PIXEL)
-	 _mesa_printf("draw %d,%d %dx%d\n", dstx,dsty,width,height);
+         _mesa_printf("draw %d,%d %dx%d\n", dstx, dsty, width, height);
 
       /* Must use the regular cliprect mechanism in order to get the
        * drawing origin set correctly.  Otherwise scissor state is in
        * incorrect coordinate space.  Does this even need to hold the
        * lock???
        */
-      intel_meta_draw_quad(intel, 
-			   dstx, dstx + width * ctx->Pixel.ZoomX, 
-			   dPriv->h - (y + height * ctx->Pixel.ZoomY), 
-			   dPriv->h - (y), 
-			   - ctx->Current.RasterPos[2] * .5,
-			   0x00ff00ff, 
-			   srcx, srcx+width, 
-			   srcy+height, srcy);
-   out:
+      intel_meta_draw_quad(intel,
+                           dstx, dstx + width * ctx->Pixel.ZoomX,
+                           dPriv->h - (y + height * ctx->Pixel.ZoomY),
+                           dPriv->h - (y),
+                           -ctx->Current.RasterPos[2] * .5,
+                           0x00ff00ff,
+                           srcx, srcx + width, srcy + height, srcy);
+    out:
       intel->vtbl.leave_meta_state(intel);
       intel_batchbuffer_flush(intel->batch);
    }
-   UNLOCK_HARDWARE( intel );
+   UNLOCK_HARDWARE(intel);
    return GL_TRUE;
 }
 
@@ -206,27 +204,28 @@ static GLboolean do_texture_drawpixels( GLcontext *ctx,
  * data to agp space before performing the blit.  (Though it may turn
  * out to be better/simpler just to use the texture engine).
  */
-static GLboolean do_blit_drawpixels( GLcontext *ctx,
-				      GLint x, GLint y, 
-				      GLsizei width, GLsizei height,
-				      GLenum format, GLenum type,
-				      const struct gl_pixelstore_attrib *unpack,
-				      const GLvoid *pixels )
+static GLboolean
+do_blit_drawpixels(GLcontext * ctx,
+                   GLint x, GLint y,
+                   GLsizei width, GLsizei height,
+                   GLenum format, GLenum type,
+                   const struct gl_pixelstore_attrib *unpack,
+                   const GLvoid * pixels)
 {
    struct intel_context *intel = intel_context(ctx);
    struct intel_region *dest = intel_drawbuf_region(intel);
    struct intel_buffer_object *src = intel_buffer_object(unpack->BufferObj);
    GLuint src_offset;
    GLuint rowLength;
-   GLuint fence = bmInitFence(intel);
-   
+   struct _DriFenceObject *fence = NULL;
+
    if (INTEL_DEBUG & DEBUG_PIXEL)
       _mesa_printf("%s\n", __FUNCTION__);
-   
-   
+
+
    if (!dest) {
       if (INTEL_DEBUG & DEBUG_PIXEL)
-	 _mesa_printf("%s - no dest\n", __FUNCTION__);
+         _mesa_printf("%s - no dest\n", __FUNCTION__);
       return GL_FALSE;
    }
 
@@ -243,25 +242,26 @@ static GLboolean do_blit_drawpixels( GLcontext *ctx,
       /* PBO only for now:
        */
       if (INTEL_DEBUG & DEBUG_PIXEL)
-	 _mesa_printf("%s - not PBO\n", __FUNCTION__);
+         _mesa_printf("%s - not PBO\n", __FUNCTION__);
       return GL_FALSE;
    }
-   
+
    if (!intel_check_blit_format(dest, format, type)) {
       if (INTEL_DEBUG & DEBUG_PIXEL)
-	 _mesa_printf("%s - bad format for blit\n", __FUNCTION__);
+         _mesa_printf("%s - bad format for blit\n", __FUNCTION__);
       return GL_FALSE;
    }
 
    if (!intel_check_meta_tex_fragment_ops(ctx)) {
       if (INTEL_DEBUG & DEBUG_PIXEL)
-	 _mesa_printf("%s - bad GL fragment state for meta tex\n", __FUNCTION__);
+         _mesa_printf("%s - bad GL fragment state for meta tex\n",
+                      __FUNCTION__);
       return GL_FALSE;
    }
 
    if (ctx->Pixel.ZoomX != 1.0F) {
       if (INTEL_DEBUG & DEBUG_PIXEL)
-	 _mesa_printf("%s - bad PixelZoomX for blit\n", __FUNCTION__);
+         _mesa_printf("%s - bad PixelZoomX for blit\n", __FUNCTION__);
       return GL_FALSE;
    }
 
@@ -273,8 +273,8 @@ static GLboolean do_blit_drawpixels( GLcontext *ctx,
 
    if (ctx->Pixel.ZoomY == -1.0F) {
       if (INTEL_DEBUG & DEBUG_PIXEL)
-	 _mesa_printf("%s - bad PixelZoomY for blit\n", __FUNCTION__);
-      return GL_FALSE;		/* later */
+         _mesa_printf("%s - bad PixelZoomY for blit\n", __FUNCTION__);
+      return GL_FALSE;          /* later */
       y -= height;
    }
    else if (ctx->Pixel.ZoomY == 1.0F) {
@@ -282,55 +282,55 @@ static GLboolean do_blit_drawpixels( GLcontext *ctx,
    }
    else {
       if (INTEL_DEBUG & DEBUG_PIXEL)
-	 _mesa_printf("%s - bad PixelZoomY for blit\n", __FUNCTION__);
+         _mesa_printf("%s - bad PixelZoomY for blit\n", __FUNCTION__);
       return GL_FALSE;
    }
 
    src_offset = (GLuint) _mesa_image_address(2, unpack, pixels, width, height,
-					     format, type, 0, 0, 0);
+                                             format, type, 0, 0, 0);
 
-   intelFlush( &intel->ctx );
-   LOCK_HARDWARE( intel );
+   intelFlush(&intel->ctx);
+   LOCK_HARDWARE(intel);
 
-   if (intel->driDrawable->numClipRects)
-   {
+   if (intel->driDrawable->numClipRects) {
       __DRIdrawablePrivate *dPriv = intel->driDrawable;
       int nbox = dPriv->numClipRects;
       drm_clip_rect_t *box = dPriv->pClipRects;
       drm_clip_rect_t rect;
       drm_clip_rect_t dest_rect;
-      struct buffer *src_buffer = intel_bufferobj_buffer(intel, src, INTEL_READ);
+      struct _DriBufferObject *src_buffer =
+         intel_bufferobj_buffer(intel, src, INTEL_READ);
       int i;
-      
+
       dest_rect.x1 = dPriv->x + x;
       dest_rect.y1 = dPriv->y + dPriv->h - (y + height);
       dest_rect.x2 = dest_rect.x1 + width;
       dest_rect.y2 = dest_rect.y1 + height;
 
-      for (i = 0 ; i < nbox ; i++ )
-      {
-	 if (!intel_intersect_cliprects(&rect, &dest_rect, &box[i]))
-	    continue;
+      for (i = 0; i < nbox; i++) {
+         if (!intel_intersect_cliprects(&rect, &dest_rect, &box[i]))
+            continue;
 
-	 intelEmitCopyBlit( intel,
-			    dest->cpp,
-			    rowLength, 
-			    src_buffer, src_offset,
-			    dest->pitch, 
-			    dest->buffer, 0,
-			    rect.x1 - dest_rect.x1, 
-			    rect.y2 - dest_rect.y2,
-			    rect.x1, 
-			    rect.y1,
-			    rect.x2 - rect.x1,
-			    rect.y2 - rect.y1 );
+         intelEmitCopyBlit(intel,
+                           dest->cpp,
+                           rowLength,
+                           src_buffer, src_offset,
+                           dest->pitch,
+                           dest->buffer, 0,
+                           rect.x1 - dest_rect.x1,
+                           rect.y2 - dest_rect.y2,
+                           rect.x1,
+                           rect.y1, rect.x2 - rect.x1, rect.y2 - rect.y1);
       }
-      fence = intel_batchbuffer_flush( intel->batch );
+      fence = intel_batchbuffer_flush(intel->batch);
+      driFenceReference(fence);
    }
-   UNLOCK_HARDWARE( intel );
+   UNLOCK_HARDWARE(intel);
 
    if (intel->driDrawable->numClipRects)
-      bmFinishFence(intel, fence);   
+      driFenceFinish(fence, DRM_FENCE_EXE | DRM_I915_FENCE_TYPE_RW, GL_FALSE);
+
+   driFenceUnReference(fence);
 
    if (INTEL_DEBUG & DEBUG_PIXEL)
       _mesa_printf("%s - DONE\n", __FUNCTION__);
@@ -340,27 +340,26 @@ static GLboolean do_blit_drawpixels( GLcontext *ctx,
 
 
 
-void intelDrawPixels( GLcontext *ctx,
-		      GLint x, GLint y, 
-		      GLsizei width, GLsizei height,
-		      GLenum format, 
-		      GLenum type,
-		      const struct gl_pixelstore_attrib *unpack,
-		      const GLvoid *pixels )
+void
+intelDrawPixels(GLcontext * ctx,
+                GLint x, GLint y,
+                GLsizei width, GLsizei height,
+                GLenum format,
+                GLenum type,
+                const struct gl_pixelstore_attrib *unpack,
+                const GLvoid * pixels)
 {
-   if (do_blit_drawpixels( ctx, x, y, width, height, format, type,
-			    unpack, pixels ))
+   if (do_blit_drawpixels(ctx, x, y, width, height, format, type,
+                          unpack, pixels))
       return;
 
-   if (do_texture_drawpixels( ctx, x, y, width, height, format, type,
-			       unpack, pixels ))
+   if (do_texture_drawpixels(ctx, x, y, width, height, format, type,
+                             unpack, pixels))
       return;
 
 
    if (INTEL_DEBUG & DEBUG_PIXEL)
       _mesa_printf("%s: fallback to swrast\n", __FUNCTION__);
 
-   _swrast_DrawPixels( ctx, x, y, width, height, format, type,
-		       unpack, pixels );
+   _swrast_DrawPixels(ctx, x, y, width, height, format, type, unpack, pixels);
 }
-

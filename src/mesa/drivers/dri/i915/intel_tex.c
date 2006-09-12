@@ -4,16 +4,16 @@
 #include "intel_tex.h"
 
 
-static GLboolean intelIsTextureResident(GLcontext *ctx,
-                                      struct gl_texture_object *texObj)
+static GLboolean
+intelIsTextureResident(GLcontext * ctx, struct gl_texture_object *texObj)
 {
 #if 0
    struct intel_context *intel = intel_context(ctx);
    struct intel_texture_object *intelObj = intel_texture_object(texObj);
-   
-   return 
-      intelObj->mt && 
-      intelObj->mt->region && 
+
+   return
+      intelObj->mt &&
+      intelObj->mt->region &&
       intel_is_region_resident(intel, intelObj->mt->region);
 #endif
    return 1;
@@ -21,16 +21,16 @@ static GLboolean intelIsTextureResident(GLcontext *ctx,
 
 
 
-static struct gl_texture_image *intelNewTextureImage( GLcontext *ctx )
+static struct gl_texture_image *
+intelNewTextureImage(GLcontext * ctx)
 {
    (void) ctx;
-   return (struct gl_texture_image *)CALLOC_STRUCT(intel_texture_image);
+   return (struct gl_texture_image *) CALLOC_STRUCT(intel_texture_image);
 }
 
 
-static struct gl_texture_object *intelNewTextureObject( GLcontext *ctx, 
-							GLuint name, 
-							GLenum target )
+static struct gl_texture_object *
+intelNewTextureObject(GLcontext * ctx, GLuint name, GLenum target)
 {
    struct intel_texture_object *obj = CALLOC_STRUCT(intel_texture_object);
 
@@ -40,8 +40,8 @@ static struct gl_texture_object *intelNewTextureObject( GLcontext *ctx,
 }
 
 
-static void intelFreeTextureImageData( GLcontext *ctx, 
-				     struct gl_texture_image *texImage )
+static void
+intelFreeTextureImageData(GLcontext * ctx, struct gl_texture_image *texImage)
 {
    struct intel_context *intel = intel_context(ctx);
    struct intel_texture_image *intelImage = intel_texture_image(texImage);
@@ -49,7 +49,7 @@ static void intelFreeTextureImageData( GLcontext *ctx,
    if (intelImage->mt) {
       intel_miptree_release(intel, &intelImage->mt);
    }
-   
+
    if (texImage->Data) {
       free(texImage->Data);
       texImage->Data = NULL;
@@ -61,33 +61,33 @@ static void intelFreeTextureImageData( GLcontext *ctx,
 static unsigned
 fastrdtsc(void)
 {
-    unsigned eax;
-    __asm__ volatile ("\t"
-	"pushl  %%ebx\n\t"
-	"cpuid\n\t" ".byte 0x0f, 0x31\n\t" "popl %%ebx\n":"=a" (eax)
-	:"0"(0)
-	:"ecx", "edx", "cc");
+   unsigned eax;
+   __asm__ volatile ("\t"
+                     "pushl  %%ebx\n\t"
+                     "cpuid\n\t" ".byte 0x0f, 0x31\n\t"
+                     "popl %%ebx\n":"=a" (eax)
+                     :"0"(0)
+                     :"ecx", "edx", "cc");
 
-    return eax;
+   return eax;
 }
 #else
 static unsigned
 fastrdtsc(void)
 {
-    unsigned eax;
-    __asm__ volatile ("\t"
-	"cpuid\n\t" ".byte 0x0f, 0x31\n\t" :"=a" (eax)
-	:"0"(0)
-		      :"ecx", "edx", "ebx", "cc");
+   unsigned eax;
+   __asm__ volatile ("\t" "cpuid\n\t" ".byte 0x0f, 0x31\n\t":"=a" (eax)
+                     :"0"(0)
+                     :"ecx", "edx", "ebx", "cc");
 
-    return eax;
+   return eax;
 }
 #endif
 
 static unsigned
 time_diff(unsigned t, unsigned t2)
 {
-    return ((t < t2) ? t2 - t : 0xFFFFFFFFU - (t - t2 - 1));
+   return ((t < t2) ? t2 - t : 0xFFFFFFFFU - (t - t2 - 1));
 }
 
 
@@ -103,39 +103,40 @@ time_diff(unsigned t, unsigned t2)
  * 
  * TODO: switch dynamically.
  */
-static void *do_memcpy( void *dest, const void *src, size_t n )
+static void *
+do_memcpy(void *dest, const void *src, size_t n)
 {
-   if ( (((unsigned)src) & 63) ||
-	(((unsigned)dest) & 63)) {
-      return  __memcpy(dest, src, n);	
+   if ((((unsigned) src) & 63) || (((unsigned) dest) & 63)) {
+      return __memcpy(dest, src, n);
    }
    else
       return memcpy(dest, src, n);
 }
 
 
-static void *timed_memcpy( void *dest, const void *src, size_t n )
+static void *
+timed_memcpy(void *dest, const void *src, size_t n)
 {
    void *ret;
    unsigned t1, t2;
    double rate;
 
-   if ( (((unsigned)src) & 63) ||
-	(((unsigned)dest) & 63)) 
+   if ((((unsigned) src) & 63) || (((unsigned) dest) & 63))
       _mesa_printf("Warning - non-aligned texture copy!\n");
 
    t1 = fastrdtsc();
-   ret =  do_memcpy(dest, src, n);	
+   ret = do_memcpy(dest, src, n);
    t2 = fastrdtsc();
 
    rate = time_diff(t1, t2);
    rate /= (double) n;
-   _mesa_printf("timed_memcpy: %u %u --> %f clocks/byte\n", t1, t2, rate); 
+   _mesa_printf("timed_memcpy: %u %u --> %f clocks/byte\n", t1, t2, rate);
    return ret;
 }
 
 
-void intelInitTextureFuncs(struct dd_function_table * functions)
+void
+intelInitTextureFuncs(struct dd_function_table *functions)
 {
    functions->ChooseTextureFormat = intelChooseTextureFormat;
    functions->TexImage1D = intelTexImage1D;

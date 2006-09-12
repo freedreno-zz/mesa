@@ -35,8 +35,8 @@
 
 #define FILE_DEBUG_FLAG DEBUG_STATE
 
-static GLboolean i830_check_vertex_size( struct intel_context *intel,
-					 GLuint expected );
+static GLboolean i830_check_vertex_size(struct intel_context *intel,
+                                        GLuint expected);
 
 #define SZ_TO_HW(sz)  ((sz-2)&0x3)
 #define EMIT_SZ(sz)   (EMIT_1F + (sz) - 1)
@@ -60,7 +60,8 @@ do {									\
 #define VRTX_TEX_SET_FMT(n, x)          ((x)<<((n)*2))
 #define TEXBIND_SET(n, x) 		((x)<<((n)*4))
 
-static void i830_render_start( struct intel_context *intel )
+static void
+i830_render_start(struct intel_context *intel)
 {
    GLcontext *ctx = &intel->ctx;
    struct i830_context *i830 = i830_context(ctx);
@@ -71,7 +72,7 @@ static void i830_render_start( struct intel_context *intel )
    GLuint v2 = _3DSTATE_VFT1_CMD;
    GLuint mcsb1 = 0;
 
-   RENDERINPUTS_COPY( index_bitset, tnl->render_inputs_bitset );
+   RENDERINPUTS_COPY(index_bitset, tnl->render_inputs_bitset);
 
    /* Important:
     */
@@ -81,150 +82,149 @@ static void i830_render_start( struct intel_context *intel )
    /* EMIT_ATTR's must be in order as they tell t_vertex.c how to
     * build up a hardware vertex.
     */
-   if (RENDERINPUTS_TEST_RANGE( index_bitset, _TNL_FIRST_TEX, _TNL_LAST_TEX )) {
-      EMIT_ATTR( _TNL_ATTRIB_POS, EMIT_4F_VIEWPORT, VFT0_XYZW );
+   if (RENDERINPUTS_TEST_RANGE(index_bitset, _TNL_FIRST_TEX, _TNL_LAST_TEX)) {
+      EMIT_ATTR(_TNL_ATTRIB_POS, EMIT_4F_VIEWPORT, VFT0_XYZW);
       intel->coloroffset = 4;
    }
    else {
-      EMIT_ATTR( _TNL_ATTRIB_POS, EMIT_3F_VIEWPORT, VFT0_XYZ );
+      EMIT_ATTR(_TNL_ATTRIB_POS, EMIT_3F_VIEWPORT, VFT0_XYZ);
       intel->coloroffset = 3;
    }
 
-   if (RENDERINPUTS_TEST( index_bitset, _TNL_ATTRIB_POINTSIZE )) {
-      EMIT_ATTR( _TNL_ATTRIB_POINTSIZE, EMIT_1F, VFT0_POINT_WIDTH );
+   if (RENDERINPUTS_TEST(index_bitset, _TNL_ATTRIB_POINTSIZE)) {
+      EMIT_ATTR(_TNL_ATTRIB_POINTSIZE, EMIT_1F, VFT0_POINT_WIDTH);
    }
 
-   EMIT_ATTR( _TNL_ATTRIB_COLOR0, EMIT_4UB_4F_BGRA, VFT0_DIFFUSE );
-      
+   EMIT_ATTR(_TNL_ATTRIB_COLOR0, EMIT_4UB_4F_BGRA, VFT0_DIFFUSE);
+
    intel->specoffset = 0;
-   if (RENDERINPUTS_TEST( index_bitset, _TNL_ATTRIB_COLOR1 ) ||
-       RENDERINPUTS_TEST( index_bitset, _TNL_ATTRIB_FOG )) {
-      if (RENDERINPUTS_TEST( index_bitset, _TNL_ATTRIB_COLOR1 )) {
+   if (RENDERINPUTS_TEST(index_bitset, _TNL_ATTRIB_COLOR1) ||
+       RENDERINPUTS_TEST(index_bitset, _TNL_ATTRIB_FOG)) {
+      if (RENDERINPUTS_TEST(index_bitset, _TNL_ATTRIB_COLOR1)) {
          intel->specoffset = intel->coloroffset + 1;
-         EMIT_ATTR( _TNL_ATTRIB_COLOR1, EMIT_3UB_3F_BGR, VFT0_SPEC );
+         EMIT_ATTR(_TNL_ATTRIB_COLOR1, EMIT_3UB_3F_BGR, VFT0_SPEC);
       }
       else
-         EMIT_PAD( 3 );
+         EMIT_PAD(3);
 
-      if (RENDERINPUTS_TEST( index_bitset, _TNL_ATTRIB_FOG ))
-         EMIT_ATTR( _TNL_ATTRIB_FOG, EMIT_1UB_1F, VFT0_SPEC );
+      if (RENDERINPUTS_TEST(index_bitset, _TNL_ATTRIB_FOG))
+         EMIT_ATTR(_TNL_ATTRIB_FOG, EMIT_1UB_1F, VFT0_SPEC);
       else
-         EMIT_PAD( 1 );
+         EMIT_PAD(1);
    }
 
-   if (RENDERINPUTS_TEST_RANGE( index_bitset, _TNL_FIRST_TEX, _TNL_LAST_TEX )) {
+   if (RENDERINPUTS_TEST_RANGE(index_bitset, _TNL_FIRST_TEX, _TNL_LAST_TEX)) {
       int i, count = 0;
 
       for (i = 0; i < I830_TEX_UNITS; i++) {
-         if (RENDERINPUTS_TEST( index_bitset, _TNL_ATTRIB_TEX(i) )) {
+         if (RENDERINPUTS_TEST(index_bitset, _TNL_ATTRIB_TEX(i))) {
             GLuint sz = VB->TexCoordPtr[i]->size;
             GLuint emit;
-            GLuint mcs = (i830->state.Tex[i][I830_TEXREG_MCS] & 
+            GLuint mcs = (i830->state.Tex[i][I830_TEXREG_MCS] &
                           ~TEXCOORDTYPE_MASK);
 
-	    switch (sz) {
-	    case 1: 
-	    case 2: 
-	       emit = EMIT_2F; 
-	       sz = 2; 
-	       mcs |= TEXCOORDTYPE_CARTESIAN; 
-	       break;
-	    case 3:
-	       emit = EMIT_3F; 
-	       sz = 3;
-	       mcs |= TEXCOORDTYPE_VECTOR;
-	       break;
-	    case 4: 
-	       emit = EMIT_3F_XYW; 
-	       sz = 3;     
-	       mcs |= TEXCOORDTYPE_HOMOGENEOUS;
-	       break;
-	    default: 
-	       continue;
-	    };
-	      
+            switch (sz) {
+            case 1:
+            case 2:
+               emit = EMIT_2F;
+               sz = 2;
+               mcs |= TEXCOORDTYPE_CARTESIAN;
+               break;
+            case 3:
+               emit = EMIT_3F;
+               sz = 3;
+               mcs |= TEXCOORDTYPE_VECTOR;
+               break;
+            case 4:
+               emit = EMIT_3F_XYW;
+               sz = 3;
+               mcs |= TEXCOORDTYPE_HOMOGENEOUS;
+               break;
+            default:
+               continue;
+            };
 
-	    EMIT_ATTR( _TNL_ATTRIB_TEX0+i, emit, 0 );	       
-	    v2 |= VRTX_TEX_SET_FMT(count, SZ_TO_HW(sz));
-	    mcsb1 |= (count+8)<<(i*4);
 
-	    if (mcs != i830->state.Tex[i][I830_TEXREG_MCS]) {
-	       I830_STATECHANGE(i830, I830_UPLOAD_TEX(i));
-	       i830->state.Tex[i][I830_TEXREG_MCS] = mcs;
-	    }
+            EMIT_ATTR(_TNL_ATTRIB_TEX0 + i, emit, 0);
+            v2 |= VRTX_TEX_SET_FMT(count, SZ_TO_HW(sz));
+            mcsb1 |= (count + 8) << (i * 4);
 
-	    count++;
-	 }
+            if (mcs != i830->state.Tex[i][I830_TEXREG_MCS]) {
+               I830_STATECHANGE(i830, I830_UPLOAD_TEX(i));
+               i830->state.Tex[i][I830_TEXREG_MCS] = mcs;
+            }
+
+            count++;
+         }
       }
 
       v0 |= VFT0_TEX_COUNT(count);
    }
-   
+
    /* Only need to change the vertex emit code if there has been a
     * statechange to a new hardware vertex format:
     */
    if (v0 != i830->state.Ctx[I830_CTXREG_VF] ||
        v2 != i830->state.Ctx[I830_CTXREG_VF2] ||
        mcsb1 != i830->state.Ctx[I830_CTXREG_MCSB1] ||
-       !RENDERINPUTS_EQUAL( index_bitset, i830->last_index_bitset )) {
+       !RENDERINPUTS_EQUAL(index_bitset, i830->last_index_bitset)) {
       int k;
-    
-      I830_STATECHANGE( i830, I830_UPLOAD_CTX );
+
+      I830_STATECHANGE(i830, I830_UPLOAD_CTX);
 
       /* Must do this *after* statechange, so as not to affect
        * buffered vertices reliant on the old state:
        */
-      intel->vertex_size = 
-	 _tnl_install_attrs( ctx, 
-			     intel->vertex_attrs, 
-			     intel->vertex_attr_count,
-			     intel->ViewportMatrix.m, 0 );
+      intel->vertex_size =
+         _tnl_install_attrs(ctx,
+                            intel->vertex_attrs,
+                            intel->vertex_attr_count,
+                            intel->ViewportMatrix.m, 0);
 
       intel->vertex_size >>= 2;
 
       i830->state.Ctx[I830_CTXREG_VF] = v0;
       i830->state.Ctx[I830_CTXREG_VF2] = v2;
       i830->state.Ctx[I830_CTXREG_MCSB1] = mcsb1;
-      RENDERINPUTS_COPY( i830->last_index_bitset, index_bitset );
+      RENDERINPUTS_COPY(i830->last_index_bitset, index_bitset);
 
-      k = i830_check_vertex_size( intel, intel->vertex_size );
+      k = i830_check_vertex_size(intel, intel->vertex_size);
       assert(k);
    }
 }
 
-static void i830_reduced_primitive_state( struct intel_context *intel,
-					  GLenum rprim )
+static void
+i830_reduced_primitive_state(struct intel_context *intel, GLenum rprim)
 {
-    struct i830_context *i830 = i830_context(&intel->ctx);
-    GLuint st1 = i830->state.Stipple[I830_STPREG_ST1];
+   struct i830_context *i830 = i830_context(&intel->ctx);
+   GLuint st1 = i830->state.Stipple[I830_STPREG_ST1];
 
-    st1 &= ~ST1_ENABLE;
+   st1 &= ~ST1_ENABLE;
 
-    switch (rprim) {
-    case GL_TRIANGLES:
-       if (intel->ctx.Polygon.StippleFlag &&
-	   intel->hw_stipple)
-	  st1 |= ST1_ENABLE;
-       break;
-    case GL_LINES:
-    case GL_POINTS:
-    default:
-       break;
-    }
+   switch (rprim) {
+   case GL_TRIANGLES:
+      if (intel->ctx.Polygon.StippleFlag && intel->hw_stipple)
+         st1 |= ST1_ENABLE;
+      break;
+   case GL_LINES:
+   case GL_POINTS:
+   default:
+      break;
+   }
 
-    i830->intel.reduced_primitive = rprim;
+   i830->intel.reduced_primitive = rprim;
 
-    if (st1 != i830->state.Stipple[I830_STPREG_ST1]) {
-       I830_STATECHANGE(i830, I830_UPLOAD_STIPPLE);
-       i830->state.Stipple[I830_STPREG_ST1] = st1;
-    }
+   if (st1 != i830->state.Stipple[I830_STPREG_ST1]) {
+      I830_STATECHANGE(i830, I830_UPLOAD_STIPPLE);
+      i830->state.Stipple[I830_STPREG_ST1] = st1;
+   }
 }
 
 /* Pull apart the vertex format registers and figure out how large a
  * vertex is supposed to be. 
  */
-static GLboolean i830_check_vertex_size( struct intel_context *intel,
-					 GLuint expected )
+static GLboolean
+i830_check_vertex_size(struct intel_context *intel, GLuint expected)
 {
    struct i830_context *i830 = i830_context(&intel->ctx);
    int vft0 = i830->current->Ctx[I830_CTXREG_VF];
@@ -233,37 +233,58 @@ static GLboolean i830_check_vertex_size( struct intel_context *intel,
    int i, sz = 0;
 
    switch (vft0 & VFT0_XYZW_MASK) {
-   case VFT0_XY: sz = 2; break;
-   case VFT0_XYZ: sz = 3; break;
-   case VFT0_XYW: sz = 3; break;
-   case VFT0_XYZW: sz = 4; break;
-   default: 
+   case VFT0_XY:
+      sz = 2;
+      break;
+   case VFT0_XYZ:
+      sz = 3;
+      break;
+   case VFT0_XYW:
+      sz = 3;
+      break;
+   case VFT0_XYZW:
+      sz = 4;
+      break;
+   default:
       fprintf(stderr, "no xyzw specified\n");
       return 0;
    }
 
-   if (vft0 & VFT0_SPEC) sz++;
-   if (vft0 & VFT0_DIFFUSE) sz++;
-   if (vft0 & VFT0_DEPTH_OFFSET) sz++;
-   if (vft0 & VFT0_POINT_WIDTH) sz++;
-	
-   for (i = 0 ; i < nrtex ; i++) { 
+   if (vft0 & VFT0_SPEC)
+      sz++;
+   if (vft0 & VFT0_DIFFUSE)
+      sz++;
+   if (vft0 & VFT0_DEPTH_OFFSET)
+      sz++;
+   if (vft0 & VFT0_POINT_WIDTH)
+      sz++;
+
+   for (i = 0; i < nrtex; i++) {
       switch (vft1 & VFT1_TEX0_MASK) {
-      case TEXCOORDFMT_2D: sz += 2; break;
-      case TEXCOORDFMT_3D: sz += 3; break;
-      case TEXCOORDFMT_4D: sz += 4; break;
-      case TEXCOORDFMT_1D: sz += 1; break;
+      case TEXCOORDFMT_2D:
+         sz += 2;
+         break;
+      case TEXCOORDFMT_3D:
+         sz += 3;
+         break;
+      case TEXCOORDFMT_4D:
+         sz += 4;
+         break;
+      case TEXCOORDFMT_1D:
+         sz += 1;
+         break;
       }
       vft1 >>= VFT1_TEX1_SHIFT;
    }
-	
-   if (sz != expected) 
+
+   if (sz != expected)
       fprintf(stderr, "vertex size mismatch %d/%d\n", sz, expected);
-   
+
    return sz == expected;
 }
 
-static void i830_emit_invarient_state( struct intel_context *intel )
+static void
+i830_emit_invarient_state(struct intel_context *intel)
 {
    BATCH_LOCALS;
 
@@ -280,37 +301,35 @@ static void i830_emit_invarient_state( struct intel_context *intel )
 
    OUT_BATCH(_3DSTATE_FOG_MODE_CMD);
    OUT_BATCH(FOGFUNC_ENABLE |
-	     FOG_LINEAR_CONST | 
-	     FOGSRC_INDEX_Z | 
-	     ENABLE_FOG_DENSITY);
+             FOG_LINEAR_CONST | FOGSRC_INDEX_Z | ENABLE_FOG_DENSITY);
    OUT_BATCH(0);
    OUT_BATCH(0);
 
 
    OUT_BATCH(_3DSTATE_MAP_TEX_STREAM_CMD |
-	     MAP_UNIT(0) |
-	     DISABLE_TEX_STREAM_BUMP |
-	     ENABLE_TEX_STREAM_COORD_SET |
-	     TEX_STREAM_COORD_SET(0) |
-	     ENABLE_TEX_STREAM_MAP_IDX | TEX_STREAM_MAP_IDX(0));
+             MAP_UNIT(0) |
+             DISABLE_TEX_STREAM_BUMP |
+             ENABLE_TEX_STREAM_COORD_SET |
+             TEX_STREAM_COORD_SET(0) |
+             ENABLE_TEX_STREAM_MAP_IDX | TEX_STREAM_MAP_IDX(0));
    OUT_BATCH(_3DSTATE_MAP_TEX_STREAM_CMD |
-	     MAP_UNIT(1) |
-	     DISABLE_TEX_STREAM_BUMP |
-	     ENABLE_TEX_STREAM_COORD_SET |
-	     TEX_STREAM_COORD_SET(1) |
-	     ENABLE_TEX_STREAM_MAP_IDX | TEX_STREAM_MAP_IDX(1));
+             MAP_UNIT(1) |
+             DISABLE_TEX_STREAM_BUMP |
+             ENABLE_TEX_STREAM_COORD_SET |
+             TEX_STREAM_COORD_SET(1) |
+             ENABLE_TEX_STREAM_MAP_IDX | TEX_STREAM_MAP_IDX(1));
    OUT_BATCH(_3DSTATE_MAP_TEX_STREAM_CMD |
-	     MAP_UNIT(2) |
-	     DISABLE_TEX_STREAM_BUMP |
-	     ENABLE_TEX_STREAM_COORD_SET |
-	     TEX_STREAM_COORD_SET(2) |
-	     ENABLE_TEX_STREAM_MAP_IDX | TEX_STREAM_MAP_IDX(2));
+             MAP_UNIT(2) |
+             DISABLE_TEX_STREAM_BUMP |
+             ENABLE_TEX_STREAM_COORD_SET |
+             TEX_STREAM_COORD_SET(2) |
+             ENABLE_TEX_STREAM_MAP_IDX | TEX_STREAM_MAP_IDX(2));
    OUT_BATCH(_3DSTATE_MAP_TEX_STREAM_CMD |
-	     MAP_UNIT(3) |
-	     DISABLE_TEX_STREAM_BUMP |
-	     ENABLE_TEX_STREAM_COORD_SET |
-	     TEX_STREAM_COORD_SET(3) |
-	     ENABLE_TEX_STREAM_MAP_IDX | TEX_STREAM_MAP_IDX(3));
+             MAP_UNIT(3) |
+             DISABLE_TEX_STREAM_BUMP |
+             ENABLE_TEX_STREAM_COORD_SET |
+             TEX_STREAM_COORD_SET(3) |
+             ENABLE_TEX_STREAM_MAP_IDX | TEX_STREAM_MAP_IDX(3));
 
    OUT_BATCH(_3DSTATE_MAP_COORD_TRANSFORM);
    OUT_BATCH(DISABLE_TEX_TRANSFORM | TEXTURE_SET(0));
@@ -322,14 +341,13 @@ static void i830_emit_invarient_state( struct intel_context *intel )
    OUT_BATCH(DISABLE_TEX_TRANSFORM | TEXTURE_SET(3));
 
    OUT_BATCH(_3DSTATE_RASTER_RULES_CMD |
-	     ENABLE_POINT_RASTER_RULE |
-	     OGL_POINT_RASTER_RULE |
-	     ENABLE_LINE_STRIP_PROVOKE_VRTX |
-	     ENABLE_TRI_FAN_PROVOKE_VRTX |
-	     ENABLE_TRI_STRIP_PROVOKE_VRTX |
-	     LINE_STRIP_PROVOKE_VRTX(1) |
-	     TRI_FAN_PROVOKE_VRTX(2) | 
-	     TRI_STRIP_PROVOKE_VRTX(2));
+             ENABLE_POINT_RASTER_RULE |
+             OGL_POINT_RASTER_RULE |
+             ENABLE_LINE_STRIP_PROVOKE_VRTX |
+             ENABLE_TRI_FAN_PROVOKE_VRTX |
+             ENABLE_TRI_STRIP_PROVOKE_VRTX |
+             LINE_STRIP_PROVOKE_VRTX(1) |
+             TRI_FAN_PROVOKE_VRTX(2) | TRI_STRIP_PROVOKE_VRTX(2));
 
    OUT_BATCH(_3DSTATE_VERTEX_TRANSFORM);
    OUT_BATCH(DISABLE_VIEWPORT_TRANSFORM | DISABLE_PERSPECTIVE_DIVIDE);
@@ -340,7 +358,7 @@ static void i830_emit_invarient_state( struct intel_context *intel )
 
 
    OUT_BATCH(_3DSTATE_COLOR_FACTOR_CMD);
-   OUT_BATCH(0x80808080);	/* .5 required in alpha for GL_DOT3_RGBA_EXT */
+   OUT_BATCH(0x80808080);       /* .5 required in alpha for GL_DOT3_RGBA_EXT */
 
    ADVANCE_BATCH();
 }
@@ -357,30 +375,31 @@ do {							\
    ADVANCE_BATCH();					\
 } while (0)
 
-static GLuint get_state_size( struct i830_hw_state *state )
+static GLuint
+get_state_size(struct i830_hw_state *state)
 {
    GLuint dirty = state->active & ~state->emitted;
    GLuint sz = 0;
    GLuint i;
 
-   if (dirty & I830_UPLOAD_INVARIENT) 
+   if (dirty & I830_UPLOAD_INVARIENT)
       sz += 40 * sizeof(int);
 
-   if (dirty & I830_UPLOAD_CTX) 
+   if (dirty & I830_UPLOAD_CTX)
       sz += sizeof(state->Ctx);
 
-   if (dirty & I830_UPLOAD_BUFFERS) 
+   if (dirty & I830_UPLOAD_BUFFERS)
       sz += sizeof(state->Buffer);
 
-   if (dirty & I830_UPLOAD_STIPPLE) 
+   if (dirty & I830_UPLOAD_STIPPLE)
       sz += sizeof(state->Stipple);
 
    for (i = 0; i < I830_TEX_UNITS; i++) {
-      if ((dirty & I830_UPLOAD_TEX(i)))  
-	 sz += sizeof(state->Tex[i]); 
+      if ((dirty & I830_UPLOAD_TEX(i)))
+         sz += sizeof(state->Tex[i]);
 
-      if (dirty & I830_UPLOAD_TEXBLEND(i)) 
-	 sz += state->TexBlendWordsUsed[i] * 4;
+      if (dirty & I830_UPLOAD_TEXBLEND(i))
+         sz += state->TexBlendWordsUsed[i] * 4;
    }
 
    return sz;
@@ -389,7 +408,8 @@ static GLuint get_state_size( struct i830_hw_state *state )
 
 /* Push the state into the sarea and/or texture memory.
  */
-static void i830_emit_state( struct intel_context *intel )
+static void
+i830_emit_state(struct intel_context *intel)
 {
    struct i830_context *i830 = i830_context(&intel->ctx);
    struct i830_hw_state *state = i830->current;
@@ -404,32 +424,34 @@ static void i830_emit_state( struct intel_context *intel )
     * scheduling is allowed, rather than assume that it is whenever a
     * batchbuffer fills up.
     */
-   intel_batchbuffer_require_space(intel->batch, 
-				   get_state_size(state),
-				   0);
+   intel_batchbuffer_require_space(intel->batch, get_state_size(state), 0);
 
    if (dirty & I830_UPLOAD_INVARIENT) {
-      DBG("I830_UPLOAD_INVARIENT:\n"); 
-      i830_emit_invarient_state( intel );
+      DBG("I830_UPLOAD_INVARIENT:\n");
+      i830_emit_invarient_state(intel);
    }
 
    if (dirty & I830_UPLOAD_CTX) {
-      DBG("I830_UPLOAD_CTX:\n"); 
-      emit( i830, state->Ctx, sizeof(state->Ctx) );
+      DBG("I830_UPLOAD_CTX:\n");
+      emit(i830, state->Ctx, sizeof(state->Ctx));
 
    }
 
    if (dirty & I830_UPLOAD_BUFFERS) {
-      DBG("I830_UPLOAD_BUFFERS:\n"); 
-      BEGIN_BATCH(I830_DEST_SETUP_SIZE+2, 0);
+      DBG("I830_UPLOAD_BUFFERS:\n");
+      BEGIN_BATCH(I830_DEST_SETUP_SIZE + 2, 0);
       OUT_BATCH(state->Buffer[I830_DESTREG_CBUFADDR0]);
       OUT_BATCH(state->Buffer[I830_DESTREG_CBUFADDR1]);
-      OUT_RELOC(state->draw_region->buffer, DRM_MM_TT|DRM_MM_WRITE, 0);
+      OUT_RELOC(state->draw_region->buffer,
+                DRM_BO_FLAG_MEM_TT | DRM_BO_FLAG_WRITE,
+                DRM_BO_MASK_MEM | DRM_BO_FLAG_WRITE, 0);
 
       if (state->depth_region) {
-	 OUT_BATCH(state->Buffer[I830_DESTREG_DBUFADDR0]);
-	 OUT_BATCH(state->Buffer[I830_DESTREG_DBUFADDR1]);
-	 OUT_RELOC(state->depth_region->buffer, DRM_MM_TT |DRM_MM_WRITE, 0);
+         OUT_BATCH(state->Buffer[I830_DESTREG_DBUFADDR0]);
+         OUT_BATCH(state->Buffer[I830_DESTREG_DBUFADDR1]);
+         OUT_RELOC(state->depth_region->buffer,
+                   DRM_BO_FLAG_MEM_TT | DRM_BO_FLAG_WRITE,
+                   DRM_BO_MASK_MEM | DRM_BO_FLAG_WRITE, 0);
       }
 
       OUT_BATCH(state->Buffer[I830_DESTREG_DV0]);
@@ -442,55 +464,57 @@ static void i830_emit_state( struct intel_context *intel )
    }
 
    if (dirty & I830_UPLOAD_STIPPLE) {
-      DBG("I830_UPLOAD_STIPPLE:\n"); 
-      emit( i830, state->Stipple, sizeof(state->Stipple) );
+      DBG("I830_UPLOAD_STIPPLE:\n");
+      emit(i830, state->Stipple, sizeof(state->Stipple));
    }
 
    for (i = 0; i < I830_TEX_UNITS; i++) {
-      if ((dirty & I830_UPLOAD_TEX(i))) { 
-	 DBG("I830_UPLOAD_TEX(%d):\n", i); 
+      if ((dirty & I830_UPLOAD_TEX(i))) {
+         DBG("I830_UPLOAD_TEX(%d):\n", i);
 
-	 BEGIN_BATCH(I830_TEX_SETUP_SIZE+1, 0);
-	 OUT_BATCH(state->Tex[i][I830_TEXREG_TM0LI]);
+         BEGIN_BATCH(I830_TEX_SETUP_SIZE + 1, 0);
+         OUT_BATCH(state->Tex[i][I830_TEXREG_TM0LI]);
 
-	 if (state->tex_buffer[i]) {
-	    OUT_RELOC(state->tex_buffer[i],
-		      DRM_MM_TT|DRM_MM_READ,
-		      state->tex_offset[i] | TM0S0_USE_FENCE);
-	 }
-	 else {
-	    assert(i == 0);
-	    assert(state == &i830->meta);
-	    OUT_BATCH(0);
-	 }
+         if (state->tex_buffer[i]) {
+            OUT_RELOC(state->tex_buffer[i],
+                      DRM_BO_FLAG_MEM_TT | DRM_BO_FLAG_READ,
+                      DRM_BO_MASK_MEM | DRM_BO_FLAG_READ,
+                      state->tex_offset[i] | TM0S0_USE_FENCE);
+         }
+         else {
+            assert(i == 0);
+            assert(state == &i830->meta);
+            OUT_BATCH(0);
+         }
 
-	 OUT_BATCH(state->Tex[i][I830_TEXREG_TM0S1]);
-	 OUT_BATCH(state->Tex[i][I830_TEXREG_TM0S2]);
-	 OUT_BATCH(state->Tex[i][I830_TEXREG_TM0S3]);
-	 OUT_BATCH(state->Tex[i][I830_TEXREG_TM0S4]);
-	 OUT_BATCH(state->Tex[i][I830_TEXREG_MCS]);
-	 OUT_BATCH(state->Tex[i][I830_TEXREG_CUBE]);
-      } 
+         OUT_BATCH(state->Tex[i][I830_TEXREG_TM0S1]);
+         OUT_BATCH(state->Tex[i][I830_TEXREG_TM0S2]);
+         OUT_BATCH(state->Tex[i][I830_TEXREG_TM0S3]);
+         OUT_BATCH(state->Tex[i][I830_TEXREG_TM0S4]);
+         OUT_BATCH(state->Tex[i][I830_TEXREG_MCS]);
+         OUT_BATCH(state->Tex[i][I830_TEXREG_CUBE]);
+      }
 
       if (dirty & I830_UPLOAD_TEXBLEND(i)) {
-	 DBG("I830_UPLOAD_TEXBLEND(%d): %d words\n", i,
-	     state->TexBlendWordsUsed[i]); 
-	 emit( i830, state->TexBlend[i], 
-	       state->TexBlendWordsUsed[i] * 4 );
+         DBG("I830_UPLOAD_TEXBLEND(%d): %d words\n", i,
+             state->TexBlendWordsUsed[i]);
+         emit(i830, state->TexBlend[i], state->TexBlendWordsUsed[i] * 4);
       }
    }
 
    state->emitted |= dirty;
 }
 
-static void i830_destroy_context( struct intel_context *intel )
+static void
+i830_destroy_context(struct intel_context *intel)
 {
    _tnl_free_vertices(&intel->ctx);
 }
 
-static void i830_set_draw_region( struct intel_context *intel, 
-				  struct intel_region *draw_region,
-				  struct intel_region *depth_region)
+static void
+i830_set_draw_region(struct intel_context *intel,
+                     struct intel_region *draw_region,
+                     struct intel_region *depth_region)
 {
    struct i830_context *i830 = i830_context(&intel->ctx);
 
@@ -501,24 +525,27 @@ static void i830_set_draw_region( struct intel_context *intel,
 
    /* XXX FBO: Need code from i915_set_draw_region() */
 
-   I830_STATECHANGE( i830, I830_UPLOAD_BUFFERS );
-   I830_STATECHANGE( i830, I830_UPLOAD_BUFFERS );
+   I830_STATECHANGE(i830, I830_UPLOAD_BUFFERS);
+   I830_STATECHANGE(i830, I830_UPLOAD_BUFFERS);
    i830->state.Buffer[I830_DESTREG_CBUFADDR1] =
-      (BUF_3D_ID_COLOR_BACK | BUF_3D_PITCH(draw_region->pitch) | BUF_3D_USE_FENCE);
+      (BUF_3D_ID_COLOR_BACK | BUF_3D_PITCH(draw_region->pitch) |
+       BUF_3D_USE_FENCE);
    i830->state.Buffer[I830_DESTREG_DBUFADDR1] =
-      (BUF_3D_ID_DEPTH | BUF_3D_PITCH(depth_region->pitch) | BUF_3D_USE_FENCE);
+      (BUF_3D_ID_DEPTH | BUF_3D_PITCH(depth_region->pitch) |
+       BUF_3D_USE_FENCE);
 }
 
 #if 0
 static void
 i830_update_color_z_regions(intelContextPtr intel,
-                            const intelRegion *colorRegion,
-                            const intelRegion *depthRegion)
+                            const intelRegion * colorRegion,
+                            const intelRegion * depthRegion)
 {
    i830ContextPtr i830 = I830_CONTEXT(intel);
 
    i830->state.Buffer[I830_DESTREG_CBUFADDR1] =
-      (BUF_3D_ID_COLOR_BACK | BUF_3D_PITCH(colorRegion->pitch) | BUF_3D_USE_FENCE);
+      (BUF_3D_ID_COLOR_BACK | BUF_3D_PITCH(colorRegion->pitch) |
+       BUF_3D_USE_FENCE);
    i830->state.Buffer[I830_DESTREG_CBUFADDR2] = colorRegion->offset;
 
    i830->state.Buffer[I830_DESTREG_DBUFADDR1] =
@@ -530,7 +557,8 @@ i830_update_color_z_regions(intelContextPtr intel,
 
 /* This isn't really handled at the moment.
  */
-static void i830_lost_hardware( struct intel_context *intel )
+static void
+i830_lost_hardware(struct intel_context *intel)
 {
    struct i830_context *i830 = i830_context(&intel->ctx);
    i830->state.emitted = 0;
@@ -538,15 +566,17 @@ static void i830_lost_hardware( struct intel_context *intel )
 
 
 
-static GLuint i830_flush_cmd( void )
+static GLuint
+i830_flush_cmd(void)
 {
-   return MI_FLUSH | FLUSH_MAP_CACHE; 
+   return MI_FLUSH | FLUSH_MAP_CACHE;
 }
 
 
 
 
-void i830InitVtbl( struct i830_context *i830 )
+void
+i830InitVtbl(struct i830_context *i830)
 {
    i830->intel.vtbl.check_vertex_size = i830_check_vertex_size;
    i830->intel.vtbl.destroy = i830_destroy_context;

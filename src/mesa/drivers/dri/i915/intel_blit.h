@@ -30,33 +30,34 @@
 
 #include "intel_context.h"
 #include "intel_ioctl.h"
+#include "dri_bufmgr.h"
 
-extern void intelCopyBuffer( const __DRIdrawablePrivate *dpriv,
-			     const drm_clip_rect_t *rect);
+extern void intelCopyBuffer(const __DRIdrawablePrivate * dpriv,
+                            const drm_clip_rect_t * rect);
 
-extern void intelClearWithBlit(GLcontext *ctx, GLbitfield mask, GLboolean all,
-			     GLint cx1, GLint cy1, GLint cw, GLint ch);
+extern void intelClearWithBlit(GLcontext * ctx, GLbitfield mask,
+                               GLboolean all, GLint cx1, GLint cy1, GLint cw,
+                               GLint ch);
 
-extern void intelEmitCopyBlit( struct intel_context *intel,
-			       GLuint cpp,
-			       GLshort src_pitch,
-			       struct buffer *src_buffer,
-			       GLuint  src_offset,
-			       GLshort dst_pitch,
-			       struct buffer *dst_buffer,
-			       GLuint  dst_offset,
-			       GLshort srcx, GLshort srcy,
-			       GLshort dstx, GLshort dsty,
-			       GLshort w, GLshort h );
+extern void intelEmitCopyBlit(struct intel_context *intel,
+                              GLuint cpp,
+                              GLshort src_pitch,
+                              struct _DriBufferObject *src_buffer,
+                              GLuint src_offset,
+                              GLshort dst_pitch,
+                              struct _DriBufferObject *dst_buffer,
+                              GLuint dst_offset,
+                              GLshort srcx, GLshort srcy,
+                              GLshort dstx, GLshort dsty,
+                              GLshort w, GLshort h);
 
-extern void intelEmitFillBlit( struct intel_context *intel,
-			       GLuint cpp,
-			       GLshort dst_pitch,
-			       struct buffer *dst_buffer,
-			       GLuint dst_offset,
-			       GLshort x, GLshort y, 
-			       GLshort w, GLshort h,
-			       GLuint color );
+extern void intelEmitFillBlit(struct intel_context *intel,
+                              GLuint cpp,
+                              GLshort dst_pitch,
+                              struct _DriBufferObject *dst_buffer,
+                              GLuint dst_offset,
+                              GLshort x, GLshort y,
+                              GLshort w, GLshort h, GLuint color);
 
 
 #endif

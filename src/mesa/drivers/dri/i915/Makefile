@@ -50,8 +50,7 @@ DRIVER_SOURCES = \
 	intel_tris.c \
 	intel_fbo.c \
 	intel_depthstencil.c \
-	intel_bufmgr.c
-
+	intel_batchpool.c
 C_SOURCES = \
 	$(COMMON_SOURCES) \
 	$(DRIVER_SOURCES)

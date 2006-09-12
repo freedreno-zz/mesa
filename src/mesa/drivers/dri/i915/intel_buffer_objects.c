@@ -33,8 +33,7 @@
 #include "intel_context.h"
 #include "intel_buffer_objects.h"
 #include "intel_regions.h"
-#include "intel_bufmgr.h"
-
+#include "dri_bufmgr.h"
 
 /**
  * There is some duplication between mesa's bufferobjects and our
@@ -42,16 +41,16 @@
  * lookup an opaque structure.  It would be nice if the handles and
  * internal structure where somehow shared.
  */
-static struct gl_buffer_object *intel_bufferobj_alloc( GLcontext *ctx, 
-						       GLuint name, 
-						       GLenum target )
+static struct gl_buffer_object *
+intel_bufferobj_alloc(GLcontext * ctx, GLuint name, GLenum target)
 {
    struct intel_context *intel = intel_context(ctx);
    struct intel_buffer_object *obj = CALLOC_STRUCT(intel_buffer_object);
 
    _mesa_initialize_buffer_object(&obj->Base, name, target);
 
-   bmGenBuffers(intel, "bufferobj", 1, &obj->buffer, 0);
+   driGenBuffers(intel->intelScreen->regionPool,
+                 "bufferobj", 1, &obj->buffer, 64, 0, 0);
 
    return &obj->Base;
 }
@@ -59,29 +58,32 @@ static struct gl_buffer_object *intel_bufferobj_alloc( GLcontext *ctx,
 
 /* Break the COW tie to the region.  The region gets to keep the data.
  */
-void intel_bufferobj_release_region( struct intel_context *intel,
-				     struct intel_buffer_object *intel_obj )
+void
+intel_bufferobj_release_region(struct intel_context *intel,
+                               struct intel_buffer_object *intel_obj)
 {
    assert(intel_obj->region->buffer == intel_obj->buffer);
    intel_obj->region->pbo = NULL;
    intel_obj->region = NULL;
-   intel_obj->buffer = NULL; /* refcount? */
+   intel_obj->buffer = NULL;    /* refcount? */
 
    /* This leads to a large number of buffer deletion/creation events.
     * Currently the drm doesn't like that:
     */
-   bmGenBuffers(intel, "buffer object", 1, &intel_obj->buffer, 0);
-   bmBufferData(intel, intel_obj->buffer, intel_obj->Base.Size, NULL, 0);
+   driGenBuffers(intel->intelScreen->regionPool,
+                 "buffer object", 1, &intel_obj->buffer, 64, 0, 0);
+   driBOData(intel_obj->buffer, intel_obj->Base.Size, NULL, 0);
 }
 
 /* Break the COW tie to the region.  Both the pbo and the region end
  * up with a copy of the data.
  */
-void intel_bufferobj_cow( struct intel_context *intel,
-			  struct intel_buffer_object *intel_obj )
+void
+intel_bufferobj_cow(struct intel_context *intel,
+                    struct intel_buffer_object *intel_obj)
 {
    assert(intel_obj->region);
-   intel_region_cow( intel, intel_obj->region );
+   intel_region_cow(intel, intel_obj->region);
 }
 
 
@@ -89,9 +91,9 @@ void intel_bufferobj_cow( struct intel_context *intel,
  * Deallocate/free a vertex/pixel buffer object.
  * Called via glDeleteBuffersARB().
  */
-static void intel_bufferobj_free( GLcontext *ctx, 
-				  struct gl_buffer_object *obj )
-{ 
+static void
+intel_bufferobj_free(GLcontext * ctx, struct gl_buffer_object *obj)
+{
    struct intel_context *intel = intel_context(ctx);
    struct intel_buffer_object *intel_obj = intel_buffer_object(obj);
 
@@ -101,9 +103,9 @@ static void intel_bufferobj_free( GLcontext *ctx,
       intel_bufferobj_release_region(intel, intel_obj);
    }
    else if (intel_obj->buffer) {
-      bmDeleteBuffers( intel, 1, &intel_obj->buffer );
+      driDeleteBuffers(1, &intel_obj->buffer);
    }
-  
+
    _mesa_free(intel_obj);
 }
 
@@ -115,12 +117,12 @@ static void intel_bufferobj_free( GLcontext *ctx,
  * memory will be allocated, but no copy will occur.
  * Called via glBufferDataARB().
  */
-static void intel_bufferobj_data( GLcontext *ctx, 
-				  GLenum target, 
-				  GLsizeiptrARB size,
-				  const GLvoid *data, 
-				  GLenum usage,
-				  struct gl_buffer_object *obj )
+static void
+intel_bufferobj_data(GLcontext * ctx,
+                     GLenum target,
+                     GLsizeiptrARB size,
+                     const GLvoid * data,
+                     GLenum usage, struct gl_buffer_object *obj)
 {
    struct intel_context *intel = intel_context(ctx);
    struct intel_buffer_object *intel_obj = intel_buffer_object(obj);
@@ -131,7 +133,7 @@ static void intel_bufferobj_data( GLcontext *ctx,
    if (intel_obj->region)
       intel_bufferobj_release_region(intel, intel_obj);
 
-   bmBufferData(intel, intel_obj->buffer, size, data, 0);
+   driBOData(intel_obj->buffer, size, data, 0);
 }
 
 
@@ -141,12 +143,12 @@ static void intel_bufferobj_data( GLcontext *ctx,
  * if data is NULL, no copy is performed.
  * Called via glBufferSubDataARB().
  */
-static void intel_bufferobj_subdata( GLcontext *ctx, 
-				     GLenum target, 
-				     GLintptrARB offset,
-				     GLsizeiptrARB size, 
-				     const GLvoid * data,
-				     struct gl_buffer_object * obj )
+static void
+intel_bufferobj_subdata(GLcontext * ctx,
+                        GLenum target,
+                        GLintptrARB offset,
+                        GLsizeiptrARB size,
+                        const GLvoid * data, struct gl_buffer_object *obj)
 {
    struct intel_context *intel = intel_context(ctx);
    struct intel_buffer_object *intel_obj = intel_buffer_object(obj);
@@ -156,25 +158,24 @@ static void intel_bufferobj_subdata( GLcontext *ctx,
    if (intel_obj->region)
       intel_bufferobj_cow(intel, intel_obj);
 
-   bmBufferSubData(intel, intel_obj->buffer, offset, size, data);
+   driBOSubData(intel_obj->buffer, offset, size, data);
 }
 
 
 /**
  * Called via glGetBufferSubDataARB().
  */
-static void intel_bufferobj_get_subdata( GLcontext *ctx, 
-					 GLenum target, 
-					 GLintptrARB offset,
-					 GLsizeiptrARB size, 
-					 GLvoid * data,
-					 struct gl_buffer_object * obj )
+static void
+intel_bufferobj_get_subdata(GLcontext * ctx,
+                            GLenum target,
+                            GLintptrARB offset,
+                            GLsizeiptrARB size,
+                            GLvoid * data, struct gl_buffer_object *obj)
 {
-   struct intel_context *intel = intel_context(ctx);
    struct intel_buffer_object *intel_obj = intel_buffer_object(obj);
 
    assert(intel_obj);
-   bmBufferGetSubData(intel, intel_obj->buffer, offset, size, data);
+   driBOGetSubData(intel_obj->buffer, offset, size, data);
 }
 
 
@@ -182,10 +183,10 @@ static void intel_bufferobj_get_subdata( GLcontext *ctx,
 /**
  * Called via glMapBufferARB().
  */
-static void *intel_bufferobj_map( GLcontext *ctx, 
-				  GLenum target, 
-				  GLenum access,
-				  struct gl_buffer_object *obj )
+static void *
+intel_bufferobj_map(GLcontext * ctx,
+                    GLenum target,
+                    GLenum access, struct gl_buffer_object *obj)
 {
    struct intel_context *intel = intel_context(ctx);
    struct intel_buffer_object *intel_obj = intel_buffer_object(obj);
@@ -197,7 +198,8 @@ static void *intel_bufferobj_map( GLcontext *ctx,
    if (intel_obj->region)
       intel_bufferobj_cow(intel, intel_obj);
 
-   obj->Pointer = bmMapBuffer(intel, intel_obj->buffer, 0);
+   obj->Pointer = driBOMap(intel_obj->buffer,
+                           DRM_BO_FLAG_READ | DRM_BO_FLAG_WRITE, 0);
    return obj->Pointer;
 }
 
@@ -205,35 +207,35 @@ static void *intel_bufferobj_map( GLcontext *ctx,
 /**
  * Called via glMapBufferARB().
  */
-static GLboolean intel_bufferobj_unmap( GLcontext *ctx,
-					GLenum target,
-					struct gl_buffer_object *obj )
+static GLboolean
+intel_bufferobj_unmap(GLcontext * ctx,
+                      GLenum target, struct gl_buffer_object *obj)
 {
-   struct intel_context *intel = intel_context(ctx);
    struct intel_buffer_object *intel_obj = intel_buffer_object(obj);
 
    assert(intel_obj);
    assert(obj->Pointer);
-   bmUnmapBuffer(intel, intel_obj->buffer);
+   driBOUnmap(intel_obj->buffer);
    obj->Pointer = NULL;
    return GL_TRUE;
 }
 
-struct buffer *intel_bufferobj_buffer( struct intel_context *intel,
-				       struct intel_buffer_object *intel_obj,
-				       GLuint flag )
+struct _DriBufferObject *
+intel_bufferobj_buffer(struct intel_context *intel,
+                       struct intel_buffer_object *intel_obj, GLuint flag)
 {
    if (intel_obj->region) {
       if (flag == INTEL_WRITE_PART)
-	 intel_bufferobj_cow(intel, intel_obj);
+         intel_bufferobj_cow(intel, intel_obj);
       else if (flag == INTEL_WRITE_FULL)
-	 intel_bufferobj_release_region(intel, intel_obj);
+         intel_bufferobj_release_region(intel, intel_obj);
    }
 
    return intel_obj->buffer;
-}  
+}
 
-void intel_bufferobj_init( struct intel_context *intel )
+void
+intel_bufferobj_init(struct intel_context *intel)
 {
    GLcontext *ctx = &intel->ctx;
 

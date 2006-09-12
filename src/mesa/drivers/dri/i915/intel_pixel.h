@@ -30,35 +30,34 @@
 
 #include "mtypes.h"
 
-void intelInitPixelFuncs( struct dd_function_table *functions );
+void intelInitPixelFuncs(struct dd_function_table *functions);
 
-GLboolean intel_check_blit_fragment_ops( GLcontext *ctx );
+GLboolean intel_check_blit_fragment_ops(GLcontext * ctx);
 
-GLboolean intel_check_meta_tex_fragment_ops( GLcontext *ctx );
+GLboolean intel_check_meta_tex_fragment_ops(GLcontext * ctx);
 
-GLboolean intel_check_blit_format( struct intel_region *region,
-				   GLenum format, GLenum type );
+GLboolean intel_check_blit_format(struct intel_region *region,
+                                  GLenum format, GLenum type);
 
 
-void intelReadPixels( GLcontext *ctx,
-		      GLint x, GLint y, 
-		      GLsizei width, GLsizei height,
-		      GLenum format, GLenum type,
-		      const struct gl_pixelstore_attrib *pack,
-		      GLvoid *pixels );
+void intelReadPixels(GLcontext * ctx,
+                     GLint x, GLint y,
+                     GLsizei width, GLsizei height,
+                     GLenum format, GLenum type,
+                     const struct gl_pixelstore_attrib *pack,
+                     GLvoid * pixels);
 
-void intelDrawPixels( GLcontext *ctx,
-		      GLint x, GLint y, 
-		      GLsizei width, GLsizei height,
-		      GLenum format, 
-		      GLenum type,
-		      const struct gl_pixelstore_attrib *unpack,
-		      const GLvoid *pixels );
+void intelDrawPixels(GLcontext * ctx,
+                     GLint x, GLint y,
+                     GLsizei width, GLsizei height,
+                     GLenum format,
+                     GLenum type,
+                     const struct gl_pixelstore_attrib *unpack,
+                     const GLvoid * pixels);
 
-void intelCopyPixels( GLcontext *ctx,
-		      GLint srcx, GLint srcy, 
-		      GLsizei width, GLsizei height,
-		      GLint destx, GLint desty, 
-		      GLenum type );
+void intelCopyPixels(GLcontext * ctx,
+                     GLint srcx, GLint srcy,
+                     GLsizei width, GLsizei height,
+                     GLint destx, GLint desty, GLenum type);
 
 #endif

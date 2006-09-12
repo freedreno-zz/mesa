@@ -67,27 +67,27 @@ static const char *opcodes[0x20] = {
 
 
 static const int args[0x20] = {
-   0,				/* 0 nop */
-   2,				/* 1 add */
-   1,				/* 2 mov */
-   2,				/* 3 m ul */
-   3, 				/* 4 mad */
-   3,				/* 5 dp2add */
-   2,				/* 6 dp3 */
-   2,				/* 7 dp4 */
-   1,				/* 8 frc */
-   1,				/* 9 rcp */
-   1,				/* a rsq */
-   1,				/* b exp */
-   1,				/* c log */
-   3,				/* d cmp */
-   2,				/* e min */
-   2,				/* f max */
-   1,				/* 10 flr */
-   1,				/* 11 mod */
-   1,				/* 12 trc */
-   2,				/* 13 sge */
-   2,				/* 14 slt */
+   0,                           /* 0 nop */
+   2,                           /* 1 add */
+   1,                           /* 2 mov */
+   2,                           /* 3 m ul */
+   3,                           /* 4 mad */
+   3,                           /* 5 dp2add */
+   2,                           /* 6 dp3 */
+   2,                           /* 7 dp4 */
+   1,                           /* 8 frc */
+   1,                           /* 9 rcp */
+   1,                           /* a rsq */
+   1,                           /* b exp */
+   1,                           /* c log */
+   3,                           /* d cmp */
+   2,                           /* e min */
+   2,                           /* f max */
+   1,                           /* 10 flr */
+   1,                           /* 11 mod */
+   1,                           /* 12 trc */
+   2,                           /* 13 sge */
+   2,                           /* 14 slt */
    1,
    1,
    1,
@@ -113,26 +113,35 @@ static const char *regname[0x8] = {
    "UNKNOWN",
 };
 
-static void print_reg_type_nr( GLuint type, GLuint nr )
+static void
+print_reg_type_nr(GLuint type, GLuint nr)
 {
    switch (type) {
    case REG_TYPE_T:
       switch (nr) {
-      case T_DIFFUSE: fprintf(stderr, "T_DIFFUSE"); return;
-      case T_SPECULAR: fprintf(stderr, "T_SPECULAR"); return;
-      case T_FOG_W: fprintf(stderr, "T_FOG_W"); return;
-      default: fprintf(stderr, "T_TEX%d", nr); return;
+      case T_DIFFUSE:
+         fprintf(stderr, "T_DIFFUSE");
+         return;
+      case T_SPECULAR:
+         fprintf(stderr, "T_SPECULAR");
+         return;
+      case T_FOG_W:
+         fprintf(stderr, "T_FOG_W");
+         return;
+      default:
+         fprintf(stderr, "T_TEX%d", nr);
+         return;
       }
    case REG_TYPE_OC:
       if (nr == 0) {
-	 fprintf(stderr, "oC");
-	 return;
+         fprintf(stderr, "oC");
+         return;
       }
       break;
    case REG_TYPE_OD:
       if (nr == 0) {
-	 fprintf(stderr, "oD");
-	 return;
+         fprintf(stderr, "oD");
+         return;
       }
       break;
    default:
@@ -151,7 +160,8 @@ static void print_reg_type_nr( GLuint type, GLuint nr )
 		      (SRC_W << A2_SRC2_CHANNEL_W_SHIFT))
 
 
-static void print_reg_neg_swizzle( GLuint reg )
+static void
+print_reg_neg_swizzle(GLuint reg)
 {
    int i;
 
@@ -161,50 +171,71 @@ static void print_reg_neg_swizzle( GLuint reg )
 
    fprintf(stderr, ".");
 
-   for (i = 3 ; i >= 0; i--) {
-      if (reg & (1<<((i*4)+3))) 
-	 fprintf(stderr, "-");
-	 
-      switch ((reg>>(i*4)) & 0x7) {
-      case 0: fprintf(stderr, "x"); break;
-      case 1: fprintf(stderr, "y"); break;
-      case 2: fprintf(stderr, "z"); break;
-      case 3: fprintf(stderr, "w"); break;
-      case 4: fprintf(stderr, "0"); break;
-      case 5: fprintf(stderr, "1"); break;
-      default: fprintf(stderr, "?"); break;
+   for (i = 3; i >= 0; i--) {
+      if (reg & (1 << ((i * 4) + 3)))
+         fprintf(stderr, "-");
+
+      switch ((reg >> (i * 4)) & 0x7) {
+      case 0:
+         fprintf(stderr, "x");
+         break;
+      case 1:
+         fprintf(stderr, "y");
+         break;
+      case 2:
+         fprintf(stderr, "z");
+         break;
+      case 3:
+         fprintf(stderr, "w");
+         break;
+      case 4:
+         fprintf(stderr, "0");
+         break;
+      case 5:
+         fprintf(stderr, "1");
+         break;
+      default:
+         fprintf(stderr, "?");
+         break;
       }
    }
 }
 
 
-static void print_src_reg( GLuint dword )
+static void
+print_src_reg(GLuint dword)
 {
    GLuint nr = (dword >> A2_SRC2_NR_SHIFT) & REG_NR_MASK;
    GLuint type = (dword >> A2_SRC2_TYPE_SHIFT) & REG_TYPE_MASK;
-   print_reg_type_nr( type, nr );
-   print_reg_neg_swizzle( dword );
+   print_reg_type_nr(type, nr);
+   print_reg_neg_swizzle(dword);
 }
 
-void i915_print_ureg( const char *msg, GLuint ureg )
+void
+i915_print_ureg(const char *msg, GLuint ureg)
 {
    fprintf(stderr, "%s: ", msg);
-   print_src_reg( ureg >> 8 );
+   print_src_reg(ureg >> 8);
    fprintf(stderr, "\n");
 }
 
-static void print_dest_reg( GLuint dword )
+static void
+print_dest_reg(GLuint dword)
 {
    GLuint nr = (dword >> A0_DEST_NR_SHIFT) & REG_NR_MASK;
    GLuint type = (dword >> A0_DEST_TYPE_SHIFT) & REG_TYPE_MASK;
-   print_reg_type_nr( type, nr );
+   print_reg_type_nr(type, nr);
    if ((dword & A0_DEST_CHANNEL_ALL) == A0_DEST_CHANNEL_ALL)
       return;
    fprintf(stderr, ".");
-   if (dword & A0_DEST_CHANNEL_X) fprintf(stderr, "x");
-   if (dword & A0_DEST_CHANNEL_Y) fprintf(stderr, "y");
-   if (dword & A0_DEST_CHANNEL_Z) fprintf(stderr, "z");
-   if (dword & A0_DEST_CHANNEL_W) fprintf(stderr, "w");
+   if (dword & A0_DEST_CHANNEL_X)
+      fprintf(stderr, "x");
+   if (dword & A0_DEST_CHANNEL_Y)
+      fprintf(stderr, "y");
+   if (dword & A0_DEST_CHANNEL_Z)
+      fprintf(stderr, "z");
+   if (dword & A0_DEST_CHANNEL_W)
+      fprintf(stderr, "w");
 }
 
 
@@ -213,14 +244,15 @@ static void print_dest_reg( GLuint dword )
 #define GET_SRC2_REG(r)      (r)
 
 
-static void print_arith_op( GLuint opcode, const GLuint *program )
+static void
+print_arith_op(GLuint opcode, const GLuint * program)
 {
    if (opcode != A0_NOP) {
       print_dest_reg(program[0]);
       if (program[0] & A0_DEST_SATURATE)
-	 fprintf(stderr, " = SATURATE ");
+         fprintf(stderr, " = SATURATE ");
       else
-	 fprintf(stderr, " = ");
+         fprintf(stderr, " = ");
    }
 
    fprintf(stderr, "%s ", opcodes[opcode]);
@@ -233,7 +265,7 @@ static void print_arith_op( GLuint opcode, const GLuint *program )
 
    fprintf(stderr, ", ");
    print_src_reg(GET_SRC1_REG(program[1], program[2]));
-   if (args[opcode] == 2) { 
+   if (args[opcode] == 2) {
       fprintf(stderr, "\n");
       return;
    }
@@ -245,22 +277,24 @@ static void print_arith_op( GLuint opcode, const GLuint *program )
 }
 
 
-static void print_tex_op( GLuint opcode, const GLuint *program )
+static void
+print_tex_op(GLuint opcode, const GLuint * program)
 {
    print_dest_reg(program[0] | A0_DEST_CHANNEL_ALL);
    fprintf(stderr, " = ");
 
    fprintf(stderr, "%s ", opcodes[opcode]);
 
-   fprintf(stderr, "S[%d],", 
-	   program[0] & T0_SAMPLER_NR_MASK);
+   fprintf(stderr, "S[%d],", program[0] & T0_SAMPLER_NR_MASK);
 
-   print_reg_type_nr( (program[1]>>T1_ADDRESS_REG_TYPE_SHIFT) & REG_TYPE_MASK,
-		      (program[1]>>T1_ADDRESS_REG_NR_SHIFT) & REG_NR_MASK );
+   print_reg_type_nr((program[1] >> T1_ADDRESS_REG_TYPE_SHIFT) &
+                     REG_TYPE_MASK,
+                     (program[1] >> T1_ADDRESS_REG_NR_SHIFT) & REG_NR_MASK);
    fprintf(stderr, "\n");
 }
 
-static void print_dcl_op( GLuint opcode, const GLuint *program )
+static void
+print_dcl_op(GLuint opcode, const GLuint * program)
 {
    fprintf(stderr, "%s ", opcodes[opcode]);
    print_dest_reg(program[0] | A0_DEST_CHANNEL_ALL);
@@ -268,31 +302,32 @@ static void print_dcl_op( GLuint opcode, const GLuint *program )
 }
 
 
-void i915_disassemble_program( const GLuint *program, GLuint sz )
+void
+i915_disassemble_program(const GLuint * program, GLuint sz)
 {
    GLuint size = program[0] & 0x1ff;
    GLint i;
-   
+
    fprintf(stderr, "BEGIN\n");
 
-   if (size+2 != sz) {
+   if (size + 2 != sz) {
       fprintf(stderr, "%s: program size mismatch %d/%d\n", __FUNCTION__,
-	      size+2, sz);
+              size + 2, sz);
       exit(1);
    }
 
-   program ++;
-   for (i = 1 ; i < sz ; i+=3, program+=3) {
-      GLuint opcode = program[0] & (0x1f<<24);
+   program++;
+   for (i = 1; i < sz; i += 3, program += 3) {
+      GLuint opcode = program[0] & (0x1f << 24);
 
       if ((GLint) opcode >= A0_NOP && opcode <= A0_SLT)
-	 print_arith_op(opcode >> 24, program);
+         print_arith_op(opcode >> 24, program);
       else if (opcode >= T0_TEXLD && opcode <= T0_TEXKILL)
-	 print_tex_op(opcode >> 24, program);
+         print_tex_op(opcode >> 24, program);
       else if (opcode == D0_DCL)
-	 print_dcl_op(opcode >> 24, program);
-      else 
-	 fprintf(stderr, "Unknown opcode 0x%x\n", opcode);
+         print_dcl_op(opcode >> 24, program);
+      else
+         fprintf(stderr, "Unknown opcode 0x%x\n", opcode);
    }
 
    fprintf(stderr, "END\n\n");

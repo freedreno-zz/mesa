@@ -41,7 +41,6 @@
 #include "intel_tex.h"
 #include "intel_blit.h"
 #include "intel_pixel.h"
-#include "intel_bufmgr.h"
 
 
 /**
@@ -56,27 +55,27 @@ get_teximage_source(struct intel_context *intel, GLenum internalFormat)
    struct intel_renderbuffer *irb;
 
    if (0)
-      _mesa_printf("%s %s\n", __FUNCTION__, 
-		   _mesa_lookup_enum_by_nr(internalFormat));
+      _mesa_printf("%s %s\n", __FUNCTION__,
+                   _mesa_lookup_enum_by_nr(internalFormat));
 
    switch (internalFormat) {
    case GL_DEPTH_COMPONENT:
    case GL_DEPTH_COMPONENT16_ARB:
       irb = intel_get_renderbuffer(intel->ctx.ReadBuffer, BUFFER_DEPTH);
       if (irb && irb->region && irb->region->cpp == 2)
-	 return irb->region;
+         return irb->region;
       return NULL;
    case GL_DEPTH24_STENCIL8_EXT:
    case GL_DEPTH_STENCIL_EXT:
       irb = intel_get_renderbuffer(intel->ctx.ReadBuffer, BUFFER_DEPTH);
       if (irb && irb->region && irb->region->cpp == 4)
-	 return irb->region;
+         return irb->region;
       return NULL;
    case GL_RGBA:
-      return intel_readbuf_region( intel );
+      return intel_readbuf_region(intel);
    case GL_RGB:
       if (intel->intelScreen->cpp == 2)
-	 return intel_readbuf_region( intel );
+         return intel_readbuf_region(intel);
       return NULL;
    default:
       return NULL;
@@ -84,35 +83,36 @@ get_teximage_source(struct intel_context *intel, GLenum internalFormat)
 }
 
 
-static GLboolean do_copy_texsubimage( struct intel_context *intel,
-				      struct intel_texture_image *intelImage,
-				      GLenum internalFormat,
-				      GLint dstx, GLint dsty,
-				      GLint x, GLint y,
-				      GLsizei width, GLsizei height )
+static GLboolean
+do_copy_texsubimage(struct intel_context *intel,
+                    struct intel_texture_image *intelImage,
+                    GLenum internalFormat,
+                    GLint dstx, GLint dsty,
+                    GLint x, GLint y, GLsizei width, GLsizei height)
 {
    GLcontext *ctx = &intel->ctx;
-   const struct intel_region *src = get_teximage_source(intel, internalFormat);
+   const struct intel_region *src =
+      get_teximage_source(intel, internalFormat);
 
    if (!intelImage->mt || !src)
       return GL_FALSE;
- 
+
    intelFlush(ctx);
    LOCK_HARDWARE(intel);
    {
-      GLuint image_offset = intel_miptree_image_offset(intelImage->mt, 
-						       intelImage->face,
-						       intelImage->level);
+      GLuint image_offset = intel_miptree_image_offset(intelImage->mt,
+                                                       intelImage->face,
+                                                       intelImage->level);
       const GLint orig_x = x;
       const GLint orig_y = y;
       const struct gl_framebuffer *fb = ctx->DrawBuffer;
 
       if (_mesa_clip_to_region(fb->_Xmin, fb->_Ymin, fb->_Xmax, fb->_Ymax,
                                &x, &y, &width, &height)) {
-	 /* Update dst for clipped src.  Need to also clip the source rect.
-	  */
-	 dstx += x - orig_x;
-	 dsty += y - orig_y;
+         /* Update dst for clipped src.  Need to also clip the source rect.
+          */
+         dstx += x - orig_x;
+         dsty += y - orig_y;
 
          if (ctx->ReadBuffer->Name == 0) {
             /* reading from a window, adjust x, y */
@@ -130,29 +130,24 @@ static GLboolean do_copy_texsubimage( struct intel_context *intel,
          }
 
 
-	 /* A bit of fiddling to get the blitter to work with -ve
-	  * pitches.  But we get a nice inverted blit this way, so it's
-	  * worth it:
-	  */
-	 intelEmitCopyBlit( intel,
-			    intelImage->mt->cpp,
+         /* A bit of fiddling to get the blitter to work with -ve
+          * pitches.  But we get a nice inverted blit this way, so it's
+          * worth it:
+          */
+         intelEmitCopyBlit(intel,
+                           intelImage->mt->cpp,
+                           -src->pitch,
+                           src->buffer,
+                           src->height * src->pitch * src->cpp,
+                           intelImage->mt->pitch,
+                           intelImage->mt->region->buffer,
+                           image_offset,
+                           x, y + height, dstx, dsty, width, height);
 
-			    -src->pitch, 
-			    src->buffer,
-			    src->height * src->pitch * src->cpp, 
-
-			    intelImage->mt->pitch, 
-			    intelImage->mt->region->buffer,
-			    image_offset,
-
-			    x, y + height, 
-			    dstx, dsty,
-			    width, height );
-
-	 intel_batchbuffer_flush( intel->batch );
+         intel_batchbuffer_flush(intel->batch);
       }
    }
-   
+
 
    UNLOCK_HARDWARE(intel);
 
@@ -160,8 +155,7 @@ static GLboolean do_copy_texsubimage( struct intel_context *intel,
    /* GL_SGIS_generate_mipmap -- this can be accelerated now.
     * XXX Add a ctx->Driver.GenerateMipmaps() function?
     */
-   if (level == texObj->BaseLevel && 
-       texObj->GenerateMipmap) {
+   if (level == texObj->BaseLevel && texObj->GenerateMipmap) {
       intel_generate_mipmap(ctx, target,
                             &ctx->Texture.Unit[ctx->Texture.CurrentUnit],
                             texObj);
@@ -175,14 +169,17 @@ static GLboolean do_copy_texsubimage( struct intel_context *intel,
 
 
 
-void intelCopyTexImage1D( GLcontext *ctx, GLenum target, GLint level,
-			  GLenum internalFormat,
-			  GLint x, GLint y, GLsizei width,
-			  GLint border )
+void
+intelCopyTexImage1D(GLcontext * ctx, GLenum target, GLint level,
+                    GLenum internalFormat,
+                    GLint x, GLint y, GLsizei width, GLint border)
 {
-   struct gl_texture_unit *texUnit = &ctx->Texture.Unit[ctx->Texture.CurrentUnit];
-   struct gl_texture_object *texObj = _mesa_select_tex_object(ctx, texUnit, target);
-   struct gl_texture_image *texImage = _mesa_select_tex_image(ctx, texUnit, target, level);
+   struct gl_texture_unit *texUnit =
+      &ctx->Texture.Unit[ctx->Texture.CurrentUnit];
+   struct gl_texture_object *texObj =
+      _mesa_select_tex_object(ctx, texUnit, target);
+   struct gl_texture_image *texImage =
+      _mesa_select_tex_image(ctx, texUnit, target, level);
 
    if (border)
       goto fail;
@@ -191,33 +188,34 @@ void intelCopyTexImage1D( GLcontext *ctx, GLenum target, GLint level,
     * image.  Don't populate yet.  
     */
    ctx->Driver.TexImage1D(ctx, target, level, internalFormat,
-			  width, border,
-			  GL_RGBA, CHAN_TYPE, NULL,
-			  &ctx->DefaultPacking, texObj, texImage);
+                          width, border,
+                          GL_RGBA, CHAN_TYPE, NULL,
+                          &ctx->DefaultPacking, texObj, texImage);
 
-   if (!do_copy_texsubimage(intel_context(ctx), 
-			    intel_texture_image(texImage),
-			    internalFormat,
-			    0, 0,
-			    x, y, 
-			    width, 1))
-       goto fail;
+   if (!do_copy_texsubimage(intel_context(ctx),
+                            intel_texture_image(texImage),
+                            internalFormat, 0, 0, x, y, width, 1))
+      goto fail;
 
    return;
 
  fail:
-   _swrast_copy_teximage1d( ctx, target, level, internalFormat, x, y,
-			    width, border );
+   _swrast_copy_teximage1d(ctx, target, level, internalFormat, x, y,
+                           width, border);
 }
 
-void intelCopyTexImage2D( GLcontext *ctx, GLenum target, GLint level,
-			  GLenum internalFormat,
-			  GLint x, GLint y, GLsizei width, GLsizei height,
-			  GLint border )
+void
+intelCopyTexImage2D(GLcontext * ctx, GLenum target, GLint level,
+                    GLenum internalFormat,
+                    GLint x, GLint y, GLsizei width, GLsizei height,
+                    GLint border)
 {
-   struct gl_texture_unit *texUnit = &ctx->Texture.Unit[ctx->Texture.CurrentUnit];
-   struct gl_texture_object *texObj = _mesa_select_tex_object(ctx, texUnit, target);
-   struct gl_texture_image *texImage = _mesa_select_tex_image(ctx, texUnit, target, level);
+   struct gl_texture_unit *texUnit =
+      &ctx->Texture.Unit[ctx->Texture.CurrentUnit];
+   struct gl_texture_object *texObj =
+      _mesa_select_tex_object(ctx, texUnit, target);
+   struct gl_texture_image *texImage =
+      _mesa_select_tex_image(ctx, texUnit, target, level);
 
    if (border)
       goto fail;
@@ -226,33 +224,32 @@ void intelCopyTexImage2D( GLcontext *ctx, GLenum target, GLint level,
     * image.  Don't populate yet.  
     */
    ctx->Driver.TexImage2D(ctx, target, level, internalFormat,
-			  width, height, border,
-			  GL_RGBA, CHAN_TYPE, NULL,
-			  &ctx->DefaultPacking, texObj, texImage);
+                          width, height, border,
+                          GL_RGBA, CHAN_TYPE, NULL,
+                          &ctx->DefaultPacking, texObj, texImage);
 
 
-   if (!do_copy_texsubimage(intel_context(ctx), 
-			    intel_texture_image(texImage),
-			    internalFormat,
-			    0, 0,
-			    x, y, 
-			    width, height))
-       goto fail;
+   if (!do_copy_texsubimage(intel_context(ctx),
+                            intel_texture_image(texImage),
+                            internalFormat, 0, 0, x, y, width, height))
+      goto fail;
 
    return;
 
  fail:
-   _swrast_copy_teximage2d( ctx, target, level, internalFormat, x, y,
-			    width, height, border );
+   _swrast_copy_teximage2d(ctx, target, level, internalFormat, x, y,
+                           width, height, border);
 }
 
 
-void intelCopyTexSubImage1D( GLcontext *ctx, GLenum target, GLint level,
-			     GLint xoffset,
-			     GLint x, GLint y, GLsizei width )
+void
+intelCopyTexSubImage1D(GLcontext * ctx, GLenum target, GLint level,
+                       GLint xoffset, GLint x, GLint y, GLsizei width)
 {
-   struct gl_texture_unit *texUnit = &ctx->Texture.Unit[ctx->Texture.CurrentUnit];
-   struct gl_texture_image *texImage = _mesa_select_tex_image(ctx, texUnit, target, level);
+   struct gl_texture_unit *texUnit =
+      &ctx->Texture.Unit[ctx->Texture.CurrentUnit];
+   struct gl_texture_image *texImage =
+      _mesa_select_tex_image(ctx, texUnit, target, level);
    GLenum internalFormat = texImage->InternalFormat;
 
    /* XXX need to check <border> as in above function? */
@@ -260,37 +257,35 @@ void intelCopyTexSubImage1D( GLcontext *ctx, GLenum target, GLint level,
    /* Need to check texture is compatible with source format. 
     */
 
-   if (!do_copy_texsubimage(intel_context(ctx), 
-			    intel_texture_image(texImage),
-			    internalFormat,
-			    xoffset, 0,
-			    x, y, width, 1)) {
-      _swrast_copy_texsubimage1d( ctx, target, level, 
-				  xoffset, x, y, width );
+   if (!do_copy_texsubimage(intel_context(ctx),
+                            intel_texture_image(texImage),
+                            internalFormat, xoffset, 0, x, y, width, 1)) {
+      _swrast_copy_texsubimage1d(ctx, target, level, xoffset, x, y, width);
    }
 }
 
 
 
-void intelCopyTexSubImage2D( GLcontext *ctx, GLenum target, GLint level,
-			     GLint xoffset, GLint yoffset,
-			     GLint x, GLint y, GLsizei width, GLsizei height )
+void
+intelCopyTexSubImage2D(GLcontext * ctx, GLenum target, GLint level,
+                       GLint xoffset, GLint yoffset,
+                       GLint x, GLint y, GLsizei width, GLsizei height)
 {
-   struct gl_texture_unit *texUnit = &ctx->Texture.Unit[ctx->Texture.CurrentUnit];
-   struct gl_texture_image *texImage = _mesa_select_tex_image(ctx, texUnit, target, level);
+   struct gl_texture_unit *texUnit =
+      &ctx->Texture.Unit[ctx->Texture.CurrentUnit];
+   struct gl_texture_image *texImage =
+      _mesa_select_tex_image(ctx, texUnit, target, level);
    GLenum internalFormat = texImage->InternalFormat;
 
 
    /* Need to check texture is compatible with source format. 
     */
 
-   if (!do_copy_texsubimage(intel_context(ctx), 
-			    intel_texture_image(texImage),
-			    internalFormat,
-			    xoffset, yoffset,
-			    x, y, width, height)) {
-      _swrast_copy_texsubimage2d( ctx, target, level,
-				  xoffset, yoffset,
-				  x, y, width, height );
+   if (!do_copy_texsubimage(intel_context(ctx),
+                            intel_texture_image(texImage),
+                            internalFormat,
+                            xoffset, yoffset, x, y, width, height)) {
+      _swrast_copy_texsubimage2d(ctx, target, level,
+                                 xoffset, yoffset, x, y, width, height);
    }
 }

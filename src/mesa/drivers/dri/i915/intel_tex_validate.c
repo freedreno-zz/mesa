@@ -4,7 +4,6 @@
 #include "intel_context.h"
 #include "intel_mipmap_tree.h"
 #include "intel_tex.h"
-#include "intel_bufmgr.h"
 
 #define FILE_DEBUG_FLAG DEBUG_TEXTURE
 
@@ -13,18 +12,19 @@
  * This depends on the base image size, GL_TEXTURE_MIN_LOD,
  * GL_TEXTURE_MAX_LOD, GL_TEXTURE_BASE_LEVEL, and GL_TEXTURE_MAX_LEVEL.
  */
-static void intel_calculate_first_last_level( struct intel_texture_object *intelObj )
+static void
+intel_calculate_first_last_level(struct intel_texture_object *intelObj)
 {
    struct gl_texture_object *tObj = &intelObj->base;
-   const struct gl_texture_image * const baseImage =
-       tObj->Image[0][tObj->BaseLevel];
+   const struct gl_texture_image *const baseImage =
+      tObj->Image[0][tObj->BaseLevel];
 
    /* These must be signed values.  MinLod and MaxLod can be negative numbers,
     * and having firstLevel and lastLevel as signed prevents the need for
     * extra sign checks.
     */
-   int   firstLevel;
-   int   lastLevel;
+   int firstLevel;
+   int lastLevel;
 
    /* Yes, this looks overly complicated, but it's all needed.
     */
@@ -39,13 +39,13 @@ static void intel_calculate_first_last_level( struct intel_texture_object *intel
          firstLevel = lastLevel = tObj->BaseLevel;
       }
       else {
-	 firstLevel = tObj->BaseLevel + (GLint)(tObj->MinLod + 0.5);
-	 firstLevel = MAX2(firstLevel, tObj->BaseLevel);
-	 lastLevel = tObj->BaseLevel + (GLint)(tObj->MaxLod + 0.5);
-	 lastLevel = MAX2(lastLevel, tObj->BaseLevel);
-	 lastLevel = MIN2(lastLevel, tObj->BaseLevel + baseImage->MaxLog2);
-	 lastLevel = MIN2(lastLevel, tObj->MaxLevel);
-	 lastLevel = MAX2(firstLevel, lastLevel); /* need at least one level */
+         firstLevel = tObj->BaseLevel + (GLint) (tObj->MinLod + 0.5);
+         firstLevel = MAX2(firstLevel, tObj->BaseLevel);
+         lastLevel = tObj->BaseLevel + (GLint) (tObj->MaxLod + 0.5);
+         lastLevel = MAX2(lastLevel, tObj->BaseLevel);
+         lastLevel = MIN2(lastLevel, tObj->BaseLevel + baseImage->MaxLog2);
+         lastLevel = MIN2(lastLevel, tObj->MaxLevel);
+         lastLevel = MAX2(firstLevel, lastLevel);       /* need at least one level */
       }
       break;
    case GL_TEXTURE_RECTANGLE_NV:
@@ -61,18 +61,18 @@ static void intel_calculate_first_last_level( struct intel_texture_object *intel
    intelObj->lastLevel = lastLevel;
 }
 
-static void copy_image_data_to_tree( struct intel_context *intel,
-				     struct intel_texture_object *intelObj,
-				     struct intel_texture_image *intelImage )
+static void
+copy_image_data_to_tree(struct intel_context *intel,
+                        struct intel_texture_object *intelObj,
+                        struct intel_texture_image *intelImage)
 {
    if (intelImage->mt) {
       /* Copy potentially with the blitter:
        */
       intel_miptree_image_copy(intel,
-			       intelObj->mt,
-			       intelImage->face,
-			       intelImage->level,
-			       intelImage->mt);
+                               intelObj->mt,
+                               intelImage->face,
+                               intelImage->level, intelImage->mt);
 
       intel_miptree_release(intel, &intelImage->mt);
    }
@@ -82,12 +82,13 @@ static void copy_image_data_to_tree( struct intel_context *intel,
       /* More straightforward upload.  
        */
       intel_miptree_image_data(intel,
-			       intelObj->mt,
-			       intelImage->face,
-			       intelImage->level,
-			       intelImage->base.Data,
-			       intelImage->base.RowStride,
-			       intelImage->base.RowStride * intelImage->base.Height);
+                               intelObj->mt,
+                               intelImage->face,
+                               intelImage->level,
+                               intelImage->base.Data,
+                               intelImage->base.RowStride,
+                               intelImage->base.RowStride *
+                               intelImage->base.Height);
 
       free(intelImage->base.Data);
       intelImage->base.Data = NULL;
@@ -99,7 +100,8 @@ static void copy_image_data_to_tree( struct intel_context *intel,
 
 /*  
  */
-GLuint intel_finalize_mipmap_tree( struct intel_context *intel, GLuint unit )
+GLuint
+intel_finalize_mipmap_tree(struct intel_context *intel, GLuint unit)
 {
    struct gl_texture_object *tObj = intel->ctx.Texture.Unit[unit]._Current;
    struct intel_texture_object *intelObj = intel_texture_object(tObj);
@@ -114,14 +116,15 @@ GLuint intel_finalize_mipmap_tree( struct intel_context *intel, GLuint unit )
 
    /* What levels must the tree include at a minimum?
     */
-   intel_calculate_first_last_level( intelObj );
-   firstImage = intel_texture_image(intelObj->base.Image[0][intelObj->firstLevel]);
+   intel_calculate_first_last_level(intelObj);
+   firstImage =
+      intel_texture_image(intelObj->base.Image[0][intelObj->firstLevel]);
 
    /* Fallback case:
     */
    if (firstImage->base.Border) {
       if (intelObj->mt) {
-	 intel_miptree_release(intel, &intelObj->mt);
+         intel_miptree_release(intel, &intelObj->mt);
       }
       return GL_FALSE;
    }
@@ -137,8 +140,8 @@ GLuint intel_finalize_mipmap_tree( struct intel_context *intel, GLuint unit )
        firstImage->mt->first_level <= intelObj->firstLevel &&
        firstImage->mt->last_level >= intelObj->lastLevel) {
 
-      if (intelObj->mt) 
-	 intel_miptree_release(intel, &intelObj->mt);
+      if (intelObj->mt)
+         intel_miptree_release(intel, &intelObj->mt);
 
       intel_miptree_reference(&intelObj->mt, firstImage->mt);
    }
@@ -154,25 +157,26 @@ GLuint intel_finalize_mipmap_tree( struct intel_context *intel, GLuint unit )
     */
    if (intelObj->mt &&
        ((intelObj->mt->first_level > intelObj->firstLevel) ||
-	(intelObj->mt->last_level < intelObj->lastLevel) ||
-	(intelObj->mt->internal_format != firstImage->base.InternalFormat))) {
+        (intelObj->mt->last_level < intelObj->lastLevel) ||
+        (intelObj->mt->internal_format != firstImage->base.InternalFormat))) {
       intel_miptree_release(intel, &intelObj->mt);
    }
-      
+
 
    /* May need to create a new tree:
     */
    if (!intelObj->mt) {
       intelObj->mt = intel_miptree_create(intel,
-					  intelObj->base.Target,
-					  firstImage->base.InternalFormat,
-					  intelObj->firstLevel,
-					  intelObj->lastLevel,
-					  firstImage->base.Width,
-					  firstImage->base.Height,
-					  firstImage->base.Depth,
-					  firstImage->base.TexFormat->TexelBytes,
-					  firstImage->base.IsCompressed);
+                                          intelObj->base.Target,
+                                          firstImage->base.InternalFormat,
+                                          intelObj->firstLevel,
+                                          intelObj->lastLevel,
+                                          firstImage->base.Width,
+                                          firstImage->base.Height,
+                                          firstImage->base.Depth,
+                                          firstImage->base.TexFormat->
+                                          TexelBytes,
+                                          firstImage->base.IsCompressed);
    }
 
    /* Pull in any images not in the object's tree:
@@ -180,16 +184,14 @@ GLuint intel_finalize_mipmap_tree( struct intel_context *intel, GLuint unit )
    nr_faces = (intelObj->base.Target == GL_TEXTURE_CUBE_MAP) ? 6 : 1;
    for (face = 0; face < nr_faces; face++) {
       for (i = intelObj->firstLevel; i <= intelObj->lastLevel; i++) {
-	 struct intel_texture_image *intelImage = 
-	    intel_texture_image(intelObj->base.Image[face][i]);
-	 
-	 /* Need to import images in main memory or held in other trees.
-	  */
-	 if (intelObj->mt != intelImage->mt) {
-	    copy_image_data_to_tree(intel,
-				    intelObj,
-				    intelImage);
-	 }
+         struct intel_texture_image *intelImage =
+            intel_texture_image(intelObj->base.Image[face][i]);
+
+         /* Need to import images in main memory or held in other trees.
+          */
+         if (intelObj->mt != intelImage->mt) {
+            copy_image_data_to_tree(intel, intelObj, intelImage);
+         }
       }
    }
 
@@ -198,52 +200,54 @@ GLuint intel_finalize_mipmap_tree( struct intel_context *intel, GLuint unit )
 
 
 
-void intel_tex_map_images( struct intel_context *intel,
-			   struct intel_texture_object *intelObj )
+void
+intel_tex_map_images(struct intel_context *intel,
+                     struct intel_texture_object *intelObj)
 {
    GLuint nr_faces = (intelObj->base.Target == GL_TEXTURE_CUBE_MAP) ? 6 : 1;
    GLuint face, i;
-   
+
    DBG("%s\n", __FUNCTION__);
 
    for (face = 0; face < nr_faces; face++) {
       for (i = intelObj->firstLevel; i <= intelObj->lastLevel; i++) {
-	 struct intel_texture_image *intelImage = 
-	    intel_texture_image(intelObj->base.Image[face][i]);
+         struct intel_texture_image *intelImage =
+            intel_texture_image(intelObj->base.Image[face][i]);
 
-	 if (intelImage->mt) {
-	    intelImage->base.Data = 
-	       intel_miptree_image_map(intel, 
-				       intelImage->mt,
-				       intelImage->face,
-				       intelImage->level,
-				       &intelImage->base.RowStride,
-				       intelImage->base.ImageOffsets);
+         if (intelImage->mt) {
+            intelImage->base.Data =
+               intel_miptree_image_map(intel,
+                                       intelImage->mt,
+                                       intelImage->face,
+                                       intelImage->level,
+                                       &intelImage->base.RowStride,
+                                       intelImage->base.ImageOffsets);
             /* convert stride to texels, not bytes */
             intelImage->base.RowStride /= intelImage->mt->cpp;
 /*             intelImage->base.ImageStride /= intelImage->mt->cpp; */
-	 }
+         }
       }
    }
 }
 
 
 
-void intel_tex_unmap_images( struct intel_context *intel,
-			     struct intel_texture_object *intelObj )
+void
+intel_tex_unmap_images(struct intel_context *intel,
+                       struct intel_texture_object *intelObj)
 {
    GLuint nr_faces = (intelObj->base.Target == GL_TEXTURE_CUBE_MAP) ? 6 : 1;
    GLuint face, i;
 
    for (face = 0; face < nr_faces; face++) {
       for (i = intelObj->firstLevel; i <= intelObj->lastLevel; i++) {
-	 struct intel_texture_image *intelImage = 
-	    intel_texture_image(intelObj->base.Image[face][i]);
+         struct intel_texture_image *intelImage =
+            intel_texture_image(intelObj->base.Image[face][i]);
 
-	 if (intelImage->mt) {
-	    intel_miptree_image_unmap(intel, intelImage->mt);
-	    intelImage->base.Data = NULL;
-	 }
+         if (intelImage->mt) {
+            intel_miptree_image_unmap(intel, intelImage->mt);
+            intelImage->base.Data = NULL;
+         }
       }
    }
 }

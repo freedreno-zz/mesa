@@ -39,35 +39,40 @@ struct intel_region;
  * not pointers because in some circumstances a deleted renderbuffer could
  * result in a dangling pointer here.
  */
-struct intel_renderbuffer {
+struct intel_renderbuffer
+{
    struct gl_renderbuffer Base;
    struct intel_region *region;
-   void *pfMap;    /* possibly paged flipped map pointer */
-   GLuint pfPitch; /* possibly paged flipped pitch */
-   GLboolean RenderToTexture; /* RTT? */
+   void *pfMap;                 /* possibly paged flipped map pointer */
+   GLuint pfPitch;              /* possibly paged flipped pitch */
+   GLboolean RenderToTexture;   /* RTT? */
 
    GLuint PairedDepth;   /**< only used if this is a depth renderbuffer */
    GLuint PairedStencil; /**< only used if this is a stencil renderbuffer */
 };
 
 
-extern struct intel_renderbuffer *
-intel_create_renderbuffer(GLenum intFormat, GLsizei width, GLsizei height,
-                          int offset, int pitch, int cpp, void *map);
+extern struct intel_renderbuffer *intel_create_renderbuffer(GLenum intFormat,
+                                                            GLsizei width,
+                                                            GLsizei height,
+                                                            int offset,
+                                                            int pitch,
+                                                            int cpp,
+                                                            void *map);
 
 
-extern void
-intel_fbo_init( struct intel_context *intel );
+extern void intel_fbo_init(struct intel_context *intel);
 
 
 /* XXX make inline or macro */
-extern struct intel_renderbuffer *
-intel_get_renderbuffer(struct gl_framebuffer *fb, GLuint attIndex);
+extern struct intel_renderbuffer *intel_get_renderbuffer(struct gl_framebuffer
+                                                         *fb,
+                                                         GLuint attIndex);
 
 
 /* XXX make inline or macro */
-extern struct intel_region *
-intel_get_rb_region(struct gl_framebuffer *fb, GLuint attIndex);
+extern struct intel_region *intel_get_rb_region(struct gl_framebuffer *fb,
+                                                GLuint attIndex);
 
 
 

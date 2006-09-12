@@ -41,21 +41,19 @@
 #include "intel_regions.h"
 #include "intel_tris.h"
 #include "intel_pixel.h"
-#include "intel_bufmgr.h"
 
 
-static struct intel_region *copypix_src_region( struct intel_context *intel,
-						GLenum type )
+static struct intel_region *
+copypix_src_region(struct intel_context *intel, GLenum type)
 {
    switch (type) {
    case GL_COLOR:
-      return intel_readbuf_region( intel );
+      return intel_readbuf_region(intel);
    case GL_DEPTH:
       /* Don't think this is really possible execpt at 16bpp, when we have no stencil.
        */
-      if (intel->depth_region &&
-	  intel->depth_region->cpp == 2)
-	 return intel->depth_region;
+      if (intel->depth_region && intel->depth_region->cpp == 2)
+         return intel->depth_region;
    case GL_STENCIL:
       /* Don't think this is really possible. 
        */
@@ -75,14 +73,14 @@ static struct intel_region *copypix_src_region( struct intel_context *intel,
 /* Doesn't work for overlapping regions.  Could do a double copy or
  * just fallback.
  */
-static GLboolean do_texture_copypixels( GLcontext *ctx,
-					GLint srcx, GLint srcy, 
-					GLsizei width, GLsizei height,
-					GLint dstx, GLint dsty, 
-					GLenum type )
+static GLboolean
+do_texture_copypixels(GLcontext * ctx,
+                      GLint srcx, GLint srcy,
+                      GLsizei width, GLsizei height,
+                      GLint dstx, GLint dsty, GLenum type)
 {
-   struct intel_context *intel = intel_context( ctx );
-   struct intel_region *dst = intel_drawbuf_region( intel );
+   struct intel_context *intel = intel_context(ctx);
+   struct intel_region *dst = intel_drawbuf_region(intel);
    struct intel_region *src = copypix_src_region(intel, type);
    GLenum src_format;
    GLenum src_type;
@@ -99,12 +97,11 @@ static GLboolean do_texture_copypixels( GLcontext *ctx,
     * 
     * XXX: do a copy to a temporary. 
     */
-   if (src->buffer == dst->buffer)
-   {
+   if (src->buffer == dst->buffer) {
       drm_clip_rect_t srcbox;
       drm_clip_rect_t dstbox;
       drm_clip_rect_t tmp;
-      
+
       srcbox.x1 = srcx;
       srcbox.y1 = srcy;
       srcbox.x2 = srcx + width;
@@ -117,13 +114,13 @@ static GLboolean do_texture_copypixels( GLcontext *ctx,
 
 
       if (intel_intersect_cliprects(&tmp, &srcbox, &dstbox)) {
-	 if (INTEL_DEBUG & DEBUG_PIXEL)
-	    _mesa_printf("%s: regions overlap\n", __FUNCTION__);
-	 return GL_FALSE;
+         if (INTEL_DEBUG & DEBUG_PIXEL)
+            _mesa_printf("%s: regions overlap\n", __FUNCTION__);
+         return GL_FALSE;
       }
    }
 
-   intelFlush( &intel->ctx );
+   intelFlush(&intel->ctx);
 
    intel->vtbl.install_meta_state(intel);
 
@@ -142,7 +139,7 @@ static GLboolean do_texture_copypixels( GLcontext *ctx,
    if (src->cpp == 2) {
       src_format = GL_RGB;
       src_type = GL_UNSIGNED_SHORT_5_6_5;
-   } 
+   }
    else {
       src_format = GL_BGRA;
       src_type = GL_UNSIGNED_BYTE;
@@ -150,27 +147,24 @@ static GLboolean do_texture_copypixels( GLcontext *ctx,
 
    /* Set the frontbuffer up as a large rectangular texture.
     */
-   if (!intel->vtbl.meta_tex_rect_source( intel, src->buffer, 0,
-					  src->pitch,
-					  src->height,
-					  src_format,
-					  src_type )) {
+   if (!intel->vtbl.meta_tex_rect_source(intel, src->buffer, 0,
+                                         src->pitch,
+                                         src->height, src_format, src_type)) {
       intel->vtbl.leave_meta_state(intel);
       return GL_FALSE;
    }
 
-      
-   intel->vtbl.meta_texture_blend_replace( intel ); 
+
+   intel->vtbl.meta_texture_blend_replace(intel);
 
 
-   LOCK_HARDWARE( intel );
-   
-   if (intel->driDrawable->numClipRects)
-   {
+   LOCK_HARDWARE(intel);
+
+   if (intel->driDrawable->numClipRects) {
       __DRIdrawablePrivate *dPriv = intel->driDrawable;
 
 
-      srcy = dPriv->h - srcy - height; 	/* convert from gl to hardware coords */
+      srcy = dPriv->h - srcy - height;  /* convert from gl to hardware coords */
 
       srcx += dPriv->x;
       srcy += dPriv->y;
@@ -181,37 +175,29 @@ static GLboolean do_texture_copypixels( GLcontext *ctx,
        *
        */
       if (0) {
-	 GLint orig_x = srcx;
-	 GLint orig_y = srcy;
+         GLint orig_x = srcx;
+         GLint orig_y = srcy;
 
-	 if (!_mesa_clip_to_region(0, 0, src->pitch, src->height,
-                                   &srcx, &srcy, &width, &height)) 
-	    goto out;
+         if (!_mesa_clip_to_region(0, 0, src->pitch, src->height,
+                                   &srcx, &srcy, &width, &height))
+            goto out;
 
-	 dstx += srcx - orig_x; 
-	 dsty += (srcy - orig_y) * ctx->Pixel.ZoomY; 
+         dstx += srcx - orig_x;
+         dsty += (srcy - orig_y) * ctx->Pixel.ZoomY;
       }
 
       /* Just use the regular cliprect mechanism...  Does this need to
        * even hold the lock???
        */
-      intel_meta_draw_quad(intel, 
+      intel_meta_draw_quad(intel, dstx, dstx + width * ctx->Pixel.ZoomX, dPriv->h - (dsty + height * ctx->Pixel.ZoomY), dPriv->h - (dsty), 0,   /* XXX: what z value? */
+                           0x00ff00ff,
+                           srcx, srcx + width, srcy, srcy + height);
 
-			   dstx, 
-			   dstx + width * ctx->Pixel.ZoomX, 
-			   dPriv->h - (dsty + height * ctx->Pixel.ZoomY), 
-			   dPriv->h - (dsty), 
- 
-			   0,	/* XXX: what z value? */
-			   0x00ff00ff, 
-			   srcx, srcx+width, 
-			   srcy, srcy+height);
-
-   out:
+    out:
       intel->vtbl.leave_meta_state(intel);
       intel_batchbuffer_flush(intel->batch);
    }
-   UNLOCK_HARDWARE( intel );
+   UNLOCK_HARDWARE(intel);
    return GL_TRUE;
 }
 
@@ -222,48 +208,46 @@ static GLboolean do_texture_copypixels( GLcontext *ctx,
 /**
  * CopyPixels with the blitter.  Don't support zooming, pixel transfer, etc.
  */
-static GLboolean do_blit_copypixels( GLcontext *ctx,
-				     GLint srcx, GLint srcy, 
-				     GLsizei width, GLsizei height,
-				     GLint dstx, GLint dsty, 
-				     GLenum type )
+static GLboolean
+do_blit_copypixels(GLcontext * ctx,
+                   GLint srcx, GLint srcy,
+                   GLsizei width, GLsizei height,
+                   GLint dstx, GLint dsty, GLenum type)
 {
-   struct intel_context *intel = intel_context( ctx );
-   struct intel_region *dst = intel_drawbuf_region( intel );
-   struct intel_region *src = copypix_src_region( intel, type );
+   struct intel_context *intel = intel_context(ctx);
+   struct intel_region *dst = intel_drawbuf_region(intel);
+   struct intel_region *src = copypix_src_region(intel, type);
 
    /* Copypixels can be more than a straight copy.  Ensure all the
     * extra operations are disabled:
     */
    if (!intel_check_blit_fragment_ops(ctx) ||
-       ctx->Pixel.ZoomX != 1.0F || 
-       ctx->Pixel.ZoomY != 1.0F)
+       ctx->Pixel.ZoomX != 1.0F || ctx->Pixel.ZoomY != 1.0F)
       return GL_FALSE;
 
-   if (!src || !dst) 
+   if (!src || !dst)
       return GL_FALSE;
 
 
 
-   intelFlush( &intel->ctx );
+   intelFlush(&intel->ctx);
    intel->vtbl.render_start(intel);
    intel->vtbl.emit_state(intel);
 
-   LOCK_HARDWARE( intel );
+   LOCK_HARDWARE(intel);
 
-   if (intel->driDrawable->numClipRects)
-   {
+   if (intel->driDrawable->numClipRects) {
       __DRIdrawablePrivate *dPriv = intel->driDrawable;
       drm_clip_rect_t *box = dPriv->pClipRects;
       drm_clip_rect_t dest_rect;
       GLint nbox = dPriv->numClipRects;
-      GLint delta_x = 0;      
-      GLint delta_y = 0;      
+      GLint delta_x = 0;
+      GLint delta_y = 0;
       GLuint i;
 
 
-      dsty = dPriv->h - dsty - height; 	/* convert from gl to hardware coords */
-      srcy = dPriv->h - srcy - height; 	/* convert from gl to hardware coords */
+      dsty = dPriv->h - dsty - height;  /* convert from gl to hardware coords */
+      srcy = dPriv->h - srcy - height;  /* convert from gl to hardware coords */
       dstx += dPriv->x;
       dsty += dPriv->y;
       srcx += dPriv->x;
@@ -275,15 +259,15 @@ static GLboolean do_blit_copypixels( GLcontext *ctx,
        * TODO: Scissor?
        */
       {
-	 delta_x = srcx - dstx;
-	 delta_y = srcy - dsty;
+         delta_x = srcx - dstx;
+         delta_y = srcy - dsty;
 
-	 if (!_mesa_clip_to_region(0, 0, src->pitch, src->height,
-                                   &srcx, &srcy, &width, &height)) 
-	    goto out;
+         if (!_mesa_clip_to_region(0, 0, src->pitch, src->height,
+                                   &srcx, &srcy, &width, &height))
+            goto out;
 
-	 dstx = srcx - delta_x;
-	 dsty = srcy - delta_y;
+         dstx = srcx - delta_x;
+         dsty = srcy - delta_y;
       }
 
       dest_rect.x1 = dstx;
@@ -298,53 +282,44 @@ static GLboolean do_blit_copypixels( GLcontext *ctx,
        * This code will not overwrite other windows, but will
        * introduce garbage when copying from obscured window regions.
        */
-      for (i = 0 ; i < nbox ; i++ )
-      {
-	 drm_clip_rect_t rect;
+      for (i = 0; i < nbox; i++) {
+         drm_clip_rect_t rect;
 
-	 if (!intel_intersect_cliprects(&rect, &dest_rect, &box[i]))
-	    continue;
+         if (!intel_intersect_cliprects(&rect, &dest_rect, &box[i]))
+            continue;
 
-	 
-	 intelEmitCopyBlit( intel,
-			    dst->cpp,
-			    src->pitch, src->buffer, 0,
-			    dst->pitch, dst->buffer, 0,
-			    rect.x1 + delta_x, 
-			    rect.y1 + delta_y, /* srcx, srcy */
-			    rect.x1, 
-			    rect.y1, /* dstx, dsty */
-			    rect.x2 - rect.x1, 
-			    rect.y2 - rect.y1 );
+
+         intelEmitCopyBlit(intel, dst->cpp, src->pitch, src->buffer, 0, dst->pitch, dst->buffer, 0, rect.x1 + delta_x, rect.y1 + delta_y,       /* srcx, srcy */
+                           rect.x1, rect.y1,    /* dstx, dsty */
+                           rect.x2 - rect.x1, rect.y2 - rect.y1);
       }
 
-   out:
-      intel_batchbuffer_flush( intel->batch );
+    out:
+      intel_batchbuffer_flush(intel->batch);
    }
-   UNLOCK_HARDWARE( intel );
+   UNLOCK_HARDWARE(intel);
    return GL_TRUE;
 }
 
 
-void intelCopyPixels( GLcontext *ctx,
-		      GLint srcx, GLint srcy, 
-		      GLsizei width, GLsizei height,
-		      GLint destx, GLint desty, 
-		      GLenum type )
+void
+intelCopyPixels(GLcontext * ctx,
+                GLint srcx, GLint srcy,
+                GLsizei width, GLsizei height,
+                GLint destx, GLint desty, GLenum type)
 {
    if (INTEL_DEBUG & DEBUG_PIXEL)
       fprintf(stderr, "%s\n", __FUNCTION__);
 
-   if (do_blit_copypixels( ctx, srcx, srcy, width, height, destx, desty, type))
+   if (do_blit_copypixels(ctx, srcx, srcy, width, height, destx, desty, type))
       return;
 
-   if (do_texture_copypixels( ctx, srcx, srcy, width, height, destx, desty, type))
+   if (do_texture_copypixels
+       (ctx, srcx, srcy, width, height, destx, desty, type))
       return;
 
    if (INTEL_DEBUG & DEBUG_PIXEL)
       _mesa_printf("fallback to _swrast_CopyPixels\n");
 
-   _swrast_CopyPixels( ctx, srcx, srcy, width, height, destx, desty, type);
+   _swrast_CopyPixels(ctx, srcx, srcy, width, height, destx, desty, type);
 }
-
-

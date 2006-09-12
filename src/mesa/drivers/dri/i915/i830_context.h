@@ -71,7 +71,7 @@
 #define I830_CTXREG_AA			9
 #define I830_CTXREG_FOGCOLOR		10
 #define I830_CTXREG_BLENDCOLOR0		11
-#define I830_CTXREG_BLENDCOLOR1		12 
+#define I830_CTXREG_BLENDCOLOR1		12
 #define I830_CTXREG_VF			13
 #define I830_CTXREG_VF2			14
 #define I830_CTXREG_MCSB0		15
@@ -82,16 +82,16 @@
 #define I830_STPREG_ST1        1
 #define I830_STP_SETUP_SIZE    2
 
-#define I830_TEXREG_TM0LI      0 /* load immediate 2 texture map n */
+#define I830_TEXREG_TM0LI      0        /* load immediate 2 texture map n */
 #define I830_TEXREG_TM0S1      1
 #define I830_TEXREG_TM0S2      2
 #define I830_TEXREG_TM0S3      3
 #define I830_TEXREG_TM0S4      4
-#define I830_TEXREG_MCS	       5	/* _3DSTATE_MAP_COORD_SETS */
-#define I830_TEXREG_CUBE       6	/* _3DSTATE_MAP_SUBE */
+#define I830_TEXREG_MCS	       5        /* _3DSTATE_MAP_COORD_SETS */
+#define I830_TEXREG_CUBE       6        /* _3DSTATE_MAP_SUBE */
 #define I830_TEX_SETUP_SIZE    7
 
-#define I830_TEXBLEND_SIZE	12	/* (4 args + op) * 2 + COLOR_FACTOR */
+#define I830_TEXBLEND_SIZE	12      /* (4 args + op) * 2 + COLOR_FACTOR */
 
 struct i830_texture_object
 {
@@ -101,7 +101,8 @@ struct i830_texture_object
 
 #define I830_TEX_UNITS 4
 
-struct i830_hw_state {
+struct i830_hw_state
+{
    GLuint Ctx[I830_CTX_SETUP_SIZE];
    GLuint Buffer[I830_DEST_SETUP_SIZE];
    GLuint Stipple[I830_STP_SETUP_SIZE];
@@ -116,19 +117,19 @@ struct i830_hw_state {
     * be from a PBO or FBO.  Just use the buffer id.  Will have to do
     * this for draw and depth for FBO's...
     */
-   struct buffer *tex_buffer[I830_TEX_UNITS];
+   struct _DriBufferObject *tex_buffer[I830_TEX_UNITS];
    GLuint tex_offset[I830_TEX_UNITS];
-   
-   GLuint emitted;		/* I810_UPLOAD_* */
+
+   GLuint emitted;              /* I810_UPLOAD_* */
    GLuint active;
 };
 
-struct i830_context 
+struct i830_context
 {
    struct intel_context intel;
-   
+
    GLuint lodbias_tm0s3[MAX_TEXTURE_UNITS];
-   DECLARE_RENDERINPUTS(last_index_bitset);
+     DECLARE_RENDERINPUTS(last_index_bitset);
 
    struct i830_hw_state meta, initial, state, *current;
 };
@@ -153,52 +154,45 @@ do {						\
 
 /* i830_vtbl.c
  */
-extern void 
-i830InitVtbl( struct i830_context *i830 );
+extern void i830InitVtbl(struct i830_context *i830);
 
 /* i830_context.c
  */
-extern GLboolean 
-i830CreateContext( const __GLcontextModes *mesaVis,
-		   __DRIcontextPrivate *driContextPriv,
-		   void *sharedContextPrivate);
+extern GLboolean
+i830CreateContext(const __GLcontextModes * mesaVis,
+                  __DRIcontextPrivate * driContextPriv,
+                  void *sharedContextPrivate);
 
 /* i830_tex.c, i830_texstate.c
  */
-extern void 
-i830UpdateTextureState( struct intel_context *intel );
+extern void i830UpdateTextureState(struct intel_context *intel);
 
-extern void 
-i830InitTextureFuncs( struct dd_function_table *functions );
+extern void i830InitTextureFuncs(struct dd_function_table *functions);
 
 /* i830_texblend.c
  */
 extern GLuint i830SetTexEnvCombine(struct i830_context *i830,
-    const struct gl_tex_env_combine_state * combine, GLint blendUnit,
-     GLuint texel_op, GLuint *state, const GLfloat *factor );
+                                   const struct gl_tex_env_combine_state
+                                   *combine, GLint blendUnit, GLuint texel_op,
+                                   GLuint * state, const GLfloat * factor);
 
-extern void 
-i830EmitTextureBlend( struct i830_context *i830 );
+extern void i830EmitTextureBlend(struct i830_context *i830);
 
 
 /* i830_state.c
  */
-extern void 
-i830InitStateFuncs( struct dd_function_table *functions );
+extern void i830InitStateFuncs(struct dd_function_table *functions);
 
-extern void 
-i830EmitState( struct i830_context *i830 );
+extern void i830EmitState(struct i830_context *i830);
 
-extern void 
-i830InitState( struct i830_context *i830 );
+extern void i830InitState(struct i830_context *i830);
 
 /* i830_metaops.c
  */
-extern void 
-i830InitMetaFuncs( struct i830_context *i830 );
+extern void i830InitMetaFuncs(struct i830_context *i830);
 
 extern void
-i830RotateWindow(struct intel_context *intel, __DRIdrawablePrivate *dPriv,
+i830RotateWindow(struct intel_context *intel, __DRIdrawablePrivate * dPriv,
                  GLuint srcBuf);
 
 /*======================================================================
@@ -206,10 +200,9 @@ i830RotateWindow(struct intel_context *intel, __DRIdrawablePrivate *dPriv,
  * macros used previously:
  */
 static INLINE struct i830_context *
-i830_context( GLcontext *ctx )
+i830_context(GLcontext * ctx)
 {
-   return (struct i830_context *)ctx;
+   return (struct i830_context *) ctx;
 }
 
 #endif
-

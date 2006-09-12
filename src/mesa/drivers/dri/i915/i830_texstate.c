@@ -46,7 +46,8 @@
 
 
 
-static GLuint translate_texture_format( GLuint mesa_format )
+static GLuint
+translate_texture_format(GLuint mesa_format)
 {
    switch (mesa_format) {
    case MESA_FORMAT_L8:
@@ -80,8 +81,7 @@ static GLuint translate_texture_format( GLuint mesa_format )
    case MESA_FORMAT_RGBA_DXT5:
       return (MAPSURF_COMPRESSED | MT_COMPRESS_DXT4_5);
    default:
-      fprintf(stderr, "%s: bad image format %x\n", __FUNCTION__,
-	      mesa_format);
+      fprintf(stderr, "%s: bad image format %x\n", __FUNCTION__, mesa_format);
       abort();
       return 0;
    }
@@ -94,19 +94,20 @@ static GLuint translate_texture_format( GLuint mesa_format )
  * Intel drivers for "other operating systems" implement GL_CLAMP as
  * GL_CLAMP_TO_EDGE, so the same is done here.
  */
-static GLuint translate_wrap_mode( GLenum wrap )
+static GLuint
+translate_wrap_mode(GLenum wrap)
 {
-   switch( wrap ) {
-   case GL_REPEAT: 
+   switch (wrap) {
+   case GL_REPEAT:
       return TEXCOORDMODE_WRAP;
-   case GL_CLAMP:  
-   case GL_CLAMP_TO_EDGE: 
-      return TEXCOORDMODE_CLAMP; /* not really correct */
-   case GL_CLAMP_TO_BORDER: 
+   case GL_CLAMP:
+   case GL_CLAMP_TO_EDGE:
+      return TEXCOORDMODE_CLAMP;        /* not really correct */
+   case GL_CLAMP_TO_BORDER:
       return TEXCOORDMODE_CLAMP_BORDER;
-   case GL_MIRRORED_REPEAT: 
+   case GL_MIRRORED_REPEAT:
       return TEXCOORDMODE_MIRROR;
-   default: 
+   default:
       return TEXCOORDMODE_WRAP;
    }
 }
@@ -116,9 +117,8 @@ static GLuint translate_wrap_mode( GLenum wrap )
  * efficient, but this has gotten complex enough that we need
  * something which is understandable and reliable.
  */
-static GLboolean i830_update_tex_unit( struct intel_context *intel,
-				       GLuint unit, 
-				       GLuint ss3 )
+static GLboolean
+i830_update_tex_unit(struct intel_context *intel, GLuint unit, GLuint ss3)
 {
    GLcontext *ctx = &intel->ctx;
    struct i830_context *i830 = i830_context(ctx);
@@ -130,7 +130,7 @@ static GLboolean i830_update_tex_unit( struct intel_context *intel,
    memset(state, 0, sizeof(state));
 
    if (!intel_finalize_mipmap_tree(intel, unit))
-      return GL_FALSE;   
+      return GL_FALSE;
 
    /* Get first image here, since intelObj->firstLevel will get set in
     * the intel_finalize_mipmap_tree() call above.
@@ -139,36 +139,36 @@ static GLboolean i830_update_tex_unit( struct intel_context *intel,
 
    i830->state.tex_buffer[unit] = intelObj->mt->region->buffer;
    i830->state.tex_offset[unit] = intel_miptree_image_offset(intelObj->mt, 0,
-							     intelObj->firstLevel); 
+                                                             intelObj->
+                                                             firstLevel);
 
 
-   state[I830_TEXREG_TM0LI] = (_3DSTATE_LOAD_STATE_IMMEDIATE_2 | 
-			       (LOAD_TEXTURE_MAP0 << unit) | 4);
+   state[I830_TEXREG_TM0LI] = (_3DSTATE_LOAD_STATE_IMMEDIATE_2 |
+                               (LOAD_TEXTURE_MAP0 << unit) | 4);
 
 /*    state[I830_TEXREG_TM0S0] = (TM0S0_USE_FENCE | */
 /* 			       t->intel.TextureOffset); */
 
 
-   state[I830_TEXREG_TM0S1] =  
+   state[I830_TEXREG_TM0S1] =
       (((firstImage->Height - 1) << TM0S1_HEIGHT_SHIFT) |
        ((firstImage->Width - 1) << TM0S1_WIDTH_SHIFT) |
-       translate_texture_format( firstImage->TexFormat->MesaFormat));
+       translate_texture_format(firstImage->TexFormat->MesaFormat));
 
-   state[I830_TEXREG_TM0S2] = 
-      (((((intelObj->mt->pitch * intelObj->mt->cpp) / 4) - 1) << TM0S2_PITCH_SHIFT) |
-       TM0S2_CUBE_FACE_ENA_MASK);
+   state[I830_TEXREG_TM0S2] =
+      (((((intelObj->mt->pitch * intelObj->mt->cpp) / 4) -
+         1) << TM0S2_PITCH_SHIFT) | TM0S2_CUBE_FACE_ENA_MASK);
 
    {
       if (tObj->Target == GL_TEXTURE_CUBE_MAP)
-	 state[I830_TEXREG_CUBE] = (_3DSTATE_MAP_CUBE | MAP_UNIT(unit) |
-				    CUBE_NEGX_ENABLE | 
-				    CUBE_POSX_ENABLE | 
-				    CUBE_NEGY_ENABLE | 
-				    CUBE_POSY_ENABLE | 
-				    CUBE_NEGZ_ENABLE | 
-				    CUBE_POSZ_ENABLE);
+         state[I830_TEXREG_CUBE] = (_3DSTATE_MAP_CUBE | MAP_UNIT(unit) |
+                                    CUBE_NEGX_ENABLE |
+                                    CUBE_POSX_ENABLE |
+                                    CUBE_NEGY_ENABLE |
+                                    CUBE_POSY_ENABLE |
+                                    CUBE_NEGZ_ENABLE | CUBE_POSZ_ENABLE);
       else
-	 state[I830_TEXREG_CUBE] = (_3DSTATE_MAP_CUBE | MAP_UNIT(unit));
+         state[I830_TEXREG_CUBE] = (_3DSTATE_MAP_CUBE | MAP_UNIT(unit));
    }
 
 
@@ -179,143 +179,138 @@ static GLboolean i830_update_tex_unit( struct intel_context *intel,
 
       switch (tObj->MinFilter) {
       case GL_NEAREST:
-	 minFilt = FILTER_NEAREST;
-	 mipFilt = MIPFILTER_NONE;
-	 break;
+         minFilt = FILTER_NEAREST;
+         mipFilt = MIPFILTER_NONE;
+         break;
       case GL_LINEAR:
-	 minFilt = FILTER_LINEAR;
-	 mipFilt = MIPFILTER_NONE;
-	 break;
+         minFilt = FILTER_LINEAR;
+         mipFilt = MIPFILTER_NONE;
+         break;
       case GL_NEAREST_MIPMAP_NEAREST:
-	 minFilt = FILTER_NEAREST;
-	 mipFilt = MIPFILTER_NEAREST;
-	 break;
+         minFilt = FILTER_NEAREST;
+         mipFilt = MIPFILTER_NEAREST;
+         break;
       case GL_LINEAR_MIPMAP_NEAREST:
-	 minFilt = FILTER_LINEAR;
-	 mipFilt = MIPFILTER_NEAREST;
-	 break;
+         minFilt = FILTER_LINEAR;
+         mipFilt = MIPFILTER_NEAREST;
+         break;
       case GL_NEAREST_MIPMAP_LINEAR:
-	 minFilt = FILTER_NEAREST;
-	 mipFilt = MIPFILTER_LINEAR;
-	 break;
+         minFilt = FILTER_NEAREST;
+         mipFilt = MIPFILTER_LINEAR;
+         break;
       case GL_LINEAR_MIPMAP_LINEAR:
-	 minFilt = FILTER_LINEAR;
-	 mipFilt = MIPFILTER_LINEAR;
-	 break;
+         minFilt = FILTER_LINEAR;
+         mipFilt = MIPFILTER_LINEAR;
+         break;
       default:
-	 return GL_FALSE;
+         return GL_FALSE;
       }
 
-      if ( tObj->MaxAnisotropy > 1.0 ) {
-	 minFilt = FILTER_ANISOTROPIC; 
-	 magFilt = FILTER_ANISOTROPIC;
+      if (tObj->MaxAnisotropy > 1.0) {
+         minFilt = FILTER_ANISOTROPIC;
+         magFilt = FILTER_ANISOTROPIC;
       }
       else {
-	 switch (tObj->MagFilter) {
-	 case GL_NEAREST:
-	    magFilt = FILTER_NEAREST;
-	    break;
-	 case GL_LINEAR:
-	    magFilt = FILTER_LINEAR;
-	    break;
-	 default:
-	    return GL_FALSE;
-	 }  
+         switch (tObj->MagFilter) {
+         case GL_NEAREST:
+            magFilt = FILTER_NEAREST;
+            break;
+         case GL_LINEAR:
+            magFilt = FILTER_LINEAR;
+            break;
+         default:
+            return GL_FALSE;
+         }
       }
 
       state[I830_TEXREG_TM0S3] = i830->lodbias_tm0s3[unit];
 
-#if 0 
+#if 0
       /* YUV conversion:
        */
       if (firstImage->TexFormat->MesaFormat == MESA_FORMAT_YCBCR ||
-	  firstImage->TexFormat->MesaFormat == MESA_FORMAT_YCBCR_REV)
-	 state[I830_TEXREG_TM0S3] |= SS2_COLORSPACE_CONVERSION;
+          firstImage->TexFormat->MesaFormat == MESA_FORMAT_YCBCR_REV)
+         state[I830_TEXREG_TM0S3] |= SS2_COLORSPACE_CONVERSION;
 #endif
 
-      state[I830_TEXREG_TM0S3] |= ((intelObj->lastLevel - 
-				    intelObj->firstLevel)*4) << TM0S3_MIN_MIP_SHIFT;
+      state[I830_TEXREG_TM0S3] |= ((intelObj->lastLevel -
+                                    intelObj->firstLevel) *
+                                   4) << TM0S3_MIN_MIP_SHIFT;
 
       state[I830_TEXREG_TM0S3] |= ((minFilt << TM0S3_MIN_FILTER_SHIFT) |
-				   (mipFilt << TM0S3_MIP_FILTER_SHIFT) |
-				   (magFilt << TM0S3_MAG_FILTER_SHIFT));
+                                   (mipFilt << TM0S3_MIP_FILTER_SHIFT) |
+                                   (magFilt << TM0S3_MAG_FILTER_SHIFT));
    }
 
    {
       GLenum ws = tObj->WrapS;
       GLenum wt = tObj->WrapT;
-      
+
 
       /* 3D textures not available on i830
        */
       if (tObj->Target == GL_TEXTURE_3D)
-	 return GL_FALSE;
-	     
+         return GL_FALSE;
+
       state[I830_TEXREG_MCS] = (_3DSTATE_MAP_COORD_SET_CMD |
-				MAP_UNIT(unit) |
-				ENABLE_TEXCOORD_PARAMS |
-				ss3 |
-				ENABLE_ADDR_V_CNTL |
-				TEXCOORD_ADDR_V_MODE(translate_wrap_mode(wt)) |
-				ENABLE_ADDR_U_CNTL |
-				TEXCOORD_ADDR_U_MODE(translate_wrap_mode(ws)));
+                                MAP_UNIT(unit) |
+                                ENABLE_TEXCOORD_PARAMS |
+                                ss3 |
+                                ENABLE_ADDR_V_CNTL |
+                                TEXCOORD_ADDR_V_MODE(translate_wrap_mode(wt))
+                                | ENABLE_ADDR_U_CNTL |
+                                TEXCOORD_ADDR_U_MODE(translate_wrap_mode
+                                                     (ws)));
    }
 
 
    state[I830_TEXREG_TM0S4] = INTEL_PACKCOLOR8888(tObj->_BorderChan[0],
-						  tObj->_BorderChan[1],
-						  tObj->_BorderChan[2],
-						  tObj->_BorderChan[3]);
-   
+                                                  tObj->_BorderChan[1],
+                                                  tObj->_BorderChan[2],
+                                                  tObj->_BorderChan[3]);
+
 
    I830_ACTIVESTATE(i830, I830_UPLOAD_TEX(unit), GL_TRUE);
    /* memcmp was already disabled, but definitely won't work as the
     * region might now change and that wouldn't be detected:
     */
-   I830_STATECHANGE( i830, I830_UPLOAD_TEX(unit) );
+   I830_STATECHANGE(i830, I830_UPLOAD_TEX(unit));
    return GL_TRUE;
 }
 
 
 
 
-void i830UpdateTextureState( struct intel_context *intel )
+void
+i830UpdateTextureState(struct intel_context *intel)
 {
    struct i830_context *i830 = i830_context(&intel->ctx);
    GLboolean ok = GL_TRUE;
    GLuint i;
 
-   for (i = 0 ; i < I830_TEX_UNITS && ok ; i++) {
+   for (i = 0; i < I830_TEX_UNITS && ok; i++) {
       switch (intel->ctx.Texture.Unit[i]._ReallyEnabled) {
       case TEXTURE_1D_BIT:
       case TEXTURE_2D_BIT:
       case TEXTURE_CUBE_BIT:
-	 ok = i830_update_tex_unit( intel, i, TEXCOORDS_ARE_NORMAL );
-	 break;
+         ok = i830_update_tex_unit(intel, i, TEXCOORDS_ARE_NORMAL);
+         break;
       case TEXTURE_RECT_BIT:
-	 ok = i830_update_tex_unit( intel, i, TEXCOORDS_ARE_IN_TEXELUNITS );
-	 break;
-      case 0: 
-	 if (i830->state.active & I830_UPLOAD_TEX(i)) 
-	    I830_ACTIVESTATE(i830, I830_UPLOAD_TEX(i), GL_FALSE);
-	 break;
+         ok = i830_update_tex_unit(intel, i, TEXCOORDS_ARE_IN_TEXELUNITS);
+         break;
+      case 0:
+         if (i830->state.active & I830_UPLOAD_TEX(i))
+            I830_ACTIVESTATE(i830, I830_UPLOAD_TEX(i), GL_FALSE);
+         break;
       case TEXTURE_3D_BIT:
       default:
-	 ok = GL_FALSE;
-	 break;
+         ok = GL_FALSE;
+         break;
       }
    }
 
-   FALLBACK( intel, I830_FALLBACK_TEXTURE, !ok );
+   FALLBACK(intel, I830_FALLBACK_TEXTURE, !ok);
 
    if (ok)
-      i830EmitTextureBlend( i830 );
+      i830EmitTextureBlend(i830);
 }
-
-
-
-
-
-
-
-

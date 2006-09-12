@@ -38,25 +38,26 @@ struct gl_buffer_object;
 /**
  * Intel vertex/pixel buffer object, derived from Mesa's gl_buffer_object.
  */
-struct intel_buffer_object {
+struct intel_buffer_object
+{
    struct gl_buffer_object Base;
-   struct buffer *buffer;   /* the low-level buffer manager's buffer handle */
-   
+   struct _DriBufferObject *buffer;     /* the low-level buffer manager's buffer handle */
+
    struct intel_region *region; /* Is there a zero-copy texture
-				   associated with this (pixel)
-				   buffer object? */
+                                   associated with this (pixel)
+                                   buffer object? */
 };
 
 
 /* Get the bm buffer associated with a GL bufferobject:
  */
-struct buffer *intel_bufferobj_buffer( struct intel_context *intel,
-				       struct intel_buffer_object *obj,
-				       GLuint flag );
+struct _DriBufferObject *intel_bufferobj_buffer(struct intel_context *intel,
+                                                struct intel_buffer_object
+                                                *obj, GLuint flag);
 
 /* Hook the bufferobject implementation into mesa: 
  */
-void intel_bufferobj_init( struct intel_context *intel );
+void intel_bufferobj_init(struct intel_context *intel);
 
 
 
@@ -66,20 +67,20 @@ void intel_bufferobj_init( struct intel_context *intel );
  * casting them erroneously to our structs.
  */
 static INLINE struct intel_buffer_object *
-intel_buffer_object( struct gl_buffer_object *obj )
+intel_buffer_object(struct gl_buffer_object *obj)
 {
    if (obj->Name)
-      return (struct intel_buffer_object *)obj;
+      return (struct intel_buffer_object *) obj;
    else
       return NULL;
 }
 
 /* Helpers for zerocopy image uploads.  See also intel_regions.h:
  */
-void intel_bufferobj_cow( struct intel_context *intel,
-			  struct intel_buffer_object *intel_obj );
-void intel_bufferobj_release_region( struct intel_context *intel,
-				     struct intel_buffer_object *intel_obj );
+void intel_bufferobj_cow(struct intel_context *intel,
+                         struct intel_buffer_object *intel_obj);
+void intel_bufferobj_release_region(struct intel_context *intel,
+                                    struct intel_buffer_object *intel_obj);
 
 
 #endif

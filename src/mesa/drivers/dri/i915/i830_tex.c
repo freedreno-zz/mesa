@@ -45,12 +45,13 @@
 
 
 
-static void i830TexEnv( GLcontext *ctx, GLenum target, 
-			GLenum pname, const GLfloat *param )
+static void
+i830TexEnv(GLcontext * ctx, GLenum target,
+           GLenum pname, const GLfloat * param)
 {
 
    switch (pname) {
-   case GL_TEXTURE_ENV_COLOR: 
+   case GL_TEXTURE_ENV_COLOR:
    case GL_TEXTURE_ENV_MODE:
    case GL_COMBINE_RGB:
    case GL_COMBINE_ALPHA:
@@ -70,16 +71,19 @@ static void i830TexEnv( GLcontext *ctx, GLenum target,
    case GL_ALPHA_SCALE:
       break;
 
-   case GL_TEXTURE_LOD_BIAS: {
-      struct i830_context *i830 = i830_context( ctx );
-      GLuint unit = ctx->Texture.CurrentUnit;
-      int b = (int) ((*param) * 16.0);
-      if (b > 63) b = 63;
-      if (b < -64) b = -64;
-      I830_STATECHANGE(i830, I830_UPLOAD_TEX(unit));
-      i830->lodbias_tm0s3[unit] = ((b << TM0S3_LOD_BIAS_SHIFT) & TM0S3_LOD_BIAS_MASK);
-      break;
-   }
+   case GL_TEXTURE_LOD_BIAS:{
+         struct i830_context *i830 = i830_context(ctx);
+         GLuint unit = ctx->Texture.CurrentUnit;
+         int b = (int) ((*param) * 16.0);
+         if (b > 63)
+            b = 63;
+         if (b < -64)
+            b = -64;
+         I830_STATECHANGE(i830, I830_UPLOAD_TEX(unit));
+         i830->lodbias_tm0s3[unit] =
+            ((b << TM0S3_LOD_BIAS_SHIFT) & TM0S3_LOD_BIAS_MASK);
+         break;
+      }
 
    default:
       break;
@@ -89,7 +93,8 @@ static void i830TexEnv( GLcontext *ctx, GLenum target,
 
 
 
-void i830InitTextureFuncs( struct dd_function_table *functions )
+void
+i830InitTextureFuncs(struct dd_function_table *functions)
 {
-   functions->TexEnv                    = i830TexEnv;
+   functions->TexEnv = i830TexEnv;
 }

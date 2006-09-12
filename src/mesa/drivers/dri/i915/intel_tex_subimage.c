@@ -37,15 +37,16 @@
 
 #define FILE_DEBUG_FLAG DEBUG_TEXTURE
 
-static void intelTexSubimage (GLcontext *ctx,
-			      GLint dims,
-			      GLenum target, GLint level,
-			      GLint xoffset, GLint yoffset, GLint zoffset,
-			      GLint width, GLint height, GLint depth,
-			      GLenum format, GLenum type, const void *pixels,
-			      const struct gl_pixelstore_attrib *packing,
-			      struct gl_texture_object *texObj,
-			      struct gl_texture_image *texImage)
+static void
+intelTexSubimage(GLcontext * ctx,
+                 GLint dims,
+                 GLenum target, GLint level,
+                 GLint xoffset, GLint yoffset, GLint zoffset,
+                 GLint width, GLint height, GLint depth,
+                 GLenum format, GLenum type, const void *pixels,
+                 const struct gl_pixelstore_attrib *packing,
+                 struct gl_texture_object *texObj,
+                 struct gl_texture_image *texImage)
 {
    struct intel_context *intel = intel_context(ctx);
    struct intel_texture_image *intelImage = intel_texture_image(texImage);
@@ -53,15 +54,14 @@ static void intelTexSubimage (GLcontext *ctx,
    GLuint dstRowStride;
 
    DBG("%s target %s level %d offset %d,%d %dx%d\n", __FUNCTION__,
-		_mesa_lookup_enum_by_nr(target),
-		level,
-		xoffset, yoffset,
-		width, height);
+       _mesa_lookup_enum_by_nr(target),
+       level, xoffset, yoffset, width, height);
 
    intelFlush(ctx);
 
-   pixels = _mesa_validate_pbo_teximage(ctx, dims, width, height, depth, format, type,
-                                        pixels, packing, "glTexSubImage2D");
+   pixels =
+      _mesa_validate_pbo_teximage(ctx, dims, width, height, depth, format,
+                                  type, pixels, packing, "glTexSubImage2D");
    if (!pixels)
       return;
 
@@ -70,24 +70,24 @@ static void intelTexSubimage (GLcontext *ctx,
    /* Map buffer if necessary.  Need to lock to prevent other contexts
     * from uploading the buffer under us.
     */
-   if (intelImage->mt) 
-      texImage->Data = intel_miptree_image_map(intel, 
-					       intelImage->mt, 
-					       intelImage->face, 
-					       intelImage->level, 
-					       &dstRowStride,
-					       &dstImageStride );
-      
+   if (intelImage->mt)
+      texImage->Data = intel_miptree_image_map(intel,
+                                               intelImage->mt,
+                                               intelImage->face,
+                                               intelImage->level,
+                                               &dstRowStride,
+                                               &dstImageStride);
+
    assert(dstRowStride);
 
    if (!texImage->TexFormat->StoreImage(ctx, dims, texImage->_BaseFormat,
-					texImage->TexFormat,
-					texImage->Data,
-					xoffset, yoffset, zoffset,
-					dstRowStride, 
-					texImage->ImageOffsets,
-					width, height, depth,
-					format, type, pixels, packing)) {
+                                        texImage->TexFormat,
+                                        texImage->Data,
+                                        xoffset, yoffset, zoffset,
+                                        dstRowStride,
+                                        texImage->ImageOffsets,
+                                        width, height, depth,
+                                        format, type, pixels, packing)) {
       _mesa_error(ctx, GL_OUT_OF_MEMORY, "intelTexSubImage");
    }
 
@@ -114,67 +114,67 @@ static void intelTexSubimage (GLcontext *ctx,
 
 
 
-void intelTexSubImage3D(GLcontext *ctx,
-			GLenum target,
-			GLint level,
-			GLint xoffset, GLint yoffset, GLint zoffset,
-			GLsizei width, GLsizei height, GLsizei depth,
-			GLenum format, GLenum type,
-			const GLvoid *pixels,
-			const struct gl_pixelstore_attrib *packing,
-			struct gl_texture_object *texObj,
-			struct gl_texture_image *texImage)
+void
+intelTexSubImage3D(GLcontext * ctx,
+                   GLenum target,
+                   GLint level,
+                   GLint xoffset, GLint yoffset, GLint zoffset,
+                   GLsizei width, GLsizei height, GLsizei depth,
+                   GLenum format, GLenum type,
+                   const GLvoid * pixels,
+                   const struct gl_pixelstore_attrib *packing,
+                   struct gl_texture_object *texObj,
+                   struct gl_texture_image *texImage)
 {
 
    intelTexSubimage(ctx, 3,
-		    target, level, 
-		    xoffset, yoffset, zoffset,
-		    width, height, depth,
-		    format, type, pixels, packing, texObj,
-		    texImage);
+                    target, level,
+                    xoffset, yoffset, zoffset,
+                    width, height, depth,
+                    format, type, pixels, packing, texObj, texImage);
 
 }
 
 
 
-void intelTexSubImage2D(GLcontext *ctx,
-			GLenum target,
-			GLint level,
-			GLint xoffset, GLint yoffset,
-			GLsizei width, GLsizei height,
-			GLenum format, GLenum type,
-			const GLvoid *pixels,
-			const struct gl_pixelstore_attrib *packing,
-			struct gl_texture_object *texObj,
-			struct gl_texture_image *texImage)
+void
+intelTexSubImage2D(GLcontext * ctx,
+                   GLenum target,
+                   GLint level,
+                   GLint xoffset, GLint yoffset,
+                   GLsizei width, GLsizei height,
+                   GLenum format, GLenum type,
+                   const GLvoid * pixels,
+                   const struct gl_pixelstore_attrib *packing,
+                   struct gl_texture_object *texObj,
+                   struct gl_texture_image *texImage)
 {
 
    intelTexSubimage(ctx, 2,
-		    target, level, 
-		    xoffset, yoffset, 0,
-		    width, height, 1,
-		    format, type, pixels, packing, texObj,
-		    texImage);
+                    target, level,
+                    xoffset, yoffset, 0,
+                    width, height, 1,
+                    format, type, pixels, packing, texObj, texImage);
 
 }
 
 
-void intelTexSubImage1D(GLcontext *ctx,
-			GLenum target,
-			GLint level,
-			GLint xoffset,
-			GLsizei width,
-			GLenum format, GLenum type,
-			const GLvoid *pixels,
-			const struct gl_pixelstore_attrib *packing,
-			struct gl_texture_object *texObj,
-			struct gl_texture_image *texImage)
+void
+intelTexSubImage1D(GLcontext * ctx,
+                   GLenum target,
+                   GLint level,
+                   GLint xoffset,
+                   GLsizei width,
+                   GLenum format, GLenum type,
+                   const GLvoid * pixels,
+                   const struct gl_pixelstore_attrib *packing,
+                   struct gl_texture_object *texObj,
+                   struct gl_texture_image *texImage)
 {
    intelTexSubimage(ctx, 1,
-		    target, level, 
-		    xoffset, 0, 0,
-		    width, 1, 1,
-		    format, type, pixels, packing, texObj,
-		    texImage);
+                    target, level,
+                    xoffset, 0, 0,
+                    width, 1, 1,
+                    format, type, pixels, packing, texObj, texImage);
 
 }

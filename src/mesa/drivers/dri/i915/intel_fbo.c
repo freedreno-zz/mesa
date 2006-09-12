@@ -37,7 +37,6 @@
 
 #include "intel_context.h"
 #include "intel_buffers.h"
-#include "intel_bufmgr.h"
 #include "intel_depthstencil.h"
 #include "intel_fbo.h"
 #include "intel_mipmap_tree.h"
@@ -53,7 +52,8 @@
  * NULL will be returned if the rb isn't really an intel_renderbuffer.
  * This is determiend by checking the ClassID.
  */
-struct intel_renderbuffer *intel_renderbuffer( struct gl_renderbuffer *rb )
+struct intel_renderbuffer *
+intel_renderbuffer(struct gl_renderbuffer *rb)
 {
    struct intel_renderbuffer *irb = (struct intel_renderbuffer *) rb;
    if (irb && irb->Base.ClassID == INTEL_RB_CLASS) {
@@ -89,7 +89,7 @@ intel_get_rb_region(struct gl_framebuffer *fb, GLuint attIndex)
  * Create a new framebuffer object.
  */
 static struct gl_framebuffer *
-intel_new_framebuffer(GLcontext *ctx, GLuint name)
+intel_new_framebuffer(GLcontext * ctx, GLuint name)
 {
    /* there's no intel_framebuffer at this time, just use Mesa's class */
    return _mesa_new_framebuffer(ctx, name);
@@ -122,7 +122,7 @@ intel_delete_renderbuffer(struct gl_renderbuffer *rb)
  * Return a pointer to a specific pixel in a renderbuffer.
  */
 static void *
-intel_get_pointer(GLcontext *ctx, struct gl_renderbuffer *rb,
+intel_get_pointer(GLcontext * ctx, struct gl_renderbuffer *rb,
                   GLint x, GLint y)
 {
    /* By returning NULL we force all software rendering to go through
@@ -138,7 +138,7 @@ intel_get_pointer(GLcontext *ctx, struct gl_renderbuffer *rb,
  * storage for a user-created renderbuffer.
  */
 static GLboolean
-intel_alloc_renderbuffer_storage(GLcontext *ctx, struct gl_renderbuffer *rb,
+intel_alloc_renderbuffer_storage(GLcontext * ctx, struct gl_renderbuffer *rb,
                                  GLenum internalFormat,
                                  GLuint width, GLuint height)
 {
@@ -215,7 +215,8 @@ intel_alloc_renderbuffer_storage(GLcontext *ctx, struct gl_renderbuffer *rb,
       cpp = 4;
       break;
    default:
-      _mesa_problem(ctx, "Unexpected format in intel_alloc_renderbuffer_storage");
+      _mesa_problem(ctx,
+                    "Unexpected format in intel_alloc_renderbuffer_storage");
       return GL_FALSE;
    }
 
@@ -223,9 +224,9 @@ intel_alloc_renderbuffer_storage(GLcontext *ctx, struct gl_renderbuffer *rb,
 
    /* free old region */
    if (irb->region) {
-      /*LOCK_HARDWARE(intel);*/
+      /*LOCK_HARDWARE(intel); */
       intel_region_release(intel, &irb->region);
-      /*UNLOCK_HARDWARE(intel);*/
+      /*UNLOCK_HARDWARE(intel); */
    }
 
    /* allocate new memory region/renderbuffer */
@@ -239,11 +240,12 @@ intel_alloc_renderbuffer_storage(GLcontext *ctx, struct gl_renderbuffer *rb,
       GLuint pitch = ((cpp * width + 63) & ~63) / cpp;
 
       /* alloc hardware renderbuffer */
-      _mesa_debug(ctx, "Allocating %d x %d Intel RBO (pitch %d)\n", width, height, pitch);
+      _mesa_debug(ctx, "Allocating %d x %d Intel RBO (pitch %d)\n", width,
+                  height, pitch);
 
       irb->region = intel_region_alloc(intel, cpp, pitch, height);
       if (!irb->region)
-         return GL_FALSE; /* out of memory? */
+         return GL_FALSE;       /* out of memory? */
 
       ASSERT(irb->region->buffer);
 
@@ -265,9 +267,8 @@ intel_alloc_renderbuffer_storage(GLcontext *ctx, struct gl_renderbuffer *rb,
  * Not used for user-created renderbuffers!
  */
 static GLboolean
-intel_alloc_window_storage(GLcontext *ctx, struct gl_renderbuffer *rb,
-                           GLenum internalFormat,
-                           GLuint width, GLuint height)
+intel_alloc_window_storage(GLcontext * ctx, struct gl_renderbuffer *rb,
+                           GLenum internalFormat, GLuint width, GLuint height)
 {
    ASSERT(rb->Name == 0);
    rb->Width = width;
@@ -278,9 +279,8 @@ intel_alloc_window_storage(GLcontext *ctx, struct gl_renderbuffer *rb,
 
 
 static GLboolean
-intel_nop_alloc_storage(GLcontext *ctx, struct gl_renderbuffer *rb,
-                        GLenum internalFormat,
-                        GLuint width, GLuint height)
+intel_nop_alloc_storage(GLcontext * ctx, struct gl_renderbuffer *rb,
+                        GLenum internalFormat, GLuint width, GLuint height)
 {
    _mesa_problem(ctx, "intel_op_alloc_storage should never be called.");
    return GL_FALSE;
@@ -299,7 +299,7 @@ intel_create_renderbuffer(GLenum intFormat, GLsizei width, GLsizei height,
                           int offset, int pitch, int cpp, void *map)
 {
    GET_CURRENT_CONTEXT(ctx);
-   
+
    struct intel_renderbuffer *irb;
    const GLuint name = 0;
 
@@ -362,7 +362,8 @@ intel_create_renderbuffer(GLenum intFormat, GLsizei width, GLsizei height,
       cpp = 4;
       break;
    default:
-      _mesa_problem(NULL, "Unexpected intFormat in intel_create_renderbuffer");
+      _mesa_problem(NULL,
+                    "Unexpected intFormat in intel_create_renderbuffer");
       return NULL;
    }
 
@@ -381,10 +382,7 @@ intel_create_renderbuffer(GLenum intFormat, GLsizei width, GLsizei height,
 #if 00
    irb->region = intel_region_create_static(intel,
                                             DRM_MM_TT,
-                                            offset,
-                                            map,
-                                            cpp,
-                                            width, height);
+                                            offset, map, cpp, width, height);
 #endif
 
    return irb;
@@ -396,9 +394,9 @@ intel_create_renderbuffer(GLenum intFormat, GLsizei width, GLsizei height,
  * Typically called via glBindRenderbufferEXT().
  */
 static struct gl_renderbuffer *
-intel_new_renderbuffer(GLcontext *ctx, GLuint name)
+intel_new_renderbuffer(GLcontext * ctx, GLuint name)
 {
-   /*struct intel_context *intel = intel_context(ctx);*/
+   /*struct intel_context *intel = intel_context(ctx); */
    struct intel_renderbuffer *irb;
 
    irb = CALLOC_STRUCT(intel_renderbuffer);
@@ -424,12 +422,12 @@ intel_new_renderbuffer(GLcontext *ctx, GLuint name)
  * Called via glBindFramebufferEXT().
  */
 static void
-intel_bind_framebuffer(GLcontext *ctx, GLenum target,
+intel_bind_framebuffer(GLcontext * ctx, GLenum target,
                        struct gl_framebuffer *fb)
 {
    /*
-   _mesa_debug(ctx, "%s %d\n", __FUNCTION__, fb->Name);
-   */
+      _mesa_debug(ctx, "%s %d\n", __FUNCTION__, fb->Name);
+    */
    /* XXX FBO: putting this flush here fixes a rendering offset bug.
     * Not sure why this is needed when _mesa_BindFrameBuffer does
     * a FLUSH_VERTICES().
@@ -451,15 +449,14 @@ intel_bind_framebuffer(GLcontext *ctx, GLenum target,
  * Called via glFramebufferRenderbufferEXT().
  */
 static void
-intel_framebuffer_renderbuffer(GLcontext *ctx, 
+intel_framebuffer_renderbuffer(GLcontext * ctx,
                                struct gl_framebuffer *fb,
-                               GLenum attachment,
-                               struct gl_renderbuffer *rb)
+                               GLenum attachment, struct gl_renderbuffer *rb)
 {
    /*
-   _mesa_debug(ctx, "Intel FramebufferRenderbuffer %u %u\n",
-               fb->Name, rb ? rb->Name : 0);
-   */
+      _mesa_debug(ctx, "Intel FramebufferRenderbuffer %u %u\n",
+      fb->Name, rb ? rb->Name : 0);
+    */
 
    intelFlush(ctx);
 
@@ -474,9 +471,9 @@ intel_framebuffer_renderbuffer(GLcontext *ctx,
  * This will have the region info needed for hardware rendering.
  */
 static struct intel_renderbuffer *
-intel_wrap_texture(GLcontext *ctx, struct gl_texture_image *texImage)
+intel_wrap_texture(GLcontext * ctx, struct gl_texture_image *texImage)
 {
-   const GLuint name = ~0; /* not significant, but distinct for debugging */
+   const GLuint name = ~0;      /* not significant, but distinct for debugging */
    struct intel_renderbuffer *irb;
 
    /* make an intel_renderbuffer to wrap the texture image */
@@ -505,7 +502,8 @@ intel_wrap_texture(GLcontext *ctx, struct gl_texture_image *texImage)
       _mesa_debug(ctx, "Render to DEPTH16 texture OK\n");
    }
    else {
-      _mesa_debug(ctx, "Render to texture BAD FORMAT %d\n", texImage->TexFormat->MesaFormat);
+      _mesa_debug(ctx, "Render to texture BAD FORMAT %d\n",
+                  texImage->TexFormat->MesaFormat);
       _mesa_free(irb);
       return NULL;
    }
@@ -513,7 +511,7 @@ intel_wrap_texture(GLcontext *ctx, struct gl_texture_image *texImage)
    irb->Base.InternalFormat = irb->Base._ActualFormat;
    irb->Base.Width = texImage->Width;
    irb->Base.Height = texImage->Height;
-   irb->Base.DataType = GL_UNSIGNED_BYTE; /* FBO XXX fix */
+   irb->Base.DataType = GL_UNSIGNED_BYTE;       /* FBO XXX fix */
    irb->Base.RedBits = texImage->TexFormat->RedBits;
    irb->Base.GreenBits = texImage->TexFormat->GreenBits;
    irb->Base.BlueBits = texImage->TexFormat->BlueBits;
@@ -537,14 +535,13 @@ intel_wrap_texture(GLcontext *ctx, struct gl_texture_image *texImage)
  * before intel_finish_render_texture() is ever called.
  */
 static void
-intel_render_texture(GLcontext *ctx,
+intel_render_texture(GLcontext * ctx,
                      struct gl_framebuffer *fb,
                      struct gl_renderbuffer_attachment *att)
 {
    struct gl_texture_image *newImage
       = att->Texture->Image[att->CubeMapFace][att->TextureLevel];
-   struct intel_renderbuffer *irb
-      = intel_renderbuffer(att->Renderbuffer);
+   struct intel_renderbuffer *irb = intel_renderbuffer(att->Renderbuffer);
    struct intel_texture_image *intel_image;
    GLuint imageOffset;
 
@@ -566,10 +563,10 @@ intel_render_texture(GLcontext *ctx,
    }
 
    /*
-   _mesa_debug(ctx, "Begin render texture tex=%u w=%d h=%d refcount=%d\n",
-               att->Texture->Name, newImage->Width, newImage->Height,
-               irb->Base.RefCount);
-   */
+      _mesa_debug(ctx, "Begin render texture tex=%u w=%d h=%d refcount=%d\n",
+      att->Texture->Name, newImage->Width, newImage->Height,
+      irb->Base.RefCount);
+    */
 
    /* point the renderbufer's region to the texture image region */
    intel_image = intel_texture_image(newImage);
@@ -599,17 +596,16 @@ intel_render_texture(GLcontext *ctx,
  * Called by Mesa when rendering to a texture is done.
  */
 static void
-intel_finish_render_texture(GLcontext *ctx,
-                           struct gl_renderbuffer_attachment *att)
+intel_finish_render_texture(GLcontext * ctx,
+                            struct gl_renderbuffer_attachment *att)
 {
    struct intel_context *intel = intel_context(ctx);
-   struct intel_renderbuffer *irb
-      = intel_renderbuffer(att->Renderbuffer);
+   struct intel_renderbuffer *irb = intel_renderbuffer(att->Renderbuffer);
 
    /*
-   _mesa_debug(ctx, "End render texture (tid %u) tex %u\n",
-               _glthread_GetID(), att->Texture->Name);
-   */
+      _mesa_debug(ctx, "End render texture (tid %u) tex %u\n",
+      _glthread_GetID(), att->Texture->Name);
+    */
 
    if (irb) {
       /* just release the region */
@@ -628,7 +624,7 @@ intel_finish_render_texture(GLcontext *ctx,
  * Hook in device driver functions.
  */
 void
-intel_fbo_init( struct intel_context *intel )
+intel_fbo_init(struct intel_context *intel)
 {
    intel->ctx.Driver.NewFramebuffer = intel_new_framebuffer;
    intel->ctx.Driver.NewRenderbuffer = intel_new_renderbuffer;

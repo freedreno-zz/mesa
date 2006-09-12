@@ -110,7 +110,7 @@
       (intel->drawY * pitch + intel->drawX) * irb->region->cpp;
 
 
-#define LOCAL_STENCIL_VARS LOCAL_DEPTH_VARS 
+#define LOCAL_STENCIL_VARS LOCAL_DEPTH_VARS
 
 /**
  ** 16-bit depthbuffer functions.
@@ -188,7 +188,8 @@ intel_map_unmap_buffers(struct intel_context *intel, GLboolean map)
    /* color draw buffers */
    for (i = 0; i < ctx->Const.MaxDrawBuffers; i++) {
       for (j = 0; j < ctx->DrawBuffer->_NumColorDrawBuffers[i]; j++) {
-         struct gl_renderbuffer *rb = ctx->DrawBuffer->_ColorDrawBuffers[i][j];
+         struct gl_renderbuffer *rb =
+            ctx->DrawBuffer->_ColorDrawBuffers[i][j];
          irb = intel_renderbuffer(rb);
          if (irb) {
             /* this is a user-created intel_renderbuffer */
@@ -206,7 +207,8 @@ intel_map_unmap_buffers(struct intel_context *intel, GLboolean map)
 
    /* check for render to textures */
    for (i = 0; i < BUFFER_COUNT; i++) {
-      struct gl_renderbuffer_attachment *att = ctx->DrawBuffer->Attachment + i;
+      struct gl_renderbuffer_attachment *att =
+         ctx->DrawBuffer->Attachment + i;
       struct gl_texture_object *tex = att->Texture;
       if (tex) {
          /* render to texture */
@@ -305,7 +307,8 @@ intel_map_unmap_buffers(struct intel_context *intel, GLboolean map)
  *
  * Old note: Moved locking out to get reasonable span performance.
  */
-void intelSpanRenderStart( GLcontext *ctx )
+void
+intelSpanRenderStart(GLcontext * ctx)
 {
    struct intel_context *intel = intel_context(ctx);
    GLuint i;
@@ -324,8 +327,8 @@ void intelSpanRenderStart( GLcontext *ctx )
 
    for (i = 0; i < ctx->Const.MaxTextureCoordUnits; i++) {
       if (ctx->Texture.Unit[i]._ReallyEnabled) {
-	 struct gl_texture_object *texObj = ctx->Texture.Unit[i]._Current;
-	 intel_tex_map_images(intel, intel_texture_object(texObj));
+         struct gl_texture_object *texObj = ctx->Texture.Unit[i]._Current;
+         intel_tex_map_images(intel, intel_texture_object(texObj));
       }
    }
 
@@ -336,12 +339,13 @@ void intelSpanRenderStart( GLcontext *ctx )
  * Called when done softare rendering.  Unmap the buffers we mapped in
  * the above function.
  */
-void intelSpanRenderFinish( GLcontext *ctx )
+void
+intelSpanRenderFinish(GLcontext * ctx)
 {
-   struct intel_context *intel = intel_context( ctx );
+   struct intel_context *intel = intel_context(ctx);
    GLuint i;
 
-   _swrast_flush( ctx );
+   _swrast_flush(ctx);
 
    /* Now unmap the framebuffer:
     */
@@ -353,22 +357,23 @@ void intelSpanRenderFinish( GLcontext *ctx )
 
    for (i = 0; i < ctx->Const.MaxTextureCoordUnits; i++) {
       if (ctx->Texture.Unit[i]._ReallyEnabled) {
-	 struct gl_texture_object *texObj = ctx->Texture.Unit[i]._Current;
-	 intel_tex_unmap_images(intel, intel_texture_object(texObj));
+         struct gl_texture_object *texObj = ctx->Texture.Unit[i]._Current;
+         intel_tex_unmap_images(intel, intel_texture_object(texObj));
       }
    }
 
    intel_map_unmap_buffers(intel, GL_FALSE);
 
-   UNLOCK_HARDWARE( intel );
+   UNLOCK_HARDWARE(intel);
 }
 
 
-void intelInitSpanFuncs( GLcontext *ctx )
+void
+intelInitSpanFuncs(GLcontext * ctx)
 {
    struct swrast_device_driver *swdd = _swrast_GetDeviceDriverReference(ctx);
    swdd->SpanRenderStart = intelSpanRenderStart;
-   swdd->SpanRenderFinish = intelSpanRenderFinish; 
+   swdd->SpanRenderFinish = intelSpanRenderFinish;
 }
 
 
@@ -390,14 +395,15 @@ intel_set_span_functions(struct gl_renderbuffer *rb)
    else if (rb->_ActualFormat == GL_DEPTH_COMPONENT16) {
       intelInitDepthPointers_z16(rb);
    }
-   else if (rb->_ActualFormat == GL_DEPTH_COMPONENT24 || /* XXX FBO remove */
+   else if (rb->_ActualFormat == GL_DEPTH_COMPONENT24 ||        /* XXX FBO remove */
             rb->_ActualFormat == GL_DEPTH24_STENCIL8_EXT) {
       intelInitDepthPointers_z24_s8(rb);
    }
-   else if (rb->_ActualFormat == GL_STENCIL_INDEX8_EXT) { /* XXX FBO remove */
+   else if (rb->_ActualFormat == GL_STENCIL_INDEX8_EXT) {       /* XXX FBO remove */
       intelInitStencilPointers_z24_s8(rb);
    }
    else {
-      _mesa_problem(NULL, "Unexpected _ActualFormat in intelSetSpanFunctions");
+      _mesa_problem(NULL,
+                    "Unexpected _ActualFormat in intelSetSpanFunctions");
    }
 }

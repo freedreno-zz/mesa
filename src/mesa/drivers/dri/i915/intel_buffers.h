@@ -33,31 +33,24 @@ struct intel_context;
 
 
 extern GLboolean
-intel_intersect_cliprects(drm_clip_rect_t *dest,
-                          const drm_clip_rect_t *a,
-                          const drm_clip_rect_t *b);
+intel_intersect_cliprects(drm_clip_rect_t * dest,
+                          const drm_clip_rect_t * a,
+                          const drm_clip_rect_t * b);
 
-extern struct intel_region *
-intel_readbuf_region(struct intel_context *intel);
+extern struct intel_region *intel_readbuf_region(struct intel_context *intel);
 
-extern struct intel_region *
-intel_drawbuf_region(struct intel_context *intel);
+extern struct intel_region *intel_drawbuf_region(struct intel_context *intel);
 
-extern void
-intelSwapBuffers( __DRIdrawablePrivate *dPriv);
+extern void intelSwapBuffers(__DRIdrawablePrivate * dPriv);
 
-extern void
-intelWindowMoved(struct intel_context *intel);
+extern void intelWindowMoved(struct intel_context *intel);
 
-extern void
-intel_draw_buffer(GLcontext *ctx, struct gl_framebuffer *fb);
+extern void intel_draw_buffer(GLcontext * ctx, struct gl_framebuffer *fb);
+
+extern void intelInitBufferFuncs(struct dd_function_table *functions);
 
 extern void
-intelInitBufferFuncs(struct dd_function_table *functions);
-
-extern void 
 intelRotateWindow(struct intel_context *intel,
-		  __DRIdrawablePrivate *dPriv, 
-		  GLuint srcBuf);
+                  __DRIdrawablePrivate * dPriv, GLuint srcBuf);
 
 #endif /* INTEL_BUFFERS_H */

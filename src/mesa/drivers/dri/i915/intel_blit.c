@@ -41,20 +41,19 @@
 #include "intel_reg.h"
 #include "intel_regions.h"
 
-#include "intel_bufmgr.h"
-
 #define FILE_DEBUG_FLAG DEBUG_BLIT
 
 /**
  * Copy the back color buffer to the front color buffer. 
  * Used for SwapBuffers().
  */
-void intelCopyBuffer( const __DRIdrawablePrivate *dPriv,
-		      const drm_clip_rect_t *rect ) 
+void
+intelCopyBuffer(const __DRIdrawablePrivate * dPriv,
+                const drm_clip_rect_t * rect)
 {
    GET_CURRENT_CONTEXT(ctx);
    struct intel_context *intel;
-   GLboolean   missed_target;
+   GLboolean missed_target;
    int64_t ust;
 
    DBG("%s\n", __FUNCTION__);
@@ -70,30 +69,26 @@ void intelCopyBuffer( const __DRIdrawablePrivate *dPriv,
       return;
    }
    intel = (struct intel_context *) ctx;
-
-   /* FIXME: Temporary fix for fence ageing.
-    * 
-    */
-
-   if (!intel->last_swap_fence_retired) {
-      bmFinishFence(intel, intel->last_swap_fence);
+   if (intel->last_swap_fence) {
+      driFenceFinish(intel->last_swap_fence, DRM_FENCE_EXE, GL_TRUE);
+      driFenceUnReference(intel->last_swap_fence);
+      intel->last_swap_fence = NULL;
    }
+   intel->last_swap_fence = intel->first_swap_fence;
+   intel->first_swap_fence = NULL;
 
-   
-   if (!rect)
-   {
-      driWaitForVBlank( dPriv, &intel->vbl_seq, intel->vblank_flags, & missed_target );
+   if (!rect) {
+      driWaitForVBlank(dPriv, &intel->vbl_seq, intel->vblank_flags,
+                       &missed_target);
    }
 
 
    /* The LOCK_HARDWARE is required for the cliprects.  Buffer offsets
     * should work regardless.
     */
-   LOCK_HARDWARE( intel );
+   LOCK_HARDWARE(intel);
 
-   if (intel->driDrawable &&
-       intel->driDrawable->numClipRects)
-   {
+   if (intel->driDrawable && intel->driDrawable->numClipRects) {
       const intelScreenPrivate *intelScreen = intel->intelScreen;
       struct gl_framebuffer *fb
          = (struct gl_framebuffer *) dPriv->driverPrivate;
@@ -109,151 +104,156 @@ void intelCopyBuffer( const __DRIdrawablePrivate *dPriv,
       int i;
 
       ASSERT(fb);
-      ASSERT(fb->Name == 0); /* Not a user-created FBO */
+      ASSERT(fb->Name == 0);    /* Not a user-created FBO */
       ASSERT(frontRegion);
       ASSERT(backRegion);
       ASSERT(frontRegion->pitch == backRegion->pitch);
       ASSERT(frontRegion->cpp == backRegion->cpp);
 
       if (cpp == 2) {
-	 BR13 = (pitch * cpp) | (0xCC << 16) | (1<<24);
-	 CMD = XY_SRC_COPY_BLT_CMD;
-      } 
+         BR13 = (pitch * cpp) | (0xCC << 16) | (1 << 24);
+         CMD = XY_SRC_COPY_BLT_CMD;
+      }
       else {
-	 BR13 = (pitch * cpp) | (0xCC << 16) | (1<<24) | (1<<25);
-	 CMD = (XY_SRC_COPY_BLT_CMD | XY_SRC_COPY_BLT_WRITE_ALPHA |
-		XY_SRC_COPY_BLT_WRITE_RGB);
+         BR13 = (pitch * cpp) | (0xCC << 16) | (1 << 24) | (1 << 25);
+         CMD = (XY_SRC_COPY_BLT_CMD | XY_SRC_COPY_BLT_WRITE_ALPHA |
+                XY_SRC_COPY_BLT_WRITE_RGB);
       }
 
-      for (i = 0 ; i < nbox; i++, pbox++) 
-      {
-	 drm_clip_rect_t box;
+      for (i = 0; i < nbox; i++, pbox++) {
+         drm_clip_rect_t box;
 
-	 if (pbox->x1 > pbox->x2 ||
-	     pbox->y1 > pbox->y2 ||
-	     pbox->x2 > intelScreen->width ||
-	     pbox->y2 > intelScreen->height)
-	    continue;
- 
-	 box = *pbox;
+         if (pbox->x1 > pbox->x2 ||
+             pbox->y1 > pbox->y2 ||
+             pbox->x2 > intelScreen->width || pbox->y2 > intelScreen->height)
+            continue;
 
-	 if (rect)
-	 {
-	     if (rect->x1 > box.x1)
-		 box.x1 = rect->x1;
-	     if (rect->y1 > box.y1)
-		 box.y1 = rect->y1;
-	     if (rect->x2 < box.x2)
-		 box.x2 = rect->x2;
-	     if (rect->y2 < box.y2)
-		 box.y2 = rect->y2;
+         box = *pbox;
 
-	     if (box.x1 > box.x2 || box.y1 > box.y2)
-		 continue;
-	 }
+         if (rect) {
+            if (rect->x1 > box.x1)
+               box.x1 = rect->x1;
+            if (rect->y1 > box.y1)
+               box.y1 = rect->y1;
+            if (rect->x2 < box.x2)
+               box.x2 = rect->x2;
+            if (rect->y2 < box.y2)
+               box.y2 = rect->y2;
 
-	 BEGIN_BATCH(8, INTEL_BATCH_NO_CLIPRECTS);
-	 OUT_BATCH( CMD );
-	 OUT_BATCH( BR13 );
-	 OUT_BATCH( (pbox->y1 << 16) | pbox->x1 );
-	 OUT_BATCH( (pbox->y2 << 16) | pbox->x2 );
+            if (box.x1 > box.x2 || box.y1 > box.y2)
+               continue;
+         }
 
-	 if (intel->sarea->pf_current_page == 0) 
-	    OUT_RELOC( frontRegion->buffer, DRM_MM_TT|DRM_MM_WRITE, 0 );
-	 else
-	    OUT_RELOC( backRegion->buffer, DRM_MM_TT|DRM_MM_WRITE, 0 ); 
-	 OUT_BATCH( (pbox->y1 << 16) | pbox->x1 );
-	 OUT_BATCH( BR13 & 0xffff );
+         BEGIN_BATCH(8, INTEL_BATCH_NO_CLIPRECTS);
+         OUT_BATCH(CMD);
+         OUT_BATCH(BR13);
+         OUT_BATCH((pbox->y1 << 16) | pbox->x1);
+         OUT_BATCH((pbox->y2 << 16) | pbox->x2);
 
-	 if (intel->sarea->pf_current_page == 0) 
-	    OUT_RELOC( backRegion->buffer, DRM_MM_TT|DRM_MM_READ, 0 ); 
-	 else
-	    OUT_RELOC( frontRegion->buffer, DRM_MM_TT|DRM_MM_READ, 0 );
+         if (intel->sarea->pf_current_page == 0)
+            OUT_RELOC(frontRegion->buffer,
+                      DRM_BO_FLAG_MEM_TT | DRM_BO_FLAG_WRITE,
+                      DRM_BO_MASK_MEM | DRM_BO_FLAG_WRITE, 0);
+         else
+            OUT_RELOC(backRegion->buffer,
+                      DRM_BO_FLAG_MEM_TT | DRM_BO_FLAG_WRITE,
+                      DRM_BO_MASK_MEM | DRM_BO_FLAG_WRITE, 0);
+         OUT_BATCH((pbox->y1 << 16) | pbox->x1);
+         OUT_BATCH(BR13 & 0xffff);
 
-	 ADVANCE_BATCH();
+         if (intel->sarea->pf_current_page == 0)
+            OUT_RELOC(backRegion->buffer,
+                      DRM_BO_FLAG_MEM_TT | DRM_BO_FLAG_READ,
+                      DRM_BO_MASK_MEM | DRM_BO_FLAG_READ, 0);
+         else
+            OUT_RELOC(frontRegion->buffer,
+                      DRM_BO_FLAG_MEM_TT | DRM_BO_FLAG_READ,
+                      DRM_BO_MASK_MEM | DRM_BO_FLAG_READ, 0);
+
+         ADVANCE_BATCH();
       }
 
-      intel->last_swap_fence = intel_batchbuffer_flush( intel->batch );
-      intel->last_swap_fence_retired = GL_FALSE;
+      if (intel->first_swap_fence)
+         driFenceUnReference(intel->first_swap_fence);
+      intel->first_swap_fence = intel_batchbuffer_flush(intel->batch);
+      driFenceReference(intel->first_swap_fence);
    }
-   UNLOCK_HARDWARE( intel );
 
-   if (!rect)
-   {
-       intel->swap_count++;
-       (*dri_interface->getUST)(&ust);
-       if (missed_target) {
-	   intel->swap_missed_count++;
-	   intel->swap_missed_ust = ust -  intel->swap_ust;
-       }
-   
-       intel->swap_ust = ust;
+   UNLOCK_HARDWARE(intel);
+
+   if (!rect) {
+      intel->swap_count++;
+      (*dri_interface->getUST) (&ust);
+      if (missed_target) {
+         intel->swap_missed_count++;
+         intel->swap_missed_ust = ust - intel->swap_ust;
+      }
+
+      intel->swap_ust = ust;
    }
 }
 
 
 
 
-void intelEmitFillBlit( struct intel_context *intel,
-			GLuint cpp,
-			GLshort dst_pitch,
-			struct buffer *dst_buffer,
-			GLuint dst_offset,
-			GLshort x, GLshort y, 
-			GLshort w, GLshort h,
-			GLuint color )
+void
+intelEmitFillBlit(struct intel_context *intel,
+                  GLuint cpp,
+                  GLshort dst_pitch,
+                  struct _DriBufferObject *dst_buffer,
+                  GLuint dst_offset,
+                  GLshort x, GLshort y, GLshort w, GLshort h, GLuint color)
 {
    GLuint BR13, CMD;
    BATCH_LOCALS;
 
    dst_pitch *= cpp;
 
-   switch(cpp) {
-   case 1: 
-   case 2: 
-   case 3: 
-      BR13 = dst_pitch | (0xF0 << 16) | (1<<24);
+   switch (cpp) {
+   case 1:
+   case 2:
+   case 3:
+      BR13 = dst_pitch | (0xF0 << 16) | (1 << 24);
       CMD = XY_COLOR_BLT_CMD;
       break;
    case 4:
-      BR13 = dst_pitch | (0xF0 << 16) | (1<<24) | (1<<25);
+      BR13 = dst_pitch | (0xF0 << 16) | (1 << 24) | (1 << 25);
       CMD = (XY_COLOR_BLT_CMD | XY_COLOR_BLT_WRITE_ALPHA |
-	     XY_COLOR_BLT_WRITE_RGB);
+             XY_COLOR_BLT_WRITE_RGB);
       break;
    default:
       return;
    }
 
    DBG("%s dst:buf(%p)/%d+%d %d,%d sz:%dx%d\n",
-       __FUNCTION__,
-       dst_buffer, dst_pitch, dst_offset, x, y,
-       w,h);
+       __FUNCTION__, dst_buffer, dst_pitch, dst_offset, x, y, w, h);
 
 
    BEGIN_BATCH(6, INTEL_BATCH_NO_CLIPRECTS);
-   OUT_BATCH( CMD );
-   OUT_BATCH( BR13 );
-   OUT_BATCH( (y << 16) | x );
-   OUT_BATCH( ((y+h) << 16) | (x+w) );
-   OUT_RELOC( dst_buffer, DRM_MM_TT|DRM_MM_WRITE, dst_offset );
-   OUT_BATCH( color );
+   OUT_BATCH(CMD);
+   OUT_BATCH(BR13);
+   OUT_BATCH((y << 16) | x);
+   OUT_BATCH(((y + h) << 16) | (x + w));
+   OUT_RELOC(dst_buffer, DRM_BO_FLAG_MEM_TT | DRM_BO_FLAG_WRITE,
+             DRM_BO_MASK_MEM | DRM_BO_FLAG_WRITE, dst_offset);
+   OUT_BATCH(color);
    ADVANCE_BATCH();
 }
 
 
 /* Copy BitBlt
  */
-void intelEmitCopyBlit( struct intel_context *intel,
-			GLuint cpp,
-			GLshort src_pitch,
-			struct buffer *src_buffer,
-			GLuint  src_offset,
-			GLshort dst_pitch,
-			struct buffer *dst_buffer,
-			GLuint  dst_offset,
-			GLshort src_x, GLshort src_y,
-			GLshort dst_x, GLshort dst_y,
-			GLshort w, GLshort h )
+void
+intelEmitCopyBlit(struct intel_context *intel,
+                  GLuint cpp,
+                  GLshort src_pitch,
+                  struct _DriBufferObject *src_buffer,
+                  GLuint src_offset,
+                  GLshort dst_pitch,
+                  struct _DriBufferObject *dst_buffer,
+                  GLuint dst_offset,
+                  GLshort src_x, GLshort src_y,
+                  GLshort dst_x, GLshort dst_y, GLshort w, GLshort h)
 {
    GLuint CMD, BR13;
    int dst_y2 = dst_y + h;
@@ -264,30 +264,31 @@ void intelEmitCopyBlit( struct intel_context *intel,
    DBG("%s src:buf(%p)/%d+%d %d,%d dst:buf(%p)/%d+%d %d,%d sz:%dx%d\n",
        __FUNCTION__,
        src_buffer, src_pitch, src_offset, src_x, src_y,
-       dst_buffer, dst_pitch, dst_offset, dst_x, dst_y,
-       w,h);
+       dst_buffer, dst_pitch, dst_offset, dst_x, dst_y, w, h);
 
    src_pitch *= cpp;
    dst_pitch *= cpp;
 
-   switch(cpp) {
-   case 1: 
-   case 2: 
-   case 3: 
-      BR13 = (((GLint)dst_pitch)&0xffff) | (0xCC << 16) | (1<<24);
+   switch (cpp) {
+   case 1:
+   case 2:
+   case 3:
+      BR13 = (((GLint) dst_pitch) & 0xffff) | (0xCC << 16) | (1 << 24);
       CMD = XY_SRC_COPY_BLT_CMD;
       break;
    case 4:
-      BR13 = (((GLint)dst_pitch)&0xffff) | (0xCC << 16) | (1<<24) | (1<<25);
-      CMD = (XY_SRC_COPY_BLT_CMD | XY_SRC_COPY_BLT_WRITE_ALPHA |
-	     XY_SRC_COPY_BLT_WRITE_RGB);
+      BR13 =
+         (((GLint) dst_pitch) & 0xffff) | (0xCC << 16) | (1 << 24) | (1 <<
+                                                                      25);
+      CMD =
+         (XY_SRC_COPY_BLT_CMD | XY_SRC_COPY_BLT_WRITE_ALPHA |
+          XY_SRC_COPY_BLT_WRITE_RGB);
       break;
    default:
       return;
    }
 
-   if (dst_y2 < dst_y ||
-       dst_x2 < dst_x) {
+   if (dst_y2 < dst_y || dst_x2 < dst_x) {
       return;
    }
 
@@ -298,29 +299,34 @@ void intelEmitCopyBlit( struct intel_context *intel,
     * know which blit directions to use, so overlapping copypixels get
     * the wrong result.
     */
-   if ( dst_pitch > 0 && 
-	src_pitch > 0) {
+   if (dst_pitch > 0 && src_pitch > 0) {
       BEGIN_BATCH(8, INTEL_BATCH_NO_CLIPRECTS);
-      OUT_BATCH( CMD );
-      OUT_BATCH( BR13 );
-      OUT_BATCH( (dst_y << 16) | dst_x );
-      OUT_BATCH( (dst_y2 << 16) | dst_x2 );
-      OUT_RELOC( dst_buffer, DRM_MM_TT|DRM_MM_WRITE, dst_offset );	
-      OUT_BATCH( (src_y << 16) | src_x );
-      OUT_BATCH( ((GLint)src_pitch&0xffff) );
-      OUT_RELOC( src_buffer, DRM_MM_TT|DRM_MM_READ, src_offset ); 
+      OUT_BATCH(CMD);
+      OUT_BATCH(BR13);
+      OUT_BATCH((dst_y << 16) | dst_x);
+      OUT_BATCH((dst_y2 << 16) | dst_x2);
+      OUT_RELOC(dst_buffer, DRM_BO_FLAG_MEM_TT | DRM_BO_FLAG_WRITE,
+                DRM_BO_MASK_MEM | DRM_BO_FLAG_WRITE, dst_offset);
+      OUT_BATCH((src_y << 16) | src_x);
+      OUT_BATCH(((GLint) src_pitch & 0xffff));
+      OUT_RELOC(src_buffer, DRM_BO_FLAG_MEM_TT | DRM_BO_FLAG_READ,
+                DRM_BO_MASK_MEM | DRM_BO_FLAG_READ, src_offset);
       ADVANCE_BATCH();
    }
    else {
       BEGIN_BATCH(8, INTEL_BATCH_NO_CLIPRECTS);
-      OUT_BATCH( CMD );
-      OUT_BATCH( BR13 );
-      OUT_BATCH( (0 << 16) | dst_x );
-      OUT_BATCH( (h << 16) | dst_x2 );
-      OUT_RELOC( dst_buffer, DRM_MM_TT|DRM_MM_WRITE, dst_offset + dst_y * dst_pitch );	
-      OUT_BATCH( (0 << 16) | src_x );
-      OUT_BATCH( ((GLint)src_pitch&0xffff) );
-      OUT_RELOC( src_buffer, DRM_MM_TT|DRM_MM_READ, src_offset + src_y * src_pitch ); 
+      OUT_BATCH(CMD);
+      OUT_BATCH(BR13);
+      OUT_BATCH((0 << 16) | dst_x);
+      OUT_BATCH((h << 16) | dst_x2);
+      OUT_RELOC(dst_buffer, DRM_BO_FLAG_MEM_TT | DRM_BO_FLAG_WRITE,
+                DRM_BO_MASK_MEM | DRM_BO_FLAG_WRITE,
+                dst_offset + dst_y * dst_pitch);
+      OUT_BATCH((0 << 16) | src_x);
+      OUT_BATCH(((GLint) src_pitch & 0xffff));
+      OUT_RELOC(src_buffer, DRM_BO_FLAG_MEM_TT | DRM_BO_FLAG_READ,
+                DRM_BO_MASK_MEM | DRM_BO_FLAG_READ,
+                src_offset + src_y * src_pitch);
       ADVANCE_BATCH();
    }
 }
@@ -333,10 +339,11 @@ void intelEmitCopyBlit( struct intel_context *intel,
  * which we're clearing with triangles.
  * \param mask  bitmask of BUFFER_BIT_* values indicating buffers to clear
  */
-void intelClearWithBlit(GLcontext *ctx, GLbitfield mask, GLboolean all,
-                        GLint cx, GLint cy, GLint cw, GLint ch)
+void
+intelClearWithBlit(GLcontext * ctx, GLbitfield mask, GLboolean all,
+                   GLint cx, GLint cy, GLint cw, GLint ch)
 {
-   struct intel_context *intel = intel_context( ctx );
+   struct intel_context *intel = intel_context(ctx);
    GLuint clear_depth;
    GLbitfield skipBuffers = 0;
    BATCH_LOCALS;
@@ -363,11 +370,10 @@ void intelClearWithBlit(GLcontext *ctx, GLbitfield mask, GLboolean all,
    }
 
    /* XXX Move this flush/lock into the following conditional? */
-   intelFlush( &intel->ctx );
-   LOCK_HARDWARE( intel );
+   intelFlush(&intel->ctx);
+   LOCK_HARDWARE(intel);
 
-   if (intel->numClipRects)
-   {
+   if (intel->numClipRects) {
       drm_clip_rect_t clear;
       int i;
 
@@ -377,10 +383,10 @@ void intelClearWithBlit(GLcontext *ctx, GLbitfield mask, GLboolean all,
        * reliable.
        */
       {
-	  cx = ctx->DrawBuffer->_Xmin;
-	  cy = ctx->DrawBuffer->_Ymin;
-	  ch = ctx->DrawBuffer->_Ymax - ctx->DrawBuffer->_Ymin;
-	  cw  = ctx->DrawBuffer->_Xmax - ctx->DrawBuffer->_Xmin;
+         cx = ctx->DrawBuffer->_Xmin;
+         cy = ctx->DrawBuffer->_Ymin;
+         ch = ctx->DrawBuffer->_Ymax - ctx->DrawBuffer->_Ymin;
+         cw = ctx->DrawBuffer->_Xmax - ctx->DrawBuffer->_Xmin;
       }
 
       if (intel->ctx.DrawBuffer->Name == 0) {
@@ -393,11 +399,13 @@ void intelClearWithBlit(GLcontext *ctx, GLbitfield mask, GLboolean all,
          clear.y2 = clear.y1 + ch;
 
          /* adjust for page flipping */
-         if ( intel->sarea->pf_current_page == 1 ) {
+         if (intel->sarea->pf_current_page == 1) {
             const GLuint tmp = mask;
             mask &= ~(BUFFER_BIT_FRONT_LEFT | BUFFER_BIT_BACK_LEFT);
-            if ( tmp & BUFFER_BIT_FRONT_LEFT ) mask |= BUFFER_BIT_BACK_LEFT;
-            if ( tmp & BUFFER_BIT_BACK_LEFT )  mask |= BUFFER_BIT_FRONT_LEFT;
+            if (tmp & BUFFER_BIT_FRONT_LEFT)
+               mask |= BUFFER_BIT_BACK_LEFT;
+            if (tmp & BUFFER_BIT_BACK_LEFT)
+               mask |= BUFFER_BIT_FRONT_LEFT;
          }
       }
       else {
@@ -411,24 +419,22 @@ void intelClearWithBlit(GLcontext *ctx, GLbitfield mask, GLboolean all,
          /* no change to mask */
       }
 
-      for (i = 0 ; i < intel->numClipRects ; i++) 
-      { 	 
-	 const drm_clip_rect_t *box = &intel->pClipRects[i];	 
-	 drm_clip_rect_t b;
+      for (i = 0; i < intel->numClipRects; i++) {
+         const drm_clip_rect_t *box = &intel->pClipRects[i];
+         drm_clip_rect_t b;
          GLuint buf;
-         GLuint clearMask = mask; /* use copy, since we modify it below */
+         GLuint clearMask = mask;       /* use copy, since we modify it below */
 
-	 if (!all) {
-	    intel_intersect_cliprects(&b, &clear, box);
-	 } else {
-	    b = *box;
-	 }
+         if (!all) {
+            intel_intersect_cliprects(&b, &clear, box);
+         }
+         else {
+            b = *box;
+         }
 
-	 if (0)
-	    _mesa_printf("clear %d,%d..%d,%d, mask %x\n", 
-			 b.x1, b.y1,
-			 b.x2, b.y2, 
-			 mask);
+         if (0)
+            _mesa_printf("clear %d,%d..%d,%d, mask %x\n",
+                         b.x1, b.y1, b.x2, b.y2, mask);
 
          /* Loop over all renderbuffers */
          for (buf = 0; buf < BUFFER_COUNT && clearMask; buf++) {
@@ -438,9 +444,10 @@ void intelClearWithBlit(GLcontext *ctx, GLbitfield mask, GLboolean all,
                const struct intel_renderbuffer *irb
                   = intel_renderbuffer(ctx->DrawBuffer->
                                        Attachment[buf].Renderbuffer);
-	       struct buffer *write_buffer = 
-		  intel_region_buffer(intel, irb->region,
-				      all ? INTEL_WRITE_FULL : INTEL_WRITE_PART);
+               struct _DriBufferObject *write_buffer =
+                  intel_region_buffer(intel, irb->region,
+                                      all ? INTEL_WRITE_FULL :
+                                      INTEL_WRITE_PART);
 
                GLuint clearVal;
                GLint pitch, cpp;
@@ -452,17 +459,16 @@ void intelClearWithBlit(GLcontext *ctx, GLbitfield mask, GLboolean all,
                pitch = irb->region->pitch;
                cpp = irb->region->cpp;
 
-	       DBG("%s dst:buf(%p)/%d+%d %d,%d sz:%dx%d\n",
-		   __FUNCTION__,
-		   irb->region->buffer, (pitch * cpp), 
-		   irb->region->draw_offset, 
-		   b.x1, b.y1,
-		   b.x2 - b.x1, b.y2 - b.y1);
+               DBG("%s dst:buf(%p)/%d+%d %d,%d sz:%dx%d\n",
+                   __FUNCTION__,
+                   irb->region->buffer, (pitch * cpp),
+                   irb->region->draw_offset,
+                   b.x1, b.y1, b.x2 - b.x1, b.y2 - b.y1);
 
 
                /* Setup the blit command */
                if (cpp == 4) {
-                  BR13 = (0xF0 << 16) | (pitch * cpp) | (1<<24) | (1<<25);
+                  BR13 = (0xF0 << 16) | (pitch * cpp) | (1 << 24) | (1 << 25);
                   if (buf == BUFFER_DEPTH || buf == BUFFER_STENCIL) {
                      CMD = XY_COLOR_BLT_CMD;
                      if (clearMask & BUFFER_BIT_DEPTH)
@@ -473,13 +479,13 @@ void intelClearWithBlit(GLcontext *ctx, GLbitfield mask, GLboolean all,
                   else {
                      /* clearing RGBA */
                      CMD = (XY_COLOR_BLT_CMD |
-                            XY_COLOR_BLT_WRITE_ALPHA | 
+                            XY_COLOR_BLT_WRITE_ALPHA |
                             XY_COLOR_BLT_WRITE_RGB);
                   }
                }
                else {
                   ASSERT(cpp == 2 || cpp == 0);
-                  BR13 = (0xF0 << 16) | (pitch * cpp) | (1<<24);
+                  BR13 = (0xF0 << 16) | (pitch * cpp) | (1 << 24);
                   CMD = XY_COLOR_BLT_CMD;
                }
 
@@ -491,26 +497,25 @@ void intelClearWithBlit(GLcontext *ctx, GLbitfield mask, GLboolean all,
                      ? intel->ClearColor8888 : intel->ClearColor565;
                }
                /*
-               _mesa_debug(ctx, "hardware blit clear buf %d rb id %d\n",
-                           buf, irb->Base.Name);
-               */
+                  _mesa_debug(ctx, "hardware blit clear buf %d rb id %d\n",
+                  buf, irb->Base.Name);
+                */
                BEGIN_BATCH(6, INTEL_BATCH_NO_CLIPRECTS);
-               OUT_BATCH( CMD );
-               OUT_BATCH( BR13 );
-               OUT_BATCH( (b.y1 << 16) | b.x1 );
-               OUT_BATCH( (b.y2 << 16) | b.x2 );
-               OUT_RELOC( write_buffer, DRM_MM_TT|DRM_MM_WRITE,
-                          irb->region->draw_offset );
-               OUT_BATCH( clearVal );
+               OUT_BATCH(CMD);
+               OUT_BATCH(BR13);
+               OUT_BATCH((b.y1 << 16) | b.x1);
+               OUT_BATCH((b.y2 << 16) | b.x2);
+               OUT_RELOC(write_buffer, DRM_BO_FLAG_MEM_TT | DRM_BO_FLAG_WRITE,
+                         DRM_BO_MASK_MEM | DRM_BO_FLAG_WRITE,
+                         irb->region->draw_offset);
+               OUT_BATCH(clearVal);
                ADVANCE_BATCH();
-               clearMask &= ~bufBit; /* turn off bit, for faster loop exit */
+               clearMask &= ~bufBit;    /* turn off bit, for faster loop exit */
             }
          }
       }
-      intel_batchbuffer_flush( intel->batch );
+      intel_batchbuffer_flush(intel->batch);
    }
 
-   UNLOCK_HARDWARE( intel );
+   UNLOCK_HARDWARE(intel);
 }
-
-

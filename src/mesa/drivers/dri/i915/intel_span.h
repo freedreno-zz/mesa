@@ -28,12 +28,11 @@
 #ifndef _INTEL_SPAN_H
 #define _INTEL_SPAN_H
 
-extern void intelInitSpanFuncs( GLcontext *ctx );
+extern void intelInitSpanFuncs(GLcontext * ctx);
 
-extern void intelSpanRenderFinish( GLcontext *ctx );
-extern void intelSpanRenderStart( GLcontext *ctx );
+extern void intelSpanRenderFinish(GLcontext * ctx);
+extern void intelSpanRenderStart(GLcontext * ctx);
 
-extern void
-intel_set_span_functions(struct gl_renderbuffer *rb);
+extern void intel_set_span_functions(struct gl_renderbuffer *rb);
 
 #endif
