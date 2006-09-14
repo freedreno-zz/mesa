@@ -422,7 +422,7 @@ intelTexImage(GLcontext * ctx,
        * performance (in particular when intel_region_cow() is
        * required).
        */
-      if (0 && intelObj->mt == intelImage->mt &&
+      if (intelObj->mt == intelImage->mt &&
           intelObj->mt->first_level == level &&
           intelObj->mt->last_level == level) {
 
