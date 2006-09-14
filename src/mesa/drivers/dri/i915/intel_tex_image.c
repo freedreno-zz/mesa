@@ -417,9 +417,12 @@ intelTexImage(GLcontext * ctx,
       DBG("trying pbo upload\n");
 
       /* Attempt to texture directly from PBO data (zero copy upload).
-       * This is about twice as fast as regular uploads:
+       *
+       * Currently disable as it can lead to worse as well as better
+       * performance (in particular when intel_region_cow() is
+       * required).
        */
-      if (intelObj->mt == intelImage->mt &&
+      if (0 && intelObj->mt == intelImage->mt &&
           intelObj->mt->first_level == level &&
           intelObj->mt->last_level == level) {
 
@@ -434,7 +437,6 @@ intelTexImage(GLcontext * ctx,
 
 
       /* Otherwise, attempt to use the blitter for PBO image uploads.
-       * This is about 20% faster than regular uploads:
        */
       if (try_pbo_upload(intel, intelImage, unpack,
                          internalFormat,
