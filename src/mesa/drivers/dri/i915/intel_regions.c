@@ -356,24 +356,37 @@ intel_region_cow(struct intel_context *intel, struct intel_region *region)
 
    assert(region->cpp * region->pitch * region->height == pbo->Base.Size);
 
-   _mesa_printf("%s (%d bytes)\n", __FUNCTION__, pbo->Base.Size);
+   DBG("%s (%d bytes)\n", __FUNCTION__, pbo->Base.Size);
 
    /* Now blit from the texture buffer to the new buffer: 
     */
 
    intel_batchbuffer_flush(intel->batch);
 
-   LOCK_HARDWARE(intel);
-   intelEmitCopyBlit(intel,
-                     region->cpp,
-                     region->pitch,
-                     region->buffer, 0,
-                     region->pitch,
-                     pbo->buffer, 0,
-                     0, 0, 0, 0, region->pitch, region->height);
-
-   intel_batchbuffer_flush(intel->batch);
-   UNLOCK_HARDWARE(intel);
+   if (!intel->locked) {
+      LOCK_HARDWARE(intel);
+      intelEmitCopyBlit(intel,
+			region->cpp,
+			region->pitch,
+			region->buffer, 0,
+			region->pitch,
+			pbo->buffer, 0,
+			0, 0, 0, 0, region->pitch, region->height);
+      
+      intel_batchbuffer_flush(intel->batch);
+      UNLOCK_HARDWARE(intel);
+   }
+   else {
+      intelEmitCopyBlit(intel,
+			region->cpp,
+			region->pitch,
+			region->buffer, 0,
+			region->pitch,
+			pbo->buffer, 0,
+			0, 0, 0, 0, region->pitch, region->height);
+      
+      intel_batchbuffer_flush(intel->batch);
+   }
 }
 
 struct _DriBufferObject *
