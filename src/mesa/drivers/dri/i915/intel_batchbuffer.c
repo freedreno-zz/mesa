@@ -159,6 +159,7 @@ do_flush_locked(struct intel_batchbuffer *batch,
    GLuint *ptr;
    GLuint i;
    struct intel_context *intel = batch->intel;
+   unsigned fenceFlags;
 
    driBOValidateList(batch->intel->driFd, &batch->list);
 
@@ -213,12 +214,13 @@ do_flush_locked(struct intel_batchbuffer *batch,
    driFenceUnReference(batch->last_fence);
 
    /*
-    * Kernel fencing.
+    * Kernel fencing. The flags tells the kernel that we've 
+    * programmed an MI_FLUSH.
     */
-
-
+   
+   fenceFlags = DRM_I915_FENCE_FLAG_FLUSHED;
    batch->last_fence = driFenceBuffers(batch->intel->driFd,
-                                       "Batch fence", 0);
+                                       "Batch fence", fenceFlags);
 
    /*
     * User space fencing.
@@ -254,13 +256,13 @@ intel_batchbuffer_flush(struct intel_batchbuffer *batch)
     * performance drain that we would like to avoid.
     */
    if (used & 4) {
-      ((int *) batch->ptr)[0] = 0;      /*intel->vtbl.flush_cmd(); */
+      ((int *) batch->ptr)[0] = intel->vtbl.flush_cmd();
       ((int *) batch->ptr)[1] = 0;
       ((int *) batch->ptr)[2] = MI_BATCH_BUFFER_END;
       used += 12;
    }
    else {
-      ((int *) batch->ptr)[0] = 0;      /*intel->vtbl.flush_cmd(); */
+      ((int *) batch->ptr)[0] = intel->vtbl.flush_cmd();
       ((int *) batch->ptr)[1] = MI_BATCH_BUFFER_END;
       used += 8;
    }
