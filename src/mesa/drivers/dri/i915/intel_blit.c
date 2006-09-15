@@ -70,7 +70,7 @@ intelCopyBuffer(const __DRIdrawablePrivate * dPriv,
    }
    intel = (struct intel_context *) ctx;
    if (intel->last_swap_fence) {
-      driFenceFinish(intel->last_swap_fence, DRM_FENCE_EXE, GL_TRUE);
+      driFenceFinish(intel->last_swap_fence, DRM_FENCE_TYPE_EXE, GL_TRUE);
       driFenceUnReference(intel->last_swap_fence);
       intel->last_swap_fence = NULL;
    }

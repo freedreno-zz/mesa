@@ -86,7 +86,7 @@ bmError(int val, const char *file, const char *function, int line)
 }
 
 DriFenceObject *
-driFenceBuffers(int fd, char *name, int shareable)
+driFenceBuffers(int fd, char *name, unsigned flags)
 {
    DriFenceObject *fence = (DriFenceObject *) malloc(sizeof(*fence));
    int ret;
@@ -99,7 +99,7 @@ driFenceBuffers(int fd, char *name, int shareable)
    fence->name = name;
    fence->fd = fd;
    _glthread_INIT_MUTEX(fence->mutex);
-   ret = drmFenceBuffers(fd, shareable, &fence->fence);
+   ret = drmFenceBuffers(fd, flags, &fence->fence);
    _glthread_UNLOCK_MUTEX(bmMutex);
    if (ret) {
       free(fence);
@@ -135,9 +135,10 @@ void
 driFenceFinish(DriFenceObject * fence, unsigned type, int lazy)
 {
    int ret;
+   unsigned flags = (lazy) ? DRM_FENCE_FLAG_WAIT_LAZY : 0;
 
    _glthread_LOCK_MUTEX(fence->mutex);
-   ret = drmFenceWait(fence->fd, &fence->fence, type, lazy, GL_FALSE);
+   ret = drmFenceWait(fence->fd, flags, &fence->fence, type);
    _glthread_UNLOCK_MUTEX(fence->mutex);
    BM_CKFATAL(ret);
 }

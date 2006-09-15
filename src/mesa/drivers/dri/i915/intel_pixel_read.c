@@ -281,7 +281,8 @@ do_blit_readpixels(GLcontext * ctx,
    UNLOCK_HARDWARE(intel);
 
    if (intel->driDrawable->numClipRects)
-      driFenceFinish(fence, DRM_FENCE_EXE | DRM_I915_FENCE_TYPE_RW, GL_FALSE);
+      driFenceFinish(fence, DRM_FENCE_TYPE_EXE | DRM_I915_FENCE_TYPE_RW, 
+		     GL_FALSE);
 
    driFenceUnReference(fence);
    if (INTEL_DEBUG & DEBUG_PIXEL)

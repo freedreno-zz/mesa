@@ -154,11 +154,11 @@ pool_checkFree(BPool * p, int wait)
 
       if (!signaled) {
          if (wait) {
-            driFenceFinish(buf->fence, DRM_FENCE_EXE, 1);
+            driFenceFinish(buf->fence, DRM_FENCE_TYPE_EXE, 1);
             signaled = 1;
          }
          else {
-            signaled = driFenceSignaled(buf->fence, DRM_FENCE_EXE);
+            signaled = driFenceSignaled(buf->fence, DRM_FENCE_TYPE_EXE);
          }
       }
 

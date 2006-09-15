@@ -78,13 +78,6 @@ intel_dump_batchbuffer(GLuint offset, GLuint * ptr, GLuint count)
 }
 
 void
-dbatch(struct intel_context *intel)
-{
-   intel_dump_batchbuffer(0, intel->batch->map,
-                          intel->batch->ptr - intel->batch->map);
-}
-
-void
 intel_batchbuffer_reset(struct intel_batchbuffer *batch)
 {
 
@@ -225,7 +218,7 @@ do_flush_locked(struct intel_batchbuffer *batch,
 
 
    batch->last_fence = driFenceBuffers(batch->intel->driFd,
-                                       "Batch fence", GL_FALSE);
+                                       "Batch fence", 0);
 
    /*
     * User space fencing.

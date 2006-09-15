@@ -40,7 +40,7 @@ struct _DriBufferObject;
 struct _DriBufferPool;
 
 extern struct _DriFenceObject *driFenceBuffers(int fd, char *name,
-                                               int shareable);
+                                               unsigned flags);
 
 extern void driFenceReference(struct _DriFenceObject *fence);
 
