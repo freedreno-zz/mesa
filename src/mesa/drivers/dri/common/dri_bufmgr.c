@@ -79,7 +79,7 @@ bmError(int val, const char *file, const char *function, int line)
                 "Detected in file %s, line %d, function %s.\n",
                 strerror(-val), file, line, function);
 #ifndef NDEBUG
-   exit(-1);
+   abort();
 #else
    abort();
 #endif
@@ -106,6 +106,19 @@ driFenceBuffers(int fd, char *name, unsigned flags)
       BM_CKFATAL(ret);
    }
    return fence;
+}
+
+
+unsigned 
+driFenceType(DriFenceObject * fence)
+{
+    unsigned ret;
+
+    _glthread_LOCK_MUTEX(bmMutex);
+    ret = fence->fence.flags;
+    _glthread_UNLOCK_MUTEX(bmMutex);
+    
+    return ret;
 }
 
 
@@ -159,6 +172,7 @@ driFenceSignaled(DriFenceObject * fence, unsigned type)
    return signaled;
 }
 
+
 extern drmBO *
 driBOKernel(struct _DriBufferObject *buf)
 {
@@ -170,6 +184,16 @@ driBOKernel(struct _DriBufferObject *buf)
       BM_CKFATAL(-EINVAL);
 
    return ret;
+}
+
+void
+driBOWaitIdle(struct _DriBufferObject *buf, int lazy)
+{
+   assert(buf->private != NULL);
+
+   _glthread_LOCK_MUTEX(buf->mutex);
+   BM_CKFATAL(buf->pool->waitIdle(buf->pool, buf->private, lazy));
+   _glthread_UNLOCK_MUTEX(buf->mutex);
 }
 
 void *

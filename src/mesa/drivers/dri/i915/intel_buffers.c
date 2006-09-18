@@ -696,9 +696,8 @@ void
 intelSwapBuffers(__DRIdrawablePrivate * dPriv)
 {
    if (dPriv->driContextPriv && dPriv->driContextPriv->driverPrivate) {
-      struct intel_context *intel =
-         (struct intel_context *) dPriv->driContextPriv->driverPrivate;
-      GLcontext *ctx = &intel->ctx;
+      GET_CURRENT_CONTEXT(ctx);
+      struct intel_context *intel = intel_context(ctx);
 
       if (ctx->Visual.doubleBufferMode) {
          intelScreenPrivate *screen = intel->intelScreen;

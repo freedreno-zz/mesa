@@ -53,6 +53,8 @@ typedef struct _DriBufferPool
    int (*validate) (struct _DriBufferPool * pool, void *private);
    void *(*setstatic) (struct _DriBufferPool * pool, unsigned long offset,
                        unsigned long size, void *virtual, unsigned flags);
+   int (*waitIdle) (struct _DriBufferPool *pool, void *private,
+		    int lazy);
    void (*takeDown) (struct _DriBufferPool * pool);
    void *data;
 } DriBufferPool;

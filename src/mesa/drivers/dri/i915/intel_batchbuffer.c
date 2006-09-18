@@ -166,6 +166,7 @@ do_flush_locked(struct intel_batchbuffer *batch,
    GLuint i;
    struct intel_context *intel = batch->intel;
    unsigned fenceFlags;
+   struct _DriFenceObject *fo;
 
    driBOValidateList(batch->intel->driFd, &batch->list);
 
@@ -189,23 +190,6 @@ do_flush_locked(struct intel_batchbuffer *batch,
    driBOUnmap(batch->buffer);
    batch->map = NULL;
 
-   /* Fire the batch buffer, which was uploaded above:
-    */
-
-#if 0
-   {
-      void *iterator = drmBOListIterator(&batch->list);
-
-      _mesa_printf("\n");
-      while (iterator != NULL) {
-         _mesa_printf("0x%08x\n", drmBOListBuf(iterator)->offset);
-         iterator = drmBOListNext(&batch->list, iterator);
-      }
-      _mesa_printf("Submitting 0x%08x\n", driBOOffset(batch->buffer));
-
-   }
-#endif
-
    /* Throw away non-effective packets.  Won't work once we have
     * hardware contexts which would preserve statechanges beyond a
     * single buffer.
@@ -217,7 +201,6 @@ do_flush_locked(struct intel_batchbuffer *batch,
                         used, ignore_cliprects, allow_unlock);
    }
 
-   driFenceUnReference(batch->last_fence);
 
    /*
     * Kernel fencing. The flags tells the kernel that we've 
@@ -225,17 +208,30 @@ do_flush_locked(struct intel_batchbuffer *batch,
     */
    
    fenceFlags = DRM_I915_FENCE_FLAG_FLUSHED;
-   batch->last_fence = driFenceBuffers(batch->intel->driFd,
-                                       "Batch fence", fenceFlags);
+   fo = driFenceBuffers(batch->intel->driFd,
+			"Batch fence", fenceFlags);
 
    /*
     * User space fencing.
     */
 
-   driBOFence(batch->buffer, batch->last_fence);
+   driBOFence(batch->buffer, fo);
    for (i = 0; i < batch->nr_relocs; i++) {
       struct buffer_reloc *r = &batch->reloc[i];
       driBOFence(r->buf, batch->last_fence);
+   }
+
+   if (driFenceType(fo) == DRM_FENCE_TYPE_EXE) {
+
+     /*
+      * Oops. We only validated a batch buffer. This means we
+      * didn't do any proper rendering. Discard this fence object.
+      */
+
+      driFenceUnReference(fo);
+   } else {
+      driFenceUnReference(batch->last_fence);
+      batch->last_fence = fo;
    }
 
    if (intel->numClipRects == 0 && !ignore_cliprects) {

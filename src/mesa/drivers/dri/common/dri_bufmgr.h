@@ -50,6 +50,7 @@ extern void
 driFenceFinish(struct _DriFenceObject *fence, unsigned type, int lazy);
 
 extern int driFenceSignaled(struct _DriFenceObject *fence, unsigned type);
+extern unsigned driFenceType(struct _DriFenceObject *fence);
 
 /*
  * Return a pointer to the libdrm buffer object this DriBufferObject
@@ -92,5 +93,7 @@ extern void driPoolTakeDown(struct _DriBufferPool *pool);
 extern void driBOSetStatic(struct _DriBufferObject *buf,
                            unsigned long offset,
                            unsigned long size, void *virtual, unsigned flags);
+extern void driBOWaitIdle(struct _DriBufferObject *buf, int lazy);
+
 
 #endif

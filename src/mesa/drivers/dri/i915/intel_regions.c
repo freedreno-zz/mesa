@@ -52,8 +52,7 @@ void
 intel_region_idle(struct intel_context *intel, struct intel_region *region)
 {
    DBG("%s\n", __FUNCTION__);
-   if (driBOMap(region->buffer, DRM_BO_FLAG_READ | DRM_BO_FLAG_WRITE, 0))
-     driBOUnmap(region->buffer);
+   driBOWaitIdle(region->buffer, GL_FALSE);
 }
 
 /* XXX: Thread safety?

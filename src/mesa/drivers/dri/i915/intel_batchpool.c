@@ -278,6 +278,13 @@ pool_map(struct _DriBufferPool *pool, void *private, unsigned flags,
 }
 
 static int
+pool_waitIdle(struct _DriBufferPool *pool, void *private, int lazy)
+{
+   BBuf *buf = (BBuf *) private;
+   driFenceFinish(buf->fence, 0, lazy);
+}
+
+static int
 pool_unmap(struct _DriBufferPool *pool, void *private)
 {
    BBuf *buf = (BBuf *) private;
@@ -400,6 +407,7 @@ driBatchPoolInit(int fd, unsigned flags,
    pool->fence = &pool_fence;
    pool->kernel = &pool_kernel;
    pool->validate = &pool_validate;
+   pool->waitIdle = &pool_waitIdle;
    pool->setstatic = NULL;
    pool->takeDown = &pool_takedown;
    return pool;

@@ -377,7 +377,7 @@ intelFinish(GLcontext * ctx)
    intelFlush(ctx);
    if (intel->batch->last_fence) {
       driFenceFinish(intel->batch->last_fence,
-                     DRM_FENCE_TYPE_EXE | DRM_I915_FENCE_TYPE_RW, GL_FALSE);
+                     0, GL_FALSE);
       driFenceUnReference(intel->batch->last_fence);
       intel->batch->last_fence = NULL;
    }
@@ -575,6 +575,7 @@ intelDestroyContext(__DRIcontextPrivate * driContextPriv)
       intel->Fallback = 0;      /* don't call _swrast_Flush later */
 
       intel_batchbuffer_free(intel->batch);
+
       if (intel->last_swap_fence) {
 	 driFenceFinish(intel->last_swap_fence, DRM_FENCE_TYPE_EXE, GL_TRUE);
 	 driFenceUnReference(intel->last_swap_fence);
@@ -713,7 +714,11 @@ intelGetLock(struct intel_context *intel, GLuint flags)
        sarea->rotation != intelScreen->current_rotation) {
       intelUpdateScreenRotation(intel, sPriv, sarea);
 
-      /* This will drop the outstanding batchbuffer on the floor */
+      /* 
+       * This will drop the outstanding batchbuffer on the floor
+       * FIXME: This should be done for all contexts?
+       */
+
       intel_batchbuffer_reset(intel->batch);
 
       /* lose all primitives */
