@@ -575,6 +575,16 @@ intelDestroyContext(__DRIcontextPrivate * driContextPriv)
       intel->Fallback = 0;      /* don't call _swrast_Flush later */
 
       intel_batchbuffer_free(intel->batch);
+      if (intel->last_swap_fence) {
+	 driFenceFinish(intel->last_swap_fence, DRM_FENCE_TYPE_EXE, GL_TRUE);
+	 driFenceUnReference(intel->last_swap_fence);
+	 intel->last_swap_fence = NULL;
+      }
+      if (intel->first_swap_fence) {
+	 driFenceFinish(intel->first_swap_fence, DRM_FENCE_TYPE_EXE, GL_TRUE);
+	 driFenceUnReference(intel->first_swap_fence);
+	 intel->first_swap_fence = NULL;
+      }
 
 
       if (release_texture_heaps) {

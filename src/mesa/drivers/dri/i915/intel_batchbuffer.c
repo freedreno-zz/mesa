@@ -140,6 +140,12 @@ intel_batchbuffer_alloc(struct intel_context *intel)
 void
 intel_batchbuffer_free(struct intel_batchbuffer *batch)
 {
+   if (batch->last_fence) {
+      driFenceFinish(batch->last_fence,
+      DRM_FENCE_TYPE_EXE | DRM_I915_FENCE_TYPE_RW, GL_FALSE);
+      driFenceUnReference(batch->last_fence);
+      batch->last_fence = NULL;
+   }
    if (batch->map) {
       driBOUnmap(batch->buffer);
       batch->map = NULL;

@@ -361,7 +361,7 @@ pool_takedown(struct _DriBufferPool *pool)
     */
 
    _glthread_LOCK_MUTEX(p->mutex);
-   while (p->numFree < p->numTot) {
+   while ((p->numFree < p->numTot) && p->numDelayed) {
       _glthread_UNLOCK_MUTEX(p->mutex);
       sched_yield();
       pool_checkFree(p, GL_TRUE);
