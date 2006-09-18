@@ -697,7 +697,12 @@ intelSwapBuffers(__DRIdrawablePrivate * dPriv)
 {
    if (dPriv->driContextPriv && dPriv->driContextPriv->driverPrivate) {
       GET_CURRENT_CONTEXT(ctx);
-      struct intel_context *intel = intel_context(ctx);
+      struct intel_context *intel;
+
+      if (ctx == NULL)
+	 return;
+
+      intel = intel_context(ctx);
 
       if (ctx->Visual.doubleBufferMode) {
          intelScreenPrivate *screen = intel->intelScreen;
