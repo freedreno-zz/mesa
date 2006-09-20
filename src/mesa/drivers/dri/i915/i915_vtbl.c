@@ -74,8 +74,7 @@ i915_reduced_primitive_state(struct intel_context *intel, GLenum rprim)
    i915->intel.reduced_primitive = rprim;
 
    if (st1 != i915->state.Stipple[I915_STPREG_ST1]) {
-      if (intel->prim.flush)
-         intel->prim.flush(intel);
+      INTEL_FIREVERTICES(intel);
 
       I915_STATECHANGE(i915, I915_UPLOAD_STIPPLE);
       i915->state.Stipple[I915_STPREG_ST1] = st1;

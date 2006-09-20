@@ -568,8 +568,7 @@ intel_fallback_tri(struct intel_context *intel,
    if (0)
       fprintf(stderr, "\n%s\n", __FUNCTION__);
 
-   if (intel->prim.flush)
-      intel->prim.flush(intel);
+   INTEL_FIREVERTICES(intel);
 
    _swsetup_Translate(ctx, v0, &v[0]);
    _swsetup_Translate(ctx, v1, &v[1]);
@@ -590,8 +589,7 @@ intel_fallback_line(struct intel_context *intel,
    if (0)
       fprintf(stderr, "\n%s\n", __FUNCTION__);
 
-   if (intel->prim.flush)
-      intel->prim.flush(intel);
+   INTEL_FIREVERTICES(intel);
 
    _swsetup_Translate(ctx, v0, &v[0]);
    _swsetup_Translate(ctx, v1, &v[1]);
@@ -834,8 +832,7 @@ intelRenderFinish(GLcontext * ctx)
    if (intel->RenderIndex & INTEL_FALLBACK_BIT)
       _swrast_flush(ctx);
 
-   if (intel->prim.flush)
-      intel->prim.flush(intel);
+   INTEL_FIREVERTICES(intel);
 }
 
 
@@ -858,8 +855,7 @@ intelRasterPrimitive(GLcontext * ctx, GLenum rprim, GLuint hwprim)
    /* Start a new primitive.  Arrange to have it flushed later on.
     */
    if (hwprim != intel->prim.primitive) {
-      if (intel->prim.flush)
-         intel->prim.flush(intel);
+      INTEL_FIREVERTICES(intel);
 
       intelStartInlinePrimitive(intel, hwprim, INTEL_BATCH_CLIPRECTS);
    }
@@ -1005,8 +1001,7 @@ intel_meta_draw_poly(struct intel_context *intel,
       vb += 6;
    }
 
-   if (intel->prim.flush)
-      intel->prim.flush(intel);
+   INTEL_FIREVERTICES(intel);
 }
 
 void

@@ -123,11 +123,7 @@ do {						\
    intelDmaPrimitive( intel, prim );		\
 } while (0)
 
-#define FLUSH()  				\
-do {						\
-   if (intel->prim.flush) 			\
-      intel->prim.flush(intel);			\
-} while (0)
+#define FLUSH() INTEL_FIREVERTICES(intel)
 
 #define GET_SUBSEQUENT_VB_MAX_VERTS() \
   ((BATCH_SZ - 1500) / (intel->vertex_size*4))
@@ -231,8 +227,7 @@ intel_run_render(GLcontext * ctx, struct tnl_pipeline_stage *stage)
 
    tnl->Driver.Render.Finish(ctx);
 
-   if (intel->prim.flush)
-      intel->prim.flush(intel);
+   INTEL_FIREVERTICES(intel);
 
    return GL_FALSE;             /* finished the pipe */
 }

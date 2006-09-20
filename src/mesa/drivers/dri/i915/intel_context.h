@@ -371,7 +371,8 @@ do {									\
 
 #define INTEL_FIREVERTICES(intel)		\
 do {						\
-   assert(!(intel)->prim.flush);		\
+   if ((intel)->prim.flush)			\
+      (intel)->prim.flush(intel);		\
 } while (0)
 
 /* ================================================================

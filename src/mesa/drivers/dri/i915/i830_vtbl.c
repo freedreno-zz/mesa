@@ -215,8 +215,7 @@ i830_reduced_primitive_state(struct intel_context *intel, GLenum rprim)
    i830->intel.reduced_primitive = rprim;
 
    if (st1 != i830->state.Stipple[I830_STPREG_ST1]) {
-      if (intel->prim.flush)
-         intel->prim.flush(intel);
+      INTEL_FIREVERTICES(intel);
 
       I830_STATECHANGE(i830, I830_UPLOAD_STIPPLE);
       i830->state.Stipple[I830_STPREG_ST1] = st1;
