@@ -897,14 +897,21 @@ intelRenderPrimitive(GLcontext * ctx, GLenum prim)
  /**********************************************************************/
 
 static char *fallbackStrings[] = {
-   "Texture",
-   "Draw buffer",
-   "Read buffer",
-   "Color mask",
-   "Render mode",
-   "Stencil",
-   "Stipple",
-   "User disable"
+   [0] = "Draw buffer",
+   [1] = "Read buffer",
+   [2] = "Depth buffer",
+   [3] = "Stencil buffer",
+   [4] = "User disable",
+   [5] = "Render mode",
+
+   [12] = "Texture",
+   [13] = "Color mask",
+   [14] = "Stencil",
+   [15] = "Stipple",
+   [16] = "Program",
+   [17] = "Logic op",
+   [18] = "Smooth polygon",
+   [19] = "Smooth point",
 };
 
 
