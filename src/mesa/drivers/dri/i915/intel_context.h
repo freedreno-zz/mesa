@@ -212,6 +212,7 @@ struct intel_context
    GLfloat polygon_offset_scale;        /* dependent on depth_scale, bpp */
 
    GLboolean hw_stipple;
+   GLboolean strict_conformance;
 
    /* AGP memory buffer manager:
     */
@@ -445,6 +446,7 @@ extern int INTEL_DEBUG;
 #define DEBUG_SLEEP     0x800
 #define DEBUG_PIXEL     0x1000
 #define DEBUG_BUFMGR    0x2000
+#define DEBUG_FBO       0x4000
 
 #define DBG(...)  do { if (INTEL_DEBUG & FILE_DEBUG_FLAG) _mesa_printf(__VA_ARGS__); } while(0)
 

@@ -216,6 +216,9 @@ intel_draw_point(struct intel_context *intel, intelVertexPtr v0)
  *                Fixup for ARB_point_parameters                       *
  ***********************************************************************/
 
+/* Currently not working - VERT_ATTRIB_POINTSIZE isn't correctly
+ * represented in the fragment program InputsRead field.
+ */
 static void
 intel_atten_point(struct intel_context *intel, intelVertexPtr v0)
 {
@@ -598,6 +601,24 @@ intel_fallback_line(struct intel_context *intel,
    intelSpanRenderFinish(ctx);
 }
 
+static void
+intel_fallback_point(struct intel_context *intel,
+		     intelVertex * v0)
+{
+   GLcontext *ctx = &intel->ctx;
+   SWvertex v[1];
+
+   if (0)
+      fprintf(stderr, "\n%s\n", __FUNCTION__);
+
+   INTEL_FIREVERTICES(intel);
+
+   _swsetup_Translate(ctx, v0, &v[0]);
+   intelSpanRenderStart(ctx);
+   _swrast_Point(ctx, &v[0]);
+   intelSpanRenderFinish(ctx);
+}
+
 
 /**********************************************************************/
 /*               Render unclipped begin/end objects                   */
@@ -692,7 +713,7 @@ intelFastRenderClippedPoly(GLcontext * ctx, const GLuint * elts, GLuint n)
 
 
 
-#define ANY_FALLBACK_FLAGS (DD_LINE_STIPPLE | DD_TRI_STIPPLE | DD_POINT_ATTEN)
+#define ANY_FALLBACK_FLAGS (DD_LINE_STIPPLE | DD_TRI_STIPPLE | DD_POINT_ATTEN | DD_POINT_SMOOTH | DD_TRI_SMOOTH)
 #define ANY_RASTER_FLAGS (DD_TRI_LIGHT_TWOSIDE | DD_TRI_OFFSET | DD_TRI_UNFILLED)
 
 void
@@ -743,8 +764,22 @@ intelChooseRenderState(GLcontext * ctx)
          if ((flags & DD_TRI_STIPPLE) && !intel->hw_stipple)
             intel->draw_tri = intel_fallback_tri;
 
-         if (flags & DD_POINT_ATTEN)
-            intel->draw_point = intel_atten_point;
+         if (flags & DD_TRI_SMOOTH) {
+	    if (intel->strict_conformance)
+	       intel->draw_tri = intel_fallback_tri;
+	 }
+
+         if (flags & DD_POINT_ATTEN) {
+	    if (0)
+	       intel->draw_point = intel_atten_point;
+	    else
+	       intel->draw_point = intel_fallback_point;
+	 }
+
+	 if (flags & DD_POINT_SMOOTH) {
+	    if (intel->strict_conformance)
+	       intel->draw_point = intel_fallback_point;
+	 }
 
          index |= INTEL_FALLBACK_BIT;
       }

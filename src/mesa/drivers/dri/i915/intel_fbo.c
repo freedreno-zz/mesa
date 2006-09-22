@@ -43,6 +43,9 @@
 #include "intel_regions.h"
 #include "intel_span.h"
 
+
+#define FILE_DEBUG_FLAG DEBUG_FBO
+
 #define INTEL_RB_CLASS 0x12345678
 
 
@@ -240,8 +243,8 @@ intel_alloc_renderbuffer_storage(GLcontext * ctx, struct gl_renderbuffer *rb,
       GLuint pitch = ((cpp * width + 63) & ~63) / cpp;
 
       /* alloc hardware renderbuffer */
-      _mesa_debug(ctx, "Allocating %d x %d Intel RBO (pitch %d)\n", width,
-                  height, pitch);
+      DBG("Allocating %d x %d Intel RBO (pitch %d)\n", width,
+	  height, pitch);
 
       irb->region = intel_region_alloc(intel, cpp, pitch, height);
       if (!irb->region)
@@ -444,10 +447,7 @@ intel_framebuffer_renderbuffer(GLcontext * ctx,
                                struct gl_framebuffer *fb,
                                GLenum attachment, struct gl_renderbuffer *rb)
 {
-   /*
-      _mesa_debug(ctx, "Intel FramebufferRenderbuffer %u %u\n",
-      fb->Name, rb ? rb->Name : 0);
-    */
+   DBG("Intel FramebufferRenderbuffer %u %u\n", fb->Name, rb ? rb->Name : 0);
 
    intelFlush(ctx);
 
@@ -480,21 +480,21 @@ intel_wrap_texture(GLcontext * ctx, struct gl_texture_image *texImage)
    if (texImage->TexFormat == &_mesa_texformat_argb8888) {
       irb->Base._ActualFormat = GL_RGBA8;
       irb->Base._BaseFormat = GL_RGBA;
-      _mesa_debug(ctx, "Render to RGBA8 texture OK\n");
+      DBG("Render to RGBA8 texture OK\n");
    }
    else if (texImage->TexFormat == &_mesa_texformat_rgb565) {
       irb->Base._ActualFormat = GL_RGB5;
       irb->Base._BaseFormat = GL_RGB;
-      _mesa_debug(ctx, "Render to RGB5 texture OK\n");
+      DBG("Render to RGB5 texture OK\n");
    }
    else if (texImage->TexFormat == &_mesa_texformat_z16) {
       irb->Base._ActualFormat = GL_DEPTH_COMPONENT16;
       irb->Base._BaseFormat = GL_DEPTH_COMPONENT;
-      _mesa_debug(ctx, "Render to DEPTH16 texture OK\n");
+      DBG("Render to DEPTH16 texture OK\n");
    }
    else {
-      _mesa_debug(ctx, "Render to texture BAD FORMAT %d\n",
-                  texImage->TexFormat->MesaFormat);
+      DBG("Render to texture BAD FORMAT %d\n",
+	  texImage->TexFormat->MesaFormat);
       _mesa_free(irb);
       return NULL;
    }
@@ -553,11 +553,9 @@ intel_render_texture(GLcontext * ctx,
       }
    }
 
-   /*
-      _mesa_debug(ctx, "Begin render texture tex=%u w=%d h=%d refcount=%d\n",
-      att->Texture->Name, newImage->Width, newImage->Height,
-      irb->Base.RefCount);
-    */
+   DBG("Begin render texture tex=%u w=%d h=%d refcount=%d\n",
+       att->Texture->Name, newImage->Width, newImage->Height,
+       irb->Base.RefCount);
 
    /* point the renderbufer's region to the texture image region */
    intel_image = intel_texture_image(newImage);
@@ -593,10 +591,7 @@ intel_finish_render_texture(GLcontext * ctx,
    struct intel_context *intel = intel_context(ctx);
    struct intel_renderbuffer *irb = intel_renderbuffer(att->Renderbuffer);
 
-   /*
-      _mesa_debug(ctx, "End render texture (tid %u) tex %u\n",
-      _glthread_GetID(), att->Texture->Name);
-    */
+   DBG("End render texture (tid %u) tex %u\n", _glthread_GetID(), att->Texture->Name);
 
    if (irb) {
       /* just release the region */

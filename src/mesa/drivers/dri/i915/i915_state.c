@@ -830,11 +830,9 @@ i915Enable(GLcontext * ctx, GLenum cap, GLboolean state)
       break;
 
    case GL_POLYGON_SMOOTH:
-      FALLBACK(&i915->intel, I915_FALLBACK_POLYGON_SMOOTH, state);
       break;
 
    case GL_POINT_SMOOTH:
-      FALLBACK(&i915->intel, I915_FALLBACK_POINT_SMOOTH, state);
       break;
 
    default:

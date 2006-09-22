@@ -233,6 +233,7 @@ static const struct dri_debug_control debug_control[] = {
    {"sleep", DEBUG_SLEEP},
    {"pix", DEBUG_PIXEL},
    {"buf", DEBUG_BUFMGR},
+   {"fbo", DEBUG_FBO},
    {NULL, 0}
 };
 
@@ -440,6 +441,13 @@ intelInitContext(struct intel_context *intel,
                        intel->driScreen->myNum, "i915");
 
    ctx->Const.MaxTextureMaxAnisotropy = 2.0;
+
+   /* This doesn't yet catch all non-conformant rendering, but it's a
+    * start.
+    */
+   if (getenv("INTEL_STRICT_CONFORMANCE")) {
+      intel->strict_conformance = 1;
+   }
 
    ctx->Const.MinLineWidth = 1.0;
    ctx->Const.MinLineWidthAA = 1.0;
