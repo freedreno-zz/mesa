@@ -387,8 +387,7 @@ intelTexImage(GLcontext * ctx,
    if (!intelObj->mt) {
       guess_and_alloc_mipmap_tree(intel, intelObj, intelImage);
       if (!intelObj->mt) {
-         if (INTEL_DEBUG & DEBUG_TEXTURE)
-            _mesa_printf("guess_and_alloc_mipmap_tree: failed\n");
+	 DBG("guess_and_alloc_mipmap_tree: failed\n");
       }
    }
 
@@ -490,16 +489,18 @@ intelTexImage(GLcontext * ctx,
       texImage->Data = malloc(sizeInBytes);
    }
 
-   if (INTEL_DEBUG & DEBUG_TEXTURE)
-      _mesa_printf("Upload image %dx%dx%d row_len %x "
-                   "pitch %x\n",
-                   width, height, depth, width * texelBytes, dstRowStride);
+   DBG("Upload image %dx%dx%d row_len %x "
+       "pitch %x\n",
+       width, height, depth, width * texelBytes, dstRowStride);
 
    /* Copy data.  Would like to know when it's ok for us to eg. use
     * the blitter to copy.  Or, use the hardware to do the format
     * conversion and copy:
     */
-   if (!texImage->TexFormat->StoreImage(ctx, dims, texImage->_BaseFormat, texImage->TexFormat, texImage->Data, 0, 0, 0, /* dstX/Y/Zoffset */
+   if (!texImage->TexFormat->StoreImage(ctx, dims, 
+					texImage->_BaseFormat, 
+					texImage->TexFormat, 
+					texImage->Data, 0, 0, 0, /* dstX/Y/Zoffset */
                                         dstRowStride,
                                         texImage->ImageOffsets,
                                         width, height, depth,
