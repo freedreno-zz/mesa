@@ -28,6 +28,7 @@
 #include "glheader.h"
 #include "enums.h"
 #include "image.h"
+#include "state.h"
 #include "mtypes.h"
 #include "macros.h"
 #include "swrast/swrast.h"
