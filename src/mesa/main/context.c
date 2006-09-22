@@ -704,9 +704,7 @@ alloc_shared_state( GLcontext *ctx )
 
    ss->ArrayObjects = _mesa_NewHashTable();
 
-#if FEATURE_ARB_shader_objects
    ss->GL2Objects = _mesa_NewHashTable ();
-#endif
 
    ss->Default1D = (*ctx->Driver.NewTextureObject)(ctx, 0, GL_TEXTURE_1D);
    if (!ss->Default1D)
@@ -777,10 +775,8 @@ alloc_shared_state( GLcontext *ctx )
    if (ss->ArrayObjects)
       _mesa_DeleteHashTable (ss->ArrayObjects);
 
-#if FEATURE_ARB_shader_objects
    if (ss->GL2Objects)
       _mesa_DeleteHashTable (ss->GL2Objects);
-#endif
 
 #if FEATURE_EXT_framebuffer_object
    if (ss->FrameBuffers)
@@ -933,9 +929,7 @@ free_shared_state( GLcontext *ctx, struct gl_shared_state *ss )
    _mesa_HashDeleteAll(ss->ArrayObjects, delete_arrayobj_cb, ctx);
    _mesa_DeleteHashTable(ss->ArrayObjects);
 
-#if FEATURE_ARB_shader_objects
    _mesa_DeleteHashTable(ss->GL2Objects);
-#endif
 
 #if FEATURE_EXT_framebuffer_object
    _mesa_DeleteHashTable(ss->FrameBuffers);
@@ -1713,6 +1707,8 @@ _mesa_make_current( GLcontext *newCtx, GLframebuffer *drawBuffer,
          if (readBuffer != drawBuffer && !readBuffer->Initialized) {
             initialize_framebuffer_size(newCtx, readBuffer);
          }
+
+	 _mesa_resizebuffers(newCtx);
 #endif
          if (newCtx->FirstTimeCurrent) {
             /* set initial viewport and scissor size now */
