@@ -380,7 +380,7 @@ intel_create_renderbuffer(GLenum intFormat, GLsizei width, GLsizei height,
    intel_set_span_functions(&irb->Base);
 
    irb->pfMap = map;
-   irb->pfPitch = pitch;
+   irb->pfPitch = pitch / cpp;	/* in pixels */
 
 #if 00
    irb->region = intel_region_create_static(intel,
