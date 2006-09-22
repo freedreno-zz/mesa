@@ -604,6 +604,17 @@ do {                                                                    \
 #endif
 
 
+/**
+ * Return 1 if this is a little endian machine, 0 if big endian.
+ */
+static INLINE GLboolean
+_mesa_little_endian(void)
+{
+   const GLuint ui = 1; /* intentionally not static */
+   return *((const GLubyte *) &ui);
+}
+
+
 
 /**********************************************************************
  * Functions

@@ -63,11 +63,21 @@
 #include "texformat.h"
 #include "teximage.h"
 #include "texstore.h"
+#include "enums.h"
 
 
-static const GLint ZERO = 4, ONE = 5;
+enum {
+   ZERO = 4, 
+   ONE = 5
+};
 
-static GLboolean can_swizzle(GLenum logicalBaseFormat)
+
+/**
+ * Return GL_TRUE if the given image format is one that be converted
+ * to another format by swizzling.
+ */
+static GLboolean
+can_swizzle(GLenum logicalBaseFormat)
 {
    switch (logicalBaseFormat) {
    case GL_RGBA:
@@ -76,6 +86,12 @@ static GLboolean can_swizzle(GLenum logicalBaseFormat)
    case GL_INTENSITY:
    case GL_ALPHA:
    case GL_LUMINANCE:
+   case GL_RED:
+   case GL_GREEN:
+   case GL_BLUE:
+   case GL_BGR:
+   case GL_BGRA:
+   case GL_ABGR_EXT:
       return GL_TRUE;
    default:
       return GL_FALSE;
@@ -83,89 +99,172 @@ static GLboolean can_swizzle(GLenum logicalBaseFormat)
 }
 
 
+
+enum {
+   IDX_LUMINANCE = 0,
+   IDX_ALPHA,
+   IDX_INTENSITY,
+   IDX_LUMINANCE_ALPHA,
+   IDX_RGB,
+   IDX_RGBA,
+   IDX_RED,
+   IDX_GREEN,
+   IDX_BLUE,
+   IDX_BGR,
+   IDX_BGRA,
+   IDX_ABGR,
+   MAX_IDX
+};
+
+#define MAP1(x)       MAP4(x, ZERO, ZERO, ZERO)
+#define MAP2(x,y)     MAP4(x, y, ZERO, ZERO)
+#define MAP3(x,y,z)   MAP4(x, y, z, ZERO)
+#define MAP4(x,y,z,w) { x, y, z, w, ZERO, ONE }
+
+
+static const struct {
+   GLubyte format_idx;
+   GLubyte to_rgba[6];
+   GLubyte from_rgba[6];
+} mappings[MAX_IDX] = 
+{
+   {
+      IDX_LUMINANCE,
+      MAP4(0,0,0,ONE),
+      MAP1(0)
+   },
+
+   {
+      IDX_ALPHA,
+      MAP4(ZERO, ZERO, ZERO, 0),
+      MAP1(3)
+   },
+
+   {
+      IDX_INTENSITY,
+      MAP4(0, 0, 0, 0),
+      MAP1(0),
+   },
+
+   {
+      IDX_LUMINANCE_ALPHA,
+      MAP4(0,0,0,1),
+      MAP2(0,3)
+   },
+
+   {
+      IDX_RGB,
+      MAP4(0,1,2,ONE),
+      MAP3(0,1,2)
+   },
+
+   {
+      IDX_RGBA,
+      MAP4(0,1,2,3),
+      MAP4(0,1,2,3),
+   },
+
+
+   {
+      IDX_RED,
+      MAP4(0, ZERO, ZERO, ONE),
+      MAP1(0),
+   },
+
+   {
+      IDX_GREEN,
+      MAP4(ZERO, 0, ZERO, ONE),
+      MAP1(1),
+   },
+
+   {
+      IDX_BLUE,
+      MAP4(ZERO, ZERO, 0, ONE),
+      MAP1(2),
+   },
+
+   {
+      IDX_BGR,
+      MAP4(2,1,0,ONE),
+      MAP3(2,1,0)
+   },
+
+   {
+      IDX_BGRA,
+      MAP4(2,1,0,3),
+      MAP4(2,1,0,3)
+   },
+
+   {
+      IDX_ABGR,
+      MAP4(3,2,1,0),
+      MAP4(3,2,1,0)
+   },
+};
+
+
+
+/**
+ * Convert a GL image format enum to an IDX_* value (see above).
+ */
+static int
+get_map_idx(GLenum value)
+{
+   switch (value) {
+   case GL_LUMINANCE: return IDX_LUMINANCE;
+   case GL_ALPHA: return IDX_ALPHA;
+   case GL_INTENSITY: return IDX_INTENSITY;
+   case GL_LUMINANCE_ALPHA: return IDX_LUMINANCE_ALPHA;
+   case GL_RGB: return IDX_RGB;
+   case GL_RGBA: return IDX_RGBA;
+   case GL_RED: return IDX_RED;
+   case GL_GREEN: return IDX_GREEN;
+   case GL_BLUE: return IDX_BLUE;
+   case GL_BGR: return IDX_BGR;
+   case GL_BGRA: return IDX_BGRA;
+   case GL_ABGR_EXT: return IDX_ABGR;
+   default:
+      _mesa_problem(NULL, "Unexpected inFormat");
+      return 0;
+   }
+}   
+
+
 /**
  * When promoting texture formats (see below) we need to compute the
  * mapping of dest components back to source components.
  * This function does that.
- * \param logicalBaseFormat  the logical format of the texture
- * \param textureBaseFormat  the final texture format
- * \return map[4]  the four mapping values
+ * \param inFormat  the incoming format of the texture
+ * \param outFormat  the final texture format
+ * \return map[6]  a full 6-component map
  */
 static void
-compute_component_mapping(GLenum logicalBaseFormat, GLenum textureBaseFormat,
-                          GLubyte map[6])
+compute_component_mapping(GLenum inFormat, GLenum outFormat, 
+			  GLubyte *map)
 {
-   map[ZERO] = ZERO;
-   map[ONE] = ONE;
+   const int inFmt = get_map_idx(inFormat);
+   const int outFmt = get_map_idx(outFormat);
+   const GLubyte *in2rgba = mappings[inFmt].to_rgba;
+   const GLubyte *rgba2out = mappings[outFmt].from_rgba;
+   int i;
+   
+   for (i = 0; i < 4; i++)
+      map[i] = in2rgba[rgba2out[i]];
 
-   /* compute mapping from dest components back to src components */
-   switch (textureBaseFormat) {
-   case GL_RGB:
-   case GL_RGBA:
-      switch (logicalBaseFormat) {
-      case GL_LUMINANCE:
-         map[0] = map[1] = map[2] = 0;
-         if (textureBaseFormat == GL_RGBA)
-            map[3] = ONE;
-         break;
-      case GL_ALPHA:
-         ASSERT(textureBaseFormat == GL_RGBA);
-         map[0] = map[1] = map[2] = ZERO;
-         map[3] = 0;
-         break;
-      case GL_INTENSITY:
-         map[0] = map[1] = map[2] = 0;
-         if (textureBaseFormat == GL_RGBA)
-            map[3] = 0;
-         break;
-      case GL_LUMINANCE_ALPHA:
-         ASSERT(textureBaseFormat == GL_RGBA);
-         map[0] = map[1] = map[2] = 0;
-         map[3] = 1;
-         break;
-      case GL_RGB:
-         ASSERT(textureBaseFormat == GL_RGBA);
-         map[0] = 0;
-         map[1] = 1;
-         map[2] = 2;
-         map[3] = ONE;
-         break;
-      case GL_RGBA:
-         ASSERT(textureBaseFormat == GL_RGBA);
-         map[0] = 0;
-         map[1] = 1;
-         map[2] = 2;
-         map[3] = 3;
-         break;
-      default:
-         _mesa_problem(NULL, "Unexpected logicalBaseFormat");
-         map[0] = map[1] = map[2] = map[3] = 0;
-      }
-      break;
-   case GL_LUMINANCE_ALPHA:
-      switch (logicalBaseFormat) {
-      case GL_LUMINANCE:
-         map[0] = 0;
-         map[1] = ONE;
-         break;
-      case GL_ALPHA:
-         map[0] = ZERO;
-         map[1] = 0;
-         break;
-      case GL_INTENSITY:
-         map[0] = 0;
-         map[1] = 0;
-         break;
-      default:
-         _mesa_problem(NULL, "Unexpected logicalBaseFormat");
-         map[0] = map[1] = 0;
-      }
-      break;
-   default:
-      _mesa_problem(NULL, "Unexpected logicalBaseFormat");
-      map[0] = map[1] = 0;
-      break;
-   }   
+   map[ZERO] = ZERO;
+   map[ONE] = ONE;   
+
+/*
+   _mesa_printf("from %x/%s to %x/%s map %d %d %d %d %d %d\n",
+		inFormat, _mesa_lookup_enum_by_nr(inFormat),
+		outFormat, _mesa_lookup_enum_by_nr(outFormat),
+		map[0], 
+		map[1], 
+		map[2], 
+		map[3], 
+		map[4], 
+		map[5]); 
+*/
 }
 
 
@@ -552,14 +651,16 @@ _mesa_make_temp_chan_image(GLcontext *ctx, GLuint dims,
  * \param dstComponents  number of color components in destination pixels
  * \param src  source pixels
  * \param srcComponents  number of color components in source pixels
- * \param map  the swizzle mapping
+ * \param map  the swizzle mapping.  map[X] says where to find the X component
+ *             in the source image's pixels.  For example, if the source image
+ *             is GL_BGRA and X = red, map[0] yields 2.
  * \param count  number of pixels to copy/swizzle.
  */
 static void
 swizzle_copy(GLubyte *dst, GLuint dstComponents, const GLubyte *src, 
              GLuint srcComponents, const GLubyte *map, GLuint count)
 {
-   GLubyte tmp[8];
+   GLubyte tmp[6];
    GLuint i;
 
    tmp[ZERO] = 0x0;
@@ -596,8 +697,58 @@ swizzle_copy(GLubyte *dst, GLuint dstComponents, const GLubyte *src,
 	 dst += 2;
       }
       break;
+   case 1:
+      for (i = 0; i < count; i++) {
+ 	 COPY_4UBV(tmp, src); 
+	 src += srcComponents;      
+	 dst[0] = tmp[map[0]];
+	 dst += 1;
+      }
+      break;
    }
 }
+
+
+static const GLubyte map_identity[6] = { 0, 1, 2, 3, ZERO, ONE };
+static const GLubyte map_3210[6] = { 3, 2, 1, 0, ZERO, ONE };
+
+/* Deal with the _REV input types:
+ */
+static const GLubyte *
+type_mapping( GLenum srcType )
+{
+   switch (srcType) {
+   case GL_UNSIGNED_BYTE:
+      return map_identity;
+   case GL_UNSIGNED_INT_8_8_8_8:
+      return map_3210;
+   case GL_UNSIGNED_INT_8_8_8_8_REV:
+      return map_identity;
+   default:
+      return NULL;
+   }
+}
+
+/* Mapping required if input type is 
+ */
+static const GLubyte *
+byteswap_mapping( GLboolean swapBytes,
+		  GLenum srcType )
+{
+   if (!swapBytes) 
+      return map_identity;
+
+   switch (srcType) {
+   case GL_UNSIGNED_BYTE:
+      return map_identity;
+   case GL_UNSIGNED_INT_8_8_8_8:
+   case GL_UNSIGNED_INT_8_8_8_8_REV:
+      return map_3210;
+   default:
+      return NULL;
+   }
+}
+
 
 
 /**
@@ -607,7 +758,12 @@ static void
 _mesa_swizzle_ubyte_image(GLcontext *ctx, 
 			  GLuint dimensions,
 			  GLenum srcFormat,
-			  const GLubyte *dstmap, GLint dstComponents,
+			  GLenum srcType,
+
+			  GLenum baseInternalFormat,
+
+			  const GLubyte *rgba2dst,
+			  GLuint dstComponents,
 
 			  GLvoid *dstAddr,
 			  GLint dstXoffset, GLint dstYoffset, GLint dstZoffset,
@@ -619,9 +775,9 @@ _mesa_swizzle_ubyte_image(GLcontext *ctx,
 			  const struct gl_pixelstore_attrib *srcPacking )
 {
    GLint srcComponents = _mesa_components_in_format(srcFormat);
-   GLubyte srcmap[6], map[4];
+   const GLubyte *srctype2ubyte, *swap;
+   GLubyte map[4], src2base[6], base2rgba[6];
    GLint i;
-
    const GLint srcRowStride =
       _mesa_image_row_stride(srcPacking, srcWidth,
                              srcFormat, GL_UNSIGNED_BYTE);
@@ -635,10 +791,20 @@ _mesa_swizzle_ubyte_image(GLcontext *ctx,
 
    (void) ctx;
 
-   compute_component_mapping(srcFormat, GL_RGBA, srcmap);
+   /* Translate from src->baseInternal->GL_RGBA->dst.  This will
+    * correctly deal with RGBA->RGB->RGBA conversions where the final
+    * A value must be 0xff regardless of the incoming alpha values.
+    */
+   compute_component_mapping(srcFormat, baseInternalFormat, src2base);
+   compute_component_mapping(baseInternalFormat, GL_RGBA, base2rgba);
+   swap = byteswap_mapping(srcPacking->SwapBytes, srcType);
+   srctype2ubyte = type_mapping(srcType);
+
 
    for (i = 0; i < 4; i++)
-      map[i] = srcmap[dstmap[i]];
+      map[i] = srctype2ubyte[swap[src2base[base2rgba[rgba2dst[i]]]]];
+
+/*    _mesa_printf("map %d %d %d %d\n", map[0], map[1], map[2], map[3]);  */
 
    if (srcRowStride == srcWidth * srcComponents &&
        dimensions < 3) {
@@ -816,6 +982,59 @@ _mesa_texstore_rgba(TEXSTORE_PARAMS)
             srcRow = (GLchan *) ((GLubyte *) srcRow + srcRowStride);
          }
       }
+   }
+   else if (!ctx->_ImageTransferState &&
+	    _mesa_little_endian() &&
+	    CHAN_TYPE == GL_UNSIGNED_BYTE &&
+	    (srcType == GL_UNSIGNED_BYTE ||
+	     srcType == GL_UNSIGNED_INT_8_8_8_8 ||
+	     srcType == GL_UNSIGNED_INT_8_8_8_8_REV) &&
+	    can_swizzle(baseInternalFormat) &&
+	    can_swizzle(srcFormat)) {
+
+      const GLubyte *dstmap;
+      GLuint components;
+
+      /* dstmap - how to swizzle from RGBA to dst format:
+       */
+      if (dstFormat == &_mesa_texformat_rgba) {
+	 dstmap = mappings[IDX_RGBA].from_rgba;
+	 components = 4;
+      }
+      else if (dstFormat == &_mesa_texformat_rgb) {
+	 dstmap = mappings[IDX_RGB].from_rgba;
+	 components = 3;
+      }
+      else if (dstFormat == &_mesa_texformat_alpha) {
+	 dstmap = mappings[IDX_ALPHA].from_rgba;
+	 components = 1;
+      }
+      else if (dstFormat == &_mesa_texformat_luminance) {
+	 dstmap = mappings[IDX_LUMINANCE].from_rgba;
+	 components = 1;
+      }
+      else if (dstFormat == &_mesa_texformat_luminance_alpha) {
+	 dstmap = mappings[IDX_LUMINANCE_ALPHA].from_rgba;
+	 components = 2;
+      }
+      else if (dstFormat == &_mesa_texformat_intensity) {
+	 dstmap = mappings[IDX_INTENSITY].from_rgba;
+	 components = 1;
+      }
+      else {
+         _mesa_problem(ctx, "Unexpected dstFormat in _mesa_texstore_rgba");
+         return GL_FALSE;
+      }
+
+      _mesa_swizzle_ubyte_image(ctx, dims,
+				srcFormat,
+				srcType,
+				baseInternalFormat,
+				dstmap, components,
+				dstAddr, dstXoffset, dstYoffset, dstZoffset,
+				dstRowStride, dstImageOffsets,
+				srcWidth, srcHeight, srcDepth, srcAddr,
+				srcPacking);      
    }
    else {
       /* general path */
@@ -1050,13 +1269,14 @@ _mesa_texstore_rgb565(TEXSTORE_PARAMS)
 }
 
 
+/**
+ * Store a texture in MESA_FORMAT_RGBA8888 or MESA_FORMAT_RGBA8888_REV.
+ */
 GLboolean
 _mesa_texstore_rgba8888(TEXSTORE_PARAMS)
 {
-   const GLuint ui = 1;
-   const GLubyte littleEndian = *((const GLubyte *) &ui);
+   const GLboolean littleEndian = _mesa_little_endian();
 
-   (void)littleEndian;
    ASSERT(dstFormat == &_mesa_texformat_rgba8888 ||
           dstFormat == &_mesa_texformat_rgba8888_rev);
    ASSERT(dstFormat->TexelBytes == 4);
@@ -1066,7 +1286,25 @@ _mesa_texstore_rgba8888(TEXSTORE_PARAMS)
        dstFormat == &_mesa_texformat_rgba8888 &&
        baseInternalFormat == GL_RGBA &&
       ((srcFormat == GL_RGBA && srcType == GL_UNSIGNED_INT_8_8_8_8) ||
-       (srcFormat == GL_ABGR_EXT && srcType == GL_UNSIGNED_INT_8_8_8_8_REV))) {
+       (srcFormat == GL_RGBA && srcType == GL_UNSIGNED_BYTE && !littleEndian) ||
+       (srcFormat == GL_ABGR_EXT && srcType == GL_UNSIGNED_INT_8_8_8_8_REV) ||
+       (srcFormat == GL_ABGR_EXT && srcType == GL_UNSIGNED_BYTE && littleEndian))) {
+       /* simple memcpy path */
+      memcpy_texture(ctx, dims,
+                     dstFormat, dstAddr, dstXoffset, dstYoffset, dstZoffset,
+                     dstRowStride,
+                     dstImageOffsets,
+                     srcWidth, srcHeight, srcDepth, srcFormat, srcType,
+                     srcAddr, srcPacking);
+   }
+   else if (!ctx->_ImageTransferState &&
+       !srcPacking->SwapBytes &&
+       dstFormat == &_mesa_texformat_rgba8888_rev &&
+       baseInternalFormat == GL_RGBA &&
+      ((srcFormat == GL_RGBA && srcType == GL_UNSIGNED_INT_8_8_8_8_REV) ||
+       (srcFormat == GL_RGBA && srcType == GL_UNSIGNED_BYTE && littleEndian) ||
+       (srcFormat == GL_ABGR_EXT && srcType == GL_UNSIGNED_INT_8_8_8_8) ||
+       (srcFormat == GL_ABGR_EXT && srcType == GL_UNSIGNED_BYTE && !littleEndian))) {
       /* simple memcpy path */
       memcpy_texture(ctx, dims,
                      dstFormat, dstAddr, dstXoffset, dstYoffset, dstZoffset,
@@ -1075,40 +1313,41 @@ _mesa_texstore_rgba8888(TEXSTORE_PARAMS)
                      srcWidth, srcHeight, srcDepth, srcFormat, srcType,
                      srcAddr, srcPacking);
    }
-#if 0
-   /* broken? */
    else if (!ctx->_ImageTransferState &&
-	    !srcPacking->SwapBytes &&
-	    srcType == GL_UNSIGNED_BYTE && 
-	    dstFormat == &_mesa_texformat_rgba8888 &&
-	    littleEndian &&
-	    /* Three texture formats involved: srcFormat,
-	     * baseInternalFormat and destFormat (GL_RGBA). Only two
-	     * may differ. _mesa_swizzle_ubyte_image can't handle two
-	     * propagations at once correctly. */
-	    (srcFormat == baseInternalFormat ||
-	     baseInternalFormat == GL_RGBA) &&
+	    littleEndian && 
+	    (srcType == GL_UNSIGNED_BYTE ||
+	     srcType == GL_UNSIGNED_INT_8_8_8_8 ||
+	     srcType == GL_UNSIGNED_INT_8_8_8_8_REV) &&
+	    can_swizzle(baseInternalFormat) &&
 	    can_swizzle(srcFormat)) {
+
       GLubyte dstmap[4];
 
-      /* dstmap - how to swizzle from GL_RGBA to dst format:
-       *
-       * FIXME - add !litteEndian and _rev varients:
+      /* dstmap - how to swizzle from RGBA to dst format:
        */
-      dstmap[3] = 0;
-      dstmap[2] = 1;
-      dstmap[1] = 2;
-      dstmap[0] = 3;
+      if (dstFormat == &_mesa_texformat_rgba8888) {
+	 dstmap[3] = 0;
+	 dstmap[2] = 1;
+	 dstmap[1] = 2;
+	 dstmap[0] = 3;
+      }
+      else {
+	 dstmap[3] = 3;
+	 dstmap[2] = 2;
+	 dstmap[1] = 1;
+	 dstmap[0] = 0;
+      }
       
       _mesa_swizzle_ubyte_image(ctx, dims,
 				srcFormat,
+				srcType,
+				baseInternalFormat,
 				dstmap, 4,
 				dstAddr, dstXoffset, dstYoffset, dstZoffset,
-				dstRowStride, dstImageStride,
+				dstRowStride, dstImageOffsets,
 				srcWidth, srcHeight, srcDepth, srcAddr,
 				srcPacking);      
    }
-#endif
    else {
       /* general path */
       const GLchan *tempImage = _mesa_make_temp_chan_image(ctx, dims,
@@ -1159,8 +1398,7 @@ _mesa_texstore_rgba8888(TEXSTORE_PARAMS)
 GLboolean
 _mesa_texstore_argb8888(TEXSTORE_PARAMS)
 {
-   const GLuint ui = 1;
-   const GLubyte littleEndian = *((const GLubyte *) &ui);
+   const GLboolean littleEndian = _mesa_little_endian();
 
    ASSERT(dstFormat == &_mesa_texformat_argb8888 ||
           dstFormat == &_mesa_texformat_argb8888_rev);
@@ -1200,6 +1438,8 @@ _mesa_texstore_argb8888(TEXSTORE_PARAMS)
             !srcPacking->SwapBytes &&
 	    dstFormat == &_mesa_texformat_argb8888 &&
             srcFormat == GL_RGB &&
+	    (baseInternalFormat == GL_RGBA ||
+	     baseInternalFormat == GL_RGB) &&
             srcType == GL_UNSIGNED_BYTE) {
 
       int img, row, col;
@@ -1228,6 +1468,7 @@ _mesa_texstore_argb8888(TEXSTORE_PARAMS)
             !srcPacking->SwapBytes &&
 	    dstFormat == &_mesa_texformat_argb8888 &&
             srcFormat == GL_RGBA &&
+	    baseInternalFormat == GL_RGBA &&
             (srcType == GL_UNSIGNED_BYTE && littleEndian)) {
       GLint img, row, col;
       /* For some reason, streaming copies to write-combined regions
@@ -1262,6 +1503,7 @@ _mesa_texstore_argb8888(TEXSTORE_PARAMS)
             !srcPacking->SwapBytes &&
 	    dstFormat == &_mesa_texformat_argb8888 &&
             srcFormat == GL_RGBA &&
+	    baseInternalFormat == GL_RGBA &&
             srcType == GL_UNSIGNED_BYTE) {
 
       GLint img, row, col;
@@ -1287,29 +1529,36 @@ _mesa_texstore_argb8888(TEXSTORE_PARAMS)
       }
    }
    else if (!ctx->_ImageTransferState &&
-	    !srcPacking->SwapBytes &&
-	    dstFormat == &_mesa_texformat_argb8888 &&
-	    srcType == GL_UNSIGNED_BYTE && 
 	    littleEndian &&
-	    /* Three texture formats involved: srcFormat,
-	     * baseInternalFormat and destFormat (GL_RGBA). Only two
-	     * may differ. _mesa_swizzle_ubyte_image can't handle two
-	     * propagations at once correctly. */
-	    (srcFormat == baseInternalFormat ||
-	     baseInternalFormat == GL_RGBA) &&
+	    (srcType == GL_UNSIGNED_BYTE ||
+	     srcType == GL_UNSIGNED_INT_8_8_8_8 ||
+	     srcType == GL_UNSIGNED_INT_8_8_8_8_REV) &&
+	    can_swizzle(baseInternalFormat) &&	   
 	    can_swizzle(srcFormat)) {
 
       GLubyte dstmap[4];
 
-      /* dstmap - how to swizzle from GL_RGBA to dst format:
+      /* dstmap - how to swizzle from RGBA to dst format:
        */
-      dstmap[3] = 3;		/* alpha */
-      dstmap[2] = 0;		/* red */
-      dstmap[1] = 1;		/* green */
-      dstmap[0] = 2;		/* blue */
+      if (dstFormat == &_mesa_texformat_argb8888) {
+	 dstmap[3] = 3;		/* alpha */
+	 dstmap[2] = 0;		/* red */
+	 dstmap[1] = 1;		/* green */
+	 dstmap[0] = 2;		/* blue */
+      }
+      else {
+	 assert(dstFormat == &_mesa_texformat_argb8888_rev);
+	 dstmap[3] = 2;
+	 dstmap[2] = 1;
+	 dstmap[1] = 0;
+	 dstmap[0] = 3;
+      }
  
       _mesa_swizzle_ubyte_image(ctx, dims,
 				srcFormat,
+				srcType,
+
+				baseInternalFormat,
 				dstmap, 4,
 				dstAddr, dstXoffset, dstYoffset, dstZoffset,
 				dstRowStride,
@@ -1367,8 +1616,7 @@ _mesa_texstore_argb8888(TEXSTORE_PARAMS)
 GLboolean
 _mesa_texstore_rgb888(TEXSTORE_PARAMS)
 {
-   const GLuint ui = 1;
-   const GLubyte littleEndian = *((const GLubyte *) &ui);
+   const GLboolean littleEndian = _mesa_little_endian();
 
    ASSERT(dstFormat == &_mesa_texformat_rgb888);
    ASSERT(dstFormat->TexelBytes == 3);
@@ -1412,6 +1660,31 @@ _mesa_texstore_rgb888(TEXSTORE_PARAMS)
             srcRow += srcRowStride;
          }
       }
+   }
+   else if (!ctx->_ImageTransferState &&
+	    littleEndian &&
+	    srcType == GL_UNSIGNED_BYTE &&
+	    can_swizzle(baseInternalFormat) &&
+	    can_swizzle(srcFormat)) {
+
+      GLubyte dstmap[4];
+
+      /* dstmap - how to swizzle from RGBA to dst format:
+       */
+      dstmap[0] = 2;
+      dstmap[1] = 1;
+      dstmap[2] = 0;
+      dstmap[3] = ONE;		/* ? */
+      
+      _mesa_swizzle_ubyte_image(ctx, dims,
+				srcFormat,
+				srcType,
+				baseInternalFormat,
+				dstmap, 3,
+				dstAddr, dstXoffset, dstYoffset, dstZoffset,
+				dstRowStride, dstImageOffsets,
+				srcWidth, srcHeight, srcDepth, srcAddr,
+				srcPacking);      
    }
    else {
       /* general path */
@@ -1469,8 +1742,7 @@ _mesa_texstore_rgb888(TEXSTORE_PARAMS)
 GLboolean
 _mesa_texstore_bgr888(TEXSTORE_PARAMS)
 {
-   const GLuint ui = 1;
-   const GLubyte littleEndian = *((const GLubyte *) &ui);
+   const GLboolean littleEndian = _mesa_little_endian();
 
    ASSERT(dstFormat == &_mesa_texformat_bgr888);
    ASSERT(dstFormat->TexelBytes == 3);
@@ -1515,6 +1787,31 @@ _mesa_texstore_bgr888(TEXSTORE_PARAMS)
          }
       }
    }
+   else if (!ctx->_ImageTransferState &&
+	    littleEndian &&
+	    srcType == GL_UNSIGNED_BYTE &&
+	    can_swizzle(baseInternalFormat) &&
+	    can_swizzle(srcFormat)) {
+
+      GLubyte dstmap[4];
+
+      /* dstmap - how to swizzle from RGBA to dst format:
+       */
+      dstmap[0] = 0;
+      dstmap[1] = 1;
+      dstmap[2] = 2;
+      dstmap[3] = ONE;		/* ? */
+      
+      _mesa_swizzle_ubyte_image(ctx, dims,
+				srcFormat,
+				srcType,
+				baseInternalFormat,
+				dstmap, 3,
+				dstAddr, dstXoffset, dstYoffset, dstZoffset,
+				dstRowStride, dstImageOffsets,
+				srcWidth, srcHeight, srcDepth, srcAddr,
+				srcPacking);      
+   }   
    else {
       /* general path */
       const GLchan *tempImage = _mesa_make_temp_chan_image(ctx, dims,
@@ -1689,8 +1986,7 @@ _mesa_texstore_argb1555(TEXSTORE_PARAMS)
 GLboolean
 _mesa_texstore_al88(TEXSTORE_PARAMS)
 {
-   const GLuint ui = 1;
-   const GLubyte littleEndian = *((const GLubyte *) &ui);
+   const GLboolean littleEndian = _mesa_little_endian();
 
    ASSERT(dstFormat == &_mesa_texformat_al88 ||
           dstFormat == &_mesa_texformat_al88_rev);
@@ -1711,6 +2007,37 @@ _mesa_texstore_al88(TEXSTORE_PARAMS)
                      srcWidth, srcHeight, srcDepth, srcFormat, srcType,
                      srcAddr, srcPacking);
    }
+   else if (!ctx->_ImageTransferState &&
+	    littleEndian &&
+	    srcType == GL_UNSIGNED_BYTE &&
+	    can_swizzle(baseInternalFormat) &&
+	    can_swizzle(srcFormat)) {
+
+      GLubyte dstmap[4];
+
+      /* dstmap - how to swizzle from RGBA to dst format:
+       */
+      if (dstFormat == &_mesa_texformat_al88) {
+	 dstmap[0] = 0;
+	 dstmap[1] = 3;
+      }
+      else {
+	 dstmap[0] = 3;
+	 dstmap[1] = 0;
+      }
+      dstmap[2] = ZERO;		/* ? */
+      dstmap[3] = ONE;		/* ? */
+      
+      _mesa_swizzle_ubyte_image(ctx, dims,
+				srcFormat,
+				srcType,
+				baseInternalFormat,
+				dstmap, 2,
+				dstAddr, dstXoffset, dstYoffset, dstZoffset,
+				dstRowStride, dstImageOffsets,
+				srcWidth, srcHeight, srcDepth, srcAddr,
+				srcPacking);      
+   }   
    else {
       /* general path */
       const GLchan *tempImage = _mesa_make_temp_chan_image(ctx, dims,
@@ -1831,6 +2158,36 @@ _mesa_texstore_a8(TEXSTORE_PARAMS)
                      srcWidth, srcHeight, srcDepth, srcFormat, srcType,
                      srcAddr, srcPacking);
    }
+   else if (!ctx->_ImageTransferState &&
+	    _mesa_little_endian() &&
+	    srcType == GL_UNSIGNED_BYTE &&
+	    can_swizzle(baseInternalFormat) &&
+	    can_swizzle(srcFormat)) {
+
+      GLubyte dstmap[4];
+
+      /* dstmap - how to swizzle from RGBA to dst format:
+       */
+      if (dstFormat == &_mesa_texformat_a8) {
+	 dstmap[0] = 3;
+      }
+      else {
+	 dstmap[0] = 0;
+      }
+      dstmap[1] = ZERO;		/* ? */
+      dstmap[2] = ZERO;		/* ? */
+      dstmap[3] = ONE;		/* ? */
+      
+      _mesa_swizzle_ubyte_image(ctx, dims,
+				srcFormat,
+				srcType,
+				baseInternalFormat,
+				dstmap, 1,
+				dstAddr, dstXoffset, dstYoffset, dstZoffset,
+				dstRowStride, dstImageOffsets,
+				srcWidth, srcHeight, srcDepth, srcAddr,
+				srcPacking);      
+   }   
    else {
       /* general path */
       const GLchan *tempImage = _mesa_make_temp_chan_image(ctx, dims,
@@ -1912,8 +2269,7 @@ _mesa_texstore_ci8(TEXSTORE_PARAMS)
 GLboolean
 _mesa_texstore_ycbcr(TEXSTORE_PARAMS)
 {
-   const GLuint ui = 1;
-   const GLubyte littleEndian = *((const GLubyte *) &ui);
+   const GLboolean littleEndian = _mesa_little_endian();
    (void) ctx; (void) dims; (void) baseInternalFormat;
 
    ASSERT((dstFormat == &_mesa_texformat_ycbcr) ||
@@ -2163,6 +2519,113 @@ _mesa_texstore_rgba_float16(TEXSTORE_PARAMS)
    return GL_TRUE;
 }
 
+
+#if FEATURE_EXT_texture_sRGB
+GLboolean
+_mesa_texstore_srgb8(TEXSTORE_PARAMS)
+{
+   const GLboolean littleEndian = _mesa_little_endian();
+   const struct gl_texture_format *newDstFormat;
+   StoreTexImageFunc store;
+   GLboolean k;
+
+   ASSERT(dstFormat == &_mesa_texformat_srgb8);
+
+   /* reuse normal rgb texstore code */
+   if (littleEndian) {
+      newDstFormat = &_mesa_texformat_bgr888;
+      store = _mesa_texstore_bgr888;
+   }
+   else {
+      newDstFormat = &_mesa_texformat_rgb888;
+      store = _mesa_texstore_rgb888;
+   }
+
+   k = store(ctx, dims, baseInternalFormat,
+             newDstFormat, dstAddr,
+             dstXoffset, dstYoffset, dstZoffset,
+             dstRowStride, dstImageOffsets,
+             srcWidth, srcHeight, srcDepth,
+             srcFormat, srcType,
+             srcAddr, srcPacking);
+   return k;
+}
+
+
+GLboolean
+_mesa_texstore_srgba8(TEXSTORE_PARAMS)
+{
+   const GLboolean littleEndian = _mesa_little_endian();
+   const struct gl_texture_format *newDstFormat;
+   GLboolean k;
+
+   ASSERT(dstFormat == &_mesa_texformat_srgba8);
+
+   /* reuse normal rgba texstore code */
+   if (littleEndian)
+      newDstFormat = &_mesa_texformat_rgba8888_rev;
+   else
+      newDstFormat = &_mesa_texformat_rgba8888;
+
+   k = _mesa_texstore_rgba8888(ctx, dims, baseInternalFormat,
+                               newDstFormat, dstAddr,
+                               dstXoffset, dstYoffset, dstZoffset,
+                               dstRowStride, dstImageOffsets,
+                               srcWidth, srcHeight, srcDepth,
+                               srcFormat, srcType,
+                               srcAddr, srcPacking);
+   return k;
+}
+
+
+GLboolean
+_mesa_texstore_sl8(TEXSTORE_PARAMS)
+{
+   const struct gl_texture_format *newDstFormat;
+   GLboolean k;
+
+   ASSERT(dstFormat == &_mesa_texformat_sl8);
+
+   newDstFormat = &_mesa_texformat_l8;
+
+   /* _mesa_textore_a8 handles luminance8 too */
+   k = _mesa_texstore_a8(ctx, dims, baseInternalFormat,
+                         newDstFormat, dstAddr,
+                         dstXoffset, dstYoffset, dstZoffset,
+                         dstRowStride, dstImageOffsets,
+                         srcWidth, srcHeight, srcDepth,
+                         srcFormat, srcType,
+                         srcAddr, srcPacking);
+   return k;
+}
+
+
+GLboolean
+_mesa_texstore_sla8(TEXSTORE_PARAMS)
+{
+   const GLboolean littleEndian = _mesa_little_endian();
+   const struct gl_texture_format *newDstFormat;
+   GLboolean k;
+
+   ASSERT(dstFormat == &_mesa_texformat_sla8);
+
+   /* reuse normal luminance/alpha texstore code */
+   if (littleEndian)
+      newDstFormat = &_mesa_texformat_al88;
+   else
+      newDstFormat = &_mesa_texformat_al88_rev;
+
+   k = _mesa_texstore_al88(ctx, dims, baseInternalFormat,
+                           newDstFormat, dstAddr,
+                           dstXoffset, dstYoffset, dstZoffset,
+                           dstRowStride, dstImageOffsets,
+                           srcWidth, srcHeight, srcDepth,
+                           srcFormat, srcType,
+                           srcAddr, srcPacking);
+   return k;
+}
+
+#endif /* FEATURE_EXT_texture_sRGB */
 
 
 /**
