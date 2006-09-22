@@ -89,6 +89,7 @@ intelWaitIrq(struct intel_context *intel, int seq)
 }
 
 
+void
 intel_batch_ioctl(struct intel_context *intel,
                   GLuint start_offset,
                   GLuint used,
