@@ -267,8 +267,6 @@ do_blit_copypixels(GLcontext * ctx,
 
 
    intelFlush(&intel->ctx);
-   intel->vtbl.render_start(intel);
-   intel->vtbl.emit_state(intel);
 
    LOCK_HARDWARE(intel);
 
