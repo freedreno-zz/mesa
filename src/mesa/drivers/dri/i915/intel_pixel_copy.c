@@ -42,6 +42,7 @@
 #include "intel_tris.h"
 #include "intel_pixel.h"
 
+#define FILE_DEBUG_FLAG DEBUG_PIXEL
 
 static struct intel_region *
 copypix_src_region(struct intel_context *intel, GLenum type)
@@ -70,6 +71,33 @@ copypix_src_region(struct intel_context *intel, GLenum type)
 }
 
 
+/**
+ * Check if any fragment operations are in effect which might effect
+ * glCopyPixels.  Differs from intel_check_blit_fragment_ops in that
+ * we allow Scissor.
+ */
+static GLboolean
+intel_check_copypixel_blit_fragment_ops(GLcontext * ctx)
+{
+   if (ctx->NewState)
+      _mesa_update_state(ctx);
+
+   /* Could do logicop with the blitter: 
+    */
+   return !(ctx->_ImageTransferState ||
+            ctx->Color.AlphaEnabled ||
+            ctx->Depth.Test ||
+            ctx->Fog.Enabled ||
+            ctx->Stencil.Enabled ||
+            !ctx->Color.ColorMask[0] ||
+            !ctx->Color.ColorMask[1] ||
+            !ctx->Color.ColorMask[2] ||
+            !ctx->Color.ColorMask[3] ||
+            ctx->Color.ColorLogicOpEnabled ||
+            ctx->Texture._EnabledUnits ||
+	    ctx->FragmentProgram._Enabled);
+}
+
 /* Doesn't work for overlapping regions.  Could do a double copy or
  * just fallback.
  */
@@ -85,8 +113,8 @@ do_texture_copypixels(GLcontext * ctx,
    GLenum src_format;
    GLenum src_type;
 
-   if (INTEL_DEBUG & DEBUG_PIXEL)
-      fprintf(stderr, "%s\n", __FUNCTION__);
+   DBG("%s %d,%d %dx%d --> %d,%d\n", __FUNCTION__, 
+       srcx, srcy, width, height, dstx, dsty);
 
    if (!src || !dst || type != GL_COLOR)
       return GL_FALSE;
@@ -109,13 +137,15 @@ do_texture_copypixels(GLcontext * ctx,
 
       dstbox.x1 = dstx;
       dstbox.y1 = dsty;
-      dstbox.x1 = dstx + width * ctx->Pixel.ZoomX;
+      dstbox.x2 = dstx + width * ctx->Pixel.ZoomX;
       dstbox.y2 = dsty + height * ctx->Pixel.ZoomY;
 
+      DBG("src %d,%d %d,%d\n", srcbox.x1, srcbox.y1, srcbox.x2, srcbox.y2);
+      DBG("dst %d,%d %d,%d (%dx%d) (%f,%f)\n", dstbox.x1, dstbox.y1, dstbox.x2, dstbox.y2,
+	  width, height, ctx->Pixel.ZoomX, ctx->Pixel.ZoomY);
 
       if (intel_intersect_cliprects(&tmp, &srcbox, &dstbox)) {
-         if (INTEL_DEBUG & DEBUG_PIXEL)
-            _mesa_printf("%s: regions overlap\n", __FUNCTION__);
+         DBG("%s: regions overlap\n", __FUNCTION__);
          return GL_FALSE;
       }
    }
@@ -157,7 +187,6 @@ do_texture_copypixels(GLcontext * ctx,
 
    intel->vtbl.meta_texture_blend_replace(intel);
 
-
    LOCK_HARDWARE(intel);
 
    if (intel->driDrawable->numClipRects) {
@@ -189,7 +218,11 @@ do_texture_copypixels(GLcontext * ctx,
       /* Just use the regular cliprect mechanism...  Does this need to
        * even hold the lock???
        */
-      intel_meta_draw_quad(intel, dstx, dstx + width * ctx->Pixel.ZoomX, dPriv->h - (dsty + height * ctx->Pixel.ZoomY), dPriv->h - (dsty), 0,   /* XXX: what z value? */
+      intel_meta_draw_quad(intel, 
+			   dstx, 
+			   dstx + width * ctx->Pixel.ZoomX, 
+			   dPriv->h - (dsty + height * ctx->Pixel.ZoomY), 
+			   dPriv->h - (dsty), 0,   /* XXX: what z value? */
                            0x00ff00ff,
                            srcx, srcx + width, srcy, srcy + height);
 
@@ -198,6 +231,8 @@ do_texture_copypixels(GLcontext * ctx,
       intel_batchbuffer_flush(intel->batch);
    }
    UNLOCK_HARDWARE(intel);
+
+   DBG("%s: success\n", __FUNCTION__);
    return GL_TRUE;
 }
 
@@ -221,7 +256,7 @@ do_blit_copypixels(GLcontext * ctx,
    /* Copypixels can be more than a straight copy.  Ensure all the
     * extra operations are disabled:
     */
-   if (!intel_check_blit_fragment_ops(ctx) ||
+   if (!intel_check_copypixel_blit_fragment_ops(ctx) ||
        ctx->Pixel.ZoomX != 1.0F || ctx->Pixel.ZoomY != 1.0F)
       return GL_FALSE;
 
@@ -245,9 +280,28 @@ do_blit_copypixels(GLcontext * ctx,
       GLint delta_y = 0;
       GLuint i;
 
+      /* Do scissoring in GL coordinates:
+       */
+      if (ctx->Scissor.Enabled)
+      {
+	 GLint x = ctx->Scissor.X;
+	 GLint y = ctx->Scissor.Y;
+	 GLuint w = ctx->Scissor.Width;
+	 GLuint h = ctx->Scissor.Height;
+	 GLint dx = dstx - srcx;
+         GLint dy = dsty - srcy;
 
-      dsty = dPriv->h - dsty - height;  /* convert from gl to hardware coords */
-      srcy = dPriv->h - srcy - height;  /* convert from gl to hardware coords */
+         if (!_mesa_clip_to_region(x, y, x+w, y+h, &dstx, &dsty, &width, &height))
+            goto out;
+	 
+         srcx = dstx - dx;
+         srcy = dsty - dy;
+      }
+
+      /* Convert from GL to hardware coordinates:
+       */
+      dsty = dPriv->h - dsty - height;  
+      srcy = dPriv->h - srcy - height;  
       dstx += dPriv->x;
       dsty += dPriv->y;
       srcx += dPriv->x;
@@ -255,8 +309,6 @@ do_blit_copypixels(GLcontext * ctx,
 
       /* Clip against the source region.  This is the only source
        * clipping we do.  Dst is clipped with cliprects below.
-       *
-       * TODO: Scissor?
        */
       {
          delta_x = srcx - dstx;
@@ -289,7 +341,10 @@ do_blit_copypixels(GLcontext * ctx,
             continue;
 
 
-         intelEmitCopyBlit(intel, dst->cpp, src->pitch, src->buffer, 0, dst->pitch, dst->buffer, 0, rect.x1 + delta_x, rect.y1 + delta_y,       /* srcx, srcy */
+         intelEmitCopyBlit(intel, dst->cpp, 
+			   src->pitch, src->buffer, 0, 
+			   dst->pitch, dst->buffer, 0, 
+			   rect.x1 + delta_x, rect.y1 + delta_y,       /* srcx, srcy */
                            rect.x1, rect.y1,    /* dstx, dsty */
                            rect.x2 - rect.x1, rect.y2 - rect.y1);
       }
@@ -298,6 +353,8 @@ do_blit_copypixels(GLcontext * ctx,
       intel_batchbuffer_flush(intel->batch);
    }
    UNLOCK_HARDWARE(intel);
+
+   DBG("%s: success\n", __FUNCTION__);
    return GL_TRUE;
 }
 
@@ -314,12 +371,10 @@ intelCopyPixels(GLcontext * ctx,
    if (do_blit_copypixels(ctx, srcx, srcy, width, height, destx, desty, type))
       return;
 
-   if (do_texture_copypixels
-       (ctx, srcx, srcy, width, height, destx, desty, type))
+   if (do_texture_copypixels(ctx, srcx, srcy, width, height, destx, desty, type))
       return;
 
-   if (INTEL_DEBUG & DEBUG_PIXEL)
-      _mesa_printf("fallback to _swrast_CopyPixels\n");
+   DBG("fallback to _swrast_CopyPixels\n");
 
    _swrast_CopyPixels(ctx, srcx, srcy, width, height, destx, desty, type);
 }
