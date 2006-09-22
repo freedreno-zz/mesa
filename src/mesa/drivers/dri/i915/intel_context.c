@@ -219,20 +219,17 @@ static const struct tnl_pipeline_stage *intel_pipeline[] = {
 
 
 static const struct dri_debug_control debug_control[] = {
-   {"fall", DEBUG_FALLBACKS},
    {"tex", DEBUG_TEXTURE},
+   {"state", DEBUG_STATE},
    {"ioctl", DEBUG_IOCTL},
    {"blit", DEBUG_BLIT},
-   {"vert", DEBUG_VERTS},
-   {"state", DEBUG_STATE},
+   {"mip", DEBUG_MIPTREE},
+   {"fall", DEBUG_FALLBACKS},
    {"verb", DEBUG_VERBOSE},
-   {"dri", DEBUG_DRI},
    {"bat", DEBUG_BATCH},
-   {"san", DEBUG_SANITY},
-   {"sync", DEBUG_SYNC},
-   {"sleep", DEBUG_SLEEP},
    {"pix", DEBUG_PIXEL},
    {"buf", DEBUG_BUFMGR},
+   {"reg", DEBUG_REGION},
    {"fbo", DEBUG_FBO},
    {NULL, 0}
 };

@@ -46,7 +46,7 @@
 #include "dri_bufmgr.h"
 #include "intel_batchbuffer.h"
 
-#define FILE_DEBUG_FLAG DEBUG_BUFMGR
+#define FILE_DEBUG_FLAG DEBUG_REGION
 
 void
 intel_region_idle(struct intel_context *intel, struct intel_region *region)

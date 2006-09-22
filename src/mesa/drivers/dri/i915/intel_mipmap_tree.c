@@ -30,7 +30,7 @@
 #include "intel_regions.h"
 #include "enums.h"
 
-#define FILE_DEBUG_FLAG DEBUG_TEXTURE
+#define FILE_DEBUG_FLAG DEBUG_MIPTREE
 
 static GLenum
 target_to_target(GLenum target)
@@ -112,6 +112,7 @@ intel_miptree_reference(struct intel_mipmap_tree **dst,
 {
    src->refcount++;
    *dst = src;
+   DBG("%s %p refcount now %d\n", __FUNCTION__, src, src->refcount);
 }
 
 void
@@ -121,9 +122,11 @@ intel_miptree_release(struct intel_context *intel,
    if (!*mt)
       return;
 
-   DBG("%s %d\n", __FUNCTION__, (*mt)->refcount - 1);
+   DBG("%s %p refcount will be %d\n", __FUNCTION__, *mt, (*mt)->refcount - 1);
    if (--(*mt)->refcount <= 0) {
       GLuint i;
+
+      DBG("%s deleting %p\n", __FUNCTION__, *mt);
 
       intel_region_release(intel, &((*mt)->region));
 
@@ -149,24 +152,14 @@ intel_miptree_match_image(struct intel_mipmap_tree *mt,
                           struct gl_texture_image *image,
                           GLuint face, GLuint level)
 {
-   DBG("%s %d %d/%d %d/%d\n", __FUNCTION__,
-       image->Border,
-       image->InternalFormat, mt->internal_format,
-       image->IsCompressed, mt->compressed);
-
    /* Images with borders are never pulled into mipmap trees. 
     */
-   if (image->Border)
+   if (image->Border) 
       return GL_FALSE;
 
    if (image->InternalFormat != mt->internal_format ||
        image->IsCompressed != mt->compressed)
       return GL_FALSE;
-
-   DBG("%s: %d/%d %d/%d %d/%d\n", __FUNCTION__,
-       image->Width, mt->level[level].width,
-       image->Height, mt->level[level].height,
-       image->Depth, mt->level[level].depth);
 
    /* Test image dimensions against the base level image adjusted for
     * minification.  This will also catch images not present in the
@@ -177,8 +170,6 @@ intel_miptree_match_image(struct intel_mipmap_tree *mt,
        image->Depth != mt->level[level].depth)
       return GL_FALSE;
 
-
-   DBG("%s: success\n", __FUNCTION__);
    return GL_TRUE;
 }
 

@@ -288,7 +288,7 @@ intelClearWithTris(struct intel_context *intel,
    GLcontext *ctx = &intel->ctx;
    drm_clip_rect_t clear;
 
-   if (INTEL_DEBUG & DEBUG_DRI)
+   if (INTEL_DEBUG & DEBUG_BLIT)
       _mesa_printf("%s 0x%x\n", __FUNCTION__, mask);
 
    LOCK_HARDWARE(intel);

@@ -43,7 +43,7 @@
 #include "i915_context.h"
 #include "i915_reg.h"
 
-
+#define FILE_DEBUG_FLAG DEBUG_STATE
 
 static void
 i915StencilFuncSeparate(GLcontext * ctx, GLenum face, GLenum func, GLint ref,
@@ -54,9 +54,8 @@ i915StencilFuncSeparate(GLcontext * ctx, GLenum face, GLenum func, GLint ref,
 
    mask = mask & 0xff;
 
-   if (INTEL_DEBUG & DEBUG_DRI)
-      fprintf(stderr, "%s : func: %s, ref : 0x%x, mask: 0x%x\n", __FUNCTION__,
-              _mesa_lookup_enum_by_nr(func), ref, mask);
+   DBG("%s : func: %s, ref : 0x%x, mask: 0x%x\n", __FUNCTION__,
+       _mesa_lookup_enum_by_nr(func), ref, mask);
 
 
    I915_STATECHANGE(i915, I915_UPLOAD_CTX);
@@ -77,9 +76,8 @@ i915StencilMaskSeparate(GLcontext * ctx, GLenum face, GLuint mask)
 {
    struct i915_context *i915 = I915_CONTEXT(ctx);
 
-   if (INTEL_DEBUG & DEBUG_DRI)
-      fprintf(stderr, "%s : mask 0x%x\n", __FUNCTION__, mask);
-
+   DBG("%s : mask 0x%x\n", __FUNCTION__, mask);
+   
    mask = mask & 0xff;
 
    I915_STATECHANGE(i915, I915_UPLOAD_CTX);
@@ -99,10 +97,9 @@ i915StencilOpSeparate(GLcontext * ctx, GLenum face, GLenum fail, GLenum zfail,
    int dpop = intel_translate_stencil_op(zpass);
 
 
-   if (INTEL_DEBUG & DEBUG_DRI)
-      fprintf(stderr, "%s: fail : %s, zfail: %s, zpass : %s\n", __FUNCTION__,
-              _mesa_lookup_enum_by_nr(fail),
-              _mesa_lookup_enum_by_nr(zfail), _mesa_lookup_enum_by_nr(zpass));
+   DBG("%s: fail : %s, zfail: %s, zpass : %s\n", __FUNCTION__,
+       _mesa_lookup_enum_by_nr(fail),
+       _mesa_lookup_enum_by_nr(zfail), _mesa_lookup_enum_by_nr(zpass));
 
    I915_STATECHANGE(i915, I915_UPLOAD_CTX);
 
@@ -169,9 +166,8 @@ i915BlendColor(GLcontext * ctx, const GLfloat color[4])
    struct i915_context *i915 = I915_CONTEXT(ctx);
    GLubyte r, g, b, a;
 
-   if (INTEL_DEBUG & DEBUG_DRI)
-      fprintf(stderr, "%s\n", __FUNCTION__);
-
+   DBG("%s\n", __FUNCTION__);
+   
    UNCLAMPED_FLOAT_TO_UBYTE(r, color[RCOMP]);
    UNCLAMPED_FLOAT_TO_UBYTE(g, color[GCOMP]);
    UNCLAMPED_FLOAT_TO_UBYTE(b, color[BCOMP]);
@@ -281,9 +277,8 @@ i915DepthFunc(GLcontext * ctx, GLenum func)
    struct i915_context *i915 = I915_CONTEXT(ctx);
    int test = intel_translate_compare_func(func);
 
-   if (INTEL_DEBUG & DEBUG_DRI)
-      fprintf(stderr, "%s\n", __FUNCTION__);
-
+   DBG("%s\n", __FUNCTION__);
+   
    I915_STATECHANGE(i915, I915_UPLOAD_CTX);
    i915->state.Ctx[I915_CTXREG_LIS6] &= ~S6_DEPTH_TEST_FUNC_MASK;
    i915->state.Ctx[I915_CTXREG_LIS6] |= test << S6_DEPTH_TEST_FUNC_SHIFT;
@@ -294,9 +289,8 @@ i915DepthMask(GLcontext * ctx, GLboolean flag)
 {
    struct i915_context *i915 = I915_CONTEXT(ctx);
 
-   if (INTEL_DEBUG & DEBUG_DRI)
-      fprintf(stderr, "%s flag (%d)\n", __FUNCTION__, flag);
-
+   DBG("%s flag (%d)\n", __FUNCTION__, flag);
+   
    I915_STATECHANGE(i915, I915_UPLOAD_CTX);
 
    if (flag && ctx->Depth.Test)
@@ -381,9 +375,8 @@ i915Scissor(GLcontext * ctx, GLint x, GLint y, GLsizei w, GLsizei h)
    x2 = x + w - 1;
    y2 = y1 + h - 1;
 
-   if (INTEL_DEBUG & DEBUG_DRI)
-      fprintf(stderr, "[%s] x(%d) y(%d) w(%d) h(%d)\n", __FUNCTION__,
-              x, y, w, h);
+   DBG("[%s] x(%d) y(%d) w(%d) h(%d)\n", __FUNCTION__,
+       x, y, w, h);
 
    x1 = CLAMP(x1, 0, ctx->DrawBuffer->Width - 1);
    y1 = CLAMP(y1, 0, ctx->DrawBuffer->Height - 1);
@@ -401,9 +394,8 @@ i915LogicOp(GLcontext * ctx, GLenum opcode)
    struct i915_context *i915 = I915_CONTEXT(ctx);
    int tmp = intel_translate_logic_op(opcode);
 
-   if (INTEL_DEBUG & DEBUG_DRI)
-      fprintf(stderr, "%s\n", __FUNCTION__);
-
+   DBG("%s\n", __FUNCTION__);
+   
    I915_STATECHANGE(i915, I915_UPLOAD_CTX);
    i915->state.Ctx[I915_CTXREG_STATE4] &= ~LOGICOP_MASK;
    i915->state.Ctx[I915_CTXREG_STATE4] |= LOGIC_OP_FUNC(tmp);
@@ -417,9 +409,8 @@ i915CullFaceFrontFace(GLcontext * ctx, GLenum unused)
    struct i915_context *i915 = I915_CONTEXT(ctx);
    GLuint mode;
 
-   if (INTEL_DEBUG & DEBUG_DRI)
-      fprintf(stderr, "%s %d\n", __FUNCTION__,
-              ctx->DrawBuffer ? ctx->DrawBuffer->Name : 0);
+   DBG("%s %d\n", __FUNCTION__,
+       ctx->DrawBuffer ? ctx->DrawBuffer->Name : 0);
 
    if (!ctx->Polygon.CullFlag) {
       mode = S4_CULLMODE_NONE;
@@ -450,9 +441,8 @@ i915LineWidth(GLcontext * ctx, GLfloat widthf)
    int lis4 = i915->state.Ctx[I915_CTXREG_LIS4] & ~S4_LINE_WIDTH_MASK;
    int width;
 
-   if (INTEL_DEBUG & DEBUG_DRI)
-      fprintf(stderr, "%s\n", __FUNCTION__);
-
+   DBG("%s\n", __FUNCTION__);
+   
    width = (int) (widthf * 2);
    CLAMP_SELF(width, 1, 0xf);
    lis4 |= width << S4_LINE_WIDTH_SHIFT;
@@ -470,9 +460,8 @@ i915PointSize(GLcontext * ctx, GLfloat size)
    int lis4 = i915->state.Ctx[I915_CTXREG_LIS4] & ~S4_POINT_WIDTH_MASK;
    GLint point_size = (int) size;
 
-   if (INTEL_DEBUG & DEBUG_DRI)
-      fprintf(stderr, "%s\n", __FUNCTION__);
-
+   DBG("%s\n", __FUNCTION__);
+   
    CLAMP_SELF(point_size, 1, 255);
    lis4 |= point_size << S4_POINT_WIDTH_SHIFT;
 
@@ -494,9 +483,8 @@ i915ColorMask(GLcontext * ctx,
    struct i915_context *i915 = I915_CONTEXT(ctx);
    GLuint tmp = i915->state.Ctx[I915_CTXREG_LIS5] & ~S5_WRITEDISABLE_MASK;
 
-   if (INTEL_DEBUG & DEBUG_DRI)
-      fprintf(stderr, "%s r(%d) g(%d) b(%d) a(%d)\n", __FUNCTION__, r, g, b,
-              a);
+   DBG("%s r(%d) g(%d) b(%d) a(%d)\n", __FUNCTION__, r, g, b,
+       a);
 
    if (!r)
       tmp |= S5_WRITEDISABLE_RED;
@@ -525,9 +513,8 @@ update_specular(GLcontext * ctx)
 static void
 i915LightModelfv(GLcontext * ctx, GLenum pname, const GLfloat * param)
 {
-   if (INTEL_DEBUG & DEBUG_DRI)
-      fprintf(stderr, "%s\n", __FUNCTION__);
-
+   DBG("%s\n", __FUNCTION__);
+   
    if (pname == GL_LIGHT_MODEL_COLOR_CONTROL) {
       update_specular(ctx);
    }

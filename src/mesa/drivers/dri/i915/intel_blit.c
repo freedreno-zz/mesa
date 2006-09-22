@@ -348,8 +348,7 @@ intelClearWithBlit(GLcontext * ctx, GLbitfield mask, GLboolean all,
    GLbitfield skipBuffers = 0;
    BATCH_LOCALS;
 
-   if (INTEL_DEBUG & DEBUG_DRI)
-      _mesa_printf("%s %x\n", __FUNCTION__, mask);
+   DBG("%s %x\n", __FUNCTION__, mask);
 
    /*
     * Compute values for clearing the buffers.

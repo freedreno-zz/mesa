@@ -41,6 +41,8 @@
 #include "i830_context.h"
 #include "i830_reg.h"
 
+#define FILE_DEBUG_FLAG DEBUG_STATE
+
 static void
 i830StencilFuncSeparate(GLcontext * ctx, GLenum face, GLenum func, GLint ref,
                         GLuint mask)
@@ -50,9 +52,8 @@ i830StencilFuncSeparate(GLcontext * ctx, GLenum face, GLenum func, GLint ref,
 
    mask = mask & 0xff;
 
-   if (INTEL_DEBUG & DEBUG_DRI)
-      fprintf(stderr, "%s : func: %s, ref : 0x%x, mask: 0x%x\n", __FUNCTION__,
-              _mesa_lookup_enum_by_nr(func), ref, mask);
+   DBG("%s : func: %s, ref : 0x%x, mask: 0x%x\n", __FUNCTION__,
+       _mesa_lookup_enum_by_nr(func), ref, mask);
 
 
    I830_STATECHANGE(i830, I830_UPLOAD_CTX);
@@ -72,9 +73,8 @@ i830StencilMaskSeparate(GLcontext * ctx, GLenum face, GLuint mask)
 {
    struct i830_context *i830 = i830_context(ctx);
 
-   if (INTEL_DEBUG & DEBUG_DRI)
-      fprintf(stderr, "%s : mask 0x%x\n", __FUNCTION__, mask);
-
+   DBG("%s : mask 0x%x\n", __FUNCTION__, mask);
+   
    mask = mask & 0xff;
 
    I830_STATECHANGE(i830, I830_UPLOAD_CTX);
@@ -90,10 +90,10 @@ i830StencilOpSeparate(GLcontext * ctx, GLenum face, GLenum fail, GLenum zfail,
    struct i830_context *i830 = i830_context(ctx);
    int fop, dfop, dpop;
 
-   if (INTEL_DEBUG & DEBUG_DRI)
-      fprintf(stderr, "%s: fail : %s, zfail: %s, zpass : %s\n", __FUNCTION__,
-              _mesa_lookup_enum_by_nr(fail),
-              _mesa_lookup_enum_by_nr(zfail), _mesa_lookup_enum_by_nr(zpass));
+   DBG("%s: fail : %s, zfail: %s, zpass : %s\n", __FUNCTION__,
+       _mesa_lookup_enum_by_nr(fail),
+       _mesa_lookup_enum_by_nr(zfail), 
+       _mesa_lookup_enum_by_nr(zpass));
 
    fop = 0;
    dfop = 0;
@@ -257,9 +257,8 @@ i830BlendColor(GLcontext * ctx, const GLfloat color[4])
    struct i830_context *i830 = i830_context(ctx);
    GLubyte r, g, b, a;
 
-   if (INTEL_DEBUG & DEBUG_DRI)
-      fprintf(stderr, "%s\n", __FUNCTION__);
-
+   DBG("%s\n", __FUNCTION__);
+   
    UNCLAMPED_FLOAT_TO_UBYTE(r, color[RCOMP]);
    UNCLAMPED_FLOAT_TO_UBYTE(g, color[GCOMP]);
    UNCLAMPED_FLOAT_TO_UBYTE(b, color[BCOMP]);
@@ -385,10 +384,9 @@ i830_set_blend_state(GLcontext * ctx)
 static void
 i830BlendEquationSeparate(GLcontext * ctx, GLenum modeRGB, GLenum modeA)
 {
-   if (INTEL_DEBUG & DEBUG_DRI)
-      fprintf(stderr, "%s -> %s, %s\n", __FUNCTION__,
-              _mesa_lookup_enum_by_nr(modeRGB),
-              _mesa_lookup_enum_by_nr(modeA));
+   DBG("%s -> %s, %s\n", __FUNCTION__,
+       _mesa_lookup_enum_by_nr(modeRGB),
+       _mesa_lookup_enum_by_nr(modeA));
 
    (void) modeRGB;
    (void) modeA;
@@ -400,12 +398,11 @@ static void
 i830BlendFuncSeparate(GLcontext * ctx, GLenum sfactorRGB,
                       GLenum dfactorRGB, GLenum sfactorA, GLenum dfactorA)
 {
-   if (INTEL_DEBUG & DEBUG_DRI)
-      fprintf(stderr, "%s -> RGB(%s, %s) A(%s, %s)\n", __FUNCTION__,
-              _mesa_lookup_enum_by_nr(sfactorRGB),
-              _mesa_lookup_enum_by_nr(dfactorRGB),
-              _mesa_lookup_enum_by_nr(sfactorA),
-              _mesa_lookup_enum_by_nr(dfactorA));
+   DBG("%s -> RGB(%s, %s) A(%s, %s)\n", __FUNCTION__,
+       _mesa_lookup_enum_by_nr(sfactorRGB),
+       _mesa_lookup_enum_by_nr(dfactorRGB),
+       _mesa_lookup_enum_by_nr(sfactorA),
+       _mesa_lookup_enum_by_nr(dfactorA));
 
    (void) sfactorRGB;
    (void) dfactorRGB;
@@ -422,9 +419,8 @@ i830DepthFunc(GLcontext * ctx, GLenum func)
    struct i830_context *i830 = i830_context(ctx);
    int test = intel_translate_compare_func(func);
 
-   if (INTEL_DEBUG & DEBUG_DRI)
-      fprintf(stderr, "%s\n", __FUNCTION__);
-
+   DBG("%s\n", __FUNCTION__);
+   
    I830_STATECHANGE(i830, I830_UPLOAD_CTX);
    i830->state.Ctx[I830_CTXREG_STATE3] &= ~DEPTH_TEST_FUNC_MASK;
    i830->state.Ctx[I830_CTXREG_STATE3] |= (ENABLE_DEPTH_TEST_FUNC |
@@ -436,9 +432,8 @@ i830DepthMask(GLcontext * ctx, GLboolean flag)
 {
    struct i830_context *i830 = i830_context(ctx);
 
-   if (INTEL_DEBUG & DEBUG_DRI)
-      fprintf(stderr, "%s flag (%d)\n", __FUNCTION__, flag);
-
+   DBG("%s flag (%d)\n", __FUNCTION__, flag);
+   
    I830_STATECHANGE(i830, I830_UPLOAD_CTX);
 
    i830->state.Ctx[I830_CTXREG_ENABLES_2] &= ~ENABLE_DIS_DEPTH_WRITE_MASK;
@@ -525,9 +520,8 @@ i830Scissor(GLcontext * ctx, GLint x, GLint y, GLsizei w, GLsizei h)
    x2 = x + w - 1;
    y2 = y1 + h - 1;
 
-   if (INTEL_DEBUG & DEBUG_DRI)
-      fprintf(stderr, "[%s] x(%d) y(%d) w(%d) h(%d)\n", __FUNCTION__,
-              x, y, w, h);
+   DBG("[%s] x(%d) y(%d) w(%d) h(%d)\n", __FUNCTION__,
+       x, y, w, h);
 
    x1 = CLAMP(x1, 0, ctx->DrawBuffer->Width - 1);
    y1 = CLAMP(y1, 0, ctx->DrawBuffer->Height - 1);
@@ -545,9 +539,8 @@ i830LogicOp(GLcontext * ctx, GLenum opcode)
    struct i830_context *i830 = i830_context(ctx);
    int tmp = intel_translate_logic_op(opcode);
 
-   if (INTEL_DEBUG & DEBUG_DRI)
-      fprintf(stderr, "%s\n", __FUNCTION__);
-
+   DBG("%s\n", __FUNCTION__);
+   
    I830_STATECHANGE(i830, I830_UPLOAD_CTX);
    i830->state.Ctx[I830_CTXREG_STATE4] &= ~LOGICOP_MASK;
    i830->state.Ctx[I830_CTXREG_STATE4] |= LOGIC_OP_FUNC(tmp);
@@ -561,9 +554,8 @@ i830CullFaceFrontFace(GLcontext * ctx, GLenum unused)
    struct i830_context *i830 = i830_context(ctx);
    GLuint mode;
 
-   if (INTEL_DEBUG & DEBUG_DRI)
-      fprintf(stderr, "%s\n", __FUNCTION__);
-
+   DBG("%s\n", __FUNCTION__);
+   
    if (!ctx->Polygon.CullFlag) {
       mode = CULLMODE_NONE;
    }
@@ -591,9 +583,8 @@ i830LineWidth(GLcontext * ctx, GLfloat widthf)
    int width;
    int state5;
 
-   if (INTEL_DEBUG & DEBUG_DRI)
-      fprintf(stderr, "%s\n", __FUNCTION__);
-
+   DBG("%s\n", __FUNCTION__);
+   
    width = (int) (widthf * 2);
    CLAMP_SELF(width, 1, 15);
 
@@ -612,9 +603,8 @@ i830PointSize(GLcontext * ctx, GLfloat size)
    struct i830_context *i830 = i830_context(ctx);
    GLint point_size = (int) size;
 
-   if (INTEL_DEBUG & DEBUG_DRI)
-      fprintf(stderr, "%s\n", __FUNCTION__);
-
+   DBG("%s\n", __FUNCTION__);
+   
    CLAMP_SELF(point_size, 1, 256);
    I830_STATECHANGE(i830, I830_UPLOAD_CTX);
    i830->state.Ctx[I830_CTXREG_STATE5] &= ~FIXED_POINT_WIDTH_MASK;
@@ -634,9 +624,7 @@ i830ColorMask(GLcontext * ctx,
    struct i830_context *i830 = i830_context(ctx);
    GLuint tmp = 0;
 
-   if (INTEL_DEBUG & DEBUG_DRI)
-      fprintf(stderr, "%s r(%d) g(%d) b(%d) a(%d)\n", __FUNCTION__, r, g, b,
-              a);
+   DBG("%s r(%d) g(%d) b(%d) a(%d)\n", __FUNCTION__, r, g, b, a);
 
    tmp = ((i830->state.Ctx[I830_CTXREG_ENABLES_2] & ~WRITEMASK_MASK) |
           ENABLE_COLOR_MASK |
@@ -668,9 +656,8 @@ update_specular(GLcontext * ctx)
 static void
 i830LightModelfv(GLcontext * ctx, GLenum pname, const GLfloat * param)
 {
-   if (INTEL_DEBUG & DEBUG_DRI)
-      fprintf(stderr, "%s\n", __FUNCTION__);
-
+   DBG("%s\n", __FUNCTION__);
+   
    if (pname == GL_LIGHT_MODEL_COLOR_CONTROL) {
       update_specular(ctx);
    }
@@ -712,9 +699,8 @@ i830Fogfv(GLcontext * ctx, GLenum pname, const GLfloat * param)
 {
    struct i830_context *i830 = i830_context(ctx);
 
-   if (INTEL_DEBUG & DEBUG_DRI)
-      fprintf(stderr, "%s\n", __FUNCTION__);
-
+   DBG("%s\n", __FUNCTION__);
+   
    if (pname == GL_FOG_COLOR) {
       GLuint color = (((GLubyte) (ctx->Fog.Color[0] * 255.0F) << 16) |
                       ((GLubyte) (ctx->Fog.Color[1] * 255.0F) << 8) |

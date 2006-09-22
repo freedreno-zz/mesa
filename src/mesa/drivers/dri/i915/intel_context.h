@@ -436,17 +436,14 @@ extern int INTEL_DEBUG;
 #define DEBUG_STATE	0x2
 #define DEBUG_IOCTL	0x4
 #define DEBUG_BLIT	0x8
-#define DEBUG_VERTS	0x10
+#define DEBUG_MIPTREE   0x10
 #define DEBUG_FALLBACKS	0x20
 #define DEBUG_VERBOSE	0x40
-#define DEBUG_DRI       0x80
-#define DEBUG_BATCH     0x100
-#define DEBUG_SANITY    0x200
-#define DEBUG_SYNC      0x400
-#define DEBUG_SLEEP     0x800
-#define DEBUG_PIXEL     0x1000
-#define DEBUG_BUFMGR    0x2000
-#define DEBUG_FBO       0x4000
+#define DEBUG_BATCH     0x80
+#define DEBUG_PIXEL     0x100
+#define DEBUG_BUFMGR    0x200
+#define DEBUG_REGION    0x400
+#define DEBUG_FBO       0x800
 
 #define DBG(...)  do { if (INTEL_DEBUG & FILE_DEBUG_FLAG) _mesa_printf(__VA_ARGS__); } while(0)
 
