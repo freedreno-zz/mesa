@@ -125,7 +125,12 @@ i915_update_tex_unit(struct intel_context *intel, GLuint unit, GLuint ss3)
 
    memset(state, 0, sizeof(state));
 
-/*    intel_region_release(intel, &i915->state.tex_region[unit]); */
+   /*We need to refcount these. */
+
+   if (i915->state.tex_buffer[unit] != NULL) {
+       driBOUnReference(i915->state.tex_buffer[unit]);
+       i915->state.tex_buffer[unit] = NULL;
+   }
 
    if (!intel_finalize_mipmap_tree(intel, unit))
       return GL_FALSE;
@@ -135,14 +140,12 @@ i915_update_tex_unit(struct intel_context *intel, GLuint unit, GLuint ss3)
     */
    firstImage = tObj->Image[0][intelObj->firstLevel];
 
-/*    intel_region_reference(&i915->state.tex_region[unit], */
-/* 			  intelObj->mt->region); */
 
+   driBOReference(intelObj->mt->region->buffer);
    i915->state.tex_buffer[unit] = intelObj->mt->region->buffer;
    i915->state.tex_offset[unit] = intel_miptree_image_offset(intelObj->mt, 0,
                                                              intelObj->
                                                              firstLevel);
-
 
    state[I915_TEXREG_MS3] =
       (((firstImage->Height - 1) << MS3_HEIGHT_SHIFT) |
@@ -318,6 +321,12 @@ i915UpdateTextureState(struct intel_context *intel)
             struct i915_context *i915 = i915_context(&intel->ctx);
             if (i915->state.active & I915_UPLOAD_TEX(i))
                I915_ACTIVESTATE(i915, I915_UPLOAD_TEX(i), GL_FALSE);
+
+	    if (i915->state.tex_buffer[i] != NULL) {
+	       driBOUnReference(i915->state.tex_buffer[i]);
+	       i915->state.tex_buffer[i] = NULL;
+	    }
+
             break;
          }
       default:
