@@ -403,8 +403,9 @@ __driUtilUpdateDrawableInfo(__DRIdrawablePrivate *pdp)
     __DRIcontextPrivate *pcp = pdp->driContextPriv;
     
     if (!pcp || (pdp != pcp->driDrawablePriv)) {
-	/* ERROR!!! */
-	return;
+	/* ERROR!!! 
+	 * ..but we must ignore it. There can be many contexts bound to a drawable.
+	 */
     }
 
     psp = pdp->driScreenPriv;
@@ -435,6 +436,7 @@ __driUtilUpdateDrawableInfo(__DRIdrawablePrivate *pdp)
 	/* Error -- eg the window may have been destroyed.  Keep going
 	 * with no cliprects.
 	 */
+        fprintf(stderr, "Drawable destroyed");
         pdp->pStamp = &pdp->lastStamp; /* prevent endless loop */
 	pdp->numClipRects = 0;
 	pdp->pClipRects = NULL;
