@@ -3,6 +3,7 @@
 #include "intel_mipmap_tree.h"
 #include "intel_tex.h"
 
+#define FILE_DEBUG_FLAG DEBUG_TEXTURE
 
 static GLboolean
 intelIsTextureResident(GLcontext * ctx, struct gl_texture_object *texObj)
@@ -24,6 +25,7 @@ intelIsTextureResident(GLcontext * ctx, struct gl_texture_object *texObj)
 static struct gl_texture_image *
 intelNewTextureImage(GLcontext * ctx)
 {
+   DBG("%s\n", __FUNCTION__);
    (void) ctx;
    return (struct gl_texture_image *) CALLOC_STRUCT(intel_texture_image);
 }
@@ -34,9 +36,23 @@ intelNewTextureObject(GLcontext * ctx, GLuint name, GLenum target)
 {
    struct intel_texture_object *obj = CALLOC_STRUCT(intel_texture_object);
 
+   DBG("%s\n", __FUNCTION__);
    _mesa_initialize_texture_object(&obj->base, name, target);
 
    return &obj->base;
+}
+
+static void 
+intelDeleteTextureObject(GLcontext *ctx,
+			 struct gl_texture_object *texObj)
+{
+   struct intel_context *intel = intel_context(ctx);
+   struct intel_texture_object *intelObj = intel_texture_object(texObj);
+
+   if (intelObj->mt)
+      intel_miptree_release(intel, &intelObj->mt);
+
+   _mesa_delete_texture_object(ctx, texObj);
 }
 
 
@@ -45,6 +61,8 @@ intelFreeTextureImageData(GLcontext * ctx, struct gl_texture_image *texImage)
 {
    struct intel_context *intel = intel_context(ctx);
    struct intel_texture_image *intelImage = intel_texture_image(texImage);
+
+   DBG("%s\n", __FUNCTION__);
 
    if (intelImage->mt) {
       intel_miptree_release(intel, &intelImage->mt);
@@ -152,7 +170,7 @@ intelInitTextureFuncs(struct dd_function_table *functions)
    functions->GetTexImage = intelGetTexImage;
    functions->NewTextureObject = intelNewTextureObject;
    functions->NewTextureImage = intelNewTextureImage;
-   functions->DeleteTexture = _mesa_delete_texture_object;
+   functions->DeleteTexture = intelDeleteTextureObject;
    functions->FreeTexImageData = intelFreeTextureImageData;
    functions->UpdateTexturePalette = 0;
    functions->IsTextureResident = intelIsTextureResident;
