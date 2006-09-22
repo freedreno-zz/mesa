@@ -658,7 +658,7 @@ _mesa_free_texture_image_data(GLcontext *ctx,
 void
 _mesa_delete_texture_image( GLcontext *ctx, struct gl_texture_image *texImage )
 {
-   if (texImage->Data) {
+   if (texImage->Data || ctx->Driver.FreeTexImageData) {
       ctx->Driver.FreeTexImageData( ctx, texImage );
    }
    ASSERT(texImage->Data == NULL);

@@ -74,7 +74,7 @@ intel_miptree_create(struct intel_context *intel,
    mt->depth0 = depth0;
    mt->cpp = compressed ? 2 : cpp;
    mt->compressed = compressed;
-   mt->refcount = 1;
+   mt->refcount = 0; /*Allow for unused miptrees */
 
    switch (intel->intelScreen->deviceID) {
    case PCI_CHIP_I945_G:
@@ -122,7 +122,7 @@ intel_miptree_release(struct intel_context *intel,
       return;
 
    DBG("%s %d\n", __FUNCTION__, (*mt)->refcount - 1);
-   if (--(*mt)->refcount == 0) {
+   if (--(*mt)->refcount <= 0) {
       GLuint i;
 
       intel_region_release(intel, &((*mt)->region));
