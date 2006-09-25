@@ -452,15 +452,15 @@ intelRotateWindow(struct intel_context *intel,
    intel->numClipRects = 1;
    intel->pClipRects = &fullRect;
 
-   intel->vtbl.meta_draw_region(intel, intel->rotated_region, NULL);    /* ? */
+   intel->vtbl.meta_draw_region(intel, screen->rotated_region, NULL);    /* ? */
 
    if (srcBuf == BUFFER_BIT_FRONT_LEFT) {
-      src = intel->front_region;
+      src = intel->intelScreen->front_region;
       clipRects = dPriv->pClipRects;
       numClipRects = dPriv->numClipRects;
    }
    else {
-      src = intel->back_region;
+      src = intel->intelScreen->back_region;
       clipRects = dPriv->pBackClipRects;
       numClipRects = dPriv->numBackClipRects;
    }
@@ -915,9 +915,9 @@ intel_draw_buffer(GLcontext * ctx, struct gl_framebuffer *fb)
       intel_region_release(intel, &intel->draw_region);
       intel_region_reference(&intel->draw_region, colorRegion);
    }
-   if (intel->depth_region != depthRegion) {
-      intel_region_release(intel, &intel->depth_region);
-      intel_region_reference(&intel->depth_region, depthRegion);
+   if (intel->intelScreen->depth_region != depthRegion) {
+      intel_region_release(intel, &intel->intelScreen->depth_region);
+      intel_region_reference(&intel->intelScreen->depth_region, depthRegion);
    }
 #endif
 

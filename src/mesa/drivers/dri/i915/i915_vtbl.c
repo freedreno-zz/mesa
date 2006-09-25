@@ -443,11 +443,11 @@ i915_state_draw_region(struct intel_context *intel,
    ASSERT(state == &i915->state || state == &i915->meta);
 
    if (state->draw_region != color_region) {
-      intel_region_release(intel, &state->draw_region);
+      intel_region_release(intel->intelScreen, &state->draw_region);
       intel_region_reference(&state->draw_region, color_region);
    }
    if (state->depth_region != depth_region) {
-      intel_region_release(intel, &state->depth_region);
+      intel_region_release(intel->intelScreen, &state->depth_region);
       intel_region_reference(&state->depth_region, depth_region);
    }
 

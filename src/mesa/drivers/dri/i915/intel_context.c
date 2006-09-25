@@ -266,78 +266,6 @@ intelFlush(GLcontext * ctx)
 }
 
 
-/* Create intel_region structs to describe the static front,back,depth
- * buffers created by the xserver.  This is strictly speaking screen
- * state, but the buffer manager is context state, so these must also
- * be.
- *
- * Although FBO's mean we now no longer use these as render targets in
- * all circumstances, they won't go away until the back and depth
- * buffers become private, and the front and rotated buffers will
- * remain even then.
- *
- * Note that these don't allocate video memory, just describe
- * allocations alread made by the X server.
- */
-static void
-intel_recreate_static_regions(struct intel_context *intel)
-{
-   intelScreenPrivate *intelScreen = intel->intelScreen;
-
-   if (intel->front_region)
-      intel_region_release(intel, &intel->front_region);
-
-   if (intel->rotated_region)
-      intel_region_release(intel, &intel->rotated_region);
-
-   if (intel->back_region)
-      intel_region_release(intel, &intel->back_region);
-
-   if (intel->depth_region)
-      intel_region_release(intel, &intel->depth_region);
-
-   intel->front_region =
-      intel_region_create_static(intel,
-                                 DRM_BO_FLAG_MEM_TT,
-                                 intelScreen->front.offset,
-                                 intelScreen->front.map,
-                                 intelScreen->cpp,
-                                 intelScreen->front.pitch / intelScreen->cpp,
-                                 intelScreen->height);
-
-
-   intel->rotated_region =
-      intel_region_create_static(intel,
-                                 DRM_BO_FLAG_MEM_TT,
-                                 intelScreen->rotated.offset,
-                                 intelScreen->rotated.map,
-                                 intelScreen->cpp,
-                                 intelScreen->rotated.pitch /
-                                 intelScreen->cpp, intelScreen->height);
-
-
-   intel->back_region =
-      intel_region_create_static(intel,
-                                 DRM_BO_FLAG_MEM_TT,
-                                 intelScreen->back.offset,
-                                 intelScreen->back.map,
-                                 intelScreen->cpp,
-                                 intelScreen->back.pitch / intelScreen->cpp,
-                                 intelScreen->height);
-
-   /* Still assuming front.cpp == depth.cpp
-    */
-   intel->depth_region =
-      intel_region_create_static(intel,
-                                 DRM_BO_FLAG_MEM_TT,
-                                 intelScreen->depth.offset,
-                                 intelScreen->depth.map,
-                                 intelScreen->cpp,
-                                 intelScreen->depth.pitch / intelScreen->cpp,
-                                 intelScreen->height);
-}
-
-
 /**
  * Check if we need to rotate/warp the front color buffer to the
  * rotated screen.  We generally need to do this when we get a glFlush
@@ -530,7 +458,6 @@ intelInitContext(struct intel_context *intel,
    intel->last_swap_fence = NULL;
    intel->first_swap_fence = NULL;
 
-   intel_recreate_static_regions(intel);
    intel_bufferobj_init(intel);
    intel_fbo_init(intel);
 
@@ -645,16 +572,16 @@ intelMakeCurrent(__DRIcontextPrivate * driContextPriv,
             = intel_get_renderbuffer(drawFb, BUFFER_STENCIL);
 
          if (irbFront && !irbFront->region) {
-            intel_region_reference(&irbFront->region, intel->front_region);
+            intel_region_reference(&irbFront->region, intel->intelScreen->front_region);
          }
          if (irbBack && !irbBack->region) {
-            intel_region_reference(&irbBack->region, intel->back_region);
+            intel_region_reference(&irbBack->region, intel->intelScreen->back_region);
          }
          if (irbDepth && !irbDepth->region) {
-            intel_region_reference(&irbDepth->region, intel->depth_region);
+            intel_region_reference(&irbDepth->region, intel->intelScreen->depth_region);
          }
          if (irbStencil && !irbStencil->region) {
-            intel_region_reference(&irbStencil->region, intel->depth_region);
+            intel_region_reference(&irbStencil->region, intel->intelScreen->depth_region);
          }
       }
 
@@ -667,33 +594,6 @@ intelMakeCurrent(__DRIcontextPrivate * driContextPriv,
    }
 
    return GL_TRUE;
-}
-
-/**
- * Use the information in the sarea to update the screen parameters
- * related to screen rotation.
- */
-static void
-intelUpdateScreenRotation(struct intel_context *intel,
-                          __DRIscreenPrivate * sPriv, drmI830Sarea * sarea)
-{
-   intelScreenPrivate *intelScreen = (intelScreenPrivate *) sPriv->private;
-   intelRegion *colorBuf;
-
-   intelUnmapScreenRegions(intelScreen);
-   intelUpdateScreenFromSAREA(intelScreen, sarea);
-
-   /* update the current hw offsets for the color and depth buffers */
-   if (intel->ctx.DrawBuffer->_ColorDrawBufferMask[0] == BUFFER_BIT_BACK_LEFT)
-      colorBuf = &intelScreen->back;
-   else
-      colorBuf = &intelScreen->front;
-
-   if (!intelMapScreenRegions(sPriv)) {
-      fprintf(stderr, "ERROR Remapping screen regions!!!\n");
-   }
-
-   intel_recreate_static_regions(intel);
 }
 
 void
@@ -717,7 +617,8 @@ intelGetLock(struct intel_context *intel, GLuint flags)
    if (sarea->width != intelScreen->width ||
        sarea->height != intelScreen->height ||
        sarea->rotation != intelScreen->current_rotation) {
-      intelUpdateScreenRotation(intel, sPriv, sarea);
+
+      intelUpdateScreenRotation(sPriv, sarea);
 
       /* 
        * This will drop the outstanding batchbuffer on the floor

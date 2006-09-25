@@ -83,7 +83,7 @@ intel_bufferobj_cow(struct intel_context *intel,
                     struct intel_buffer_object *intel_obj)
 {
    assert(intel_obj->region);
-   intel_region_cow(intel, intel_obj->region);
+   intel_region_cow(intel->intelScreen, intel_obj->region);
 }
 
 

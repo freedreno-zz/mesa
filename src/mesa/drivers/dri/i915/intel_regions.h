@@ -29,6 +29,7 @@
 #define INTEL_REGIONS_H
 
 #include "mtypes.h"
+#include "intel_screen.h"
 
 struct intel_context;
 struct intel_buffer_object;
@@ -60,38 +61,46 @@ struct intel_region
 /* Allocate a refcounted region.  Pointers to regions should only be
  * copied by calling intel_reference_region().
  */
-struct intel_region *intel_region_alloc(struct intel_context *intel,
+struct intel_region *intel_region_alloc(intelScreenPrivate *intelScreen,
                                         GLuint cpp,
                                         GLuint pitch, GLuint height);
 
 void intel_region_reference(struct intel_region **dst,
                             struct intel_region *src);
 
-void intel_region_release(struct intel_context *intel,
+void intel_region_release(intelScreenPrivate *intelScreen,
                           struct intel_region **ib);
 
+extern struct intel_region 
+*intel_region_create_static(intelScreenPrivate *intelScreen,
+			    GLuint mem_type,
+			    GLuint offset,
+			    void *virtual,
+			    GLuint cpp,
+			    GLuint pitch, GLuint height);
+extern void 
+intel_region_update_static(intelScreenPrivate *intelScreen,
+			   struct intel_region *region,
+			   GLuint mem_type,
+			   GLuint offset,
+			   void *virtual,
+			   GLuint cpp, GLuint pitch, GLuint height);
 
-struct intel_region *intel_region_create_static(struct intel_context *intel,
-                                                GLuint mem_type,
-                                                GLuint offset,
-                                                void *virtual,
-                                                GLuint cpp,
-                                                GLuint pitch, GLuint height);
 
-void intel_region_idle(struct intel_context *intel,
+void intel_region_idle(intelScreenPrivate *intelScreen,
 		       struct intel_region *ib);
 
 /* Map/unmap regions.  This is refcounted also: 
  */
-GLubyte *intel_region_map(struct intel_context *intel,
+GLubyte *intel_region_map(intelScreenPrivate *intelScreen,
                           struct intel_region *ib);
 
-void intel_region_unmap(struct intel_context *intel, struct intel_region *ib);
+void intel_region_unmap(intelScreenPrivate *intelScreen, struct intel_region *ib);
 
 
 /* Upload data to a rectangular sub-region
  */
-void intel_region_data(struct intel_context *intel,
+void intel_region_data(intelScreenPrivate *intelScreen,
                        struct intel_region *dest,
                        GLuint dest_offset,
                        GLuint destx, GLuint desty,
@@ -100,7 +109,7 @@ void intel_region_data(struct intel_context *intel,
 
 /* Copy rectangular sub-regions
  */
-void intel_region_copy(struct intel_context *intel,
+void intel_region_copy(intelScreenPrivate *intelScreen,
                        struct intel_region *dest,
                        GLuint dest_offset,
                        GLuint destx, GLuint desty,
@@ -110,7 +119,7 @@ void intel_region_copy(struct intel_context *intel,
 
 /* Fill a rectangular sub-region
  */
-void intel_region_fill(struct intel_context *intel,
+void intel_region_fill(intelScreenPrivate *intelScreen,
                        struct intel_region *dest,
                        GLuint dest_offset,
                        GLuint destx, GLuint desty,
@@ -118,15 +127,15 @@ void intel_region_fill(struct intel_context *intel,
 
 /* Helpers for zerocopy uploads, particularly texture image uploads:
  */
-void intel_region_attach_pbo(struct intel_context *intel,
+void intel_region_attach_pbo(intelScreenPrivate *intelScreen,
                              struct intel_region *region,
                              struct intel_buffer_object *pbo);
-void intel_region_release_pbo(struct intel_context *intel,
+void intel_region_release_pbo(intelScreenPrivate *intelScreen,
                               struct intel_region *region);
-void intel_region_cow(struct intel_context *intel,
+void intel_region_cow(intelScreenPrivate *intelScreen,
                       struct intel_region *region);
 
-struct _DriBufferObject *intel_region_buffer(struct intel_context *intel,
+struct _DriBufferObject *intel_region_buffer(intelScreenPrivate *intelScreen,
                                              struct intel_region *region,
                                              GLuint flag);
 

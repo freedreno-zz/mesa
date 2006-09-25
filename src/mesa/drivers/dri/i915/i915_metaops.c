@@ -483,8 +483,8 @@ static void
 leave_meta_state(struct intel_context *intel)
 {
    struct i915_context *i915 = i915_context(&intel->ctx);
-   intel_region_release(intel, &i915->meta.draw_region);
-   intel_region_release(intel, &i915->meta.depth_region);
+   intel_region_release(intel->intelScreen, &i915->meta.draw_region);
+   intel_region_release(intel->intelScreen, &i915->meta.depth_region);
 /*    intel_region_release(intel, &i915->meta.tex_region[0]); */
    SET_STATE(i915, state);
 }

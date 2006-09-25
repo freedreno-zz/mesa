@@ -51,7 +51,7 @@ void
 intelCopyBuffer(const __DRIdrawablePrivate * dPriv,
                 const drm_clip_rect_t * rect)
 {
-   GET_CURRENT_CONTEXT(ctx);
+
    struct intel_context *intel;
    GLboolean missed_target;
    int64_t ust;
@@ -60,15 +60,10 @@ intelCopyBuffer(const __DRIdrawablePrivate * dPriv,
 
    assert(dPriv);
 
-   /* We need a rendering context in order to issue the blit cmd.
-    * Use the current context.
-    * XXX need to fix this someday.
-    */
-   if (!ctx) {
-      _mesa_problem(NULL, "No current context in intelCopyBuffer()");
+   intel = intelScreenContext(dPriv->driScreenPriv->private);
+   if (!intel)
       return;
-   }
-   intel = (struct intel_context *) ctx;
+
    if (intel->last_swap_fence) {
       driFenceFinish(intel->last_swap_fence, DRM_FENCE_TYPE_EXE, GL_TRUE);
       driFenceUnReference(intel->last_swap_fence);
@@ -444,7 +439,7 @@ intelClearWithBlit(GLcontext * ctx, GLbitfield mask, GLboolean all,
                   = intel_renderbuffer(ctx->DrawBuffer->
                                        Attachment[buf].Renderbuffer);
                struct _DriBufferObject *write_buffer =
-                  intel_region_buffer(intel, irb->region,
+                  intel_region_buffer(intel->intelScreen, irb->region,
                                       all ? INTEL_WRITE_FULL :
                                       INTEL_WRITE_PART);
 

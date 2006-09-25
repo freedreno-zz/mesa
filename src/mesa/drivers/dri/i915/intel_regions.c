@@ -49,7 +49,7 @@
 #define FILE_DEBUG_FLAG DEBUG_REGION
 
 void
-intel_region_idle(struct intel_context *intel, struct intel_region *region)
+intel_region_idle(intelScreenPrivate *intelScreen, struct intel_region *region)
 {
    DBG("%s\n", __FUNCTION__);
    driBOWaitIdle(region->buffer, GL_FALSE);
@@ -58,12 +58,12 @@ intel_region_idle(struct intel_context *intel, struct intel_region *region)
 /* XXX: Thread safety?
  */
 GLubyte *
-intel_region_map(struct intel_context *intel, struct intel_region *region)
+intel_region_map(intelScreenPrivate *intelScreen, struct intel_region *region)
 {
    DBG("%s\n", __FUNCTION__);
    if (!region->map_refcount++) {
       if (region->pbo)
-         intel_region_cow(intel, region);
+         intel_region_cow(intelScreen, region);
 
       region->map = driBOMap(region->buffer,
                              DRM_BO_FLAG_READ | DRM_BO_FLAG_WRITE, 0);
@@ -73,7 +73,7 @@ intel_region_map(struct intel_context *intel, struct intel_region *region)
 }
 
 void
-intel_region_unmap(struct intel_context *intel, struct intel_region *region)
+intel_region_unmap(intelScreenPrivate *intelScreen, struct intel_region *region)
 {
    DBG("%s\n", __FUNCTION__);
    if (!--region->map_refcount) {
@@ -83,7 +83,7 @@ intel_region_unmap(struct intel_context *intel, struct intel_region *region)
 }
 
 struct intel_region *
-intel_region_alloc(struct intel_context *intel,
+intel_region_alloc(intelScreenPrivate *intelScreen,
                    GLuint cpp, GLuint pitch, GLuint height)
 {
    struct intel_region *region = calloc(sizeof(*region), 1);
@@ -95,7 +95,7 @@ intel_region_alloc(struct intel_context *intel,
    region->height = height;     /* needed? */
    region->refcount = 1;
 
-   driGenBuffers(intel->intelScreen->regionPool,
+   driGenBuffers(intelScreen->regionPool,
                  "region", 1, &region->buffer, 64, 0, 0);
    driBOData(region->buffer, pitch * cpp * height, NULL, 0);
 
@@ -113,7 +113,7 @@ intel_region_reference(struct intel_region **dst, struct intel_region *src)
 }
 
 void
-intel_region_release(struct intel_context *intel,
+intel_region_release(intelScreenPrivate *intelScreen,
                      struct intel_region **region)
 {
    if (!*region)
@@ -128,7 +128,7 @@ intel_region_release(struct intel_context *intel,
       assert((*region)->map_refcount == 0);
 
       if ((*region)->pbo)
-         intel_region_release_pbo(intel, *region);
+         intel_region_release_pbo(intelScreen, *region);
       else
          driDeleteBuffers(1, &(*region)->buffer);
 
@@ -139,7 +139,7 @@ intel_region_release(struct intel_context *intel,
 
 
 struct intel_region *
-intel_region_create_static(struct intel_context *intel,
+intel_region_create_static(intelScreenPrivate *intelScreen,
                            GLuint mem_type,
                            GLuint offset,
                            void *virtual,
@@ -158,13 +158,43 @@ intel_region_create_static(struct intel_context *intel,
     * shared by others.
     */
 
-   driGenBuffers(intel->intelScreen->staticPool, "static region", 1,
+   driGenBuffers(intelScreen->staticPool, "static region", 1,
                  &region->buffer, 64,
                  DRM_BO_FLAG_MEM_TT | DRM_BO_FLAG_NO_EVICT |
                  DRM_BO_FLAG_READ | DRM_BO_FLAG_WRITE, 0);
    driBOSetStatic(region->buffer, offset, pitch * cpp * height, virtual, 0);
 
    return region;
+}
+
+
+
+void
+intel_region_update_static(intelScreenPrivate *intelScreen,
+			   struct intel_region *region,
+                           GLuint mem_type,
+                           GLuint offset,
+                           void *virtual,
+                           GLuint cpp, GLuint pitch, GLuint height)
+{
+   DBG("%s\n", __FUNCTION__);
+
+   region->cpp = cpp;
+   region->pitch = pitch;
+   region->height = height;     /* needed? */
+
+   /*
+    * We use a "shared" buffer type to indicate buffers created and
+    * shared by others.
+    */
+
+   driDeleteBuffers(1, &region->buffer);
+   driGenBuffers(intelScreen->staticPool, "static region", 1,
+                 &region->buffer, 64,
+                 DRM_BO_FLAG_MEM_TT | DRM_BO_FLAG_NO_EVICT |
+                 DRM_BO_FLAG_READ | DRM_BO_FLAG_WRITE, 0);
+   driBOSetStatic(region->buffer, offset, pitch * cpp * height, virtual, 0);
+
 }
 
 
@@ -212,32 +242,37 @@ _mesa_copy_rect(GLubyte * dst,
  * Currently always memcpy.
  */
 void
-intel_region_data(struct intel_context *intel,
+intel_region_data(intelScreenPrivate *intelScreen,
                   struct intel_region *dst,
                   GLuint dst_offset,
                   GLuint dstx, GLuint dsty,
                   void *src, GLuint src_pitch,
                   GLuint srcx, GLuint srcy, GLuint width, GLuint height)
 {
+   struct intel_context *intel = intelScreenContext(intelScreen);
+
    DBG("%s\n", __FUNCTION__);
+
+   if (intel == NULL)
+      return;
 
    if (dst->pbo) {
       if (dstx == 0 &&
           dsty == 0 && width == dst->pitch && height == dst->height)
-         intel_region_release_pbo(intel, dst);
+         intel_region_release_pbo(intelScreen, dst);
       else
-         intel_region_cow(intel, dst);
+         intel_region_cow(intelScreen, dst);
    }
 
 
    LOCK_HARDWARE(intel);
 
-   _mesa_copy_rect(intel_region_map(intel, dst) + dst_offset,
+   _mesa_copy_rect(intel_region_map(intelScreen, dst) + dst_offset,
                    dst->cpp,
                    dst->pitch,
                    dstx, dsty, width, height, src, src_pitch, srcx, srcy);
 
-   intel_region_unmap(intel, dst);
+   intel_region_unmap(intelScreen, dst);
 
    UNLOCK_HARDWARE(intel);
 
@@ -247,7 +282,7 @@ intel_region_data(struct intel_context *intel,
  * push buffers into AGP - will currently do so whenever possible.
  */
 void
-intel_region_copy(struct intel_context *intel,
+intel_region_copy(intelScreenPrivate *intelScreen,
                   struct intel_region *dst,
                   GLuint dst_offset,
                   GLuint dstx, GLuint dsty,
@@ -255,14 +290,19 @@ intel_region_copy(struct intel_context *intel,
                   GLuint src_offset,
                   GLuint srcx, GLuint srcy, GLuint width, GLuint height)
 {
+   struct intel_context *intel = intelScreenContext(intelScreen);
+
    DBG("%s\n", __FUNCTION__);
+
+   if (intel == NULL)
+      return;
 
    if (dst->pbo) {
       if (dstx == 0 &&
           dsty == 0 && width == dst->pitch && height == dst->height)
-         intel_region_release_pbo(intel, dst);
+         intel_region_release_pbo(intelScreen, dst);
       else
-         intel_region_cow(intel, dst);
+         intel_region_cow(intelScreen, dst);
    }
 
    assert(src->cpp == dst->cpp);
@@ -278,20 +318,25 @@ intel_region_copy(struct intel_context *intel,
  * push buffers into AGP - will currently do so whenever possible.
  */
 void
-intel_region_fill(struct intel_context *intel,
+intel_region_fill(intelScreenPrivate *intelScreen,
                   struct intel_region *dst,
                   GLuint dst_offset,
                   GLuint dstx, GLuint dsty,
                   GLuint width, GLuint height, GLuint color)
 {
+   struct intel_context *intel = intelScreenContext(intelScreen);
+
    DBG("%s\n", __FUNCTION__);
+
+   if (intel == NULL)
+      return;   
 
    if (dst->pbo) {
       if (dstx == 0 &&
           dsty == 0 && width == dst->pitch && height == dst->height)
-         intel_region_release_pbo(intel, dst);
+         intel_region_release_pbo(intelScreen, dst);
       else
-         intel_region_cow(intel, dst);
+         intel_region_cow(intelScreen, dst);
    }
 
    intelEmitFillBlit(intel,
@@ -304,7 +349,7 @@ intel_region_fill(struct intel_context *intel,
  * the pbo's data.
  */
 void
-intel_region_attach_pbo(struct intel_context *intel,
+intel_region_attach_pbo(intelScreenPrivate *intelScreen,
                         struct intel_region *region,
                         struct intel_buffer_object *pbo)
 {
@@ -336,7 +381,7 @@ intel_region_attach_pbo(struct intel_context *intel,
 /* Break the COW tie to the pbo.  The pbo gets to keep the data.
  */
 void
-intel_region_release_pbo(struct intel_context *intel,
+intel_region_release_pbo(intelScreenPrivate *intelScreen,
                          struct intel_region *region)
 {
    assert(region->buffer == region->pbo->buffer);
@@ -344,7 +389,7 @@ intel_region_release_pbo(struct intel_context *intel,
    region->pbo = NULL;
    region->buffer = NULL;       /* refcount? */
 
-   driGenBuffers(intel->intelScreen->regionPool,
+   driGenBuffers(intelScreen->regionPool,
                  "region", 1, &region->buffer, 64, 0, 0);
    driBOData(region->buffer,
              region->cpp * region->pitch * region->height, NULL, 0);
@@ -354,11 +399,15 @@ intel_region_release_pbo(struct intel_context *intel,
  * with a copy of the data.
  */
 void
-intel_region_cow(struct intel_context *intel, struct intel_region *region)
+intel_region_cow(intelScreenPrivate *intelScreen, struct intel_region *region)
 {
+   struct intel_context *intel = intelScreenContext(intelScreen);
    struct intel_buffer_object *pbo = region->pbo;
 
-   intel_region_release_pbo(intel, region);
+   if (intel == NULL)
+      return;
+
+   intel_region_release_pbo(intelScreen, region);
 
    assert(region->cpp * region->pitch * region->height == pbo->Base.Size);
 
@@ -396,14 +445,14 @@ intel_region_cow(struct intel_context *intel, struct intel_region *region)
 }
 
 struct _DriBufferObject *
-intel_region_buffer(struct intel_context *intel,
+intel_region_buffer(intelScreenPrivate *intelScreen,
                     struct intel_region *region, GLuint flag)
 {
    if (region->pbo) {
       if (flag == INTEL_WRITE_PART)
-         intel_region_cow(intel, region);
+         intel_region_cow(intelScreen, region);
       else if (flag == INTEL_WRITE_FULL)
-         intel_region_release_pbo(intel, region);
+         intel_region_release_pbo(intelScreen, region);
    }
 
    return region->buffer;

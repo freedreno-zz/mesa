@@ -407,10 +407,10 @@ meta_draw_region(struct intel_context *intel,
    GLuint format;
    GLuint depth_format = DEPTH_FRMT_16_FIXED;
 
-   intel_region_release(intel, &i830->meta.draw_region);
+   intel_region_release(intel->intelScreen, &i830->meta.draw_region);
    intel_region_reference(&i830->meta.draw_region, draw_region);
 
-   intel_region_release(intel, &i830->meta.depth_region);
+   intel_region_release(intel->intelScreen, &i830->meta.depth_region);
    intel_region_reference(&i830->meta.depth_region, depth_region);
 
    /* XXX FBO: grab code from i915 meta_draw_region */
@@ -459,8 +459,8 @@ static void
 leave_meta_state(struct intel_context *intel)
 {
    struct i830_context *i830 = i830_context(&intel->ctx);
-   intel_region_release(intel, &i830->meta.draw_region);
-   intel_region_release(intel, &i830->meta.depth_region);
+   intel_region_release(intel->intelScreen, &i830->meta.draw_region);
+   intel_region_release(intel->intelScreen, &i830->meta.depth_region);
 /*    intel_region_release(intel, &i830->meta.tex_region[0]); */
    SET_STATE(i830, state);
 }

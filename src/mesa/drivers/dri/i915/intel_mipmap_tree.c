@@ -94,7 +94,7 @@ intel_miptree_create(struct intel_context *intel,
    }
 
    if (ok)
-      mt->region = intel_region_alloc(intel,
+      mt->region = intel_region_alloc(intel->intelScreen,
                                       mt->cpp, mt->pitch, mt->total_height);
 
    if (!mt->region) {
@@ -128,7 +128,7 @@ intel_miptree_release(struct intel_context *intel,
 
       DBG("%s deleting %p\n", __FUNCTION__, *mt);
 
-      intel_region_release(intel, &((*mt)->region));
+      intel_region_release(intel->intelScreen, &((*mt)->region));
 
       for (i = 0; i < MAX_TEXTURE_LEVELS; i++)
          if ((*mt)->level[i].image_offset)
@@ -274,7 +274,7 @@ intel_miptree_image_map(struct intel_context * intel,
       memcpy(image_offsets, mt->level[level].image_offset,
              mt->level[level].depth * sizeof(GLuint));
 
-   return (intel_region_map(intel, mt->region) +
+   return (intel_region_map(intel->intelScreen, mt->region) +
            intel_miptree_image_offset(mt, face, level));
 }
 
@@ -283,7 +283,7 @@ intel_miptree_image_unmap(struct intel_context *intel,
                           struct intel_mipmap_tree *mt)
 {
    DBG("%s\n", __FUNCTION__);
-   intel_region_unmap(intel, mt->region);
+   intel_region_unmap(intel->intelScreen, mt->region);
 }
 
 
@@ -305,7 +305,7 @@ intel_miptree_image_data(struct intel_context *intel,
 
    DBG("%s\n", __FUNCTION__);
    for (i = 0; i < depth; i++) {
-      intel_region_data(intel, dst->region, dst_offset + dst_depth_offset[i], 0, 0, src, src_row_pitch, 0, 0,   /* source x,y */
+      intel_region_data(intel->intelScreen, dst->region, dst_offset + dst_depth_offset[i], 0, 0, src, src_row_pitch, 0, 0,   /* source x,y */
                         dst->level[level].width, dst->level[level].height);
 
       src += src_image_pitch;
@@ -330,7 +330,7 @@ intel_miptree_image_copy(struct intel_context *intel,
    GLuint i;
 
    for (i = 0; i < depth; i++) {
-      intel_region_copy(intel,
+      intel_region_copy(intel->intelScreen,
                         dst->region, dst_offset + dst_depth_offset[i],
                         0,
                         0,

@@ -113,7 +113,7 @@ intel_delete_renderbuffer(struct gl_renderbuffer *rb)
    }
 
    if (intel && irb->region) {
-      intel_region_release(intel, &irb->region);
+      intel_region_release(intel->intelScreen, &irb->region);
    }
 
    _mesa_free(irb);
@@ -228,7 +228,7 @@ intel_alloc_renderbuffer_storage(GLcontext * ctx, struct gl_renderbuffer *rb,
    /* free old region */
    if (irb->region) {
       /*LOCK_HARDWARE(intel); */
-      intel_region_release(intel, &irb->region);
+      intel_region_release(intel->intelScreen, &irb->region);
       /*UNLOCK_HARDWARE(intel); */
    }
 
@@ -246,7 +246,7 @@ intel_alloc_renderbuffer_storage(GLcontext * ctx, struct gl_renderbuffer *rb,
       DBG("Allocating %d x %d Intel RBO (pitch %d)\n", width,
 	  height, pitch);
 
-      irb->region = intel_region_alloc(intel, cpp, pitch, height);
+      irb->region = intel_region_alloc(intel->intelScreen, cpp, pitch, height);
       if (!irb->region)
          return GL_FALSE;       /* out of memory? */
 
@@ -595,7 +595,7 @@ intel_finish_render_texture(GLcontext * ctx,
 
    if (irb) {
       /* just release the region */
-      intel_region_release(intel, &irb->region);
+      intel_region_release(intel->intelScreen, &irb->region);
    }
    else if (att->Renderbuffer) {
       /* software fallback */

@@ -47,6 +47,7 @@
 
 #include "i830_dri.h"
 #include "dri_bufpool.h"
+#include "intel_regions.h"
 
 PUBLIC const char __driConfigOptions[] =
    DRI_CONF_BEGIN DRI_CONF_SECTION_PERFORMANCE
@@ -120,6 +121,101 @@ intelMapScreenRegions(__DRIscreenPrivate * sPriv)
              intelScreen->back.map,
              intelScreen->depth.map, intelScreen->tex.map);
    return GL_TRUE;
+}
+
+
+static struct intel_region *
+intel_recreate_static(intelScreenPrivate *intelScreen,
+		      struct intel_region *region,
+		      GLuint mem_type,
+		      GLuint offset,
+		      void *virtual,
+		      GLuint cpp, GLuint pitch, GLuint height)
+{
+  if (region) {
+    intel_region_update_static(intelScreen, region, mem_type, offset,
+			       virtual, cpp, pitch, height);
+  } else {
+    region = intel_region_create_static(intelScreen, mem_type, offset,
+					virtual, cpp, pitch, height);
+  }
+  return region;
+}
+    
+
+/* Create intel_region structs to describe the static front,back,depth
+ * buffers created by the xserver. 
+ *
+ * Although FBO's mean we now no longer use these as render targets in
+ * all circumstances, they won't go away until the back and depth
+ * buffers become private, and the front and rotated buffers will
+ * remain even then.
+ *
+ * Note that these don't allocate video memory, just describe
+ * allocations alread made by the X server.
+ */
+static void
+intel_recreate_static_regions(intelScreenPrivate *intelScreen)
+{
+   intelScreen->front_region =
+      intel_recreate_static(intelScreen,
+			    intelScreen->front_region,
+			    DRM_BO_FLAG_MEM_TT,
+			    intelScreen->front.offset,
+			    intelScreen->front.map,
+			    intelScreen->cpp,
+			    intelScreen->front.pitch / intelScreen->cpp,
+			    intelScreen->height);
+
+   intelScreen->rotated_region =
+      intel_recreate_static(intelScreen,
+			    intelScreen->rotated_region,
+			    DRM_BO_FLAG_MEM_TT,
+			    intelScreen->rotated.offset,
+			    intelScreen->rotated.map,
+			    intelScreen->cpp,
+			    intelScreen->rotated.pitch /
+			    intelScreen->cpp, intelScreen->height);
+
+
+   intelScreen->back_region =
+      intel_recreate_static(intelScreen,
+			    intelScreen->back_region,
+			    DRM_BO_FLAG_MEM_TT,
+			    intelScreen->back.offset,
+			    intelScreen->back.map,
+			    intelScreen->cpp,
+			    intelScreen->back.pitch / intelScreen->cpp,
+			    intelScreen->height);
+
+   /* Still assuming front.cpp == depth.cpp
+    */
+   intelScreen->depth_region =
+      intel_recreate_static(intelScreen,
+			    intelScreen->depth_region,
+			    DRM_BO_FLAG_MEM_TT,
+			    intelScreen->depth.offset,
+			    intelScreen->depth.map,
+			    intelScreen->cpp,
+			    intelScreen->depth.pitch / intelScreen->cpp,
+			    intelScreen->height);
+}
+
+/**
+ * Use the information in the sarea to update the screen parameters
+ * related to screen rotation. Needs to be called locked.
+ */
+void
+intelUpdateScreenRotation(__DRIscreenPrivate * sPriv, drmI830Sarea * sarea)
+{
+   intelScreenPrivate *intelScreen = (intelScreenPrivate *) sPriv->private;
+
+   intelUnmapScreenRegions(intelScreen);
+   intelUpdateScreenFromSAREA(intelScreen, sarea);
+   if (!intelMapScreenRegions(sPriv)) {
+      fprintf(stderr, "ERROR Remapping screen regions!!!\n");
+   }
+   intel_recreate_static_regions(intelScreen);
 }
 
 
@@ -385,6 +481,8 @@ intelInitDriver(__DRIscreenPrivate * sPriv)
                                              DRM_BO_FLAG_MEM_TT |
                                              DRM_BO_FLAG_MEM_LOCAL,
                                              4096, 100, 5);
+   intel_recreate_static_regions(intelScreen);
+
 
    return GL_TRUE;
 }
@@ -728,3 +826,19 @@ __driCreateNewScreen_20050727(__DRInativeDisplay * dpy, int scrn,
 
    return (void *) psp;
 }
+
+struct intel_context *intelScreenContext(intelScreenPrivate *intelScreen)
+{
+  /*
+   * This should probably change to have the screen allocate a dummy
+   * context at screen creation. For now just use the current context.
+   */
+
+  GET_CURRENT_CONTEXT(ctx);
+  if (ctx == NULL) {
+     _mesa_problem(NULL, "No current context in intelScreenContext\n");
+     return NULL;
+  }
+  return intel_context(ctx);
+}
+
