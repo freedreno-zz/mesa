@@ -84,6 +84,16 @@ intelStartInlinePrimitive(struct intel_context *intel,
 {
    BATCH_LOCALS;
 
+   /* Need to make sure at the very least that we don't wrap
+    * batchbuffers in BEGIN_BATCH below, otherwise the primitive will
+    * be emitted to a batchbuffer missing the required full-state
+    * preamble.
+    */
+   if (intel_batchbuffer_space(intel->batch) < 100) {
+      intel_batchbuffer_flush(intel->batch);
+      intel->vtbl.emit_state(intel);
+   }
+
    /* Emit a slot which will be filled with the inline primitive
     * command later.
     */
