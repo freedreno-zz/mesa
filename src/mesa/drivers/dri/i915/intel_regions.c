@@ -52,7 +52,8 @@ void
 intel_region_idle(intelScreenPrivate *intelScreen, struct intel_region *region)
 {
    DBG("%s\n", __FUNCTION__);
-   driBOWaitIdle(region->buffer, GL_FALSE);
+   if (region && region->buffer)
+      driBOWaitIdle(region->buffer, GL_FALSE);
 }
 
 /* XXX: Thread safety?
