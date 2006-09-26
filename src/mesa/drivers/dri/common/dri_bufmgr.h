@@ -42,7 +42,7 @@ struct _DriBufferPool;
 extern struct _DriFenceObject *driFenceBuffers(int fd, char *name,
                                                unsigned flags);
 
-extern void driFenceReference(struct _DriFenceObject *fence);
+extern struct _DriFenceObject *driFenceReference(struct _DriFenceObject *fence);
 
 extern void driFenceUnReference(struct _DriFenceObject *fence);
 
@@ -63,7 +63,7 @@ extern void *driBOMap(struct _DriBufferObject *buf, unsigned flags,
 extern void driBOUnmap(struct _DriBufferObject *buf);
 extern unsigned long driBOOffset(struct _DriBufferObject *buf);
 extern unsigned driBOFlags(struct _DriBufferObject *buf);
-extern void driBOReference(struct _DriBufferObject *buf);
+extern struct _DriBufferObject *driBOReference(struct _DriBufferObject *buf);
 extern void driBOUnReference(struct _DriBufferObject *buf);
 extern void driBOData(struct _DriBufferObject *r_buf,
                       unsigned size, const void *data, unsigned flags);
@@ -94,6 +94,6 @@ extern void driBOSetStatic(struct _DriBufferObject *buf,
                            unsigned long offset,
                            unsigned long size, void *virtual, unsigned flags);
 extern void driBOWaitIdle(struct _DriBufferObject *buf, int lazy);
-
+extern void driPoolTakeDown(struct _DriBufferPool *pool);
 
 #endif

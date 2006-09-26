@@ -65,7 +65,8 @@ intel_bufferobj_release_region(struct intel_context *intel,
    assert(intel_obj->region->buffer == intel_obj->buffer);
    intel_obj->region->pbo = NULL;
    intel_obj->region = NULL;
-   intel_obj->buffer = NULL;    /* refcount? */
+   driBOUnReference(intel_obj->buffer);
+   intel_obj->buffer = NULL;
 
    /* This leads to a large number of buffer deletion/creation events.
     * Currently the drm doesn't like that:

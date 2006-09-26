@@ -28,6 +28,7 @@
 #include "mtypes.h"
 #include "enums.h"
 #include "texformat.h"
+#include "dri_bufmgr.h"
 
 #include "intel_mipmap_tree.h"
 #include "intel_tex.h"
@@ -140,9 +141,7 @@ i915_update_tex_unit(struct intel_context *intel, GLuint unit, GLuint ss3)
     */
    firstImage = tObj->Image[0][intelObj->firstLevel];
 
-
-   driBOReference(intelObj->mt->region->buffer);
-   i915->state.tex_buffer[unit] = intelObj->mt->region->buffer;
+   i915->state.tex_buffer[unit] = driBOReference(intelObj->mt->region->buffer);
    i915->state.tex_offset[unit] = intel_miptree_image_offset(intelObj->mt, 0,
                                                              intelObj->
                                                              firstLevel);

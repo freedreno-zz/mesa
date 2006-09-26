@@ -98,7 +98,6 @@ intel_region_alloc(intelScreenPrivate *intelScreen,
    driGenBuffers(intelScreen->regionPool,
                  "region", 1, &region->buffer, 64, 0, 0);
    driBOData(region->buffer, pitch * cpp * height, NULL, 0);
-
    return region;
 }
 
@@ -129,8 +128,8 @@ intel_region_release(intelScreenPrivate *intelScreen,
 
       if ((*region)->pbo)
          intel_region_release_pbo(intelScreen, *region);
-      else
-         driDeleteBuffers(1, &(*region)->buffer);
+      
+      driDeleteBuffers(1, &(*region)->buffer);
 
       free(*region);
    }
@@ -364,17 +363,16 @@ intel_region_attach_pbo(intelScreenPrivate *intelScreen,
    if (region->pbo) {
       region->pbo->region = NULL;
       region->pbo = NULL;
-      region->buffer = NULL;    /* refcount? */
    }
 
    if (region->buffer) {
       driDeleteBuffers(1, &region->buffer);
+      region->buffer = NULL;
    }
 
    region->pbo = pbo;
    region->pbo->region = region;
-   region->buffer = pbo->buffer;        /* refcount? */
-
+   region->buffer = driBOReference(pbo->buffer);
 }
 
 
@@ -387,7 +385,8 @@ intel_region_release_pbo(intelScreenPrivate *intelScreen,
    assert(region->buffer == region->pbo->buffer);
    region->pbo->region = NULL;
    region->pbo = NULL;
-   region->buffer = NULL;       /* refcount? */
+   driBOUnReference(region->buffer);
+   region->buffer = NULL;
 
    driGenBuffers(intelScreen->regionPool,
                  "region", 1, &region->buffer, 64, 0, 0);

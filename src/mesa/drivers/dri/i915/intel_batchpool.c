@@ -36,6 +36,7 @@
 #include "glthread.h"
 #include "dri_bufpool.h"
 #include "dri_bufmgr.h"
+#include "intel_screen.h"
 
 typedef struct
 {

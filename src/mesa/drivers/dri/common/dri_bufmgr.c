@@ -122,12 +122,13 @@ driFenceType(DriFenceObject * fence)
 }
 
 
-void
+DriFenceObject *
 driFenceReference(DriFenceObject * fence)
 {
    _glthread_LOCK_MUTEX(bmMutex);
    ++fence->refCount;
    _glthread_UNLOCK_MUTEX(bmMutex);
+   return fence;
 }
 
 void
@@ -243,7 +244,7 @@ driBOFlags(struct _DriBufferObject *buf)
    return ret;
 }
 
-void
+struct _DriBufferObject *
 driBOReference(struct _DriBufferObject *buf)
 {
    _glthread_LOCK_MUTEX(bmMutex);
@@ -251,6 +252,7 @@ driBOReference(struct _DriBufferObject *buf)
       BM_CKFATAL(-EINVAL);
    }
    _glthread_UNLOCK_MUTEX(bmMutex);
+   return buf;
 }
 
 void
