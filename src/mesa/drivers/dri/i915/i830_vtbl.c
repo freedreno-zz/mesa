@@ -416,7 +416,7 @@ i830_emit_state(struct intel_context *intel)
    struct i830_context *i830 = i830_context(&intel->ctx);
    struct i830_hw_state *state = i830->current;
    int i;
-   GLuint dirty = state->active & ~state->emitted;
+   GLuint dirty;
    BATCH_LOCALS;
 
    /* We don't hold the lock at this point, so want to make sure that
@@ -427,6 +427,11 @@ i830_emit_state(struct intel_context *intel)
     * batchbuffer fills up.
     */
    intel_batchbuffer_require_space(intel->batch, get_state_size(state), 0);
+
+   /* Do this here as we may have flushed the batchbuffer above,
+    * causing more state to be dirty!
+    */
+   dirty = state->active & ~state->emitted;
 
    if (dirty & I830_UPLOAD_INVARIENT) {
       DBG("I830_UPLOAD_INVARIENT:\n");
@@ -575,6 +580,14 @@ i830_flush_cmd(void)
 }
 
 
+static void 
+i830_assert_not_dirty( struct intel_context *intel )
+{
+   struct i830_context *i830 = i830_context(&intel->ctx);
+   struct i830_hw_state *state = i830->current;
+   GLuint dirty = state->active & ~state->emitted;
+   assert(!dirty);
+}
 
 
 void
@@ -589,4 +602,5 @@ i830InitVtbl(struct i830_context *i830)
    i830->intel.vtbl.update_texture_state = i830UpdateTextureState;
    i830->intel.vtbl.flush_cmd = i830_flush_cmd;
    i830->intel.vtbl.render_start = i830_render_start;
+   i830->intel.vtbl.assert_not_dirty = i830_assert_not_dirty;
 }
