@@ -173,6 +173,8 @@ struct intel_context
       void (*rotate_window) (struct intel_context * intel,
                              __DRIdrawablePrivate * dPriv, GLuint srcBuf);
 
+      void (*assert_not_dirty) (struct intel_context *intel);
+
    } vtbl;
 
    GLint refcount;
@@ -285,86 +287,12 @@ struct intel_context
 
 };
 
-
-#define DEBUG_LOCKING 1
-
-#if DEBUG_LOCKING
-
-#define DEBUG_LOCK()							\
-   do {									\
-      intel->prevLockFile = (__FILE__);					\
-      intel->prevLockLine = (__LINE__);					\
-   } while (0)
-
-#define DEBUG_RESET()							\
-   do {									\
-      intel->prevLockFile = 0;						\
-      intel->prevLockLine = 0;						\
-   } while (0)
-
-/* Slightly less broken way of detecting recursive locking in a
- * threaded environment.  The right way to do this would be to make
- * prevLockFile, prevLockLine thread-local.
- *
- * This technique instead checks to see if the same context is
- * requesting the lock twice -- this will not catch application
- * breakages where the same context is active in two different threads
- * at once, but it will catch driver breakages (recursive locking) in
- * threaded apps.
+/* These are functions now:
  */
-#define DEBUG_CHECK_LOCK()						\
-   do {									\
-      if ( *((volatile int *)intel->driHwLock) == 			\
-	   (DRM_LOCK_HELD | intel->hHWContext) ) {			\
-	 fprintf( stderr,						\
-		  "LOCK SET!\n\tPrevious %s:%d\n\tCurrent: %s:%d\n",	\
-		  intel->prevLockFile, intel->prevLockLine,		\
-		  __FILE__, __LINE__ );					\
-	 abort();							\
-      }									\
-   } while (0)
+void LOCK_HARDWARE( struct intel_context *intel );
+void UNLOCK_HARDWARE( struct intel_context *intel );
 
-#else
-
-#define DEBUG_LOCK()
-#define DEBUG_RESET()
-#define DEBUG_CHECK_LOCK()
-
-#endif
-
-extern _glthread_Mutex lockMutex;
-
-
-/* Lock the hardware and validate our state.  
- */
-#define LOCK_HARDWARE( intel )				\
-do {							\
-    char __ret=0;					\
-    _glthread_LOCK_MUTEX(lockMutex);                    \
-    DEBUG_CHECK_LOCK();					\
-    assert(!(intel)->locked);				\
-    DRM_CAS((intel)->driHwLock, (intel)->hHWContext,	\
-        (DRM_LOCK_HELD|(intel)->hHWContext), __ret);	\
-    if (__ret)						\
-        intelGetLock( (intel), 0 );			\
-     DEBUG_LOCK();					\
-    (intel)->locked = 1;				\
-}while (0)
-
-
-  /* Unlock the hardware using the global current context 
-   */
-#define UNLOCK_HARDWARE(intel)						\
-do {									\
-   intel->locked = 0;							\
-   if (0) { 								\
-      intel->perf_boxes |= intel->sarea->perf_boxes;  			\
-      intel->sarea->perf_boxes = 0;					\
-   }									\
-   DRM_UNLOCK((intel)->driFd, (intel)->driHwLock, (intel)->hHWContext);	\
-   DEBUG_RESET();							\
-   _glthread_UNLOCK_MUTEX(lockMutex);                                   \
-} while (0)
+extern char *__progname;
 
 
 #define SUBPIXEL_X 0.125
@@ -444,6 +372,7 @@ extern int INTEL_DEBUG;
 #define DEBUG_BUFMGR    0x200
 #define DEBUG_REGION    0x400
 #define DEBUG_FBO       0x800
+#define DEBUG_LOCK      0x1000
 
 #define DBG(...)  do { if (INTEL_DEBUG & FILE_DEBUG_FLAG) _mesa_printf(__VA_ARGS__); } while(0)
 

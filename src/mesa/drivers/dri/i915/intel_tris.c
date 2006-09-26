@@ -58,6 +58,8 @@ intel_flush_inline_primitive(struct intel_context *intel)
 
    assert(intel->prim.primitive != ~0);
 
+/*    _mesa_printf("/\n"); */
+
    if (used < 8)
       goto do_discard;
 
@@ -94,6 +96,8 @@ intelStartInlinePrimitive(struct intel_context *intel,
       intel->vtbl.emit_state(intel);
    }
 
+/*    _mesa_printf("%s *", __progname); */
+
    /* Emit a slot which will be filled with the inline primitive
     * command later.
     */
@@ -106,6 +110,8 @@ intelStartInlinePrimitive(struct intel_context *intel,
 
    OUT_BATCH(0);
    ADVANCE_BATCH();
+
+/*    _mesa_printf(">"); */
 }
 
 
@@ -127,8 +133,14 @@ intelExtendInlinePrimitive(struct intel_context *intel, GLuint dwords)
    GLuint sz = dwords * sizeof(GLuint);
    GLuint *ptr;
 
+   assert(intel->prim.flush == intel_flush_inline_primitive);
+
    if (intel_batchbuffer_space(intel->batch) < sz)
       intelWrapInlinePrimitive(intel);
+
+/*    _mesa_printf("."); */
+
+   intel->vtbl.assert_not_dirty(intel);
 
    ptr = (GLuint *) intel->batch->ptr;
    intel->batch->ptr += sz;

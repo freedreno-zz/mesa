@@ -523,6 +523,15 @@ i915_flush_cmd(void)
    return MI_FLUSH | FLUSH_MAP_CACHE;
 }
 
+static void 
+i915_assert_not_dirty( struct intel_context *intel )
+{
+   struct i915_context *i915 = i915_context(&intel->ctx);
+   struct i915_hw_state *state = i915->current;
+   GLuint dirty = get_dirty(state);
+   assert(!dirty);
+}
+
 
 void
 i915InitVtbl(struct i915_context *i915)
@@ -536,4 +545,5 @@ i915InitVtbl(struct i915_context *i915)
    i915->intel.vtbl.set_draw_region = i915_set_draw_region;
    i915->intel.vtbl.update_texture_state = i915UpdateTextureState;
    i915->intel.vtbl.flush_cmd = i915_flush_cmd;
+   i915->intel.vtbl.assert_not_dirty = i915_assert_not_dirty;
 }

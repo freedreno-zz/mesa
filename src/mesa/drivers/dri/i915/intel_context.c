@@ -231,6 +231,7 @@ static const struct dri_debug_control debug_control[] = {
    {"buf", DEBUG_BUFMGR},
    {"reg", DEBUG_REGION},
    {"fbo", DEBUG_FBO},
+   {"lock", DEBUG_LOCK},
    {NULL, 0}
 };
 
@@ -595,8 +596,8 @@ intelMakeCurrent(__DRIcontextPrivate * driContextPriv,
    return GL_TRUE;
 }
 
-void
-intelGetLock(struct intel_context *intel, GLuint flags)
+static void
+intelContendedLock(struct intel_context *intel, GLuint flags)
 {
    __DRIdrawablePrivate *dPriv = intel->driDrawable;
    __DRIscreenPrivate *sPriv = intel->driScreen;
@@ -604,6 +605,9 @@ intelGetLock(struct intel_context *intel, GLuint flags)
    drmI830Sarea *sarea = intel->sarea;
 
    drmGetLock(intel->driFd, intel->hHWContext, flags);
+
+   if (INTEL_DEBUG & DEBUG_LOCK)
+      _mesa_printf("%s - got contended lock\n", __progname);
 
    /* If the window moved, may need to set a new cliprect now.
     *
@@ -646,3 +650,44 @@ intelGetLock(struct intel_context *intel, GLuint flags)
       intel->lastStamp = dPriv->lastStamp;
    }
 }
+
+
+extern _glthread_Mutex lockMutex;
+
+
+/* Lock the hardware and validate our state.  
+ */
+void LOCK_HARDWARE( struct intel_context *intel )
+{
+    char __ret=0;
+
+    _glthread_LOCK_MUTEX(lockMutex);
+    assert(!intel->locked);
+
+    DRM_CAS(intel->driHwLock, intel->hHWContext,
+        (DRM_LOCK_HELD|intel->hHWContext), __ret);
+
+    if (__ret)
+        intelContendedLock( intel, 0 );
+
+    if (INTEL_DEBUG & DEBUG_LOCK)
+      _mesa_printf("%s - locked\n", __progname);
+
+    intel->locked = 1;
+}
+
+
+  /* Unlock the hardware using the global current context 
+   */
+void UNLOCK_HARDWARE( struct intel_context *intel )
+{
+   intel->locked = 0;
+
+   DRM_UNLOCK(intel->driFd, intel->driHwLock, intel->hHWContext);
+
+   _glthread_UNLOCK_MUTEX(lockMutex);
+
+   if (INTEL_DEBUG & DEBUG_LOCK)
+      _mesa_printf("%s - unlocked\n", __progname);
+} 
+
