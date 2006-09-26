@@ -127,10 +127,9 @@ intel_region_release(intelScreenPrivate *intelScreen,
       assert((*region)->map_refcount == 0);
 
       if ((*region)->pbo)
-         intel_region_release_pbo(intelScreen, *region);
-      
-      driDeleteBuffers(1, &(*region)->buffer);
-
+	 (*region)->pbo->region = NULL;
+      (*region)->pbo = NULL;
+      driBOUnReference((*region)->buffer);
       free(*region);
    }
    *region = NULL;

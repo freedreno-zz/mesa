@@ -260,8 +260,7 @@ intelFlush(GLcontext * ctx)
    if (intel->batch->map != intel->batch->ptr)
       intel_batchbuffer_flush(intel->batch);
 
-   /* XXX: Need to do an MI_FLUSH here.  Actually, the bufmgr_fake.c
-    * code will have done one already.
+   /* XXX: Need to do an MI_FLUSH here.
     */
 }
 
