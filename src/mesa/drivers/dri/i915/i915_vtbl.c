@@ -285,7 +285,7 @@ i915_emit_state(struct intel_context *intel)
    struct i915_context *i915 = i915_context(&intel->ctx);
    struct i915_hw_state *state = i915->current;
    int i;
-   GLuint dirty = get_dirty(state);
+   GLuint dirty;
    BATCH_LOCALS;
 
    /* We don't hold the lock at this point, so want to make sure that
@@ -296,6 +296,11 @@ i915_emit_state(struct intel_context *intel)
     * batchbuffer fills up.
     */
    intel_batchbuffer_require_space(intel->batch, get_state_size(state), 0);
+
+   /* Do this here as we may have flushed the batchbuffer above,
+    * causing more state to be dirty!
+    */
+   dirty = get_dirty(state);
 
    if (INTEL_DEBUG & DEBUG_STATE)
       fprintf(stderr, "%s dirty: %x\n", __FUNCTION__, dirty);
