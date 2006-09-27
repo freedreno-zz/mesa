@@ -126,10 +126,9 @@ i915_miptree_layout(struct intel_mipmap_tree * mt)
          depth = mt->depth0;
          for (level = mt->first_level; level <= mt->last_level; level++) {
             GLuint i;
-            for (i = 0; i < depth; i++)
-               intel_miptree_set_image_offset(mt, level, depth,
+            for (i = 0; i < depth; i++) 
+               intel_miptree_set_image_offset(mt, level, i,
                                               0, i * stack_height);
-
 
             depth = minify(depth);
          }
@@ -146,6 +145,7 @@ i915_miptree_layout(struct intel_mipmap_tree * mt)
    default:{
          GLuint width = mt->width0;
          GLuint height = mt->height0;
+	 GLuint img_height;
 
          mt->pitch = ((mt->width0 * mt->cpp + 3) & ~3) / mt->cpp;
          mt->total_height = 0;
@@ -156,9 +156,13 @@ i915_miptree_layout(struct intel_mipmap_tree * mt)
                                          width, height, 1);
 
             if (mt->compressed)
-               mt->total_height += MAX2(1, height / 4);
+               img_height = MAX2(1, height / 4);
             else
-               mt->total_height += MAX2(2, height);
+               img_height = MAX2(2, height);
+
+	    mt->total_height += img_height;
+	    mt->total_height += 1;
+	    mt->total_height &= ~1;
 
             width = minify(width);
             height = minify(height);
@@ -323,23 +327,36 @@ i945_miptree_layout(struct intel_mipmap_tree * mt)
          GLuint y = 0;
          GLuint width = mt->width0;
          GLuint height = mt->height0;
+	 GLint align_h = 2;
 
          mt->pitch = ((mt->width0 * mt->cpp + 3) & ~3) / mt->cpp;
          mt->total_height = 0;
 
          for (level = mt->first_level; level <= mt->last_level; level++) {
-            intel_miptree_set_level_info(mt, level, 1,
-                                         x, y, width, height, 1);
+	    GLuint img_height;
 
+            intel_miptree_set_level_info(mt, level, 1,
+                                         x, y, 
+					 width, 
+					 mt->compressed ? height/4 : height, 1);
+
+
+	    if (mt->compressed)
+               img_height = MAX2(1, height / 4);
+            else
+               img_height = MAX2(align_h, height);
 
             /* LPT change: step right after second mipmap.
              */
-            if (level == 1)
+            if (level == mt->first_level + 1) {
                x += mt->pitch / 2;
-            else if (mt->compressed)
-               y += MAX2(1, height / 4);
-            else
-               y += MAX2(2, height);
+	       x = (x + 3) & ~3;
+	    }
+            else {
+	       y += img_height;
+	       y += align_h - 1;
+	       y &= ~(align_h - 1);
+	    }
 
             /* Because the images are packed better, the final offset
              * might not be the maximal one:
