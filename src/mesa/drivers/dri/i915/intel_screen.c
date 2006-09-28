@@ -470,19 +470,28 @@ intelInitDriver(__DRIscreenPrivate * sPriv)
    }
 
    intelScreen->regionPool = driDRMPoolInit(sPriv->fd);
+
    if (!intelScreen->regionPool)
       return GL_FALSE;
+
    intelScreen->staticPool = driDRMStaticPoolInit(sPriv->fd);
+
    if (!intelScreen->staticPool)
       return GL_FALSE;
+
    intelScreen->texPool = intelScreen->regionPool;
+
    intelScreen->batchPool = driBatchPoolInit(sPriv->fd,
                                              DRM_BO_FLAG_EXE |
                                              DRM_BO_FLAG_MEM_TT |
                                              DRM_BO_FLAG_MEM_LOCAL,
                                              4096, 100, 5);
-   intel_recreate_static_regions(intelScreen);
+   if (!intelScreen->batchPool) {
+      fprintf(stderr, "Failed to initialize batch pool - possible incorrect agpgart installed\n");
+      return GL_FALSE;
+   }
 
+   intel_recreate_static_regions(intelScreen);
 
    return GL_TRUE;
 }

@@ -397,6 +397,8 @@ driBatchPoolInit(int fd, unsigned flags,
       return NULL;
 
    pool->data = createBPool(fd, bufSize, numBufs, flags, checkDelayed);
+   if (!pool->data)
+      return NULL;
 
    pool->fd = fd;
    pool->map = &pool_map;
