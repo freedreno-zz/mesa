@@ -42,6 +42,7 @@
 #include "intel_blit.h"
 #include "intel_pixel.h"
 
+#define FILE_DEBUG_FLAG DEBUG_TEXTURE
 
 /**
  * Get the intel_region which is the source for any glCopyTex[Sub]Image call.
@@ -54,9 +55,8 @@ get_teximage_source(struct intel_context *intel, GLenum internalFormat)
 {
    struct intel_renderbuffer *irb;
 
-   if (0)
-      _mesa_printf("%s %s\n", __FUNCTION__,
-                   _mesa_lookup_enum_by_nr(internalFormat));
+   DBG("%s %s\n", __FUNCTION__,
+       _mesa_lookup_enum_by_nr(internalFormat));
 
    switch (internalFormat) {
    case GL_DEPTH_COMPONENT:
@@ -72,6 +72,7 @@ get_teximage_source(struct intel_context *intel, GLenum internalFormat)
          return irb->region;
       return NULL;
    case GL_RGBA:
+   case GL_RGBA8:
       return intel_readbuf_region(intel);
    case GL_RGB:
       if (intel->intelScreen->cpp == 2)
@@ -94,8 +95,10 @@ do_copy_texsubimage(struct intel_context *intel,
    const struct intel_region *src =
       get_teximage_source(intel, internalFormat);
 
-   if (!intelImage->mt || !src)
+   if (!intelImage->mt || !src) {
+      DBG("%s fail %p %p\n", __FUNCTION__, intelImage->mt, src);
       return GL_FALSE;
+   }
 
    intelFlush(ctx);
    LOCK_HARDWARE(intel);
@@ -285,6 +288,9 @@ intelCopyTexSubImage2D(GLcontext * ctx, GLenum target, GLint level,
                             intel_texture_image(texImage),
                             internalFormat,
                             xoffset, yoffset, x, y, width, height)) {
+
+      DBG("%s - fallback to swrast\n", __FUNCTION__);
+
       _swrast_copy_texsubimage2d(ctx, target, level,
                                  xoffset, yoffset, x, y, width, height);
    }
