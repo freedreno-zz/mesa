@@ -48,6 +48,7 @@
 #include "i830_dri.h"
 #include "dri_bufpool.h"
 #include "intel_regions.h"
+#include "intel_batchbuffer.h"
 
 PUBLIC const char __driConfigOptions[] =
    DRI_CONF_BEGIN DRI_CONF_SECTION_PERFORMANCE
@@ -485,7 +486,7 @@ intelInitDriver(__DRIscreenPrivate * sPriv)
                                              DRM_BO_FLAG_EXE |
                                              DRM_BO_FLAG_MEM_TT |
                                              DRM_BO_FLAG_MEM_LOCAL,
-                                             4096, 100, 5);
+                                             BATCH_SZ, 100, 5);
    if (!intelScreen->batchPool) {
       fprintf(stderr, "Failed to initialize batch pool - possible incorrect agpgart installed\n");
       return GL_FALSE;
