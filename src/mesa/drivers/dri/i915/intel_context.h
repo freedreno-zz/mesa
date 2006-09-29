@@ -285,6 +285,7 @@ struct intel_context
    GLuint swap_count;
    GLuint swap_missed_count;
 
+   GLuint swap_scheduled;
 };
 
 /* These are functions now:

@@ -35,8 +35,10 @@
 #include "intel_regions.h"
 #include "intel_batchbuffer.h"
 #include "context.h"
+#include "utils.h"
 #include "framebuffer.h"
 #include "swrast/swrast.h"
+#include "vblank.h"
 
 
 /**
@@ -268,6 +270,35 @@ intelWindowMoved(struct intel_context *intel)
    if (ctx->WinSysDrawBuffer) {
       _mesa_resize_framebuffer(ctx, ctx->WinSysDrawBuffer,
                                intel->driDrawable->w, intel->driDrawable->h);
+   }
+
+   if (intel->intelScreen->driScrnPriv->ddxMinor >= 7 && intel->driDrawable) {
+      __DRIdrawablePrivate *dPriv = intel->driDrawable;
+      drmI830Sarea *sarea = intel->sarea;
+      drm_clip_rect_t drw_rect = { .x1 = dPriv->x, .x2 = dPriv->x + dPriv->w,
+				   .y1 = dPriv->y, .y2 = dPriv->y + dPriv->h };
+      drm_clip_rect_t pipeA_rect = { .x1 = sarea->pipeA_x, .y1 = sarea->pipeA_y,
+				     .x2 = sarea->pipeA_x + sarea->pipeA_w,
+				     .y2 = sarea->pipeA_y + sarea->pipeA_h };
+      drm_clip_rect_t pipeB_rect = { .x1 = sarea->pipeB_x, .y1 = sarea->pipeB_y,
+				     .x2 = sarea->pipeB_x + sarea->pipeB_w,
+				     .y2 = sarea->pipeB_y + sarea->pipeB_h };
+      GLint areaA = driIntersectArea( drw_rect, pipeA_rect );
+      GLint areaB = driIntersectArea( drw_rect, pipeB_rect );
+      GLuint flags = intel->vblank_flags;
+
+      if (areaB > areaA || (areaA == areaB && areaB > 0)) {
+	 flags = intel->vblank_flags | VBLANK_FLAG_SECONDARY;
+      } else {
+	 flags = intel->vblank_flags & ~VBLANK_FLAG_SECONDARY;
+      }
+
+      if (flags != intel->vblank_flags) {
+	 intel->vblank_flags = flags;
+	 driGetCurrentVBlank(dPriv, intel->vblank_flags, &intel->vbl_seq);
+      }
+   } else {
+      intel->vblank_flags &= ~VBLANK_FLAG_SECONDARY;
    }
 
    /* Update hardware scissor */

@@ -440,8 +440,7 @@ intelInitContext(struct intel_context *intel,
    intel->do_usleeps = (fthrottle_mode == DRI_CONF_FTHROTTLE_USLEEPS);
 
    intel->vblank_flags = (intel->intelScreen->irq_active != 0)
-      ? driGetDefaultVBlankFlags(&intelScreen->
-                                 optionCache) : VBLANK_FLAG_NO_IRQ;
+      ? driGetDefaultVBlankFlags(&intel->optionCache) : VBLANK_FLAG_NO_IRQ;
 
    (*dri_interface->getUST) (&intel->swap_ust);
    _math_matrix_ctr(&intel->ViewportMatrix);
@@ -465,7 +464,7 @@ intelInitContext(struct intel_context *intel,
       _mesa_enable_extension(ctx, "GL_EXT_texture_compression_s3tc");
       _mesa_enable_extension(ctx, "GL_S3_s3tc");
    }
-   else if (driQueryOptionb(&intelScreen->optionCache, "force_s3tc_enable")) {
+   else if (driQueryOptionb(&intel->optionCache, "force_s3tc_enable")) {
       _mesa_enable_extension(ctx, "GL_EXT_texture_compression_s3tc");
    }
 
@@ -553,7 +552,7 @@ intelMakeCurrent(__DRIcontextPrivate * driContextPriv,
 
       if (intel->driDrawable != driDrawPriv) {
          /* Shouldn't the readbuffer be stored also? */
-         driDrawableInitVBlank(driDrawPriv, intel->vblank_flags);
+         driDrawableInitVBlank(driDrawPriv, intel->vblank_flags, &intel->vbl_seq);
 
          intel->driDrawable = driDrawPriv;
          intelWindowMoved(intel);
@@ -663,6 +662,17 @@ void LOCK_HARDWARE( struct intel_context *intel )
 
     _glthread_LOCK_MUTEX(lockMutex);
     assert(!intel->locked);
+
+    if (intel->swap_scheduled) {
+	drmVBlank vbl;
+	vbl.request.type = DRM_VBLANK_ABSOLUTE;
+	if ( intel->vblank_flags & VBLANK_FLAG_SECONDARY ) {
+	    vbl.request.type |= DRM_VBLANK_SECONDARY;
+	}
+	vbl.request.sequence = intel->vbl_seq;
+	drmWaitVBlank(intel->driFd, &vbl);
+	intel->swap_scheduled = 0;
+    }
 
     DRM_CAS(intel->driHwLock, intel->hHWContext,
         (DRM_LOCK_HELD|intel->hHWContext), __ret);
