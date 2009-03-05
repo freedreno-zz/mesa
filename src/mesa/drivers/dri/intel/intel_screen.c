@@ -25,6 +25,7 @@
  * 
  **************************************************************************/
 
+#include <sys/ioctl.h>
 #include "main/glheader.h"
 #include "main/context.h"
 #include "main/framebuffer.h"
@@ -211,6 +212,50 @@ static const __DRItexBufferExtension intelTexBufferExtension = {
    intelSetTexBuffer,
 };
 
+static int
+intelCopyBufferExt(__DRIcontext *context,
+		   __DRIbuffer *dst,
+		   int dst_x, int dst_y,
+		   __DRIdrawable *src, unsigned int src_attachment,
+		   int x, int y, int width, int height)
+{
+	struct intel_framebuffer *intel_fb = src->driverPrivate;
+	struct intel_context *intel = context->driverPrivate;
+	struct intel_region *dst_region;
+	struct intel_renderbuffer *rb;
+
+	if (src_attachment != __DRI_BUFFER_FRONT_LEFT)
+		return -1;
+
+	dst_region = intel_region_alloc_for_handle(intel,
+						   dst->cpp,
+						   dst_x + width,
+						   dst_y + height,
+						   dst->pitch / dst->cpp,
+						   dst->name,
+						   "copyBuffer dst temp");
+
+	intel_update_renderbuffers(context, src);
+
+	rb = intel_fb->color_rb[0];
+	intel_region_copy(intel, dst_region, 0, dst_x, dst_y,
+			  rb->region, 0, x, y, width, height);
+	intel_batchbuffer_flush(intel->batch);
+	intel_region_release(&dst_region);
+
+	if (ioctl(intel->driFd, DRM_IOCTL_I915_GEM_THROTTLE, NULL) < 0) {
+		fprintf(stderr, "throttle failed: %m\n");
+		return -1;
+	}
+
+	return 0;
+}
+
+static const __DRIcopyBufferExtension intelCopyBufferExtension = {
+    { __DRI_COPY_BUFFER, __DRI_COPY_BUFFER_VERSION },
+   intelCopyBufferExt,
+};
+
 static const __DRIextension *intelScreenExtensions[] = {
     &driReadDrawableExtension,
     &driCopySubBufferExtension.base,
@@ -219,6 +264,7 @@ static const __DRIextension *intelScreenExtensions[] = {
     &driMediaStreamCounterExtension.base,
     &intelTexOffsetExtension.base,
     &intelTexBufferExtension.base,
+    &intelCopyBufferExtension.base,
     NULL
 };
 

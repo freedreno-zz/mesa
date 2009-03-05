@@ -646,6 +646,19 @@ struct __DRIdri2LoaderExtensionRec {
 			       int *out_count, void *loaderPrivate);
 };
 
+#define __DRI_COPY_BUFFER "DRI_CopyBuffer"
+#define __DRI_COPY_BUFFER_VERSION 1
+typedef struct __DRIcopyBufferExtensionRec __DRIcopyBufferExtension;
+struct __DRIcopyBufferExtensionRec {
+    __DRIextension base;
+
+    int (*copyBuffer)(__DRIcontext *context,
+		      __DRIbuffer *dst, int dst_x, int dst_y,
+		      __DRIdrawable *src, unsigned int src_attachment,
+		      int x, int y, int width, int height);
+};
+
+
 /**
  * This extension provides alternative screen, drawable and context
  * constructors for DRI2.
