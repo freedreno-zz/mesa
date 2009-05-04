@@ -25,6 +25,7 @@
  * 
  **************************************************************************/
 
+#include <stdlib.h>
 #include <strings.h>
 
 #include "main/glheader.h"
