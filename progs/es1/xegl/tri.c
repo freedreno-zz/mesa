@@ -427,7 +427,7 @@ main(int argc, char *argv[])
    printf("EGL_CLIENT_APIS = %s\n", s);
 
    make_x_window(x_dpy, egl_dpy,
-                 "tri", 0, 0, winWidth, winHeight,
+                 "OpenGL ES 1.x tri", 0, 0, winWidth, winHeight,
                  &win, &egl_ctx, &egl_surf);
 
    XMapWindow(x_dpy, win);
