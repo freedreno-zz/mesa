@@ -120,6 +120,7 @@ static GLboolean
 is_compressed_mesa_format(const struct gl_texture_format *format)
 {
    switch (format->MesaFormat) {
+#if FEATURE_texture_s3tc
    case MESA_FORMAT_RGB_DXT1:
    case MESA_FORMAT_RGBA_DXT1:
    case MESA_FORMAT_RGBA_DXT3:
@@ -129,6 +130,7 @@ is_compressed_mesa_format(const struct gl_texture_format *format)
    case MESA_FORMAT_SRGBA_DXT3:
    case MESA_FORMAT_SRGBA_DXT5:
       return GL_TRUE;
+#endif
    default:
       return GL_FALSE;
    }
