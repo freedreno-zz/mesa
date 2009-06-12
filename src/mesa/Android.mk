@@ -136,7 +136,8 @@ LOCAL_C_INCLUDES +=				\
 	$(common_C_INCLUDES)			\
 	external/drm/libdrm			\
 	external/drm/libdrm/intel		\
-	external/drm/shared-core
+	external/drm/shared-core                \
+	external/expat/lib
 
 LOCAL_CFLAGS +=					\
 	$(common_CFLAGS)			\
