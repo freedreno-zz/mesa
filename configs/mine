@@ -1,0 +1,82 @@
+# -*-makefile-*-
+# Configuration for linux-dri: Linux DRI hardware drivers for XFree86 & others
+
+include $(TOP)/configs/default
+
+CONFIG_NAME = mine
+
+# Compiler and flags
+CC = ccache gcc
+CXX = ccache g++
+
+#MKDEP = /usr/X11R6/bin/makedepend
+#MKDEP = gcc -M
+#MKDEP_OPTIONS = -MF depend
+
+OPT_FLAGS  = -O0 -g
+PIC_FLAGS  = -fPIC
+
+# Add '-DGLX_USE_TLS' to ARCH_FLAGS to enable TLS support.
+ARCH_FLAGS ?=
+
+DEFINES = -D_POSIX_SOURCE -D_POSIX_C_SOURCE=199309L -D_SVID_SOURCE \
+	-D_BSD_SOURCE -D_GNU_SOURCE \
+	-DPTHREADS -DUSE_EXTERNAL_DXTN_LIB=1 \
+	-DGLX_DIRECT_RENDERING \
+	-DHAVE_ALIAS -DHAVE_POSIX_MEMALIGN
+
+X11_INCLUDES = -I/usr/X11R6/include
+
+CFLAGS = -Wall -Wmissing-prototypes -std=c99 -ffast-math \
+	$(OPT_FLAGS) $(PIC_FLAGS) $(ARCH_FLAGS) $(DEFINES) $(ASM_FLAGS)
+
+CXXFLAGS = -Wall $(OPT_FLAGS) $(PIC_FLAGS) $(ARCH_FLAGS) $(DEFINES)
+
+GLUT_CFLAGS = -fexceptions
+
+# Work around aliasing bugs - developers should comment this out
+CFLAGS += -fno-strict-aliasing
+CXXFLAGS += -fno-strict-aliasing
+
+MESA_ASM_SOURCES = 
+
+# Library/program dependencies
+EXTRA_LIB_PATH=-L/usr/X11R6/lib
+
+DRI_LIB_DEPS  = $(EXTRA_LIB_PATH) -lm -lpthread -lexpat -ldl $(LIBDRM_LIB)
+GL_LIB_DEPS   = $(EXTRA_LIB_PATH) -lX11 -lXext -lXxf86vm -lXdamage -lXfixes \
+		-lm -lpthread -ldl $(LIBDRM_LIB)
+
+
+# Directories
+SRC_DIRS = egl mesa gallium gallium/winsys
+PROGRAM_DIRS := egl openvg/demos demos xdemos
+
+# EGL directories
+EGL_DRIVERS_DIRS = glx xdri
+
+ifeq ($(USE_DRI),yes)
+DEFINES += -DIN_DRI_DRIVER -DGLX_INDIRECT_RENDERING
+
+LIBDRM_CFLAGS = $(shell pkg-config --cflags libdrm)
+LIBDRM_LIB = $(shell pkg-config --libs libdrm)
+
+SRC_DIRS := glx/x11 $(SRC_DIRS)
+DRIVER_DIRS = dri
+WINDOW_SYSTEM = dri
+DRI_DIRS = i915
+
+GALLIUM_WINSYS_DIRS = drm egl_xlib
+GALLIUM_WINSYS_DRM_DIRS = intel
+GALLIUM_STATE_TRACKERS_DIRS = egl glx vega
+
+else
+
+DRIVER_DIRS =
+WINDOW_SYSTEM =
+DRI_DIRS =
+
+GALLIUM_WINSYS_DIRS = egl_xlib xlib
+GALLIUM_STATE_TRACKERS_DIRS = glx vega
+
+endif

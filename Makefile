@@ -105,6 +105,8 @@ irix6-n32-static \
 irix6-o32 \
 irix6-o32-static \
 linux \
+mine \
+mine-dri \
 linux-alpha \
 linux-alpha-static \
 linux-cell \

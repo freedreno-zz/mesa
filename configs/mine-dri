@@ -1,0 +1,5 @@
+# -*-makefile-*-
+# Configuration for linux-dri: Linux DRI hardware drivers for XFree86 & others
+
+USE_DRI = yes
+include $(TOP)/configs/mine
