@@ -14,6 +14,9 @@ struct _egl_extensions
 {
    EGLBoolean MESA_screen_surface;
    EGLBoolean MESA_copy_context;
+   EGLBoolean KHR_image;
+   EGLBoolean KHR_image_base;
+   EGLBoolean KHR_image_pixmap;
 
    char String[_EGL_MAX_EXTENSIONS_LEN];
 };
@@ -50,6 +53,8 @@ struct _egl_display
    /* lists of linked contexts and surface */
    _EGLContext *ContextList;
    _EGLSurface *SurfaceList;
+
+   _EGLImage *ImageList;
 };
 
 

@@ -28,6 +28,8 @@ typedef struct _egl_surface _EGLSurface;
 
 typedef struct _egl_thread_info _EGLThreadInfo;
 
+typedef struct _egl_image _EGLImage;
+
 
 typedef _EGLDriver *(*_EGLMain_t)(const char *args);
 

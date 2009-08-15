@@ -7,6 +7,7 @@ include $(TOP)/configs/current
 INCLUDE_DIRS = -I$(TOP)/include -I$(TOP)/src/mesa/glapi $(X11_INCLUDES)
 
 HEADERS = \
+	eglclient.h \
 	eglcompiler.h \
 	eglconfig.h \
 	eglconfigutil.h \
@@ -16,6 +17,7 @@ HEADERS = \
 	egldisplay.h \
 	egldriver.h \
 	eglglobals.h \
+	eglimage.h \
 	egllog.h \
 	eglmisc.h \
 	eglmode.h \
@@ -26,6 +28,7 @@ HEADERS = \
 
 SOURCES = \
 	eglapi.c \
+	eglclient.c \
 	eglconfig.c \
 	eglconfigutil.c \
 	eglcontext.c \
@@ -33,6 +36,7 @@ SOURCES = \
 	egldisplay.c \
 	egldriver.c \
 	eglglobals.c \
+	eglimage.c \
 	egllog.c \
 	eglmisc.c \
 	eglmode.c \

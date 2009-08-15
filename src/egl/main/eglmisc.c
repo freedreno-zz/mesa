@@ -54,6 +54,12 @@ _eglUpdateExtensionsString(_EGLDisplay *dpy)
       strcat(exts, "EGL_MESA_screen_surface ");
    if (dpy->Extensions.MESA_copy_context)
       strcat(exts, "EGL_MESA_copy_context ");
+   if (dpy->Extensions.KHR_image)
+      strcat(exts, "EGL_KHR_image ");
+   if (dpy->Extensions.KHR_image_base)
+      strcat(exts, "EGL_KHR_image_base ");
+   if (dpy->Extensions.KHR_image_pixmap)
+      strcat(exts, "EGL_KHR_image_pixmap ");
    assert(strlen(exts) < _EGL_MAX_EXTENSIONS_LEN);
 }
 
