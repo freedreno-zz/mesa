@@ -54,7 +54,11 @@
 #include "eglglobals.h"
 #include "egllog.h"
 #include "eglsurface.h"
+#include "eglimage.h"
 
+#include "EGL/internal/eglimage_dri.h"
+
+#define MAX_DEPTH 32
 #define CALLOC_STRUCT(T)   (struct T *) calloc(1, sizeof(struct T))
 
 /** subclass of _EGLDriver */
@@ -73,6 +77,8 @@ struct xdri_egl_display
 
    __GLXscreenConfigs *psc;
    EGLint scr;
+
+   const __GLcontextModes *imageConfigs[MAX_DEPTH + 1];
 };
 
 
@@ -94,6 +100,16 @@ struct xdri_egl_surface
    _EGLSurface Base;   /**< base class */
 
    Drawable drawable;
+   __GLXDRIdrawable *driDrawable;
+};
+
+
+/** subclass of _EGLImage */
+struct xdri_egl_image
+{
+   _EGLImage Base;   /**< base class */
+
+   Drawable pixmap;
    __GLXDRIdrawable *driDrawable;
 };
 
@@ -147,6 +163,14 @@ lookup_config(_EGLConfig *conf)
 }
 
 
+/** Map EGLImage handle to xdri_egl_image object */
+static INLINE struct xdri_egl_image *
+lookup_image(_EGLImage *img)
+{
+   return (struct xdri_egl_image *) img;
+}
+
+
 /** Get size of given window */
 static Status
 get_drawable_size(Display *dpy, Drawable d, uint *width, uint *height)
@@ -160,6 +184,62 @@ get_drawable_size(Display *dpy, Drawable d, uint *width, uint *height)
    *height = h;
    return stat;
 }
+
+
+#if EGL_KHR_image_base
+/** Get depth of given window */
+static Status
+get_drawable_depth(Display *dpy, Drawable d, uint *depth_ret)
+{
+   Window root;
+   Status stat;
+   int xpos, ypos;
+   unsigned int w, h, bw, depth;
+   stat = XGetGeometry(dpy, d, &root, &xpos, &ypos, &w, &h, &bw, &depth);
+   *depth_ret = depth;
+   return stat;
+}
+
+
+/**
+ * The config of a pixmap must be guessed from its depth.  Do the guess once
+ * for all depths.
+ */
+static void
+find_image_configs(_EGLDisplay *dpy, const __GLcontextModes *modes)
+{
+   struct xdri_egl_display *xdri_dpy = lookup_display(dpy);
+   EGLint depth;
+
+   for (depth = 0; depth < MAX_DEPTH + 1; depth++) {
+      const __GLcontextModes *m;
+
+      for (m = modes; m; m = m->next) {
+         /* the depth of a pixmap might not include alpha */
+         if (m->rgbBits != depth && (m->rgbBits - m->alphaBits) != depth)
+            continue;
+         if (!m->visualID)
+            continue;
+
+         if (depth == 32) {
+            if (m->bindToTextureRgba) {
+               xdri_dpy->imageConfigs[depth] = m;
+               break;
+            }
+         }
+
+         if (m->bindToTextureRgb) {
+            xdri_dpy->imageConfigs[depth] = m;
+            break;
+         }
+      }
+
+      if (m)
+         _eglLog(_EGL_DEBUG, "Use mode 0x%02x for depth %d",
+                 m->visualID, depth);
+   }
+}
+#endif /* EGL_KHR_image_base */
 
 
 /**
@@ -274,6 +354,15 @@ xdri_eglInitialize(_EGLDriver *drv, _EGLDisplay *dpy,
                           EGL_OPENGL_ES_BIT |
                           EGL_OPENGL_ES2_BIT |
                           EGL_OPENVG_BIT);
+
+#if EGL_KHR_image_base
+   /* must be called after DriverData is set */
+   find_image_configs(dpy, psc->configs);
+
+   dpy->Extensions.KHR_image = EGL_TRUE;
+   dpy->Extensions.KHR_image_base = EGL_TRUE;
+   dpy->Extensions.KHR_image_pixmap = EGL_TRUE;
+#endif
 
    /* we're supporting EGL 1.4 */
    *minor = 1;
@@ -530,7 +619,105 @@ xdri_eglSwapBuffers(_EGLDriver *drv, _EGLDisplay *dpy, _EGLSurface *draw)
    xdri_dpy->psc->driScreen->swapBuffers(xdri_surf->driDrawable);
 
    return EGL_TRUE;
+} 
+
+
+#if EGL_KHR_image_base
+
+
+static _EGLImage *
+xdri_eglCreateImageKHR(_EGLDriver *drv, _EGLDisplay *dpy, _EGLContext *ctx,
+                       EGLenum target, EGLClientBuffer buffer, const EGLint *attr_list)
+{
+   struct xdri_egl_display *xdri_dpy = lookup_display(dpy);
+   struct xdri_egl_image *xdri_img;
+   __DRIEGLImage *driImage;
+   EGLint err = EGL_SUCCESS;
+   const __GLcontextModes *mode;
+   uint depth;
+
+   xdri_img = CALLOC_STRUCT(xdri_egl_image);
+   if (!xdri_img) {
+      _eglError(EGL_BAD_ALLOC, "eglCreateImageKHR");
+      return NULL;
+   }
+
+   switch (target) {
+   case EGL_NATIVE_PIXMAP_KHR:
+      if (ctx) {
+         err = EGL_BAD_PARAMETER;
+         break;
+      }
+      xdri_img->pixmap = (Pixmap) buffer;
+      break;
+   default:
+      err = EGL_BAD_PARAMETER;
+      break;
+   }
+
+   if (err != EGL_SUCCESS) {
+      _eglError(EGL_BAD_PARAMETER, "eglCreateImageKHR");
+      free(xdri_img);
+      return NULL;
+   }
+
+   if (!_eglInitImage(drv, &xdri_img->Base, attr_list)) {
+      free(xdri_img);
+      return NULL;
+   }
+   if (!get_drawable_depth(xdri_dpy->dpy, xdri_img->pixmap, &depth) ||
+       depth > MAX_DEPTH) {
+      free(xdri_img);
+      return NULL;
+   }
+   mode = xdri_dpy->imageConfigs[depth];
+   if (!mode) {
+      free(xdri_img);
+      return NULL;
+   }
+
+   driImage = CALLOC_STRUCT(__DRIEGLImageRec);
+   if (!driImage) {
+      _eglError(EGL_BAD_ALLOC, "eglCreateImageKHR");
+      free(xdri_img);
+      return NULL;
+   }
+
+   xdri_img->driDrawable =
+      xdri_dpy->psc->driScreen->createDrawable(xdri_dpy->psc,
+                                               (XID) xdri_img->pixmap,
+                                               (GLXDrawable) xdri_img->pixmap,
+                                               mode);
+   if (!xdri_img->driDrawable) {
+      free(driImage);
+      free(xdri_img);
+      return NULL;
+   }
+
+   driImage->magic = __DRI_EGL_IMAGE_MAGIC;
+   driImage->drawable = xdri_img->driDrawable->driDrawable;
+   driImage->texture_format_rgba = (depth == 32 && mode->bindToTextureRgba);
+   driImage->level = 0;
+
+   xdri_img->Base.ClientData = (void *) driImage;
+
+   return &xdri_img->Base;
 }
+
+
+static EGLBoolean
+xdri_eglDestroyImageKHR(_EGLDriver *drv, _EGLDisplay *dpy, _EGLImage *img)
+{
+   struct xdri_egl_image *xdri_img = lookup_image(img);
+
+   free(xdri_img->Base.ClientData);
+   xdri_img->driDrawable->destroyDrawable(xdri_img->driDrawable);
+   free(xdri_img);
+   return EGL_TRUE;
+}
+
+
+#endif /* EGL_KHR_image_base */
 
 
 static void
@@ -567,6 +754,10 @@ _eglMain(const char *args)
    xdri_drv->Base.API.BindTexImage = xdri_eglBindTexImage;
    xdri_drv->Base.API.ReleaseTexImage = xdri_eglReleaseTexImage;
    xdri_drv->Base.API.SwapBuffers = xdri_eglSwapBuffers;
+#if EGL_KHR_image_base
+   xdri_drv->Base.API.CreateImageKHR = xdri_eglCreateImageKHR;
+   xdri_drv->Base.API.DestroyImageKHR = xdri_eglDestroyImageKHR;
+#endif /* EGL_KHR_image_base */
 
    xdri_drv->Base.Name = "X/DRI";
    xdri_drv->Base.Unload = xdri_Unload;
