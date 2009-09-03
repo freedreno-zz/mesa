@@ -17,7 +17,7 @@ ES1_LIB_DEPS = \
 
 ES1_LIBS = \
 	-L$(TOP)/$(LIB_DIR) -lEGL \
-	-L$(TOP)/$(LIB_DIR) -lGLESv1_CM $(LIBDRM_LIB)
+	-L$(TOP)/$(LIB_DIR) -lGLESv1_CM $(LIBDRM_LIB) -lX11
 
 PROGRAMS = \
 	drawtex \

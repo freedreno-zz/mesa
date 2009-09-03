@@ -17,7 +17,7 @@ ES2_LIB_DEPS = \
 
 ES2_LIBS = \
 	-L$(TOP)/$(LIB_DIR) -lEGL \
-	-L$(TOP)/$(LIB_DIR) -lGLESv2 $(LIBDRM_LIB)
+	-L$(TOP)/$(LIB_DIR) -lGLESv2 $(LIBDRM_LIB) -lX11
 
 PROGRAMS = \
 	es2_info \
