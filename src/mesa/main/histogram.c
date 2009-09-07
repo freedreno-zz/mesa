@@ -29,7 +29,10 @@
 #include "context.h"
 #include "image.h"
 #include "histogram.h"
+#include "glapi/dispatch.h"
 
+
+#if FEATURE_histogram
 
 
 /*
@@ -1042,6 +1045,24 @@ _mesa_ResetMinmax(GLenum target)
    ctx->MinMax.Min[ACOMP] = 1000;    ctx->MinMax.Max[ACOMP] = -1000;
 }
 
+
+void
+_mesa_init_histogram_dispatch(struct _glapi_table *disp)
+{
+   SET_GetHistogram(disp, _mesa_GetHistogram);
+   SET_GetHistogramParameterfv(disp, _mesa_GetHistogramParameterfv);
+   SET_GetHistogramParameteriv(disp, _mesa_GetHistogramParameteriv);
+   SET_GetMinmax(disp, _mesa_GetMinmax);
+   SET_GetMinmaxParameterfv(disp, _mesa_GetMinmaxParameterfv);
+   SET_GetMinmaxParameteriv(disp, _mesa_GetMinmaxParameteriv);
+   SET_Histogram(disp, _mesa_Histogram);
+   SET_Minmax(disp, _mesa_Minmax);
+   SET_ResetHistogram(disp, _mesa_ResetHistogram);
+   SET_ResetMinmax(disp, _mesa_ResetMinmax);
+}
+
+
+#endif /* FEATURE_histogram */
 
 
 /**********************************************************************/
