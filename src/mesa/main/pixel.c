@@ -36,6 +36,10 @@
 #include "macros.h"
 #include "pixel.h"
 #include "mtypes.h"
+#include "glapi/dispatch.h"
+
+
+#if FEATURE_pixel_transfer
 
 
 /**********************************************************************/
@@ -754,6 +758,24 @@ void _mesa_update_pixel( GLcontext *ctx, GLuint new_state )
    if (new_state & _MESA_NEW_TRANSFER_STATE)
       update_image_transfer_state(ctx);
 }
+
+
+void 
+_mesa_init_pixel_dispatch(struct _glapi_table *disp)
+{
+   SET_GetPixelMapfv(disp, _mesa_GetPixelMapfv);
+   SET_GetPixelMapuiv(disp, _mesa_GetPixelMapuiv);
+   SET_GetPixelMapusv(disp, _mesa_GetPixelMapusv);
+   SET_PixelMapfv(disp, _mesa_PixelMapfv);
+   SET_PixelMapuiv(disp, _mesa_PixelMapuiv);
+   SET_PixelMapusv(disp, _mesa_PixelMapusv);
+   SET_PixelTransferf(disp, _mesa_PixelTransferf);
+   SET_PixelTransferi(disp, _mesa_PixelTransferi);
+   SET_PixelZoom(disp, _mesa_PixelZoom);
+}
+
+
+#endif /* FEATURE_pixel_transfer */
 
 
 /**********************************************************************/

@@ -33,8 +33,10 @@
 #define PIXEL_H
 
 
-#include "mtypes.h"
+#include "main/mtypes.h"
 
+
+#if FEATURE_pixel_transfer
 
 /** \name API functions */
 /*@{*/
@@ -68,13 +70,30 @@ _mesa_PixelZoom( GLfloat xfactor, GLfloat yfactor );
 
 /*@}*/
 
-
 extern void 
 _mesa_update_pixel( GLcontext *ctx, GLuint newstate );
+
+extern void 
+_mesa_init_pixel_dispatch( struct _glapi_table * disp );
+
+#else /* FEATURE_pixel_transfer */
+
+static INLINE void
+_mesa_update_pixel(GLcontext *ctx, GLuint newstate)
+{
+}
+
+static INLINE void
+_mesa_init_pixel_dispatch(struct _glapi_table *disp)
+{
+}
+
+#endif /* FEATURE_pixel_transfer */
+
 
 extern void 
 _mesa_init_pixel( GLcontext * ctx );
 
 /*@}*/
 
-#endif
+#endif /* PIXEL_H */
