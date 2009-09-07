@@ -29,6 +29,10 @@
 #include "macros.h"
 #include "state.h"
 #include "mtypes.h"
+#include "glapi/dispatch.h"
+
+
+#if FEATURE_accum
 
 
 void GLAPIENTRY
@@ -98,6 +102,16 @@ _mesa_Accum( GLenum op, GLfloat value )
    }
 }
 
+
+void
+_mesa_init_accum_dispatch(struct _glapi_table *disp)
+{
+   SET_Accum(disp, _mesa_Accum);
+   SET_ClearAccum(disp, _mesa_ClearAccum);
+}
+
+
+#endif /* FEATURE_accum */
 
 
 void 
