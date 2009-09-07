@@ -31,6 +31,10 @@
 #include "macros.h"
 #include "state.h"
 #include "teximage.h"
+#include "glapi/dispatch.h"
+
+
+#if FEATURE_colortable
 
 
 /**
@@ -1043,6 +1047,25 @@ _mesa_GetColorTableParameteriv( GLenum target, GLenum pname, GLint *params )
          return;
    }
 }
+
+
+void 
+_mesa_init_colortable_dispatch(struct _glapi_table *disp)
+{
+   SET_ColorSubTable(disp, _mesa_ColorSubTable);
+   SET_ColorTable(disp, _mesa_ColorTable);
+   SET_ColorTableParameterfv(disp, _mesa_ColorTableParameterfv);
+   SET_ColorTableParameteriv(disp, _mesa_ColorTableParameteriv);
+   SET_CopyColorSubTable(disp, _mesa_CopyColorSubTable);
+   SET_CopyColorTable(disp, _mesa_CopyColorTable);
+   SET_GetColorTable(disp, _mesa_GetColorTable);
+   SET_GetColorTableParameterfv(disp, _mesa_GetColorTableParameterfv);
+   SET_GetColorTableParameteriv(disp, _mesa_GetColorTableParameteriv);
+}
+
+
+#endif /* FEATURE_colortable */
+
 
 /**********************************************************************/
 /*****                      Initialization                        *****/
