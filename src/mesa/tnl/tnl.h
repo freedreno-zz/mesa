@@ -29,7 +29,7 @@
 #define _TNL_H
 
 #include "main/mtypes.h"
-
+#include "tnl_features.h"
 
 
 /* These are the public-access functions exported from tnl.  (A few
@@ -93,8 +93,5 @@ _tnl_vbo_draw_prims( GLcontext *ctx,
 
 extern void
 _mesa_load_tracked_matrices(GLcontext *ctx);
-
-extern void
-_tnl_RasterPos(GLcontext *ctx, const GLfloat vObj[4]);
 
 #endif

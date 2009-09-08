@@ -31,6 +31,7 @@
 #include "main/framebuffer.h"
 #include "main/mipmap.h"
 #include "main/queryobj.h"
+#include "main/rastpos.h"
 #include "main/renderbuffer.h"
 #include "main/texcompress.h"
 #include "main/texformat.h"
@@ -85,7 +86,9 @@ _mesa_init_driver_functions(struct dd_function_table *driver)
    /* framebuffer/image functions */
    driver->Clear = _swrast_Clear;
    driver->Accum = _swrast_Accum;
-   driver->RasterPos = _tnl_RasterPos;
+
+   _MESA_INIT_RASTPOS_FUNCTIONS(driver, _tnl_);
+
    driver->DrawPixels = _swrast_DrawPixels;
    driver->ReadPixels = _swrast_ReadPixels;
    driver->CopyPixels = _swrast_CopyPixels;

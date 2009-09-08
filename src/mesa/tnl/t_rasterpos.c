@@ -37,6 +37,8 @@
 #include "tnl/tnl.h"
 
 
+#if FEATURE_rastpos
+
 
 /**
  * Clip a point against the view volume.
@@ -508,3 +510,6 @@ _tnl_RasterPos(GLcontext *ctx, const GLfloat vObj[4])
       _mesa_update_hitflag( ctx, ctx->Current.RasterPos[2] );
    }
 }
+
+
+#endif /* FEATURE_rastpos */
