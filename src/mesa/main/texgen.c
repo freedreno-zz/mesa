@@ -36,6 +36,10 @@
 #include "main/macros.h"
 #include "main/texgen.h"
 #include "math/m_matrix.h"
+#include "glapi/dispatch.h"
+
+
+#if FEATURE_texgen
 
 
 /**
@@ -337,3 +341,19 @@ _mesa_GetTexGeniv( GLenum coord, GLenum pname, GLint *params )
 }
 
 
+void 
+_mesa_init_texgen_dispatch(struct _glapi_table *disp)
+{
+   SET_GetTexGendv(disp, _mesa_GetTexGendv);
+   SET_GetTexGenfv(disp, _mesa_GetTexGenfv);
+   SET_GetTexGeniv(disp, _mesa_GetTexGeniv);
+   SET_TexGend(disp, _mesa_TexGend);
+   SET_TexGendv(disp, _mesa_TexGendv);
+   SET_TexGenf(disp, _mesa_TexGenf);
+   SET_TexGenfv(disp, _mesa_TexGenfv);
+   SET_TexGeni(disp, _mesa_TexGeni);
+   SET_TexGeniv(disp, _mesa_TexGeniv);
+}
+
+
+#endif /* FEATURE_texgen */
