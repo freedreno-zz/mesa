@@ -23,19 +23,24 @@
  */
 
 
-#ifndef OCCLUDE_H
-#define OCCLUDE_H
+#ifndef QUERYOBJ_H
+#define QUERYOBJ_H
 
 
-extern void
-_mesa_init_query(GLcontext *ctx);
+#include "main/mtypes.h"
 
-extern void
-_mesa_free_query_data(GLcontext *ctx);
 
-extern void
-_mesa_init_query_object_functions(struct dd_function_table *driver);
+#if FEATURE_queryobj
 
+#define _MESA_INIT_QUERYOBJ_FUNCTIONS(driver, impl)      \
+   do {                                                  \
+      (driver)->NewQueryObject = impl ## NewQueryObject; \
+      (driver)->DeleteQuery    = impl ## DeleteQuery;    \
+      (driver)->BeginQuery     = impl ## BeginQuery;     \
+      (driver)->EndQuery       = impl ## EndQuery;       \
+      (driver)->WaitQuery      = impl ## WaitQuery;      \
+      (driver)->CheckQuery     = impl ## CheckQuery;     \
+   } while (0)
 
 extern void GLAPIENTRY
 _mesa_GenQueriesARB(GLsizei n, GLuint *ids);
@@ -67,5 +72,33 @@ _mesa_GetQueryObjecti64vEXT(GLuint id, GLenum pname, GLint64EXT *params);
 extern void GLAPIENTRY
 _mesa_GetQueryObjectui64vEXT(GLuint id, GLenum pname, GLuint64EXT *params);
 
+extern void
+_mesa_init_query_object_functions(struct dd_function_table *driver);
 
-#endif /* OCCLUDE_H */
+extern void
+_mesa_init_queryobj_dispatch(struct _glapi_table *disp);
+
+#else /* FEATURE_queryobj */
+
+#define _MESA_INIT_QUERYOBJ_FUNCTIONS(driver, impl) do { } while (0)
+
+static INLINE void
+_mesa_init_query_object_functions(struct dd_function_table *driver)
+{
+}
+
+static INLINE void
+_mesa_init_queryobj_dispatch(struct _glapi_table *disp)
+{
+}
+
+#endif /* FEATURE_queryobj */
+
+extern void
+_mesa_init_queryobj(GLcontext *ctx);
+
+extern void
+_mesa_free_queryobj_data(GLcontext *ctx);
+
+
+#endif /* QUERYOBJ_H */
