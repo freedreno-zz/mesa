@@ -36,9 +36,10 @@
 #include "feedback.h"
 #include "macros.h"
 #include "mtypes.h"
+#include "glapi/dispatch.h"
 
 
-#if _HAVE_FULL_GL
+#if FEATURE_feedback
 
 
 #define FB_3D		0x01
@@ -151,9 +152,6 @@ _mesa_feedback_vertex(GLcontext *ctx,
       _mesa_feedback_token( ctx, texcoord[3] );
    }
 }
-
-
-#endif /* _HAVE_FULL_GL */
 
 
 /**********************************************************************/
@@ -505,6 +503,23 @@ _mesa_RenderMode( GLenum mode )
 }
 
 /*@}*/
+
+
+void 
+_mesa_init_feedback_dispatch(struct _glapi_table *disp)
+{
+   SET_InitNames(disp, _mesa_InitNames);
+   SET_FeedbackBuffer(disp, _mesa_FeedbackBuffer);
+   SET_LoadName(disp, _mesa_LoadName);
+   SET_PassThrough(disp, _mesa_PassThrough);
+   SET_PopName(disp, _mesa_PopName);
+   SET_PushName(disp, _mesa_PushName);
+   SET_SelectBuffer(disp, _mesa_SelectBuffer);
+   SET_RenderMode(disp, _mesa_RenderMode);
+}
+
+
+#endif /* FEATURE_feedback */
 
 
 /**********************************************************************/
