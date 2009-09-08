@@ -78,7 +78,7 @@
 #define FEATURE_dlist  (_HAVE_FULL_GL && FEATURE_arrayelt)
 #define FEATURE_draw_read_buffer  _HAVE_FULL_GL
 #define FEATURE_drawpix  _HAVE_FULL_GL
-#define FEATURE_evaluators  _HAVE_FULL_GL
+#define FEATURE_eval  _HAVE_FULL_GL
 #define FEATURE_feedback  _HAVE_FULL_GL
 #define FEATURE_fixedpt 0
 #define FEATURE_histogram  _HAVE_FULL_GL

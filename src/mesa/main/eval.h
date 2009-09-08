@@ -37,13 +37,22 @@
 #define EVAL_H
 
 
-#include "mtypes.h"
+#include "main/mtypes.h"
 
-#if _HAVE_FULL_GL
 
-extern void _mesa_init_eval( GLcontext *ctx );
-extern void _mesa_free_eval_data( GLcontext *ctx );
+#if FEATURE_eval
 
+#define _MESA_INIT_EVAL_VTXFMT(vfmt, impl)         \
+   do {                                            \
+      (vfmt)->EvalCoord1f  = impl ## EvalCoord1f;  \
+      (vfmt)->EvalCoord1fv = impl ## EvalCoord1fv; \
+      (vfmt)->EvalCoord2f  = impl ## EvalCoord2f;  \
+      (vfmt)->EvalCoord2fv = impl ## EvalCoord2fv; \
+      (vfmt)->EvalPoint1   = impl ## EvalPoint1;   \
+      (vfmt)->EvalPoint2   = impl ## EvalPoint2;   \
+      (vfmt)->EvalMesh1    = impl ## EvalMesh1;    \
+      (vfmt)->EvalMesh2    = impl ## EvalMesh2;    \
+   } while (0)
 
 extern GLuint _mesa_evaluator_components( GLenum target );
 
@@ -115,14 +124,32 @@ _mesa_GetMapfv( GLenum target, GLenum query, GLfloat *v );
 extern void GLAPIENTRY
 _mesa_GetMapiv( GLenum target, GLenum query, GLint *v );
 
-#else
+extern void 
+_mesa_install_eval_vtxfmt(struct _glapi_table *disp,
+                          const GLvertexformat *vfmt);
 
-/** No-op */
-#define _mesa_init_eval( c ) ((void)0)
+extern void 
+_mesa_init_eval_dispatch(struct _glapi_table *disp);
 
-/** No-op */
-#define _mesa_free_eval_data( c ) ((void)0)
+#else /* FEATURE_eval */
 
-#endif
+#define _MESA_INIT_EVAL_VTXFMT(vfmt, impl) do { } while (0)
 
-#endif
+static INLINE void 
+_mesa_install_eval_vtxfmt(struct _glapi_table *disp,
+                          const GLvertexformat *vfmt)
+{
+}
+
+static INLINE void 
+_mesa_init_eval_dispatch(struct _glapi_table *disp)
+{
+}
+
+#endif /* FEATURE_eval */
+
+extern void _mesa_init_eval( GLcontext *ctx );
+extern void _mesa_free_eval_data( GLcontext *ctx );
+
+
+#endif /* EVAL_H */
