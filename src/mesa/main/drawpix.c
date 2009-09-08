@@ -33,7 +33,10 @@
 #include "image.h"
 #include "readpix.h"
 #include "state.h"
+#include "glapi/dispatch.h"
 
+
+#if FEATURE_drawpix
 
 
 /**
@@ -46,8 +49,6 @@ valid_fragment_program(GLcontext *ctx)
    return !(ctx->FragmentProgram.Enabled && !ctx->FragmentProgram._Enabled);
 }
 
-
-#if _HAVE_FULL_GL
 
 /*
  * Execute glDrawPixels
@@ -225,9 +226,6 @@ end:
    _mesa_set_vp_override(ctx, GL_FALSE);
 }
 
-#endif /* _HAVE_FULL_GL */
-
-
 
 void GLAPIENTRY
 _mesa_Bitmap( GLsizei width, GLsizei height,
@@ -309,3 +307,15 @@ _mesa_Bitmap( GLsizei width, GLsizei height,
    ctx->Current.RasterPos[0] += xmove;
    ctx->Current.RasterPos[1] += ymove;
 }
+
+
+void 
+_mesa_init_drawpix_dispatch(struct _glapi_table *disp)
+{
+   SET_Bitmap(disp, _mesa_Bitmap);
+   SET_CopyPixels(disp, _mesa_CopyPixels);
+   SET_DrawPixels(disp, _mesa_DrawPixels);
+}
+
+
+#endif /* FEATURE_drawpix */
