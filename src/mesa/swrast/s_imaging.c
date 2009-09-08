@@ -34,6 +34,9 @@
 #include "s_span.h"
 
 
+#if FEATURE_colortable
+
+
 void
 _swrast_CopyColorTable( GLcontext *ctx, 
 			GLenum target, GLenum internalformat,
@@ -101,6 +104,12 @@ _swrast_CopyColorSubTable( GLcontext *ctx,GLenum target, GLsizei start,
    /* restore PBO binding */
    ctx->Unpack.BufferObj = bufferSave;
 }
+
+
+#endif /* FEATURE_colortable */
+
+
+#if FEATURE_convolve
 
 
 void
@@ -194,3 +203,6 @@ _swrast_CopyConvolutionFilter2D(GLcontext *ctx, GLenum target,
    ctx->Unpack = packSave;  /* restore pixel packing params */
    ctx->NewState |= _NEW_PACKUNPACK; 
 }
+
+
+#endif /* FEATURE_convolve */

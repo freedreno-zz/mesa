@@ -40,6 +40,8 @@
 #include "s_zoom.h"
 
 
+#if FEATURE_drawpix
+
 
 /**
  * Determine if there's overlap in an image copy.
@@ -930,3 +932,6 @@ _swrast_CopyPixels( GLcontext *ctx,
 
    swrast_render_finish(ctx);
 }
+
+
+#endif /* FEATURE_drawpix */

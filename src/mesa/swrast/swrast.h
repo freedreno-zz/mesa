@@ -33,6 +33,7 @@
 #define SWRAST_H
 
 #include "main/mtypes.h"
+#include "swrast_features.h"
 
 /**
  * \struct SWvertex
@@ -102,28 +103,6 @@ extern struct swrast_device_driver *
 _swrast_GetDeviceDriverReference( GLcontext *ctx );
 
 extern void
-_swrast_Bitmap( GLcontext *ctx,
-		GLint px, GLint py,
-		GLsizei width, GLsizei height,
-		const struct gl_pixelstore_attrib *unpack,
-		const GLubyte *bitmap );
-
-extern void
-_swrast_CopyPixels( GLcontext *ctx,
-		    GLint srcx, GLint srcy,
-		    GLint destx, GLint desty,
-		    GLsizei width, GLsizei height,
-		    GLenum type );
-
-extern void
-_swrast_DrawPixels( GLcontext *ctx,
-		    GLint x, GLint y,
-		    GLsizei width, GLsizei height,
-		    GLenum format, GLenum type,
-		    const struct gl_pixelstore_attrib *unpack,
-		    const GLvoid *pixels );
-
-extern void
 _swrast_ReadPixels( GLcontext *ctx,
 		    GLint x, GLint y, GLsizei width, GLsizei height,
 		    GLenum format, GLenum type,
@@ -138,10 +117,6 @@ _swrast_BlitFramebuffer(GLcontext *ctx,
 
 extern void
 _swrast_Clear(GLcontext *ctx, GLbitfield buffers);
-
-extern void
-_swrast_Accum(GLcontext *ctx, GLenum op, GLfloat value);
-
 
 
 /* Reset the stipple counter
@@ -208,28 +183,6 @@ _swrast_print_vertex( GLcontext *ctx, const SWvertex *v );
 
 
 /*
- * Imaging fallbacks (a better solution should be found, perhaps
- * moving all the imaging fallback code to a new module) 
- */
-extern void
-_swrast_CopyConvolutionFilter2D(GLcontext *ctx, GLenum target, 
-				GLenum internalFormat, 
-				GLint x, GLint y, GLsizei width, 
-				GLsizei height);
-extern void
-_swrast_CopyConvolutionFilter1D(GLcontext *ctx, GLenum target, 
-				GLenum internalFormat, 
-				GLint x, GLint y, GLsizei width);
-extern void
-_swrast_CopyColorSubTable( GLcontext *ctx,GLenum target, GLsizei start,
-			   GLint x, GLint y, GLsizei width);
-extern void
-_swrast_CopyColorTable( GLcontext *ctx, 
-			GLenum target, GLenum internalformat,
-			GLint x, GLint y, GLsizei width);
-
-
-/*
  * Texture fallbacks.  Could also live in a new module
  * with the rest of the texture store fallbacks?
  */
@@ -287,6 +240,4 @@ struct swrast_device_driver {
    void (*SpanRenderFinish)(GLcontext *ctx);
 };
 
-
-
-#endif
+#endif /* SWRAST_H */

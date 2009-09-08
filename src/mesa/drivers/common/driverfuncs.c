@@ -24,10 +24,14 @@
 
 
 #include "main/glheader.h"
+#include "main/accum.h"
 #include "main/imports.h"
 #include "main/arrayobj.h"
 #include "main/buffers.h"
+#include "main/colortab.h"
 #include "main/context.h"
+#include "main/convolve.h"
+#include "main/drawpix.h"
 #include "main/framebuffer.h"
 #include "main/mipmap.h"
 #include "main/queryobj.h"
@@ -85,14 +89,13 @@ _mesa_init_driver_functions(struct dd_function_table *driver)
 
    /* framebuffer/image functions */
    driver->Clear = _swrast_Clear;
-   driver->Accum = _swrast_Accum;
+
+   _MESA_INIT_ACCUM_FUNCTIONS(driver, _swrast_);
+   _MESA_INIT_DRAWPIX_FUNCTIONS(driver, _swrast_);
 
    _MESA_INIT_RASTPOS_FUNCTIONS(driver, _tnl_);
 
-   driver->DrawPixels = _swrast_DrawPixels;
    driver->ReadPixels = _swrast_ReadPixels;
-   driver->CopyPixels = _swrast_CopyPixels;
-   driver->Bitmap = _swrast_Bitmap;
 
    /* Texture functions */
    driver->ChooseTextureFormat = _mesa_choose_tex_format;
@@ -132,10 +135,10 @@ _mesa_init_driver_functions(struct dd_function_table *driver)
    driver->UpdateTexturePalette = NULL;
 
    /* imaging */
-   driver->CopyColorTable = _swrast_CopyColorTable;
-   driver->CopyColorSubTable = _swrast_CopyColorSubTable;
-   driver->CopyConvolutionFilter1D = _swrast_CopyConvolutionFilter1D;
-   driver->CopyConvolutionFilter2D = _swrast_CopyConvolutionFilter2D;
+   /* swrast does not need UpdateTexturePalette */
+#define _swrast_UpdateTexturePalette NULL
+   _MESA_INIT_COLORTABLE_FUNCTIONS(driver, _swrast_);
+   _MESA_INIT_CONVOLVE_FUNCTIONS(driver, _swrast_);
 
    /* Vertex/fragment programs */
    driver->BindProgram = NULL;

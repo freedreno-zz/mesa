@@ -38,6 +38,8 @@
 #include "s_span.h"
 
 
+#if FEATURE_drawpix
+
 
 /**
  * Render a bitmap.
@@ -226,3 +228,6 @@ _swrast_Bitmap( GLcontext *ctx, GLint px, GLint py,
    swrast_render_finish(ctx);
 }
 #endif
+
+
+#endif /* FEATURE_drawpix */

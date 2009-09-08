@@ -73,6 +73,9 @@
 #endif
 
 
+#if FEATURE_accum
+
+
 /**
  * This is called when we fall out of optimized/unscaled accum buffer mode.
  * That is, we convert each unscaled accum buffer value into a scaled value
@@ -597,3 +600,6 @@ _swrast_Accum(GLcontext *ctx, GLenum op, GLfloat value)
 
    swrast_render_finish(ctx);
 }
+
+
+#endif /* FEATURE_accum */

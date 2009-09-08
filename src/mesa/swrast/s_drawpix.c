@@ -39,6 +39,8 @@
 #include "s_zoom.h"
 
 
+#if FEATURE_drawpix
+
 
 /**
  * Try to do a fast and simple RGB(a) glDrawPixels.
@@ -896,3 +898,6 @@ _swrast_DrawPixels( GLcontext *ctx,
 
    _mesa_unmap_pbo_source(ctx, unpack);
 }
+
+
+#endif /* FEATURE_drawpix */

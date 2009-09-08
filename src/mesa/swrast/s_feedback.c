@@ -34,6 +34,8 @@
 #include "s_triangle.h"
 
 
+#if FEATURE_feedback
+
 
 static void
 feedback_vertex(GLcontext * ctx, const SWvertex * v, const SWvertex * pv)
@@ -138,3 +140,6 @@ _swrast_select_point(GLcontext *ctx, const SWvertex *v)
    const GLfloat zs = 1.0F / ctx->DrawBuffer->_DepthMaxF;
    _mesa_update_hitflag( ctx, v->attrib[FRAG_ATTRIB_WPOS][2] * zs );
 }
+
+
+#endif /* FEATURE_feedback */

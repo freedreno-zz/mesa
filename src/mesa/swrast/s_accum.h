@@ -30,8 +30,19 @@
 #include "main/mtypes.h"
 
 
+#if FEATURE_accum
+
 extern void
 _swrast_clear_accum_buffer(GLcontext *ctx, struct gl_renderbuffer *rb);
 
+#else /* FEATURE_accum */
+
+static INLINE void
+_swrast_clear_accum_buffer(GLcontext *ctx, struct gl_renderbuffer *rb)
+{
+   ASSERT_NO_FEATURE();
+}
 
 #endif
+
+#endif /* S_ACCUM_H */
