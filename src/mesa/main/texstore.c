@@ -980,6 +980,32 @@ memcpy_texture(GLcontext *ctx,
 }
 
 
+/**
+ * no-op store
+ */
+GLboolean
+_mesa_texstore_null(TEXSTORE_PARAMS)
+{
+   (void) ctx;
+   (void) dims; 
+   (void) baseInternalFormat; 
+   (void) dstFormat; 
+   (void) dstAddr; 
+   (void) dstXoffset;
+   (void) dstYoffset;
+   (void) dstZoffset; 
+   (void) dstRowStride;
+   (void) dstImageOffsets; 
+   (void) srcWidth;
+   (void) srcHeight;
+   (void) srcDepth; 
+   (void) srcFormat;
+   (void) srcType; 
+   (void) srcAddr; 
+   (void) srcPacking;
+   return GL_TRUE;
+}
+
 
 /**
  * Store an image in any of the formats:

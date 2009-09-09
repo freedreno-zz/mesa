@@ -87,30 +87,33 @@ nonlinear_to_linear(GLubyte cs8)
  *
  * Have to have this so the FetchTexel function pointer is never NULL.
  */
-static void fetch_null_texel( const struct gl_texture_image *texImage,
-			      GLint i, GLint j, GLint k, GLchan *texel )
+void
+_mesa_texformat_fetch_texel_null(const struct gl_texture_image *texImage,
+                                 GLint i, GLint j, GLint k, GLchan *texel)
 {
    (void) texImage; (void) i; (void) j; (void) k;
    texel[RCOMP] = 0;
    texel[GCOMP] = 0;
    texel[BCOMP] = 0;
    texel[ACOMP] = 0;
-   _mesa_warning(NULL, "fetch_null_texel() called!");
+   _mesa_warning(NULL, "_mesa_texformat_fetch_texel_null() called!");
 }
 
-static void fetch_null_texelf( const struct gl_texture_image *texImage,
-                               GLint i, GLint j, GLint k, GLfloat *texel )
+void
+_mesa_texformat_fetch_texel_f_null(const struct gl_texture_image *texImage,
+                                   GLint i, GLint j, GLint k, GLfloat *texel)
 {
    (void) texImage; (void) i; (void) j; (void) k;
    texel[RCOMP] = 0.0;
    texel[GCOMP] = 0.0;
    texel[BCOMP] = 0.0;
    texel[ACOMP] = 0.0;
-   _mesa_warning(NULL, "fetch_null_texelf() called!");
+   _mesa_warning(NULL, "_mesa_texformat_fetch_texel_f_null() called!");
 }
 
-static void store_null_texel(struct gl_texture_image *texImage,
-                             GLint i, GLint j, GLint k, const void *texel)
+void
+_mesa_texformat_store_texel_null(struct gl_texture_image *texImage,
+                                 GLint i, GLint j, GLint k, const void *texel)
 {
    (void) texImage;
    (void) i;
@@ -1448,13 +1451,7 @@ const struct gl_texture_format _mesa_null_texformat = {
    0,					/* StencilBits */
    0,					/* TexelBytes */
    NULL,				/* StoreTexImageFunc */
-   fetch_null_texel,			/* FetchTexel1D */
-   fetch_null_texel,			/* FetchTexel2D */
-   fetch_null_texel,			/* FetchTexel3D */
-   fetch_null_texelf,			/* FetchTexel1Df */
-   fetch_null_texelf,			/* FetchTexel2Df */
-   fetch_null_texelf,			/* FetchTexel3Df */
-   store_null_texel			/* StoreTexel */
+   _MESA_TEXFORMAT_NULL_OPS
 };
 
 /*@}*/

@@ -39,6 +39,16 @@
 #include "mtypes.h"
 
 
+#define _MESA_TEXFORMAT_NULL_OPS \
+   _mesa_texformat_fetch_texel_null,	/* FetchTexel1D */  \
+   _mesa_texformat_fetch_texel_null,	/* FetchTexel2D */  \
+   _mesa_texformat_fetch_texel_null,	/* FetchTexel3D */  \
+   _mesa_texformat_fetch_texel_f_null,	/* FetchTexel1Df */ \
+   _mesa_texformat_fetch_texel_f_null,	/* FetchTexel2Df */ \
+   _mesa_texformat_fetch_texel_f_null,	/* FetchTexel3Df */ \
+   _mesa_texformat_store_texel_null	/* StoreTexel */
+
+
 /**
  * Mesa internal texture image formats.
  * All texture images are stored in one of these formats.
@@ -288,6 +298,21 @@ _mesa_choose_tex_format( GLcontext *ctx, GLint internalFormat,
 extern void
 _mesa_format_to_type_and_comps(const struct gl_texture_format *format,
                                GLenum *datatype, GLuint *comps);
+
+
+extern void
+_mesa_texformat_fetch_texel_null(const struct gl_texture_image *texImage,
+			         GLint i, GLint j, GLint k, GLchan *texel);
+
+
+extern void
+_mesa_texformat_fetch_texel_f_null(const struct gl_texture_image *texImage,
+                                   GLint i, GLint j, GLint k, GLfloat *texel);
+
+
+extern void
+_mesa_texformat_store_texel_null(struct gl_texture_image *texImage,
+                                 GLint i, GLint j, GLint k, const void *texel);
 
 
 #endif

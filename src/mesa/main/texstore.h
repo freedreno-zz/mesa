@@ -39,6 +39,7 @@
 #include "mtypes.h"
 
 
+extern GLboolean _mesa_texstore_null(TEXSTORE_PARAMS);
 extern GLboolean _mesa_texstore_rgba(TEXSTORE_PARAMS);
 extern GLboolean _mesa_texstore_color_index(TEXSTORE_PARAMS);
 extern GLboolean _mesa_texstore_rgba8888(TEXSTORE_PARAMS);
