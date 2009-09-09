@@ -73,6 +73,7 @@
 #include "texstate.h"
 #include "mtypes.h"
 #include "varray.h"
+#include "vtxfmt.h"
 #if FEATURE_ARB_vertex_program || FEATURE_ARB_fragment_program
 #include "shader/arbprogram.h"
 #include "shader/program.h"
@@ -409,6 +410,10 @@ typedef union gl_dlist_node Node;
  * Sizes for dynamically allocated opcodes are stored in the context struct.
  */
 static GLuint InstSize[OPCODE_END_OF_LIST + 1];
+
+
+#if FEATURE_dlist
+
 
 void mesa_print_display_list(GLuint list);
 
@@ -7789,7 +7794,7 @@ exec_MultiModeDrawElementsIBM(const GLenum * mode,
  * struct.
  */
 void
-_mesa_init_dlist_table(struct _glapi_table *table)
+_mesa_init_save_table(struct _glapi_table *table)
 {
    _mesa_loopback_init_api_table(table);
 
@@ -8635,8 +8640,9 @@ _mesa_save_vtxfmt_init(GLvertexformat * vfmt)
    _MESA_INIT_ARRAYELT_VTXFMT(vfmt, _ae_);
 
    vfmt->Begin = save_Begin;
-   vfmt->CallList = _mesa_save_CallList;
-   vfmt->CallLists = _mesa_save_CallLists;
+
+   _MESA_INIT_DLIST_VTXFMT(vfmt, _mesa_save_);
+
    vfmt->Color3f = save_Color3f;
    vfmt->Color3fv = save_Color3fv;
    vfmt->Color4f = save_Color4f;
@@ -8714,6 +8720,32 @@ _mesa_save_vtxfmt_init(GLvertexformat * vfmt)
 }
 
 
+void
+_mesa_install_dlist_vtxfmt(struct _glapi_table *disp,
+                           const GLvertexformat *vfmt)
+{
+   SET_CallList(disp, vfmt->CallList);
+   SET_CallLists(disp, vfmt->CallLists);
+}
+
+
+void _mesa_init_dlist_dispatch(struct _glapi_table *disp)
+{
+   SET_CallList(disp, _mesa_CallList);
+   SET_CallLists(disp, _mesa_CallLists);
+
+   SET_DeleteLists(disp, _mesa_DeleteLists);
+   SET_EndList(disp, _mesa_EndList);
+   SET_GenLists(disp, _mesa_GenLists);
+   SET_IsList(disp, _mesa_IsList);
+   SET_ListBase(disp, _mesa_ListBase);
+   SET_NewList(disp, _mesa_NewList);
+}
+
+
+#endif /* FEATURE_dlist */
+
+
 /**
  * Initialize display list state for given context.
  */
@@ -8738,5 +8770,7 @@ _mesa_init_display_list(GLcontext *ctx)
    /* Display List group */
    ctx->List.ListBase = 0;
 
+#if FEATURE_dlist
    _mesa_save_vtxfmt_init(&ctx->ListState.ListVtxfmt);
+#endif
 }
