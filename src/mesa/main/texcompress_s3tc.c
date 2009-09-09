@@ -54,6 +54,10 @@
 #define DXTN_LIBNAME "libtxc_dxtn.so"
 #endif
 
+
+#if FEATURE_texture_s3tc
+
+
 #if FEATURE_EXT_texture_sRGB
 /**
  * Convert an 8-bit sRGB value from non-linear space to a
@@ -564,7 +568,21 @@ fetch_texel_2d_f_srgba_dxt5( const struct gl_texture_image *texImage,
    texel[BCOMP] = nonlinear_to_linear(rgba[BCOMP]);
    texel[ACOMP] = CHAN_TO_FLOAT(rgba[ACOMP]);
 }
-#endif
+#endif /* FEATURE_EXT_texture_sRGB */
+
+
+#else /* FEATURE_texture_s3tc */
+
+
+void
+_mesa_init_texture_s3tc( GLcontext *ctx )
+{
+   (void) ctx;
+}
+
+
+#endif /* FEATURE_texture_s3tc */
+
 
 const struct gl_texture_format _mesa_texformat_rgb_dxt1 = {
    MESA_FORMAT_RGB_DXT1,		/* MesaFormat */
@@ -580,6 +598,7 @@ const struct gl_texture_format _mesa_texformat_rgb_dxt1 = {
    0,					/* DepthBits */
    0,					/* StencilBits */
    0,					/* TexelBytes */
+#if FEATURE_texture_s3tc
    texstore_rgb_dxt1,			/* StoreTexImageFunc */
    NULL, /*impossible*/ 		/* FetchTexel1D */
    fetch_texel_2d_rgb_dxt1, 		/* FetchTexel2D */
@@ -588,6 +607,10 @@ const struct gl_texture_format _mesa_texformat_rgb_dxt1 = {
    fetch_texel_2d_f_rgb_dxt1, 		/* FetchTexel2Df */
    NULL, /*impossible*/ 		/* FetchTexel3Df */
    NULL					/* StoreTexel */
+#else
+   _mesa_texstore_null,
+   _MESA_TEXFORMAT_NULL_OPS
+#endif
 };
 
 const struct gl_texture_format _mesa_texformat_rgba_dxt1 = {
@@ -604,6 +627,7 @@ const struct gl_texture_format _mesa_texformat_rgba_dxt1 = {
    0,					/* DepthBits */
    0,					/* StencilBits */
    0,					/* TexelBytes */
+#if FEATURE_texture_s3tc
    texstore_rgba_dxt1,			/* StoreTexImageFunc */
    NULL, /*impossible*/ 		/* FetchTexel1D */
    fetch_texel_2d_rgba_dxt1, 		/* FetchTexel2D */
@@ -612,6 +636,10 @@ const struct gl_texture_format _mesa_texformat_rgba_dxt1 = {
    fetch_texel_2d_f_rgba_dxt1, 		/* FetchTexel2Df */
    NULL, /*impossible*/ 		/* FetchTexel3Df */
    NULL					/* StoreTexel */
+#else
+   _mesa_texstore_null,
+   _MESA_TEXFORMAT_NULL_OPS
+#endif
 };
 
 const struct gl_texture_format _mesa_texformat_rgba_dxt3 = {
@@ -628,6 +656,7 @@ const struct gl_texture_format _mesa_texformat_rgba_dxt3 = {
    0,					/* DepthBits */
    0,					/* StencilBits */
    0,					/* TexelBytes */
+#if FEATURE_texture_s3tc
    texstore_rgba_dxt3,			/* StoreTexImageFunc */
    NULL, /*impossible*/ 		/* FetchTexel1D */
    fetch_texel_2d_rgba_dxt3, 		/* FetchTexel2D */
@@ -636,6 +665,10 @@ const struct gl_texture_format _mesa_texformat_rgba_dxt3 = {
    fetch_texel_2d_f_rgba_dxt3, 		/* FetchTexel2Df */
    NULL, /*impossible*/ 		/* FetchTexel3Df */
    NULL					/* StoreTexel */
+#else
+   _mesa_texstore_null,
+   _MESA_TEXFORMAT_NULL_OPS
+#endif
 };
 
 const struct gl_texture_format _mesa_texformat_rgba_dxt5 = {
@@ -652,6 +685,7 @@ const struct gl_texture_format _mesa_texformat_rgba_dxt5 = {
    0,					/* DepthBits */
    0,					/* StencilBits */
    0,					/* TexelBytes */
+#if FEATURE_texture_s3tc
    texstore_rgba_dxt5,			/* StoreTexImageFunc */
    NULL, /*impossible*/ 		/* FetchTexel1D */
    fetch_texel_2d_rgba_dxt5, 		/* FetchTexel2D */
@@ -660,6 +694,10 @@ const struct gl_texture_format _mesa_texformat_rgba_dxt5 = {
    fetch_texel_2d_f_rgba_dxt5, 		/* FetchTexel2Df */
    NULL, /*impossible*/ 		/* FetchTexel3Df */
    NULL					/* StoreTexel */
+#else
+   _mesa_texstore_null,
+   _MESA_TEXFORMAT_NULL_OPS
+#endif
 };
 
 #if FEATURE_EXT_texture_sRGB

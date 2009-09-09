@@ -699,9 +699,7 @@ init_attrib_groups(GLcontext *ctx)
    if (!_mesa_init_texture( ctx ))
       return GL_FALSE;
 
-#if FEATURE_texture_s3tc
    _mesa_init_texture_s3tc( ctx );
-#endif
    _mesa_init_texture_fxt1( ctx );
 
    /* Miscellaneous */
