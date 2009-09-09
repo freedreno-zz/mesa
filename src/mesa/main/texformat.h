@@ -125,10 +125,8 @@ enum _format {
     * \name Compressed texture formats.
     */
    /*@{*/
-#if FEATURE_texture_fxt1
    MESA_FORMAT_RGB_FXT1,
    MESA_FORMAT_RGBA_FXT1,
-#endif
 #if FEATURE_texture_s3tc
    MESA_FORMAT_RGB_DXT1,
    MESA_FORMAT_RGBA_DXT1,
@@ -272,10 +270,8 @@ extern const struct gl_texture_format _mesa_texformat_ycbcr_rev;
 
 /** \name Compressed formats */
 /*@{*/
-#if FEATURE_texture_fxt1
 extern const struct gl_texture_format _mesa_texformat_rgb_fxt1;
 extern const struct gl_texture_format _mesa_texformat_rgba_fxt1;
-#endif
 #if FEATURE_texture_s3tc
 extern const struct gl_texture_format _mesa_texformat_rgb_dxt1;
 extern const struct gl_texture_format _mesa_texformat_rgba_dxt1;
