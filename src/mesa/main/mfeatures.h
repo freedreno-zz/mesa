@@ -75,7 +75,7 @@
 #define FEATURE_colortable  _HAVE_FULL_GL
 #define FEATURE_convolve  _HAVE_FULL_GL
 #define FEATURE_dispatch  _HAVE_FULL_GL
-#define FEATURE_dlist  (_HAVE_FULL_GL && FEATURE_arrayelt)
+#define FEATURE_dlist  (_HAVE_FULL_GL && FEATURE_arrayelt && FEATURE_beginend)
 #define FEATURE_draw_read_buffer  _HAVE_FULL_GL
 #define FEATURE_drawpix  _HAVE_FULL_GL
 #define FEATURE_eval  _HAVE_FULL_GL
@@ -90,6 +90,7 @@
 #define FEATURE_texture_fxt1  _HAVE_FULL_GL
 #define FEATURE_texture_s3tc  _HAVE_FULL_GL
 #define FEATURE_userclip  _HAVE_FULL_GL
+#define FEATURE_beginend  _HAVE_FULL_GL
 #define FEATURE_vertex_array_byte 0
 #define FEATURE_es2_glsl 0
 
