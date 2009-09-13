@@ -2891,8 +2891,6 @@ param           y               GLint
 param           z               GLint
 param           w               GLint
 param           h               GLint
-convertalias    DrawTexf
-convertparams   GLfloat        x y z w h
 category        GLES1.1:OES_draw_texture
 
 name            DrawTexs
@@ -2902,8 +2900,6 @@ param           y               GLshort
 param           z               GLshort
 param           w               GLshort
 param           h               GLshort
-convertalias    DrawTexf
-convertparams   GLfloat        x y z w h
 category        GLES1.1:OES_draw_texture
 
 name            DrawTexx
@@ -2927,16 +2923,12 @@ name            DrawTexiv
 return          void
 param           coords          const GLint *
 vector          coords          5
-convertalias    DrawTexfv
-convertparams   GLfloat         coords
 category        GLES1.1:OES_draw_texture
 
 name            DrawTexsv
 return          void
 param           coords          const GLshort *
 vector          coords          5
-convertalias    DrawTexfv
-convertparams   GLfloat         coords
 category        GLES1.1:OES_draw_texture
 
 name            DrawTexxv

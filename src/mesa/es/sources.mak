@@ -2,6 +2,7 @@
 
 ES1_LOCAL_SOURCES :=			\
 	main/api_exec_es1.c		\
+	main/drawtex.c			\
 	main/get_es1.c			\
 	main/specials_es1.c		\
 	main/es_cpaltex.c		\
@@ -21,9 +22,19 @@ ES1_LOCAL_INCLUDES :=			\
 	-I./state_tracker		\
 	-I$(MESA)/state_tracker
 
-ES2_LOCAL_SOURCES := $(subst es1,es2,$(ES1_LOCAL_SOURCES))
-ES2_GALLIUM_LOCAL_SOURCES := $(subst es1,es2,$(ES1_GALLIUM_LOCAL_SOURCES))
-ES2_API_LOCAL_SOURCES := $(subst es1,es2,$(ES1_API_LOCAL_SOURCES))
+ES2_LOCAL_SOURCES :=			\
+	main/api_exec_es2.c		\
+	main/get_es2.c			\
+	main/specials_es2.c		\
+	main/es_cpaltex.c		\
+	main/es_fbo.c			\
+	main/stubs.c
+
+ES2_GALLIUM_LOCAL_SOURCES :=		\
+	$(ES2_LOCAL_SOURCES)
+
+ES2_API_LOCAL_SOURCES :=
+
 ES2_LOCAL_INCLUDES := $(subst es1,es2,$(ES1_LOCAL_INCLUDES))
 
 # MESA sources
