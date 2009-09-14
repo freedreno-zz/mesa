@@ -25,6 +25,8 @@
  * 
  **************************************************************************/
 
+#include "main/accum.h"
+#include "main/drawpix.h"
 #include "main/enums.h"
 #include "main/state.h"
 #include "main/bufferobj.h"
@@ -179,11 +181,9 @@ intel_check_blit_format(struct intel_region * region,
 void
 intelInitPixelFuncs(struct dd_function_table *functions)
 {
-   functions->Accum = _swrast_Accum;
+   _MESA_INIT_ACCUM_FUNCTIONS(functions, _swrast_);
    if (!getenv("INTEL_NO_BLIT")) {
-      functions->Bitmap = intelBitmap;
-      functions->CopyPixels = intelCopyPixels;
-      functions->DrawPixels = intelDrawPixels;
+      _MESA_INIT_DRAWPIX_FUNCTIONS(functions, intel);
    }
    functions->ReadPixels = intelReadPixels;
 }

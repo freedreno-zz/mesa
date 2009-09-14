@@ -48,7 +48,6 @@
 #include "main/hash.h"
 #include "main/mipmap.h"
 #include "main/blend.h"
-#include "glapi/dispatch.h"
 #include "swrast/swrast.h"
 
 #include "intel_screen.h"
@@ -58,6 +57,7 @@
 #include "intel_tex.h"
 #include "intel_mipmap_tree.h"
 
+#if FEATURE_attrib_stack
 static const char *intel_fp_tex2d =
       "!!ARBfp1.0\n"
       "TEX result.color, fragment.texcoord[0], texture[0], 2D;\n"
@@ -215,6 +215,7 @@ fail:
 
    return success;
 }
+#endif /* FEATURE_attrib_stack */
 
 
 /**
@@ -238,6 +239,7 @@ intel_generate_mipmap(GLcontext *ctx, GLenum target,
    GLuint nr_faces = (intelObj->base.Target == GL_TEXTURE_CUBE_MAP) ? 6 : 1;
    int face, i;
 
+#if FEATURE_attrib_stack
    /* HW path */
    if (target == GL_TEXTURE_2D &&
        ctx->Extensions.EXT_framebuffer_object &&
@@ -255,6 +257,7 @@ intel_generate_mipmap(GLcontext *ctx, GLenum target,
       if (success)
 	 return;
    }
+#endif /* FEATURE_attrib_stack */
 
    /* SW path */
    intel_tex_map_level_images(intel, intelObj, texObj->BaseLevel);

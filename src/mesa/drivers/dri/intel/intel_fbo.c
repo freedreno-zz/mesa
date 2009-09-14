@@ -715,5 +715,7 @@ intel_fbo_init(struct intel_context *intel)
    intel->ctx.Driver.FinishRenderTexture = intel_finish_render_texture;
    intel->ctx.Driver.ResizeBuffers = intel_resize_buffers;
    intel->ctx.Driver.ValidateFramebuffer = intel_validate_framebuffer;
+#if FEATURE_EXT_framebuffer_blit
    intel->ctx.Driver.BlitFramebuffer = _mesa_meta_blit_framebuffer;
+#endif
 }

@@ -45,6 +45,8 @@
 #include "intel_batchbuffer.h"
 #include "intel_reg.h"
 
+#if FEATURE_ARB_sync
+
 static struct gl_sync_object *
 intel_new_sync_object(GLcontext *ctx, GLuint id)
 {
@@ -130,3 +132,11 @@ void intel_init_syncobj_functions(struct dd_function_table *functions)
    functions->ClientWaitSync = intel_client_wait_sync;
    functions->ServerWaitSync = intel_server_wait_sync;
 }
+
+#else /* FEATURE_ARB_sync */
+
+void intel_init_syncobj_functions(struct dd_function_table *functions)
+{
+}
+
+#endif

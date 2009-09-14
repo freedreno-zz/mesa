@@ -27,7 +27,9 @@
 
 
 #include "main/glheader.h"
+#include "main/colortab.h"
 #include "main/context.h"
+#include "main/convolve.h"
 #include "main/arrayobj.h"
 #include "main/extensions.h"
 #include "main/framebuffer.h"
@@ -587,10 +589,8 @@ intelInitDriverFunctions(struct dd_function_table *functions)
    functions->GetString = intelGetString;
    functions->UpdateState = intelInvalidateState;
 
-   functions->CopyColorTable = _swrast_CopyColorTable;
-   functions->CopyColorSubTable = _swrast_CopyColorSubTable;
-   functions->CopyConvolutionFilter1D = _swrast_CopyConvolutionFilter1D;
-   functions->CopyConvolutionFilter2D = _swrast_CopyConvolutionFilter2D;
+   _MESA_INIT_COLORTABLE_FUNCTIONS(functions, _swrast_);
+   _MESA_INIT_CONVOLVE_FUNCTIONS(functions, _swrast_);
 
    intelInitTextureFuncs(functions);
    intelInitTextureImageFuncs(functions);
