@@ -74,6 +74,8 @@ _swrast_CopyColorTable( GLcontext *ctx,
 			GLenum target, GLenum internalformat,
 			GLint x, GLint y, GLsizei width);
 
+#define _swrast_UpdateTexturePalette NULL
+
 #endif
 
 
