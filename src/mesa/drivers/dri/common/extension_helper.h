@@ -32,6 +32,8 @@
 # define NULL 0
 #endif
 
+#if defined(IN_DRI_DRIVER)
+
 #if defined(need_GL_VERSION_2_0) || defined(need_GL_ARB_shader_objects)
 static const char UniformMatrix3fvARB_names[] =
     "iiip\0" /* Parameter signature */
@@ -1820,13 +1822,6 @@ static const char DeleteFencesNV_names[] =
     "";
 #endif
 
-#if defined(need_GL_SGIX_polynomial_ffd)
-static const char DeformationMap3dSGIX_names[] =
-    "iddiiddiiddiip\0" /* Parameter signature */
-    "glDeformationMap3dSGIX\0"
-    "";
-#endif
-
 #if defined(need_GL_VERSION_2_0)
 static const char IsShader_names[] =
     "i\0" /* Parameter signature */
@@ -2050,6 +2045,13 @@ static const char FramebufferTexture1DEXT_names[] =
 static const char GetCombinerOutputParameterivNV_names[] =
     "iiip\0" /* Parameter signature */
     "glGetCombinerOutputParameterivNV\0"
+    "";
+#endif
+
+#if defined(need_GL_IBM_multimode_draw_arrays)
+static const char MultiModeDrawArraysIBM_names[] =
+    "pppii\0" /* Parameter signature */
+    "glMultiModeDrawArraysIBM\0"
     "";
 #endif
 
@@ -4004,13 +4006,6 @@ static const char VertexAttribs4dvNV_names[] =
     "";
 #endif
 
-#if defined(need_GL_IBM_multimode_draw_arrays)
-static const char MultiModeDrawArraysIBM_names[] =
-    "pppii\0" /* Parameter signature */
-    "glMultiModeDrawArraysIBM\0"
-    "";
-#endif
-
 #if defined(need_GL_VERSION_2_0) || defined(need_GL_ARB_vertex_program)
 static const char VertexAttrib4dARB_names[] =
     "idddd\0" /* Parameter signature */
@@ -4706,6 +4701,13 @@ static const char Minmax_names[] =
     "iii\0" /* Parameter signature */
     "glMinmax\0"
     "glMinmaxEXT\0"
+    "";
+#endif
+
+#if defined(need_GL_SGIX_polynomial_ffd)
+static const char DeformationMap3dSGIX_names[] =
+    "iddiiddiiddiip\0" /* Parameter signature */
+    "glDeformationMap3dSGIX\0"
     "";
 #endif
 
@@ -6267,9 +6269,9 @@ static const struct dri_extension_function GL_SGIX_pixel_texture_functions[] = {
 #if defined(need_GL_SGIX_polynomial_ffd)
 static const struct dri_extension_function GL_SGIX_polynomial_ffd_functions[] = {
     { LoadIdentityDeformationMapSGIX_names, LoadIdentityDeformationMapSGIX_remap_index, -1 },
-    { DeformationMap3dSGIX_names, DeformationMap3dSGIX_remap_index, -1 },
     { DeformSGIX_names, DeformSGIX_remap_index, -1 },
     { DeformationMap3fSGIX_names, DeformationMap3fSGIX_remap_index, -1 },
+    { DeformationMap3dSGIX_names, DeformationMap3dSGIX_remap_index, -1 },
     { NULL, 0, 0 }
 };
 #endif
@@ -6636,4 +6638,464 @@ static const struct dri_extension_function GL_VERSION_2_1_functions[] = {
     { NULL, 0, 0 }
 };
 #endif
+
+#else /* IN_DRI_DRIVER */
+
+#if defined(need_GL_3DFX_tbuffer)
+#define GL_3DFX_tbuffer_functions NULL
+#endif
+
+#if defined(need_GL_APPLE_flush_buffer_range)
+#define GL_APPLE_flush_buffer_range_functions NULL
+#endif
+
+#if defined(need_GL_APPLE_texture_range)
+#define GL_APPLE_texture_range_functions NULL
+#endif
+
+#if defined(need_GL_APPLE_vertex_array_object)
+#define GL_APPLE_vertex_array_object_functions NULL
+#endif
+
+#if defined(need_GL_ARB_copy_buffer)
+#define GL_ARB_copy_buffer_functions NULL
+#endif
+
+#if defined(need_GL_ARB_draw_buffers)
+#define GL_ARB_draw_buffers_functions NULL
+#endif
+
+#if defined(need_GL_ARB_draw_elements_base_vertex)
+#define GL_ARB_draw_elements_base_vertex_functions NULL
+#endif
+
+#if defined(need_GL_ARB_framebuffer_object)
+#define GL_ARB_framebuffer_object_functions NULL
+#endif
+
+#if defined(need_GL_ARB_map_buffer_range)
+#define GL_ARB_map_buffer_range_functions NULL
+#endif
+
+#if defined(need_GL_ARB_matrix_palette)
+#define GL_ARB_matrix_palette_functions NULL
+#endif
+
+#if defined(need_GL_ARB_multisample)
+#define GL_ARB_multisample_functions NULL
+#endif
+
+#if defined(need_GL_ARB_occlusion_query)
+#define GL_ARB_occlusion_query_functions NULL
+#endif
+
+#if defined(need_GL_ARB_point_parameters)
+#define GL_ARB_point_parameters_functions NULL
+#endif
+
+#if defined(need_GL_ARB_shader_objects)
+#define GL_ARB_shader_objects_functions NULL
+#endif
+
+#if defined(need_GL_ARB_sync)
+#define GL_ARB_sync_functions NULL
+#endif
+
+#if defined(need_GL_ARB_texture_compression)
+#define GL_ARB_texture_compression_functions NULL
+#endif
+
+#if defined(need_GL_ARB_transpose_matrix)
+#define GL_ARB_transpose_matrix_functions NULL
+#endif
+
+#if defined(need_GL_ARB_vertex_array_object)
+#define GL_ARB_vertex_array_object_functions NULL
+#endif
+
+#if defined(need_GL_ARB_vertex_blend)
+#define GL_ARB_vertex_blend_functions NULL
+#endif
+
+#if defined(need_GL_ARB_vertex_buffer_object)
+#define GL_ARB_vertex_buffer_object_functions NULL
+#endif
+
+#if defined(need_GL_ARB_vertex_program)
+#define GL_ARB_vertex_program_functions NULL
+#endif
+
+#if defined(need_GL_ARB_vertex_shader)
+#define GL_ARB_vertex_shader_functions NULL
+#endif
+
+#if defined(need_GL_ARB_window_pos)
+#define GL_ARB_window_pos_functions NULL
+#endif
+
+#if defined(need_GL_ATI_blend_equation_separate)
+#define GL_ATI_blend_equation_separate_functions NULL
+#endif
+
+#if defined(need_GL_ATI_draw_buffers)
+#define GL_ATI_draw_buffers_functions NULL
+#endif
+
+#if defined(need_GL_ATI_envmap_bumpmap)
+#define GL_ATI_envmap_bumpmap_functions NULL
+#endif
+
+#if defined(need_GL_ATI_fragment_shader)
+#define GL_ATI_fragment_shader_functions NULL
+#endif
+
+#if defined(need_GL_ATI_separate_stencil)
+#define GL_ATI_separate_stencil_functions NULL
+#endif
+
+#if defined(need_GL_EXT_blend_color)
+#define GL_EXT_blend_color_functions NULL
+#endif
+
+#if defined(need_GL_EXT_blend_equation_separate)
+#define GL_EXT_blend_equation_separate_functions NULL
+#endif
+
+#if defined(need_GL_EXT_blend_func_separate)
+#define GL_EXT_blend_func_separate_functions NULL
+#endif
+
+#if defined(need_GL_EXT_blend_minmax)
+#define GL_EXT_blend_minmax_functions NULL
+#endif
+
+#if defined(need_GL_EXT_color_subtable)
+#define GL_EXT_color_subtable_functions NULL
+#endif
+
+#if defined(need_GL_EXT_compiled_vertex_array)
+#define GL_EXT_compiled_vertex_array_functions NULL
+#endif
+
+#if defined(need_GL_EXT_convolution)
+#define GL_EXT_convolution_functions NULL
+#endif
+
+#if defined(need_GL_EXT_coordinate_frame)
+#define GL_EXT_coordinate_frame_functions NULL
+#endif
+
+#if defined(need_GL_EXT_copy_texture)
+#define GL_EXT_copy_texture_functions NULL
+#endif
+
+#if defined(need_GL_EXT_cull_vertex)
+#define GL_EXT_cull_vertex_functions NULL
+#endif
+
+#if defined(need_GL_EXT_depth_bounds_test)
+#define GL_EXT_depth_bounds_test_functions NULL
+#endif
+
+#if defined(need_GL_EXT_draw_range_elements)
+#define GL_EXT_draw_range_elements_functions NULL
+#endif
+
+#if defined(need_GL_EXT_fog_coord)
+#define GL_EXT_fog_coord_functions NULL
+#endif
+
+#if defined(need_GL_EXT_framebuffer_blit)
+#define GL_EXT_framebuffer_blit_functions NULL
+#endif
+
+#if defined(need_GL_EXT_framebuffer_object)
+#define GL_EXT_framebuffer_object_functions NULL
+#endif
+
+#if defined(need_GL_EXT_gpu_program_parameters)
+#define GL_EXT_gpu_program_parameters_functions NULL
+#endif
+
+#if defined(need_GL_EXT_histogram)
+#define GL_EXT_histogram_functions NULL
+#endif
+
+#if defined(need_GL_EXT_index_func)
+#define GL_EXT_index_func_functions NULL
+#endif
+
+#if defined(need_GL_EXT_index_material)
+#define GL_EXT_index_material_functions NULL
+#endif
+
+#if defined(need_GL_EXT_light_texture)
+#define GL_EXT_light_texture_functions NULL
+#endif
+
+#if defined(need_GL_EXT_multi_draw_arrays)
+#define GL_EXT_multi_draw_arrays_functions NULL
+#endif
+
+#if defined(need_GL_EXT_multisample)
+#define GL_EXT_multisample_functions NULL
+#endif
+
+#if defined(need_GL_EXT_paletted_texture)
+#define GL_EXT_paletted_texture_functions NULL
+#endif
+
+#if defined(need_GL_EXT_pixel_transform)
+#define GL_EXT_pixel_transform_functions NULL
+#endif
+
+#if defined(need_GL_EXT_point_parameters)
+#define GL_EXT_point_parameters_functions NULL
+#endif
+
+#if defined(need_GL_EXT_polygon_offset)
+#define GL_EXT_polygon_offset_functions NULL
+#endif
+
+#if defined(need_GL_EXT_provoking_vertex)
+#define GL_EXT_provoking_vertex_functions NULL
+#endif
+
+#if defined(need_GL_EXT_secondary_color)
+#define GL_EXT_secondary_color_functions NULL
+#endif
+
+#if defined(need_GL_EXT_stencil_two_side)
+#define GL_EXT_stencil_two_side_functions NULL
+#endif
+
+#if defined(need_GL_EXT_subtexture)
+#define GL_EXT_subtexture_functions NULL
+#endif
+
+#if defined(need_GL_EXT_texture3D)
+#define GL_EXT_texture3D_functions NULL
+#endif
+
+#if defined(need_GL_EXT_texture_array)
+#define GL_EXT_texture_array_functions NULL
+#endif
+
+#if defined(need_GL_EXT_texture_object)
+#define GL_EXT_texture_object_functions NULL
+#endif
+
+#if defined(need_GL_EXT_texture_perturb_normal)
+#define GL_EXT_texture_perturb_normal_functions NULL
+#endif
+
+#if defined(need_GL_EXT_timer_query)
+#define GL_EXT_timer_query_functions NULL
+#endif
+
+#if defined(need_GL_EXT_vertex_array)
+#define GL_EXT_vertex_array_functions NULL
+#endif
+
+#if defined(need_GL_EXT_vertex_weighting)
+#define GL_EXT_vertex_weighting_functions NULL
+#endif
+
+#if defined(need_GL_HP_image_transform)
+#define GL_HP_image_transform_functions NULL
+#endif
+
+#if defined(need_GL_IBM_multimode_draw_arrays)
+#define GL_IBM_multimode_draw_arrays_functions NULL
+#endif
+
+#if defined(need_GL_IBM_vertex_array_lists)
+#define GL_IBM_vertex_array_lists_functions NULL
+#endif
+
+#if defined(need_GL_INGR_blend_func_separate)
+#define GL_INGR_blend_func_separate_functions NULL
+#endif
+
+#if defined(need_GL_INTEL_parallel_arrays)
+#define GL_INTEL_parallel_arrays_functions NULL
+#endif
+
+#if defined(need_GL_MESA_resize_buffers)
+#define GL_MESA_resize_buffers_functions NULL
+#endif
+
+#if defined(need_GL_MESA_shader_debug)
+#define GL_MESA_shader_debug_functions NULL
+#endif
+
+#if defined(need_GL_MESA_window_pos)
+#define GL_MESA_window_pos_functions NULL
+#endif
+
+#if defined(need_GL_NV_evaluators)
+#define GL_NV_evaluators_functions NULL
+#endif
+
+#if defined(need_GL_NV_fence)
+#define GL_NV_fence_functions NULL
+#endif
+
+#if defined(need_GL_NV_fragment_program)
+#define GL_NV_fragment_program_functions NULL
+#endif
+
+#if defined(need_GL_NV_point_sprite)
+#define GL_NV_point_sprite_functions NULL
+#endif
+
+#if defined(need_GL_NV_register_combiners)
+#define GL_NV_register_combiners_functions NULL
+#endif
+
+#if defined(need_GL_NV_register_combiners2)
+#define GL_NV_register_combiners2_functions NULL
+#endif
+
+#if defined(need_GL_NV_vertex_array_range)
+#define GL_NV_vertex_array_range_functions NULL
+#endif
+
+#if defined(need_GL_NV_vertex_program)
+#define GL_NV_vertex_program_functions NULL
+#endif
+
+#if defined(need_GL_PGI_misc_hints)
+#define GL_PGI_misc_hints_functions NULL
+#endif
+
+#if defined(need_GL_SGIS_detail_texture)
+#define GL_SGIS_detail_texture_functions NULL
+#endif
+
+#if defined(need_GL_SGIS_fog_function)
+#define GL_SGIS_fog_function_functions NULL
+#endif
+
+#if defined(need_GL_SGIS_multisample)
+#define GL_SGIS_multisample_functions NULL
+#endif
+
+#if defined(need_GL_SGIS_pixel_texture)
+#define GL_SGIS_pixel_texture_functions NULL
+#endif
+
+#if defined(need_GL_SGIS_point_parameters)
+#define GL_SGIS_point_parameters_functions NULL
+#endif
+
+#if defined(need_GL_SGIS_sharpen_texture)
+#define GL_SGIS_sharpen_texture_functions NULL
+#endif
+
+#if defined(need_GL_SGIS_texture4D)
+#define GL_SGIS_texture4D_functions NULL
+#endif
+
+#if defined(need_GL_SGIS_texture_color_mask)
+#define GL_SGIS_texture_color_mask_functions NULL
+#endif
+
+#if defined(need_GL_SGIS_texture_filter4)
+#define GL_SGIS_texture_filter4_functions NULL
+#endif
+
+#if defined(need_GL_SGIX_async)
+#define GL_SGIX_async_functions NULL
+#endif
+
+#if defined(need_GL_SGIX_flush_raster)
+#define GL_SGIX_flush_raster_functions NULL
+#endif
+
+#if defined(need_GL_SGIX_fragment_lighting)
+#define GL_SGIX_fragment_lighting_functions NULL
+#endif
+
+#if defined(need_GL_SGIX_framezoom)
+#define GL_SGIX_framezoom_functions NULL
+#endif
+
+#if defined(need_GL_SGIX_igloo_interface)
+#define GL_SGIX_igloo_interface_functions NULL
+#endif
+
+#if defined(need_GL_SGIX_instruments)
+#define GL_SGIX_instruments_functions NULL
+#endif
+
+#if defined(need_GL_SGIX_list_priority)
+#define GL_SGIX_list_priority_functions NULL
+#endif
+
+#if defined(need_GL_SGIX_pixel_texture)
+#define GL_SGIX_pixel_texture_functions NULL
+#endif
+
+#if defined(need_GL_SGIX_polynomial_ffd)
+#define GL_SGIX_polynomial_ffd_functions NULL
+#endif
+
+#if defined(need_GL_SGIX_reference_plane)
+#define GL_SGIX_reference_plane_functions NULL
+#endif
+
+#if defined(need_GL_SGIX_sprite)
+#define GL_SGIX_sprite_functions NULL
+#endif
+
+#if defined(need_GL_SGIX_tag_sample_buffer)
+#define GL_SGIX_tag_sample_buffer_functions NULL
+#endif
+
+#if defined(need_GL_SGI_color_table)
+#define GL_SGI_color_table_functions NULL
+#endif
+
+#if defined(need_GL_SUNX_constant_data)
+#define GL_SUNX_constant_data_functions NULL
+#endif
+
+#if defined(need_GL_SUN_global_alpha)
+#define GL_SUN_global_alpha_functions NULL
+#endif
+
+#if defined(need_GL_SUN_mesh_array)
+#define GL_SUN_mesh_array_functions NULL
+#endif
+
+#if defined(need_GL_SUN_triangle_list)
+#define GL_SUN_triangle_list_functions NULL
+#endif
+
+#if defined(need_GL_SUN_vertex)
+#define GL_SUN_vertex_functions NULL
+#endif
+
+#if defined(need_GL_VERSION_1_3)
+#define GL_VERSION_1_3_functions NULL
+#endif
+
+#if defined(need_GL_VERSION_1_4)
+#define GL_VERSION_1_4_functions NULL
+#endif
+
+#if defined(need_GL_VERSION_1_5)
+#define GL_VERSION_1_5_functions NULL
+#endif
+
+#if defined(need_GL_VERSION_2_0)
+#define GL_VERSION_2_0_functions NULL
+#endif
+
+#if defined(need_GL_VERSION_2_1)
+#define GL_VERSION_2_1_functions NULL
+#endif
+
+#endif /* IN_DRI_DRIVER */
 

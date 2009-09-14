@@ -165,6 +165,8 @@ class PrintGlExtensionGlue(gl_XML.gl_print_base):
 		print '# define NULL 0'
 		print '#endif'
 		print ''
+		print '#if defined(IN_DRI_DRIVER)'
+		print ''
 
 		for f in api.functionIterateAll():
 			condition = condition_for_function(f, abi, 0)
@@ -232,6 +234,15 @@ class PrintGlExtensionGlue(gl_XML.gl_print_base):
 			print '#endif'
 			print ''
 		
+		print '#else /* IN_DRI_DRIVER */'
+		print ''
+		for category in keys:
+			print '#if defined(need_%s)' % (category)
+			print '#define %s_functions NULL' % (category)
+			print '#endif'
+			print ''
+		print '#endif /* IN_DRI_DRIVER */'
+		print ''
 		return
 
 
