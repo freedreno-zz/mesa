@@ -18,6 +18,20 @@
     <enum name="PALETTE8_RGB5_A1_OES"                     value="0x8B99"/>
 </category>
 
+<category name="GL_OES_EGL_image" number="23">
+    <type name="eglImageOES"   size="4"                              />
+
+    <function name="EGLImageTargetTexture2DOES" offset="assign">
+        <param name="target" type="GLenum"/>
+        <param name="image" type="GLeglImageOES"/>
+    </function>
+
+    <function name="EGLImageTargetRenderbufferStorageOES" offset="assign">
+        <param name="target" type="GLenum"/>
+        <param name="image" type="GLeglImageOES"/>
+    </function>
+</category>
+
 <category name="GL_OES_depth24" number="24">
     <enum name="DEPTH_COMPONENT24_OES"                    value="0x81A6"/>
 </category>
