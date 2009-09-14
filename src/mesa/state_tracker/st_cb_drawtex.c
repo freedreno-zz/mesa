@@ -15,6 +15,7 @@
 #include "main/imports.h"
 #include "main/image.h"
 #include "main/bufferobj.h"
+#include "main/drawtex.h"
 #include "main/macros.h"
 #include "main/state.h"
 #include "main/texformat.h"
@@ -57,6 +58,9 @@ struct cached_shader
  */
 static struct cached_shader CachedShaders[MAX_SHADERS];
 static GLuint NumCachedShaders = 0;
+
+
+#if FEATURE_OES_draw_texture
 
 
 static void *
@@ -104,26 +108,10 @@ lookup_shader(struct pipe_context *pipe,
    return CachedShaders[i].handle;
 }
 
-
-/**
- * Free any cached shaders
- */
-void
-st_destroy_drawtex(struct st_context *st)
+static void
+st_DrawTex(GLcontext *ctx, GLfloat x, GLfloat y, GLfloat z,
+           GLfloat width, GLfloat height)
 {
-   GLuint i;
-   for (i = 0; i < NumCachedShaders; i++) {
-      cso_delete_vertex_shader(st->cso_context, CachedShaders[i].handle);
-   }
-   NumCachedShaders = 0;
-}
-
-
-
-void
-_mesa_DrawTexf(GLfloat x, GLfloat y, GLfloat z, GLfloat width, GLfloat height)
-{
-   GET_CURRENT_CONTEXT(ctx);
    struct st_context *st = ctx->st;
    struct pipe_context *pipe = st->pipe;
    struct cso_context *cso = ctx->st->cso_context;
@@ -285,8 +273,25 @@ _mesa_DrawTexf(GLfloat x, GLfloat y, GLfloat z, GLfloat width, GLfloat height)
 }
 
 
+#endif /* FEATURE_OES_draw_texture */
+
+
 void
-_mesa_DrawTexfv(const GLfloat *coords)
+st_init_drawtex_functions(struct dd_function_table *functions)
 {
-   _mesa_DrawTexf(coords[0], coords[1], coords[2], coords[3], coords[4]);
+   _MESA_INIT_DRAWTEX_FUNCTIONS(functions, st_);
+}
+
+
+/**
+ * Free any cached shaders
+ */
+void
+st_destroy_drawtex(struct st_context *st)
+{
+   GLuint i;
+   for (i = 0; i < NumCachedShaders; i++) {
+      cso_delete_vertex_shader(st->cso_context, CachedShaders[i].handle);
+   }
+   NumCachedShaders = 0;
 }

@@ -11,8 +11,7 @@ ES1_LOCAL_SOURCES :=			\
 	main/stubs.c
 
 ES1_GALLIUM_LOCAL_SOURCES :=		\
-	$(ES1_LOCAL_SOURCES)		\
-	state_tracker/st_cb_drawtex.c
+	$(ES1_LOCAL_SOURCES)
 
 ES1_API_LOCAL_SOURCES :=		\
 
@@ -68,6 +67,9 @@ SHADER_OMITTED :=			\
 	shader/nvprogram.c		\
 	shader/nvvertparse.c
 SHADER_SOURCES := $(filter-out $(SHADER_OMITTED), $(SHADER_SOURCES))
+
+STATETRACKER_SOURCES +=			\
+	state_tracker/st_cb_drawtex.c
 
 ES1_MESA_SOURCES :=			\
 	$(MAIN_SOURCES)			\

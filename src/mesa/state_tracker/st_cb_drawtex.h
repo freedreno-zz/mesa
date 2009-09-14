@@ -9,20 +9,10 @@
 #ifndef ST_CB_DRAWTEX_H
 #define ST_CB_DRAWTEX_H
 
-
-struct st_context;
-
-
 extern void
-_mesa_DrawTexf(GLfloat x, GLfloat y, GLfloat z, GLfloat width, GLfloat height);
-
-
-extern void
-_mesa_DrawTexfv(const GLfloat *coords);
-
+st_init_drawtex_functions(struct dd_function_table *functions);
 
 extern void
 st_destroy_drawtex(struct st_context *st);
 
-
-#endif
+#endif /* ST_CB_DRAWTEX_H */
