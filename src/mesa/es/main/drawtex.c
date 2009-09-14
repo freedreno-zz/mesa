@@ -35,6 +35,11 @@ static INLINE void
 draw_texture(GLcontext *ctx, GLfloat x, GLfloat y, GLfloat z,
              GLfloat width, GLfloat height)
 {
+   if (!ctx->Extensions.OES_draw_texture) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glDrawTex(unsupported)");
+      return;
+   }
    if (width <= 0.0f || height <= 0.0f) {
       _mesa_error(ctx, GL_INVALID_VALUE, "glDrawTex(width or height <= 0)");
       return;
@@ -43,8 +48,8 @@ draw_texture(GLcontext *ctx, GLfloat x, GLfloat y, GLfloat z,
    if (ctx->NewState)
       _mesa_update_state(ctx);
 
-   if (ctx->Driver.DrawTex)
-      ctx->Driver.DrawTex(ctx, x, y, z, width, height);
+   ASSERT(ctx->Driver.DrawTex);
+   ctx->Driver.DrawTex(ctx, x, y, z, width, height);
 }
 
 
