@@ -98,6 +98,7 @@
 #define FEATURE_NV_fragment_program 0
 #define FEATURE_NV_vertex_program 0
 
+#define FEATURE_OES_EGL_image 1
 #define FEATURE_OES_framebuffer_object 1
 #define FEATURE_OES_draw_texture 1
 #define FEATURE_OES_mapbuffer 1

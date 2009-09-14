@@ -1070,6 +1070,19 @@ struct dd_function_table {
                    GLfloat width, GLfloat height);
    /*@}*/
 #endif
+#if FEATURE_OES_EGL_image
+   /**
+    * \name GL_OES_EGL_image interface
+    */
+   /*@{*/
+   void (*EGLImageTargetRenderbufferStorage)(GLcontext *ctx,
+                                             struct gl_renderbuffer *rb,
+                                             GLvoid *image);
+   void (*EGLImageTargetTexture2D)(GLcontext *ctx,
+                                   struct gl_texture_object *texObj,
+                                   GLvoid *image);
+   /*@}*/
+#endif
 };
 
 

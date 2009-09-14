@@ -100,6 +100,9 @@ make_extension_string(const GLcontext *ctx, char *str)
    /* 1.1 deprecated extensions */
    len += append_extension(&str, "GL_OES_query_matrix");
 
+   if (ctx->Extensions.OES_EGL_image)
+      len += append_extension(&str, "GL_OES_EGL_image");
+
    if (ctx->Extensions.OES_draw_texture)
       len += append_extension(&str, "GL_OES_draw_texture");
 

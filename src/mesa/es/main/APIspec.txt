@@ -2939,6 +2939,22 @@ convertalias    DrawTexfv
 convertparams   GLfloat         coords
 category        GLES1.1:OES_draw_texture
 
+name            EGLImageTargetTexture2D
+alias           EGLImageTargetTexture2DOES
+return          void
+param           target          GLenum
+param           image           GLeglImageOES
+checkparam      target          GL_TEXTURE_2D
+category        GLES1.1:OES_EGL_image GLES2.0:OES_EGL_image
+
+name            EGLImageTargetRenderbufferStorage
+alias           EGLImageTargetRenderbufferStorageOES
+return          void
+param           target          GLenum
+param           image           GLeglImageOES
+checkparam      target          GLES1.1:GL_RENDERBUFFER_OES GLES2.0:GL_RENDERBUFFER
+category        GLES1.1:OES_EGL_image GLES2.0:OES_EGL_image
+
 # We don't support OES_get_program_binary yet either
 #name GetProgramBinary
 #return void

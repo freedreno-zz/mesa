@@ -3,6 +3,7 @@
 ES1_LOCAL_SOURCES :=			\
 	main/api_exec_es1.c		\
 	main/drawtex.c			\
+	main/eglimage.c			\
 	main/get_es1.c			\
 	main/specials_es1.c		\
 	main/es_cpaltex.c		\
@@ -23,6 +24,7 @@ ES1_LOCAL_INCLUDES :=			\
 
 ES2_LOCAL_SOURCES :=			\
 	main/api_exec_es2.c		\
+	main/eglimage.c			\
 	main/get_es2.c			\
 	main/specials_es2.c		\
 	main/es_cpaltex.c		\

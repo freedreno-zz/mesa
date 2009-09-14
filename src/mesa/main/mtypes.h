@@ -2602,6 +2602,9 @@ struct gl_extensions
 #if FEATURE_OES_draw_texture
    GLboolean OES_draw_texture;
 #endif /* FEATURE_OES_draw_texture */
+#if FEATURE_OES_EGL_image
+   GLboolean OES_EGL_image;
+#endif
    /** The extension string */
    const GLubyte *String;
 };

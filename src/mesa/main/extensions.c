@@ -186,6 +186,9 @@ static const struct {
 #if FEATURE_OES_draw_texture
    { OFF, "GL_OES_draw_texture",               F(OES_draw_texture) },
 #endif /* FEATURE_OES_draw_texture */
+#if FEATURE_OES_EGL_image
+   { OFF, "GL_OES_EGL_image",                  F(OES_EGL_image) },
+#endif
 };
 
 
