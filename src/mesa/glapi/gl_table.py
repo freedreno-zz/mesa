@@ -50,6 +50,8 @@ class PrintGlTable(gl_XML.gl_print_base):
 					typedefs.append("typedef int GLfixed;")
 				elif t.name == "clampx":
 					typedefs.append("typedef int GLclampx;")
+				elif t.name == "eglImageOES":
+					typedefs.append("typedef void *GLeglImageOES;")
 			if typedefs:
 				print '#ifndef HAVE_GLES_TYPES'
 				print "\n".join(typedefs)
