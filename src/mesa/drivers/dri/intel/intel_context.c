@@ -54,6 +54,7 @@
 #include "intel_regions.h"
 #include "intel_buffer_objects.h"
 #include "intel_fbo.h"
+#include "intel_eglimage.h"
 #include "intel_decode.h"
 #include "intel_bufmgr.h"
 #include "intel_screen.h"
@@ -602,6 +603,8 @@ intelInitDriverFunctions(struct dd_function_table *functions)
    intelInitPixelFuncs(functions);
    intelInitBufferObjectFuncs(functions);
    intel_init_syncobj_functions(functions);
+
+   intelInitEGLImageFuncs(functions);
 }
 
 

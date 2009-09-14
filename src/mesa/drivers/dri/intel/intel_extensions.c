@@ -179,6 +179,9 @@ static const struct dri_extension ttm_extensions[] = {
    { "GL_ARB_pixel_buffer_object",      NULL },
    { "GL_EXT_framebuffer_blit",         GL_EXT_framebuffer_blit_functions },
    { "GL_EXT_framebuffer_object",       GL_EXT_framebuffer_object_functions },
+#if FEATURE_OES_EGL_image
+   { "GL_OES_EGL_image",                NULL },
+#endif
    { NULL, NULL }
 };
 

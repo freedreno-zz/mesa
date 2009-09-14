@@ -18,6 +18,7 @@ DRIVER_SOURCES = \
 	intel_buffer_objects.c \
 	intel_batchbuffer.c \
 	intel_clear.c \
+	intel_eglimage.c \
 	intel_extensions.c \
 	intel_generatemipmap.c \
 	intel_mipmap_tree.c \
