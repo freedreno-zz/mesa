@@ -7,15 +7,15 @@ include $(TOP)/configs/current
 include sources.mak
 
 # no libes1.a and libes2.a by default
-ES1_LIBS := libes1gallium.a libes1api.a
-ES2_LIBS := libes2gallium.a libes2api.a
+ES1_LIBS := libes1.a libes1gallium.a libes1api.a
+ES2_LIBS := libes2.a libes2gallium.a libes2api.a
 
 # Default rule: create ES1 and ES2 libs
 .PHONY: default
 default: subdirs $(ES1_LIBS) $(ES2_LIBS)
 
 # force the inclusion of es's mfeatures.h
-ES1_CFLAGS := -include main/mfeatures.h -D__GL_EXPORTS
+ES1_CFLAGS := -include main/mfeatures.h -D__GL_EXPORTS -UIN_DRI_DRIVER
 ES2_CFLAGS := $(ES1_CFLAGS)
 
 # rebuild when these files are changed
