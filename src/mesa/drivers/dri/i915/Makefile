@@ -29,9 +29,6 @@ DRIVER_SOURCES = \
 	intel_tex_format.c \
 	intel_tex.c \
 	intel_pixel.c \
-	intel_pixel_bitmap.c \
-	intel_pixel_copy.c \
-	intel_pixel_draw.c \
 	intel_pixel_read.c \
 	intel_buffers.c \
 	intel_blit.c \
@@ -67,7 +64,7 @@ DRIVER_DEFINES = -I../intel -I../intel/server -DI915 \
 
 DRI_LIB_DEPS += -ldrm_intel
 
-include ../Makefile.template
+include ../Makefile.es
 
 intel_decode.o: ../intel/intel_decode.c
 
