@@ -38,8 +38,16 @@
 #include "utils.h"
 
 
+#ifdef IN_DRI_DRIVER
+
 int driDispatchRemapTable[ driDispatchRemapTable_size ];
 
+#else /* IN_DRI_DRIVER */
+
+#define driDispatchRemapTable_size 1
+static int driDispatchRemapTable[ driDispatchRemapTable_size ];
+
+#endif /* IN_DRI_DRIVER */
 
 unsigned
 driParseDebugString( const char * debug, 
