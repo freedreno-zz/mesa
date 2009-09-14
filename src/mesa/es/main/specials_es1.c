@@ -97,10 +97,11 @@ make_extension_string(const GLcontext *ctx, char *str)
    len += append_extension(&str, "GL_OES_point_size_array");
    len += append_extension(&str, "GL_OES_point_sprite");
 
-   /* 1.1 optional extensions */
-   len += append_extension(&str, "GL_OES_draw_texture");
    /* 1.1 deprecated extensions */
    len += append_extension(&str, "GL_OES_query_matrix");
+
+   if (ctx->Extensions.OES_draw_texture)
+      len += append_extension(&str, "GL_OES_draw_texture");
 
    if (ctx->Extensions.EXT_blend_equation_separate)
       len += append_extension(&str, "GL_OES_blend_equation_separate");
