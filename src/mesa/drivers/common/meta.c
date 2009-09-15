@@ -2135,6 +2135,7 @@ _mesa_meta_draw_tex(GLcontext *ctx, GLfloat x, GLfloat y, GLfloat z,
          const struct gl_texture_object *texObj;
          const struct gl_texture_image *texImage;
          GLfloat s, t, s1, t1;
+         GLuint tw, th;
 
          if (!ctx->Texture.Unit[i]._ReallyEnabled) {
             GLuint j;
@@ -2147,11 +2148,13 @@ _mesa_meta_draw_tex(GLcontext *ctx, GLfloat x, GLfloat y, GLfloat z,
 
          texObj = ctx->Texture.Unit[i]._Current;
          texImage = texObj->Image[0][texObj->BaseLevel];
+         tw = texImage->Width2;
+         th = texImage->Height2;
 
-         s = texObj->CropRect[0] / texImage->Width2;
-         t = texObj->CropRect[1] / texImage->Height2;
-         s1 = (texObj->CropRect[0] + texObj->CropRect[2]) / texImage->Width2;
-         t1 = (texObj->CropRect[1] + texObj->CropRect[3]) / texImage->Height2;
+         s = (GLfloat) texObj->CropRect[0] / tw;
+         t = (GLfloat) texObj->CropRect[1] / th;
+         s1 = (GLfloat) (texObj->CropRect[0] + texObj->CropRect[2]) / tw;
+         t1 = (GLfloat) (texObj->CropRect[1] + texObj->CropRect[3]) / th;
 
          verts[0].st[i][0] = s;
          verts[0].st[i][1] = t;
