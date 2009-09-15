@@ -34,12 +34,14 @@
 #include "s_span.h"
 
 
+#if FEATURE_colortable
+
+
 void
 _swrast_CopyColorTable( GLcontext *ctx, 
 			GLenum target, GLenum internalformat,
 			GLint x, GLint y, GLsizei width)
 {
-   SWcontext *swrast = SWRAST_CONTEXT(ctx);
    GLchan data[MAX_WIDTH][4];
    struct gl_buffer_object *bufferSave;
 
@@ -51,17 +53,17 @@ _swrast_CopyColorTable( GLcontext *ctx,
    if (width > MAX_WIDTH)
       width = MAX_WIDTH;
 
-   RENDER_START( swrast, ctx );
+   swrast_render_start(ctx);
 
    /* read the data from framebuffer */
    _swrast_read_rgba_span( ctx, ctx->ReadBuffer->_ColorReadBuffer,
                            width, x, y, CHAN_TYPE, data );
 
-   RENDER_FINISH(swrast,ctx);
+   swrast_render_finish(ctx);
 
    /* save PBO binding */
    bufferSave = ctx->Unpack.BufferObj;
-   ctx->Unpack.BufferObj = ctx->Array.NullBufferObj;
+   ctx->Unpack.BufferObj = ctx->Shared->NullBufferObj;
 
    _mesa_ColorTable(target, internalformat, width, GL_RGBA, CHAN_TYPE, data);
 
@@ -74,7 +76,6 @@ void
 _swrast_CopyColorSubTable( GLcontext *ctx,GLenum target, GLsizei start,
 			   GLint x, GLint y, GLsizei width)
 {
-   SWcontext *swrast = SWRAST_CONTEXT(ctx);
    GLchan data[MAX_WIDTH][4];
    struct gl_buffer_object *bufferSave;
 
@@ -86,17 +87,17 @@ _swrast_CopyColorSubTable( GLcontext *ctx,GLenum target, GLsizei start,
    if (width > MAX_WIDTH)
       width = MAX_WIDTH;
 
-   RENDER_START( swrast, ctx );
+   swrast_render_start(ctx);
 
    /* read the data from framebuffer */
    _swrast_read_rgba_span( ctx, ctx->ReadBuffer->_ColorReadBuffer,
                            width, x, y, CHAN_TYPE, data );
 
-   RENDER_FINISH(swrast,ctx);
+   swrast_render_finish(ctx);
 
    /* save PBO binding */
    bufferSave = ctx->Unpack.BufferObj;
-   ctx->Unpack.BufferObj = ctx->Array.NullBufferObj;
+   ctx->Unpack.BufferObj = ctx->Shared->NullBufferObj;
 
    _mesa_ColorSubTable(target, start, width, GL_RGBA, CHAN_TYPE, data);
 
@@ -105,12 +106,17 @@ _swrast_CopyColorSubTable( GLcontext *ctx,GLenum target, GLsizei start,
 }
 
 
+#endif /* FEATURE_colortable */
+
+
+#if FEATURE_convolve
+
+
 void
 _swrast_CopyConvolutionFilter1D(GLcontext *ctx, GLenum target, 
 				GLenum internalFormat, 
 				GLint x, GLint y, GLsizei width)
 {
-   SWcontext *swrast = SWRAST_CONTEXT(ctx);
    GLchan rgba[MAX_CONVOLUTION_WIDTH][4];
    struct gl_buffer_object *bufferSave;
 
@@ -119,17 +125,17 @@ _swrast_CopyConvolutionFilter1D(GLcontext *ctx, GLenum target,
       return;
    }
 
-   RENDER_START( swrast, ctx );
+   swrast_render_start(ctx);
 
    /* read the data from framebuffer */
    _swrast_read_rgba_span( ctx, ctx->ReadBuffer->_ColorReadBuffer,
                            width, x, y, CHAN_TYPE, rgba );
    
-   RENDER_FINISH( swrast, ctx );
+   swrast_render_finish(ctx);
 
    /* save PBO binding */
    bufferSave = ctx->Unpack.BufferObj;
-   ctx->Unpack.BufferObj = ctx->Array.NullBufferObj;
+   ctx->Unpack.BufferObj = ctx->Shared->NullBufferObj;
 
    /* store as convolution filter */
    _mesa_ConvolutionFilter1D(target, internalFormat, width,
@@ -145,7 +151,6 @@ _swrast_CopyConvolutionFilter2D(GLcontext *ctx, GLenum target,
 				GLenum internalFormat, 
 				GLint x, GLint y, GLsizei width, GLsizei height)
 {
-   SWcontext *swrast = SWRAST_CONTEXT(ctx);
    struct gl_pixelstore_attrib packSave;
    GLchan rgba[MAX_CONVOLUTION_HEIGHT][MAX_CONVOLUTION_WIDTH][4];
    GLint i;
@@ -156,7 +161,7 @@ _swrast_CopyConvolutionFilter2D(GLcontext *ctx, GLenum target,
       return;
    }
 
-   RENDER_START(swrast,ctx);
+   swrast_render_start(ctx);
    
    /* read pixels from framebuffer */
    for (i = 0; i < height; i++) {
@@ -164,7 +169,7 @@ _swrast_CopyConvolutionFilter2D(GLcontext *ctx, GLenum target,
                               width, x, y + i, CHAN_TYPE, rgba[i] );
    }
 
-   RENDER_FINISH(swrast,ctx);
+   swrast_render_finish(ctx);
 
    /*
     * HACK: save & restore context state so we can store this as a
@@ -182,12 +187,12 @@ _swrast_CopyConvolutionFilter2D(GLcontext *ctx, GLenum target,
    ctx->Unpack.SkipImages = 0;
    ctx->Unpack.SwapBytes = GL_FALSE;
    ctx->Unpack.LsbFirst = GL_FALSE;
-   ctx->Unpack.BufferObj = ctx->Array.NullBufferObj;
+   ctx->Unpack.BufferObj = ctx->Shared->NullBufferObj;
    ctx->NewState |= _NEW_PACKUNPACK;
 
    /* save PBO binding */
    bufferSave = ctx->Unpack.BufferObj;
-   ctx->Unpack.BufferObj = ctx->Array.NullBufferObj;
+   ctx->Unpack.BufferObj = ctx->Shared->NullBufferObj;
 
    _mesa_ConvolutionFilter2D(target, internalFormat, width, height,
                              GL_RGBA, CHAN_TYPE, rgba);
@@ -198,3 +203,6 @@ _swrast_CopyConvolutionFilter2D(GLcontext *ctx, GLenum target,
    ctx->Unpack = packSave;  /* restore pixel packing params */
    ctx->NewState |= _NEW_PACKUNPACK; 
 }
+
+
+#endif /* FEATURE_convolve */

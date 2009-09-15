@@ -8,10 +8,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#define GL_GLEXT_PROTOTYPES
+#include <GL/glew.h>
 #include <GL/glut.h>
 
 static GLint WinWidth = 500, WinHeight = 500;
+static GLboolean Invert = GL_FALSE;
 
 
 static void Display(void)
@@ -21,8 +22,10 @@ static void Display(void)
    GLfloat min, max;
    int i;
 
-   glClearColor(0.5, 0.5, 0.5, 0);
+   glClearColor(0.5, 0.5, 0.5, 1.0);
    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+   glEnable(GL_DEPTH_TEST);
 
    /* draw a sphere */
    glViewport(0, 0, 100, 100);
@@ -46,8 +49,19 @@ static void Display(void)
 
    /* draw depth image with scaling (into z buffer) */
    glPixelZoom(4.0, 4.0);
+   glColor4f(1, 0, 0, 0);
    glWindowPos2i(100, 0);
+   if (Invert) {
+      glPixelTransferf(GL_DEPTH_SCALE, -1.0);
+      glPixelTransferf(GL_DEPTH_BIAS, 1.0);
+   }
    glDrawPixels(100, 100, GL_DEPTH_COMPONENT, GL_FLOAT, depth);
+   if (Invert) {
+      glPixelTransferf(GL_DEPTH_SCALE, 1.0);
+      glPixelTransferf(GL_DEPTH_BIAS, 0.0);
+   }
+
+   glDisable(GL_DEPTH_TEST);
 
    /* read back scaled depth image */
    glReadPixels(100, 0, 400, 400, GL_DEPTH_COMPONENT, GL_FLOAT, depth2);
@@ -72,6 +86,9 @@ static void Key(unsigned char key, int x, int y)
    (void) x;
    (void) y;
    switch (key) {
+      case 'i':
+         Invert = !Invert;
+         break;
       case 27:
          exit(0);
          break;
@@ -82,7 +99,7 @@ static void Key(unsigned char key, int x, int y)
 
 static void Init(void)
 {
-   const GLfloat blue[4] = {.1, .1, 1.0, 0.0};
+   const GLfloat blue[4] = {.1, .1, 1.0, 1.0};
    const GLfloat gray[4] = {0.2, 0.2, 0.2, 1.0};
    const GLfloat white[4] = {1.0, 1.0, 1.0, 1.0};
    const GLfloat pos[4] = {0, 0, 10, 0};
@@ -96,7 +113,6 @@ static void Init(void)
    glLightfv(GL_LIGHT0, GL_POSITION, pos);
    glEnable(GL_LIGHTING);
    glEnable(GL_LIGHT0);
-   glEnable(GL_DEPTH_TEST);
 }
 
 
@@ -107,6 +123,7 @@ int main(int argc, char *argv[])
    glutInitWindowSize(WinWidth, WinHeight);
    glutInitDisplayMode(GLUT_RGB | GLUT_DEPTH | GLUT_DOUBLE);
    glutCreateWindow(argv[0]);
+   glewInit();
    glutReshapeFunc(Reshape);
    glutKeyboardFunc(Key);
    glutDisplayFunc(Display);

@@ -1,13 +1,9 @@
-/**
- * \file feedback.h
- * Selection and feedback modes functions.
- */
-
 /*
  * Mesa 3-D graphics library
- * Version:  3.5
+ * Version:  7.5
  *
- * Copyright (C) 1999-2001  Brian Paul   All Rights Reserved.
+ * Copyright (C) 1999-2008  Brian Paul   All Rights Reserved.
+ * Copyright (C) 2009  VMware, Inc.  All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -27,31 +23,40 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-
 #ifndef FEEDBACK_H
 #define FEEDBACK_H
 
 
-#include "mtypes.h"
+#include "main/mtypes.h"
 
 
-#define FEEDBACK_TOKEN( CTX, T )				\
-	if (CTX->Feedback.Count < CTX->Feedback.BufferSize) {	\
-	   CTX->Feedback.Buffer[CTX->Feedback.Count] = (GLfloat) (T); \
-	}							\
-	CTX->Feedback.Count++;
+#if FEATURE_feedback
+
+#define _MESA_INIT_FEEDBACK_FUNCTIONS(driver, impl) \
+   do {                                             \
+      (driver)->RenderMode = impl ## RenderMode;    \
+   } while (0)
+
+extern void
+_mesa_feedback_vertex( GLcontext *ctx,
+                       const GLfloat win[4],
+                       const GLfloat color[4],
+                       GLfloat index,
+                       const GLfloat texcoord[4] );
 
 
-extern void _mesa_init_feedback( GLcontext * ctx );
+static INLINE void
+_mesa_feedback_token( GLcontext *ctx, GLfloat token )
+{
+   if (ctx->Feedback.Count < ctx->Feedback.BufferSize) {
+      ctx->Feedback.Buffer[ctx->Feedback.Count] = token;
+   }
+   ctx->Feedback.Count++;
+}
 
-extern void _mesa_feedback_vertex( GLcontext *ctx,
-                                const GLfloat win[4],
-                                const GLfloat color[4],
-				GLfloat index,
-                                const GLfloat texcoord[4] );
 
-
-extern void _mesa_update_hitflag( GLcontext *ctx, GLfloat z );
+extern void
+_mesa_update_hitflag( GLcontext *ctx, GLfloat z );
 
 
 extern void GLAPIENTRY
@@ -78,5 +83,47 @@ _mesa_PopName( void );
 extern GLint GLAPIENTRY
 _mesa_RenderMode( GLenum mode );
 
+extern void 
+_mesa_init_feedback_dispatch(struct _glapi_table *disp);
 
-#endif
+#else /* FEATURE_feedback */
+
+#define _MESA_INIT_FEEDBACK_FUNCTIONS(driver, impl) do { } while (0)
+
+static INLINE void
+_mesa_feedback_vertex( GLcontext *ctx,
+                       const GLfloat win[4],
+                       const GLfloat color[4],
+                       GLfloat index,
+                       const GLfloat texcoord[4] )
+{
+   /* render mode is always GL_RENDER */
+   ASSERT_NO_FEATURE();
+}
+
+
+static INLINE void
+_mesa_feedback_token( GLcontext *ctx, GLfloat token )
+{
+   /* render mode is always GL_RENDER */
+   ASSERT_NO_FEATURE();
+}
+
+static INLINE void
+_mesa_update_hitflag( GLcontext *ctx, GLfloat z )
+{
+   /* render mode is always GL_RENDER */
+   ASSERT_NO_FEATURE();
+}
+
+static INLINE void 
+_mesa_init_feedback_dispatch(struct _glapi_table *disp)
+{
+}
+
+#endif /* FEATURE_feedback */
+
+extern void
+_mesa_init_feedback( GLcontext *ctx );
+
+#endif /* FEEDBACK_H */

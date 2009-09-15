@@ -31,6 +31,8 @@
 #include "swrast.h"
 
 
+#if FEATURE_feedback
+
 extern void _swrast_feedback_point( GLcontext *ctx, const SWvertex *v );
 
 extern void _swrast_feedback_line( GLcontext *ctx,
@@ -46,5 +48,48 @@ extern void _swrast_select_line( GLcontext *ctx,
 
 extern void _swrast_select_triangle( GLcontext *ctx, const SWvertex *v0,
                                 const SWvertex *v1, const SWvertex *v2 );
+#else /* FEATURE_feedback */
+
+static INLINE void
+_swrast_feedback_point( GLcontext *ctx, const SWvertex *v )
+{
+   ASSERT_NO_FEATURE();
+}
+
+static INLINE void
+_swrast_feedback_line( GLcontext *ctx,
+                       const SWvertex *v1, const SWvertex *v2 )
+{
+   ASSERT_NO_FEATURE();
+}
+
+static INLINE void
+_swrast_feedback_triangle( GLcontext *ctx, const SWvertex *v0,
+                           const SWvertex *v1, const SWvertex *v2 )
+{
+   ASSERT_NO_FEATURE();
+}
+
+static INLINE void
+_swrast_select_point( GLcontext *ctx, const SWvertex *v )
+{
+   ASSERT_NO_FEATURE();
+}
+
+static INLINE void
+_swrast_select_line( GLcontext *ctx,
+                     const SWvertex *v1, const SWvertex *v2 )
+{
+   ASSERT_NO_FEATURE();
+}
+
+static INLINE void
+_swrast_select_triangle( GLcontext *ctx, const SWvertex *v0,
+                         const SWvertex *v1, const SWvertex *v2 )
+{
+   ASSERT_NO_FEATURE();
+}
 
 #endif
+
+#endif /* S_FEEDBACK_H */

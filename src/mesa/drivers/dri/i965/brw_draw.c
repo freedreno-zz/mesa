@@ -25,13 +25,15 @@
  * 
  **************************************************************************/
 
-#include <stdlib.h>
 
 #include "main/glheader.h"
 #include "main/context.h"
 #include "main/state.h"
-#include "main/api_validate.h"
 #include "main/enums.h"
+#include "tnl/tnl.h"
+#include "vbo/vbo_context.h"
+#include "swrast/swrast.h"
+#include "swrast_setup/swrast_setup.h"
 
 #include "brw_draw.h"
 #include "brw_defines.h"
@@ -41,11 +43,6 @@
 
 #include "intel_batchbuffer.h"
 #include "intel_buffer_objects.h"
-
-#include "tnl/tnl.h"
-#include "vbo/vbo_context.h"
-#include "swrast/swrast.h"
-#include "swrast_setup/swrast_setup.h"
 
 #define FILE_DEBUG_FLAG DEBUG_BATCH
 
@@ -84,15 +81,17 @@ static const GLenum reduced_prim[GL_POLYGON+1] = {
  */
 static GLuint brw_set_prim(struct brw_context *brw, GLenum prim)
 {
+   GLcontext *ctx = &brw->intel.ctx;
+
    if (INTEL_DEBUG & DEBUG_PRIMS)
       _mesa_printf("PRIM: %s\n", _mesa_lookup_enum_by_nr(prim));
    
    /* Slight optimization to avoid the GS program when not needed:
     */
    if (prim == GL_QUAD_STRIP &&
-       brw->attribs.Light->ShadeModel != GL_FLAT &&
-       brw->attribs.Polygon->FrontMode == GL_FILL &&
-       brw->attribs.Polygon->BackMode == GL_FILL)
+       ctx->Light.ShadeModel != GL_FLAT &&
+       ctx->Polygon.FrontMode == GL_FILL &&
+       ctx->Polygon.BackMode == GL_FILL)
       prim = GL_TRIANGLE_STRIP;
 
    if (prim != brw->primitive) {
@@ -125,6 +124,7 @@ static void brw_emit_prim(struct brw_context *brw,
 			  uint32_t hw_prim)
 {
    struct brw_3d_primitive prim_packet;
+   struct intel_context *intel = &brw->intel;
 
    if (INTEL_DEBUG & DEBUG_PRIMS)
       _mesa_printf("PRIM: %s %d %d\n", _mesa_lookup_enum_by_nr(prim->mode), 
@@ -138,16 +138,35 @@ static void brw_emit_prim(struct brw_context *brw,
 
    prim_packet.verts_per_instance = trim(prim->mode, prim->count);
    prim_packet.start_vert_location = prim->start;
+   if (prim->indexed)
+      prim_packet.start_vert_location += brw->ib.start_vertex_offset;
    prim_packet.instance_count = 1;
    prim_packet.start_instance_location = 0;
-   prim_packet.base_vert_location = 0;
+   prim_packet.base_vert_location = prim->basevertex;
 
    /* Can't wrap here, since we rely on the validated state. */
    brw->no_batch_wrap = GL_TRUE;
+
+   /* If we're set to always flush, do it before and after the primitive emit.
+    * We want to catch both missed flushes that hurt instruction/state cache
+    * and missed flushes of the render cache as it heads to other parts of
+    * the besides the draw code.
+    */
+   if (intel->always_flush_cache) {
+      BEGIN_BATCH(1, IGNORE_CLIPRECTS);
+      OUT_BATCH(intel->vtbl.flush_cmd());
+      ADVANCE_BATCH();
+   }
    if (prim_packet.verts_per_instance) {
       intel_batchbuffer_data( brw->intel.batch, &prim_packet,
 			      sizeof(prim_packet), LOOP_CLIPRECTS);
    }
+   if (intel->always_flush_cache) {
+      BEGIN_BATCH(1, IGNORE_CLIPRECTS);
+      OUT_BATCH(intel->vtbl.flush_cmd());
+      ADVANCE_BATCH();
+   }
+
    brw->no_batch_wrap = GL_FALSE;
 }
 
@@ -165,24 +184,16 @@ static void brw_merge_inputs( struct brw_context *brw,
 
    for (i = 0; i < VERT_ATTRIB_MAX; i++) {
       brw->vb.inputs[i].glarray = arrays[i];
+      brw->vb.inputs[i].attrib = (gl_vert_attrib) i;
 
-      /* XXX: metaops passes null arrays */
-      if (arrays[i]) {
-	 if (arrays[i]->StrideB != 0)
-	    brw->vb.info.varying |= 1 << i;
-
+      if (arrays[i]->StrideB != 0)
 	 brw->vb.info.sizes[i/16] |= (brw->vb.inputs[i].glarray->Size - 1) <<
 	    ((i%16) * 2);
-      }
    }
 
-   /* Raise statechanges if input sizes and varying have changed: 
-    */
+   /* Raise statechanges if input sizes have changed. */
    if (memcmp(brw->vb.info.sizes, old.sizes, sizeof(old.sizes)) != 0)
       brw->state.dirty.brw |= BRW_NEW_INPUT_DIMENSIONS;
-
-   if (brw->vb.info.varying != old.varying)
-      brw->state.dirty.brw |= BRW_NEW_INPUT_VARYING;
 }
 
 /* XXX: could split the primitive list to fallback only on the
@@ -192,12 +203,20 @@ static GLboolean check_fallbacks( struct brw_context *brw,
 				  const struct _mesa_prim *prim,
 				  GLuint nr_prims )
 {
+   GLcontext *ctx = &brw->intel.ctx;
    GLuint i;
 
-   if (!brw->intel.strict_conformance)
+   /* If we don't require strict OpenGL conformance, never 
+    * use fallbacks.  If we're forcing fallbacks, always
+    * use fallfacks.
+    */
+   if (brw->intel.conformance_mode == 0)
       return GL_FALSE;
 
-   if (brw->attribs.Polygon->SmoothFlag) {
+   if (brw->intel.conformance_mode == 2)
+      return GL_TRUE;
+
+   if (ctx->Polygon.SmoothFlag) {
       for (i = 0; i < nr_prims; i++)
 	 if (reduced_prim[prim[i].mode] == GL_TRIANGLES) 
 	    return GL_TRUE;
@@ -206,7 +225,7 @@ static GLboolean check_fallbacks( struct brw_context *brw,
    /* BRW hardware will do AA lines, but they are non-conformant it
     * seems.  TBD whether we keep this fallback:
     */
-   if (brw->attribs.Line->SmoothFlag) {
+   if (ctx->Line.SmoothFlag) {
       for (i = 0; i < nr_prims; i++)
 	 if (reduced_prim[prim[i].mode] == GL_LINES) 
 	    return GL_TRUE;
@@ -215,28 +234,61 @@ static GLboolean check_fallbacks( struct brw_context *brw,
    /* Stipple -- these fallbacks could be resolved with a little
     * bit of work?
     */
-   if (brw->attribs.Line->StippleFlag) {
+   if (ctx->Line.StippleFlag) {
       for (i = 0; i < nr_prims; i++) {
 	 /* GS doesn't get enough information to know when to reset
 	  * the stipple counter?!?
 	  */
-	 if (prim[i].mode == GL_LINE_LOOP) 
+	 if (prim[i].mode == GL_LINE_LOOP || prim[i].mode == GL_LINE_STRIP) 
 	    return GL_TRUE;
 	    
 	 if (prim[i].mode == GL_POLYGON &&
-	     (brw->attribs.Polygon->FrontMode == GL_LINE ||
-	      brw->attribs.Polygon->BackMode == GL_LINE))
+	     (ctx->Polygon.FrontMode == GL_LINE ||
+	      ctx->Polygon.BackMode == GL_LINE))
 	    return GL_TRUE;
       }
    }
 
-
-   if (brw->attribs.Point->SmoothFlag) {
+   if (ctx->Point.SmoothFlag) {
       for (i = 0; i < nr_prims; i++)
 	 if (prim[i].mode == GL_POINTS) 
 	    return GL_TRUE;
    }
+
+   /* BRW hardware doesn't handle GL_CLAMP texturing correctly;
+    * brw_wm_sampler_state:translate_wrap_mode() treats GL_CLAMP
+    * as GL_CLAMP_TO_EDGE instead.  If we're using GL_CLAMP, and
+    * we want strict conformance, force the fallback.
+    * Right now, we only do this for 2D textures.
+    */
+   {
+      int u;
+      for (u = 0; u < ctx->Const.MaxTextureCoordUnits; u++) {
+         struct gl_texture_unit *texUnit = &ctx->Texture.Unit[u];
+         if (texUnit->Enabled) {
+            if (texUnit->Enabled & TEXTURE_1D_BIT) {
+               if (texUnit->CurrentTex[TEXTURE_1D_INDEX]->WrapS == GL_CLAMP) {
+                   return GL_TRUE;
+               }
+            }
+            if (texUnit->Enabled & TEXTURE_2D_BIT) {
+               if (texUnit->CurrentTex[TEXTURE_2D_INDEX]->WrapS == GL_CLAMP ||
+                   texUnit->CurrentTex[TEXTURE_2D_INDEX]->WrapT == GL_CLAMP) {
+                   return GL_TRUE;
+               }
+            }
+            if (texUnit->Enabled & TEXTURE_3D_BIT) {
+               if (texUnit->CurrentTex[TEXTURE_3D_INDEX]->WrapS == GL_CLAMP ||
+                   texUnit->CurrentTex[TEXTURE_3D_INDEX]->WrapT == GL_CLAMP ||
+                   texUnit->CurrentTex[TEXTURE_3D_INDEX]->WrapR == GL_CLAMP) {
+                   return GL_TRUE;
+               }
+            }
+         }
+      }
+   }
       
+   /* Nothing stopping us from the fast path now */
    return GL_FALSE;
 }
 
@@ -261,10 +313,17 @@ static GLboolean brw_try_draw_prims( GLcontext *ctx,
    if (ctx->NewState)
       _mesa_update_state( ctx );
 
+   /* We have to validate the textures *before* checking for fallbacks;
+    * otherwise, the software fallback won't be able to rely on the
+    * texture state, the firstLevel and lastLevel fields won't be
+    * set in the intel texture object (they'll both be 0), and the 
+    * software fallback will segfault if it attempts to access any
+    * texture level other than level 0.
+    */
+   brw_validate_textures( brw );
+
    if (check_fallbacks(brw, prim, nr_prims))
       return GL_FALSE;
-
-   brw_validate_textures( brw );
 
    /* Bind all inputs, derive varying and size information:
     */
@@ -346,8 +405,12 @@ static GLboolean brw_try_draw_prims( GLcontext *ctx,
       retval = GL_TRUE;
    }
 
+   if (intel->always_flush_batch)
+      intel_batchbuffer_flush(intel->batch);
  out:
    UNLOCK_HARDWARE(intel);
+
+   brw_state_cache_check_size(brw);
 
    if (warn)
       fprintf(stderr, "i965: Single primitive emit potentially exceeded "
@@ -359,54 +422,31 @@ static GLboolean brw_try_draw_prims( GLcontext *ctx,
    return retval;
 }
 
-static GLboolean brw_need_rebase( GLcontext *ctx,
-				  const struct gl_client_array *arrays[],
-				  const struct _mesa_index_buffer *ib,
-				  GLuint min_index )
-{
-   if (min_index == 0) 
-      return GL_FALSE;
-
-   if (ib) {
-      if (!vbo_all_varyings_in_vbos(arrays))
-	 return GL_TRUE;
-      else
-	 return GL_FALSE;
-   }
-   else {
-      /* Hmm.  This isn't quite what I wanted.  BRW can actually
-       * handle the mixed case well enough that we shouldn't need to
-       * rebase.  However, it's probably not very common, nor hugely
-       * expensive to do it this way:
-       */
-      if (!vbo_all_varyings_in_vbos(arrays))
-	 return GL_TRUE;
-      else
-	 return GL_FALSE;
-   }
-}
-				  
-
 void brw_draw_prims( GLcontext *ctx,
 		     const struct gl_client_array *arrays[],
 		     const struct _mesa_prim *prim,
 		     GLuint nr_prims,
 		     const struct _mesa_index_buffer *ib,
+		     GLboolean index_bounds_valid,
 		     GLuint min_index,
 		     GLuint max_index )
 {
    GLboolean retval;
 
-   /* Decide if we want to rebase.  If so we end up recursing once
-    * only into this function.
-    */
-   if (brw_need_rebase( ctx, arrays, ib, min_index )) {
-      vbo_rebase_prims( ctx, arrays, 
-			prim, nr_prims, 
-			ib, min_index, max_index, 
-			brw_draw_prims );
-      
-      return;
+   if (!vbo_all_varyings_in_vbos(arrays)) {
+      if (!index_bounds_valid)
+	 vbo_get_minmax_index(ctx, prim, ib, &min_index, &max_index);
+
+      /* Decide if we want to rebase.  If so we end up recursing once
+       * only into this function.
+       */
+      if (min_index != 0) {
+	 vbo_rebase_prims(ctx, arrays,
+			  prim, nr_prims,
+			  ib, min_index, max_index,
+			  brw_draw_prims );
+	 return;
+      }
    }
 
    /* Make a first attempt at drawing:

@@ -3,6 +3,7 @@
  * Version:  6.5
  *
  * Copyright (C) 1999-2005  Brian Paul   All Rights Reserved.
+ * Copyright (C) 2009  VMware, Inc.  All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -23,10 +24,19 @@
  */
 
 #include "mtypes.h"
+#include "attrib.h"
+#include "colormac.h"
 #include "context.h"
+#include "hash.h"
 #include "imports.h"
 #include "debug.h"
 #include "get.h"
+#include "pixelstore.h"
+#include "readpix.h"
+#include "texgetimage.h"
+#include "texobj.h"
+#include "texformat.h"
+
 
 /**
  * Primitive names
@@ -164,9 +174,7 @@ static void add_debug_flags( const char *debug )
       { "api",       VERBOSE_API },
       { "list",      VERBOSE_DISPLAY_LIST },
       { "lighting",  VERBOSE_LIGHTING },
-      { "disassem",  VERBOSE_DISASSEM },
-      { "glsl",      VERBOSE_GLSL },     /* report GLSL compile/link errors */
-      { "glsl_dump", VERBOSE_GLSL_DUMP } /* print shader GPU instructions */
+      { "disassem",  VERBOSE_DISASSEM }
    };
    GLuint i;
 
@@ -221,3 +229,212 @@ _mesa_init_debug( GLcontext *ctx )
       add_debug_flags(c);
 }
 
+
+/*
+ * Write ppm file
+ */
+static void
+write_ppm(const char *filename, const GLubyte *buffer, int width, int height,
+          int comps, int rcomp, int gcomp, int bcomp, GLboolean invert)
+{
+   FILE *f = fopen( filename, "w" );
+   if (f) {
+      int x, y;
+      const GLubyte *ptr = buffer;
+      fprintf(f,"P6\n");
+      fprintf(f,"# ppm-file created by osdemo.c\n");
+      fprintf(f,"%i %i\n", width,height);
+      fprintf(f,"255\n");
+      fclose(f);
+      f = fopen( filename, "ab" );  /* reopen in binary append mode */
+      for (y=0; y < height; y++) {
+         for (x = 0; x < width; x++) {
+            int yy = invert ? (height - 1 - y) : y;
+            int i = (yy * width + x) * comps;
+            fputc(ptr[i+rcomp], f); /* write red */
+            fputc(ptr[i+gcomp], f); /* write green */
+            fputc(ptr[i+bcomp], f); /* write blue */
+         }
+      }
+      fclose(f);
+   }
+}
+
+
+/**
+ * Write level[0] image to a ppm file.
+ */
+static void
+write_texture_image(struct gl_texture_object *texObj, GLuint face, GLuint level)
+{
+   struct gl_texture_image *img = texObj->Image[face][level];
+   if (img) {
+      GET_CURRENT_CONTEXT(ctx);
+      struct gl_pixelstore_attrib store;
+      GLubyte *buffer;
+      char s[100];
+
+      buffer = (GLubyte *) _mesa_malloc(img->Width * img->Height
+                                        * img->Depth * 4);
+
+      store = ctx->Pack; /* save */
+      ctx->Pack = ctx->DefaultPacking;
+
+      ctx->Driver.GetTexImage(ctx, texObj->Target, level,
+                              GL_RGBA, GL_UNSIGNED_BYTE,
+                              buffer, texObj, img);
+
+      /* make filename */
+      _mesa_sprintf(s, "/tmp/teximage%u.ppm", texObj->Name);
+
+      _mesa_printf("  Writing image level %u to %s\n", level, s);
+      write_ppm(s, buffer, img->Width, img->Height, 4, 0, 1, 2, GL_FALSE);
+
+      ctx->Pack = store; /* restore */
+
+      _mesa_free(buffer);
+   }
+}
+
+
+static GLboolean DumpImages;
+
+
+static void
+dump_texture_cb(GLuint id, void *data, void *userData)
+{
+   struct gl_texture_object *texObj = (struct gl_texture_object *) data;
+   int i;
+   GLboolean written = GL_FALSE;
+   (void) userData;
+
+   _mesa_printf("Texture %u\n", texObj->Name);
+   _mesa_printf("  Target 0x%x\n", texObj->Target);
+   for (i = 0; i < MAX_TEXTURE_LEVELS; i++) {
+      struct gl_texture_image *texImg = texObj->Image[0][i];
+      if (texImg) {
+         _mesa_printf("  Image %u: %d x %d x %d, format %u at %p\n", i,
+                      texImg->Width, texImg->Height, texImg->Depth,
+                      texImg->TexFormat->MesaFormat, texImg->Data);
+         if (DumpImages && !written) {
+            GLuint face = 0;
+            write_texture_image(texObj, face, i);
+            written = GL_TRUE;
+         }
+      }
+   }
+}
+
+
+/**
+ * Print basic info about all texture objext to stdout.
+ * If dumpImages is true, write PPM of level[0] image to a file.
+ */
+void
+_mesa_dump_textures(GLboolean dumpImages)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   DumpImages = dumpImages;
+   _mesa_HashWalk(ctx->Shared->TexObjects, dump_texture_cb, ctx);
+}
+
+
+void
+_mesa_dump_color_buffer(const char *filename)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   const GLuint w = ctx->DrawBuffer->Width;
+   const GLuint h = ctx->DrawBuffer->Height;
+   GLubyte *buf;
+
+   buf = (GLubyte *) _mesa_malloc(w * h * 4);
+
+   _mesa_PushClientAttrib(GL_CLIENT_PIXEL_STORE_BIT);
+   _mesa_PixelStorei(GL_PACK_ALIGNMENT, 1);
+   _mesa_PixelStorei(GL_PACK_INVERT_MESA, GL_TRUE);
+
+   _mesa_ReadPixels(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, buf);
+
+   _mesa_printf("ReadBuffer %p 0x%x  DrawBuffer %p 0x%x\n",
+                ctx->ReadBuffer->_ColorReadBuffer,
+                ctx->ReadBuffer->ColorReadBuffer,
+                ctx->DrawBuffer->_ColorDrawBuffers[0],
+                ctx->DrawBuffer->ColorDrawBuffer[0]);
+   _mesa_printf("Writing %d x %d color buffer to %s\n", w, h, filename);
+   write_ppm(filename, buf, w, h, 4, 0, 1, 2, GL_TRUE);
+
+   _mesa_PopClientAttrib();
+
+   _mesa_free(buf);
+}
+
+
+void
+_mesa_dump_depth_buffer(const char *filename)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   const GLuint w = ctx->DrawBuffer->Width;
+   const GLuint h = ctx->DrawBuffer->Height;
+   GLuint *buf;
+   GLubyte *buf2;
+   GLuint i;
+
+   buf = (GLuint *) _mesa_malloc(w * h * 4);  /* 4 bpp */
+   buf2 = (GLubyte *) _mesa_malloc(w * h * 3); /* 3 bpp */
+
+   _mesa_PushClientAttrib(GL_CLIENT_PIXEL_STORE_BIT);
+   _mesa_PixelStorei(GL_PACK_ALIGNMENT, 1);
+   _mesa_PixelStorei(GL_PACK_INVERT_MESA, GL_TRUE);
+
+   _mesa_ReadPixels(0, 0, w, h, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, buf);
+
+   /* spread 24 bits of Z across R, G, B */
+   for (i = 0; i < w * h; i++) {
+      buf2[i*3+0] = (buf[i] >> 24) & 0xff;
+      buf2[i*3+1] = (buf[i] >> 16) & 0xff;
+      buf2[i*3+2] = (buf[i] >>  8) & 0xff;
+   }
+
+   _mesa_printf("Writing %d x %d depth buffer to %s\n", w, h, filename);
+   write_ppm(filename, buf2, w, h, 3, 0, 1, 2, GL_TRUE);
+
+   _mesa_PopClientAttrib();
+
+   _mesa_free(buf);
+   _mesa_free(buf2);
+}
+
+
+void
+_mesa_dump_stencil_buffer(const char *filename)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   const GLuint w = ctx->DrawBuffer->Width;
+   const GLuint h = ctx->DrawBuffer->Height;
+   GLubyte *buf;
+   GLubyte *buf2;
+   GLuint i;
+
+   buf = (GLubyte *) _mesa_malloc(w * h);  /* 1 bpp */
+   buf2 = (GLubyte *) _mesa_malloc(w * h * 3); /* 3 bpp */
+
+   _mesa_PushClientAttrib(GL_CLIENT_PIXEL_STORE_BIT);
+   _mesa_PixelStorei(GL_PACK_ALIGNMENT, 1);
+   _mesa_PixelStorei(GL_PACK_INVERT_MESA, GL_TRUE);
+
+   _mesa_ReadPixels(0, 0, w, h, GL_STENCIL_INDEX, GL_UNSIGNED_BYTE, buf);
+
+   for (i = 0; i < w * h; i++) {
+      buf2[i*3+0] = buf[i];
+      buf2[i*3+1] = (buf[i] & 127) * 2;
+      buf2[i*3+2] = (buf[i] - 128) * 2;
+   }
+
+   _mesa_printf("Writing %d x %d stencil buffer to %s\n", w, h, filename);
+   write_ppm(filename, buf2, w, h, 3, 0, 1, 2, GL_TRUE);
+
+   _mesa_PopClientAttrib();
+
+   _mesa_free(buf);
+   _mesa_free(buf2);
+}

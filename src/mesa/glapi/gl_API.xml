@@ -5039,7 +5039,7 @@
 
     <type name="char"   size="1" glx_name="CARD8"/>
 
-    <enum name="GL_BLEND_EQUATION_RGB"            value="0x8009"/>
+    <enum name="BLEND_EQUATION_RGB"            value="0x8009"/>
     <enum name="VERTEX_ATTRIB_ARRAY_ENABLED"      value="0x8622"/>
     <enum name="VERTEX_ATTRIB_ARRAY_SIZE"         value="0x8623"/>
     <enum name="VERTEX_ATTRIB_ARRAY_STRIDE"       value="0x8624"/>
@@ -5684,29 +5684,29 @@
     <!-- XXX some of the enums and functions probably need additional -->
     <!-- flags/attributes. -->
 
-    <enum name="GL_CURRENT_RASTER_SECONDARY_COLOR" value="0x845F"/>
-    <enum name="GL_PIXEL_PACK_BUFFER"              value="0x88EB"/>
-    <enum name="GL_PIXEL_UNPACK_BUFFER"            value="0x88EC"/>
-    <enum name="GL_PIXEL_PACK_BUFFER_BINDING"      value="0x88ED"/>
-    <enum name="GL_PIXEL_UNPACK_BUFFER_BINDING"    value="0x88EF"/>
-    <enum name="GL_FLOAT_MAT2x3"                   value="0x8B65"/>
-    <enum name="GL_FLOAT_MAT2x4"                   value="0x8B66"/>
-    <enum name="GL_FLOAT_MAT3x2"                   value="0x8B67"/>
-    <enum name="GL_FLOAT_MAT3x4"                   value="0x8B68"/>
-    <enum name="GL_FLOAT_MAT4x2"                   value="0x8B69"/>
-    <enum name="GL_FLOAT_MAT4x3"                   value="0x8B6A"/>
-    <enum name="GL_SRGB"                           value="0x8C40"/>
-    <enum name="GL_SRGB8"                          value="0x8C41"/>
-    <enum name="GL_SRGB_ALPHA"                     value="0x8C42"/>
-    <enum name="GL_SRGB8_ALPHA8"                   value="0x8C43"/>
-    <enum name="GL_SLUMINANCE_ALPHA"               value="0x8C44"/>
-    <enum name="GL_SLUMINANCE8_ALPHA8"             value="0x8C45"/>
-    <enum name="GL_SLUMINANCE"                     value="0x8C46"/>
-    <enum name="GL_SLUMINANCE8"                    value="0x8C47"/>
-    <enum name="GL_COMPRESSED_SRGB"                value="0x8C48"/>
-    <enum name="GL_COMPRESSED_SRGB_ALPHA"          value="0x8C49"/>
-    <enum name="GL_COMPRESSED_SLUMINANCE"          value="0x8C4A"/>
-    <enum name="GL_COMPRESSED_SLUMINANCE_ALPHA"    value="0x8C4B"/>
+    <enum name="CURRENT_RASTER_SECONDARY_COLOR" value="0x845F"/>
+    <enum name="PIXEL_PACK_BUFFER"              value="0x88EB"/>
+    <enum name="PIXEL_UNPACK_BUFFER"            value="0x88EC"/>
+    <enum name="PIXEL_PACK_BUFFER_BINDING"      value="0x88ED"/>
+    <enum name="PIXEL_UNPACK_BUFFER_BINDING"    value="0x88EF"/>
+    <enum name="FLOAT_MAT2x3"                   value="0x8B65"/>
+    <enum name="FLOAT_MAT2x4"                   value="0x8B66"/>
+    <enum name="FLOAT_MAT3x2"                   value="0x8B67"/>
+    <enum name="FLOAT_MAT3x4"                   value="0x8B68"/>
+    <enum name="FLOAT_MAT4x2"                   value="0x8B69"/>
+    <enum name="FLOAT_MAT4x3"                   value="0x8B6A"/>
+    <enum name="SRGB"                           value="0x8C40"/>
+    <enum name="SRGB8"                          value="0x8C41"/>
+    <enum name="SRGB_ALPHA"                     value="0x8C42"/>
+    <enum name="SRGB8_ALPHA8"                   value="0x8C43"/>
+    <enum name="SLUMINANCE_ALPHA"               value="0x8C44"/>
+    <enum name="SLUMINANCE8_ALPHA8"             value="0x8C45"/>
+    <enum name="SLUMINANCE"                     value="0x8C46"/>
+    <enum name="SLUMINANCE8"                    value="0x8C47"/>
+    <enum name="COMPRESSED_SRGB"                value="0x8C48"/>
+    <enum name="COMPRESSED_SRGB_ALPHA"          value="0x8C49"/>
+    <enum name="COMPRESSED_SLUMINANCE"          value="0x8C4A"/>
+    <enum name="COMPRESSED_SLUMINANCE_ALPHA"    value="0x8C4B"/>
 
     <function name="UniformMatrix2x3fv" offset="assign">
         <param name="location" type="GLint"/>
@@ -7945,6 +7945,23 @@
         <size name="Get" mode="get"/>
     </enum>
 </category>
+
+<xi:include href="ARB_framebuffer_object.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
+
+<xi:include href="ARB_copy_buffer.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
+
+<xi:include href="ARB_depth_clamp.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
+
+<xi:include href="ARB_map_buffer_range.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
+
+<xi:include href="ARB_vertex_array_object.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
+
+<xi:include href="ARB_sync.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
+
+<xi:include href="ARB_seamless_cube_map.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
+
+<xi:include href="ARB_draw_elements_base_vertex.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
+
 
 <!-- Non-ARB extensions sorted by extension number. -->
 
@@ -11678,6 +11695,56 @@
     <enum name="DEPTH_STENCIL_TO_BGRA_NV"                 value="0x886F"/>
 </category>
 
+<category name="GL_ATI_envmap_bumpmap" number="244">
+    <enum name="BUMP_ROT_MATRIX_ATI"          count="4"   value="0x8775">
+        <size name="TexBumpParameterfv"/>
+        <size name="TexBumpParameteriv"/>
+        <size name="GetTexBumpParameterfv" mode="get"/>
+        <size name="GetTexBumpParameteriv" mode="get"/>
+    </enum>
+    <enum name="BUMP_ROT_MATRIX_SIZE_ATI"     count="1"   value="0x8776">
+        <size name="GetTexBumpParameterfv" mode="get"/>
+        <size name="GetTexBumpParameteriv" mode="get"/>
+    </enum>
+    <enum name="BUMP_NUM_TEX_UNITS_ATI"       count="1"   value="0x8777">
+        <size name="GetTexBumpParameterfv" mode="get"/>
+        <size name="GetTexBumpParameteriv" mode="get"/>
+    </enum>
+    <enum name="BUMP_TEX_UNITS_ATI"           count="-1"  value="0x8778">
+        <size name="GetTexBumpParameterfv" mode="get"/>
+        <size name="GetTexBumpParameteriv" mode="get"/>
+    </enum>
+    <enum name="DUDV_ATI"                                 value="0x8779"/>
+    <enum name="DU8DV8_ATI"                               value="0x877A"/>
+    <enum name="BUMP_ENVMAP_ATI"                          value="0x877B"/>
+    <enum name="BUMP_TARGET_ATI"              count="1"   value="0x877C">
+        <size name="TexEnviv"/>
+        <size name="TexEnvfv"/>
+        <size name="GetTexEnviv" mode="get"/>
+        <size name="GetTexEnvfv" mode="get"/>
+    </enum>
+    <function name="TexBumpParameterfvATI" offset="assign">
+      <param name="pname" type="GLenum"/>
+      <param name="param" type="const GLfloat *" variable_param="pname"/>
+      <glx ignore="true"/>
+    </function>
+    <function name="TexBumpParameterivATI" offset="assign">
+      <param name="pname" type="GLenum"/>
+      <param name="param" type="const GLint *" variable_param="pname"/>
+      <glx ignore="true"/>
+    </function>
+    <function name="GetTexBumpParameterfvATI" offset="assign">
+      <param name="pname" type="GLenum"/>
+      <param name="param" type="GLfloat *" variable_param="pname"/>
+      <glx ignore="true"/>
+    </function>
+    <function name="GetTexBumpParameterivATI" offset="assign">
+      <param name="pname" type="GLenum"/>
+      <param name="param" type="GLint *" variable_param="pname"/>
+      <glx ignore="true"/>
+    </function>
+</category>
+
 <category name="GL_ATI_fragment_shader" number="245">
     <function name="GenFragmentShadersATI" offset="assign">
       <return type="GLuint"/>
@@ -12171,6 +12238,8 @@
 
 <xi:include href="EXT_framebuffer_object.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
+<xi:include href="EXT_provoking_vertex.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
+
 <category name="GL_EXT_framebuffer_blit" number="316">
     <enum name="READ_FRAMEBUFFER_EXT" value="0x8CA8"/>
     <enum name="DRAW_FRAMEBUFFER_EXT" value="0x8CA9"/>
@@ -12191,6 +12260,65 @@
         <param name="dstY1" type="GLint"/>
         <param name="mask" type="GLbitfield"/>
         <param name="filter" type="GLenum"/>
+    </function>
+</category>
+
+<category name="GL_APPLE_flush_buffer_range" number="321">
+    <enum name="BUFFER_SERIALIZED_MODIFY_APPLE" count="1" value="0x8A12">
+        <size name="GetBufferParameteriv" mode="get"/>
+    </enum>
+    <enum name="BUFFER_FLUSHING_UNMAP_APPLE" count="1" value="0x8A13">
+        <size name="GetBufferParameteriv" mode="get"/>
+    </enum>
+    <function name="BufferParameteriAPPLE" offset="assign" static_dispatch="false">
+        <param name="target" type="GLenum"/>
+        <param name="pname" type="GLenum"/>
+        <param name="param" type="GLint"/>
+    </function>
+    <function name="FlushMappedBufferRangeAPPLE" offset="assign" static_dispatch="false">
+        <param name="target" type="GLenum"/>
+        <param name="offset" type="GLintptr"/>
+        <param name="size" type="GLsizeiptr"/>
+    </function>
+</category>
+
+<xi:include href="EXT_texture_array.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
+
+<category name="GL_APPLE_texture_range" number="367">
+    <enum name="TEXTURE_STORAGE_HINT_APPLE" count="1" value="0x85BC">
+        <size name="TexParameteriv"/>
+        <size name="TexParameterfv"/>
+        <size name="GetTexParameteriv" mode="get"/>
+        <size name="GetTexParameterfv" mode="get"/>
+    </enum>
+    <enum name="STORAGE_PRIVATE_APPLE" count="1" value="0x85BD">
+        <size name="TexParameteriv"/>
+        <size name="TexParameterfv"/>
+    </enum>
+    <enum name="STORAGE_CACHED_APPLE" count="1" value="0x85BE">
+        <size name="TexParameteriv"/>
+        <size name="TexParameterfv"/>
+    </enum>
+    <enum name="STORAGE_SHARED_APPLE" count="1" value="0x85BF">
+        <size name="TexParameteriv"/>
+        <size name="TexParameterfv"/>
+    </enum>
+    <enum name="TEXTURE_RANGE_LENGTH_APPLE" count="1" value="0x85B7">
+        <size name="GetTexParameteriv" mode="get"/>
+        <size name="GetTexParameterfv" mode="get"/>
+    </enum>
+    <enum name="TEXTURE_RANGE_POINTER_APPLE" count="1" value="0x85B8">
+        <size name="GetTexParameterPointervAPPLE" mode="get"/>
+    </enum>
+    <function name="TextureRangeAPPLE" offset="assign" static_dispatch="false">
+        <param name="target" type="GLenum"/>
+        <param name="length" type="GLsizei"/>
+        <param name="pointer" type="GLvoid *"/>
+    </function>
+    <function name="GetTexParameterPointervAPPLE" offset="assign" static_dispatch="false">
+        <param name="target" type="GLenum"/>
+        <param name="pname" type="GLenum"/>
+        <param name="params" type="GLvoid **"/>
     </function>
 </category>
 
@@ -12271,6 +12399,12 @@
         <param name="sfactorAlpha" type="GLenum"/>
         <param name="dfactorAlpha" type="GLenum"/>
     </function>
+</category>
+
+<category name="GL_MESA_texture_signed_rgba">
+    <enum name="SIGNED_NORMALIZED"                        value="0x8F9C"/>
+    <enum name="RGBA_SNORM"                               value="0x8F93"/>
+    <enum name="RGBA8_SNORM"                              value="0x8F97"/>
 </category>
 
 <category name="GL_MESA_shader_debug">

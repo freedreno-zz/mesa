@@ -195,7 +195,16 @@ _intel_batchbuffer_flush(struct intel_batchbuffer *batch, const char *file,
 {
    struct intel_context *intel = batch->intel;
    GLuint used = batch->ptr - batch->map;
-   GLboolean was_locked = intel->locked;
+
+   if (intel->first_post_swapbuffers_batch == NULL) {
+      intel->first_post_swapbuffers_batch = intel->batch->buf;
+      drm_intel_bo_reference(intel->first_post_swapbuffers_batch);
+   }
+
+   if (intel->first_post_swapbuffers_batch == NULL) {
+      intel->first_post_swapbuffers_batch = intel->batch->buf;
+      drm_intel_bo_reference(intel->first_post_swapbuffers_batch);
+   }
 
    if (used == 0) {
       batch->cliprect_mode = IGNORE_CLIPRECTS;
@@ -207,7 +216,7 @@ _intel_batchbuffer_flush(struct intel_batchbuffer *batch, const char *file,
 	      used);
 
    /* Emit a flush if the bufmgr doesn't do it for us. */
-   if (!intel->ttm) {
+   if (intel->always_flush_cache || !intel->ttm) {
       *(GLuint *) (batch->ptr) = intel->vtbl.flush_cmd();
       batch->ptr += 4;
       used = batch->ptr - batch->map;
@@ -243,13 +252,9 @@ _intel_batchbuffer_flush(struct intel_batchbuffer *batch, const char *file,
    /* TODO: Just pass the relocation list and dma buffer up to the
     * kernel.
     */
-   if (!was_locked)
-      LOCK_HARDWARE(intel);
-
+   LOCK_HARDWARE(intel);
    do_flush_locked(batch, used, GL_FALSE);
-
-   if (!was_locked)
-      UNLOCK_HARDWARE(intel);
+   UNLOCK_HARDWARE(intel);
 
    if (INTEL_DEBUG & DEBUG_SYNC) {
       fprintf(stderr, "waiting for idle\n");

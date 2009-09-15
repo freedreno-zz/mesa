@@ -52,7 +52,6 @@ const struct brw_tracked_state brw_cc_vp;
 const struct brw_tracked_state brw_check_fallback;
 const struct brw_tracked_state brw_clip_prog;
 const struct brw_tracked_state brw_clip_unit;
-const struct brw_tracked_state brw_constant_buffer_state;
 const struct brw_tracked_state brw_constant_buffer;
 const struct brw_tracked_state brw_curbe_offsets;
 const struct brw_tracked_state brw_invarient_state;
@@ -73,11 +72,13 @@ const struct brw_tracked_state brw_sf_vp;
 const struct brw_tracked_state brw_state_base_address;
 const struct brw_tracked_state brw_urb_fence;
 const struct brw_tracked_state brw_vertex_state;
+const struct brw_tracked_state brw_vs_surfaces;
 const struct brw_tracked_state brw_vs_prog;
 const struct brw_tracked_state brw_vs_unit;
 const struct brw_tracked_state brw_wm_input_sizes;
 const struct brw_tracked_state brw_wm_prog;
 const struct brw_tracked_state brw_wm_samplers;
+const struct brw_tracked_state brw_wm_constant_surface;
 const struct brw_tracked_state brw_wm_surfaces;
 const struct brw_tracked_state brw_wm_unit;
 
@@ -91,6 +92,21 @@ const struct brw_tracked_state brw_clear_batch_cache;
 const struct brw_tracked_state brw_drawing_rect;
 const struct brw_tracked_state brw_indices;
 const struct brw_tracked_state brw_vertices;
+const struct brw_tracked_state brw_index_buffer;
+
+/**
+ * Use same key for WM and VS surfaces.
+ */
+struct brw_surface_key {
+   GLenum target, depthmode;
+   dri_bo *bo;
+   GLint format, internal_format;
+   GLint first_level, last_level;
+   GLint width, height, depth;
+   GLint pitch, cpp;
+   uint32_t tiling;
+   GLuint offset;
+};
 
 /***********************************************************************
  * brw_state.c
@@ -136,8 +152,8 @@ dri_bo *brw_search_cache( struct brw_cache *cache,
 			  void *aux_return);
 void brw_state_cache_check_size( struct brw_context *brw );
 
-void brw_init_cache( struct brw_context *brw );
-void brw_destroy_cache( struct brw_context *brw );
+void brw_init_caches( struct brw_context *brw );
+void brw_destroy_caches( struct brw_context *brw );
 
 /***********************************************************************
  * brw_state_batch.c
@@ -150,5 +166,10 @@ GLboolean brw_cached_batch_struct( struct brw_context *brw,
 				   GLuint sz );
 void brw_destroy_batch_cache( struct brw_context *brw );
 void brw_clear_batch_cache_flush( struct brw_context *brw );
+
+/* brw_wm_surface_state.c */
+dri_bo *
+brw_create_constant_surface( struct brw_context *brw,
+                             struct brw_surface_key *key );
 
 #endif

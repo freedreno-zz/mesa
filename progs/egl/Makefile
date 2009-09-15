@@ -7,13 +7,23 @@ include $(TOP)/configs/current
 INCLUDE_DIRS = -I$(TOP)/include
 
 HEADERS = $(TOP)/include/GLES/egl.h
+LIB_DEP = $(TOP)/$(LIB_DIR)/libEGL.so
+
+LIBS = -L$(TOP)/$(LIB_DIR) -lEGL -lGL
 
 PROGRAMS = \
 	demo1 \
 	demo2 \
 	demo3 \
+	egltri \
 	eglinfo \
-	eglgears
+	eglgears \
+	eglscreen \
+	peglgears \
+	xeglbindtex \
+	xeglgears \
+	xeglthreads \
+	xegl_tri
 
 
 .c.o:
@@ -23,43 +33,42 @@ PROGRAMS = \
 
 default: $(PROGRAMS)
 
+demo1: demo1.o $(HEADERS) $(LIB_DEP)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(LIBDRM_LIB)
 
-demo1: demo1.o $(TOP)/$(LIB_DIR)/libEGL.so
-	$(CC) $(CFLAGS) $(LDFLAGS) demo1.o -L$(TOP)/$(LIB_DIR) -lEGL $(LIBDRM_LIB) -o $@
+demo2: demo2.o $(HEADERS) $(LIB_DEP)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(LIBDRM_LIB)
 
-demo1.o: demo1.c $(HEADERS)
-	$(CC) -c $(CFLAGS) -I$(TOP)/include demo1.c
+demo3: demo3.o $(HEADERS) $(LIB_DEP)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(LIBDRM_LIB)
 
+egltri: egltri.o $(HEADERS) $(LIB_DEP)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(LIBDRM_LIB)
 
-demo2: demo2.o $(TOP)/$(LIB_DIR)/libEGL.so
-	$(CC) $(CFLAGS) $(LDFLAGS) demo2.o -L$(TOP)/$(LIB_DIR) -lEGL $(LIBDRM_LIB) $(APP_LIB_DEPS) -o $@
+eglinfo: eglinfo.o $(HEADERS) $(LIB_DEP)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(LIBDRM_LIB)
 
-demo2.o: demo2.c $(HEADERS)
-	$(CC) -c $(CFLAGS) -I$(TOP)/include demo2.c
+eglgears: eglgears.o $(HEADERS) $(LIB_DEP)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(LIBDRM_LIB)
 
+eglscreen: eglscreen.o $(HEADERS) $(LIB_DEP)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(LIBDRM_LIB)
 
-demo3: demo3.o $(TOP)/$(LIB_DIR)/libEGL.so
-	$(CC) $(CFLAGS) $(LDFLAGS) demo3.o -L$(TOP)/$(LIB_DIR) -lEGL $(LIBDRM_LIB) $(APP_LIB_DEPS) -o $@
+peglgears: peglgears.o $(HEADERS) $(LIB_DEP)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(LIBDRM_LIB)
 
-demo3.o: demo3.c $(HEADERS)
-	$(CC) -c $(CFLAGS) -I$(TOP)/include demo3.c
+xeglbindtex: xeglbindtex.o $(HEADERS) $(LIB_DEP)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) -lX11
 
+xeglgears: xeglgears.o $(HEADERS) $(LIB_DEP)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) -lX11
 
-eglinfo: eglinfo.o $(TOP)/$(LIB_DIR)/libEGL.so
-	$(CC) $(CFLAGS) $(LDFLAGS) eglinfo.o -L$(TOP)/$(LIB_DIR) -lEGL $(LIBDRM_LIB) -o $@
+xeglthreads: xeglthreads.o $(HEADERS) $(LIB_DEP)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) -lX11
 
-eglinfo.o: eglinfo.c $(HEADERS)
-	$(CC) -c $(CFLAGS) -I$(TOP)/include eglinfo.c
-
-
-eglgears: eglgears.o $(TOP)/$(LIB_DIR)/libEGL.so
-	$(CC) $(CFLAGS) $(LDFLAGS) eglgears.o -L$(TOP)/$(LIB_DIR) -lEGL $(LIBDRM_LIB) $(APP_LIB_DEPS) -o $@
-
-eglgears.o: eglgears.c $(HEADERS)
-	$(CC) -c $(CFLAGS) -I$(TOP)/include eglgears.c
-
+xegl_tri: xegl_tri.o $(HEADERS) $(LIB_DEP)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) -lX11
 
 clean:
 	-rm -f *.o *~
-	-rm -f *.so
 	-rm -f $(PROGRAMS)

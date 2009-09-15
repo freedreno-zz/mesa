@@ -44,6 +44,10 @@
 #include "eval.h"
 #include "macros.h"
 #include "mtypes.h"
+#include "glapi/dispatch.h"
+
+
+#if FEATURE_eval
 
 
 /*
@@ -796,6 +800,41 @@ _mesa_MapGrid2d( GLint un, GLdouble u1, GLdouble u2,
 		    vn, (GLfloat) v1, (GLfloat) v2 );
 }
 
+
+void 
+_mesa_install_eval_vtxfmt(struct _glapi_table *disp,
+                          const GLvertexformat *vfmt)
+{
+   SET_EvalCoord1f(disp, vfmt->EvalCoord1f);
+   SET_EvalCoord1fv(disp, vfmt->EvalCoord1fv);
+   SET_EvalCoord2f(disp, vfmt->EvalCoord2f);
+   SET_EvalCoord2fv(disp, vfmt->EvalCoord2fv);
+   SET_EvalPoint1(disp, vfmt->EvalPoint1);
+   SET_EvalPoint2(disp, vfmt->EvalPoint2);
+
+   SET_EvalMesh1(disp, vfmt->EvalMesh1);
+   SET_EvalMesh2(disp, vfmt->EvalMesh2);
+}
+
+
+void 
+_mesa_init_eval_dispatch(struct _glapi_table *disp)
+{
+   SET_GetMapdv(disp, _mesa_GetMapdv);
+   SET_GetMapfv(disp, _mesa_GetMapfv);
+   SET_GetMapiv(disp, _mesa_GetMapiv);
+   SET_Map1d(disp, _mesa_Map1d);
+   SET_Map1f(disp, _mesa_Map1f);
+   SET_Map2d(disp, _mesa_Map2d);
+   SET_Map2f(disp, _mesa_Map2f);
+   SET_MapGrid1d(disp, _mesa_MapGrid1d);
+   SET_MapGrid1f(disp, _mesa_MapGrid1f);
+   SET_MapGrid2d(disp, _mesa_MapGrid2d);
+   SET_MapGrid2f(disp, _mesa_MapGrid2f);
+}
+
+
+#endif /* FEATURE_eval */
 
 
 /**********************************************************************/

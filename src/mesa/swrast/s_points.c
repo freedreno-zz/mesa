@@ -139,9 +139,10 @@ sprite_point(GLcontext *ctx, const SWvertex *vert)
       }
 
       ATTRIB_LOOP_BEGIN
-         if (attr >= FRAG_ATTRIB_TEX0 && attr < FRAG_ATTRIB_VAR0) {
+         if (attr >= FRAG_ATTRIB_TEX0 && attr <= FRAG_ATTRIB_TEX7) {
+            /* a texcoord attribute */
             const GLuint u = attr - FRAG_ATTRIB_TEX0;
-            /* a texcoord */
+            ASSERT(u < Elements(ctx->Point.CoordReplace));
             if (ctx->Point.CoordReplace[u]) {
                tCoords[numTcoords++] = attr;
 
@@ -170,15 +171,15 @@ sprite_point(GLcontext *ctx, const SWvertex *vert)
                continue;
             }
          }
-         else if (attr == FRAG_ATTRIB_FOGC) {
-            /* GLSL gl_PointCoord is stored in fog.zw */
-            span.attrStart[FRAG_ATTRIB_FOGC][2] = 0.0;
-            span.attrStart[FRAG_ATTRIB_FOGC][3] = 0.0; /* t0 set below */
-            span.attrStepX[FRAG_ATTRIB_FOGC][2] = dsdx;
-            span.attrStepX[FRAG_ATTRIB_FOGC][3] = 0.0;
-            span.attrStepY[FRAG_ATTRIB_FOGC][2] = 0.0;
-            span.attrStepY[FRAG_ATTRIB_FOGC][3] = dtdy;
-            tCoords[numTcoords++] = FRAG_ATTRIB_FOGC;
+         else if (attr == FRAG_ATTRIB_PNTC) {
+            /* GLSL gl_PointCoord.xy (.zw undefined) */
+            span.attrStart[FRAG_ATTRIB_PNTC][0] = 0.0;
+            span.attrStart[FRAG_ATTRIB_PNTC][1] = 0.0; /* t0 set below */
+            span.attrStepX[FRAG_ATTRIB_PNTC][0] = dsdx;
+            span.attrStepX[FRAG_ATTRIB_PNTC][1] = 0.0;
+            span.attrStepY[FRAG_ATTRIB_PNTC][0] = 0.0;
+            span.attrStepY[FRAG_ATTRIB_PNTC][1] = dtdy;
+            tCoords[numTcoords++] = FRAG_ATTRIB_PNTC;
             continue;
          }
          /* use vertex's texcoord/attrib */
@@ -221,10 +222,7 @@ sprite_point(GLcontext *ctx, const SWvertex *vert)
          GLuint i;
          /* setup texcoord T for this row */
          for (i = 0; i < numTcoords; i++) {
-            if (tCoords[i] == FRAG_ATTRIB_FOGC)
-               span.attrStart[FRAG_ATTRIB_FOGC][3] = tcoord;
-            else
-               span.attrStart[tCoords[i]][1] = tcoord;
+            span.attrStart[tCoords[i]][1] = tcoord;
          }
 
          /* these might get changed by span clipping */
@@ -570,6 +568,9 @@ void
 _swrast_choose_point(GLcontext *ctx)
 {
    SWcontext *swrast = SWRAST_CONTEXT(ctx);
+   const GLfloat size = CLAMP(ctx->Point.Size,
+                              ctx->Point.MinSize,
+                              ctx->Point.MaxSize);
 
    if (ctx->RenderMode == GL_RENDER) {
       if (ctx->Point.PointSprite) {
@@ -578,7 +579,7 @@ _swrast_choose_point(GLcontext *ctx)
       else if (ctx->Point.SmoothFlag) {
          swrast->Point = smooth_point;
       }
-      else if (ctx->Point.Size > 1.0 ||
+      else if (size > 1.0 ||
                ctx->Point._Attenuated ||
                ctx->VertexProgram.PointSizeEnabled) {
          swrast->Point = large_point;

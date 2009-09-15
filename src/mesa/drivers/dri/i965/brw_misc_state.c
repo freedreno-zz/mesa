@@ -48,15 +48,16 @@
 
 static void upload_blend_constant_color(struct brw_context *brw)
 {
+   GLcontext *ctx = &brw->intel.ctx;
    struct brw_blend_constant_color bcc;
 
    memset(&bcc, 0, sizeof(bcc));      
    bcc.header.opcode = CMD_BLEND_CONSTANT_COLOR;
    bcc.header.length = sizeof(bcc)/4-2;
-   bcc.blend_constant_color[0] = brw->attribs.Color->BlendColor[0];
-   bcc.blend_constant_color[1] = brw->attribs.Color->BlendColor[1];
-   bcc.blend_constant_color[2] = brw->attribs.Color->BlendColor[2];
-   bcc.blend_constant_color[3] = brw->attribs.Color->BlendColor[3];
+   bcc.blend_constant_color[0] = ctx->Color.BlendColor[0];
+   bcc.blend_constant_color[1] = ctx->Color.BlendColor[1];
+   bcc.blend_constant_color[2] = ctx->Color.BlendColor[2];
+   bcc.blend_constant_color[3] = ctx->Color.BlendColor[3];
 
    BRW_CACHED_BATCH_STRUCT(brw, &bcc);
 }
@@ -100,6 +101,7 @@ const struct brw_tracked_state brw_drawing_rect = {
 
 static void prepare_binding_table_pointers(struct brw_context *brw)
 {
+   brw_add_validated_bo(brw, brw->vs.bind_bo);
    brw_add_validated_bo(brw, brw->wm.bind_bo);
 }
 
@@ -116,13 +118,14 @@ static void upload_binding_table_pointers(struct brw_context *brw)
 
    BEGIN_BATCH(6, IGNORE_CLIPRECTS);
    OUT_BATCH(CMD_BINDING_TABLE_PTRS << 16 | (6 - 2));
-   OUT_BATCH(0); /* vs */
+   if (brw->vs.bind_bo != NULL)
+      OUT_RELOC(brw->vs.bind_bo, I915_GEM_DOMAIN_SAMPLER, 0, 0); /* vs */
+   else
+      OUT_BATCH(0);
    OUT_BATCH(0); /* gs */
    OUT_BATCH(0); /* clip */
    OUT_BATCH(0); /* sf */
-   OUT_RELOC(brw->wm.bind_bo,
-	     I915_GEM_DOMAIN_SAMPLER, 0,
-	     0);
+   OUT_RELOC(brw->wm.bind_bo, I915_GEM_DOMAIN_SAMPLER, 0, 0); /* wm/ps */
    ADVANCE_BATCH();
 }
 
@@ -154,10 +157,7 @@ static void upload_pipelined_state_pointers(struct brw_context *brw )
       OUT_RELOC(brw->gs.state_bo, I915_GEM_DOMAIN_INSTRUCTION, 0, 1);
    else
       OUT_BATCH(0);
-   if (!brw->metaops.active)
-      OUT_RELOC(brw->clip.state_bo, I915_GEM_DOMAIN_INSTRUCTION, 0, 1);
-   else
-      OUT_BATCH(0);
+   OUT_RELOC(brw->clip.state_bo, I915_GEM_DOMAIN_INSTRUCTION, 0, 1);
    OUT_RELOC(brw->sf.state_bo, I915_GEM_DOMAIN_INSTRUCTION, 0, 0);
    OUT_RELOC(brw->wm.state_bo, I915_GEM_DOMAIN_INSTRUCTION, 0, 0);
    OUT_RELOC(brw->cc.state_bo, I915_GEM_DOMAIN_INSTRUCTION, 0, 0);
@@ -172,6 +172,7 @@ static void prepare_psp_urb_cbs(struct brw_context *brw)
    brw_add_validated_bo(brw, brw->vs.state_bo);
    brw_add_validated_bo(brw, brw->gs.state_bo);
    brw_add_validated_bo(brw, brw->clip.state_bo);
+   brw_add_validated_bo(brw, brw->sf.state_bo);
    brw_add_validated_bo(brw, brw->wm.state_bo);
    brw_add_validated_bo(brw, brw->cc.state_bo);
 }
@@ -180,13 +181,13 @@ static void upload_psp_urb_cbs(struct brw_context *brw )
 {
    upload_pipelined_state_pointers(brw);
    brw_upload_urb_fence(brw);
-   brw_upload_constant_buffer_state(brw);
+   brw_upload_cs_urb_state(brw);
 }
 
 const struct brw_tracked_state brw_psp_urb_cbs = {
    .dirty = {
       .mesa = 0,
-      .brw = BRW_NEW_URB_FENCE | BRW_NEW_METAOPS | BRW_NEW_BATCH,
+      .brw = BRW_NEW_URB_FENCE | BRW_NEW_BATCH,
       .cache = (CACHE_NEW_VS_UNIT | 
 		CACHE_NEW_GS_UNIT | 
 		CACHE_NEW_GS_PROG | 
@@ -211,7 +212,7 @@ static void emit_depthbuffer(struct brw_context *brw)
 {
    struct intel_context *intel = &brw->intel;
    struct intel_region *region = brw->state.depth_region;
-   unsigned int len = BRW_IS_G4X(brw) ? 6 : 5;
+   unsigned int len = (BRW_IS_G4X(brw) || BRW_IS_IGDNG(brw)) ? 6 : 5;
 
    if (region == NULL) {
       BEGIN_BATCH(len, IGNORE_CLIPRECTS);
@@ -222,7 +223,7 @@ static void emit_depthbuffer(struct brw_context *brw)
       OUT_BATCH(0);
       OUT_BATCH(0);
 
-      if (BRW_IS_G4X(brw))
+      if (BRW_IS_G4X(brw) || BRW_IS_IGDNG(brw))
          OUT_BATCH(0);
 
       ADVANCE_BATCH();
@@ -244,6 +245,8 @@ static void emit_depthbuffer(struct brw_context *brw)
 	 return;
       }
 
+      assert(region->tiling != I915_TILING_X);
+
       BEGIN_BATCH(len, IGNORE_CLIPRECTS);
       OUT_BATCH(CMD_DEPTH_BUFFER << 16 | (len - 2));
       OUT_BATCH(((region->pitch * region->cpp) - 1) |
@@ -259,7 +262,7 @@ static void emit_depthbuffer(struct brw_context *brw)
 		((region->height - 1) << 19));
       OUT_BATCH(0);
 
-      if (BRW_IS_G4X(brw))
+      if (BRW_IS_G4X(brw) || BRW_IS_IGDNG(brw))
          OUT_BATCH(0);
 
       ADVANCE_BATCH();
@@ -284,6 +287,7 @@ const struct brw_tracked_state brw_depthbuffer = {
 
 static void upload_polygon_stipple(struct brw_context *brw)
 {
+   GLcontext *ctx = &brw->intel.ctx;
    struct brw_polygon_stipple bps;
    GLuint i;
 
@@ -291,8 +295,21 @@ static void upload_polygon_stipple(struct brw_context *brw)
    bps.header.opcode = CMD_POLY_STIPPLE_PATTERN;
    bps.header.length = sizeof(bps)/4-2;
 
-   for (i = 0; i < 32; i++)
-      bps.stipple[i] = brw->attribs.PolygonStipple[31 - i]; /* invert */
+   /* Polygon stipple is provided in OpenGL order, i.e. bottom
+    * row first.  If we're rendering to a window (i.e. the
+    * default frame buffer object, 0), then we need to invert
+    * it to match our pixel layout.  But if we're rendering
+    * to a FBO (i.e. any named frame buffer object), we *don't*
+    * need to invert - we already match the layout.
+    */
+   if (ctx->DrawBuffer->Name == 0) {
+      for (i = 0; i < 32; i++)
+         bps.stipple[i] = ctx->PolygonStipple[31 - i]; /* invert */
+   }
+   else {
+      for (i = 0; i < 32; i++)
+         bps.stipple[i] = ctx->PolygonStipple[i]; /* don't invert */
+   }
 
    BRW_CACHED_BATCH_STRUCT(brw, &bps);
 }
@@ -320,8 +337,22 @@ static void upload_polygon_stipple_offset(struct brw_context *brw)
    bpso.header.opcode = CMD_POLY_STIPPLE_OFFSET;
    bpso.header.length = sizeof(bpso)/4-2;
 
-   bpso.bits0.x_offset = (32 - (dPriv->x & 31)) & 31;
-   bpso.bits0.y_offset = (32 - ((dPriv->y + dPriv->h) & 31)) & 31;
+   /* If we're drawing to a system window (ctx->DrawBuffer->Name == 0),
+    * we have to invert the Y axis in order to match the OpenGL
+    * pixel coordinate system, and our offset must be matched
+    * to the window position.  If we're drawing to a FBO
+    * (ctx->DrawBuffer->Name != 0), then our native pixel coordinate
+    * system works just fine, and there's no window system to
+    * worry about.
+    */
+   if (brw->intel.ctx.DrawBuffer->Name == 0) {
+      bpso.bits0.x_offset = (32 - (dPriv->x & 31)) & 31;
+      bpso.bits0.y_offset = (32 - ((dPriv->y + dPriv->h) & 31)) & 31;
+   }
+   else {
+      bpso.bits0.y_offset = 0;
+      bpso.bits0.x_offset = 0;
+   }
 
    BRW_CACHED_BATCH_STRUCT(brw, &bpso);
 }
@@ -344,7 +375,7 @@ static void upload_aa_line_parameters(struct brw_context *brw)
 {
    struct brw_aa_line_parameters balp;
    
-   if (!BRW_IS_G4X(brw))
+   if (BRW_IS_965(brw))
       return;
 
    /* use legacy aa line coverage computation */
@@ -370,6 +401,7 @@ const struct brw_tracked_state brw_aa_line_parameters = {
 
 static void upload_line_stipple(struct brw_context *brw)
 {
+   GLcontext *ctx = &brw->intel.ctx;
    struct brw_line_stipple bls;
    GLfloat tmp;
    GLint tmpi;
@@ -378,10 +410,10 @@ static void upload_line_stipple(struct brw_context *brw)
    bls.header.opcode = CMD_LINE_STIPPLE_PATTERN;
    bls.header.length = sizeof(bls)/4 - 2;
 
-   bls.bits0.pattern = brw->attribs.Line->StipplePattern;
-   bls.bits1.repeat_count = brw->attribs.Line->StippleFactor;
+   bls.bits0.pattern = ctx->Line.StipplePattern;
+   bls.bits1.repeat_count = ctx->Line.StippleFactor;
 
-   tmp = 1.0 / (GLfloat) brw->attribs.Line->StippleFactor;
+   tmp = 1.0 / (GLfloat) ctx->Line.StippleFactor;
    tmpi = tmp * (1<<13);
 
 
@@ -480,14 +512,27 @@ static void upload_state_base_address( struct brw_context *brw )
    /* Output the structure (brw_state_base_address) directly to the
     * batchbuffer, so we can emit relocations inline.
     */
-   BEGIN_BATCH(6, IGNORE_CLIPRECTS);
-   OUT_BATCH(CMD_STATE_BASE_ADDRESS << 16 | (6 - 2));
-   OUT_BATCH(1); /* General state base address */
-   OUT_BATCH(1); /* Surface state base address */
-   OUT_BATCH(1); /* Indirect object base address */
-   OUT_BATCH(1); /* General state upper bound */
-   OUT_BATCH(1); /* Indirect object upper bound */
-   ADVANCE_BATCH();
+   if (BRW_IS_IGDNG(brw)) {
+       BEGIN_BATCH(8, IGNORE_CLIPRECTS);
+       OUT_BATCH(CMD_STATE_BASE_ADDRESS << 16 | (8 - 2));
+       OUT_BATCH(1); /* General state base address */
+       OUT_BATCH(1); /* Surface state base address */
+       OUT_BATCH(1); /* Indirect object base address */
+       OUT_BATCH(1); /* Instruction base address */
+       OUT_BATCH(1); /* General state upper bound */
+       OUT_BATCH(1); /* Indirect object upper bound */
+       OUT_BATCH(1); /* Instruction access upper bound */
+       ADVANCE_BATCH();
+   } else {
+       BEGIN_BATCH(6, IGNORE_CLIPRECTS);
+       OUT_BATCH(CMD_STATE_BASE_ADDRESS << 16 | (6 - 2));
+       OUT_BATCH(1); /* General state base address */
+       OUT_BATCH(1); /* Surface state base address */
+       OUT_BATCH(1); /* Indirect object base address */
+       OUT_BATCH(1); /* General state upper bound */
+       OUT_BATCH(1); /* Indirect object upper bound */
+       ADVANCE_BATCH();
+   }
 }
 
 const struct brw_tracked_state brw_state_base_address = {

@@ -38,6 +38,9 @@
 #define PROG_INSTRUCTION_H
 
 
+#include "main/mfeatures.h"
+
+
 /**
  * Swizzle indexes.
  * Do not change!
@@ -130,6 +133,7 @@
 #define NEGATE_Y    0x2
 #define NEGATE_Z    0x4
 #define NEGATE_W    0x8
+#define NEGATE_XYZ  0x7
 #define NEGATE_XYZW 0xf
 #define NEGATE_NONE 0x0
 /*@}*/
@@ -240,46 +244,33 @@ typedef enum prog_opcode {
 
 
 /**
+ * Number of bits for the src/dst register Index field.
+ * This limits the size of temp/uniform register files.
+ */
+#define INST_INDEX_BITS 10
+
+
+/**
  * Instruction source register.
  */
 struct prog_src_register
 {
    GLuint File:4;	/**< One of the PROGRAM_* register file values. */
-   GLint Index:9;	/**< May be negative for relative addressing. */
+   GLint Index:(INST_INDEX_BITS+1); /**< Extra bit here for sign bit.
+                                     * May be negative for relative addressing.
+                                     */
    GLuint Swizzle:12;
    GLuint RelAddr:1;
 
-   /**
-    * \name Source register "sign" control.
-    *
-    * The ARB and NV extensions allow varrying degrees of control over the
-    * sign of the source vector components.  These values allow enough control
-    * for all flavors of the extensions.
-    */
-   /*@{*/
-   /**
-    * Per-component negation for the SWZ instruction.  For non-SWZ
-    * instructions the only possible values are NEGATE_XYZW and NEGATE_NONE.
-    *
-    * \since
-    * ARB_vertex_program, ARB_fragment_program
-    */
-   GLuint NegateBase:4;
-
-   /**
-    * Take the component-wise absolute value.
-    *
-    * \since
-    * NV_fragment_program, NV_fragment_program_option, NV_vertex_program2,
-    * NV_vertex_program2_option.
-    */
+   /** Take the component-wise absolute value */
    GLuint Abs:1;
 
    /**
-    * Post-absolute value negation (all components).
+    * Post-Abs negation.
+    * This will either be NEGATE_NONE or NEGATE_XYZW, except for the SWZ
+    * instruction which allows per-component negation.
     */
-   GLuint NegateAbs:1;
-   /*@}*/
+   GLuint Negate:4;
 };
 
 
@@ -289,7 +280,7 @@ struct prog_src_register
 struct prog_dst_register
 {
    GLuint File:4;      /**< One of the PROGRAM_* register file values */
-   GLuint Index:8;
+   GLuint Index:INST_INDEX_BITS;  /**< Unsigned, never negative */
    GLuint WriteMask:4;
    GLuint RelAddr:1;
 
@@ -313,17 +304,16 @@ struct prog_dst_register
     * Condition code swizzle value.
     */
    GLuint CondSwizzle:12;
-   
+
    /**
     * Selects the condition code register to use for conditional destination
     * update masking.  In NV_fragmnet_program or NV_vertex_program2 mode, only
-    * condition code register 0 is available.  In NV_vertex_program3 mode, 
+    * condition code register 0 is available.  In NV_vertex_program3 mode,
     * condition code registers 0 and 1 are available.
     */
    GLuint CondSrc:1;
    /*@}*/
-
-   GLuint pad:30;
+   GLuint pad:28;
 };
 
 
@@ -333,14 +323,6 @@ struct prog_dst_register
 struct prog_instruction
 {
    gl_inst_opcode Opcode;
-#if FEATURE_MESA_program_debug
-   GLshort StringPos;
-#endif
-   /**
-    * Arbitrary data.  Used for the PRINT, CAL, and BRA instructions.
-    */
-   void *Data;
-
    struct prog_src_register SrcReg[3];
    struct prog_dst_register DstReg;
 
@@ -378,9 +360,9 @@ struct prog_instruction
     * NV_fragment_program, NV_fragment_program_option, NV_vertex_program3.
     */
    GLuint SaturateMode:2;
-   
+
    /**
-    * Per-instruction selectable precision.
+    * Per-instruction selectable precision: FLOAT32, FLOAT16, FIXED12.
     *
     * \since
     * NV_fragment_program, NV_fragment_program_option.
@@ -388,43 +370,36 @@ struct prog_instruction
    GLuint Precision:3;
 
    /**
-    * \name Texture source controls.
-    * 
-    * The texture source controls are only used with the \c TEX, \c TXD,
-    * \c TXL, and \c TXP instructions.
-    *
-    * \since
-    * ARB_fragment_program, NV_fragment_program, NV_vertex_program3.
+    * \name Extra fields for TEX, TXB, TXD, TXL, TXP instructions.
     */
    /*@{*/
-   /**
-    * Source texture unit.  OpenGL supports a maximum of 32 texture
-    * units.
-    */
+   /** Source texture unit. */
    GLuint TexSrcUnit:5;
-   
-   /**
-    * Source texture target, one of TEXTURE_{1D,2D,3D,CUBE,RECT}_INDEX.
-    */
+
+   /** Source texture target, one of TEXTURE_{1D,2D,3D,CUBE,RECT}_INDEX */
    GLuint TexSrcTarget:3;
+
+   /** True if tex instruction should do shadow comparison */
+   GLuint TexShadow:1;
    /*@}*/
 
    /**
     * For BRA and CAL instructions, the location to jump to.
     * For BGNLOOP, points to ENDLOOP (and vice-versa).
     * For BRK, points to BGNLOOP (which points to ENDLOOP).
-    * For IF, points to else or endif.
-    * For ELSE, points to endif.
+    * For IF, points to ELSE or ENDIF.
+    * For ELSE, points to ENDIF.
     */
    GLint BranchTarget;
 
-   /**
-    * For TEX instructions in shaders, the sampler to use for the
-    * texture lookup.
-    */
-   GLint Sampler;
-
+   /** for debugging purposes */
    const char *Comment;
+
+   /** Arbitrary data.  Used for OPCODE_PRINT and some drivers */
+   void *Data;
+
+   /** for driver use (try to remove someday) */
+   GLint Aux;
 };
 
 
@@ -453,6 +428,9 @@ _mesa_num_inst_dst_regs(gl_inst_opcode opcode);
 
 extern GLboolean
 _mesa_is_tex_instruction(gl_inst_opcode opcode);
+
+extern GLboolean
+_mesa_check_soa_dependencies(const struct prog_instruction *inst);
 
 extern const char *
 _mesa_opcode_string(gl_inst_opcode opcode);

@@ -28,10 +28,17 @@
 #define CONVOLVE_H
 
 
-#include "mtypes.h"
+#include "main/mtypes.h"
 
 
-#if _HAVE_FULL_GL
+#if FEATURE_convolve
+
+#define _MESA_INIT_CONVOLVE_FUNCTIONS(driver, impl)                        \
+   do {                                                                    \
+      (driver)->CopyConvolutionFilter1D = impl ## CopyConvolutionFilter1D; \
+      (driver)->CopyConvolutionFilter2D = impl ## CopyConvolutionFilter2D; \
+   } while (0)
+
 extern void GLAPIENTRY
 _mesa_ConvolutionFilter1D(GLenum target, GLenum internalformat, GLsizei width,
                           GLenum format, GLenum type, const GLvoid *image);
@@ -83,32 +90,66 @@ _mesa_SeparableFilter2D(GLenum target, GLenum internalformat,
                         const GLvoid *row, const GLvoid *column);
 
 
-
 extern void
 _mesa_convolve_1d_image(const GLcontext *ctx, GLsizei *width,
                         const GLfloat *srcImage, GLfloat *dstImage);
 
-
 extern void
 _mesa_convolve_2d_image(const GLcontext *ctx, GLsizei *width, GLsizei *height,
                         const GLfloat *srcImage, GLfloat *dstImage);
-
 
 extern void
 _mesa_convolve_sep_image(const GLcontext *ctx,
                          GLsizei *width, GLsizei *height,
                          const GLfloat *srcImage, GLfloat *dstImage);
 
-
 extern void
 _mesa_adjust_image_for_convolution(const GLcontext *ctx, GLuint dimensions,
                                    GLsizei *width, GLsizei *height);
 
-#else
-#define _mesa_adjust_image_for_convolution(c, d, w, h) ((void)0)
-#define _mesa_convolve_1d_image(c,w,s,d) ((void)0)
-#define _mesa_convolve_2d_image(c,w,h,s,d) ((void)0)
-#define _mesa_convolve_sep_image(c,w,h,s,d) ((void)0)
-#endif
+extern void
+_mesa_init_convolve_dispatch(struct _glapi_table *disp);
 
-#endif
+#else /* FEATURE_convolve */
+
+#define _MESA_INIT_CONVOLVE_FUNCTIONS(driver, impl) do { } while (0)
+
+static INLINE void
+_mesa_convolve_1d_image(const GLcontext *ctx, GLsizei *width,
+                        const GLfloat *srcImage, GLfloat *dstImage)
+{
+   *width = 0;
+}
+
+static INLINE void
+_mesa_convolve_2d_image(const GLcontext *ctx, GLsizei *width, GLsizei *height,
+                        const GLfloat *srcImage, GLfloat *dstImage)
+{
+   *width = 0;
+   *height = 0;
+}
+
+
+static INLINE void
+_mesa_convolve_sep_image(const GLcontext *ctx,
+                         GLsizei *width, GLsizei *height,
+                         const GLfloat *srcImage, GLfloat *dstImage)
+{
+   *width = 0;
+   *height = 0;
+}
+
+static INLINE void
+_mesa_adjust_image_for_convolution(const GLcontext *ctx, GLuint dimensions,
+                                   GLsizei *width, GLsizei *height)
+{
+}
+
+static INLINE void 
+_mesa_init_convolve_dispatch(struct _glapi_table *disp)
+{
+}
+
+#endif /* FEATURE_convolve */
+
+#endif /* CONVOLVE_H */

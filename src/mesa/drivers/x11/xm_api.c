@@ -79,6 +79,7 @@
 #include "tnl/t_context.h"
 #include "tnl/t_pipeline.h"
 #include "drivers/common/driverfuncs.h"
+#include "drivers/common/meta.h"
 
 /**
  * Global X driver lock
@@ -492,7 +493,7 @@ xmesa_free_buffer(XMesaBuffer buffer)
          b->frontxrb->drawable = 0;
 
          /* Unreference.  If count = zero we'll really delete the buffer */
-         _mesa_unreference_framebuffer(&fb);
+         _mesa_reference_framebuffer(&fb, NULL);
 
          return;
       }
@@ -1316,7 +1317,9 @@ xmesa_convert_from_x_visual_type( int visualType )
 #define need_GL_SGI_color_table
 
 /* sw extensions not associated with some GL version */
+#define need_GL_ARB_draw_elements_base_vertex
 #define need_GL_ARB_shader_objects
+#define need_GL_ARB_sync
 #define need_GL_ARB_vertex_program
 #define need_GL_APPLE_vertex_array_object
 #define need_GL_ATI_fragment_shader
@@ -1325,7 +1328,6 @@ xmesa_convert_from_x_visual_type( int visualType )
 #define need_GL_EXT_framebuffer_blit
 #define need_GL_EXT_gpu_program_parameters
 #define need_GL_EXT_paletted_texture
-#define need_GL_IBM_multimode_draw_arrays
 #define need_GL_MESA_resize_buffers
 #define need_GL_NV_vertex_program
 #define need_GL_NV_fragment_program
@@ -1346,7 +1348,10 @@ const struct dri_extension card_extensions[] =
    { "GL_EXT_histogram",		GL_EXT_histogram_functions },
    { "GL_SGI_color_table",		GL_SGI_color_table_functions },
 
+   { "GL_ARB_depth_clamp",		NULL },
+   { "GL_ARB_draw_elements_base_vertex", GL_ARB_draw_elements_base_vertex_functions },
    { "GL_ARB_shader_objects",		GL_ARB_shader_objects_functions },
+   { "GL_ARB_sync",			GL_ARB_sync_functions },
    { "GL_ARB_vertex_program",		GL_ARB_vertex_program_functions },
    { "GL_APPLE_vertex_array_object",	GL_APPLE_vertex_array_object_functions },
    { "GL_ATI_fragment_shader",		GL_ATI_fragment_shader_functions },
@@ -1355,8 +1360,8 @@ const struct dri_extension card_extensions[] =
    { "GL_EXT_framebuffer_blit",		GL_EXT_framebuffer_blit_functions },
    { "GL_EXT_gpu_program_parameters",	GL_EXT_gpu_program_parameters_functions },
    { "GL_EXT_paletted_texture",		GL_EXT_paletted_texture_functions },
-   { "GL_IBM_multimode_draw_arrays",	GL_IBM_multimode_draw_arrays_functions },
    { "GL_MESA_resize_buffers",		GL_MESA_resize_buffers_functions },
+   { "GL_NV_depth_clamp",		NULL },
    { "GL_NV_vertex_program",		GL_NV_vertex_program_functions },
    { "GL_NV_fragment_program",		GL_NV_fragment_program_functions },
    { NULL,				NULL }
@@ -1586,6 +1591,14 @@ XMesaContext XMesaCreateContext( XMesaVisual v, XMesaContext share_list )
       return NULL;
    }
 
+   /* Enable this to exercise fixed function -> shader translation
+    * with software rendering.
+    */
+   if (0) {
+      mesaCtx->VertexProgram._MaintainTnlProgram = GL_TRUE;
+      mesaCtx->FragmentProgram._MaintainTexEnvProgram = GL_TRUE;
+   }
+
    _mesa_enable_sw_extensions(mesaCtx);
    _mesa_enable_1_3_extensions(mesaCtx);
    _mesa_enable_1_4_extensions(mesaCtx);
@@ -1635,6 +1648,9 @@ XMesaContext XMesaCreateContext( XMesaVisual v, XMesaContext share_list )
    xmesa_register_swrast_functions( mesaCtx );
    _swsetup_Wakeup(mesaCtx);
 
+   if (TEST_META_FUNCS)
+      _mesa_meta_init(mesaCtx);
+
    return c;
 }
 
@@ -1648,6 +1664,9 @@ void XMesaDestroyContext( XMesaContext c )
 #ifdef FX
    FXdestroyContext( XMESA_BUFFER(mesaCtx->DrawBuffer) );
 #endif
+
+   if (TEST_META_FUNCS)
+      _mesa_meta_free( mesaCtx );
 
    _swsetup_DestroyContext( mesaCtx );
    _swrast_DestroyContext( mesaCtx );
@@ -2412,11 +2431,8 @@ xbuffer_to_renderbuffer(int buffer)
    case GLX_AUX0_EXT:
       return BUFFER_AUX0;
    case GLX_AUX1_EXT:
-      return BUFFER_AUX1;
    case GLX_AUX2_EXT:
-      return BUFFER_AUX2;
    case GLX_AUX3_EXT:
-      return BUFFER_AUX3;
    case GLX_AUX4_EXT:
    case GLX_AUX5_EXT:
    case GLX_AUX6_EXT:
@@ -2463,13 +2479,13 @@ XMesaBindTexImage(XMesaDisplay *dpy, XMesaBuffer drawable, int buffer,
 #if 0
    switch (drawable->TextureTarget) {
    case GLX_TEXTURE_1D_EXT:
-      texObj = texUnit->Current1D;
+      texObj = texUnit->CurrentTex[TEXTURE_1D_INDEX];
       break;
    case GLX_TEXTURE_2D_EXT:
-      texObj = texUnit->Current2D;
+      texObj = texUnit->CurrentTex[TEXTURE_2D_INDEX];
       break;
    case GLX_TEXTURE_RECTANGLE_EXT:
-      texObj = texUnit->CurrentRect;
+      texObj = texUnit->CurrentTex[TEXTURE_RECT_INDEX];
       break;
    default:
       return; /* BadMatch error */

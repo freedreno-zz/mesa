@@ -35,6 +35,7 @@ GLfloat = 3
 GLdouble = 4
 GLboolean = 5
 GLfloatN = 6    # A normalized value, such as a color or depth range
+GLint64 = 7
 
 
 TypeStrings = {
@@ -42,7 +43,8 @@ TypeStrings = {
 	GLenum : "GLenum",
 	GLfloat : "GLfloat",
 	GLdouble : "GLdouble",
-	GLboolean : "GLboolean"
+	GLboolean : "GLboolean",
+	GLint64 : "GLint64"
 }
 
 
@@ -176,7 +178,8 @@ StateVars = [
 	   "ctx->Current.Attrib[VERT_ATTRIB_TEX0 + texUnit][1]",
 	   "ctx->Current.Attrib[VERT_ATTRIB_TEX0 + texUnit][2]",
 	   "ctx->Current.Attrib[VERT_ATTRIB_TEX0 + texUnit][3]"],
-	  "const GLuint texUnit = ctx->Texture.CurrentUnit;", None ),
+	  """const GLuint texUnit = ctx->Texture.CurrentUnit;
+         FLUSH_CURRENT(ctx, 0);""", None ),
 	( "GL_DEPTH_BIAS", GLfloat, ["ctx->Pixel.DepthBias"], "", None ),
 	( "GL_DEPTH_BITS", GLint, ["ctx->DrawBuffer->Visual.depthBits"],
 	  "", None ),
@@ -254,7 +257,7 @@ StateVars = [
 	  ["ctx->Const.MinLineWidth",
 	   "ctx->Const.MaxLineWidth"], "", None ),
 	( "GL_LIST_BASE", GLint, ["ctx->List.ListBase"], "", None ),
-	( "GL_LIST_INDEX", GLint, ["ctx->ListState.CurrentListNum"], "", None ),
+	( "GL_LIST_INDEX", GLint, ["(ctx->ListState.CurrentList ? ctx->ListState.CurrentList->Name : 0)"], "", None ),
 	( "GL_LIST_MODE", GLenum, ["mode"],
 	  """GLenum mode;
          if (!ctx->CompileFlag)
@@ -432,15 +435,15 @@ StateVars = [
 	( "GL_TEXTURE_1D_ARRAY_EXT", GLboolean, ["_mesa_IsEnabled(GL_TEXTURE_1D_ARRAY_EXT)"], "", ["MESA_texture_array"] ),
 	( "GL_TEXTURE_2D_ARRAY_EXT", GLboolean, ["_mesa_IsEnabled(GL_TEXTURE_2D_ARRAY_EXT)"], "", ["MESA_texture_array"] ),
 	( "GL_TEXTURE_BINDING_1D", GLint,
-	  ["ctx->Texture.Unit[ctx->Texture.CurrentUnit].Current1D->Name"], "", None ),
+	  ["ctx->Texture.Unit[ctx->Texture.CurrentUnit].CurrentTex[TEXTURE_1D_INDEX]->Name"], "", None ),
 	( "GL_TEXTURE_BINDING_2D", GLint,
-	  ["ctx->Texture.Unit[ctx->Texture.CurrentUnit].Current2D->Name"], "", None ),
+	  ["ctx->Texture.Unit[ctx->Texture.CurrentUnit].CurrentTex[TEXTURE_2D_INDEX]->Name"], "", None ),
 	( "GL_TEXTURE_BINDING_3D", GLint,
-	  ["ctx->Texture.Unit[ctx->Texture.CurrentUnit].Current3D->Name"], "", None ),
+	  ["ctx->Texture.Unit[ctx->Texture.CurrentUnit].CurrentTex[TEXTURE_3D_INDEX]->Name"], "", None ),
 	( "GL_TEXTURE_BINDING_1D_ARRAY_EXT", GLint,
-	  ["ctx->Texture.Unit[ctx->Texture.CurrentUnit].Current1DArray->Name"], "", ["MESA_texture_array"] ),
+	  ["ctx->Texture.Unit[ctx->Texture.CurrentUnit].CurrentTex[TEXTURE_1D_ARRAY_INDEX]->Name"], "", ["MESA_texture_array"] ),
 	( "GL_TEXTURE_BINDING_2D_ARRAY_EXT", GLint,
-	  ["ctx->Texture.Unit[ctx->Texture.CurrentUnit].Current2DArray->Name"], "", ["MESA_texture_array"] ),
+	  ["ctx->Texture.Unit[ctx->Texture.CurrentUnit].CurrentTex[TEXTURE_2D_ARRAY_INDEX]->Name"], "", ["MESA_texture_array"] ),
 	( "GL_TEXTURE_GEN_S", GLboolean,
 	  ["((ctx->Texture.Unit[ctx->Texture.CurrentUnit].TexGenEnabled & S_BIT) ? 1 : 0)"], "", None ),
 	( "GL_TEXTURE_GEN_T", GLboolean,
@@ -515,7 +518,7 @@ StateVars = [
 	( "GL_TEXTURE_CUBE_MAP_ARB", GLboolean,
 	  ["_mesa_IsEnabled(GL_TEXTURE_CUBE_MAP_ARB)"], "", ["ARB_texture_cube_map"] ),
 	( "GL_TEXTURE_BINDING_CUBE_MAP_ARB", GLint,
-	  ["ctx->Texture.Unit[ctx->Texture.CurrentUnit].CurrentCubeMap->Name"],
+	  ["ctx->Texture.Unit[ctx->Texture.CurrentUnit].CurrentTex[TEXTURE_CUBE_INDEX]->Name"],
 	  "", ["ARB_texture_cube_map"] ),
 	( "GL_MAX_CUBE_MAP_TEXTURE_SIZE_ARB", GLint,
 	  ["(1 << (ctx->Const.MaxCubeTextureLevels - 1))"],
@@ -523,10 +526,10 @@ StateVars = [
 
 	# GL_ARB_texture_compression */
 	( "GL_TEXTURE_COMPRESSION_HINT_ARB", GLint,
-	  ["ctx->Hint.TextureCompression"], "", ["ARB_texture_compression"] ),
+	  ["ctx->Hint.TextureCompression"], "", None ),
 	( "GL_NUM_COMPRESSED_TEXTURE_FORMATS_ARB", GLint,
 	  ["_mesa_get_compressed_formats(ctx, NULL, GL_FALSE)"],
-	  "", ["ARB_texture_compression"] ),
+	  "", None ),
 	( "GL_COMPRESSED_TEXTURE_FORMATS_ARB", GLenum,
 	  [],
 	  """GLint formats[100];
@@ -534,7 +537,7 @@ StateVars = [
          ASSERT(n <= 100);
          for (i = 0; i < n; i++)
             params[i] = CONVERSION(formats[i]);""",
-	  ["ARB_texture_compression"] ),
+	  None ),
 
 	# GL_EXT_compiled_vertex_array
 	( "GL_ARRAY_ELEMENT_LOCK_FIRST_EXT", GLint, ["ctx->Array.LockFirst"],
@@ -681,21 +684,21 @@ StateVars = [
 
 	# GL_ARB_multisample
 	( "GL_MULTISAMPLE_ARB", GLboolean,
-	  ["ctx->Multisample.Enabled"], "", ["ARB_multisample"] ),
+	  ["ctx->Multisample.Enabled"], "", None ),
 	( "GL_SAMPLE_ALPHA_TO_COVERAGE_ARB", GLboolean,
-	  ["ctx->Multisample.SampleAlphaToCoverage"], "", ["ARB_multisample"] ),
+	  ["ctx->Multisample.SampleAlphaToCoverage"], "", None ),
 	( "GL_SAMPLE_ALPHA_TO_ONE_ARB", GLboolean,
-	  ["ctx->Multisample.SampleAlphaToOne"], "", ["ARB_multisample"] ),
+	  ["ctx->Multisample.SampleAlphaToOne"], "", None ),
 	( "GL_SAMPLE_COVERAGE_ARB", GLboolean,
-	  ["ctx->Multisample.SampleCoverage"], "", ["ARB_multisample"] ),
+	  ["ctx->Multisample.SampleCoverage"], "", None ),
 	( "GL_SAMPLE_COVERAGE_VALUE_ARB", GLfloat,
-	  ["ctx->Multisample.SampleCoverageValue"], "", ["ARB_multisample"] ),
+	  ["ctx->Multisample.SampleCoverageValue"], "", None ),
 	( "GL_SAMPLE_COVERAGE_INVERT_ARB", GLboolean,
-	  ["ctx->Multisample.SampleCoverageInvert"], "", ["ARB_multisample"] ),
+	  ["ctx->Multisample.SampleCoverageInvert"], "", None ),
 	( "GL_SAMPLE_BUFFERS_ARB", GLint,
-	  ["ctx->DrawBuffer->Visual.sampleBuffers"], "", ["ARB_multisample"] ),
+	  ["ctx->DrawBuffer->Visual.sampleBuffers"], "", None ),
 	( "GL_SAMPLES_ARB", GLint,
-	  ["ctx->DrawBuffer->Visual.samples"], "", ["ARB_multisample"] ),
+	  ["ctx->DrawBuffer->Visual.samples"], "", None ),
 
 	# GL_IBM_rasterpos_clip
 	( "GL_RASTER_POSITION_UNCLIPPED_IBM", GLboolean,
@@ -795,7 +798,7 @@ StateVars = [
 	( "GL_TEXTURE_RECTANGLE_NV", GLboolean,
 	  ["_mesa_IsEnabled(GL_TEXTURE_RECTANGLE_NV)"], "", ["NV_texture_rectangle"] ),
 	( "GL_TEXTURE_BINDING_RECTANGLE_NV", GLint,
-	  ["ctx->Texture.Unit[ctx->Texture.CurrentUnit].CurrentRect->Name"],
+	  ["ctx->Texture.Unit[ctx->Texture.CurrentUnit].CurrentTex[TEXTURE_RECT_INDEX]->Name"],
 	  "", ["NV_texture_rectangle"] ),
 	( "GL_MAX_RECTANGLE_TEXTURE_SIZE_NV", GLint,
 	  ["ctx->Const.MaxTextureRectSize"], "", ["NV_texture_rectangle"] ),
@@ -815,30 +818,30 @@ StateVars = [
 
 	# GL_ARB_vertex_buffer_object
 	( "GL_ARRAY_BUFFER_BINDING_ARB", GLint,
-	  ["ctx->Array.ArrayBufferObj->Name"], "", ["ARB_vertex_buffer_object"] ),
+	  ["ctx->Array.ArrayBufferObj->Name"], "", None ),
 	( "GL_VERTEX_ARRAY_BUFFER_BINDING_ARB", GLint,
-	  ["ctx->Array.ArrayObj->Vertex.BufferObj->Name"], "", ["ARB_vertex_buffer_object"] ),
+	  ["ctx->Array.ArrayObj->Vertex.BufferObj->Name"], "", None ),
 	( "GL_NORMAL_ARRAY_BUFFER_BINDING_ARB", GLint,
-	  ["ctx->Array.ArrayObj->Normal.BufferObj->Name"], "", ["ARB_vertex_buffer_object"] ),
+	  ["ctx->Array.ArrayObj->Normal.BufferObj->Name"], "", None ),
 	( "GL_COLOR_ARRAY_BUFFER_BINDING_ARB", GLint,
-	  ["ctx->Array.ArrayObj->Color.BufferObj->Name"], "", ["ARB_vertex_buffer_object"] ),
+	  ["ctx->Array.ArrayObj->Color.BufferObj->Name"], "", None ),
 	( "GL_INDEX_ARRAY_BUFFER_BINDING_ARB", GLint,
-	  ["ctx->Array.ArrayObj->Index.BufferObj->Name"], "", ["ARB_vertex_buffer_object"] ),
+	  ["ctx->Array.ArrayObj->Index.BufferObj->Name"], "", None ),
 	( "GL_TEXTURE_COORD_ARRAY_BUFFER_BINDING_ARB", GLint,
 	  ["ctx->Array.ArrayObj->TexCoord[ctx->Array.ActiveTexture].BufferObj->Name"],
-	  "", ["ARB_vertex_buffer_object"] ),
+	  "", None ),
 	( "GL_EDGE_FLAG_ARRAY_BUFFER_BINDING_ARB", GLint,
-	  ["ctx->Array.ArrayObj->EdgeFlag.BufferObj->Name"], "", ["ARB_vertex_buffer_object"] ),
+	  ["ctx->Array.ArrayObj->EdgeFlag.BufferObj->Name"], "", None ),
 	( "GL_SECONDARY_COLOR_ARRAY_BUFFER_BINDING_ARB", GLint,
 	  ["ctx->Array.ArrayObj->SecondaryColor.BufferObj->Name"],
-	  "", ["ARB_vertex_buffer_object"] ),
+	  "", None ),
 	( "GL_FOG_COORDINATE_ARRAY_BUFFER_BINDING_ARB", GLint,
 	  ["ctx->Array.ArrayObj->FogCoord.BufferObj->Name"],
-	  "", ["ARB_vertex_buffer_object"] ),
+	  "", None ),
 	# GL_WEIGHT_ARRAY_BUFFER_BINDING_ARB - not supported
 	( "GL_ELEMENT_ARRAY_BUFFER_BINDING_ARB", GLint,
 	  ["ctx->Array.ElementArrayBufferObj->Name"],
-	  "", ["ARB_vertex_buffer_object"] ),
+	  "", None ),
 
 	# GL_EXT_pixel_buffer_object
 	( "GL_PIXEL_PACK_BUFFER_BINDING_EXT", GLint,
@@ -902,21 +905,15 @@ StateVars = [
 	  ["ctx->Depth.BoundsMin", "ctx->Depth.BoundsMax"],
 	  "", ["EXT_depth_bounds_test"] ),
 
-	# GL_MESA_program_debug
-	( "GL_FRAGMENT_PROGRAM_CALLBACK_MESA", GLboolean,
-	  ["ctx->FragmentProgram.CallbackEnabled"], "", ["MESA_program_debug"] ),
-	( "GL_VERTEX_PROGRAM_CALLBACK_MESA", GLboolean,
-	  ["ctx->VertexProgram.CallbackEnabled"], "", ["MESA_program_debug"] ),
-	( "GL_FRAGMENT_PROGRAM_POSITION_MESA", GLint,
-	  ["ctx->FragmentProgram.CurrentPosition"], "", ["MESA_program_debug"] ),
-	( "GL_VERTEX_PROGRAM_POSITION_MESA", GLint,
-	  ["ctx->VertexProgram.CurrentPosition"], "", ["MESA_program_debug"] ),
+	# GL_ARB_depth_clamp
+	( "GL_DEPTH_CLAMP", GLboolean, ["ctx->Transform.DepthClamp"], "",
+	  ["ARB_depth_clamp"] ),
 
 	# GL_ARB_draw_buffers
 	( "GL_MAX_DRAW_BUFFERS_ARB", GLint,
-	  ["ctx->Const.MaxDrawBuffers"], "", ["ARB_draw_buffers"] ),
+	  ["ctx->Const.MaxDrawBuffers"], "", None ),
 	( "GL_DRAW_BUFFER0_ARB", GLenum,
-	  ["ctx->DrawBuffer->ColorDrawBuffer[0]"], "", ["ARB_draw_buffers"] ),
+	  ["ctx->DrawBuffer->ColorDrawBuffer[0]"], "", None ),
 	( "GL_DRAW_BUFFER1_ARB", GLenum,
 	  ["buffer"],
 	  """GLenum buffer;
@@ -924,7 +921,7 @@ StateVars = [
             _mesa_error(ctx, GL_INVALID_ENUM, "glGet(GL_DRAW_BUFFERx_ARB)");
             return;
          }
-         buffer = ctx->DrawBuffer->ColorDrawBuffer[1];""", ["ARB_draw_buffers"] ),
+         buffer = ctx->DrawBuffer->ColorDrawBuffer[1];""", None ),
 	( "GL_DRAW_BUFFER2_ARB", GLenum,
 	  ["buffer"],
 	  """GLenum buffer;
@@ -932,7 +929,7 @@ StateVars = [
             _mesa_error(ctx, GL_INVALID_ENUM, "glGet(GL_DRAW_BUFFERx_ARB)");
             return;
          }
-         buffer = ctx->DrawBuffer->ColorDrawBuffer[2];""", ["ARB_draw_buffers"] ),
+         buffer = ctx->DrawBuffer->ColorDrawBuffer[2];""", None ),
 	( "GL_DRAW_BUFFER3_ARB", GLenum,
 	  ["buffer"],
 	  """GLenum buffer;
@@ -940,7 +937,7 @@ StateVars = [
             _mesa_error(ctx, GL_INVALID_ENUM, "glGet(GL_DRAW_BUFFERx_ARB)");
             return;
          }
-         buffer = ctx->DrawBuffer->ColorDrawBuffer[3];""", ["ARB_draw_buffers"] ),
+         buffer = ctx->DrawBuffer->ColorDrawBuffer[3];""", None ),
 	# XXX Add more GL_DRAW_BUFFERn_ARB entries as needed in the future
 
 	# GL_OES_read_format
@@ -986,6 +983,13 @@ StateVars = [
 	( "GL_READ_FRAMEBUFFER_BINDING_EXT", GLint, ["ctx->ReadBuffer->Name"], "",
 	  ["EXT_framebuffer_blit"] ),
 
+	# GL_EXT_provoking_vertex
+	( "GL_PROVOKING_VERTEX_EXT", GLboolean,
+	  ["ctx->Light.ProvokingVertex"], "", ["EXT_provoking_vertex"] ),
+	( "GL_QUADS_FOLLOW_PROVOKING_VERTEX_CONVENTION_EXT", GLboolean,
+	  ["ctx->Const.QuadsFollowProvokingVertexConvention"], "",
+	  ["EXT_provoking_vertex"] ),
+
 	# GL_ARB_fragment_shader
 	( "GL_MAX_FRAGMENT_UNIFORM_COMPONENTS_ARB", GLint,
 	  ["ctx->Const.FragmentProgram.MaxUniformComponents"], "",
@@ -1009,7 +1013,23 @@ StateVars = [
 	# close enough for now.
 	( "GL_CURRENT_PROGRAM", GLint,
 	  ["ctx->Shader.CurrentProgram ? ctx->Shader.CurrentProgram->Name : 0"],
-	  "", ["ARB_shader_objects"] )
+	  "", ["ARB_shader_objects"] ),
+
+	# GL_ARB_framebuffer_object
+	( "GL_MAX_SAMPLES", GLint, ["ctx->Const.MaxSamples"], "",
+	  ["ARB_framebuffer_object"] ),
+
+	# GL_APPLE_vertex_array_object
+	( "GL_VERTEX_ARRAY_BINDING_APPLE", GLint, ["ctx->Array.ArrayObj->Name"], "",
+	  ["APPLE_vertex_array_object"] ),
+
+	# GL_ARB_seamless_cube_map
+	( "GL_TEXTURE_CUBE_MAP_SEAMLESS", GLboolean, ["ctx->Texture.CubeMapSeamless"], "",
+	  ["ARB_seamless_cube_map"] ),
+
+	# GL_ARB_sync
+	( "GL_MAX_SERVER_WAIT_TIMEOUT", GLint64, ["ctx->Const.MaxServerWaitTimeout"], "",
+	  ["ARB_sync"] ),
 ]
 
 
@@ -1019,9 +1039,15 @@ def ConversionFunc(fromType, toType):
 		return ""
 	elif fromType == GLfloat and toType == GLint:
 		return "IROUND"
+	elif fromType == GLfloat and toType == GLint64:
+		return "IROUND64"
 	elif fromType == GLfloatN and toType == GLfloat:
 		return ""
 	elif fromType == GLint and toType == GLfloat: # but not GLfloatN!
+		return "(GLfloat)"
+	elif fromType == GLint and toType == GLint64:
+		return ""
+	elif fromType == GLint64 and toType == GLfloat: # but not GLfloatN!
 		return "(GLfloat)"
 	else:
 		if fromType == GLfloatN:
@@ -1037,6 +1063,7 @@ def EmitGetFunction(stateVars, returnType):
 	"""Emit the code to implement glGetBooleanv, glGetIntegerv or glGetFloatv."""
 	assert (returnType == GLboolean or
 			returnType == GLint or
+			returnType == GLint64 or
 			returnType == GLfloat)
 
 	strType = TypeStrings[returnType]
@@ -1047,8 +1074,13 @@ def EmitGetFunction(stateVars, returnType):
 		function = "GetBooleanv"
 	elif returnType == GLfloat:
 		function = "GetFloatv"
+	elif returnType == GLint64:
+		function = "GetInteger64v"
 	else:
 		abort()
+
+	if returnType == GLint64:
+		print "#if FEATURE_ARB_sync"
 
 	print "void GLAPIENTRY"
 	print "_mesa_%s( GLenum pname, %s *params )" % (function, strType)
@@ -1103,6 +1135,8 @@ def EmitGetFunction(stateVars, returnType):
 	print '         _mesa_error(ctx, GL_INVALID_ENUM, "gl%s(pname=0x%%x)", pname);' % function
 	print "   }"
 	print "}"
+	if returnType == GLint64:
+		print "#endif /* FEATURE_ARB_sync */"
 	print ""
 	return
 
@@ -1131,8 +1165,14 @@ def EmitHeader():
 
 #define INT_TO_BOOLEAN(I)     ( (I) ? GL_TRUE : GL_FALSE )
 
+#define INT64_TO_BOOLEAN(I)   ( (I) ? GL_TRUE : GL_FALSE )
+#define INT64_TO_INT(I)       ( (GLint)((I > INT_MAX) ? INT_MAX : ((I < INT_MIN) ? INT_MIN : (I))) )
+
 #define BOOLEAN_TO_INT(B)     ( (GLint) (B) )
+#define BOOLEAN_TO_INT64(B)   ( (GLint64) (B) )
 #define BOOLEAN_TO_FLOAT(B)   ( (B) ? 1.0F : 0.0F )
+
+#define ENUM_TO_INT64(E)      ( (GLint64) (E) )
 
 
 /*
@@ -1211,5 +1251,6 @@ EmitHeader()
 EmitGetFunction(StateVars, GLboolean)
 EmitGetFunction(StateVars, GLfloat)
 EmitGetFunction(StateVars, GLint)
+EmitGetFunction(StateVars, GLint64)
 EmitGetDoublev()
 

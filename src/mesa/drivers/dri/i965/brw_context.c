@@ -76,30 +76,6 @@ static void brwInitDriverFunctions( struct dd_function_table *functions )
    functions->Viewport = intel_viewport;
 }
 
-
-static void brw_init_attribs( struct brw_context *brw )
-{
-   GLcontext *ctx = &brw->intel.ctx;
-
-   brw->attribs.Color = &ctx->Color;
-   brw->attribs.Depth = &ctx->Depth;
-   brw->attribs.Fog = &ctx->Fog;
-   brw->attribs.Hint = &ctx->Hint;
-   brw->attribs.Light = &ctx->Light;
-   brw->attribs.Line = &ctx->Line;
-   brw->attribs.Point = &ctx->Point;
-   brw->attribs.Polygon = &ctx->Polygon;
-   brw->attribs.Scissor = &ctx->Scissor;
-   brw->attribs.Stencil = &ctx->Stencil;
-   brw->attribs.Texture = &ctx->Texture;
-   brw->attribs.Transform = &ctx->Transform;
-   brw->attribs.Viewport = &ctx->Viewport;
-   brw->attribs.VertexProgram = &ctx->VertexProgram;
-   brw->attribs.FragmentProgram = &ctx->FragmentProgram;
-   brw->attribs.PolygonStipple = &ctx->PolygonStipple[0];
-}
-
-
 GLboolean brwCreateContext( const __GLcontextModes *mesaVis,
 			    __DRIcontextPrivate *driContextPriv,
 			    void *sharedContextPrivate)
@@ -135,21 +111,48 @@ GLboolean brwCreateContext( const __GLcontextModes *mesaVis,
                                      ctx->Const.MaxTextureImageUnits);
    ctx->Const.MaxVertexTextureImageUnits = 0; /* no vertex shader textures */
 
-   /* Advertise the full hardware capabilities.  The new memory
-    * manager should cope much better with overload situations:
+   /* Mesa limits textures to 4kx4k; it would be nice to fix that someday
     */
-   ctx->Const.MaxTextureLevels = 12;
+   ctx->Const.MaxTextureLevels = 13;
    ctx->Const.Max3DTextureLevels = 9;
    ctx->Const.MaxCubeTextureLevels = 12;
-   ctx->Const.MaxTextureRectSize = (1<<11);
+   ctx->Const.MaxTextureRectSize = (1<<12);
    
+   ctx->Const.MaxTextureMaxAnisotropy = 16.0;
+
    /* if conformance mode is set, swrast can handle any size AA point */
    ctx->Const.MaxPointSizeAA = 255.0;
 
-/*    ctx->Const.MaxNativeVertexProgramTemps = 32; */
+   /* We want the GLSL compiler to emit code that uses condition codes */
+   ctx->Shader.EmitCondCodes = GL_TRUE;
 
-   brw_init_attribs( brw );
-   brw_init_metaops( brw );
+   ctx->Const.VertexProgram.MaxNativeInstructions = (16 * 1024);
+   ctx->Const.VertexProgram.MaxAluInstructions = 0;
+   ctx->Const.VertexProgram.MaxTexInstructions = 0;
+   ctx->Const.VertexProgram.MaxTexIndirections = 0;
+   ctx->Const.VertexProgram.MaxNativeAluInstructions = 0;
+   ctx->Const.VertexProgram.MaxNativeTexInstructions = 0;
+   ctx->Const.VertexProgram.MaxNativeTexIndirections = 0;
+   ctx->Const.VertexProgram.MaxNativeAttribs = 16;
+   ctx->Const.VertexProgram.MaxNativeTemps = 256;
+   ctx->Const.VertexProgram.MaxNativeAddressRegs = 1;
+   ctx->Const.VertexProgram.MaxNativeParameters = 1024;
+   ctx->Const.VertexProgram.MaxEnvParams =
+      MIN2(ctx->Const.VertexProgram.MaxNativeParameters,
+	   ctx->Const.VertexProgram.MaxEnvParams);
+
+   ctx->Const.FragmentProgram.MaxNativeInstructions = (16 * 1024);
+   ctx->Const.FragmentProgram.MaxNativeAluInstructions = (16 * 1024);
+   ctx->Const.FragmentProgram.MaxNativeTexInstructions = (16 * 1024);
+   ctx->Const.FragmentProgram.MaxNativeTexIndirections = (16 * 1024);
+   ctx->Const.FragmentProgram.MaxNativeAttribs = 12;
+   ctx->Const.FragmentProgram.MaxNativeTemps = 256;
+   ctx->Const.FragmentProgram.MaxNativeAddressRegs = 0;
+   ctx->Const.FragmentProgram.MaxNativeParameters = 1024;
+   ctx->Const.FragmentProgram.MaxEnvParams =
+      MIN2(ctx->Const.FragmentProgram.MaxNativeParameters,
+	   ctx->Const.FragmentProgram.MaxEnvParams);
+
    brw_init_state( brw );
 
    brw->state.dirty.mesa = ~0;

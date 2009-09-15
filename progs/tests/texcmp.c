@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
-#define GL_GLEXT_PROTOTYPES 1
+#include <GL/glew.h>
 #include <GL/glut.h>
 
 #include "readtex.c" /* I know, this is a hack. */
@@ -375,6 +375,7 @@ int main( int argc, char *argv[] )
       exit(0);
    }
 
+   glewInit();
    gl_version = atof( (const char *) glGetString( GL_VERSION ) );
    if ( (gl_version < 1.3) 
 	&& !glutExtensionSupported("GL_ARB_texture_compression") ) {

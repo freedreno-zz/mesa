@@ -24,16 +24,22 @@
 
 
 #include "main/glheader.h"
+#include "main/accum.h"
 #include "main/imports.h"
 #include "main/arrayobj.h"
 #include "main/buffers.h"
+#include "main/colortab.h"
 #include "main/context.h"
+#include "main/convolve.h"
+#include "main/drawpix.h"
 #include "main/framebuffer.h"
 #include "main/mipmap.h"
 #include "main/queryobj.h"
+#include "main/rastpos.h"
 #include "main/renderbuffer.h"
 #include "main/texcompress.h"
 #include "main/texformat.h"
+#include "main/texgetimage.h"
 #include "main/teximage.h"
 #include "main/texobj.h"
 #include "main/texstore.h"
@@ -43,6 +49,9 @@
 #if FEATURE_EXT_framebuffer_object
 #include "main/fbobject.h"
 #include "main/texrender.h"
+#endif
+#if FEATURE_ARB_sync
+#include "main/syncobj.h"
 #endif
 
 #include "shader/program.h"
@@ -80,12 +89,13 @@ _mesa_init_driver_functions(struct dd_function_table *driver)
 
    /* framebuffer/image functions */
    driver->Clear = _swrast_Clear;
-   driver->Accum = _swrast_Accum;
-   driver->RasterPos = _tnl_RasterPos;
-   driver->DrawPixels = _swrast_DrawPixels;
+
+   _MESA_INIT_ACCUM_FUNCTIONS(driver, _swrast_);
+   _MESA_INIT_DRAWPIX_FUNCTIONS(driver, _swrast_);
+
+   _MESA_INIT_RASTPOS_FUNCTIONS(driver, _tnl_);
+
    driver->ReadPixels = _swrast_ReadPixels;
-   driver->CopyPixels = _swrast_CopyPixels;
-   driver->Bitmap = _swrast_Bitmap;
 
    /* Texture functions */
    driver->ChooseTextureFormat = _mesa_choose_tex_format;
@@ -125,18 +135,15 @@ _mesa_init_driver_functions(struct dd_function_table *driver)
    driver->UpdateTexturePalette = NULL;
 
    /* imaging */
-   driver->CopyColorTable = _swrast_CopyColorTable;
-   driver->CopyColorSubTable = _swrast_CopyColorSubTable;
-   driver->CopyConvolutionFilter1D = _swrast_CopyConvolutionFilter1D;
-   driver->CopyConvolutionFilter2D = _swrast_CopyConvolutionFilter2D;
+   /* swrast does not need UpdateTexturePalette */
+#define _swrast_UpdateTexturePalette NULL
+   _MESA_INIT_COLORTABLE_FUNCTIONS(driver, _swrast_);
+   _MESA_INIT_CONVOLVE_FUNCTIONS(driver, _swrast_);
 
    /* Vertex/fragment programs */
    driver->BindProgram = NULL;
    driver->NewProgram = _mesa_new_program;
    driver->DeleteProgram = _mesa_delete_program;
-#if FEATURE_MESA_program_debug
-   driver->GetProgramRegister = _mesa_get_program_register;
-#endif /* FEATURE_MESA_program_debug */
 
    /* simple state commands */
    driver->AlphaFunc = NULL;
@@ -202,17 +209,17 @@ _mesa_init_driver_functions(struct dd_function_table *driver)
    driver->GetDoublev = NULL;
    driver->GetFloatv = NULL;
    driver->GetIntegerv = NULL;
+   driver->GetInteger64v = NULL;
    driver->GetPointerv = NULL;
    
-#if FEATURE_ARB_vertex_buffer_object
-   driver->NewBufferObject = _mesa_new_buffer_object;
-   driver->DeleteBuffer = _mesa_delete_buffer_object;
-   driver->BindBuffer = NULL;
-   driver->BufferData = _mesa_buffer_data;
-   driver->BufferSubData = _mesa_buffer_subdata;
-   driver->GetBufferSubData = _mesa_buffer_get_subdata;
-   driver->MapBuffer = _mesa_buffer_map;
-   driver->UnmapBuffer = _mesa_buffer_unmap;
+   /* buffer objects */
+   _mesa_init_buffer_object_functions(driver);
+
+   /* query objects */
+   _mesa_init_query_object_functions(driver);
+
+#if FEATURE_ARB_sync
+   _mesa_init_sync_object_functions(driver);
 #endif
 
 #if FEATURE_EXT_framebuffer_object
@@ -226,13 +233,6 @@ _mesa_init_driver_functions(struct dd_function_table *driver)
 #if FEATURE_EXT_framebuffer_blit
    driver->BlitFramebuffer = _swrast_BlitFramebuffer;
 #endif
-
-   /* query objects */
-   driver->NewQueryObject = _mesa_new_query_object;
-   driver->DeleteQuery = _mesa_delete_query;
-   driver->BeginQuery = _mesa_begin_query;
-   driver->EndQuery = _mesa_end_query;
-   driver->WaitQuery = _mesa_wait_query;
 
    /* APPLE_vertex_array_object */
    driver->NewArrayObject = _mesa_new_array_object;
@@ -308,7 +308,7 @@ _mesa_init_driver_state(GLcontext *ctx)
    ctx->Driver.Enable(ctx, GL_LINE_SMOOTH, ctx->Line.SmoothFlag);
    ctx->Driver.Enable(ctx, GL_POLYGON_STIPPLE, ctx->Polygon.StippleFlag);
    ctx->Driver.Enable(ctx, GL_SCISSOR_TEST, ctx->Scissor.Enabled);
-   ctx->Driver.Enable(ctx, GL_STENCIL_TEST, ctx->Stencil.Enabled);
+   ctx->Driver.Enable(ctx, GL_STENCIL_TEST, ctx->Stencil._Enabled);
    ctx->Driver.Enable(ctx, GL_TEXTURE_1D, GL_FALSE);
    ctx->Driver.Enable(ctx, GL_TEXTURE_2D, GL_FALSE);
    ctx->Driver.Enable(ctx, GL_TEXTURE_RECTANGLE_NV, GL_FALSE);

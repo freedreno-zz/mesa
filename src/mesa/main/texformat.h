@@ -3,6 +3,7 @@
  * Version:  6.5.1
  *
  * Copyright (C) 1999-2006  Brian Paul   All Rights Reserved.
+ * Copyright (c) 2008 VMware, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -36,6 +37,16 @@
 
 
 #include "mtypes.h"
+
+
+#define _MESA_TEXFORMAT_NULL_OPS \
+   _mesa_texformat_fetch_texel_null,	/* FetchTexel1D */  \
+   _mesa_texformat_fetch_texel_null,	/* FetchTexel2D */  \
+   _mesa_texformat_fetch_texel_null,	/* FetchTexel3D */  \
+   _mesa_texformat_fetch_texel_f_null,	/* FetchTexel1Df */ \
+   _mesa_texformat_fetch_texel_f_null,	/* FetchTexel2Df */ \
+   _mesa_texformat_fetch_texel_f_null,	/* FetchTexel3Df */ \
+   _mesa_texformat_store_texel_null	/* StoreTexel */
 
 
 /**
@@ -98,9 +109,13 @@ enum _format {
    /*@{*/
    MESA_FORMAT_SRGB8,
    MESA_FORMAT_SRGBA8,
+   MESA_FORMAT_SARGB8,
    MESA_FORMAT_SL8,
    MESA_FORMAT_SLA8,
    MESA_FORMAT_SRGB_DXT1,
+   MESA_FORMAT_SRGBA_DXT1,
+   MESA_FORMAT_SRGBA_DXT3,
+   MESA_FORMAT_SRGBA_DXT5,
    /*@}*/
 #endif
 
@@ -150,7 +165,16 @@ enum _format {
    MESA_FORMAT_LUMINANCE_ALPHA_FLOAT32,
    MESA_FORMAT_LUMINANCE_ALPHA_FLOAT16,
    MESA_FORMAT_INTENSITY_FLOAT32,
-   MESA_FORMAT_INTENSITY_FLOAT16
+   MESA_FORMAT_INTENSITY_FLOAT16,
+   /*@}*/
+
+   /**
+    * \name Signed fixed point texture formats.
+    */
+   /*@{*/
+   MESA_FORMAT_DUDV8,
+   MESA_FORMAT_SIGNED_RGBA8888,
+   MESA_FORMAT_SIGNED_RGBA8888_REV
    /*@}*/
 };
 
@@ -170,9 +194,13 @@ extern const struct gl_texture_format _mesa_texformat_intensity;
 /*@{*/
 extern const struct gl_texture_format _mesa_texformat_srgb8;
 extern const struct gl_texture_format _mesa_texformat_srgba8;
+extern const struct gl_texture_format _mesa_texformat_sargb8;
 extern const struct gl_texture_format _mesa_texformat_sl8;
 extern const struct gl_texture_format _mesa_texformat_sla8;
 extern const struct gl_texture_format _mesa_texformat_srgb_dxt1;
+extern const struct gl_texture_format _mesa_texformat_srgba_dxt1;
+extern const struct gl_texture_format _mesa_texformat_srgba_dxt3;
+extern const struct gl_texture_format _mesa_texformat_srgba_dxt5;
 /*@}*/
 #endif
 
@@ -190,6 +218,13 @@ extern const struct gl_texture_format _mesa_texformat_luminance_alpha_float32;
 extern const struct gl_texture_format _mesa_texformat_luminance_alpha_float16;
 extern const struct gl_texture_format _mesa_texformat_intensity_float32;
 extern const struct gl_texture_format _mesa_texformat_intensity_float16;
+/*@}*/
+
+/** Signed fixed point texture formats */
+/*@{*/
+extern const struct gl_texture_format _mesa_texformat_dudv8;
+extern const struct gl_texture_format _mesa_texformat_signed_rgba8888;
+extern const struct gl_texture_format _mesa_texformat_signed_rgba8888_rev;
 /*@}*/
 
 /** \name Assorted hardware-friendly formats */
@@ -251,6 +286,21 @@ _mesa_choose_tex_format( GLcontext *ctx, GLint internalFormat,
 extern void
 _mesa_format_to_type_and_comps(const struct gl_texture_format *format,
                                GLenum *datatype, GLuint *comps);
+
+
+extern void
+_mesa_texformat_fetch_texel_null(const struct gl_texture_image *texImage,
+			         GLint i, GLint j, GLint k, GLchan *texel);
+
+
+extern void
+_mesa_texformat_fetch_texel_f_null(const struct gl_texture_image *texImage,
+                                   GLint i, GLint j, GLint k, GLfloat *texel);
+
+
+extern void
+_mesa_texformat_store_texel_null(struct gl_texture_image *texImage,
+                                 GLint i, GLint j, GLint k, const void *texel);
 
 
 #endif

@@ -29,7 +29,10 @@
 #include "context.h"
 #include "image.h"
 #include "histogram.h"
+#include "glapi/dispatch.h"
 
+
+#if FEATURE_histogram
 
 
 /*
@@ -649,29 +652,11 @@ _mesa_GetMinmax(GLenum target, GLboolean reset, GLenum format, GLenum type, GLvo
       return;
    }
 
-   if (ctx->Pack.BufferObj->Name) {
-      /* pack min/max values into a PBO */
-      GLubyte *buf;
-      if (!_mesa_validate_pbo_access(1, &ctx->Pack, 2, 1, 1,
-                                     format, type, values)) {
-         _mesa_error(ctx, GL_INVALID_OPERATION,
-                     "glGetMinMax(invalid PBO access)");
-         return;
-      }
-      buf = (GLubyte *) ctx->Driver.MapBuffer(ctx, GL_PIXEL_PACK_BUFFER_EXT,
-                                              GL_WRITE_ONLY_ARB,
-                                              ctx->Pack.BufferObj);
-      if (!buf) {
-         /* buffer is already mapped - that's an error */
-         _mesa_error(ctx, GL_INVALID_OPERATION,"glGetMinMax(PBO is mapped)");
-         return;
-      }
-      values = ADD_POINTERS(buf, values);
-   }
-   else if (!values) {
-      /* not an error */
+
+   values = _mesa_map_validate_pbo_dest(ctx, 1, &ctx->Pack, 2, 1, 1,
+                                        format, type, values, "glGetMinmax");
+   if (!values)
       return;
-   }
 
    {
       GLfloat minmax[2][4];
@@ -687,10 +672,7 @@ _mesa_GetMinmax(GLenum target, GLboolean reset, GLenum format, GLenum type, GLvo
                                  format, type, values, &ctx->Pack, 0x0);
    }
 
-   if (ctx->Pack.BufferObj->Name) {
-      ctx->Driver.UnmapBuffer(ctx, GL_PIXEL_PACK_BUFFER_EXT,
-                              ctx->Pack.BufferObj);
-   }
+   _mesa_unmap_pbo_dest(ctx, &ctx->Pack);
 
    if (reset) {
       _mesa_ResetMinmax(GL_MINMAX);
@@ -733,38 +715,18 @@ _mesa_GetHistogram(GLenum target, GLboolean reset, GLenum format, GLenum type, G
       return;
    }
 
-   if (ctx->Pack.BufferObj->Name) {
-      /* pack min/max values into a PBO */
-      GLubyte *buf;
-      if (!_mesa_validate_pbo_access(1, &ctx->Pack, ctx->Histogram.Width, 1, 1,
-                                     format, type, values)) {
-         _mesa_error(ctx, GL_INVALID_OPERATION,
-                     "glGetHistogram(invalid PBO access)");
-         return;
-      }
-      buf = (GLubyte *) ctx->Driver.MapBuffer(ctx, GL_PIXEL_PACK_BUFFER_EXT,
-                                              GL_WRITE_ONLY_ARB,
-                                              ctx->Pack.BufferObj);
-      if (!buf) {
-         /* buffer is already mapped - that's an error */
-         _mesa_error(ctx,GL_INVALID_OPERATION,"glGetHistogram(PBO is mapped)");
-         return;
-      }
-      values = ADD_POINTERS(buf, values);
-   }
-   else if (!values) {
-      /* not an error */
+   values = _mesa_map_validate_pbo_dest(ctx, 1, &ctx->Pack,
+                                        ctx->Histogram.Width, 1, 1,
+                                        format, type, values,
+                                        "glGetHistogram");
+   if (!values)
       return;
-   }
 
    pack_histogram(ctx, ctx->Histogram.Width,
                   (CONST GLuint (*)[4]) ctx->Histogram.Count,
                   format, type, values, &ctx->Pack);
 
-   if (ctx->Pack.BufferObj->Name) {
-      ctx->Driver.UnmapBuffer(ctx, GL_PIXEL_PACK_BUFFER_EXT,
-                              ctx->Pack.BufferObj);
-   }
+   _mesa_unmap_pbo_dest(ctx, &ctx->Pack);
 
    if (reset) {
       GLuint i;
@@ -975,6 +937,8 @@ _mesa_Histogram(GLenum target, GLsizei width, GLenum internalFormat, GLboolean s
       }
    }
 
+   FLUSH_VERTICES(ctx, _NEW_PIXEL);
+
    /* reset histograms */
    for (i = 0; i < HISTOGRAM_TABLE_SIZE; i++) {
       ctx->Histogram.Count[i][0] = 0;
@@ -1002,8 +966,6 @@ _mesa_Histogram(GLenum target, GLsizei width, GLenum internalFormat, GLboolean s
       ctx->Histogram.AlphaSize     = 8 * sizeof(GLuint);
       ctx->Histogram.LuminanceSize = 8 * sizeof(GLuint);
    }
-
-   ctx->NewState |= _NEW_PIXEL;
 }
 
 
@@ -1058,8 +1020,6 @@ _mesa_ResetHistogram(GLenum target)
       ctx->Histogram.Count[i][2] = 0;
       ctx->Histogram.Count[i][3] = 0;
    }
-
-   ctx->NewState |= _NEW_PIXEL;
 }
 
 
@@ -1083,9 +1043,26 @@ _mesa_ResetMinmax(GLenum target)
    ctx->MinMax.Min[GCOMP] = 1000;    ctx->MinMax.Max[GCOMP] = -1000;
    ctx->MinMax.Min[BCOMP] = 1000;    ctx->MinMax.Max[BCOMP] = -1000;
    ctx->MinMax.Min[ACOMP] = 1000;    ctx->MinMax.Max[ACOMP] = -1000;
-   ctx->NewState |= _NEW_PIXEL;
 }
 
+
+void
+_mesa_init_histogram_dispatch(struct _glapi_table *disp)
+{
+   SET_GetHistogram(disp, _mesa_GetHistogram);
+   SET_GetHistogramParameterfv(disp, _mesa_GetHistogramParameterfv);
+   SET_GetHistogramParameteriv(disp, _mesa_GetHistogramParameteriv);
+   SET_GetMinmax(disp, _mesa_GetMinmax);
+   SET_GetMinmaxParameterfv(disp, _mesa_GetMinmaxParameterfv);
+   SET_GetMinmaxParameteriv(disp, _mesa_GetMinmaxParameteriv);
+   SET_Histogram(disp, _mesa_Histogram);
+   SET_Minmax(disp, _mesa_Minmax);
+   SET_ResetHistogram(disp, _mesa_ResetHistogram);
+   SET_ResetMinmax(disp, _mesa_ResetMinmax);
+}
+
+
+#endif /* FEATURE_histogram */
 
 
 /**********************************************************************/

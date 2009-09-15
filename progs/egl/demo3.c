@@ -2,7 +2,11 @@
  * Exercise EGL API functions
  */
 
-#include <GLES/egl.h>
+#define EGL_EGLEXT_PROTOTYPES
+
+#include <EGL/egl.h>
+#include <EGL/eglext.h>
+#include <GL/gl.h>
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -547,7 +551,7 @@ write_ppm(const char *filename, const GLubyte *buffer, int width, int height)
    }
 }
 
-#include "../src/egl/main/egldisplay.h"
+#include "../../src/egl/main/egldisplay.h"
 
 typedef struct fb_display
 {
@@ -576,7 +580,7 @@ main(int argc, char *argv[])
    /*
    EGLDisplay d = eglGetDisplay(EGL_DEFAULT_DISPLAY);
    */
-   EGLDisplay d = eglGetDisplay(":0");
+   EGLDisplay d = eglGetDisplay("!EGL_i915");
    assert(d);
 
    if (!eglInitialize(d, &maj, &min)) {

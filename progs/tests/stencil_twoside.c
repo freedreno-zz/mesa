@@ -33,6 +33,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <GL/glew.h>
 #include <GL/glut.h>
 
 static int use20syntax = 1;
@@ -114,7 +115,6 @@ static void Display( void )
    glVertex2f( 1,  1);
    glVertex2f(-1,  1);
    glEnd();
-
 
    if (use20syntax) {
       stencil_func_separate(GL_FRONT, GL_ALWAYS, 0, ~0);
@@ -279,7 +279,6 @@ static void Init( void )
    stencil_op_separate = glutGetProcAddress( "glStencilOpSeparate" );
 
    printf("\nAll 5 squares should be the same color.\n");
-   glEnable( GL_BLEND );
 }
 
 
@@ -290,6 +289,7 @@ int main( int argc, char *argv[] )
    glutInitWindowSize( Width, Height );
    glutInitDisplayMode( GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH | GLUT_STENCIL );
    glutCreateWindow( "GL_ATI_separate_stencil test" );
+   glewInit();
    glutReshapeFunc( Reshape );
    glutKeyboardFunc( Key );
    glutDisplayFunc( Display );

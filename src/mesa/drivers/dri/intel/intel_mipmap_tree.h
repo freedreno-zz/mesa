@@ -126,6 +126,7 @@ struct intel_mipmap_tree
 
 struct intel_mipmap_tree *intel_miptree_create(struct intel_context *intel,
                                                GLenum target,
+                                               GLenum base_format,
                                                GLenum internal_format,
                                                GLuint first_level,
                                                GLuint last_level,
@@ -133,7 +134,8 @@ struct intel_mipmap_tree *intel_miptree_create(struct intel_context *intel,
                                                GLuint height0,
                                                GLuint depth0,
                                                GLuint cpp,
-                                               GLuint compress_byte);
+                                               GLuint compress_byte,
+					       GLboolean expect_accelerated_upload);
 
 struct intel_mipmap_tree *
 intel_miptree_create_for_region(struct intel_context *intel,
@@ -147,6 +149,7 @@ intel_miptree_create_for_region(struct intel_context *intel,
 
 int intel_miptree_pitch_align (struct intel_context *intel,
 			       struct intel_mipmap_tree *mt,
+			       uint32_t tiling,
 			       int pitch);
 
 void intel_miptree_reference(struct intel_mipmap_tree **dst,
@@ -193,6 +196,11 @@ void intel_miptree_set_level_info(struct intel_mipmap_tree *mt,
                                   GLuint x, GLuint y,
                                   GLuint w, GLuint h, GLuint d);
 
+void intel_miptree_set_image_offset_ex(struct intel_mipmap_tree *mt,
+                                       GLuint level,
+                                       GLuint img, GLuint x, GLuint y,
+                                       GLuint offset);
+
 void intel_miptree_set_image_offset(struct intel_mipmap_tree *mt,
                                     GLuint level,
                                     GLuint img, GLuint x, GLuint y);
@@ -217,10 +225,13 @@ void intel_miptree_image_copy(struct intel_context *intel,
 /* i915_mipmap_tree.c:
  */
 GLboolean i915_miptree_layout(struct intel_context *intel,
-			      struct intel_mipmap_tree *mt);
+			      struct intel_mipmap_tree *mt,
+			      uint32_t tiling);
 GLboolean i945_miptree_layout(struct intel_context *intel,
-			      struct intel_mipmap_tree *mt);
+			      struct intel_mipmap_tree *mt,
+			      uint32_t tiling);
 GLboolean brw_miptree_layout(struct intel_context *intel,
-			     struct intel_mipmap_tree *mt);
+			     struct intel_mipmap_tree *mt,
+			     uint32_t tiling);
 
 #endif

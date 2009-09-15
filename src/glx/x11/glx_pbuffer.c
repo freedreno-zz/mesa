@@ -25,7 +25,7 @@
 /**
  * \file glx_pbuffer.c
  * Implementation of pbuffer related functions.
- * 
+ *
  * \author Ian Romanick <idr@us.ibm.com>
  */
 
@@ -114,7 +114,7 @@ ChangeDrawableAttribute(Display * dpy, GLXDrawable drawable,
  * \note
  * This function dynamically determines whether to use the SGIX_pbuffer
  * version of the protocol or the GLX 1.3 version of the protocol.
- * 
+ *
  * \todo
  * This function needs to be modified to work with direct-rendering drivers.
  */
@@ -188,6 +188,20 @@ determineTextureTarget(const int *attribs, int numAttribs)
    }
 
    return target;
+}
+
+
+static GLenum
+determineTextureFormat(const int *attribs, int numAttribs)
+{
+   int i;
+
+   for (i = 0; i < numAttribs; i++) {
+      if (attribs[2 * i] == GLX_TEXTURE_FORMAT_EXT)
+         return attribs[2 * i + 1];
+   }
+
+   return 0;
 }
 #endif
 
@@ -294,6 +308,9 @@ GetDrawableAttribute(Display * dpy, GLXDrawable drawable,
             if (pdraw != NULL && !pdraw->textureTarget)
                pdraw->textureTarget =
                   determineTextureTarget((const int *) data, num_attributes);
+            if (pdraw != NULL && !pdraw->textureFormat)
+               pdraw->textureFormat =
+                  determineTextureFormat((const int *) data, num_attributes);
          }
 #endif
 
@@ -374,6 +391,7 @@ CreateDrawable(Display * dpy, const __GLcontextModes * fbconfig,
       }
 
       pdraw->textureTarget = determineTextureTarget(attrib_list, i);
+      pdraw->textureFormat = determineTextureFormat(attrib_list, i);
    } while (0);
 #endif
 
@@ -663,8 +681,7 @@ GLX_ALIAS_VOID(glXDestroyGLXPbufferSGIX,
 PUBLIC
 GLX_ALIAS_VOID(glXSelectEventSGIX,
                (Display * dpy, GLXDrawable drawable,
-                unsigned long mask), (dpy, drawable, mask),
-               glXSelectEvent)
+                unsigned long mask), (dpy, drawable, mask), glXSelectEvent)
 
 PUBLIC
 GLX_ALIAS_VOID(glXGetSelectedEventSGIX,

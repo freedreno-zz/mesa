@@ -41,6 +41,9 @@
 #include "texstore.h"
 
 
+#if FEATURE_texture_fxt1
+
+
 static void
 fxt1_encode (GLuint width, GLuint height, GLint comps,
              const void *source, GLint srcRowStride,
@@ -49,16 +52,6 @@ fxt1_encode (GLuint width, GLuint height, GLint comps,
 void
 fxt1_decode_1 (const void *texture, GLint stride,
                GLint i, GLint j, GLchan *rgba);
-
-
-/**
- * Called during context initialization.
- */
-void
-_mesa_init_texture_fxt1( GLcontext *ctx )
-{
-   (void) ctx;
-}
 
 
 /**
@@ -224,6 +217,8 @@ fetch_texel_2d_f_rgb_fxt1( const struct gl_texture_image *texImage,
 }
 
 
+#endif /* FEATURE_texture_fxt1 */
+
 
 const struct gl_texture_format _mesa_texformat_rgb_fxt1 = {
    MESA_FORMAT_RGB_FXT1,		/* MesaFormat */
@@ -239,6 +234,7 @@ const struct gl_texture_format _mesa_texformat_rgb_fxt1 = {
    0,					/* DepthBits */
    0,					/* StencilBits */
    0,					/* TexelBytes */
+#if FEATURE_texture_fxt1
    texstore_rgb_fxt1,			/* StoreTexImageFunc */
    NULL, /*impossible*/ 		/* FetchTexel1D */
    fetch_texel_2d_rgb_fxt1, 		/* FetchTexel2D */
@@ -247,6 +243,10 @@ const struct gl_texture_format _mesa_texformat_rgb_fxt1 = {
    fetch_texel_2d_f_rgb_fxt1, 		/* FetchTexel2Df */
    NULL, /*impossible*/ 		/* FetchTexel3Df */
    NULL					/* StoreTexel */
+#else
+   _mesa_texstore_null,
+   _MESA_TEXFORMAT_NULL_OPS
+#endif
 };
 
 const struct gl_texture_format _mesa_texformat_rgba_fxt1 = {
@@ -263,6 +263,7 @@ const struct gl_texture_format _mesa_texformat_rgba_fxt1 = {
    0,					/* DepthBits */
    0,					/* StencilBits */
    0,					/* TexelBytes */
+#if FEATURE_texture_fxt1
    texstore_rgba_fxt1,			/* StoreTexImageFunc */
    NULL, /*impossible*/ 		/* FetchTexel1D */
    fetch_texel_2d_rgba_fxt1, 		/* FetchTexel2D */
@@ -271,7 +272,14 @@ const struct gl_texture_format _mesa_texformat_rgba_fxt1 = {
    fetch_texel_2d_f_rgba_fxt1, 		/* FetchTexel2Df */
    NULL, /*impossible*/ 		/* FetchTexel3Df */
    NULL					/* StoreTexel */
+#else
+   _mesa_texstore_null,
+   _MESA_TEXFORMAT_NULL_OPS
+#endif
 };
+
+
+#if FEATURE_texture_fxt1
 
 
 /***************************************************************************\
@@ -298,17 +306,17 @@ const struct gl_texture_format _mesa_texformat_rgba_fxt1 = {
 /*
  * Define a 64-bit unsigned integer type and macros
  */
-#ifdef GL_EXT_timer_query  /* this extensions defines the GLuint64EXT type */
+#if 1
 
 #define FX64_NATIVE 1
 
-typedef GLuint64EXT Fx64;
+typedef uint64_t Fx64;
 
 #define FX64_MOV32(a, b) a = b
 #define FX64_OR32(a, b)  a |= b
 #define FX64_SHL(a, c)   a <<= c
 
-#else  /* !GL_EXT_timer_query */
+#else
 
 #define FX64_NATIVE 0
 
@@ -330,7 +338,7 @@ typedef struct {
        }                                               \
    } while (0)
 
-#endif  /* !GL_EXT_timer_query */
+#endif
 
 
 #define F(i) (GLfloat)1 /* can be used to obtain an oblong metric: 0.30 / 0.59 / 0.11 */
@@ -1721,4 +1729,17 @@ fxt1_decode_1 (const void *texture, GLint stride, /* in pixels */
    t += (j & 3) * 4;
 
    decode_1[mode](code, t, rgba);
+}
+
+
+#endif /* FEATURE_texture_fxt1 */
+
+
+/**
+ * Called during context initialization.
+ */
+void
+_mesa_init_texture_fxt1( GLcontext *ctx )
+{
+   (void) ctx;
 }

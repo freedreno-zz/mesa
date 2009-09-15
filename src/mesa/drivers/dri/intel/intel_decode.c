@@ -87,27 +87,28 @@ decode_mi(uint32_t *data, int count, uint32_t hw_offset, int *failures)
 
     struct {
 	uint32_t opcode;
+	int len_mask;
 	int min_len;
 	int max_len;
 	char *name;
     } opcodes_mi[] = {
-	{ 0x08, 1, 1, "MI_ARB_ON_OFF" },
-	{ 0x0a, 1, 1, "MI_BATCH_BUFFER_END" },
-	{ 0x31, 2, 2, "MI_BATCH_BUFFER_START" },
-	{ 0x14, 3, 3, "MI_DISPLAY_BUFFER_INFO" },
-	{ 0x04, 1, 1, "MI_FLUSH" },
-	{ 0x22, 3, 3, "MI_LOAD_REGISTER_IMM" },
-	{ 0x13, 2, 2, "MI_LOAD_SCAN_LINES_EXCL" },
-	{ 0x12, 2, 2, "MI_LOAD_SCAN_LINES_INCL" },
-	{ 0x00, 1, 1, "MI_NOOP" },
-	{ 0x11, 2, 2, "MI_OVERLAY_FLIP" },
-	{ 0x07, 1, 1, "MI_REPORT_HEAD" },
-	{ 0x18, 2, 2, "MI_SET_CONTEXT" },
-	{ 0x20, 3, 4, "MI_STORE_DATA_IMM" },
-	{ 0x21, 3, 4, "MI_STORE_DATA_INDEX" },
-	{ 0x24, 3, 3, "MI_STORE_REGISTER_MEM" },
-	{ 0x02, 1, 1, "MI_USER_INTERRUPT" },
-	{ 0x03, 1, 1, "MI_WAIT_FOR_EVENT" },
+	{ 0x08, 0, 1, 1, "MI_ARB_ON_OFF" },
+	{ 0x0a, 0, 1, 1, "MI_BATCH_BUFFER_END" },
+	{ 0x31, 0x3f, 2, 2, "MI_BATCH_BUFFER_START" },
+	{ 0x14, 0x3f, 3, 3, "MI_DISPLAY_BUFFER_INFO" },
+	{ 0x04, 0, 1, 1, "MI_FLUSH" },
+	{ 0x22, 0, 3, 3, "MI_LOAD_REGISTER_IMM" },
+	{ 0x13, 0x3f, 2, 2, "MI_LOAD_SCAN_LINES_EXCL" },
+	{ 0x12, 0x3f, 2, 2, "MI_LOAD_SCAN_LINES_INCL" },
+	{ 0x00, 0, 1, 1, "MI_NOOP" },
+	{ 0x11, 0x3f, 2, 2, "MI_OVERLAY_FLIP" },
+	{ 0x07, 0, 1, 1, "MI_REPORT_HEAD" },
+	{ 0x18, 0x3f, 2, 2, "MI_SET_CONTEXT" },
+	{ 0x20, 0x3f, 3, 4, "MI_STORE_DATA_IMM" },
+	{ 0x21, 0x3f, 3, 4, "MI_STORE_DATA_INDEX" },
+	{ 0x24, 0x3f, 3, 3, "MI_STORE_REGISTER_MEM" },
+	{ 0x02, 0, 1, 1, "MI_USER_INTERRUPT" },
+	{ 0x03, 0, 1, 1, "MI_WAIT_FOR_EVENT" },
     };
 
 
@@ -118,12 +119,14 @@ decode_mi(uint32_t *data, int count, uint32_t hw_offset, int *failures)
 
 	    instr_out(data, hw_offset, 0, "%s\n", opcodes_mi[opcode].name);
 	    if (opcodes_mi[opcode].max_len > 1) {
-		len = (data[0] & 0x000000ff) + 2;
+		len = (data[0] & opcodes_mi[opcode].len_mask) + 2;
 		if (len < opcodes_mi[opcode].min_len ||
 		    len > opcodes_mi[opcode].max_len)
 		{
-		    fprintf(out, "Bad length in %s\n",
-			    opcodes_mi[opcode].name);
+		    fprintf(out, "Bad length (%d) in %s, [%d, %d]\n",
+			    len, opcodes_mi[opcode].name,
+			    opcodes_mi[opcode].min_len,
+			    opcodes_mi[opcode].max_len);
 		}
 	    }
 
@@ -797,6 +800,7 @@ static int
 decode_3d_1d(uint32_t *data, int count, uint32_t hw_offset, int *failures, int i830)
 {
     unsigned int len, i, c, opcode, word, map, sampler, instr;
+    char *format;
 
     struct {
 	uint32_t opcode;
@@ -932,7 +936,7 @@ decode_3d_1d(uint32_t *data, int count, uint32_t hw_offset, int *failures, int i
 	instr_out(data, hw_offset, 0, "3DSTATE_PIXEL_SHADER_CONSTANTS\n");
 	len = (data[0] & 0x000000ff) + 2;
 
-	i = 1;
+	i = 2;
 	for (c = 0; c <= 31; c++) {
 	    if (data[1] & (1 << c)) {
 		if (i + 4 >= count)
@@ -952,7 +956,7 @@ decode_3d_1d(uint32_t *data, int count, uint32_t hw_offset, int *failures, int i
 	    }
 	}
 	if (len != i) {
-	    fprintf(out, "Bad count in 3DSTATE_MAP_STATE\n");
+	    fprintf(out, "Bad count in 3DSTATE_PIXEL_SHADER_CONSTANTS\n");
 	    (*failures)++;
 	}
 	return len;
@@ -997,6 +1001,35 @@ decode_3d_1d(uint32_t *data, int count, uint32_t hw_offset, int *failures, int i
 	    fprintf(out, "Bad count in 3DSTATE_SAMPLER_STATE\n");
 	    (*failures)++;
 	}
+	return len;
+    case 0x85:
+	len = (data[0] & 0x0000000f) + 2;
+
+	if (len != 2)
+	    fprintf(out, "Bad count in 3DSTATE_DEST_BUFFER_VARIABLES\n");
+	if (count < 2)
+	    BUFFER_FAIL(count, len, "3DSTATE_DEST_BUFFER_VARIABLES");
+
+	instr_out(data, hw_offset, 0,
+		  "3DSTATE_DEST_BUFFER_VARIABLES\n");
+
+	switch ((data[1] >> 8) & 0xf) {
+	case 0x0: format = "g8"; break;
+	case 0x1: format = "x1r5g5b5"; break;
+	case 0x2: format = "r5g6b5"; break;
+	case 0x3: format = "a8r8g8b8"; break;
+	case 0x4: format = "ycrcb_swapy"; break;
+	case 0x5: format = "ycrcb_normal"; break;
+	case 0x6: format = "ycrcb_swapuv"; break;
+	case 0x7: format = "ycrcb_swapuvy"; break;
+	case 0x8: format = "a4r4g4b4"; break;
+	case 0x9: format = "a1r5g5b5"; break;
+	case 0xa: format = "a2r10g10b10"; break;
+	default: format = "BAD"; break;
+	}
+	instr_out(data, hw_offset, 1, "%s format, early Z %sabled\n",
+		  format,
+		  (data[1] & (1 << 31)) ? "en" : "dis");
 	return len;
     }
 
@@ -1510,7 +1543,7 @@ decode_3d_965(uint32_t *data, int count, uint32_t hw_offset, int *failures)
 
 	for (i = 1; i < len;) {
 	    instr_out(data, hw_offset, i, "buffer %d: %svalid, type 0x%04x, "
-		      "src offset 0x%04xd bytes\n",
+		      "src offset 0x%04x bytes\n",
 		      data[i] >> 27,
 		      data[i] & (1 << 26) ? "" : "in",
 		      (data[i] >> 16) & 0x1ff,
@@ -1592,7 +1625,7 @@ decode_3d_965(uint32_t *data, int count, uint32_t hw_offset, int *failures)
 		  "3DPRIMITIVE: %s %s\n",
 		  get_965_prim_type(data[0]),
 		  (data[0] & (1 << 15)) ? "random" : "sequential");
-	instr_out(data, hw_offset, 1, "primitive count\n");
+	instr_out(data, hw_offset, 1, "vertex count\n");
 	instr_out(data, hw_offset, 2, "start vertex\n");
 	instr_out(data, hw_offset, 3, "instance count\n");
 	instr_out(data, hw_offset, 4, "start instance\n");

@@ -43,6 +43,7 @@ class PrintGlEnums(gl_XML.gl_print_base):
 
 	def printRealHeader(self):
 		print '#include "glheader.h"'
+		print '#include "mfeatures.h"'
 		print '#include "enums.h"'
 		print '#include "imports.h"'
 		print ''
@@ -55,8 +56,6 @@ class PrintGlEnums(gl_XML.gl_print_base):
 
 	def print_code(self):
 		print """
-#define Elements(x) sizeof(x)/sizeof(*x)
-
 typedef int (*cfunc)(const void *, const void *);
 
 /**
@@ -110,6 +109,29 @@ const char *_mesa_lookup_enum_by_nr( int nr )
       return token_tmp;
    }
 }
+
+/* Get the name of an enum given that it is a primitive type.  Avoids
+ * GL_FALSE/GL_POINTS ambiguity and others.
+ */
+const char *_mesa_lookup_prim_by_nr( int nr )
+{
+   switch (nr) {
+   case GL_POINTS: return "GL_POINTS";
+   case GL_LINES: return "GL_LINES";
+   case GL_LINE_STRIP: return "GL_LINE_STRIP";
+   case GL_LINE_LOOP: return "GL_LINE_LOOP";
+   case GL_TRIANGLES: return "GL_TRIANGLES";
+   case GL_TRIANGLE_STRIP: return "GL_TRIANGLE_STRIP";
+   case GL_TRIANGLE_FAN: return "GL_TRIANGLE_FAN";
+   case GL_QUADS: return "GL_QUADS";
+   case GL_QUAD_STRIP: return "GL_QUAD_STRIP";
+   case GL_POLYGON: return "GL_POLYGON";
+   case GL_POLYGON+1: return "OUTSIDE_BEGIN_END";
+   default: return "<invalid>";
+   }
+}
+
+
 
 int _mesa_lookup_enum_by_name( const char *symbol )
 {

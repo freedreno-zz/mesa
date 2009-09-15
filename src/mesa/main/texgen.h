@@ -27,8 +27,15 @@
 #define TEXGEN_H
 
 
-#include "main/glheader.h"
+#include "main/mtypes.h"
 
+
+#if FEATURE_texgen
+
+#define _MESA_INIT_TEXGEN_FUNCTIONS(driver, impl) \
+   do {                                           \
+      (driver)->TexGen = impl ## TexGen;          \
+   } while (0)
 
 extern void GLAPIENTRY
 _mesa_GetTexGendv( GLenum coord, GLenum pname, GLdouble *params );
@@ -57,6 +64,19 @@ _mesa_TexGeni( GLenum coord, GLenum pname, GLint param );
 extern void GLAPIENTRY
 _mesa_TexGeniv( GLenum coord, GLenum pname, const GLint *params );
 
+extern void 
+_mesa_init_texgen_dispatch(struct _glapi_table *disp);
+
+#else /* FEATURE_texgen */
+
+#define _MESA_INIT_TEXGEN_FUNCTIONS(driver, impl) do { } while (0)
+
+static INLINE void 
+_mesa_init_texgen_dispatch(struct _glapi_table *disp)
+{
+}
+
+#endif /* FEATURE_texgen */
 
 
 #endif /* TEXGEN_H */

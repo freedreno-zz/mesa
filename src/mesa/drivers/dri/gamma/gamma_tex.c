@@ -107,9 +107,14 @@ static void gammaSetTexFilter(gammaContextPtr gmesa,
 
 static void gammaSetTexBorderColor(gammaContextPtr gmesa,
 				  gammaTextureObjectPtr t, 
-				  GLubyte color[4])
+                                  const GLfloat color[4])
 {
-    t->TextureBorderColor = PACK_COLOR_8888(color[0], color[1], color[2], color[3]);
+   GLubyte c[4];
+   CLAMPED_FLOAT_TO_UBYTE(c[0], color[0]);
+   CLAMPED_FLOAT_TO_UBYTE(c[1], color[1]);
+   CLAMPED_FLOAT_TO_UBYTE(c[2], color[2]);
+   CLAMPED_FLOAT_TO_UBYTE(c[3], color[3]);
+   t->TextureBorderColor = PACK_COLOR_8888(c[0], c[1], c[2], c[3]);
 }
 
 
@@ -143,7 +148,7 @@ static void gammaTexParameter( GLcontext *ctx, GLenum target,
       break;
   
    case GL_TEXTURE_BORDER_COLOR:
-      gammaSetTexBorderColor( gmesa, t, tObj->_BorderChan );
+      gammaSetTexBorderColor( gmesa, t, tObj->BorderColor );
       break;
 
    case GL_TEXTURE_BASE_LEVEL:
@@ -347,7 +352,7 @@ static void gammaBindTexture( GLcontext *ctx, GLenum target,
 
 	 gammaSetTexWrapping( t, tObj->WrapS, tObj->WrapT );
 	 gammaSetTexFilter( gmesa, t, tObj->MinFilter, tObj->MagFilter, bias );
-	 gammaSetTexBorderColor( gmesa, t, tObj->_BorderChan );
+	 gammaSetTexBorderColor( gmesa, t, tObj->BorderColor );
       }
 }
 
@@ -400,19 +405,19 @@ void gammaInitTextureObjects( GLcontext *ctx )
 
    ctx->Texture.CurrentUnit = 0;
 
-   texObj = ctx->Texture.Unit[0].Current1D;
+   texObj = ctx->Texture.Unit[0].CurrentTex[TEXTURE_1D_INDEX];
    gammaBindTexture( ctx, GL_TEXTURE_1D, texObj );
 
-   texObj = ctx->Texture.Unit[0].Current2D;
+   texObj = ctx->Texture.Unit[0].CurrentTex[TEXTURE_2D_INDEX];
    gammaBindTexture( ctx, GL_TEXTURE_2D, texObj );
 
 #if 0
    ctx->Texture.CurrentUnit = 1;
 
-   texObj = ctx->Texture.Unit[1].Current1D;
+   texObj = ctx->Texture.Unit[1].CurrentTex[TEXTURE_1D_INDEX];
    gammaBindTexture( ctx, GL_TEXTURE_1D, texObj );
 
-   texObj = ctx->Texture.Unit[1].Current2D;
+   texObj = ctx->Texture.Unit[1].CurrentTex[TEXTURE_2D_INDEX];
    gammaBindTexture( ctx, GL_TEXTURE_2D, texObj );
 #endif
 

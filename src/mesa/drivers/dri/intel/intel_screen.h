@@ -79,6 +79,7 @@ typedef struct
    GLboolean no_vbo;
    int ttm;
    dri_bufmgr *bufmgr;
+   GLboolean kernel_exec_fencing;
 
    /**
    * Configuration cache with default values for all contexts
@@ -92,10 +93,6 @@ extern GLboolean intelMapScreenRegions(__DRIscreenPrivate * sPriv);
 
 extern void intelUnmapScreenRegions(intelScreenPrivate * intelScreen);
 
-extern void
-intelUpdateScreenFromSAREA(intelScreenPrivate * intelScreen,
-                           drm_i915_sarea_t * sarea);
-
 extern void intelDestroyContext(__DRIcontextPrivate * driContextPriv);
 
 extern GLboolean intelUnbindContext(__DRIcontextPrivate * driContextPriv);
@@ -104,11 +101,6 @@ extern GLboolean
 intelMakeCurrent(__DRIcontextPrivate * driContextPriv,
                  __DRIdrawablePrivate * driDrawPriv,
                  __DRIdrawablePrivate * driReadPriv);
-
-extern void intelSwapBuffers(__DRIdrawablePrivate * dPriv);
-
-extern void
-intelCopySubBuffer(__DRIdrawablePrivate * dPriv, int x, int y, int w, int h);
 
 extern struct intel_context *intelScreenContext(intelScreenPrivate *intelScreen);
 

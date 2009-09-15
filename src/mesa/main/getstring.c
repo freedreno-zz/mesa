@@ -82,9 +82,18 @@ compute_version(const GLcontext *ctx)
                               ctx->Extensions.ARB_vertex_shader &&
                               ctx->Extensions.ARB_fragment_shader &&
                               ctx->Extensions.ARB_texture_non_power_of_two &&
-                              ctx->Extensions.EXT_blend_equation_separate);
+                              ctx->Extensions.EXT_blend_equation_separate &&
+
+			      /* Technically, 2.0 requires the functionality
+			       * of the EXT version.  Enable 2.0 if either
+			       * extension is available, and assume that a
+			       * driver that only exposes the ATI extension
+			       * will fallback to software when necessary.
+			       */
+			      (ctx->Extensions.EXT_stencil_two_side
+			       || ctx->Extensions.ATI_separate_stencil));
    const GLboolean ver_2_1 = (ver_2_0 &&
-                              /*ctx->Extensions.ARB_shading_language_120 &&*/
+                              ctx->Extensions.ARB_shading_language_120 &&
                               ctx->Extensions.EXT_pixel_buffer_object &&
                               ctx->Extensions.EXT_texture_sRGB);
    if (ver_2_1)
@@ -233,34 +242,9 @@ _mesa_GetPointerv( GLenum pname, GLvoid **params )
       case GL_SELECTION_BUFFER_POINTER:
          *params = ctx->Select.Buffer;
          break;
-#if FEATURE_MESA_program_debug
-      case GL_FRAGMENT_PROGRAM_CALLBACK_FUNC_MESA:
-         if (!ctx->Extensions.MESA_program_debug) {
-            _mesa_error(ctx, GL_INVALID_ENUM, "glGetPointerv");
-            return;
-         }
-         *params = *(GLvoid **) &ctx->FragmentProgram.Callback;
-         break;
-      case GL_FRAGMENT_PROGRAM_CALLBACK_DATA_MESA:
-         if (!ctx->Extensions.MESA_program_debug) {
-            _mesa_error(ctx, GL_INVALID_ENUM, "glGetPointerv");
-            return;
-         }
-         *params = ctx->FragmentProgram.CallbackData;
-         break;
-      case GL_VERTEX_PROGRAM_CALLBACK_FUNC_MESA:
-         if (!ctx->Extensions.MESA_program_debug) {
-            _mesa_error(ctx, GL_INVALID_ENUM, "glGetPointerv");
-            return;
-         }
-         *params = *(GLvoid **) &ctx->VertexProgram.Callback;
-         break;
-      case GL_VERTEX_PROGRAM_CALLBACK_DATA_MESA:
-         if (!ctx->Extensions.MESA_program_debug) {
-            _mesa_error(ctx, GL_INVALID_ENUM, "glGetPointerv");
-            return;
-         }
-         *params = ctx->VertexProgram.CallbackData;
+#if FEATURE_point_size_array
+      case GL_POINT_SIZE_ARRAY_POINTER_OES:
+         *params = (GLvoid *) ctx->Array.ArrayObj->PointSize.Ptr;
          break;
 #endif
       default:
@@ -287,5 +271,6 @@ _mesa_GetError( void )
       _mesa_debug(ctx, "glGetError <-- %s\n", _mesa_lookup_enum_by_nr(e));
 
    ctx->ErrorValue = (GLenum) GL_NO_ERROR;
+   ctx->ErrorDebugCount = 0;
    return e;
 }

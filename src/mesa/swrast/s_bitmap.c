@@ -38,6 +38,8 @@
 #include "s_span.h"
 
 
+#if FEATURE_drawpix
+
 
 /**
  * Render a bitmap.
@@ -50,18 +52,17 @@ _swrast_Bitmap( GLcontext *ctx, GLint px, GLint py,
 		const struct gl_pixelstore_attrib *unpack,
 		const GLubyte *bitmap )
 {
-   SWcontext *swrast = SWRAST_CONTEXT(ctx);
    GLint row, col;
    GLuint count = 0;
    SWspan span;
 
    ASSERT(ctx->RenderMode == GL_RENDER);
 
-   bitmap = _mesa_map_bitmap_pbo(ctx, unpack, bitmap);
+   bitmap = (const GLubyte *) _mesa_map_pbo_source(ctx, unpack, bitmap);
    if (!bitmap)
       return;
 
-   RENDER_START(swrast,ctx);
+   swrast_render_start(ctx);
 
    if (SWRAST_CONTEXT(ctx)->NewState)
       _swrast_validate_derived( ctx );
@@ -132,9 +133,9 @@ _swrast_Bitmap( GLcontext *ctx, GLint px, GLint py,
       }
    }
 
-   RENDER_FINISH(swrast,ctx);
+   swrast_render_finish(ctx);
 
-   _mesa_unmap_bitmap_pbo(ctx, unpack);
+   _mesa_unmap_pbo_source(ctx, unpack);
 }
 
 
@@ -157,7 +158,7 @@ _swrast_Bitmap( GLcontext *ctx, GLint px, GLint py,
    ASSERT(ctx->RenderMode == GL_RENDER);
    ASSERT(bitmap);
 
-   RENDER_START(swrast,ctx);
+   swrast_render_start(ctx);
 
    if (SWRAST_CONTEXT(ctx)->NewState)
       _swrast_validate_derived( ctx );
@@ -224,6 +225,9 @@ _swrast_Bitmap( GLcontext *ctx, GLint px, GLint py,
       }
    }
 
-   RENDER_FINISH(swrast,ctx);
+   swrast_render_finish(ctx);
 }
 #endif
+
+
+#endif /* FEATURE_drawpix */

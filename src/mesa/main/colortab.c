@@ -31,6 +31,10 @@
 #include "macros.h"
 #include "state.h"
 #include "teximage.h"
+#include "glapi/dispatch.h"
+
+
+#if FEATURE_colortable
 
 
 /**
@@ -179,26 +183,12 @@ store_colortable_entries(GLcontext *ctx, struct gl_color_table *table,
 			 GLfloat bScale, GLfloat bBias,
 			 GLfloat aScale, GLfloat aBias)
 {
-   if (ctx->Unpack.BufferObj->Name) {
-      /* Get/unpack the color table data from a PBO */
-      GLubyte *buf;
-      if (!_mesa_validate_pbo_access(1, &ctx->Unpack, count, 1, 1,
-                                     format, type, data)) {
-         _mesa_error(ctx, GL_INVALID_OPERATION,
-                     "glColor[Sub]Table(bad PBO access)");
-         return;
-      }
-      buf = (GLubyte *) ctx->Driver.MapBuffer(ctx, GL_PIXEL_UNPACK_BUFFER_EXT,
-                                              GL_READ_ONLY_ARB,
-                                              ctx->Unpack.BufferObj);
-      if (!buf) {
-         _mesa_error(ctx, GL_INVALID_OPERATION,
-                     "glColor[Sub]Table(PBO mapped)");
-         return;
-      }
-      data = ADD_POINTERS(buf, data);
-   }
-
+   data = _mesa_map_validate_pbo_source(ctx, 
+                                        1, &ctx->Unpack, count, 1, 1,
+                                        format, type, data,
+                                        "glColor[Sub]Table");
+   if (!data)
+      return;
 
    {
       /* convert user-provided data to GLfloat values */
@@ -279,10 +269,7 @@ store_colortable_entries(GLcontext *ctx, struct gl_color_table *table,
       }
    }
 
-   if (ctx->Unpack.BufferObj->Name) {
-      ctx->Driver.UnmapBuffer(ctx, GL_PIXEL_UNPACK_BUFFER_EXT,
-                              ctx->Unpack.BufferObj);
-   }
+   _mesa_unmap_pbo_source(ctx, &ctx->Unpack);
 }
 
 
@@ -696,34 +683,17 @@ _mesa_GetColorTable( GLenum target, GLenum format,
       return;
    }
 
-   if (ctx->Pack.BufferObj->Name) {
-      /* pack color table into PBO */
-      GLubyte *buf;
-      if (!_mesa_validate_pbo_access(1, &ctx->Pack, table->Size, 1, 1,
-                                     format, type, data)) {
-         _mesa_error(ctx, GL_INVALID_OPERATION,
-                     "glGetColorTable(invalid PBO access)");
-         return;
-      }
-      buf = (GLubyte *) ctx->Driver.MapBuffer(ctx, GL_PIXEL_PACK_BUFFER_EXT,
-                                              GL_WRITE_ONLY_ARB,
-                                              ctx->Pack.BufferObj);
-      if (!buf) {
-         /* buffer is already mapped - that's an error */
-         _mesa_error(ctx, GL_INVALID_OPERATION,
-                     "glGetColorTable(PBO is mapped)");
-         return;
-      }
-      data = ADD_POINTERS(buf, data);
-   }
+   data = _mesa_map_validate_pbo_dest(ctx, 
+                                      1, &ctx->Pack, table->Size, 1, 1,
+                                      format, type, data,
+                                      "glGetColorTable");
+   if (!data)
+      return;
 
    _mesa_pack_rgba_span_float(ctx, table->Size, rgba,
                               format, type, data, &ctx->Pack, 0x0);
 
-   if (ctx->Pack.BufferObj->Name) {
-      ctx->Driver.UnmapBuffer(ctx, GL_PIXEL_PACK_BUFFER_EXT,
-                              ctx->Pack.BufferObj);
-   }
+   _mesa_unmap_pbo_dest(ctx, &ctx->Pack);
 }
 
 
@@ -1077,6 +1047,25 @@ _mesa_GetColorTableParameteriv( GLenum target, GLenum pname, GLint *params )
          return;
    }
 }
+
+
+void 
+_mesa_init_colortable_dispatch(struct _glapi_table *disp)
+{
+   SET_ColorSubTable(disp, _mesa_ColorSubTable);
+   SET_ColorTable(disp, _mesa_ColorTable);
+   SET_ColorTableParameterfv(disp, _mesa_ColorTableParameterfv);
+   SET_ColorTableParameteriv(disp, _mesa_ColorTableParameteriv);
+   SET_CopyColorSubTable(disp, _mesa_CopyColorSubTable);
+   SET_CopyColorTable(disp, _mesa_CopyColorTable);
+   SET_GetColorTable(disp, _mesa_GetColorTable);
+   SET_GetColorTableParameterfv(disp, _mesa_GetColorTableParameterfv);
+   SET_GetColorTableParameteriv(disp, _mesa_GetColorTableParameteriv);
+}
+
+
+#endif /* FEATURE_colortable */
+
 
 /**********************************************************************/
 /*****                      Initialization                        *****/

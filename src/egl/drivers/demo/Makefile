@@ -4,7 +4,7 @@ TOP = ../../../..
 include $(TOP)/configs/current
 
 
-INCLUDE_DIRS = -I$(TOP)/include -I$(TOP)/src/egl/main
+INCLUDE_DIRS = -I$(TOP)/include -I$(TOP)/src/egl/main $(X11_INCLUDES)
 
 
 SOURCES = demo.c
@@ -25,7 +25,7 @@ $(TOP)/$(LIB_DIR)/demodriver.so: $(OBJECTS)
 		-ldflags '$(LDFLAGS)' -install $(TOP)/$(LIB_DIR) \
 		$(OBJECTS)
 
-
+install:
 
 clean:
 	-rm -f *.o

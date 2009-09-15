@@ -176,6 +176,23 @@ if [ ${ARCH} = "auto" ] ; then
 fi
 
 
+if [ $STATIC = 1 ]; then
+    # filter out linker options inside object list
+    NEWOBJECTS=""
+    for OBJ in $OBJECTS ; do
+	case $OBJ in
+	    -Wl,*)
+		echo "mklib: warning: ignoring $OBJ for static library"
+		;;
+	    *)
+		NEWOBJECTS="$NEWOBJECTS $OBJ"
+		;;
+	esac
+    done
+    OBJECTS=$NEWOBJECTS
+fi
+
+
 #
 # Error checking
 #
@@ -264,18 +281,21 @@ case $ARCH in
 	    # expand any .a objects into constituent .o files.
 	    NEWOBJECTS=""
 	    DELETIA=""
-	    for OBJ in ${OBJECTS} ; do
-		if [ `expr match $OBJ '.*\.a'` -gt 0 ] ; then
-		    # extract the .o files from this .a archive
-		    FILES=`ar t $OBJ`
-		    ar x $OBJ
-		    NEWOBJECTS="$NEWOBJECTS $FILES"
-		    # keep track of temporary .o files and delete them below
-		    DELETIA="$DELETIA $FILES"
-		else
-		    # ordinary .o file
-		    NEWOBJECTS="$NEWOBJECTS $OBJ"
-		fi
+	    for OBJ in $OBJECTS ; do
+		case $OBJ in
+		    *.a)
+			# extract the .o files from this .a archive
+			FILES=`ar t $OBJ`
+			ar x $OBJ
+			NEWOBJECTS="$NEWOBJECTS $FILES"
+			# keep track of temporary .o files and delete them below
+			DELETIA="$DELETIA $FILES"
+			;;
+		    *)
+			# ordinary .o file
+			NEWOBJECTS="$NEWOBJECTS $OBJ"
+			;;
+		esac
 	    done
 
             # make lib
@@ -394,6 +414,30 @@ case $ARCH in
 		fi
 	    fi
 
+	    # If using Sun C++ compiler, need to tell it not to add runpaths
+	    # that are specific to the build machine
+	    if [ ${LINK} = "CC" ] ; then
+		OPTS="${OPTS} -norunpath"
+	    fi
+
+	    # Solaris linker requires explicitly listing the Standard C & C++
+	    # libraries in the link path when building shared objects
+	    if [ ${LINK} = "CC" ] ; then
+		DEPS="${DEPS} -lCrun"
+	    fi
+	    DEPS="${DEPS} -lc"
+
+	    if [ $EXPORTS ] ; then
+		# Make the 'mapfile.scope' linker mapfile
+		echo "{" > mapfile.scope
+		echo "global:" >> mapfile.scope
+		sed 's/$/;/' ${EXPORTS} >> mapfile.scope
+		echo "local:" >> mapfile.scope
+		echo "    *;" >> mapfile.scope
+		echo "};" >> mapfile.scope
+		OPTS="${OPTS} -Wl,-Mmapfile.scope"
+	    fi
+
 	    # Check if objects are SPARC v9
 	    # file says: ELF 64-bit MSB relocatable SPARCV9 Version 1
 	    set ${OBJECTS}
@@ -406,17 +450,19 @@ case $ARCH in
             if [ "${ALTOPTS}" ] ; then
                 OPTS=${ALTOPTS}
             fi
+
 	    # for debug:
 	    #echo "mklib: linker is" ${LINK} ${OPTS}
 	    if [ $NOPREFIX = 1 ] ; then
 		rm -f ${LIBNAME}
 		${LINK} ${OPTS} ${LDFLAGS} -o ${LIBNAME} ${OBJECTS} ${DEPS}
+		FINAL_LIBS="${LIBNAME}"
 	    else
 		rm -f ${LIBNAME}.${MAJOR} ${LIBNAME}
 		${LINK} ${OPTS} ${LDFLAGS} -o ${LIBNAME}.${MAJOR} -h ${LIBNAME}.${MAJOR} ${OBJECTS} ${DEPS}
 		ln -s ${LIBNAME}.${MAJOR} ${LIBNAME}
+		FINAL_LIBS="${LIBNAME}.${MAJOR} ${LIBNAME}"
 	    fi
-	    FINAL_LIBS="${LIBNAME}.${MAJOR} ${LIBNAME}"
 	fi
 	;;
 
@@ -839,6 +885,17 @@ case $ARCH in
 
      CYGWIN*)
 	# GCC-based environment
+	if [ $NOPREFIX = 1 ] ; then
+	    # No "lib" or ".so" part
+	    echo "mklib: Making CYGWIN shared library: " ${LIBNAME}
+	    OPTS="-shared -Wl,--enable-auto-image-base"
+            if [ "${ALTOPTS}" ] ; then
+                OPTS=${ALTOPTS}
+            fi
+	    rm -f ${LIBNAME}
+	    ${LINK} ${OPTS} ${LDFLAGS} -o ${LIBNAME} ${OBJECTS} ${DEPS}
+	    FINAL_LIBS=${LIBNAME}
+        else
 	CYGNAME="cyg${LIBNAME}"     # prefix with "cyg"
 	LIBNAME="lib${LIBNAME}"     # prefix with "lib"
 
@@ -855,11 +912,11 @@ case $ARCH in
             # finish up
             FINAL_LIBS=${LIBNAME}.a
         else
-	    OPTS="-shared -Wl,-export-all -Wl,--out-implib=${LIBNAME}-${MAJOR}.dll.a"
+	    OPTS="-shared -Wl,--enable-auto-image-base -Wl,-export-all -Wl,--out-implib=${LIBNAME}-${MAJOR}.dll.a"
             if [ "${ALTOPTS}" ] ; then
                 OPTS=${ALTOPTS}
             fi
-            echo "mklib: Making" $ARCH "shared library: " ${LIBNAME}-${MAJOR}.dll
+            echo "mklib: Making" $ARCH "shared library: " ${CYGNAME}-${MAJOR}.dll
 
             if [ $CPLUSPLUS = 1 ] ; then
                 LINK="g++"
@@ -868,7 +925,8 @@ case $ARCH in
             fi
 
             # rm any old libs
-            rm -f ${LIBNAME}-${MAJOR}.dll
+            rm -f ${CYGNAME}-${MAJOR}.dll
+            rm -f ${LIBNAME}-${MAJOR}.dll.a
             rm -f ${LIBNAME}.dll.a
             rm -f ${LIBNAME}.a
 
@@ -880,6 +938,7 @@ case $ARCH in
             FINAL_LIBS="${LIBNAME}-${MAJOR}.dll.a ${LIBNAME}.dll.a"
 	    # special case for installing in bin
             FINAL_BINS="${CYGNAME}-${MAJOR}.dll"
+        fi
         fi
 	;;
 
@@ -912,5 +971,6 @@ esac
 #
 if [ ${INSTALLDIR} != "." ] ; then
     echo "mklib: Installing" ${FINAL_LIBS} "in" ${INSTALLDIR}
+    test -d ${INSTALLDIR} || mkdir -p ${INSTALLDIR}
     mv ${FINAL_LIBS} ${INSTALLDIR}/
 fi

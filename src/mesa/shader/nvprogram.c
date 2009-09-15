@@ -246,8 +246,7 @@ _mesa_GetProgramivNV(GLuint id, GLenum pname, GLint *params)
    struct gl_program *prog;
    GET_CURRENT_CONTEXT(ctx);
 
-   if (!ctx->_CurrentProgram)
-      ASSERT_OUTSIDE_BEGIN_END(ctx);
+   ASSERT_OUTSIDE_BEGIN_END(ctx);
 
    prog = _mesa_lookup_program(ctx, id);
    if (!prog) {
@@ -283,8 +282,7 @@ _mesa_GetProgramStringNV(GLuint id, GLenum pname, GLubyte *program)
    struct gl_program *prog;
    GET_CURRENT_CONTEXT(ctx);
 
-   if (!ctx->_CurrentProgram)
-      ASSERT_OUTSIDE_BEGIN_END(ctx);
+   ASSERT_OUTSIDE_BEGIN_END(ctx);
 
    if (pname != GL_PROGRAM_STRING_NV) {
       _mesa_error(ctx, GL_INVALID_ENUM, "glGetProgramStringNV(pname)");
@@ -356,6 +354,7 @@ _mesa_GetTrackMatrixivNV(GLenum target, GLuint address,
 void GLAPIENTRY
 _mesa_GetVertexAttribdvNV(GLuint index, GLenum pname, GLdouble *params)
 {
+   const struct gl_client_array *array;
    GET_CURRENT_CONTEXT(ctx);
    ASSERT_OUTSIDE_BEGIN_END(ctx);
 
@@ -364,15 +363,17 @@ _mesa_GetVertexAttribdvNV(GLuint index, GLenum pname, GLdouble *params)
       return;
    }
 
+   array = &ctx->Array.ArrayObj->VertexAttrib[index];
+
    switch (pname) {
       case GL_ATTRIB_ARRAY_SIZE_NV:
-         params[0] = ctx->Array.ArrayObj->VertexAttrib[index].Size;
+         params[0] = array->Size;
          break;
       case GL_ATTRIB_ARRAY_STRIDE_NV:
-         params[0] = ctx->Array.ArrayObj->VertexAttrib[index].Stride;
+         params[0] = array->Stride;
          break;
       case GL_ATTRIB_ARRAY_TYPE_NV:
-         params[0] = ctx->Array.ArrayObj->VertexAttrib[index].Type;
+         params[0] = array->Type;
          break;
       case GL_CURRENT_ATTRIB_NV:
          if (index == 0) {
@@ -397,6 +398,7 @@ _mesa_GetVertexAttribdvNV(GLuint index, GLenum pname, GLdouble *params)
 void GLAPIENTRY
 _mesa_GetVertexAttribfvNV(GLuint index, GLenum pname, GLfloat *params)
 {
+   const struct gl_client_array *array;
    GET_CURRENT_CONTEXT(ctx);
    ASSERT_OUTSIDE_BEGIN_END(ctx);
 
@@ -405,15 +407,17 @@ _mesa_GetVertexAttribfvNV(GLuint index, GLenum pname, GLfloat *params)
       return;
    }
 
+   array = &ctx->Array.ArrayObj->VertexAttrib[index];
+
    switch (pname) {
       case GL_ATTRIB_ARRAY_SIZE_NV:
-         params[0] = (GLfloat) ctx->Array.ArrayObj->VertexAttrib[index].Size;
+         params[0] = (GLfloat) array->Size;
          break;
       case GL_ATTRIB_ARRAY_STRIDE_NV:
-         params[0] = (GLfloat) ctx->Array.ArrayObj->VertexAttrib[index].Stride;
+         params[0] = (GLfloat) array->Stride;
          break;
       case GL_ATTRIB_ARRAY_TYPE_NV:
-         params[0] = (GLfloat) ctx->Array.ArrayObj->VertexAttrib[index].Type;
+         params[0] = (GLfloat) array->Type;
          break;
       case GL_CURRENT_ATTRIB_NV:
          if (index == 0) {
@@ -438,6 +442,7 @@ _mesa_GetVertexAttribfvNV(GLuint index, GLenum pname, GLfloat *params)
 void GLAPIENTRY
 _mesa_GetVertexAttribivNV(GLuint index, GLenum pname, GLint *params)
 {
+   const struct gl_client_array *array;
    GET_CURRENT_CONTEXT(ctx);
    ASSERT_OUTSIDE_BEGIN_END(ctx);
 
@@ -446,15 +451,17 @@ _mesa_GetVertexAttribivNV(GLuint index, GLenum pname, GLint *params)
       return;
    }
 
+   array = &ctx->Array.ArrayObj->VertexAttrib[index];
+
    switch (pname) {
       case GL_ATTRIB_ARRAY_SIZE_NV:
-         params[0] = ctx->Array.ArrayObj->VertexAttrib[index].Size;
+         params[0] = array->Size;
          break;
       case GL_ATTRIB_ARRAY_STRIDE_NV:
-         params[0] = ctx->Array.ArrayObj->VertexAttrib[index].Stride;
+         params[0] = array->Stride;
          break;
       case GL_ATTRIB_ARRAY_TYPE_NV:
-         params[0] = ctx->Array.ArrayObj->VertexAttrib[index].Type;
+         params[0] = array->Type;
          break;
       case GL_CURRENT_ATTRIB_NV:
          if (index == 0) {
@@ -469,11 +476,7 @@ _mesa_GetVertexAttribivNV(GLuint index, GLenum pname, GLint *params)
          params[3] = (GLint) ctx->Current.Attrib[index][3];
          break;
       case GL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING_ARB:
-         if (!ctx->Extensions.ARB_vertex_buffer_object) {
-            _mesa_error(ctx, GL_INVALID_ENUM, "glGetVertexAttribdvNV");
-            return;
-         }
-         params[0] = ctx->Array.ArrayObj->VertexAttrib[index].BufferObj->Name;
+         params[0] = array->BufferObj->Name;
          break;
       default:
          _mesa_error(ctx, GL_INVALID_ENUM, "glGetVertexAttribdvNV");
@@ -712,7 +715,7 @@ _mesa_ProgramNamedParameter4fNV(GLuint id, GLsizei len, const GLubyte *name,
    GET_CURRENT_CONTEXT(ctx);
    ASSERT_OUTSIDE_BEGIN_END(ctx);
 
-   FLUSH_VERTICES(ctx, _NEW_PROGRAM);
+   FLUSH_VERTICES(ctx, _NEW_PROGRAM_CONSTANTS);
 
    prog = _mesa_lookup_program(ctx, id);
    if (!prog || prog->Target != GL_FRAGMENT_PROGRAM_NV) {
@@ -777,8 +780,7 @@ _mesa_GetProgramNamedParameterfvNV(GLuint id, GLsizei len, const GLubyte *name,
 
    GET_CURRENT_CONTEXT(ctx);
 
-   if (!ctx->_CurrentProgram)
-      ASSERT_OUTSIDE_BEGIN_END(ctx);
+   ASSERT_OUTSIDE_BEGIN_END(ctx);
 
    prog = _mesa_lookup_program(ctx, id);
    if (!prog || prog->Target != GL_FRAGMENT_PROGRAM_NV) {

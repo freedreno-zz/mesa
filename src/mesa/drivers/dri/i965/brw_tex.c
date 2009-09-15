@@ -32,21 +32,12 @@
 
 #include "main/glheader.h"
 #include "main/mtypes.h"
-#include "main/imports.h"
-#include "main/simple_list.h"
-#include "main/enums.h"
-#include "main/image.h"
 #include "main/teximage.h"
-#include "main/texstore.h"
-#include "main/texformat.h"
-
-#include "texmem.h"
 
 #include "intel_context.h"
 #include "intel_regions.h"
 #include "intel_tex.h"
 #include "brw_context.h"
-#include "brw_defines.h"
 
 
 void brw_FrameBufferTexInit( struct brw_context *brw,
@@ -86,11 +77,12 @@ void brw_FrameBufferTexDestroy( struct brw_context *brw )
  */
 void brw_validate_textures( struct brw_context *brw )
 {
+   GLcontext *ctx = &brw->intel.ctx;
    struct intel_context *intel = &brw->intel;
    int i;
 
    for (i = 0; i < BRW_MAX_TEX_UNIT; i++) {
-      struct gl_texture_unit *texUnit = &brw->attribs.Texture->Unit[i];
+      struct gl_texture_unit *texUnit = &ctx->Texture.Unit[i];
 
       if (texUnit->_ReallyEnabled) {
 	 intel_finalize_mipmap_tree(intel, i);
