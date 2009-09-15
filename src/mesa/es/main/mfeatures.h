@@ -36,8 +36,6 @@
 #ifndef MFEATURES_H
 #define MFEATURES_H
 
-#include "main/compiler.h"
-
 /* this file replaces main/mfeatures.h */
 #ifdef FEATURES_H
 #error "main/mfeatures.h was wrongly included"

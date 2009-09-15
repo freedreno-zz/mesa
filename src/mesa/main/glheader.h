@@ -57,6 +57,13 @@
 
 #ifndef GL_FIXED
 #define GL_FIXED 0x140C
+
+typedef int GLfixed;
+typedef int GLclampx;
+typedef void *GLeglImageOES;
+#define HAVE_GLES_TYPES
+#define GL_OES_EGL_image
+
 #endif
 
 

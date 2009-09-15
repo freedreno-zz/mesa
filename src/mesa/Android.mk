@@ -1,9 +1,10 @@
 LOCAL_PATH := $(call my-dir)
 
-include $(LOCAL_PATH)/sources
+MESA := $(LOCAL_PATH)
+include $(LOCAL_PATH)/es/sources.mak
 
-common_CFLAGS :=							\
-	-DUSE_EXTERNAL_DXTN_LIB=1 -DHAVE_ALIAS -DIN_DRI_DRIVER		\
+common_CFLAGS :=						\
+	-DUSE_EXTERNAL_DXTN_LIB=1 -DHAVE_ALIAS			\
 	-DGLX_DIRECT_RENDERING -DGLX_INDIRECT_RENDERING
 
 common_CFLAGS += -DPTHREADS
@@ -18,8 +19,9 @@ endif
 
 common_C_INCLUDES :=			\
 	$(LOCAL_PATH)/../../include	\
-	$(LOCAL_PATH)			\
-	$(LOCAL_PATH)/main
+	$(LOCAL_PATH)/es/glapi/headers-es1		\
+	$(LOCAL_PATH)/es		\
+	$(LOCAL_PATH)
 
 
 include $(CLEAR_VARS)
@@ -37,13 +39,18 @@ endif
 
 include $(CLEAR_VARS)
 
+mesa_SOURCES := $(ES1_MESA_SOURCES)
+es1_SOURCES := $(addprefix es/, $(ES1_LOCAL_SOURCES))
+
 LOCAL_SRC_FILES :=			\
-	$(MESA_SOURCES)			\
+	$(mesa_SOURCES)			\
+	$(es1_SOURCES)			\
 	$(MESA_ASM_SOURCES)
 
 LOCAL_C_INCLUDES += $(common_C_INCLUDES)
 
 LOCAL_CFLAGS +=				\
+	-include es/main/mfeatures.h	\
 	$(common_CFLAGS)		\
 	-Wno-sign-compare
 
@@ -72,15 +79,17 @@ i915_SOURCES = \
 	i830_metaops.c \
 	i830_state.c \
 	i830_texblend.c \
-	i830_tex.c \
 	i830_texstate.c \
 	i830_vtbl.c \
 	intel_render.c \
 	intel_regions.c \
 	intel_buffer_objects.c \
 	intel_batchbuffer.c \
+	intel_clear.c \
+	intel_eglimage.c \
+	intel_extensions.c \
+	intel_generatemipmap.c \
 	intel_mipmap_tree.c \
-	i915_tex_layout.c \
 	intel_tex_layout.c \
 	intel_tex_image.c \
 	intel_tex_subimage.c \
@@ -89,13 +98,11 @@ i915_SOURCES = \
 	intel_tex_format.c \
 	intel_tex.c \
 	intel_pixel.c \
-	intel_pixel_bitmap.c \
-	intel_pixel_copy.c \
-	intel_pixel_draw.c \
 	intel_pixel_read.c \
 	intel_buffers.c \
 	intel_blit.c \
-	i915_tex.c \
+	intel_swapbuffers.c \
+	i915_tex_layout.c \
 	i915_texstate.c \
 	i915_context.c \
 	i915_debug.c \
@@ -110,18 +117,19 @@ i915_SOURCES = \
 	intel_screen.c \
 	intel_span.c \
 	intel_state.c \
+	intel_syncobj.c \
 	intel_tris.c \
-	intel_fbo.c \
-	intel_depthstencil.c
+	intel_fbo.c
 i915_SOURCES := $(addprefix drivers/dri/i915/, $(i915_SOURCES))
 
 common_SOURCES = \
-        utils.c \
-        texmem.c \
-        vblank.c \
-        dri_util.c \
-        xmlconfig.c \
-        drirenderbuffer.c 
+	utils.c \
+	vblank.c \
+	dri_util.c \
+	xmlconfig.c \
+	texmem.c \
+	drirenderbuffer.c \
+	dri_metaops.c
 common_SOURCES := $(addprefix drivers/dri/common/, $(common_SOURCES))
 
 LOCAL_SRC_FILES :=				\
@@ -136,7 +144,7 @@ LOCAL_C_INCLUDES +=				\
 	$(common_C_INCLUDES)			\
 	external/drm/libdrm			\
 	external/drm/libdrm/intel		\
-	external/drm/shared-core                \
+	external/drm/shared-core		\
 	external/expat/lib
 
 LOCAL_CFLAGS +=					\
