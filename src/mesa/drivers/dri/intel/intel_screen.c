@@ -257,7 +257,7 @@ intelCopyBufferExt(__DRIcontext *context,
 
 	rb = intel_fb->color_rb[0];
 	intel_region_copy(intel, dst_region, 0, dst_x, dst_y,
-			  rb->region, 0, x, y, width, height);
+			  rb->region, 0, x, y, width, height, GL_COPY);
 	intel_batchbuffer_flush(intel->batch);
 	intel_region_release(&dst_region);
 
