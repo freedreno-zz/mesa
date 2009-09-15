@@ -626,7 +626,8 @@ xdri_eglSwapBuffers(_EGLDriver *drv, _EGLDisplay *dpy, _EGLSurface *draw)
    struct xdri_egl_surface *xdri_surf = lookup_surface(draw);
 
    /* swapBuffers does not flush commands */
-   if (draw == _eglGetCurrentSurface(EGL_DRAW))
+   if (draw == _eglGetCurrentSurface(EGL_DRAW) &&
+       xdri_driver->FlushCurrentContext)
       xdri_driver->FlushCurrentContext();
 
    xdri_dpy->psc->driScreen->swapBuffers(xdri_surf->driDrawable);
