@@ -2061,7 +2061,7 @@ _mesa_meta_generate_mipmap(GLcontext *ctx, GLenum target,
 
 /**
  * Meta implementation of ctx->Driver.DrawTex() in terms
- * of texture mapping and polygon rendering.
+ * of polygon rendering.
  */
 void
 _mesa_meta_draw_tex(GLcontext *ctx, GLfloat x, GLfloat y, GLfloat z,
@@ -2072,16 +2072,13 @@ _mesa_meta_draw_tex(GLcontext *ctx, GLfloat x, GLfloat y, GLfloat z,
       GLfloat x, y, z, st[MAX_TEXTURE_UNITS][2];
    };
    struct vertex verts[4];
-   GLboolean vp_enabled;
    GLuint i;
 
    _mesa_meta_begin(ctx, (META_RASTERIZATION |
+                          META_SHADER |
                           META_TRANSFORM |
                           META_VERTEX |
                           META_VIEWPORT));
-   vp_enabled = ctx->VertexProgram.Enabled;
-   if (vp_enabled)
-      _mesa_set_enable(ctx, GL_VERTEX_PROGRAM_ARB, GL_FALSE);
 
    if (drawtex->ArrayObj == 0) {
       /* one-time setup */
@@ -2174,8 +2171,6 @@ _mesa_meta_draw_tex(GLcontext *ctx, GLfloat x, GLfloat y, GLfloat z,
 
    _mesa_DrawArrays(GL_TRIANGLE_FAN, 0, 4);
 
-   if (vp_enabled)
-      _mesa_set_enable(ctx, GL_VERTEX_PROGRAM_ARB, GL_TRUE);
    _mesa_meta_end(ctx);
 }
 
