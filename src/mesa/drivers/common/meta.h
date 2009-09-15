@@ -87,5 +87,8 @@ extern void
 _mesa_meta_generate_mipmap(GLcontext *ctx, GLenum target,
                            struct gl_texture_object *texObj);
 
+extern void
+_mesa_meta_draw_tex(GLcontext *ctx, GLfloat x, GLfloat y, GLfloat z,
+                    GLfloat width, GLfloat height);
 
 #endif /* META_H */
