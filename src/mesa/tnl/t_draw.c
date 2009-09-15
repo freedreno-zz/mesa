@@ -158,6 +158,18 @@ static void _tnl_import_array( GLcontext *ctx,
       case GL_DOUBLE: 
 	 CONVERT(GLdouble, (GLfloat)); 
 	 break;
+#if FEATURE_fixedpt
+      case GL_FIXED:
+         {
+            GLuint i, j;
+            for (i = 0; i < count; i++) {
+               const GLint *in = (GLint *) (ptr + i * input->StrideB);
+               for (j = 0; j < sz; j++)
+                  *fptr++ = *in++ / 65536.0f;
+            }
+         }
+         break;
+#endif
       default:
 	 assert(0);
 	 break;

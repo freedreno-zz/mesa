@@ -604,6 +604,9 @@ intelInitDriverFunctions(struct dd_function_table *functions)
    intelInitBufferObjectFuncs(functions);
    intel_init_syncobj_functions(functions);
 
+#if FEATURE_OES_draw_texture
+   functions->DrawTex = _mesa_meta_draw_tex;
+#endif
    intelInitEGLImageFuncs(functions);
 }
 

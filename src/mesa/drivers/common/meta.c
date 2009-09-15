@@ -229,6 +229,16 @@ struct gen_mipmap_state
 
 
 /**
+ * State for glDrawTex()
+ */
+struct drawtex_state
+{
+   GLuint ArrayObj;
+   GLuint VBO;
+};
+
+
+/**
  * All per-context meta state.
  */
 struct gl_meta_state
@@ -243,6 +253,8 @@ struct gl_meta_state
    struct drawpix_state DrawPix;  /**< For _mesa_meta_draw_pixels() */
    struct bitmap_state Bitmap;    /**< For _mesa_meta_bitmap() */
    struct gen_mipmap_state Mipmap;    /**< For _mesa_meta_generate_mipmap() */
+
+   struct drawtex_state DrawTex;  /**< For _mesa_meta_draw_tex() */
 };
 
 
@@ -299,6 +311,11 @@ _mesa_meta_free(GLcontext *ctx)
       _mesa_DeleteBuffersARB(1, & meta->Bitmap.VBO);
       _mesa_DeleteVertexArraysAPPLE(1, &meta->Bitmap.ArrayObj);
       _mesa_DeleteTextures(1, &meta->Bitmap.Tex.TexObj);
+
+      /* glDrawTex */
+      _mesa_DeleteBuffersARB(1, & meta->DrawTex.VBO);
+      _mesa_DeleteVertexArraysAPPLE(1, &meta->DrawTex.ArrayObj);
+
    }
 
    _mesa_free(ctx->Meta);
@@ -2037,3 +2054,130 @@ _mesa_meta_generate_mipmap(GLcontext *ctx, GLenum target,
    /* restore (XXX add to meta_begin/end()? */
    _mesa_BindFramebufferEXT(GL_FRAMEBUFFER_EXT, fboSave);
 }
+
+
+#if FEATURE_OES_draw_texture
+
+
+/**
+ * Meta implementation of ctx->Driver.DrawTex() in terms
+ * of texture mapping and polygon rendering.
+ */
+void
+_mesa_meta_draw_tex(GLcontext *ctx, GLfloat x, GLfloat y, GLfloat z,
+                    GLfloat width, GLfloat height)
+{
+   struct drawtex_state *drawtex = &ctx->Meta->DrawTex;
+   struct vertex {
+      GLfloat x, y, z, st[MAX_TEXTURE_UNITS][2];
+   };
+   struct vertex verts[4];
+   GLboolean vp_enabled;
+   GLuint i;
+
+   _mesa_meta_begin(ctx, (META_RASTERIZATION |
+                          META_TRANSFORM |
+                          META_VERTEX |
+                          META_VIEWPORT));
+   vp_enabled = ctx->VertexProgram.Enabled;
+   if (vp_enabled)
+      _mesa_set_enable(ctx, GL_VERTEX_PROGRAM_ARB, GL_FALSE);
+
+   if (drawtex->ArrayObj == 0) {
+      /* one-time setup */
+
+      /* create vertex array object */
+      _mesa_GenVertexArrays(1, &drawtex->ArrayObj);
+      _mesa_BindVertexArray(drawtex->ArrayObj);
+
+      /* create vertex array buffer */
+      _mesa_GenBuffersARB(1, &drawtex->VBO);
+      _mesa_BindBufferARB(GL_ARRAY_BUFFER_ARB, drawtex->VBO);
+      _mesa_BufferDataARB(GL_ARRAY_BUFFER_ARB, sizeof(verts),
+                          NULL, GL_DYNAMIC_DRAW_ARB);
+
+      /* setup vertex arrays */
+      _mesa_VertexPointer(3, GL_FLOAT, sizeof(struct vertex), OFFSET(x));
+      _mesa_EnableClientState(GL_VERTEX_ARRAY);
+      for (i = 0; i < ctx->Const.MaxTextureUnits; i++) {
+         _mesa_ClientActiveTextureARB(GL_TEXTURE0 + i);
+         _mesa_TexCoordPointer(2, GL_FLOAT, sizeof(struct vertex), OFFSET(st[i]));
+         _mesa_EnableClientState(GL_TEXTURE_COORD_ARRAY);
+      }
+   }
+   else {
+      _mesa_BindVertexArray(drawtex->ArrayObj);
+      _mesa_BindBufferARB(GL_ARRAY_BUFFER_ARB, drawtex->VBO);
+   }
+
+   /* vertex positions, texcoords */
+   {
+      const GLfloat x1 = x + width * ctx->Pixel.ZoomX;
+      const GLfloat y1 = y + height * ctx->Pixel.ZoomY;
+
+      verts[0].x = x;
+      verts[0].y = y;
+      verts[0].z = z;
+
+      verts[1].x = x1;
+      verts[1].y = y;
+      verts[1].z = z;
+
+      verts[2].x = x1;
+      verts[2].y = y1;
+      verts[2].z = z;
+
+      verts[3].x = x;
+      verts[3].y = y1;
+      verts[3].z = z;
+
+      for (i = 0; i < ctx->Const.MaxTextureUnits; i++) {
+         const struct gl_texture_object *texObj;
+         const struct gl_texture_image *texImage;
+         GLfloat s, t, s1, t1;
+         GLuint tw, th;
+
+         if (!ctx->Texture.Unit[i]._ReallyEnabled) {
+            GLuint j;
+            for (j = 0; j < 4; j++) {
+               verts[j].st[i][0] = 0.0f;
+               verts[j].st[i][1] = 0.0f;
+            }
+            continue;
+         }
+
+         texObj = ctx->Texture.Unit[i]._Current;
+         texImage = texObj->Image[0][texObj->BaseLevel];
+         tw = texImage->Width2;
+         th = texImage->Height2;
+
+         s = (GLfloat) texObj->CropRect[0] / tw;
+         t = (GLfloat) texObj->CropRect[1] / th;
+         s1 = (GLfloat) (texObj->CropRect[0] + texObj->CropRect[2]) / tw;
+         t1 = (GLfloat) (texObj->CropRect[1] + texObj->CropRect[3]) / th;
+
+         verts[0].st[i][0] = s;
+         verts[0].st[i][1] = t;
+
+         verts[1].st[i][0] = s1;
+         verts[1].st[i][1] = t;
+
+         verts[2].st[i][0] = s1;
+         verts[2].st[i][1] = t1;
+
+         verts[3].st[i][0] = s;
+         verts[3].st[i][1] = t1;
+      }
+
+      _mesa_BufferSubDataARB(GL_ARRAY_BUFFER_ARB, 0, sizeof(verts), verts);
+   }
+
+   _mesa_DrawArrays(GL_TRIANGLE_FAN, 0, 4);
+
+   if (vp_enabled)
+      _mesa_set_enable(ctx, GL_VERTEX_PROGRAM_ARB, GL_TRUE);
+   _mesa_meta_end(ctx);
+}
+
+
+#endif /* FEATURE_OES_draw_texture */
