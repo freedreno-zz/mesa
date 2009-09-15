@@ -182,6 +182,9 @@ static const struct dri_extension ttm_extensions[] = {
 #if FEATURE_OES_EGL_image
    { "GL_OES_EGL_image",                NULL },
 #endif
+#if FEATURE_OES_draw_texture
+   { "GL_OES_draw_texture",             NULL },
+#endif
    { NULL, NULL }
 };
 
