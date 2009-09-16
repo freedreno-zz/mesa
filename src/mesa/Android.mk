@@ -13,6 +13,7 @@ common_CFLAGS += -DPTHREADS
 
 ifeq ($(TARGET_ARCH),x86)
 	MESA_ASM_SOURCES := $(X86_SOURCES)
+#	GLAPI_ASM_SOURCES := $(X86_API)
 	common_CFLAGS += -DUSE_X86_ASM -DUSE_MMX_ASM -DUSE_3DNOW_ASM	\
 			 -DUSE_SSE_ASM
 endif
@@ -68,6 +69,24 @@ $(GEN): $(HOST_OUT_EXECUTABLES)/gen_matypes
 LOCAL_GENERATED_SOURCES += $(GEN)
 LOCAL_C_INCLUDES += $(intermediates)
 endif
+
+include $(BUILD_STATIC_LIBRARY)
+
+
+include $(CLEAR_VARS)
+
+LOCAL_SRC_FILES :=			\
+	$(ES1_API_SOURCES)		\
+	$(GLAPI_ASM_SOURCES)
+
+LOCAL_C_INCLUDES += $(common_C_INCLUDES)
+
+LOCAL_CFLAGS +=				\
+	$(common_CFLAGS)		\
+	-UUSE_X86_ASM			\
+	-Wno-sign-compare
+
+LOCAL_MODULE := libes1api
 
 include $(BUILD_STATIC_LIBRARY)
 
