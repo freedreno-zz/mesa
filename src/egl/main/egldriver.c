@@ -195,7 +195,11 @@ _eglLoadDriver(char *path, char *args)
    lib_handle lib;
    _EGLDriver *drv = NULL;
 
-   mainFunc = _eglOpenLibrary(path, &lib);
+   /* temporary hack */
+   (void) _eglOpenLibrary;
+   mainFunc = _eglMain;
+   lib = (lib_handle) 0;
+
    if (!mainFunc)
       return NULL;
 
