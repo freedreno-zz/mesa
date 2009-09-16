@@ -54,7 +54,7 @@ LOCAL_CFLAGS +=				\
 	$(common_CFLAGS)		\
 	-Wno-sign-compare
 
-LOCAL_MODULE := libmesa
+LOCAL_MODULE := libes1
 LOCAL_MODULE_CLASS := STATIC_LIBRARIES
 
 # generate matypes.h
@@ -154,7 +154,7 @@ LOCAL_CFLAGS +=					\
 	-Wno-sign-compare
 
 LOCAL_SHARED_LIBRARIES := libexpat libdrm libdrm_intel
-LOCAL_STATIC_LIBRARIES := libmesa
+LOCAL_STATIC_LIBRARIES := libes1
 
 LOCAL_MODULE := i915_dri
 LOCAL_ALLOW_UNDEFINED_SYMBOLS := true
