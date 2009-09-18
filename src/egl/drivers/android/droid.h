@@ -40,6 +40,7 @@
 struct droid_loader;
 struct droid_context;
 struct droid_drawable;
+struct droid_image;
 struct droid_surface;
 
 struct droid_backend {
@@ -61,6 +62,9 @@ struct droid_backend {
    struct droid_surface *(*create_window_surface)(struct droid_backend *backend,
                                                   _EGLSurface *surf,
                                                   NativeWindowType win);
+   struct droid_surface *(*create_image_surface)(struct droid_backend *backend,
+                                                 NativePixmapType pix,
+                                                 int *depth);
    void (*destroy_surface)(struct droid_backend *backend, struct droid_surface *surf);
    void (*swap_native_buffers)(struct droid_backend *backend,
                                struct droid_surface *surf);
@@ -75,6 +79,9 @@ struct droid_screen {
 
    const __DRIconfig **dri_configs;
    int num_dri_configs;
+
+#define DROID_MAX_IMAGE_DEPTH 32
+   const __DRIconfig *image_configs[DROID_MAX_IMAGE_DEPTH + 1];
 };
 
 struct droid_backend *
@@ -106,6 +113,10 @@ struct droid_drawable *
 droid_screen_create_drawable(struct droid_screen *screen,
                              const __DRIconfig *conf,
                              struct droid_surface *surf);
+
+void *
+droid_screen_get_drawable_data(struct droid_screen *screen,
+                               struct droid_drawable *drawable);
 
 void
 droid_screen_destroy_drawable(struct droid_screen *screen,

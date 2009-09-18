@@ -46,6 +46,7 @@
 
 enum {
    INTEL_SURFACE_TYPE_WINDOW,
+   INTEL_SURFACE_TYPE_IMAGE,
 };
 
 struct droid_backend_intel {
@@ -58,6 +59,7 @@ struct droid_surface_intel {
    int type;
    union {
       NativeWindowType win;
+      NativePixmapType pix;
    } native;
    __DRIbuffer native_buffer;
    unsigned int native_width, native_height;
@@ -219,11 +221,20 @@ intel_get_surface_buffers(struct droid_backend *backend,
       }
       else {
          buffers[num].attachment = att;
-         handles[num] = create_buffer(intel->fd,
-                                          isurf->native_width,
-                                          isurf->native_height,
-                                          cpp,
-                                          &buffers[num]);
+
+         if (isurf->type == INTEL_SURFACE_TYPE_IMAGE &&
+             att == __DRI_BUFFER_FRONT_LEFT) {
+            buffers[num] = isurf->native_buffer;
+            buffers[num].attachment = att;
+            handles[num] = 0;
+         } else {
+            buffers[num].attachment = att;
+            handles[num] = create_buffer(intel->fd,
+                                             isurf->native_width,
+                                             isurf->native_height,
+                                             cpp,
+                                             &buffers[num]);
+         }
       }
       num++;
    }
@@ -257,6 +268,13 @@ update_native_buffer(struct droid_surface *surf)
       pitch = isurf->native.win->stride * cpp;
       width = isurf->native.win->width;
       height = isurf->native.win->height;
+      break;
+   case INTEL_SURFACE_TYPE_IMAGE:
+      name = isurf->native.pix->reserved;
+      cpp = ui_bytes_per_pixel(isurf->native.pix->format);
+      pitch = isurf->native.pix->stride * cpp;
+      width = isurf->native.pix->width;
+      height = isurf->native.pix->height;
       break;
    default:
       name = cpp = pitch = width = height = 0;
@@ -312,6 +330,50 @@ intel_create_window_surface(struct droid_backend *backend,
    isurf->surf = surf;
 
    update_native_buffer((struct droid_surface *) isurf);
+
+   return (struct droid_surface *) isurf;
+}
+
+static struct droid_surface *
+intel_create_image_surface(struct droid_backend *backend,
+                           NativePixmapType pix, int *depth)
+{
+   struct droid_surface_intel *isurf;
+   int cpp;
+
+   if (!pix) {
+      LOGE("invalid native pixmap");
+      _eglError(EGL_BAD_NATIVE_PIXMAP, "eglCreateImage");
+      return NULL;
+   }
+
+   /* TODO lift this limitation */
+   if (!pix->reserved) {
+      LOGE("TODO support for non-gem based pixmap");
+      _eglError(EGL_BAD_NATIVE_PIXMAP, "eglCreateImage");
+      return NULL;
+   }
+
+   cpp = ui_bytes_per_pixel(pix->format);
+   if (cpp * 8 > DROID_MAX_IMAGE_DEPTH) {
+      LOGE("pixmap of depth %d is not supported", cpp * 8);
+      _eglError(EGL_BAD_NATIVE_PIXMAP, "eglCreateImage");
+      return NULL;
+   }
+
+   isurf = calloc(1, sizeof(*isurf));
+   if (!isurf) {
+      _eglError(EGL_BAD_ALLOC, "eglCreateWindowSurface");
+      return NULL;
+   }
+
+   isurf->type = INTEL_SURFACE_TYPE_IMAGE;
+   isurf->native.pix = pix;
+
+   update_native_buffer((struct droid_surface *) isurf);
+
+   if (depth)
+      *depth = cpp * 8;
 
    return (struct droid_surface *) isurf;
 }
@@ -400,6 +462,7 @@ droid_backend_create_intel(const char *dev)
    intel->base.get_surface_buffers = intel_get_surface_buffers;
 
    intel->base.create_window_surface = intel_create_window_surface;
+   intel->base.create_image_surface = intel_create_image_surface;
    intel->base.destroy_surface = intel_destroy_surface;
    intel->base.swap_native_buffers = intel_swap_native_buffers;
 

@@ -33,6 +33,7 @@
 #include <assert.h>
 
 #include "droid.h"
+#include "EGL/internal/eglimage_dri.h"
 
 #ifndef DROID_DRIVER_PATH
 #define DROID_DRIVER_PATH "/system/lib"
@@ -57,6 +58,8 @@ struct droid_drawable {
    struct droid_surface *surface;
 
    __DRIdrawable *dri_drawable;
+   const __DRIconfig *dri_config;
+   __DRIEGLImage *dri_image;
 };
 
 static __DRIbuffer *
@@ -206,6 +209,48 @@ droid_backend_destroy(struct droid_backend *backend)
    backend->destroy(backend);
 }
 
+static void
+screen_find_image_configs(struct droid_screen *screen)
+{
+   struct droid_loader *loader = screen->loader;
+   int depth, i;
+
+   for (depth = 0; depth < DROID_MAX_IMAGE_DEPTH + 1; depth++) {
+      for (i = 0; i < screen->num_dri_configs; i++) {
+         const __DRIconfig *conf = screen->dri_configs[i];
+         _EGLConfig egl_conf;
+         EGLint rgba, val;
+
+         droid_screen_convert_config(screen, conf, &egl_conf);
+
+         val = GET_CONFIG_ATTRIB(&egl_conf, EGL_CONFIG_CAVEAT);
+         if (val == EGL_SLOW_CONFIG)
+            continue;
+
+         rgba  = GET_CONFIG_ATTRIB(&egl_conf, EGL_RED_SIZE);
+         rgba += GET_CONFIG_ATTRIB(&egl_conf, EGL_GREEN_SIZE);
+         rgba += GET_CONFIG_ATTRIB(&egl_conf, EGL_BLUE_SIZE);
+         rgba += GET_CONFIG_ATTRIB(&egl_conf, EGL_ALPHA_SIZE);
+         if (depth != rgba)
+            continue;
+
+         if (depth == 32) {
+            val = GET_CONFIG_ATTRIB(&egl_conf, EGL_BIND_TO_TEXTURE_RGBA);
+            if (val) {
+               screen->image_configs[depth] = conf;
+               break;
+            }
+         }
+
+         val = GET_CONFIG_ATTRIB(&egl_conf, EGL_BIND_TO_TEXTURE_RGB);
+         if (val) {
+            screen->image_configs[depth] = conf;
+            break;
+         }
+      }
+   }
+}
+
 struct droid_screen *
 droid_screen_create(struct droid_backend *backend)
 {
@@ -267,6 +312,8 @@ droid_screen_create(struct droid_backend *backend)
    for (i = 0; screen->dri_configs[i]; i++)
       ;
    screen->num_dri_configs = i;
+
+   screen_find_image_configs(screen);
 
    return screen;
 
@@ -400,6 +447,7 @@ droid_screen_create_drawable(struct droid_screen *screen,
    /* needed in GetBuffers */
    drawable->loader = loader;
    drawable->surface = surf;
+   drawable->dri_config = conf;
 
    drawable->dri_drawable =
       loader->dri2->createNewDrawable(screen->dri_screen,
@@ -413,11 +461,40 @@ droid_screen_create_drawable(struct droid_screen *screen,
    return drawable;
 }
 
+void *
+droid_screen_get_drawable_data(struct droid_screen *screen,
+                               struct droid_drawable *drawable)
+{
+   struct droid_loader *loader = screen->loader;
+   __DRIEGLImage *img = drawable->dri_image;
+
+   if (!img) {
+      unsigned int val;
+
+      img = calloc(1, sizeof(__DRIEGLImage));
+      if (!img)
+         return NULL;
+
+      img->magic = __DRI_EGL_IMAGE_MAGIC;
+      img->drawable = drawable->dri_drawable;
+      img->level = 0;
+      if (loader->core->getConfigAttrib(drawable->dri_config,
+                                        EGL_BIND_TO_TEXTURE_RGBA, &val))
+         img->texture_format_rgba = val;
+
+      drawable->dri_image = img;
+   }
+
+   return (void *) img;
+}
+
 void
 droid_screen_destroy_drawable(struct droid_screen *screen,
                               struct droid_drawable *drawable)
 {
    struct droid_loader *loader = screen->loader;
+   if (drawable->dri_image)
+      free(drawable->dri_image);
    loader->core->destroyDrawable(drawable->dri_drawable);
    free(drawable);
 }

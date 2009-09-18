@@ -32,8 +32,6 @@
 #include "eglsurface.h"
 #include "eglimage.h"
 
-#include "EGL/internal/eglimage_dri.h"
-
 #include "droid.h"
 
 #ifndef DROID_DEVICE_PATH
@@ -73,6 +71,12 @@ struct droid_egl_surface {
    struct droid_surface *surface;
 };
 
+struct droid_egl_image {
+   _EGLImage base;
+   struct droid_drawable *drawable;
+   struct droid_surface *surface;
+};
+
 struct droid_egl_config {
    _EGLConfig base;
    const __DRIconfig *config;
@@ -100,6 +104,12 @@ static INLINE struct droid_egl_surface *
 lookup_surface(_EGLSurface *surface)
 {
    return (struct droid_egl_surface *) surface;
+}
+
+static INLINE struct droid_egl_image *
+lookup_image(_EGLImage *image)
+{
+   return (struct droid_egl_image *) image;
 }
 
 static INLINE struct droid_egl_config *
@@ -183,6 +193,14 @@ droid_eglInitialize(_EGLDriver *drv, _EGLDisplay *dpy,
 
       droid_create_configs(dpy, droid_dpy, droid_dpy->screen->dri_configs,
                            droid_dpy->screen->num_dri_configs);
+
+#if EGL_KHR_image_base
+      if (droid_dpy->backend->create_image_surface) {
+         dpy->Extensions.KHR_image = EGL_TRUE;
+         dpy->Extensions.KHR_image_base = EGL_TRUE;
+         dpy->Extensions.KHR_image_pixmap = EGL_TRUE;
+      }
+#endif
 
       droid_drv->default_display = droid_dpy;
    }
@@ -380,6 +398,83 @@ droid_eglSwapBuffers(_EGLDriver *drv, _EGLDisplay *dpy, _EGLSurface *surf)
    return EGL_TRUE;
 }
 
+#if EGL_KHR_image_base
+
+static _EGLImage *
+droid_eglCreateImageKHR(_EGLDriver *drv, _EGLDisplay *dpy, _EGLContext *ctx,
+                       EGLenum target, EGLClientBuffer buffer, const EGLint *attr_list)
+{
+   struct droid_egl_display *droid_dpy = lookup_display(dpy);
+   struct droid_egl_image *droid_img;
+   const __DRIconfig *dri_conf;
+   int depth;
+
+   if (target != EGL_NATIVE_PIXMAP_KHR || ctx) {
+      _eglError(EGL_BAD_PARAMETER, "eglCreateImageKHR");
+      return NULL;
+   }
+
+   droid_img = calloc(1, sizeof(*droid_img));
+   if (!droid_img) {
+      _eglError(EGL_BAD_ALLOC, "eglCreateImageKHR");
+      return NULL;
+   }
+
+   if (!_eglInitImage(drv, &droid_img->base, attr_list)) {
+      free(droid_img);
+      return NULL;
+   }
+
+   droid_img->surface = 
+      droid_dpy->backend->create_image_surface(droid_dpy->backend,
+                                               (NativePixmapType) buffer,
+                                               &depth);
+   if (!droid_img->surface) {
+      free(droid_img);
+      return NULL;
+   }
+
+   dri_conf = droid_dpy->screen->image_configs[depth];
+   if (!dri_conf) {
+      droid_dpy->backend->destroy_surface(droid_dpy->backend,
+                                          droid_img->surface);
+      free(droid_img);
+      return NULL;
+   }
+
+   droid_img->drawable =
+      droid_screen_create_drawable(droid_dpy->screen, dri_conf,
+                                   droid_img->surface);
+
+   if (!droid_img->drawable) {
+      droid_dpy->backend->destroy_surface(droid_dpy->backend,
+                                          droid_img->surface);
+      free(droid_img);
+      return NULL;
+   }
+
+   droid_img->base.ClientData =
+      droid_screen_get_drawable_data(droid_dpy->screen, droid_img->drawable);
+
+   return &droid_img->base;
+}
+
+
+static EGLBoolean
+droid_eglDestroyImageKHR(_EGLDriver *drv, _EGLDisplay *dpy, _EGLImage *img)
+{
+   struct droid_egl_display *droid_dpy = lookup_display(dpy);
+   struct droid_egl_image *droid_img = lookup_image(img);
+
+   droid_screen_destroy_drawable(droid_dpy->screen, droid_img->drawable);
+   droid_dpy->backend->destroy_surface(droid_dpy->backend, droid_img->surface);
+   free(droid_img);
+
+   return EGL_TRUE;
+}
+
+#endif /* EGL_KHR_image_base */
+
 static EGLBoolean
 droid_eglWaitClient(_EGLDriver *drv, _EGLDisplay *dpy)
 {
@@ -446,6 +541,10 @@ _eglMain(const char *args)
    droid_drv->base.API.CreateWindowSurface = droid_eglCreateWindowSurface;
    droid_drv->base.API.DestroySurface = droid_eglDestroySurface;
    droid_drv->base.API.SwapBuffers = droid_eglSwapBuffers;
+#if EGL_KHR_image_base
+   droid_drv->base.API.CreateImageKHR = droid_eglCreateImageKHR;
+   droid_drv->base.API.DestroyImageKHR = droid_eglDestroyImageKHR;
+#endif /* EGL_KHR_image_base */
    droid_drv->base.API.WaitClient = droid_eglWaitClient;
    droid_drv->base.API.WaitNative = droid_eglWaitNative;
 
