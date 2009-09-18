@@ -280,7 +280,6 @@ intel_create_window_surface(struct droid_backend *backend,
                             NativeWindowType win)
 {
    struct droid_surface_intel *isurf;
-   uint32_t pitch, cpp;
 
    if (!win) {
       LOGE("invalid native window");
@@ -294,9 +293,6 @@ intel_create_window_surface(struct droid_backend *backend,
       _eglError(EGL_BAD_NATIVE_WINDOW, "eglCreateWindowSurface");
       return NULL;
    }
-
-   cpp = ui_bytes_per_pixel(win->format);
-   pitch = win->stride * cpp;
 
    isurf = calloc(1, sizeof(*isurf));
    if (!isurf) {
