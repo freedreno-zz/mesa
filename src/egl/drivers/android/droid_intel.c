@@ -131,6 +131,7 @@ create_buffer(int fd, GLint width, GLint height, GLint cpp, __DRIbuffer *buffer)
 
    buffer->name = flink.name;
    buffer->cpp = cpp;
+   buffer->flags = 0;
 
    return create.handle;
 }
