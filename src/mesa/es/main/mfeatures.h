@@ -60,7 +60,7 @@
 #define FEATURE_dlist 0
 #define FEATURE_draw_read_buffer 0
 #define FEATURE_drawpix 0
-#define FEATURE_es2_glsl 1
+#define FEATURE_es2_glsl 0
 #define FEATURE_evaluators 0
 #define FEATURE_feedback 0
 #define FEATURE_fixedpt 1

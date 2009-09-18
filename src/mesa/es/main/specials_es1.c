@@ -180,7 +180,5 @@ _es_GetString(GLenum name)
 void
 _mesa_initialize_context_extra(GLcontext *ctx)
 {
-   /* FEATURE_es2_glsl is on */
-   ctx->FragmentProgram._MaintainTexEnvProgram = GL_TRUE;
-   ctx->VertexProgram._MaintainTnlProgram = GL_TRUE;
+   /* nothing special */
 }
