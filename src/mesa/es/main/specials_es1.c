@@ -138,6 +138,9 @@ make_extension_string(const GLcontext *ctx, char *str)
    if (ctx->Extensions.EXT_texture_filter_anisotropic)
       len += append_extension(&str, "GL_EXT_texture_filter_anisotropic");
 
+   if (ctx->Extensions.ARB_texture_non_power_of_two)
+      len += append_extension(&str, "GL_ARB_texture_non_power_of_two");
+
    return len;
 }
 
