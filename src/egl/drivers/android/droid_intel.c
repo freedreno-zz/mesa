@@ -42,11 +42,33 @@
 #include "droid.h"
 #include "droid_ui.h"
 
+#define INTEL_IS_I965(x) ((x) & INTEL_GEN_4)
+#define INTEL_IS_I915(x) ((x) & INTEL_GEN_3)
+#define INTEL_IS_I9xx(x) ((x) & (INTEL_GEN_3 | INTEL_GEN_4))
+#define INTEL_IS_I8xx(x) ((x) & (INTEL_GEN_1 | INTEL_GEN_2))
+
 #define INTEL_STRIDE_ALIGNMENT 64
+
+#define INTEL_HAS_128_BYTE_Y_TILING(x) \
+   (((x) & (INTEL_GEN_3 | INTEL_GEN_4 | INTEL_GEN_MINOR_MASK)) > INTEL_GEN_3)
 
 enum {
    INTEL_SURFACE_TYPE_WINDOW,
    INTEL_SURFACE_TYPE_IMAGE,
+};
+
+/* Look at xf86-video-intel/src/common.h for the full horror of device
+ * identification.
+ */
+enum {
+	INTEL_GEN_1  = 0x10,
+	INTEL_GEN_2  = 0x20,
+	INTEL_GEN_3  = 0x40,
+	INTEL_GEN_31 = 0x41,
+	INTEL_GEN_4  = 0x80,
+
+	INTEL_GEN_MAJOR_MASK = 0xf0,
+	INTEL_GEN_MINOR_MASK = 0x0f,
 };
 
 struct droid_backend_intel {
@@ -110,19 +132,88 @@ align_to(uint32_t value, uint32_t align)
    return (value + align - 1) & ~(align - 1);
 }
 
+static uint32_t
+tiling_stride(int dev, int tiling_mode, uint32_t pitch)
+{
+   uint32_t tile_width;
+
+   if (tiling_mode == I915_TILING_NONE)
+      return pitch;
+
+   if (tiling_mode == I915_TILING_Y && INTEL_HAS_128_BYTE_Y_TILING(dev))
+      tile_width = 128;
+   else
+      tile_width = 512;
+
+   /* 965+ just needs multiples of tile width */
+   if (INTEL_IS_I965(dev))
+      return align_to(pitch,  tile_width);
+
+   /* Pre-965 needs power of two tile widths */
+   while (tile_width < pitch)
+      tile_width <<= 1;
+
+   return tile_width;
+}
+
+static uint32_t
+tiling_size(int dev, uint32_t tiling, uint32_t size)
+{
+   uint32_t fence;
+
+   if (tiling == I915_TILING_NONE)
+      return size;
+
+   /* The 965 can have fences at any page boundary. */
+   if (INTEL_IS_I965(dev))
+      return align_to(size, 4096);
+
+   /* Align the size to a power of two greater than the smallest fence. */
+   if (INTEL_IS_I9xx(dev))
+      fence = 1024 * 1024; /* 1 MiB */
+   else
+      fence = 512 * 1024; /* 512 KiB */
+   while (fence < size)
+      fence <<= 1;
+
+   return fence;
+}
+
 static int
 create_buffer(int fd, GLint width, GLint height, GLint cpp, __DRIbuffer *buffer)
 {
    struct drm_i915_gem_create create;
    struct drm_gem_flink flink;
    uint32_t size;
+   int tiling;
+   int dev = INTEL_GEN_4; /* XXX query using I915_GETPARAM + PARAM_CHIPSET_ID */
 
+   tiling = I915_TILING_X;
    buffer->pitch = align_to(width * cpp, INTEL_STRIDE_ALIGNMENT);
-   size = buffer->pitch * height;
+   if (tiling != I915_TILING_NONE) {
+      buffer->pitch = tiling_stride(dev, tiling, buffer->pitch);
+      size = buffer->pitch * height;
+      size = tiling_size(dev, tiling, size);
+   } else {
+      size = buffer->pitch * height;
+   }
+
    create.size = size;
    if (ioctl(fd, DRM_IOCTL_I915_GEM_CREATE, &create)) {
       LOGE("failed to create buffer");
       return 0;
+   }
+
+   if (tiling != I915_TILING_NONE) {
+      struct drm_i915_gem_set_tiling set_tiling;
+
+      memset(&set_tiling, 0, sizeof(set_tiling));
+      set_tiling.handle = create.handle;
+      set_tiling.tiling_mode = tiling;
+      set_tiling.stride = buffer->pitch;
+
+      if (ioctl(fd, DRM_IOCTL_I915_GEM_SET_TILING, &set_tiling))
+         LOGW("failed to enable tiling");
    }
 
    flink.handle = create.handle;
