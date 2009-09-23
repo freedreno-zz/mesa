@@ -2109,8 +2109,8 @@ _mesa_meta_draw_tex(GLcontext *ctx, GLfloat x, GLfloat y, GLfloat z,
 
    /* vertex positions, texcoords */
    {
-      const GLfloat x1 = x + width * ctx->Pixel.ZoomX;
-      const GLfloat y1 = y + height * ctx->Pixel.ZoomY;
+      const GLfloat x1 = x + width;
+      const GLfloat y1 = y + height;
 
       verts[0].x = x;
       verts[0].y = y;
