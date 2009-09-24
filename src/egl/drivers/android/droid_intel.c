@@ -47,8 +47,6 @@
 #define INTEL_IS_I9xx(x) ((x) & (INTEL_GEN_3 | INTEL_GEN_4))
 #define INTEL_IS_I8xx(x) ((x) & (INTEL_GEN_1 | INTEL_GEN_2))
 
-#define INTEL_STRIDE_ALIGNMENT 64
-
 #define INTEL_HAS_128_BYTE_Y_TILING(x) \
    (((x) & (INTEL_GEN_3 | INTEL_GEN_4 | INTEL_GEN_MINOR_MASK)) > INTEL_GEN_3)
 
@@ -75,6 +73,10 @@ struct droid_backend_intel {
    struct droid_backend base;
    int fd;
    int screen_number;
+
+   uint32_t generation;
+   int pitch_align;
+   int enable_tiling;
 };
 
 struct droid_surface_intel {
@@ -126,80 +128,115 @@ intel_get_native_buffer(struct droid_backend *backend,
    return &isurf->native_buffer;
 }
 
-static inline uint32_t
+static INLINE uint32_t
 align_to(uint32_t value, uint32_t align)
 {
    return (value + align - 1) & ~(align - 1);
 }
 
-static uint32_t
-tiling_stride(int dev, int tiling_mode, uint32_t pitch)
+static INLINE int
+fence_pitch(struct droid_backend *backend, int pitch, int tiling)
 {
-   uint32_t tile_width;
+   struct droid_backend_intel *intel = lookup_backend(backend);
+   int pitch_align, tile_width;
 
-   if (tiling_mode == I915_TILING_NONE)
+   switch (tiling) {
+   case I915_TILING_NONE:
+   default:
+      pitch_align = intel->pitch_align;
+      tile_width = 1; /* not used */
+      break;
+   case I915_TILING_X:
+      pitch_align = 512;
+      tile_width = 512;
+      break;
+   case I915_TILING_Y:
+      pitch_align = 512;
+      tile_width =
+         (INTEL_HAS_128_BYTE_Y_TILING(intel->generation)) ? 128 : 512;
+      break;
+   }
+
+   pitch = align_to(pitch, pitch_align);
+   if (tiling == I915_TILING_NONE)
       return pitch;
 
-   if (tiling_mode == I915_TILING_Y && INTEL_HAS_128_BYTE_Y_TILING(dev))
-      tile_width = 128;
-   else
-      tile_width = 512;
-
    /* 965+ just needs multiples of tile width */
-   if (INTEL_IS_I965(dev))
-      return align_to(pitch,  tile_width);
+   if (INTEL_IS_I965(intel->generation)) {
+      pitch = align_to(pitch,  tile_width);
+   }
+   else {
+      /* Pre-965 needs power of two tile widths */
+      while (tile_width < pitch)
+         tile_width <<= 1;
+      pitch = tile_width;
+   }
 
-   /* Pre-965 needs power of two tile widths */
-   while (tile_width < pitch)
-      tile_width <<= 1;
-
-   return tile_width;
+   return pitch;
 }
 
-static uint32_t
-tiling_size(int dev, uint32_t tiling, uint32_t size)
+static INLINE uint32_t
+fence_size(struct droid_backend *backend, int height, int pitch, int tiling)
 {
-   uint32_t fence;
+   struct droid_backend_intel *intel = lookup_backend(backend);
+   int height_align;
+   uint32_t size;
 
+   switch (tiling) {
+   case I915_TILING_NONE:
+   default:
+      /* Round the height up so that the GPU's access to a 2x2 aligned
+       * subspan doesn't address an invalid page offset beyond the
+       * end of the GTT.
+       */
+      height_align = 2;
+      break;
+   case I915_TILING_X:
+      height_align = 8;
+      break;
+   case I915_TILING_Y:
+      height_align = 32;
+      break;
+   }
+
+   height = align_to(height, height_align);
+   size = pitch * height;
    if (tiling == I915_TILING_NONE)
       return size;
 
    /* The 965 can have fences at any page boundary. */
-   if (INTEL_IS_I965(dev))
-      return align_to(size, 4096);
+   if (INTEL_IS_I965(intel->generation)) {
+      size = align_to(size, 4096);
+   }
+   else {
+      uint32_t fence;
 
-   /* Align the size to a power of two greater than the smallest fence. */
-   if (INTEL_IS_I9xx(dev))
-      fence = 1024 * 1024; /* 1 MiB */
-   else
-      fence = 512 * 1024; /* 512 KiB */
-   while (fence < size)
-      fence <<= 1;
+      /* Align the size to a power of two greater than the smallest fence. */
+      if (INTEL_IS_I9xx(intel->generation))
+         fence = 1 << 20; /* 1 MiB */
+      else
+         fence = 1 << 19; /* 512 KiB */
 
-   return fence;
+      while (fence < size)
+         fence <<= 1;
+
+      size = fence;
+   }
+
+   return size;
 }
 
 static int
-create_buffer(int fd, GLint width, GLint height, GLint cpp, __DRIbuffer *buffer)
+create_buffer(struct droid_backend *backend, __DRIbuffer *buffer,
+              int width, int height, int cpp, int tiling)
 {
+   struct droid_backend_intel *intel = lookup_backend(backend);
    struct drm_i915_gem_create create;
    struct drm_gem_flink flink;
-   uint32_t size;
-   int tiling;
-   int dev = INTEL_GEN_4; /* XXX query using I915_GETPARAM + PARAM_CHIPSET_ID */
 
-   tiling = I915_TILING_X;
-   buffer->pitch = align_to(width * cpp, INTEL_STRIDE_ALIGNMENT);
-   if (tiling != I915_TILING_NONE) {
-      buffer->pitch = tiling_stride(dev, tiling, buffer->pitch);
-      size = buffer->pitch * height;
-      size = tiling_size(dev, tiling, size);
-   } else {
-      size = buffer->pitch * height;
-   }
-
-   create.size = size;
-   if (ioctl(fd, DRM_IOCTL_I915_GEM_CREATE, &create)) {
+   buffer->pitch = fence_pitch(backend, width * cpp, tiling);
+   create.size = fence_size(backend, height, buffer->pitch, tiling);
+   if (ioctl(intel->fd, DRM_IOCTL_I915_GEM_CREATE, &create)) {
       LOGE("failed to create buffer");
       return 0;
    }
@@ -212,12 +249,12 @@ create_buffer(int fd, GLint width, GLint height, GLint cpp, __DRIbuffer *buffer)
       set_tiling.tiling_mode = tiling;
       set_tiling.stride = buffer->pitch;
 
-      if (ioctl(fd, DRM_IOCTL_I915_GEM_SET_TILING, &set_tiling))
+      if (ioctl(intel->fd, DRM_IOCTL_I915_GEM_SET_TILING, &set_tiling))
          LOGW("failed to enable tiling");
    }
 
    flink.handle = create.handle;
-   if (ioctl(fd, DRM_IOCTL_GEM_FLINK, &flink) < 0) {
+   if (ioctl(intel->fd, DRM_IOCTL_GEM_FLINK, &flink) < 0) {
       LOGE("failed to flink buffer");
       return 0;
    }
@@ -311,6 +348,9 @@ intel_get_surface_buffers(struct droid_backend *backend,
          isurf->handles[reuse] = 0;
       }
       else {
+         int tiling =
+            (intel->enable_tiling) ? I915_TILING_X : I915_TILING_NONE;
+
          buffers[num].attachment = att;
 
          if (isurf->type == INTEL_SURFACE_TYPE_IMAGE &&
@@ -320,17 +360,17 @@ intel_get_surface_buffers(struct droid_backend *backend,
             handles[num] = 0;
          } else {
             buffers[num].attachment = att;
-            handles[num] = create_buffer(intel->fd,
-                                             isurf->native_width,
-                                             isurf->native_height,
-                                             cpp,
-                                             &buffers[num]);
+            handles[num] = create_buffer(backend, &buffers[num],
+                                         isurf->native_width,
+                                         isurf->native_height,
+                                         cpp,
+                                         tiling);
          }
       }
       num++;
    }
 
-   /* delete buffers that are not re-used */
+   /* delete old buffers that are not re-used */
    delete_buffers(backend, surf);
 
    memcpy(isurf->buffers, buffers, sizeof(buffers[0]) * num);
@@ -545,6 +585,13 @@ droid_backend_create_intel(const char *dev)
    }
 
    intel->screen_number = 0;
+
+   /* XXX query using I915_GETPARAM + PARAM_CHIPSET_ID */
+   intel->generation = INTEL_GEN_3;
+
+   intel->pitch_align = 64;
+   intel->enable_tiling = 1;
+
    intel->base.driver_name = "i915";
    intel->base.initialize = intel_initialize;
    intel->base.destroy = intel_destroy;
