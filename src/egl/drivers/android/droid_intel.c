@@ -117,6 +117,10 @@ intel_get_native_buffer(struct droid_backend *backend,
 {
    struct droid_surface_intel *isurf = lookup_surface(surf);
 
+   /* non-window surface is single-buffered */
+   if (isurf->type != INTEL_SURFACE_TYPE_WINDOW)
+      return NULL;
+
    if (!isurf->native_buffer.name)
       return NULL;
 
@@ -355,6 +359,7 @@ intel_get_surface_buffers(struct droid_backend *backend,
 
          if (isurf->type == INTEL_SURFACE_TYPE_IMAGE &&
              att == __DRI_BUFFER_FRONT_LEFT) {
+            /* return native buffer */
             buffers[num] = isurf->native_buffer;
             buffers[num].attachment = att;
             handles[num] = 0;
