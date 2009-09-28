@@ -32,7 +32,7 @@ LOCAL_C_INCLUDES +=			\
 	external/mesa/src/mesa		\
 	external/drm/shared-core
 
-LOCAL_CFLAGS +=	-DPTHREADS -D_EGL_PLATFORM_X=1
+LOCAL_CFLAGS +=	-DPTHREADS
 LOCAL_SHARED_LIBRARIES := libdl libui libutils
 LOCAL_STATIC_LIBRARIES := libes1api
 
