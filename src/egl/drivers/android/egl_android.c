@@ -21,6 +21,9 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
+#define LOG_TAG "DROID-EGL"
+#include <utils/Log.h>
+
 #include "glapi/glapi.h"
 
 #include "eglconfig.h"
@@ -522,6 +525,25 @@ droid_Unload(_EGLDriver *drv)
    free(droid_drv);
 }
 
+static void
+droid_Log(EGLint level, const char *msg)
+{
+   switch (level) {
+   case _EGL_DEBUG:
+      LOGD(msg);
+      break;
+   case _EGL_INFO:
+      LOGI(msg);
+      break;
+   case _EGL_WARNING:
+      LOGW(msg);
+      break;
+   case _EGL_FATAL:
+      LOGE(msg);
+      break;
+   }
+}
+
 _EGLDriver *
 _eglMain(const char *args)
 {
@@ -556,6 +578,8 @@ _eglMain(const char *args)
       (void (*)(void)) droid_eglGetProcAddress("glFlush");
    droid_drv->finish_current =
       (void (*)(void)) droid_eglGetProcAddress("glFinish");
+
+   _eglSetLogProc(droid_Log);
 
    return &droid_drv->base;
 }
