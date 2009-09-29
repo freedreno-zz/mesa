@@ -116,6 +116,8 @@ _eglChooseDriver(_EGLDisplay *dpy, char **argsRet)
    suffix = "dll";
 #else /* _EGL_PLATFORM_NO_OS */
    if (path) {
+      /* force the use of the default driver */
+      _eglLog(_EGL_DEBUG, "ignore EGL_DRIVER");
       free(path);
       path = NULL;
    }
@@ -154,44 +156,48 @@ _eglChooseDriver(_EGLDisplay *dpy, char **argsRet)
 static _EGLMain_t
 _eglOpenLibrary(const char *driverPath, lib_handle *handle)
 {
-   _EGLMain_t mainFunc;
    lib_handle lib;
+   _EGLMain_t mainFunc = NULL;
+   const char *error = "unknown error";
 
    assert(driverPath);
 
+   _eglLog(_EGL_DEBUG, "dlopen(%s)", driverPath);
+   lib = open_library(driverPath);
+
 #if defined(_EGL_PLATFORM_WINDOWS)
    /* XXX untested */
-   _eglLog(_EGL_DEBUG, "dlopen(%s)", driverPath);
-   lib = open_library(driverPath);
-   if (!lib) {
-      _eglLog(_EGL_WARNING, "Could not open %s",
-              driverPath);
-      return NULL;
-   }
-   mainFunc = (_EGLMain_t) GetProcAddress(lib, "_eglMain");
+   if (lib)
+      mainFunc = (_EGLMain_t) GetProcAddress(lib, "_eglMain");
 #elif defined(_EGL_PLATFORM_X)
-   _eglLog(_EGL_DEBUG, "dlopen(%s)", driverPath);
-   lib = open_library(driverPath);
+   if (lib) {
+      mainFunc = (_EGLMain_t) dlsym(lib, "_eglMain");
+      if (!mainFunc)
+         error = dlerror();
+   }
+   else {
+      error = dlerror();
+   }
+#else /* _EGL_PLATFORM_NO_OS */
+   /* must be the default driver name */
+   if (strcmp(driverPath, DefaultDriverName) == 0)
+      mainFunc = (_EGLMain_t) _eglMain;
+   else
+      error = "not builtin driver";
+#endif
+
    if (!lib) {
-      _eglLog(_EGL_WARNING, "Could not open %s (%s)",
-              driverPath, dlerror());
+      _eglLog(_EGL_WARNING, "Could not open driver %s (%s)",
+              driverPath, error);
       if (!getenv("EGL_DRIVER"))
          _eglLog(_EGL_WARNING,
                  "The driver can be overridden by setting EGL_DRIVER");
       return NULL;
    }
-   mainFunc = (_EGLMain_t) dlsym(lib, "_eglMain");
-#else /* _EGL_PLATFORM_NO_OS */
-   lib = 0;
-   /* must be default driver name */
-   if (strcmp(driverPath, DefaultDriverName) == 0)
-      mainFunc = (_EGLMain_t) _eglMain;
-   else
-      mainFunc = NULL;
-#endif
 
    if (!mainFunc) {
-      _eglLog(_EGL_WARNING, "_eglMain not found in %s", driverPath);
+      _eglLog(_EGL_WARNING, "_eglMain not found in %s (%s)",
+              driverPath, error);
       if (lib)
          close_library(lib);
       return NULL;
