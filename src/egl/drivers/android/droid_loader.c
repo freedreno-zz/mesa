@@ -478,8 +478,10 @@ droid_screen_get_drawable_data(struct droid_screen *screen,
       img->magic = __DRI_EGL_IMAGE_MAGIC;
       img->drawable = drawable->dri_drawable;
       img->level = 0;
-      if (loader->core->getConfigAttrib(drawable->dri_config,
-                                        EGL_BIND_TO_TEXTURE_RGBA, &val))
+      if (drawable->dri_config == screen->image_configs[32] &&
+          loader->core->getConfigAttrib(drawable->dri_config,
+                                        __DRI_ATTRIB_BIND_TO_TEXTURE_RGBA,
+                                        &val))
          img->texture_format_rgba = val;
 
       drawable->dri_image = img;
