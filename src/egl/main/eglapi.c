@@ -992,6 +992,7 @@ EGLBoolean eglDestroyImageKHR(EGLDisplay dpy, EGLImageKHR image)
    if (!img)
       return _eglError(EGL_BAD_PARAMETER, __FUNCTION__);
 
+   _eglUnlinkImage(img);
    return drv->API.DestroyImageKHR(drv, disp, img);
 }
 
