@@ -60,6 +60,8 @@ translate_texture_format(GLuint mesa_format, GLuint internal_format,
 	 return MAPSURF_32BIT | MT_32BIT_XRGB8888;
       else
 	 return MAPSURF_32BIT | MT_32BIT_ARGB8888;
+   case MESA_FORMAT_ARGB8888_REV:
+      return MAPSURF_32BIT | MT_32BIT_ABGR8888;
    case MESA_FORMAT_YCBCR_REV:
       return (MAPSURF_422 | MT_422_YCRCB_NORMAL);
    case MESA_FORMAT_YCBCR:

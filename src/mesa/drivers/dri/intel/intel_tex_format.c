@@ -34,7 +34,7 @@ intelChooseTextureFormat(GLcontext * ctx, GLint internalFormat,
    case GL_COMPRESSED_RGBA:
       if (format == GL_BGRA) {
          if (type == GL_UNSIGNED_BYTE || type == GL_UNSIGNED_INT_8_8_8_8_REV) {
-            return &_mesa_texformat_argb8888;
+            return &_mesa_texformat_argb8888_rev;
          }
          else if (type == GL_UNSIGNED_SHORT_4_4_4_4_REV) {
             return &_mesa_texformat_argb4444;
