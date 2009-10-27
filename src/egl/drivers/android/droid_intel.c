@@ -472,7 +472,7 @@ intel_create_window_surface(struct droid_backend *backend,
 
 static struct droid_surface *
 intel_create_image_surface(struct droid_backend *backend,
-                           NativePixmapType pix, int *depth)
+                           NativePixmapType pix)
 {
    struct droid_surface_intel *isurf;
    int cpp;
@@ -490,13 +490,6 @@ intel_create_image_surface(struct droid_backend *backend,
       return NULL;
    }
 
-   cpp = ui_bytes_per_pixel(pix->format);
-   if (cpp * 8 > DROID_MAX_IMAGE_DEPTH) {
-      LOGE("pixmap of depth %d is not supported", cpp * 8);
-      _eglError(EGL_BAD_NATIVE_PIXMAP, "eglCreateImage");
-      return NULL;
-   }
-
    isurf = calloc(1, sizeof(*isurf));
    if (!isurf) {
       _eglError(EGL_BAD_ALLOC, "eglCreateWindowSurface");
@@ -507,9 +500,6 @@ intel_create_image_surface(struct droid_backend *backend,
    isurf->native.pix = pix;
 
    update_native_buffer((struct droid_surface *) isurf);
-
-   if (depth)
-      *depth = cpp * 8;
 
    return (struct droid_surface *) isurf;
 }
@@ -539,6 +529,16 @@ intel_swap_native_buffers(struct droid_backend *backend,
          isurf->native_buffer.name = isurf->native.win->oem[0];
       }
    }
+}
+
+static int
+intel_match_pixmap(struct droid_backend *backend, _EGLConfig *conf,
+                   NativePixmapType pix)
+{
+   int val;
+   val = GET_CONFIG_ATTRIB(conf, EGL_NATIVE_VISUAL_TYPE);
+   /* match the visual type */
+   return (pix->format == val);
 }
 
 static int
@@ -637,6 +637,8 @@ droid_backend_create_intel(const char *dev)
    intel->base.create_image_surface = intel_create_image_surface;
    intel->base.destroy_surface = intel_destroy_surface;
    intel->base.swap_native_buffers = intel_swap_native_buffers;
+
+   intel->base.match_pixmap = intel_match_pixmap;
 
    return &intel->base;
 }

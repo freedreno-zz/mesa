@@ -64,11 +64,13 @@ struct droid_backend {
                                                   _EGLSurface *surf,
                                                   NativeWindowType win);
    struct droid_surface *(*create_image_surface)(struct droid_backend *backend,
-                                                 NativePixmapType pix,
-                                                 int *depth);
+                                                 NativePixmapType pix);
    void (*destroy_surface)(struct droid_backend *backend, struct droid_surface *surf);
    void (*swap_native_buffers)(struct droid_backend *backend,
                                struct droid_surface *surf);
+
+   int (*match_pixmap)(struct droid_backend *backend, _EGLConfig *conf,
+                       NativePixmapType pix);
 };
 
 struct droid_screen {
@@ -80,9 +82,6 @@ struct droid_screen {
 
    const __DRIconfig **dri_configs;
    int num_dri_configs;
-
-#define DROID_MAX_IMAGE_DEPTH 32
-   const __DRIconfig *image_configs[DROID_MAX_IMAGE_DEPTH + 1];
 };
 
 struct droid_backend *

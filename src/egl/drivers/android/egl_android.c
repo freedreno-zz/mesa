@@ -412,13 +412,29 @@ droid_eglCreateImageKHR(_EGLDriver *drv, _EGLDisplay *dpy, _EGLContext *ctx,
 {
    struct droid_egl_display *droid_dpy = lookup_display(dpy);
    struct droid_egl_image *droid_img;
-   const __DRIconfig *dri_conf;
-   int depth;
+   struct droid_egl_config *droid_conf;
+   _EGLConfig *conf;
+   EGLint val, i;
 
+   /* only EGL_KHR_image_pixmap is supported */
    if (target != EGL_NATIVE_PIXMAP_KHR || ctx) {
       _eglError(EGL_BAD_PARAMETER, "eglCreateImageKHR");
       return NULL;
    }
+
+   for (i = 0; i < dpy->NumConfigs; i++) {
+      conf = dpy->Configs[i];
+      if (droid_dpy->backend->match_pixmap(droid_dpy->backend, conf,
+                                           (NativePixmapType) buffer)) {
+         EGLint val;
+         val = GET_CONFIG_ATTRIB(conf, EGL_BIND_TO_TEXTURE_RGB);
+         val |= GET_CONFIG_ATTRIB(conf, EGL_BIND_TO_TEXTURE_RGBA);
+         if (val)
+            break;
+      }
+   }
+   if (i >= dpy->NumConfigs)
+      return NULL;
 
    droid_img = calloc(1, sizeof(*droid_img));
    if (!droid_img) {
@@ -433,23 +449,15 @@ droid_eglCreateImageKHR(_EGLDriver *drv, _EGLDisplay *dpy, _EGLContext *ctx,
 
    droid_img->surface = 
       droid_dpy->backend->create_image_surface(droid_dpy->backend,
-                                               (NativePixmapType) buffer,
-                                               &depth);
+                                               (NativePixmapType) buffer);
    if (!droid_img->surface) {
       free(droid_img);
       return NULL;
    }
 
-   dri_conf = droid_dpy->screen->image_configs[depth];
-   if (!dri_conf) {
-      droid_dpy->backend->destroy_surface(droid_dpy->backend,
-                                          droid_img->surface);
-      free(droid_img);
-      return NULL;
-   }
-
+   droid_conf = lookup_config(conf);
    droid_img->drawable =
-      droid_screen_create_drawable(droid_dpy->screen, dri_conf,
+      droid_screen_create_drawable(droid_dpy->screen, droid_conf->config,
                                    droid_img->surface);
 
    if (!droid_img->drawable) {
