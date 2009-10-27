@@ -565,6 +565,34 @@ intel_initialize(struct droid_backend *backend, int *fd, int *screen_number)
    return 1;
 }
 
+#include <assert.h>
+static int
+intel_process_config(struct droid_backend *backend, _EGLConfig *conf)
+{
+   int r, g, b, a;
+   int surface_type;
+   int format;
+
+   r = GET_CONFIG_ATTRIB(conf, EGL_RED_SIZE);
+   g = GET_CONFIG_ATTRIB(conf, EGL_GREEN_SIZE);
+   b = GET_CONFIG_ATTRIB(conf, EGL_BLUE_SIZE);
+   a = GET_CONFIG_ATTRIB(conf, EGL_ALPHA_SIZE);
+   format = ui_get_rgb_format(r, g, b, a);
+
+   if (format) {
+      SET_CONFIG_ATTRIB(conf, EGL_NATIVE_VISUAL_TYPE, format);
+      SET_CONFIG_ATTRIB(conf, EGL_SURFACE_TYPE,
+                        EGL_WINDOW_BIT |
+                        EGL_PIXMAP_BIT |
+                        EGL_PBUFFER_BIT);
+   }
+   else {
+      SET_CONFIG_ATTRIB(conf, EGL_SURFACE_TYPE, EGL_PBUFFER_BIT);
+   }
+
+   return 1;
+}
+
 static void
 intel_destroy(struct droid_backend *backend)
 {
@@ -599,6 +627,7 @@ droid_backend_create_intel(const char *dev)
 
    intel->base.driver_name = "i915";
    intel->base.initialize = intel_initialize;
+   intel->base.process_config = intel_process_config;
    intel->base.destroy = intel_destroy;
 
    intel->base.get_native_buffer = intel_get_native_buffer;

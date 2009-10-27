@@ -137,8 +137,11 @@ droid_create_configs(_EGLDisplay *dpy, struct droid_egl_display *droid_dpy,
 
       _eglInitConfig(&droid_conf->base, id);
       droid_conf->config = configs[i];
-      droid_screen_convert_config(droid_dpy->screen, droid_conf->config,
-                                  &droid_conf->base);
+      if (!droid_screen_convert_config(droid_dpy->screen, droid_conf->config,
+                                       &droid_conf->base)) {
+         free(droid_conf);
+         continue;
+      }
 
       val = GET_CONFIG_ATTRIB(&droid_conf->base, EGL_CONFIG_CAVEAT);
       /* we do not want slow configs */

@@ -47,6 +47,7 @@ struct droid_backend {
    /* these are usually used by a loader */
    const char *driver_name;
    int (*initialize)(struct droid_backend *backend, int *fd, int *screen_number);
+   int (*process_config)(struct droid_backend *backend, _EGLConfig *conf);
    void (*destroy)(struct droid_backend *backend);
 
    __DRIbuffer *(*get_native_buffer)(struct droid_backend *backend,
@@ -96,7 +97,7 @@ droid_screen_create(struct droid_backend *backend);
 void
 droid_screen_destroy(struct droid_screen *screen);
 
-void
+int
 droid_screen_convert_config(struct droid_screen *screen,
                             const __DRIconfig *conf, _EGLConfig *egl_conf);
 

@@ -52,3 +52,30 @@ int ui_bytes_per_pixel(int format)
 {
    return bytesPerPixel(format);
 }
+
+int ui_get_rgb_format(int red, int green, int blue, int alpha)
+{
+   PixelFormatInfo info;
+   PixelFormat fmt;
+
+   /* look in the RGB range */
+   for (fmt = 1; fmt < PIXEL_FORMAT_YCbCr_422_SP; fmt++) {
+      status_t err = getPixelFormatInfo(fmt, &info);
+      if (err)
+         return -1;
+      /* bpp must be equal to depth */
+      if (info.bytesPerPixel * 8 != info.bitsPerPixel)
+         continue;
+
+      if ((info.h_red - info.l_red != red) ||
+          (info.h_green - info.l_green != green) ||
+          (info.h_blue - info.l_blue != blue) ||
+          (info.h_alpha - info.l_alpha != alpha))
+         continue;
+
+      /* mask? */
+      return fmt;
+   }
+
+   return -1;
+}

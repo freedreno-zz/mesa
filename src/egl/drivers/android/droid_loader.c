@@ -357,7 +357,7 @@ static const struct {
    { EGL_STENCIL_SIZE,             __DRI_ATTRIB_STENCIL_SIZE },
 };
 
-void
+int
 droid_screen_convert_config(struct droid_screen *screen,
                             const __DRIconfig *conf, _EGLConfig *egl_conf)
 {
@@ -374,7 +374,7 @@ droid_screen_convert_config(struct droid_screen *screen,
 
       if (!loader->core->getConfigAttrib(conf, dri_attrib, &dri_value)) {
          LOGE("failed to get attribute %02d for %p", dri_attrib, conf);
-         continue;
+         return 0;
       }
 
       switch (egl_attrib) {
@@ -392,6 +392,8 @@ droid_screen_convert_config(struct droid_screen *screen,
       }
       SET_CONFIG_ATTRIB(egl_conf, egl_attrib, egl_value);
    }
+
+   return loader->backend->process_config(loader->backend, egl_conf);
 }
 
 struct droid_context *

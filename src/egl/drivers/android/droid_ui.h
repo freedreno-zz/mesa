@@ -32,6 +32,7 @@ extern "C" {
 
 int ui_auth_gpu(drm_magic_t magic);
 int ui_bytes_per_pixel(int format);
+int ui_get_rgb_format(int red, int green, int blue, int alpha);
 
 #ifdef __cplusplus
 }
