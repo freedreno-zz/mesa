@@ -394,6 +394,7 @@ static void
 update_native_buffer(struct droid_surface *surf)
 {
    struct droid_surface_intel *isurf = lookup_surface(surf);
+   __DRIbuffer *buf = &isurf->native_buffer;
    unsigned int name, cpp, pitch, width, height;
 
    switch (isurf->type) {
@@ -417,16 +418,19 @@ update_native_buffer(struct droid_surface *surf)
       break;
    }
 
-   isurf->native_buffer.attachment = __DRI_BUFFER_FRONT_LEFT;
-   isurf->native_buffer.name = name;
-   isurf->native_buffer.cpp = cpp;
-   isurf->native_buffer.pitch = pitch;
-   isurf->native_buffer.flags = 0;
+   if (buf->name != name || buf->cpp != cpp || buf->pitch != pitch ||
+       isurf->native_width != width || isurf->native_height != height) {
+      buf->attachment = __DRI_BUFFER_FRONT_LEFT;
+      buf->name = name;
+      buf->cpp = cpp;
+      buf->pitch = pitch;
+      buf->flags = 0;
 
-   isurf->native_width = width;
-   isurf->native_height = height;
+      isurf->native_width = width;
+      isurf->native_height = height;
 
-   isurf->native_changed = 1;
+      isurf->native_changed = 1;
+   }
 }
 
 static struct droid_surface *
