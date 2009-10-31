@@ -2082,6 +2082,7 @@ _mesa_meta_draw_tex(GLcontext *ctx, GLfloat x, GLfloat y, GLfloat z,
 
    if (drawtex->ArrayObj == 0) {
       /* one-time setup */
+      GLint active_texture;
 
       /* create vertex array object */
       _mesa_GenVertexArrays(1, &drawtex->ArrayObj);
@@ -2093,6 +2094,9 @@ _mesa_meta_draw_tex(GLcontext *ctx, GLfloat x, GLfloat y, GLfloat z,
       _mesa_BufferDataARB(GL_ARRAY_BUFFER_ARB, sizeof(verts),
                           NULL, GL_DYNAMIC_DRAW_ARB);
 
+      /* client active texture is not part of the array object */
+      active_texture = ctx->Array.ActiveTexture;
+
       /* setup vertex arrays */
       _mesa_VertexPointer(3, GL_FLOAT, sizeof(struct vertex), OFFSET(x));
       _mesa_EnableClientState(GL_VERTEX_ARRAY);
@@ -2101,6 +2105,9 @@ _mesa_meta_draw_tex(GLcontext *ctx, GLfloat x, GLfloat y, GLfloat z,
          _mesa_TexCoordPointer(2, GL_FLOAT, sizeof(struct vertex), OFFSET(st[i]));
          _mesa_EnableClientState(GL_TEXTURE_COORD_ARRAY);
       }
+
+      /* restore client active texture */
+      _mesa_ClientActiveTextureARB(GL_TEXTURE0 + active_texture);
    }
    else {
       _mesa_BindVertexArray(drawtex->ArrayObj);
