@@ -23,9 +23,9 @@
 
 #include <cstdlib>
 #include <cstdio>
-#include <cstdarg>
 
 extern "C" {
+#include <stdarg.h>
 #include <talloc.h>
 }
 

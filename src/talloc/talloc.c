@@ -56,7 +56,7 @@ static size_t strnlen (const char* s, size_t n)
 #endif
 
 /* Visual C++ 2008 & Xcode/gcc4.0 compatibility */
-#if !defined(_cplusplus) && (defined(WIN32) || defined(__APPLE__))
+#if !defined(_cplusplus) && (defined(WIN32) || defined(__APPLE__) || defined(ANDROID))
 typedef int bool;
 #define false 0
 #define true 1

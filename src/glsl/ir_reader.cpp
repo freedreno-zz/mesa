@@ -21,9 +21,9 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#include <cstdarg>
 
 extern "C" {
+#include <stdarg.h>
 #include <talloc.h>
 }
 

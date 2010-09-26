@@ -65,10 +65,10 @@
  */
 #include <cstdlib>
 #include <cstdio>
-#include <cstdarg>
 #include <climits>
 
 extern "C" {
+#include <stdarg.h>
 #include <talloc.h>
 }
 

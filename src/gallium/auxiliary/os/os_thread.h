@@ -306,7 +306,7 @@ typedef int64_t pipe_condvar;
  * pipe_barrier
  */
 
-#if defined(PIPE_OS_LINUX) || defined(PIPE_OS_BSD) || defined(PIPE_OS_SOLARIS) || defined(PIPE_OS_HAIKU) || defined(PIPE_OS_EMBEDDED)
+#if (defined(PIPE_OS_LINUX) || defined(PIPE_OS_BSD) || defined(PIPE_OS_SOLARIS) || defined(PIPE_OS_HAIKU) || defined(PIPE_OS_EMBEDDED)) && !defined(PIPE_OS_ANDROID)
 
 typedef pthread_barrier_t pipe_barrier;
 

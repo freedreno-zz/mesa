@@ -116,6 +116,7 @@ typedef union { GLfloat f; GLint i; } fi_type;
 #endif
 
 
+
 /**
  * \name Work-arounds for platforms that lack C99 math functions
  */
@@ -134,7 +135,13 @@ typedef union { GLfloat f; GLint i; } fi_type;
 #define exp2f(f) ((float) exp2(f))
 #define floorf(f) ((float) floor(f))
 #define logf(f) ((float) log(f))
+
+#ifdef ANDROID
+#define log2f(f) ((float) (log(f) / M_LN2))
+#else
 #define log2f(f) ((float) log2(f))
+#endif
+
 #define powf(x,y) ((float) pow(x,y))
 #define sinf(f) ((float) sin(f))
 #define sinhf(f) ((float) sinh(f))
