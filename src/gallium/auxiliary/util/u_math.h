@@ -199,6 +199,16 @@ roundf(float x)
 #endif /* _MSC_VER */
 
 
+#ifdef PIPE_OS_ANDROID
+
+static INLINE
+double log2(double d)
+{
+   return log(d) / M_LN2;
+}
+
+#endif
+
 
 
 

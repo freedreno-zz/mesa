@@ -46,6 +46,10 @@
 #endif
 #endif
 
+#ifdef ANDROID
+#define SIZE_MAX UINT32_MAX
+#endif
+
 #define CANARY 0x5A1106
 
 struct ralloc_header
