@@ -86,6 +86,30 @@ library_suffix(void)
 }
 
 
+#else /* _EGL_PLATFORM_NO_OS */
+
+
+typedef void *lib_handle;
+
+static INLINE void *
+open_library(const char *filename)
+{
+   return (void *) filename;
+}
+
+static INLINE void
+close_library(void *lib)
+{
+}
+
+
+static const char *
+library_suffix(void)
+{
+   return NULL;
+}
+
+
 #endif
 
 
@@ -123,6 +147,8 @@ _eglOpenLibrary(const char *driverPath, lib_handle *handle)
    else {
       error = dlerror();
    }
+#else /* _EGL_PLATFORM_NO_OS */
+   mainFunc = (_EGLMain_t) _eglMain;
 #endif
 
    if (!lib) {
@@ -500,6 +526,10 @@ _eglAddDefaultDrivers(void)
       "egl_gallium",
       "egl_dri2",
       "egl_glx"
+   };
+#else /* _EGL_PLATFORM_NO_OS */
+   const char *DefaultDriverNames[] = {
+      "<builtin>"
    };
 #endif
 
