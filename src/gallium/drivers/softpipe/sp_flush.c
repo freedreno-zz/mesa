@@ -50,7 +50,7 @@ softpipe_flush( struct pipe_context *pipe,
 
    draw_flush(softpipe->draw);
 
-   if (flags & PIPE_FLUSH_TEXTURE_CACHE) {
+   if (1 || (flags & PIPE_FLUSH_TEXTURE_CACHE)) {
       for (i = 0; i < softpipe->num_sampler_views; i++) {
          sp_flush_tex_tile_cache(softpipe->tex_cache[i]);
       }
