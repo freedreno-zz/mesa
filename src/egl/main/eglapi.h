@@ -95,6 +95,14 @@ typedef _EGLImage *(*CreateDRMImageMESA_t)(_EGLDriver *drv, _EGLDisplay *disp, c
 typedef EGLBoolean (*ExportDRMImageMESA_t)(_EGLDriver *drv, _EGLDisplay *disp, _EGLImage *img, EGLint *name, EGLint *handle, EGLint *stride);
 #endif
 
+#ifdef EGL_ANDROID_swap_rectangle
+typedef EGLBoolean (*SetSwapRectangleANDROID_t)(_EGLDriver *drv, _EGLDisplay *disp, _EGLSurface *draw, EGLint left, EGLint top, EGLint width, EGLint height);
+#endif
+
+#ifdef EGL_ANDROID_get_render_buffer
+typedef EGLClientBuffer (*GetRenderBufferANDROID_t)(_EGLDriver *drv, _EGLDisplay *disp, _EGLSurface *draw);
+#endif
+
 /**
  * The API dispatcher jumps through these functions
  */
@@ -168,6 +176,13 @@ struct _egl_api
 #ifdef EGL_MESA_drm_image
    CreateDRMImageMESA_t CreateDRMImageMESA;
    ExportDRMImageMESA_t ExportDRMImageMESA;
+#endif
+
+#ifdef EGL_ANDROID_swap_rectangle
+   SetSwapRectangleANDROID_t SetSwapRectangleANDROID;
+#endif
+#ifdef EGL_ANDROID_get_render_buffer
+   GetRenderBufferANDROID_t GetRenderBufferANDROID;
 #endif
 };
 

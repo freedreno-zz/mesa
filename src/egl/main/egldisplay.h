@@ -76,6 +76,10 @@ struct _egl_extensions
    EGLBoolean NOK_swap_region;
    EGLBoolean NOK_texture_from_pixmap;
 
+   EGLBoolean ANDROID_image_native_buffer;
+   EGLBoolean ANDROID_swap_rectangle;
+   EGLBoolean ANDROID_get_render_buffer;
+
    char String[_EGL_MAX_EXTENSIONS_LEN];
 };
 

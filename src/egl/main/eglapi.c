@@ -917,6 +917,12 @@ eglGetProcAddress(const char *procname)
       { "eglCreateDRMImageMESA", (_EGLProc) eglCreateDRMImageMESA },
       { "eglExportDRMImageMESA", (_EGLProc) eglExportDRMImageMESA },
 #endif
+#ifdef EGL_ANDROID_swap_rectangle
+      { "eglSetSwapRectangleANDROID", (_EGLProc) eglSetSwapRectangleANDROID },
+#endif
+#ifdef EGL_ANDROID_get_render_buffer
+      { "eglGetRenderBufferANDROID", (_EGLProc) eglGetRenderBufferANDROID },
+#endif
       { NULL, NULL }
    };
    EGLint i;
@@ -1489,6 +1495,52 @@ eglExportDRMImageMESA(EGLDisplay dpy, EGLImageKHR image,
       RETURN_EGL_ERROR(disp, EGL_BAD_PARAMETER, EGL_FALSE);
 
    ret = drv->API.ExportDRMImageMESA(drv, disp, img, name, handle, stride);
+
+   RETURN_EGL_EVAL(disp, ret);
+}
+
+#endif
+
+#ifdef EGL_ANDROID_swap_rectangle
+
+EGLBoolean EGLAPIENTRY
+eglSetSwapRectangleANDROID(EGLDisplay dpy, EGLSurface draw,
+                           EGLint left, EGLint top,
+                           EGLint width, EGLint height)
+{
+   _EGLDisplay *disp = _eglLockDisplay(dpy);
+   _EGLSurface *surf = _eglLookupSurface(draw, disp);
+   _EGLDriver *drv;
+   EGLBoolean ret;
+
+   _EGL_CHECK_SURFACE(disp, surf, EGL_FALSE, drv);
+
+   if (!disp->Extensions.ANDROID_swap_rectangle)
+      RETURN_EGL_EVAL(disp, EGL_FALSE);
+
+   ret = drv->API.SetSwapRectangleANDROID(drv, disp, surf, left, top, width, height);
+
+   RETURN_EGL_EVAL(disp, ret);
+}
+
+#endif
+
+#ifdef EGL_ANDROID_get_render_buffer
+
+EGLClientBuffer EGLAPIENTRY
+eglGetRenderBufferANDROID(EGLDisplay dpy, EGLSurface draw)
+{
+   _EGLDisplay *disp = _eglLockDisplay(dpy);
+   _EGLSurface *surf = _eglLookupSurface(draw, disp);
+   _EGLDriver *drv;
+   EGLClientBuffer ret;
+
+   _EGL_CHECK_SURFACE(disp, surf, NULL, drv);
+
+   if (!disp->Extensions.ANDROID_get_render_buffer)
+      RETURN_EGL_EVAL(disp, NULL);
+
+   ret = drv->API.GetRenderBufferANDROID(drv, disp, surf);
 
    RETURN_EGL_EVAL(disp, ret);
 }
