@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+extern "C" {
 #include "main/mtypes.h"
 #include "main/imports.h"
 #include "program/program.h"
@@ -38,6 +39,8 @@
 
 extern void *yy_scan_string(char *);
 extern void yy_delete_buffer(void *);
+extern int yylex(union YYSTYPE*, struct YYLTYPE*, void*);
+};
 
 static struct asm_symbol *declare_variable(struct asm_parser_state *state,
     char *name, enum asm_type t, struct YYLTYPE *locp);
@@ -46,10 +49,10 @@ static int add_state_reference(struct gl_program_parameter_list *param_list,
     const gl_state_index tokens[STATE_LENGTH]);
 
 static int initialize_symbol_from_state(struct gl_program *prog,
-    struct asm_symbol *param_var, const gl_state_index tokens[STATE_LENGTH]);
+    struct asm_symbol *param_var, const unsigned tokens[STATE_LENGTH]);
 
 static int initialize_symbol_from_param(struct gl_program *prog,
-    struct asm_symbol *param_var, const gl_state_index tokens[STATE_LENGTH]);
+    struct asm_symbol *param_var, const unsigned tokens[STATE_LENGTH]);
 
 static int initialize_symbol_from_const(struct gl_program *prog,
     struct asm_symbol *param_var, const struct asm_vector *vec,
@@ -136,7 +139,7 @@ static struct asm_instruction *asm_instruction_copy_ctor(
    unsigned attrib;
    int integer;
    float real;
-   gl_state_index state[STATE_LENGTH];
+   unsigned state[STATE_LENGTH];
    int negate;
    struct asm_vector vector;
    gl_inst_opcode opcode;
@@ -1973,14 +1976,14 @@ ADDRESS_statement: ADDRESS { $<integer>$ = $1; } varNameList
 
 varNameList: varNameList ',' IDENTIFIER
 	{
-	   if (!declare_variable(state, $3, $<integer>0, & @3)) {
+	   if (!declare_variable(state, $3, (asm_type) $<integer>0, & @3)) {
 	      free($3);
 	      YYERROR;
 	   }
 	}
 	| IDENTIFIER
 	{
-	   if (!declare_variable(state, $1, $<integer>0, & @1)) {
+	   if (!declare_variable(state, $1, (asm_type) $<integer>0, & @1)) {
 	      free($1);
 	      YYERROR;
 	   }
@@ -2061,8 +2064,8 @@ resultColBinding: COLOR optResultFaceType optResultColorType
 optResultFaceType:
 	{
 	   $$ = (state->mode == ARB_vertex)
-	      ? VERT_RESULT_COL0
-	      : FRAG_RESULT_COLOR;
+	      ? (int) VERT_RESULT_COL0
+	      : (int) FRAG_RESULT_COLOR;
 	}
 	| FRONT
 	{
@@ -2389,7 +2392,7 @@ declare_variable(struct asm_parser_state *state, char *name, enum asm_type t,
    if (exist != NULL) {
       yyerror(locp, state, "redeclared identifier");
    } else {
-      s = calloc(1, sizeof(struct asm_symbol));
+      s = (struct asm_symbol *) calloc(1, sizeof(struct asm_symbol));
       s->name = name;
       s->type = t;
 
@@ -2452,7 +2455,7 @@ int add_state_reference(struct gl_program_parameter_list *param_list,
 int
 initialize_symbol_from_state(struct gl_program *prog,
 			     struct asm_symbol *param_var, 
-			     const gl_state_index tokens[STATE_LENGTH])
+			     const unsigned tokens[STATE_LENGTH])
 {
    int idx = -1;
    gl_state_index state_tokens[STATE_LENGTH];
@@ -2477,7 +2480,7 @@ initialize_symbol_from_state(struct gl_program *prog,
       const int last_row = state_tokens[3];
 
       for (row = first_row; row <= last_row; row++) {
-	 state_tokens[2] = state_tokens[3] = row;
+	 state_tokens[2] = state_tokens[3] = (gl_state_index) row;
 
 	 idx = add_state_reference(prog->Parameters, state_tokens);
 	 if (param_var->param_binding_begin == ~0U) {
@@ -2504,7 +2507,7 @@ initialize_symbol_from_state(struct gl_program *prog,
 int
 initialize_symbol_from_param(struct gl_program *prog,
 			     struct asm_symbol *param_var, 
-			     const gl_state_index tokens[STATE_LENGTH])
+			     const unsigned tokens[STATE_LENGTH])
 {
    int idx = -1;
    gl_state_index state_tokens[STATE_LENGTH];
@@ -2533,7 +2536,7 @@ initialize_symbol_from_param(struct gl_program *prog,
       const int last_row = state_tokens[3];
 
       for (row = first_row; row <= last_row; row++) {
-	 state_tokens[2] = state_tokens[3] = row;
+	 state_tokens[2] = state_tokens[3] = (gl_state_index) row;
 
 	 idx = add_state_reference(prog->Parameters, state_tokens);
 	 if (param_var->param_binding_begin == ~0U) {
@@ -2609,7 +2612,7 @@ make_error_string(const char *fmt, ...)
    length = 1 + vsnprintf(NULL, 0, fmt, args);
    va_end(args);
 
-   str = malloc(length);
+   str = (char *) malloc(length);
    if (str) {
       va_start(args, fmt);
       vsnprintf(str, length, fmt, args);
@@ -2745,7 +2748,9 @@ _mesa_parse_arb_program(struct gl_context *ctx, GLenum target, const GLubyte *st
    result = GL_TRUE;
 
 error:
-   for (inst = state->inst_head; inst != NULL; inst = temp) {
+   for (inst = state->inst_head;
+	inst != NULL;
+	inst = (struct asm_instruction *) temp) {
       temp = inst->next;
       free(inst);
    }
@@ -2753,7 +2758,7 @@ error:
    state->inst_head = NULL;
    state->inst_tail = NULL;
 
-   for (sym = state->sym; sym != NULL; sym = temp) {
+   for (sym = state->sym; sym != NULL; sym = (struct asm_symbol *) temp) {
       temp = sym->next;
 
       free((void *) sym->name);

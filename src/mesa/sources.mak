@@ -244,7 +244,6 @@ PROGRAM_SOURCES = \
 	program/nvfragparse.c \
 	program/nvvertparse.c \
 	program/program.c \
-	program/program_parse.tab.c \
 	program/program_parse_extra.c \
 	program/prog_cache.c \
 	program/prog_execute.c \
@@ -262,6 +261,7 @@ PROGRAM_SOURCES = \
 
 
 SHADER_CXX_SOURCES = \
+	program/program_parse.cpp \
 	program/ir_to_mesa.cpp \
 	program/sampler.cpp
 

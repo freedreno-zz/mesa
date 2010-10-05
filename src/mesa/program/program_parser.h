@@ -23,6 +23,7 @@
 #pragma once
 
 #include "main/config.h"
+#include "main/mtypes.h"
 
 struct gl_context;
 
@@ -45,7 +46,7 @@ struct asm_symbol {
    /**
     * One of PROGRAM_STATE_VAR, PROGRAM_LOCAL_PARAM, or PROGRAM_ENV_PARAM.
     */
-   unsigned param_binding_type;
+   gl_register_file param_binding_type;
 
    /** 
     * Offset into the program_parameter_list where the tokens representing our
@@ -127,6 +128,12 @@ struct asm_instruction {
 };
 
 
+enum asm_program_target {
+      invalid_mode = 0,
+      ARB_vertex,
+      ARB_fragment
+};
+
 struct asm_parser_state {
    struct gl_context *ctx;
    struct gl_program *prog;
@@ -191,11 +198,7 @@ struct asm_parser_state {
     */
    unsigned InputsBound;
 
-   enum {
-      invalid_mode = 0,
-      ARB_vertex,
-      ARB_fragment
-   } mode;
+   enum asm_program_target mode;
 
    struct {
       unsigned PositionInvariant:1;
