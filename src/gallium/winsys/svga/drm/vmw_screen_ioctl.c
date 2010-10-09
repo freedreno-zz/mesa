@@ -46,6 +46,24 @@
 #include <errno.h>
 #include <unistd.h>
 
+#ifdef PIPE_OS_ANDROID
+extern void*  __mmap2(void*, size_t, int, int, int, size_t);
+
+#define  MMAP2_SHIFT  12
+static INLINE void* vmw_mmap(void *addr, size_t size, int prot, int flags, int fd, unsigned long long offset)
+{
+   if ( offset & ((1UL << MMAP2_SHIFT)-1) ) {
+      errno = EINVAL;
+      return MAP_FAILED;
+   }
+
+   return __mmap2(addr, size, prot, flags, fd, (size_t)(offset >> MMAP2_SHIFT));
+}
+
+#else
+#define vmw_mmap(addr, size, prot, flags, fd, offset) mmap(addr, size, prot, flags, fd, offset)
+#endif
+
 struct vmw_region
 {
    SVGAGuestPtr ptr;
@@ -106,7 +124,7 @@ vmw_ioctl_fifo_map(struct vmw_winsys_screen *vws,
 
    VMW_FUNC;
 
-   map = mmap(NULL, getpagesize(), PROT_READ, MAP_SHARED,
+   map = vmw_mmap(NULL, getpagesize(), PROT_READ, MAP_SHARED,
 	      vws->ioctl.drm_fd, fifo_offset);
 
    if (map == MAP_FAILED) {
@@ -388,7 +406,7 @@ vmw_ioctl_region_map(struct vmw_region *region)
               region->ptr.gmrId, region->ptr.offset);
 
    if (region->data == NULL) {
-      map = mmap(NULL, region->size, PROT_READ | PROT_WRITE, MAP_SHARED,
+      map = vmw_mmap(NULL, region->size, PROT_READ | PROT_WRITE, MAP_SHARED,
 		 region->drm_fd, region->map_handle);
       if (map == MAP_FAILED) {
 	 debug_printf("%s: Map failed.\n", __FUNCTION__);
