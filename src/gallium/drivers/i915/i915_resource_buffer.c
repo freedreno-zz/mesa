@@ -55,7 +55,7 @@ i915_buffer_destroy(struct pipe_screen *screen,
 {
    struct i915_buffer *buffer = i915_buffer(resource);
    if (buffer->free_on_destroy)
-      align_free(buffer->data);
+      FREE(buffer->data);
    FREE(buffer);
 }
 
