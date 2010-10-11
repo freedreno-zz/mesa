@@ -28,6 +28,7 @@
 
 #include "common/egl_g3d_loader.h"
 #include "state_tracker/st_gl_api.h"
+#include "state_tracker/drm_driver.h"
 #include "vg_api.h"
 #include "target-helpers/inline_sw_helper.h"
 #include "target-helpers/inline_debug_helper.h"
@@ -73,7 +74,11 @@ guess_gl_api(enum st_profile_type profile)
 static struct pipe_screen *
 create_drm_screen(const char *name, int fd)
 {
+#if FEATURE_DRM
+   return driver_descriptor.create_screen(fd);
+#else
    return NULL;
+#endif
 }
 
 static struct pipe_screen *
