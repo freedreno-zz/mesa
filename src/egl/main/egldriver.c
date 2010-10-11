@@ -40,6 +40,9 @@ const struct {
 #ifdef _EGL_BUILT_IN_DRIVER_GALLIUM
    { "egl_gallium", _eglBuiltInDriverGALLIUM },
 #endif
+#ifdef _EGL_BUILT_IN_DRIVER_ANDROID
+   { "egl_android", _eglBuiltInDriverANDROID },
+#endif
 #ifdef _EGL_BUILT_IN_DRIVER_DRI2
    { "egl_dri2", _eglBuiltInDriverDRI2 },
 #endif
