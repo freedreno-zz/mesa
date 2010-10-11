@@ -40,6 +40,11 @@
 /* for struct winsys_handle */
 #include "state_tracker/drm_driver.h"
 
+#ifdef EGL_ANDROID_image_native_buffer
+#include <ui/android_native_buffer.h>
+#include "android/android_sw_winsys.h"
+#endif
+
 /**
  * Reference and return the front left buffer of the native pixmap.
  */
@@ -179,6 +184,67 @@ egl_g3d_reference_drm_buffer(_EGLDisplay *dpy, EGLint name,
 
 #endif /* EGL_MESA_drm_image */
 
+#ifdef EGL_ANDROID_image_native_buffer
+
+static struct pipe_resource *
+egl_g3d_reference_android_native_buffer(_EGLDisplay *dpy,
+                                        struct android_native_buffer_t *buf)
+{
+   struct egl_g3d_display *gdpy = egl_g3d_display(dpy);
+   struct pipe_screen *screen = gdpy->native->screen;
+   enum pipe_format format;
+   struct pipe_resource templ, *res;
+   struct android_winsys_handle handle;
+
+   if (!buf || buf->common.magic != ANDROID_NATIVE_BUFFER_MAGIC ||
+       buf->common.version != sizeof(*buf)) {
+      _eglError(EGL_BAD_PARAMETER, "eglCreateEGLImageKHR");
+      return NULL;
+   }
+
+   switch (buf->format) {
+   case HAL_PIXEL_FORMAT_RGBA_8888:
+      format = PIPE_FORMAT_R8G8B8A8_UNORM;
+      break;
+   case HAL_PIXEL_FORMAT_RGBX_8888:
+      format = PIPE_FORMAT_R8G8B8X8_UNORM;
+      break;
+   case HAL_PIXEL_FORMAT_RGB_888:
+      format = PIPE_FORMAT_R8G8B8_UNORM;
+      break;
+   case HAL_PIXEL_FORMAT_RGB_565:
+      format = PIPE_FORMAT_B5G6R5_UNORM;
+      break;
+   case HAL_PIXEL_FORMAT_BGRA_8888:
+      format = PIPE_FORMAT_B8G8R8A8_UNORM;
+      break;
+   case HAL_PIXEL_FORMAT_RGBA_5551:
+   case HAL_PIXEL_FORMAT_RGBA_4444:
+      /* unsupported */
+   default:
+      _eglLog(_EGL_WARNING, "unsupported native format 0x%x", buf->format);
+      return NULL;
+      break;
+   }
+
+   memset(&templ, 0, sizeof(templ));
+   templ.target = PIPE_TEXTURE_2D;
+   templ.format = format;
+   templ.bind = PIPE_BIND_RENDER_TARGET | PIPE_BIND_SAMPLER_VIEW;
+   templ.width0 = buf->width;
+   templ.height0 = buf->height;
+   templ.depth0 = 1;
+
+   res = gdpy->native->buffer->import_buffer(gdpy->native,
+         &templ, (void *) buf);
+   if (res)
+      buf->common.incRef(&buf->common);
+
+   return res;
+}
+
+#endif /* EGL_ANDROID_image_native_buffer */
+
 _EGLImage *
 egl_g3d_create_image(_EGLDriver *drv, _EGLDisplay *dpy, _EGLContext *ctx,
                      EGLenum target, EGLClientBuffer buffer,
@@ -199,6 +265,8 @@ egl_g3d_create_image(_EGLDriver *drv, _EGLDisplay *dpy, _EGLContext *ctx,
       return NULL;
    }
 
+   gimg->target = target;
+
    switch (target) {
    case EGL_NATIVE_PIXMAP_KHR:
       ptex = egl_g3d_reference_native_pixmap(dpy,
@@ -208,6 +276,13 @@ egl_g3d_create_image(_EGLDriver *drv, _EGLDisplay *dpy, _EGLContext *ctx,
    case EGL_DRM_BUFFER_MESA:
       ptex = egl_g3d_reference_drm_buffer(dpy,
             (EGLint) buffer, &gimg->base, attribs);
+      break;
+#endif
+#ifdef EGL_ANDROID_image_native_buffer
+   case EGL_NATIVE_BUFFER_ANDROID:
+      gimg->buffer = buffer;
+      ptex = egl_g3d_reference_android_native_buffer(dpy,
+            (struct android_native_buffer_t *) buffer);
       break;
 #endif
    default:
@@ -245,6 +320,14 @@ EGLBoolean
 egl_g3d_destroy_image(_EGLDriver *drv, _EGLDisplay *dpy, _EGLImage *img)
 {
    struct egl_g3d_image *gimg = egl_g3d_image(img);
+
+#ifdef EGL_ANDROID_image_native_buffer
+   if (gimg->target == EGL_NATIVE_BUFFER_ANDROID) {
+      struct android_native_buffer_t * buf =
+         (struct android_native_buffer_t *) gimg->buffer;
+      buf->common.decRef(&buf->common);
+   }
+#endif
 
    pipe_resource_reference(&gimg->texture, NULL);
    FREE(gimg);

@@ -93,6 +93,9 @@ struct egl_g3d_image {
    struct pipe_resource *texture;
    unsigned level;
    unsigned layer;
+
+   EGLenum target;
+   EGLClientBuffer buffer;
 };
 
 /* standard typecasts */

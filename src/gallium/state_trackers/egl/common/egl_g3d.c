@@ -121,6 +121,12 @@ egl_g3d_get_platform(_EGLDriver *drv, _EGLPlatformType plat)
          nplat = native_get_fbdev_platform();
 #endif
          break;
+      case _EGL_PLATFORM_ANDROID:
+         plat_name = "Android";
+#ifdef HAVE_ANDROID_BACKEND
+         nplat = native_get_android_platform();
+#endif
+         break;
       default:
          break;
       }
@@ -551,6 +557,11 @@ egl_g3d_initialize(_EGLDriver *drv, _EGLDisplay *dpy)
 
    if (dpy->Platform == _EGL_PLATFORM_WAYLAND && gdpy->native->buffer)
       dpy->Extensions.MESA_drm_image = EGL_TRUE;
+
+#ifdef EGL_ANDROID_image_native_buffer
+   if (dpy->Platform == _EGL_PLATFORM_ANDROID && gdpy->native->buffer)
+      dpy->Extensions.ANDROID_image_native_buffer = EGL_TRUE;
+#endif
 
    if (egl_g3d_add_configs(drv, dpy, 1) == 1) {
       _eglError(EGL_NOT_INITIALIZED, "eglInitialize(unable to add configs)");
