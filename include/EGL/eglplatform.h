@@ -84,6 +84,15 @@ typedef struct wl_egl_display *EGLNativeDisplayType;
 typedef struct wl_egl_pixmap  *EGLNativePixmapType;
 typedef struct wl_egl_window  *EGLNativeWindowType;
 
+#elif defined(ANDROID) /* Android */
+
+struct android_native_window_t;
+struct egl_native_pixmap_t;
+
+typedef struct android_native_window_t* EGLNativeWindowType;
+typedef struct egl_native_pixmap_t*     EGLNativePixmapType;
+typedef void*                           EGLNativeDisplayType;
+
 #elif defined(__unix__) || defined(__unix)
 
 #ifdef MESA_EGL_NO_X11_HEADERS
