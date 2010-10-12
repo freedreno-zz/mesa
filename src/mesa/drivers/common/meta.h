@@ -114,5 +114,8 @@ _mesa_meta_CopyConvolutionFilter2D(struct gl_context *ctx, GLenum target,
                                    GLenum internalFormat, GLint x, GLint y,
                                    GLsizei width, GLsizei height);
 
+extern void
+_mesa_meta_DrawTex(struct gl_context *ctx, GLfloat x, GLfloat y, GLfloat z,
+                   GLfloat width, GLfloat height);
 
 #endif /* META_H */

@@ -80,6 +80,20 @@ static const char *es2_extensions[] = {
    NULL,
 };
 
+void
+intelInitExtensionsES1(struct gl_context *ctx)
+{
+   int i;
+
+   /* Can't use driInitExtensions() since it uses extensions from
+    * main/remap_helper.h when called the first time. */
+
+   for (i = 0; es2_extensions[i]; i++)
+      _mesa_enable_extension(ctx, es2_extensions[i]);
+
+   _mesa_enable_extension(ctx, "GL_OES_draw_texture");
+}
+
 /**
  * \brief Extensions to disable.
  *
