@@ -174,6 +174,16 @@ static void _tnl_import_array( struct gl_context *ctx,
       case GL_HALF_FLOAT:
 	 convert_half_to_float(input, ptr, fptr, count, sz);
 	 break;
+      case GL_FIXED:
+         {
+            GLuint i, j;
+            for (i = 0; i < count; i++) {
+               const GLint *in = (GLint *) (ptr + i * input->StrideB);
+               for (j = 0; j < sz; j++)
+                  *fptr++ = *in++ / 65536.0f;
+            }
+         }
+         break;
       default:
 	 assert(0);
 	 break;
