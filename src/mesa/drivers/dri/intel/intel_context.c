@@ -420,6 +420,32 @@ intel_update_renderbuffers(__DRIcontext *context, __DRIdrawable *drawable)
        }
    }
 
+#ifdef ANDROID
+   depth_rb = intel_get_renderbuffer(fb, BUFFER_DEPTH);
+   stencil_rb = intel_get_renderbuffer(fb, BUFFER_STENCIL);
+   rb = NULL;
+   if (depth_rb && !depth_rb->region)
+      rb = depth_rb;
+   else if (stencil_rb && !stencil_rb->region)
+      rb = stencil_rb;
+   if (rb) {
+      uint32_t tiling = I915_TILING_NONE;
+
+      /* Gen6 requires depth must be tiling */
+      if (intel->gen >= 6 && rb->Base.Format == MESA_FORMAT_S8_Z24)
+         tiling = I915_TILING_Y;
+
+      region = intel_region_alloc(intel->intelScreen, tiling,
+            _mesa_get_format_bytes(rb->Base.Format),
+            drawable->w, drawable->h, GL_TRUE);
+      intel_renderbuffer_set_region(intel, rb, region);
+      intel_region_release(&region);
+   }
+
+   if (stencil_rb && !stencil_rb->region)
+      intel_renderbuffer_set_region(intel, stencil_rb, depth_rb->region);
+#endif
+
    driUpdateFramebufferSize(&intel->ctx, drawable);
 }
 
