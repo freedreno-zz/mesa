@@ -89,6 +89,11 @@ intelInitExtensionsES1(struct gl_context *ctx)
    for (i = 0; es2_extensions[i]; i++)
       _mesa_enable_extension(ctx, es2_extensions[i]);
 
+   _mesa_enable_extension(ctx, "GL_ARB_texture_env_add");
+   _mesa_enable_extension(ctx, "GL_ARB_texture_env_combine");
+   _mesa_enable_extension(ctx, "GL_ARB_texture_env_dot3");
+   _mesa_enable_extension(ctx, "GL_ARB_point_parameters");
+
    _mesa_enable_extension(ctx, "GL_OES_draw_texture");
 }
 
