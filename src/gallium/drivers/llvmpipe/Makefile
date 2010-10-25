@@ -70,7 +70,7 @@ PROGS_DEPS := ../../auxiliary/libgallium.a
 include ../../Makefile.template
 
 lp_tile_soa.c: lp_tile_soa.py ../../auxiliary/util/u_format_parse.py ../../auxiliary/util/u_format_pack.py ../../auxiliary/util/u_format.csv
-	python lp_tile_soa.py ../../auxiliary/util/u_format.csv > $@
+	$(PYTHON2) $(PYTHON_FLAGS) lp_tile_soa.py ../../auxiliary/util/u_format.csv > $@
 
 LDFLAGS += $(LLVM_LDFLAGS)
 LIBS += -L../../auxiliary/ -lgallium libllvmpipe.a $(LLVM_LIBS) $(GL_LIB_DEPS)
