@@ -167,6 +167,7 @@ common_CFLAGS := \
 	-DPTHREADS \
 	-DFEATURE_GL=1 \
 	-DFEATURE_ES1=1 \
+	-DFEATURE_ES2=1 \
 	-fvisibility=hidden \
 	-Wno-sign-compare
 

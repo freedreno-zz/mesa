@@ -16,6 +16,14 @@ glapi_C_INCLUDES := \
 	external/mesa/include \
 	external/mesa/src/mapi
 
+# use x86 assembly to generate ES2 entries on the fly
+glapi_SOURCES += \
+	$(addprefix es1api/glapi/, $(X86_API))
+glapi_CFLAGS += \
+	-DUSE_X86_ASM
+glapi_C_INCLUDES += \
+	external/mesa/src/mesa
+
 include $(CLEAR_VARS)
 
 LOCAL_MODULE := libmesa_glapi
