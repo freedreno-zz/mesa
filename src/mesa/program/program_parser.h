@@ -22,8 +22,10 @@
  */
 #pragma once
 
+#include <stdbool.h>
 #include "main/config.h"
 #include "main/mtypes.h"
+#include "list.h"
 
 struct gl_context;
 
@@ -121,6 +123,60 @@ struct asm_src_register {
 };
 
 
+struct asm_opcode {
+   /**
+    * This should be 'enum ir_expression_operation', but it can't be.  This
+    * file is included in C source, and the enum comes from a C++ header.  The
+    * rules for enums in C and C++ are so broken that you can't declare an
+    * enum varaible without having seen the full enum declaration.  Even after
+    * seeing it, the compiler is just going to allocate an int, so WTF?
+    */
+   unsigned opcode;
+
+   /**
+    * Indicates that the instruction should update the condition code
+    * register.
+    *
+    * \since
+    * NV_fragment_program, NV_fragment_program_option, NV_vertex_program2,
+    * NV_vertex_program2_option.
+    */
+   unsigned cond_update:1;
+
+   /**
+    * If prog_instruction::CondUpdate is \c GL_TRUE, this value selects the
+    * condition code register that is to be updated.
+    *
+    * In GL_NV_fragment_program or GL_NV_vertex_program2 mode, only condition
+    * code register 0 is available.  In GL_NV_vertex_program3 mode, condition
+    * code registers 0 and 1 are available.
+    *
+    * \since
+    * NV_fragment_program, NV_fragment_program_option, NV_vertex_program2,
+    * NV_vertex_program2_option.
+    */
+   unsigned cond_dst:1;
+
+   /**
+    * Saturate each value of the vectored result to the range [0,1] or the
+    * range [-1,1].  \c SSAT mode (i.e., saturation to the range [-1,1]) is
+    * only available in NV_fragment_program2 mode.
+    * Value is one of the SATURATE_* tokens.
+    *
+    * \since
+    * NV_fragment_program, NV_fragment_program_option, NV_vertex_program3.
+    */
+   unsigned saturate_mode:2;
+
+   /**
+    * Per-instruction selectable precision: FLOAT32, FLOAT16, FIXED12.
+    *
+    * \since
+    * NV_fragment_program, NV_fragment_program_option.
+    */
+   unsigned precision:3;
+};
+
 struct asm_instruction {
    struct prog_instruction Base;
    struct asm_instruction *next;
@@ -137,6 +193,7 @@ enum asm_program_target {
 struct asm_parser_state {
    struct gl_context *ctx;
    struct gl_program *prog;
+   struct exec_list ir;
 
    /**
     * Per-program target limits
@@ -236,6 +293,9 @@ typedef struct YYLTYPE {
 #define YYLTYPE_IS_DECLARED 1
 #define YYLTYPE_IS_TRIVIAL 1
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 extern GLboolean _mesa_parse_arb_program(struct gl_context *ctx, GLenum target,
     const GLubyte *str, GLsizei len, struct asm_parser_state *state);
@@ -284,7 +344,7 @@ extern int _mesa_ARBfp_parse_option(struct asm_parser_state *state,
  * Non-zero on success, zero on failure.
  */
 extern int _mesa_parse_instruction_suffix(const struct asm_parser_state *state,
-    const char *suffix, struct prog_instruction *inst);
+    const char *suffix, struct asm_opcode *inst);
 
 /**
  * Parses a condition code name
@@ -298,5 +358,9 @@ extern int _mesa_parse_instruction_suffix(const struct asm_parser_state *state,
  * on failure.
  */
 extern int _mesa_parse_cc(const char *s);
+
+#ifdef __cplusplus
+};
+#endif
 
 /*@}*/

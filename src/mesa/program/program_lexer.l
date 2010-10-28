@@ -21,11 +21,17 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  */
+
+extern "C" {
 #include "main/glheader.h"
 #include "main/imports.h"
 #include "program/prog_instruction.h"
 #include "program/prog_statevars.h"
 #include "program/symbol_table.h"
+};
+
+#include "glsl_types.h"
+#include "ir.h"
 #include "program/program_parser.h"
 #include "program/program_parse.tab.h"
 
@@ -60,18 +66,33 @@
    } while (0)
 
 
-#define return_opcode(condition, token, opcode, len)	\
+#define return_opcode(condition, token, len)		\
    do {							\
       if (condition &&					\
 	  _mesa_parse_instruction_suffix(yyextra,	\
 					 yytext + len,	\
-					 & yylval->temp_inst)) {	\
-	 yylval->temp_inst.Opcode = OPCODE_ ## opcode;	\
+					 & yylval->opcode)) {	\
+	 yylval->opcode.opcode = 0;			\
 	 return token;					\
       } else {						\
 	 return handle_ident(yyextra, yytext, yylval);	\
       }							\
    } while (0)
+
+
+#define return_common(condition, token, _opcode, len)	\
+   do {							\
+      if (condition &&					\
+	  _mesa_parse_instruction_suffix(yyextra,	\
+					 yytext + len,	\
+					 & yylval->opcode)) {	\
+	yylval->opcode.opcode = _opcode;		\
+	 return token;					\
+      } else {						\
+	 return handle_ident(yyextra, yytext, yylval);	\
+      }							\
+   } while (0)
+
 
 #define SWIZZLE_INVAL  MAKE_SWIZZLE4(SWIZZLE_NIL, SWIZZLE_NIL, \
 				     SWIZZLE_NIL, SWIZZLE_NIL)
@@ -182,74 +203,76 @@ OUTPUT                    { return OUTPUT; }
 PARAM                     { return PARAM; }
 TEMP                      { yylval->integer = at_temp; return TEMP; }
 
-ABS{sz}{cc}{sat}   { return_opcode(             1, VECTOR_OP, ABS, 3); }
-ADD{sz}{cc}{sat}   { return_opcode(             1, BIN_OP, ADD, 3); }
-ARL                { return_opcode(require_ARB_vp, ARL, ARL, 3); }
+ABS{sz}{cc}{sat}   { return_common(          true, VECTOR_OP, ir_unop_abs, 3); }
+ADD{sz}{cc}{sat}   { return_common(          true, BIN_OP, ir_binop_add, 3); }
+ARL                { return_opcode(require_ARB_vp, ARL, 3); }
 
-CMP{sat}           { return_opcode(require_ARB_fp, TRI_OP, CMP, 3); }
-COS{szf}{cc}{sat}  { return_opcode(require_ARB_fp, SCALAR_OP, COS, 3); }
+CMP{sat}           { return_opcode(require_ARB_fp, CMP_OP, 3); }
+COS{szf}{cc}{sat}  { return_common(require_ARB_fp, SCALAR_OP, ir_unop_cos, 3); }
 
-DDX{szf}{cc}{sat}  { return_opcode(require_NV_fp,  VECTOR_OP, DDX, 3); }
-DDY{szf}{cc}{sat}  { return_opcode(require_NV_fp,  VECTOR_OP, DDY, 3); }
-DP3{sz}{cc}{sat}   { return_opcode(             1, BIN_OP, DP3, 3); }
-DP4{sz}{cc}{sat}   { return_opcode(             1, BIN_OP, DP4, 3); }
-DPH{sz}{cc}{sat}   { return_opcode(             1, BIN_OP, DPH, 3); }
-DST{szf}{cc}{sat}  { return_opcode(             1, BIN_OP, DST, 3); }
+DDX{szf}{cc}{sat}  { return_common(require_NV_fp,  VECTOR_OP, ir_unop_dFdx, 3); }
+DDY{szf}{cc}{sat}  { return_common(require_NV_fp,  VECTOR_OP, ir_unop_dFdy, 3); }
+DP3{sz}{cc}{sat}   { return_opcode(          true, DP3_OP, 3); }
+DP4{sz}{cc}{sat}   { return_opcode(          true, DP4_OP, 3); }
+DPH{sz}{cc}{sat}   { return_opcode(          true, DPH_OP, 3); }
+DST{szf}{cc}{sat}  { return_opcode(          true, DST_OP, 3); }
 
-EX2{szf}{cc}{sat}  { return_opcode(             1, SCALAR_OP, EX2, 3); }
-EXP                { return_opcode(require_ARB_vp, SCALAR_OP, EXP, 3); }
+EX2{szf}{cc}{sat}  { return_common(          true, SCALAR_OP, ir_unop_exp, 3); }
+    /* FINISHME: Somehow communicate that this is the low precision version. */
+EXP                { return_common(require_ARB_vp, SCALAR_OP, ir_unop_exp, 3); }
 
-FLR{sz}{cc}{sat}   { return_opcode(             1, VECTOR_OP, FLR, 3); }
-FRC{sz}{cc}{sat}   { return_opcode(             1, VECTOR_OP, FRC, 3); }
+FLR{sz}{cc}{sat}   { return_common(          true, VECTOR_OP, ir_unop_floor, 3); }
+FRC{sz}{cc}{sat}   { return_common(          true, VECTOR_OP, ir_unop_fract, 3); }
 
-KIL                { return_opcode(require_ARB_fp, KIL, KIL, 3); }
+KIL                { return_opcode(require_ARB_fp, KIL, 3); }
 
-LIT{szf}{cc}{sat}  { return_opcode(             1, VECTOR_OP, LIT, 3); }
-LG2{szf}{cc}{sat}  { return_opcode(             1, SCALAR_OP, LG2, 3); }
-LOG                { return_opcode(require_ARB_vp, SCALAR_OP, LOG, 3); }
-LRP{sz}{cc}{sat}   { return_opcode(require_ARB_fp, TRI_OP, LRP, 3); }
+LIT{szf}{cc}{sat}  { return_common(          true, VECTOR_OP, ir_unop_lit, 3); }
+LG2{szf}{cc}{sat}  { return_common(          true, SCALAR_OP, ir_unop_log, 3); }
+    /* FINISHME: Somehow communicate that this is the low precision version. */
+LOG                { return_common(require_ARB_vp, SCALAR_OP, ir_unop_log, 3); }
+LRP{sz}{cc}{sat}   { return_opcode(require_ARB_fp, LRP_OP, 3); }
 
-MAD{sz}{cc}{sat}   { return_opcode(             1, TRI_OP, MAD, 3); }
-MAX{sz}{cc}{sat}   { return_opcode(             1, BIN_OP, MAX, 3); }
-MIN{sz}{cc}{sat}   { return_opcode(             1, BIN_OP, MIN, 3); }
-MOV{sz}{cc}{sat}   { return_opcode(             1, VECTOR_OP, MOV, 3); }
-MUL{sz}{cc}{sat}   { return_opcode(             1, BIN_OP, MUL, 3); }
+MAD{sz}{cc}{sat}   { return_common(          true, MAD_OP, ir_binop_mul, 3); }
+MAX{sz}{cc}{sat}   { return_common(          true, BIN_OP, ir_binop_max, 3); }
+MIN{sz}{cc}{sat}   { return_common(          true, BIN_OP, ir_binop_min, 3); }
+MOV{sz}{cc}{sat}   { return_common(          true, MOV_OP, ir_binop_add, 3); }
+MUL{sz}{cc}{sat}   { return_common(          true, BIN_OP, ir_binop_mul, 3); }
 
-PK2H               { return_opcode(require_NV_fp,  VECTOR_OP, PK2H, 4); }
-PK2US              { return_opcode(require_NV_fp,  VECTOR_OP, PK2US, 5); }
-PK4B               { return_opcode(require_NV_fp,  VECTOR_OP, PK4B, 4); }
-PK4UB              { return_opcode(require_NV_fp,  VECTOR_OP, PK4UB, 5); }
-POW{szf}{cc}{sat}  { return_opcode(             1, BINSC_OP, POW, 3); }
+PK2H               { return_opcode(require_NV_fp,  PACK_OP, 4); }
+PK2US              { return_opcode(require_NV_fp,  PACK_OP, 5); }
+PK4B               { return_opcode(require_NV_fp,  PACK_OP, 4); }
+PK4UB              { return_opcode(require_NV_fp,  PACK_OP, 5); }
+POW{szf}{cc}{sat}  { return_common(          true, BINSC_OP, ir_binop_pow, 3); }
 
-RCP{szf}{cc}{sat}  { return_opcode(             1, SCALAR_OP, RCP, 3); }
-RFL{szf}{cc}{sat}  { return_opcode(require_NV_fp,  BIN_OP,    RFL, 3); }
-RSQ{szf}{cc}{sat}  { return_opcode(             1, SCALAR_OP, RSQ, 3); }
+RCP{szf}{cc}{sat}  { return_common(          true, SCALAR_OP, ir_unop_rcp, 3); }
+RFL{szf}{cc}{sat}  { return_opcode(require_NV_fp,  RFL_OP, 3); }
+RSQ{szf}{cc}{sat}  { return_common(          true, SCALAR_OP, ir_unop_rsq, 3); }
 
-SCS{sat}           { return_opcode(require_ARB_fp, SCALAR_OP, SCS, 3); }
-SEQ{sz}{cc}{sat}   { return_opcode(require_NV_fp,  BIN_OP, SEQ, 3); }
-SFL{sz}{cc}{sat}   { return_opcode(require_NV_fp,  BIN_OP, SFL, 3); }
-SGE{sz}{cc}{sat}   { return_opcode(             1, BIN_OP, SGE, 3); }
-SGT{sz}{cc}{sat}   { return_opcode(require_NV_fp,  BIN_OP, SGT, 3); }
-SIN{szf}{cc}{sat}  { return_opcode(require_ARB_fp, SCALAR_OP, SIN, 3); }
-SLE{sz}{cc}{sat}   { return_opcode(require_NV_fp,  BIN_OP, SLE, 3); }
-SLT{sz}{cc}{sat}   { return_opcode(             1, BIN_OP, SLT, 3); }
-SNE{sz}{cc}{sat}   { return_opcode(require_NV_fp,  BIN_OP, SNE, 3); }
-STR{sz}{cc}{sat}   { return_opcode(require_NV_fp,  BIN_OP, STR, 3); }
-SUB{sz}{cc}{sat}   { return_opcode(             1, BIN_OP, SUB, 3); }
-SWZ{sat}           { return_opcode(             1, SWZ, SWZ, 3); }
+SCS{sat}           { return_opcode(require_ARB_fp, SCS_OP, 3); }
+SEQ{sz}{cc}{sat}   { return_common(require_NV_fp,  SET_OP, ir_binop_equal, 3); }
+SFL{sz}{cc}{sat}   { return_opcode(require_NV_fp,  SFL_OP, 3); }
+SGE{sz}{cc}{sat}   { return_common(          true, SET_OP, ir_binop_gequal, 3); }
+SGT{sz}{cc}{sat}   { return_common(require_NV_fp,  SET_OP, ir_binop_greater, 3); }
+SIN{szf}{cc}{sat}  { return_common(require_ARB_fp, SCALAR_OP, ir_unop_sin, 3); }
+SLE{sz}{cc}{sat}   { return_common(require_NV_fp,  SET_OP, ir_binop_lequal, 3); }
+SLT{sz}{cc}{sat}   { return_common(          true, SET_OP, ir_binop_less, 3); }
+SNE{sz}{cc}{sat}   { return_common(require_NV_fp,  SET_OP, ir_binop_nequal, 3); }
+STR{sz}{cc}{sat}   { return_opcode(require_NV_fp,  STR_OP, 3); }
+SUB{sz}{cc}{sat}   { return_common(          true, BIN_OP, ir_binop_sub, 3); }
+SWZ{sat}           { return_opcode(          true, SWZ_OP, 3); }
 
-TEX{cc}{sat}       { return_opcode(require_ARB_fp, SAMPLE_OP, TEX, 3); }
-TXB{cc}{sat}       { return_opcode(require_ARB_fp, SAMPLE_OP, TXB, 3); }
-TXD{cc}{sat}       { return_opcode(require_NV_fp,  TXD_OP, TXD, 3); }
-TXP{cc}{sat}       { return_opcode(require_ARB_fp, SAMPLE_OP, TXP, 3); }
+TEX{cc}{sat}       { return_opcode(require_ARB_fp, TEX_OP, 3); }
+TXB{cc}{sat}       { return_opcode(require_ARB_fp, TXB_OP, 3); }
+TXD{cc}{sat}       { return_opcode(require_NV_fp,  TXD_OP, 3); }
+TXP{cc}{sat}       { return_opcode(require_ARB_fp, TXP_OP, 3); }
 
-UP2H{cc}{sat}      { return_opcode(require_NV_fp,  SCALAR_OP, UP2H, 4); }
-UP2US{cc}{sat}     { return_opcode(require_NV_fp,  SCALAR_OP, UP2US, 5); }
-UP4B{cc}{sat}      { return_opcode(require_NV_fp,  SCALAR_OP, UP4B, 4); }
-UP4UB{cc}{sat}     { return_opcode(require_NV_fp,  SCALAR_OP, UP4UB, 5); }
+UP2H{cc}{sat}      { return_opcode(require_NV_fp,  UNPACK_OP, 4); }
+UP2US{cc}{sat}     { return_opcode(require_NV_fp,  UNPACK_OP, 5); }
+UP4B{cc}{sat}      { return_opcode(require_NV_fp,  UNPACK_OP, 4); }
+UP4UB{cc}{sat}     { return_opcode(require_NV_fp,  UNPACK_OP, 5); }
 
-X2D{szf}{cc}{sat}  { return_opcode(require_NV_fp,  TRI_OP, X2D, 3); }
-XPD{sat}           { return_opcode(             1, BIN_OP, XPD, 3); }
+X2D{szf}{cc}{sat}  { return_opcode(require_NV_fp,  X2D_OP, 3); }
+XPD{sat}           { return_opcode(          true, XPD_OP, 3); }
 
 vertex                    { return_token_or_IDENTIFIER(require_ARB_vp, VERTEX); }
 fragment                  { return_token_or_IDENTIFIER(require_ARB_fp, FRAGMENT); }

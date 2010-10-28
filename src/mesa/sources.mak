@@ -240,7 +240,6 @@ STATETRACKER_SOURCES = \
 PROGRAM_SOURCES = \
 	program/arbprogparse.c \
 	program/hash_table.c \
-	program/lex.yy.c \
 	program/nvfragparse.c \
 	program/nvvertparse.c \
 	program/program.c \
@@ -261,6 +260,7 @@ PROGRAM_SOURCES = \
 
 
 SHADER_CXX_SOURCES = \
+	program/program_lexer.cpp \
 	program/program_parse.cpp \
 	program/ir_to_mesa.cpp \
 	program/sampler.cpp

@@ -35,15 +35,37 @@ extern "C" {
 #include "program/prog_instruction.h"
 
 #include "program/symbol_table.h"
-#include "program/program_parser.h"
 
 extern void *yy_scan_string(char *);
 extern void yy_delete_buffer(void *);
-extern int yylex(union YYSTYPE*, struct YYLTYPE*, void*);
 };
 
-static struct asm_symbol *declare_variable(struct asm_parser_state *state,
-    char *name, enum asm_type t, struct YYLTYPE *locp);
+extern int yylex(union YYSTYPE*, struct YYLTYPE*, void*);
+
+#include "glsl_types.h"
+#include "ir.h"
+#include "program/program_parser.h"
+
+static ir_rvalue *saturate_value(void *mem_ctx, unsigned saturate_mode,
+    ir_rvalue *expr);
+
+static ir_rvalue *generate_rhs_for_write_mask(void *mem_ctx,
+    unsigned write_mask, ir_rvalue *v);
+
+static ir_assignment *emit_vector_assignment(void *mem_ctx,
+    ir_dereference *dst, unsigned write_mask, unsigned saturate_mode,
+    ir_rvalue *v);
+
+static ir_assignment *emit_scalar_assignment(void *mem_ctx,
+    ir_dereference *dst, unsigned write_mask, unsigned saturate_mode,
+    ir_rvalue *sc);
+
+static ir_texture *texture_instruction_common(struct asm_parser_state *state,
+    enum ir_texture_opcode opcode, ir_rvalue *tex_coord, unsigned unit,
+    const glsl_type *sampler_type, struct YYLTYPE *sampler_loc);
+
+static bool declare_variable(struct asm_parser_state *state, ir_variable *var,
+    enum asm_type t, struct YYLTYPE *locp);
 
 static int add_state_reference(struct gl_program_parameter_list *param_list,
     const gl_state_index tokens[STATE_LENGTH]);
@@ -54,10 +76,6 @@ static int initialize_symbol_from_state(struct gl_program *prog,
 static int initialize_symbol_from_param(struct gl_program *prog,
     struct asm_symbol *param_var, const unsigned tokens[STATE_LENGTH]);
 
-static int initialize_symbol_from_const(struct gl_program *prog,
-    struct asm_symbol *param_var, const struct asm_vector *vec,
-    GLboolean allowSwizzle);
-
 static int yyparse(struct asm_parser_state *state);
 
 static char *make_error_string(const char *fmt, ...);
@@ -67,37 +85,6 @@ static void yyerror(struct YYLTYPE *locp, struct asm_parser_state *state,
 
 static int validate_inputs(struct YYLTYPE *locp,
     struct asm_parser_state *state);
-
-static void init_dst_reg(struct prog_dst_register *r);
-
-static void set_dst_reg(struct prog_dst_register *r,
-                        gl_register_file file, GLint index);
-
-static void init_src_reg(struct asm_src_register *r);
-
-static void set_src_reg(struct asm_src_register *r,
-                        gl_register_file file, GLint index);
-
-static void set_src_reg_swz(struct asm_src_register *r,
-                            gl_register_file file, GLint index, GLuint swizzle);
-
-static void asm_instruction_set_operands(struct asm_instruction *inst,
-    const struct prog_dst_register *dst, const struct asm_src_register *src0,
-    const struct asm_src_register *src1, const struct asm_src_register *src2);
-
-static struct asm_instruction *asm_instruction_ctor(gl_inst_opcode op,
-    const struct prog_dst_register *dst, const struct asm_src_register *src0,
-    const struct asm_src_register *src1, const struct asm_src_register *src2);
-
-static struct asm_instruction *asm_instruction_copy_ctor(
-    const struct prog_instruction *base, const struct prog_dst_register *dst,
-    const struct asm_src_register *src0, const struct asm_src_register *src1,
-    const struct asm_src_register *src2);
-
-#ifndef FALSE
-#define FALSE 0
-#define TRUE (!FALSE)
-#endif
 
 #define YYLLOC_DEFAULT(Current, Rhs, N)					\
    do {									\
@@ -127,13 +114,10 @@ static struct asm_instruction *asm_instruction_copy_ctor(
 %lex-param { void *scanner }
 
 %union {
-   struct asm_instruction *inst;
-   struct asm_symbol *sym;
+   ir_instruction *inst;
    struct asm_symbol temp_sym;
    struct asm_swizzle_mask swiz_mask;
-   struct asm_src_register src_reg;
    struct prog_dst_register dst_reg;
-   struct prog_instruction temp_inst;
    char *string;
    unsigned result;
    unsigned attrib;
@@ -141,8 +125,18 @@ static struct asm_instruction *asm_instruction_copy_ctor(
    float real;
    unsigned state[STATE_LENGTH];
    int negate;
-   struct asm_vector vector;
-   gl_inst_opcode opcode;
+
+   ir_variable *var;
+   ir_rvalue *rvalue;
+
+   struct asm_opcode opcode;
+
+   struct {
+      ir_dereference *deref;
+      unsigned write_mask;
+   } lvalue;
+
+   const glsl_type *type;
 
    struct {
       unsigned swz;
@@ -163,8 +157,11 @@ static struct asm_instruction *asm_instruction_copy_ctor(
 %token END
 
  /* Tokens for instructions */
-%token <temp_inst> BIN_OP BINSC_OP SAMPLE_OP SCALAR_OP TRI_OP VECTOR_OP
-%token <temp_inst> ARL KIL SWZ TXD_OP
+%token <opcode> BIN_OP BINSC_OP SAMPLE_OP SCALAR_OP VECTOR_OP
+%token <opcode> ARL KIL CMP_OP DP3_OP DP4_OP DPH_OP DST_OP
+%token <opcode> LRP_OP MAD_OP MOV_OP PACK_OP
+%token <opcode> RFL_OP SCS_OP SET_OP SFL_OP STR_OP SWZ_OP
+%token <opcode> TEX_OP TXB_OP TXD_OP TXP_OP UNPACK_OP X2D_OP XPD_OP
 
 %token <integer> INTEGER
 %token <real> REAL
@@ -203,16 +200,18 @@ static struct asm_instruction *asm_instruction_copy_ctor(
 %type <inst> TRIop_instruction TXD_instruction SWZ_instruction SAMPLE_instruction
 %type <inst> KIL_instruction
 
-%type <dst_reg> dstReg maskedDstReg maskedAddrReg
-%type <src_reg> srcReg scalarUse scalarSrcReg swizzleSrcReg
+%type <var> dstReg
+%type <lvalue> maskedDstReg
+%type <rvalue> maskedAddrReg
+%type <rvalue> srcReg scalarUse scalarSrcReg swizzleSrcReg
 %type <swiz_mask> scalarSuffix swizzleSuffix extendedSwizzle
 %type <ext_swizzle> extSwizComp extSwizSel
 %type <swiz_mask> optionalMask
 
-%type <sym> progParamArray
+%type <rvalue> progParamArray
 %type <integer> addrRegRelOffset addrRegPosOffset addrRegNegOffset
-%type <src_reg> progParamArrayMem progParamArrayAbs progParamArrayRel
-%type <sym> addrReg
+%type <rvalue> progParamArrayMem progParamArrayAbs progParamArrayRel
+%type <var> addrReg
 %type <swiz_mask> addrComponent addrWriteMask
 
 %type <dst_reg> ccMaskRule ccTest ccMaskRule2 ccTest2 optionalCcMask
@@ -224,7 +223,8 @@ static struct asm_instruction *asm_instruction_copy_ctor(
 %type <integer> optTexImageUnitNum texImageUnitNum
 %type <integer> optTexCoordUnitNum texCoordUnitNum
 %type <integer> optLegacyTexUnitNum legacyTexUnitNum
-%type <integer> texImageUnit texTarget
+%type <integer> texImageUnit
+%type <type> texTarget
 %type <integer> vtxAttribNum
 
 %type <attrib> attribBinding vtxAttribItem fragAttribItem
@@ -261,13 +261,13 @@ static struct asm_instruction *asm_instruction_copy_ctor(
 %type <state> programMultipleItem progEnvParams progLocalParams
 
 %type <temp_sym> paramMultipleInit paramMultInitList paramMultipleItem
-%type <temp_sym> paramSingleItemUse
+%type <rvalue> paramSingleItemUse
 
 %type <integer> progEnvParamNum progLocalParamNum
 %type <state> progEnvParamNums progLocalParamNums
 
-%type <vector> paramConstDecl paramConstUse
-%type <vector> paramConstScalarDecl paramConstScalarUse paramConstVector
+%type <rvalue> paramConstDecl paramConstUse
+%type <rvalue> paramConstScalarDecl paramConstScalarUse paramConstVector
 %type <real> signedFloatConstant
 %type <negate> optionalSign
 
@@ -336,15 +336,7 @@ statementSequence: statementSequence statement
 statement: instruction ';'
 	{
 	   if ($1 != NULL) {
-	      if (state->inst_tail == NULL) {
-		 state->inst_head = $1;
-	      } else {
-		 state->inst_tail->next = $1;
-	      }
-
-	      state->inst_tail = $1;
-	      $1->next = NULL;
-
+	      state->ir.push_tail($1);
 	      state->prog->NumInstructions++;
 	   }
 	}
@@ -379,142 +371,562 @@ TexInstruction: SAMPLE_instruction
 
 ARL_instruction: ARL maskedAddrReg ',' scalarSrcReg
 	{
-	   $$ = asm_instruction_ctor(OPCODE_ARL, & $2, & $4, NULL, NULL);
+	   ir_expression *f2i =
+	      new(state) ir_expression(ir_unop_f2i, glsl_type::int_type, $4);
+
+	   $$ = new(state) ir_assignment($2, f2i, NULL);
 	}
 	;
 
 VECTORop_instruction: VECTOR_OP maskedDstReg ',' swizzleSrcReg
 	{
-	   $$ = asm_instruction_copy_ctor(& $1, & $2, & $4, NULL, NULL);
+	   ir_rvalue *expr =
+	      new(state) ir_expression($1.opcode, $4->type, $4);
+
+	   $$ = emit_vector_assignment(state, $2.deref, $2.write_mask,
+				       $1.saturate_mode, expr);
+	}
+	| MOV_OP maskedDstReg ',' swizzleSrcReg
+	{
+	   $$ = emit_vector_assignment(state, $2.deref, $2.write_mask,
+				       $1.saturate_mode, $4);
+	}
+	| PACK_OP maskedDstReg ',' swizzleSrcReg
+	{
+	   /* FINISHME: Add support for "pack" opcodes.
+	    */
+	   $$ = NULL;
 	}
 	;
 
 SCALARop_instruction: SCALAR_OP maskedDstReg ',' scalarSrcReg
 	{
-	   $$ = asm_instruction_copy_ctor(& $1, & $2, & $4, NULL, NULL);
+	   ir_rvalue *expr = new(state) ir_expression($1.opcode, $4->type, $4);
+
+	   $$ = emit_scalar_assignment(state, $2.deref, $2.write_mask,
+				       $1.saturate_mode, expr);
+	}
+	| SCS_OP maskedDstReg ',' scalarSrcReg
+	{
+	   ir_rvalue *const angle = $4;
+
+	   /* The ARB_fragment_program spec says, "The z and w components of
+	    * the result vector are undefined."  We'll simplify this by leaving
+	    * those components unmodified.
+	    */
+	   $2.write_mask &= WRITEMASK_XY;
+
+	   /* The only known architecture that implements an actual SCS
+	    * instruction is i965.  However, the driver doesn't use it.  For
+	    * that reason, emit SCS as separate instances of
+	    * ir_unop_sin_reduced and ir_unop_cos_reduced.
+	    *
+	    * Note that if the program contains an instruction like
+	    *
+	    *     SCS  d.wz, s.x;
+	    *
+	    * no code will be emitted.
+	    */
+	   if (($2.write_mask & WRITEMASK_X) != 0) {
+	      ir_rvalue *const sin_expr =
+		 new(state) ir_expression(ir_unop_sin_reduced,
+					  glsl_type::float_type, angle);
+	      ir_instruction *const inst =
+		 emit_vector_assignment(state,
+					$2.deref->clone(state, NULL),
+					WRITEMASK_X,
+					$1.saturate_mode,
+					sin_expr);
+	      state->ir.push_tail(inst);
+	   }
+
+	   if (($2.write_mask & WRITEMASK_Y) != 0) {
+	      ir_rvalue *const cos_expr =
+		 new(state) ir_expression(ir_unop_cos_reduced,
+					  glsl_type::float_type, angle);
+	      ir_instruction *const inst =
+		 emit_vector_assignment(state,
+					$2.deref->clone(state, NULL),
+					WRITEMASK_Y,
+					$1.saturate_mode,
+					cos_expr);
+	      state->ir.push_tail(inst);
+	   }
+
+	   $$ = NULL;
+	}
+	| UNPACK_OP maskedDstReg ',' scalarSrcReg
+	{
+	   /* FINISHME: Add support for "unpack" opcodes.
+	    */
+	   $$ = NULL;
 	}
 	;
 
 BINSCop_instruction: BINSC_OP maskedDstReg ',' scalarSrcReg ',' scalarSrcReg
 	{
-	   $$ = asm_instruction_copy_ctor(& $1, & $2, & $4, & $6, NULL);
+	   assert($1.opcode == ir_binop_pow);
+
+	   ir_rvalue *expr =
+	      new(state) ir_expression($1.opcode, $4->type, $4, $6);
+
+	   $$ = emit_scalar_assignment(state, $2.deref, $2.write_mask,
+				       $1.saturate_mode, expr);
 	}
 	;
-
 
 BINop_instruction: BIN_OP maskedDstReg ',' swizzleSrcReg ',' swizzleSrcReg
 	{
-	   $$ = asm_instruction_copy_ctor(& $1, & $2, & $4, & $6, NULL);
+	   ir_rvalue *expr =
+	      new(state) ir_expression($1.opcode, $4->type, $4, $6);
+
+	   $$ = emit_vector_assignment(state, $2.deref, $2.write_mask,
+				       $1.saturate_mode, expr);
+	}
+	| DP3_OP maskedDstReg ',' swizzleSrcReg ',' swizzleSrcReg
+	{
+	   /* Apply vec3 swizzles to the operands.
+	    */
+	   ir_rvalue *op0 = new(state) ir_swizzle($4, 0, 1, 2, 3, 3);
+	   ir_rvalue *op1 = new(state) ir_swizzle($6, 0, 1, 2, 3, 3);
+
+	   ir_rvalue *expr =
+	      new(state) ir_expression(ir_binop_dot, glsl_type::float_type,
+				       op0, op1);
+
+	   $$ = emit_scalar_assignment(state, $2.deref, $2.write_mask,
+				       $1.saturate_mode, expr);
+	}
+	| DP4_OP maskedDstReg ',' swizzleSrcReg ',' swizzleSrcReg
+	{
+	   ir_rvalue *expr =
+	      new(state) ir_expression(ir_binop_dot, glsl_type::float_type,
+				       $4, $6);
+
+	   $$ = emit_scalar_assignment(state, $2.deref, $2.write_mask,
+				       $1.saturate_mode, expr);
+	}
+	| DPH_OP maskedDstReg ',' swizzleSrcReg ',' swizzleSrcReg
+	{
+	   /* The first operand is replaced with vec4(op0.xyz, 1).  Note that
+	    * the operand is only cloned for two of the parameters of the
+	    * ir_quadop_vector operation.  This is intentional.
+	    */
+	   ir_rvalue *const op0 =
+	      new(state) ir_expression(ir_quadop_vector,
+				       glsl_type::vec4_type,
+				       new(state) ir_swizzle($4,
+							     0, 0, 0, 0, 1),
+				       new(state) ir_swizzle($4->clone(state, NULL),
+							     1, 0, 0, 0, 1),
+				       new(state) ir_swizzle($4->clone(state, NULL),
+							     2, 0, 0, 0, 1),
+				       new(state) ir_constant(1.0F));
+
+	   ir_rvalue *expr =
+	      new(state) ir_expression(ir_binop_dot, glsl_type::float_type,
+				       op0, $6);
+
+	   $$ = emit_scalar_assignment(state, $2.deref, $2.write_mask,
+				       $1.saturate_mode, expr);
+	}
+	| DST_OP maskedDstReg ',' swizzleSrcReg ',' swizzleSrcReg
+	{
+	   /* The ARB_vertex_program spec says that DST does:
+	    *    tmp0 = VectorLoad(op0);
+	    *    tmp1 = VectorLoad(op1);
+	    *    result.x = 1.0;
+	    *    result.y = tmp0.y * tmp1.y;
+	    *    result.z = tmp0.z;
+	    *    result.w = tmp1.w;
+	    *
+	    * This is implemented as:
+	    *
+	    *    result = vec4(1.0, op0.y, op0.z, 1.0)
+	    *           * vec4(1.0, op1.y, 1.0,   op1.w);
+	    */
+	   ir_rvalue *const op0 =
+	      new(state) ir_expression(ir_quadop_vector,
+				       glsl_type::vec4_type,
+				       new(state) ir_constant(1.0F),
+				       new(state) ir_swizzle($4,
+							     1, 0, 0, 0, 1),
+				       new(state) ir_swizzle($4->clone(state, NULL),
+							     2, 0, 0, 0, 1),
+				       new(state) ir_constant(1.0F));
+	   ir_rvalue *const op1 =
+	      new(state) ir_expression(ir_quadop_vector,
+				       glsl_type::vec4_type,
+				       new(state) ir_constant(1.0F),
+				       new(state) ir_swizzle($6,
+							     1, 0, 0, 0, 1),
+				       new(state) ir_constant(1.0F),
+				       new(state) ir_swizzle($6->clone(state, NULL),
+							     3, 0, 0, 0, 1));
+	   ir_rvalue *expr =
+	      new(state) ir_expression(ir_binop_mul, glsl_type::vec4_type,
+				       op0, op1);
+
+	   $$ = emit_vector_assignment(state, $2.deref, $2.write_mask,
+				       $1.saturate_mode, expr);
+	}
+	| RFL_OP maskedDstReg ',' swizzleSrcReg ',' swizzleSrcReg
+	{
+	   /* The NV_fragment_program spec says that RFL does:
+	    *
+	    *    axis = VectorLoad(op0);
+	    *    direction = VectorLoad(op1);
+	    *    tmp.w = (axis.x * axis.x + axis.y * axis.y +
+	    *             axis.z * axis.z);
+	    *    tmp.x = (axis.x * direction.x + axis.y * direction.y +
+	    *             axis.z * direction.z);
+	    *    tmp.x = 2.0 * tmp.x;
+	    *    tmp.x = tmp.x / tmp.w;
+	    *    result.x = tmp.x * axis.x - direction.x;
+	    *    result.y = tmp.x * axis.y - direction.y;
+	    *    result.z = tmp.x * axis.z - direction.z;
+	    *
+	    *  tmp.x = 2.0 * dot(axis, direction) / dot(axis, axis)
+	    */
+	   ir_rvalue *const axis =
+	      new(state) ir_swizzle($4, 0, 1, 2, 3, 3);
+	   ir_rvalue *const direction =
+	      new(state) ir_swizzle($6, 0, 1, 2, 3, 3);
+
+	   ir_rvalue *denom =
+	      new(state) ir_expression(ir_binop_dot, glsl_type::float_type,
+				       axis, axis);
+
+	   ir_rvalue *numer =
+	      new(state) ir_expression(ir_binop_dot, glsl_type::float_type,
+				       axis, direction);
+	   ir_rvalue *tmp =
+	      new(state) ir_expression(ir_binop_div, glsl_type::float_type,
+				       numer, denom);
+
+	   ir_constant *two = new(state) ir_constant(2.0f);
+
+	   ir_rvalue *scale =
+	      new(state) ir_expression(ir_binop_mul, glsl_type::float_type,
+				       two, tmp);
+	   ir_rvalue *scale_swiz =
+	      new(state) ir_swizzle(scale, 0, 0, 0, 0, 3);
+
+	   ir_rvalue *mul =
+	      new(state) ir_expression(ir_binop_mul, glsl_type::vec3_type,
+				       scale_swiz, axis);
+	   ir_rvalue *sub =
+	      new(state) ir_expression(ir_binop_sub, glsl_type::vec3_type,
+				       mul, direction);
+
+	   $$ = emit_vector_assignment(state, $2.deref, $2.write_mask,
+				       $1.saturate_mode, sub);
+	}
+	| SET_OP maskedDstReg ',' swizzleSrcReg ',' swizzleSrcReg
+	{
+	   ir_rvalue *cmp =
+	      new(state) ir_expression($1.opcode, glsl_type::bvec4_type,
+				       $4, $6);
+	   ir_rvalue *b2f =
+	      new(state) ir_expression(ir_unop_b2f, glsl_type::vec4_type, cmp);
+
+	   $$ = emit_vector_assignment(state, $2.deref, $2.write_mask,
+				       $1.saturate_mode, b2f);
+	}
+	| SFL_OP maskedDstReg ',' swizzleSrcReg ',' swizzleSrcReg
+	{
+	   /* SFL - "set on false" always returns a vector of 0.0.
+	    */
+	   ir_rvalue *zero = ir_constant::zero(state, glsl_type::float_type);
+
+	   $$ = emit_scalar_assignment(state, $2.deref, $2.write_mask,
+				       $1.saturate_mode, zero);
+	}
+	| STR_OP maskedDstReg ',' swizzleSrcReg ',' swizzleSrcReg
+	{
+	   /* STR - "set on true" always returns a vector of 1.0.
+	    */
+	   ir_rvalue *const one = new(state) ir_constant(1.0F);
+
+	   $$ = emit_scalar_assignment(state, $2.deref, $2.write_mask,
+				       $1.saturate_mode, one);
+	}
+	| XPD_OP maskedDstReg ',' swizzleSrcReg ',' swizzleSrcReg
+	{
+	   /* The ARB_vertex_program spec says that XPD does:
+	    *    tmp0 = VectorLoad(op0);
+	    *    tmp1 = VectorLoad(op1);
+	    *    result.x = tmp0.y * tmp1.z - tmp0.z * tmp1.y;
+	    *    result.y = tmp0.z * tmp1.x - tmp0.x * tmp1.z;
+	    *    result.z = tmp0.x * tmp1.y - tmp0.y * tmp1.x;
+	    *
+	    * No known hardware implements XPD as a native instruction.
+	    * Instead generate the obvious sequence of multiplies and
+	    * subtracts.
+	    */
+	   ir_expression *const mul1 =
+	      new(state) ir_expression(ir_binop_mul, glsl_type::vec3_type,
+				       new(state) ir_swizzle($4, 1, 2, 0, 0, 3),
+				       new(state) ir_swizzle($6, 2, 0, 1, 0, 3));
+	   ir_expression *const mul2 =
+	      new(state) ir_expression(ir_binop_mul, glsl_type::vec3_type,
+				       new(state) ir_swizzle($4, 2, 0, 1, 0, 3),
+				       new(state) ir_swizzle($6, 1, 2, 0, 0, 3));
+	   ir_expression *const sub =
+	      new(state) ir_expression(ir_binop_sub, glsl_type::vec3_type,
+				       mul1, mul2);
+
+	   /* Since we're only generating three values, limit the write mask
+	    * to at most .xyz.
+	    */
+	   $$ = emit_vector_assignment(state, $2.deref,
+				       $2.write_mask & WRITEMASK_XYZ,
+				       $1.saturate_mode, sub);
 	}
 	;
 
-TRIop_instruction: TRI_OP maskedDstReg ','
+TRIop_instruction: CMP_OP maskedDstReg ','
                    swizzleSrcReg ',' swizzleSrcReg ',' swizzleSrcReg
 	{
-	   $$ = asm_instruction_copy_ctor(& $1, & $2, & $4, & $6, & $8);
+	   /* The ARB_fragment_program spec says that CMP does:
+	    *
+	    *    tmp0 = VectorLoad(op0);
+	    *    tmp1 = VectorLoad(op1);
+	    *    tmp2 = VectorLoad(op2);
+	    *    result.x = (tmp0.x < 0.0) ? tmp1.x : tmp2.x;
+	    *    result.y = (tmp0.y < 0.0) ? tmp1.y : tmp2.y;
+	    *    result.z = (tmp0.z < 0.0) ? tmp1.z : tmp2.z;
+	    *    result.w = (tmp0.w < 0.0) ? tmp1.w : tmp2.w;
+	    *
+	    * This is acomplished using two conditional assignments.  For most
+	    * backends, this will result in two CMP instructions being
+	    * generated.  This will look like:
+	    *
+	    *    CMP    dst, op0, op1, dst;
+	    *    CMP    dst, op0, dst, op2;
+	    *
+	    * The peephole optimizer should be able to combine these into a
+	    * single CMP instruction.
+	    */
+	   ir_rvalue *const cmp_rhs =
+	      generate_rhs_for_write_mask(state, $2.write_mask, $4);
+	   const glsl_type *const cmp_type =
+	      glsl_type::get_instance(GLSL_TYPE_BOOL,
+				      cmp_rhs->type->vector_elements, 1);
+	   ir_rvalue *const cmp_expr =
+	      new(state) ir_expression(ir_binop_less, cmp_type, cmp_rhs,
+				       ir_constant::zero(state, cmp_rhs->type));
+	   ir_rvalue *const not_expr =
+	      new(state) ir_expression(ir_binop_gequal, cmp_type,
+				       cmp_rhs->clone(state, NULL),
+				       ir_constant::zero(state, cmp_rhs->type));
+
+	   ir_rvalue *const op1 =
+	      saturate_value(state, $1.saturate_mode,
+			     generate_rhs_for_write_mask(state, $2.write_mask,
+							 $6));
+	   ir_rvalue *const op2 =
+	      saturate_value(state, $1.saturate_mode,
+			     generate_rhs_for_write_mask(state, $2.write_mask,
+							 $8));
+
+	   ir_instruction *inst;
+
+	   inst = new(state) ir_assignment($2.deref,
+					   op1,
+					   cmp_expr,
+					   $2.write_mask);
+	   state->ir.push_tail(inst);
+
+	   inst = new(state) ir_assignment($2.deref->clone(state, NULL),
+					   op2,
+					   not_expr,
+					   $2.write_mask);
+	   state->ir.push_tail(inst);
+
+	   $$ = NULL;
+	}
+	| MAD_OP maskedDstReg ','
+                   swizzleSrcReg ',' swizzleSrcReg ',' swizzleSrcReg
+	{
+	   ir_rvalue *mul =
+	      new(state) ir_expression(ir_binop_mul, $4->type, $4, $6);
+	   ir_rvalue *expr =
+	      new(state) ir_expression(ir_binop_add, mul->type, mul, $8);
+
+	   $$ = emit_vector_assignment(state, $2.deref, $2.write_mask,
+				       $1.saturate_mode, expr);
+	}
+	| LRP_OP maskedDstReg ','
+                   swizzleSrcReg ',' swizzleSrcReg ',' swizzleSrcReg
+	{
+	   /* The ARB_fragment_program spec says that LRP does:
+	    *
+	    *    tmp0 = VectorLoad(op0);
+	    *    tmp1 = VectorLoad(op1);
+	    *    tmp2 = VectorLoad(op2);
+	    *    result.x = tmp0.x * tmp1.x + (1 - tmp0.x) * tmp2.x;
+	    *    result.y = tmp0.y * tmp1.y + (1 - tmp0.y) * tmp2.y;
+	    *    result.z = tmp0.z * tmp1.z + (1 - tmp0.z) * tmp2.z;
+	    *    result.w = tmp0.w * tmp1.w + (1 - tmp0.w) * tmp2.w;
+	    *
+	    * The per-component math can be rearranged slightly:
+	    *
+	    *    result.x = (tmp0.x * tmp1.x) + tmp2.x - (tmp0.x * tmp2.x);
+	    *
+	    *    result.x = (tmp0.x * tmp1.x) - (tmp0.x * tmp2.x) + tmp2.x;
+	    *
+	    *    result.x = tmp0.x * (tmp1.x - tmp2.x) + tmp2.x;
+	    *
+	    * Becomes:
+	    *
+	    *    SUB tmp, op1, op2;
+	    *    MAD result, op0, tmp, op2;
+	    */
+	   ir_rvalue *sub =
+	      new(state) ir_expression(ir_binop_sub, $6->type, $6, $8);
+	   ir_rvalue *mul =
+	      new(state) ir_expression(ir_binop_mul, $4->type, $4, sub);
+	   ir_rvalue *expr =
+	      new(state) ir_expression(ir_binop_add, mul->type, mul, $8);
+
+	   $$ = emit_vector_assignment(state, $2.deref, $2.write_mask,
+				       $1.saturate_mode, expr);
+	}
+	| X2D_OP maskedDstReg ','
+                   swizzleSrcReg ',' swizzleSrcReg ',' swizzleSrcReg
+	{
+	   /* The NV_fragment_program spec says that X2D does:
+	    *
+	    *    tmp0 = VectorLoad(op0);
+	    *    tmp1 = VectorLoad(op1);
+	    *    tmp2 = VectorLoad(op2);
+	    *    result.x = tmp0.x + tmp1.x * tmp2.x + tmp1.y * tmp2.y;
+	    *    result.y = tmp0.y + tmp1.x * tmp2.z + tmp1.y * tmp2.w;
+	    *    result.z = tmp0.x + tmp1.x * tmp2.x + tmp1.y * tmp2.y;
+	    *    result.w = tmp0.y + tmp1.x * tmp2.z + tmp1.y * tmp2.w;
+	    *
+	    * Notice that result.x == result.z and result.y == result.w.
+	    *
+	    * This can be rewritten as:
+	    *
+	    *    tmp3 = (tmp0 + (tmp1.xx * tmp2.xz + tmp1.yy * tmp2.yw))
+	    *    result = tmp3.xyxy
+	    *
+	    * Becomes:
+	    *
+	    *    MAD tmp, op1.xxxx, op2.xzxz, op0.xyxy;
+	    *    MAD result, op1.yyyy, op2.ywyw, tmp;
+	    */
+	   ir_rvalue *const op0 = $4;
+	   ir_rvalue *const op1 = $6;
+	   ir_rvalue *const op2 = $8;
+
+	   ir_rvalue *op1_xxxx =
+	      new(state) ir_swizzle(op1, 0, 0, 0, 0, 4);
+	   ir_rvalue *op1_yyyy =
+	      new(state) ir_swizzle(op1, 1, 1, 1, 1, 4);
+	   ir_rvalue *op2_xzxz =
+	      new(state) ir_swizzle(op2, 0, 2, 0, 2, 4);
+	   ir_rvalue *op2_ywyw =
+	      new(state) ir_swizzle(op2, 1, 3, 1, 3, 4);
+	   ir_rvalue *op0_xyxy =
+	      new(state) ir_swizzle(op0, 0, 1, 0, 1, 4);
+
+	   ir_rvalue *mul1 =
+	      new(state) ir_expression(ir_binop_mul, glsl_type::vec4_type,
+				       op1_xxxx, op2_xzxz);
+	   ir_rvalue *expr1 =
+	      new(state) ir_expression(ir_binop_add, glsl_type::vec4_type,
+				       mul1, op0_xyxy);
+
+	   ir_rvalue *mul2 =
+	      new(state) ir_expression(ir_binop_mul, glsl_type::vec4_type,
+				       op1_yyyy, op2_ywyw);
+	   ir_rvalue *expr2 =
+	      new(state) ir_expression(ir_binop_add, glsl_type::vec4_type,
+				       mul2, expr1);
+
+	   $$ = emit_vector_assignment(state, $2.deref, $2.write_mask,
+				       $1.saturate_mode, expr2);
 	}
 	;
 
-SAMPLE_instruction: SAMPLE_OP maskedDstReg ',' swizzleSrcReg ',' texImageUnit ',' texTarget
+SAMPLE_instruction: TEX_OP maskedDstReg ',' swizzleSrcReg ',' texImageUnit ',' texTarget
 	{
-	   $$ = asm_instruction_copy_ctor(& $1, & $2, & $4, NULL, NULL);
-	   if ($$ != NULL) {
-	      const GLbitfield tex_mask = (1U << $6);
-	      GLbitfield shadow_tex = 0;
-	      GLbitfield target_mask = 0;
+	   ir_texture *const tex =
+	      texture_instruction_common(state, ir_tex, $4, $6, $8, & @8);
 
+	   if (tex == NULL)
+	      YYERROR;
 
-	      $$->Base.TexSrcUnit = $6;
+	   $$ = emit_vector_assignment(state, $2.deref, $2.write_mask,
+				       $1.saturate_mode, tex);
+	}
+	| TXP_OP maskedDstReg ',' swizzleSrcReg ',' texImageUnit ',' texTarget
+	{
+	   ir_texture *const tex =
+	      texture_instruction_common(state, ir_tex, $4, $6, $8, & @8);
 
-	      if ($8 < 0) {
-		 shadow_tex = tex_mask;
+	   if (tex == NULL)
+	      YYERROR;
 
-		 $$->Base.TexSrcTarget = -$8;
-		 $$->Base.TexShadow = 1;
-	      } else {
-		 $$->Base.TexSrcTarget = $8;
-	      }
+	   /* FINISHME: Set projector.  Right now there is now way for the
+	    * FINISHME: lexer to communicate the TXP opcode to the parser.
+	    */
 
-	      target_mask = (1U << $$->Base.TexSrcTarget);
+	   $$ = emit_vector_assignment(state, $2.deref, $2.write_mask,
+				       $1.saturate_mode, tex);
+	}
+	| TXB_OP maskedDstReg ',' swizzleSrcReg ',' texImageUnit ',' texTarget
+	{
+	   ir_texture *const tex =
+	      texture_instruction_common(state, ir_txb, $4, $6, $8, & @8);
 
-	      /* If this texture unit was previously accessed and that access
-	       * had a different texture target, generate an error.
-	       *
-	       * If this texture unit was previously accessed and that access
-	       * had a different shadow mode, generate an error.
-	       */
-	      if ((state->prog->TexturesUsed[$6] != 0)
-		  && ((state->prog->TexturesUsed[$6] != target_mask)
-		      || ((state->prog->ShadowSamplers & tex_mask)
-			  != shadow_tex))) {
-		 yyerror(& @8, state,
-			 "multiple targets used on one texture image unit");
-		 YYERROR;
-	      }
+	   if (tex == NULL)
+	      YYERROR;
 
+	   tex->lod_info.bias = new(state) ir_swizzle($4, 3, 3, 3, 3, 1);
 
-	      state->prog->TexturesUsed[$6] |= target_mask;
-	      state->prog->ShadowSamplers |= shadow_tex;
-	   }
+	   $$ = emit_vector_assignment(state, $2.deref, $2.write_mask,
+				       $1.saturate_mode, tex);
 	}
 	;
 
 KIL_instruction: KIL swizzleSrcReg
 	{
-	   $$ = asm_instruction_ctor(OPCODE_KIL, NULL, & $2, NULL, NULL);
-	   state->fragment.UsesKill = 1;
+	   ir_constant *zero = ir_constant::zero(state, glsl_type::vec4_type);
+
+	   ir_expression *cmp =
+	      new(state) ir_expression(ir_binop_less, glsl_type::bvec4_type,
+				       $2, zero);
+
+	   ir_expression *any =
+	      new(state) ir_expression(ir_unop_any, glsl_type::bool_type, cmp);
+
+	   $$ = new(state) ir_discard(any);
 	}
 	| KIL ccTest
 	{
-	   $$ = asm_instruction_ctor(OPCODE_KIL_NV, NULL, NULL, NULL, NULL);
-	   $$->Base.DstReg.CondMask = $2.CondMask;
-	   $$->Base.DstReg.CondSwizzle = $2.CondSwizzle;
-	   $$->Base.DstReg.CondSrc = $2.CondSrc;
-	   state->fragment.UsesKill = 1;
+	   /* FINISHME: Add support for NV-style condition codes.
+	    */
+	   $$ = NULL;
 	}
 	;
 
 TXD_instruction: TXD_OP maskedDstReg ',' swizzleSrcReg ',' swizzleSrcReg ',' swizzleSrcReg ',' texImageUnit ',' texTarget
 	{
-	   $$ = asm_instruction_copy_ctor(& $1, & $2, & $4, & $6, & $8);
-	   if ($$ != NULL) {
-	      const GLbitfield tex_mask = (1U << $10);
-	      GLbitfield shadow_tex = 0;
-	      GLbitfield target_mask = 0;
+	   ir_texture *const tex =
+	      texture_instruction_common(state, ir_txd, $4, $10, $12, & @12);
 
+	   if (tex == NULL)
+	      YYERROR;
 
-	      $$->Base.TexSrcUnit = $10;
+	   tex->lod_info.grad.dPdx = $6;
+	   tex->lod_info.grad.dPdx = $8;
 
-	      if ($12 < 0) {
-		 shadow_tex = tex_mask;
-
-		 $$->Base.TexSrcTarget = -$12;
-		 $$->Base.TexShadow = 1;
-	      } else {
-		 $$->Base.TexSrcTarget = $12;
-	      }
-
-	      target_mask = (1U << $$->Base.TexSrcTarget);
-
-	      /* If this texture unit was previously accessed and that access
-	       * had a different texture target, generate an error.
-	       *
-	       * If this texture unit was previously accessed and that access
-	       * had a different shadow mode, generate an error.
-	       */
-	      if ((state->prog->TexturesUsed[$10] != 0)
-		  && ((state->prog->TexturesUsed[$10] != target_mask)
-		      || ((state->prog->ShadowSamplers & tex_mask)
-			  != shadow_tex))) {
-		 yyerror(& @12, state,
-			 "multiple targets used on one texture image unit");
-		 YYERROR;
-	      }
-
-
-	      state->prog->TexturesUsed[$10] |= target_mask;
-	      state->prog->ShadowSamplers |= shadow_tex;
-	   }
+	   $$ = emit_vector_assignment(state, $2.deref, $2.write_mask,
+				       $1.saturate_mode, tex);
 	}
 	;
 
@@ -524,38 +936,90 @@ texImageUnit: TEXTURE_UNIT optTexImageUnitNum
 	}
 	;
 
-texTarget: TEX_1D  { $$ = TEXTURE_1D_INDEX; }
-	| TEX_2D   { $$ = TEXTURE_2D_INDEX; }
-	| TEX_3D   { $$ = TEXTURE_3D_INDEX; }
-	| TEX_CUBE { $$ = TEXTURE_CUBE_INDEX; }
-	| TEX_RECT { $$ = TEXTURE_RECT_INDEX; }
-	| TEX_SHADOW1D   { $$ = -TEXTURE_1D_INDEX; }
-	| TEX_SHADOW2D   { $$ = -TEXTURE_2D_INDEX; }
-	| TEX_SHADOWRECT { $$ = -TEXTURE_RECT_INDEX; }
-	| TEX_ARRAY1D         { $$ = TEXTURE_1D_ARRAY_INDEX; }
-	| TEX_ARRAY2D         { $$ = TEXTURE_2D_ARRAY_INDEX; }
-	| TEX_ARRAYSHADOW1D   { $$ = -TEXTURE_1D_ARRAY_INDEX; }
-	| TEX_ARRAYSHADOW2D   { $$ = -TEXTURE_2D_ARRAY_INDEX; }
+texTarget: TEX_1D
+	{
+	   $$ = glsl_type::get_sampler_instance(GLSL_SAMPLER_DIM_1D,
+						false, false, GLSL_TYPE_FLOAT);
+	}
+	| TEX_2D
+	{
+	   $$ = glsl_type::get_sampler_instance(GLSL_SAMPLER_DIM_2D,
+						false, false, GLSL_TYPE_FLOAT);
+	}
+	| TEX_3D
+	{
+	   $$ = glsl_type::get_sampler_instance(GLSL_SAMPLER_DIM_3D,
+						false, false, GLSL_TYPE_FLOAT);
+	}
+	| TEX_CUBE
+	{
+	   $$ = glsl_type::get_sampler_instance(GLSL_SAMPLER_DIM_CUBE,
+						false, false, GLSL_TYPE_FLOAT);
+	}
+	| TEX_RECT
+	{
+	   $$ = glsl_type::get_sampler_instance(GLSL_SAMPLER_DIM_RECT,
+						false, false, GLSL_TYPE_FLOAT);
+	}
+	| TEX_SHADOW1D
+	{
+	   $$ = glsl_type::get_sampler_instance(GLSL_SAMPLER_DIM_1D,
+						true, false, GLSL_TYPE_FLOAT);
+	}
+	| TEX_SHADOW2D
+	{
+	   $$ = glsl_type::get_sampler_instance(GLSL_SAMPLER_DIM_2D,
+						true, false, GLSL_TYPE_FLOAT);
+	}
+	| TEX_SHADOWRECT
+	{
+	   $$ = glsl_type::get_sampler_instance(GLSL_SAMPLER_DIM_RECT,
+						true, false, GLSL_TYPE_FLOAT);
+	}
+	| TEX_ARRAY1D
+	{
+	   $$ = glsl_type::get_sampler_instance(GLSL_SAMPLER_DIM_1D,
+						false, true, GLSL_TYPE_FLOAT);
+	}
+	| TEX_ARRAY2D
+	{
+	   $$ = glsl_type::get_sampler_instance(GLSL_SAMPLER_DIM_2D,
+						false, true, GLSL_TYPE_FLOAT);
+	}
+	| TEX_ARRAYSHADOW1D
+	{
+	   $$ = glsl_type::get_sampler_instance(GLSL_SAMPLER_DIM_1D,
+						true, true, GLSL_TYPE_FLOAT);
+	}
+	| TEX_ARRAYSHADOW2D
+	{
+	   $$ = glsl_type::get_sampler_instance(GLSL_SAMPLER_DIM_1D,
+						true, true, GLSL_TYPE_FLOAT);
+	}
 	;
 
-SWZ_instruction: SWZ maskedDstReg ',' srcReg ',' extendedSwizzle
+SWZ_instruction: SWZ_OP maskedDstReg ',' srcReg ',' extendedSwizzle
 	{
 	   /* FIXME: Is this correct?  Should the extenedSwizzle be applied
 	    * FIXME: to the existing swizzle?
 	    */
+#if 0
 	   $4.Base.Swizzle = $6.swizzle;
 	   $4.Base.Negate = $6.mask;
 
 	   $$ = asm_instruction_copy_ctor(& $1, & $2, & $4, NULL, NULL);
+#else
+	   $$ = NULL;
+#endif
 	}
 	;
 
 scalarSrcReg: optionalSign scalarUse
 	{
-	   $$ = $2;
-
 	   if ($1) {
-	      $$.Base.Negate = ~$$.Base.Negate;
+	      $$ = new(state) ir_expression(ir_unop_neg, $2->type, $2);
+	   } else {
+	      $$ = $2;
 	   }
 	}
 	| optionalSign '|' scalarUse '|'
@@ -567,100 +1031,96 @@ scalarSrcReg: optionalSign scalarUse
 	      YYERROR;
 	   }
 
-	   if ($1) {
-	      $$.Base.Negate = ~$$.Base.Negate;
-	   }
+	   ir_expression *abs_expr =
+	      new(state) ir_expression(ir_unop_abs, $3->type, $3);
 
-	   $$.Base.Abs = 1;
+	   if ($1) {
+	      $$ = new(state) ir_expression(ir_unop_neg, abs_expr->type,
+					    abs_expr);
+	   } else {
+	      $$ = abs_expr;
+	   }
 	}
 	;
 
 scalarUse:  srcReg scalarSuffix
 	{
-	   $$ = $1;
-
-	   $$.Base.Swizzle = _mesa_combine_swizzles($$.Base.Swizzle,
-						    $2.swizzle);
+	   $$ = new(state) ir_swizzle($1, GET_SWZ($2.swizzle, 0), 0, 0, 0, 1);
 	}
 	| paramConstScalarUse
 	{
-	   struct asm_symbol temp_sym;
-
-	   if (!state->option.NV_fragment) {
-	      yyerror(& @1, state, "expected scalar suffix");
-	      YYERROR;
-	   }
-
-	   memset(& temp_sym, 0, sizeof(temp_sym));
-	   temp_sym.param_binding_begin = ~0;
-	   initialize_symbol_from_const(state->prog, & temp_sym, & $1, GL_TRUE);
-
-	   set_src_reg_swz(& $$, PROGRAM_CONSTANT,
-                           temp_sym.param_binding_begin,
-                           temp_sym.param_binding_swizzle);
+	   $$ = $1;
 	}
 	;
 
 swizzleSrcReg: optionalSign srcReg swizzleSuffix
 	{
-	   $$ = $2;
+	   const unsigned swz[4] = {
+	      GET_SWZ($3.swizzle, 0), GET_SWZ($3.swizzle, 1),
+	      GET_SWZ($3.swizzle, 2), GET_SWZ($3.swizzle, 3)
+	   };
+
+	   ir_rvalue *swz_expr = new(state) ir_swizzle($2, swz, 4);
 
 	   if ($1) {
-	      $$.Base.Negate = ~$$.Base.Negate;
+	      $$ = new(state) ir_expression(ir_unop_neg, swz_expr->type,
+					    swz_expr);
+	   } else {
+	      $$ = swz_expr;
 	   }
-
-	   $$.Base.Swizzle = _mesa_combine_swizzles($$.Base.Swizzle,
-						    $3.swizzle);
 	}
 	| optionalSign '|' srcReg swizzleSuffix '|'
 	{
-	   $$ = $3;
+	   const unsigned swz[4] = {
+	      GET_SWZ($4.swizzle, 0), GET_SWZ($4.swizzle, 1),
+	      GET_SWZ($4.swizzle, 2), GET_SWZ($4.swizzle, 3)
+	   };
 
-	   if (!state->option.NV_fragment) {
-	      yyerror(& @2, state, "unexpected character '|'");
-	      YYERROR;
-	   }
+	   ir_rvalue *swz_expr = new(state) ir_swizzle($3, swz, 4);
+	   ir_expression *abs_expr =
+	      new(state) ir_expression(ir_unop_abs, swz_expr->type, swz_expr);
 
 	   if ($1) {
-	      $$.Base.Negate = ~$$.Base.Negate;
+	      $$ = new(state) ir_expression(ir_unop_neg, swz_expr->type,
+					    abs_expr);
+	   } else {
+	      $$ = abs_expr;
 	   }
-
-	   $$.Base.Abs = 1;
-	   $$.Base.Swizzle = _mesa_combine_swizzles($$.Base.Swizzle,
-						    $4.swizzle);
 	}
-
 	;
 
 maskedDstReg: dstReg optionalMask optionalCcMask
 	{
-	   $$ = $1;
-	   $$.WriteMask = $2.mask;
-	   $$.CondMask = $3.CondMask;
-	   $$.CondSwizzle = $3.CondSwizzle;
-	   $$.CondSrc = $3.CondSrc;
-
-	   if ($$.File == PROGRAM_OUTPUT) {
+	   if ($1->mode == ir_var_out) {
 	      /* Technically speaking, this should check that it is in
 	       * vertex program mode.  However, PositionInvariant can never be
 	       * set in fragment program mode, so it is somewhat irrelevant.
 	       */
 	      if (state->option.PositionInvariant
-	       && ($$.Index == VERT_RESULT_HPOS)) {
+	       && ($1->location == VERT_RESULT_HPOS)) {
 		 yyerror(& @1, state, "position-invariant programs cannot "
 			 "write position");
 		 YYERROR;
 	      }
 
-	      state->prog->OutputsWritten |= BITFIELD64_BIT($$.Index);
+	      state->prog->OutputsWritten |= BITFIELD64_BIT($1->location);
 	   }
+
+	   $$.deref = new(state) ir_dereference_variable($1);
+	   $$.write_mask = $2.mask;
+
+	   /* FINISHME: Handle conditional write masks! */
 	}
 	;
 
 maskedAddrReg: addrReg addrWriteMask
 	{
-	   set_dst_reg(& $$, PROGRAM_ADDRESS, 0);
-	   $$.WriteMask = $2.mask;
+	   /* FINISHME: Once NV_vertex_program2_option is supported the
+	    * FINISHME: addrWriteMask will need to be used.  The right answer
+	    * FINISHME: is probably to convert it to a swizzle and let the
+	    * FINISHME: ARL/ARR/ARA convert the swizzle into a mask.
+	    */
+	   $$ = new(state) ir_dereference_variable($1);
 	}
 	;
 
@@ -776,136 +1236,117 @@ extSwizSel: INTEGER
 
 srcReg: USED_IDENTIFIER /* temporaryReg | progParamSingle */
 	{
-	   struct asm_symbol *const s = (struct asm_symbol *)
+	   ir_variable *const var = (ir_variable *)
 	      _mesa_symbol_table_find_symbol(state->st, 0, $1);
 
 	   free($1);
 
-	   if (s == NULL) {
+	   if (var == NULL) {
 	      yyerror(& @1, state, "invalid operand variable");
-	      YYERROR;
-	   } else if ((s->type != at_param) && (s->type != at_temp)
-		      && (s->type != at_attrib)) {
-	      yyerror(& @1, state, "invalid operand variable");
-	      YYERROR;
-	   } else if ((s->type == at_param) && s->param_is_array) {
-	      yyerror(& @1, state, "non-array access to array PARAM");
 	      YYERROR;
 	   }
 
-	   init_src_reg(& $$);
-	   switch (s->type) {
-	   case at_temp:
-	      set_src_reg(& $$, PROGRAM_TEMPORARY, s->temp_binding);
+	   switch (ir_variable_mode(var->mode)) {
+	   case ir_var_auto:
+	   case ir_var_temporary:
 	      break;
-	   case at_param:
-              set_src_reg_swz(& $$, s->param_binding_type,
-                              s->param_binding_begin,
-                              s->param_binding_swizzle);
-	      break;
-	   case at_attrib:
-	      set_src_reg(& $$, PROGRAM_INPUT, s->attrib_binding);
-	      state->prog->InputsRead |= (1U << $$.Base.Index);
 
+	   case ir_var_uniform:
+	      if (var->type->is_array()) {
+		 yyerror(& @1, state, "non-array access to array PARAM");
+		 YYERROR;
+	      }
+	      break;
+
+	   case ir_var_in:
+	      state->prog->InputsRead |= (1U << var->location);
 	      if (!validate_inputs(& @1, state)) {
 		 YYERROR;
 	      }
 	      break;
 
-	   default:
+	   case ir_var_out:
+	   case ir_var_inout:
+	      yyerror(& @1, state, "invalid operand variable");
 	      YYERROR;
-	      break;
 	   }
+
+	   $$ = new(state) ir_dereference_variable(var);
 	}
 	| attribBinding
 	{
+#if 0
 	   set_src_reg(& $$, PROGRAM_INPUT, $1);
 	   state->prog->InputsRead |= (1U << $$.Base.Index);
 
 	   if (!validate_inputs(& @1, state)) {
 	      YYERROR;
 	   }
+#else
+	   $$ = NULL;
+#endif
 	}
 	| progParamArray '[' progParamArrayMem ']'
 	{
-	   if (! $3.Base.RelAddr
-	       && ((unsigned) $3.Base.Index >= $1->param_binding_length)) {
+	   ir_constant *c = $3->as_constant();
+	   if ((c != NULL) && (c->value.u[0] >= $1->type->length)) {
 	      yyerror(& @3, state, "out of bounds array access");
 	      YYERROR;
 	   }
 
-	   init_src_reg(& $$);
-	   $$.Base.File = $1->param_binding_type;
-
-	   if ($3.Base.RelAddr) {
-              state->prog->IndirectRegisterFiles |= (1 << $$.Base.File);
-	      $1->param_accessed_indirectly = 1;
-
-	      $$.Base.RelAddr = 1;
-	      $$.Base.Index = $3.Base.Index;
-	      $$.Symbol = $1;
-	   } else {
-	      $$.Base.Index = $1->param_binding_begin + $3.Base.Index;
-	   }
+	   $$ = new(state) ir_dereference_array($1, $3);
 	}
 	| paramSingleItemUse
 	{
-           gl_register_file file = ($1.name != NULL) 
-	      ? $1.param_binding_type
-	      : PROGRAM_CONSTANT;
-           set_src_reg_swz(& $$, file, $1.param_binding_begin,
-                           $1.param_binding_swizzle);
+	   $$ = $1;
 	}
 	;
 
 dstReg: resultBinding
 	{
+#if 0
 	   set_dst_reg(& $$, PROGRAM_OUTPUT, $1);
+#else
+	   $$ = NULL;
+#endif
 	}
 	| USED_IDENTIFIER /* temporaryReg | vertexResultReg */
 	{
-	   struct asm_symbol *const s = (struct asm_symbol *)
+	   ir_variable *const var = (ir_variable *)
 	      _mesa_symbol_table_find_symbol(state->st, 0, $1);
 
 	   free($1);
 
-	   if (s == NULL) {
+	   if (var == NULL) {
 	      yyerror(& @1, state, "invalid operand variable");
 	      YYERROR;
-	   } else if ((s->type != at_output) && (s->type != at_temp)) {
+	   } else if ((var->mode != ir_var_auto)
+		      && (var->mode != ir_var_out)
+		      && (var->mode != ir_var_inout)
+		      && (var->mode != ir_var_temporary)) {
 	      yyerror(& @1, state, "invalid operand variable");
 	      YYERROR;
-	   }
-
-	   switch (s->type) {
-	   case at_temp:
-	      set_dst_reg(& $$, PROGRAM_TEMPORARY, s->temp_binding);
-	      break;
-	   case at_output:
-	      set_dst_reg(& $$, PROGRAM_OUTPUT, s->output_binding);
-	      break;
-	   default:
-	      set_dst_reg(& $$, s->param_binding_type, s->param_binding_begin);
-	      break;
+	   } else {
+	      $$ = var;
 	   }
 	}
 	;
 
 progParamArray: USED_IDENTIFIER
 	{
-	   struct asm_symbol *const s = (struct asm_symbol *)
+	   ir_variable *const var = (ir_variable *)
 	      _mesa_symbol_table_find_symbol(state->st, 0, $1);
 
 	   free($1);
 
-	   if (s == NULL) {
+	   if (var == NULL) {
 	      yyerror(& @1, state, "invalid operand variable");
 	      YYERROR;
-	   } else if ((s->type != at_param) || !s->param_is_array) {
+	   } else if (!var->type->is_array()) {
 	      yyerror(& @1, state, "array access to non-PARAM variable");
 	      YYERROR;
 	   } else {
-	      $$ = s;
+	      $$ = new(state) ir_dereference_variable(var);
 	   }
 	}
 	;
@@ -914,20 +1355,25 @@ progParamArrayMem: progParamArrayAbs | progParamArrayRel;
 
 progParamArrayAbs: INTEGER
 	{
-	   init_src_reg(& $$);
-	   $$.Base.Index = $1;
+	   $$ = new(state) ir_constant(int($1));
 	}
 	;
 
 progParamArrayRel: addrReg addrComponent addrRegRelOffset
 	{
-	   /* FINISHME: Add support for multiple address registers.
-	    */
 	   /* FINISHME: Add support for 4-component address registers.
 	    */
-	   init_src_reg(& $$);
-	   $$.Base.RelAddr = 1;
-	   $$.Base.Index = $3;
+	   ir_dereference_variable *deref =
+	      new(state) ir_dereference_variable($1);
+
+	   if ($3 != 0) {
+	      ir_constant *c = new(state) ir_constant(int($3));
+
+	      $$ = new(state) ir_expression(ir_binop_add, glsl_type::int_type,
+					    deref, c);
+	   } else {
+	      $$ = deref;
+	   }
 	}
 	;
 
@@ -966,20 +1412,20 @@ addrRegNegOffset: INTEGER
 
 addrReg: USED_IDENTIFIER
 	{
-	   struct asm_symbol *const s = (struct asm_symbol *)
+	   ir_variable *const var = (ir_variable *)
 	      _mesa_symbol_table_find_symbol(state->st, 0, $1);
 
 	   free($1);
 
-	   if (s == NULL) {
+	   if (var == NULL) {
 	      yyerror(& @1, state, "invalid array member");
 	      YYERROR;
-	   } else if (s->type != at_address) {
+	   } else if (!var->type->is_integer()) {
 	      yyerror(& @1, state,
 		      "invalid variable for indexed array access");
 	      YYERROR;
 	   } else {
-	      $$ = s;
+	      $$ = var;
 	   }
 	}
 	;
@@ -1105,20 +1551,25 @@ namingStatement: ATTRIB_statement
 
 ATTRIB_statement: ATTRIB IDENTIFIER '=' attribBinding
 	{
-	   struct asm_symbol *const s =
-	      declare_variable(state, $2, at_attrib, & @2);
-
-	   if (s == NULL) {
-	      free($2);
+	   /* Each attribute location can be bound to at most one user-defined
+	    * name.  Verify that this run has not been violated.
+	    */
+	   state->InputsBound |= (1U << $4);
+	   if (!validate_inputs(& @4, state)) {
 	      YYERROR;
-	   } else {
-	      s->attrib_binding = $4;
-	      state->InputsBound |= (1U << s->attrib_binding);
-
-	      if (!validate_inputs(& @4, state)) {
-		 YYERROR;
-	      }
 	   }
+
+	   ir_variable *v =
+	      new(state) ir_variable(glsl_type::vec4_type, $2, ir_var_in);
+
+	   v->explicit_location = true;
+	   v->location = $4;
+
+	   if (!declare_variable(state, v, at_attrib, & @2)) {
+	      YYERROR;
+	   }
+
+	   state->ir.push_tail(v);
 	}
 	;
 
@@ -1213,6 +1664,10 @@ PARAM_statement: PARAM_singleStmt | PARAM_multipleStmt;
 
 PARAM_singleStmt: PARAM IDENTIFIER paramSingleInit
 	{
+#if 0
+	   ir_variable *v =
+	      new(state) ir_variable(glsl_type::vec4_type, $2, ir_var_uniform);
+
 	   struct asm_symbol *const s =
 	      declare_variable(state, $2, at_param, & @2);
 
@@ -1226,11 +1681,13 @@ PARAM_singleStmt: PARAM IDENTIFIER paramSingleInit
               s->param_binding_swizzle = $3.param_binding_swizzle;
 	      s->param_is_array = 0;
 	   }
+#endif
 	}
 	;
 
 PARAM_multipleStmt: PARAM IDENTIFIER '[' optArraySize ']' paramMultipleInit
 	{
+#if 0
 	   if (($4 != 0) && ((unsigned) $4 != $6.param_binding_length)) {
 	      free($2);
 	      yyerror(& @4, state, 
@@ -1251,6 +1708,7 @@ PARAM_multipleStmt: PARAM IDENTIFIER '[' optArraySize ']' paramMultipleInit
 		 s->param_is_array = 1;
 	      }
 	   }
+#endif
 	}
 	;
 
@@ -1304,28 +1762,36 @@ paramSingleItemDecl: stateSingleItem
 	| paramConstDecl
 	{
 	   memset(& $$, 0, sizeof($$));
+#if 0
 	   $$.param_binding_begin = ~0;
 	   initialize_symbol_from_const(state->prog, & $$, & $1, GL_TRUE);
+#endif
 	}
 	;
 
 paramSingleItemUse: stateSingleItem
 	{
+#if 0
 	   memset(& $$, 0, sizeof($$));
 	   $$.param_binding_begin = ~0;
 	   initialize_symbol_from_state(state->prog, & $$, $1);
+#else
+	   $$ = NULL;
+#endif
 	}
 	| programSingleItem
 	{
+#if 0
 	   memset(& $$, 0, sizeof($$));
 	   $$.param_binding_begin = ~0;
 	   initialize_symbol_from_param(state->prog, & $$, $1);
+#else
+	   $$ = NULL;
+#endif
 	}
 	| paramConstUse
 	{
-	   memset(& $$, 0, sizeof($$));
-	   $$.param_binding_begin = ~0;
-	   initialize_symbol_from_const(state->prog, & $$, & $1, GL_TRUE);
+	   $$ = $1;
 	}
 	;
 
@@ -1344,8 +1810,10 @@ paramMultipleItem: stateMultipleItem
 	| paramConstDecl
 	{
 	   memset(& $$, 0, sizeof($$));
+#if 0
 	   $$.param_binding_begin = ~0;
 	   initialize_symbol_from_const(state->prog, & $$, & $1, GL_FALSE);
+#endif
 	}
 	;
 
@@ -1852,65 +2320,67 @@ paramConstUse: paramConstScalarUse | paramConstVector;
 
 paramConstScalarDecl: signedFloatConstant
 	{
-	   $$.count = 4;
-	   $$.data[0] = $1;
-	   $$.data[1] = $1;
-	   $$.data[2] = $1;
-	   $$.data[3] = $1;
+	   ir_constant_data d = { { 0 } };
+	   d.f[0] = $1;
+	   d.f[1] = $1;
+	   d.f[2] = $1;
+	   d.f[3] = $1;
+
+	   $$ = new(state) ir_constant(glsl_type::vec4_type, &d);
 	}
 	;
 
 paramConstScalarUse: REAL
 	{
-	   $$.count = 1;
-	   $$.data[0] = $1;
-	   $$.data[1] = $1;
-	   $$.data[2] = $1;
-	   $$.data[3] = $1;
+	   $$ = new(state) ir_constant(float($1));
 	}
 	| INTEGER
 	{
-	   $$.count = 1;
-	   $$.data[0] = (float) $1;
-	   $$.data[1] = (float) $1;
-	   $$.data[2] = (float) $1;
-	   $$.data[3] = (float) $1;
+	   $$ = new(state) ir_constant(float($1));
 	}
 	;
 
 paramConstVector: '{' signedFloatConstant '}'
 	{
-	   $$.count = 4;
-	   $$.data[0] = $2;
-	   $$.data[1] = 0.0f;
-	   $$.data[2] = 0.0f;
-	   $$.data[3] = 1.0f;
+	   ir_constant_data d = { { 0 } };
+	   d.f[0] = $2;
+	   d.f[1] = 0.0f;
+	   d.f[2] = 0.0f;
+	   d.f[3] = 1.0f;
+
+	   $$ = new(state) ir_constant(glsl_type::vec4_type, &d);
 	}
 	| '{' signedFloatConstant ',' signedFloatConstant '}'
 	{
-	   $$.count = 4;
-	   $$.data[0] = $2;
-	   $$.data[1] = $4;
-	   $$.data[2] = 0.0f;
-	   $$.data[3] = 1.0f;
+	   ir_constant_data d = { { 0 } };
+	   d.f[0] = $2;
+	   d.f[1] = $4;
+	   d.f[2] = 0.0f;
+	   d.f[3] = 1.0f;
+
+	   $$ = new(state) ir_constant(glsl_type::vec4_type, &d);
 	}
 	| '{' signedFloatConstant ',' signedFloatConstant ','
               signedFloatConstant '}'
 	{
-	   $$.count = 4;
-	   $$.data[0] = $2;
-	   $$.data[1] = $4;
-	   $$.data[2] = $6;
-	   $$.data[3] = 1.0f;
+	   ir_constant_data d = { { 0 } };
+	   d.f[0] = $2;
+	   d.f[1] = $4;
+	   d.f[2] = $6;
+	   d.f[3] = 1.0f;
+
+	   $$ = new(state) ir_constant(glsl_type::vec4_type, &d);
 	}
 	| '{' signedFloatConstant ',' signedFloatConstant ','
               signedFloatConstant ',' signedFloatConstant '}'
 	{
-	   $$.count = 4;
-	   $$.data[0] = $2;
-	   $$.data[1] = $4;
-	   $$.data[2] = $6;
-	   $$.data[3] = $8;
+	   ir_constant_data d = { { 0 } };
+	   d.f[0] = $2;
+	   d.f[1] = $4;
+	   d.f[2] = $6;
+	   d.f[3] = $8;
+
+	   $$ = new(state) ir_constant(glsl_type::vec4_type, &d);
 	}
 	;
 
@@ -1924,9 +2394,9 @@ signedFloatConstant: optionalSign REAL
 	}
 	;
 
-optionalSign: '+'        { $$ = FALSE; }
-	| '-'            { $$ = TRUE;  }
-	|                { $$ = FALSE; }
+optionalSign: '+'        { $$ = false; }
+	| '-'            { $$ = true;  }
+	|                { $$ = false; }
 	;
 
 TEMP_statement: optVarSize TEMP { $<integer>$ = $2; } varNameList
@@ -1976,15 +2446,25 @@ ADDRESS_statement: ADDRESS { $<integer>$ = $1; } varNameList
 
 varNameList: varNameList ',' IDENTIFIER
 	{
-	   if (!declare_variable(state, $3, (asm_type) $<integer>0, & @3)) {
-	      free($3);
+	   const glsl_type *type = (asm_type($<integer>0) == at_address)
+	      ? glsl_type::int_type : glsl_type::vec4_type;
+
+	   ir_variable *v = new(state) ir_variable(type, $3, ir_var_auto);
+
+	   if (!declare_variable(state, v, (asm_type) $<integer>0, & @3)) {
 	      YYERROR;
 	   }
+
+	   state->ir.push_tail(v);
 	}
 	| IDENTIFIER
 	{
-	   if (!declare_variable(state, $1, (asm_type) $<integer>0, & @1)) {
-	      free($1);
+	   const glsl_type *type = (asm_type($<integer>0) == at_address)
+	      ? glsl_type::int_type : glsl_type::vec4_type;
+
+	   ir_variable *v = new(state) ir_variable(type, $1, ir_var_auto);
+
+	   if (!declare_variable(state, v, (asm_type) $<integer>0, & @1)) {
 	      YYERROR;
 	   }
 	}
@@ -1992,15 +2472,17 @@ varNameList: varNameList ',' IDENTIFIER
 
 OUTPUT_statement: optVarSize OUTPUT IDENTIFIER '=' resultBinding
 	{
-	   struct asm_symbol *const s =
-	      declare_variable(state, $3, at_output, & @3);
+	   ir_variable *v =
+	      new(state) ir_variable(glsl_type::vec4_type, $3, ir_var_out);
 
-	   if (s == NULL) {
-	      free($3);
+	   v->explicit_location = true;
+	   v->location = $5;
+
+	   if (!declare_variable(state, v, at_output, & @3)) {
 	      YYERROR;
-	   } else {
-	      s->output_binding = $5;
 	   }
+
+	   state->ir.push_tail(v);
 	}
 	;
 
@@ -2198,163 +2680,154 @@ string: IDENTIFIER
 
 %%
 
-void
-asm_instruction_set_operands(struct asm_instruction *inst,
-			     const struct prog_dst_register *dst,
-			     const struct asm_src_register *src0,
-			     const struct asm_src_register *src1,
-			     const struct asm_src_register *src2)
+ir_rvalue *
+saturate_value(void *mem_ctx, unsigned saturate_mode, ir_rvalue *expr)
 {
-   /* In the core ARB extensions only the KIL instruction doesn't have a
-    * destination register.
+   switch (saturate_mode) {
+   case SATURATE_OFF:
+      return expr;
+
+   case SATURATE_ZERO_ONE: {
+      ir_rvalue *zero = ir_constant::zero(mem_ctx, expr->type);
+      ir_expression *min_expr =
+	 new(mem_ctx) ir_expression(ir_binop_min, expr->type, expr, zero);
+      ir_constant_data d = { { 0 } };
+
+      d.f[0] = 1.0F;
+      d.f[1] = 1.0F;
+      d.f[2] = 1.0F;
+      d.f[3] = 1.0F;
+
+      ir_rvalue *one = new(mem_ctx) ir_constant(expr->type, &d);
+
+      ir_expression *max_expr =
+	 new(mem_ctx) ir_expression(ir_binop_max, expr->type, min_expr, one);
+
+      return max_expr;
+   }
+
+   default:
+      assert(!"Should not get here.");
+      return expr;
+   }
+}
+
+static unsigned
+count_bits(unsigned x)
+{
+   /* Determine how many bits are set in the write mask.  A swizzle
+    * must be generated to splat the generated scalar component across
+    * all the enabled write bits.
     */
-   if (dst == NULL) {
-      init_dst_reg(& inst->Base.DstReg);
-   } else {
-      inst->Base.DstReg = *dst;
+   unsigned bits = 0;
+   for (unsigned i = 0; i < 4; i++) {
+      if ((x & (1U << i)) != 0)
+	 bits++;
    }
 
-   /* The only instruction that doesn't have any source registers is the
-    * condition-code based KIL instruction added by NV_fragment_program_option.
+   return bits;
+}
+
+ir_rvalue *
+generate_rhs_for_write_mask(void *mem_ctx, unsigned write_mask, ir_rvalue *v)
+{
+   const unsigned bits = count_bits(write_mask);
+   assert((bits > 0) && (bits <= 4));
+   if (bits != 4)
+      v =  new(mem_ctx) ir_swizzle(v, 0, 1, 2, 3, bits);
+
+   return v;
+}
+
+ir_assignment *
+emit_vector_assignment(void *mem_ctx, ir_dereference *dst, unsigned write_mask,
+		       unsigned saturate_mode, ir_rvalue *v)
+{
+   ir_rvalue *rhs =
+      saturate_value(mem_ctx, saturate_mode,
+		     generate_rhs_for_write_mask(mem_ctx, write_mask, v));
+
+   return new(mem_ctx) ir_assignment(dst, rhs, NULL, write_mask);
+}
+
+ir_assignment *
+emit_scalar_assignment(void *mem_ctx, ir_dereference *dst, unsigned write_mask,
+		       unsigned saturate_mode, ir_rvalue *sc)
+{
+   assert(sc->type->is_scalar());
+
+   /* Determine how many bits are set in the write mask.  A swizzle
+    * must be generated to splat the generated scalar component across
+    * all the enabled write bits.
     */
-   if (src0 != NULL) {
-      inst->Base.SrcReg[0] = src0->Base;
-      inst->SrcReg[0] = *src0;
-   } else {
-      init_src_reg(& inst->SrcReg[0]);
+   const unsigned bits = count_bits(write_mask);
+   assert((bits > 0) && (bits <= 4));
+   if (bits > 1)
+      sc =  new(mem_ctx) ir_swizzle(sc, 0, 0, 0, 0, bits);
+
+   return new(mem_ctx) ir_assignment(dst,
+				     saturate_value(mem_ctx, saturate_mode, sc),
+				     NULL, write_mask);
+}
+
+ir_texture *
+texture_instruction_common(struct asm_parser_state *state,
+			   enum ir_texture_opcode opcode, ir_rvalue *tex_coord,
+			   unsigned unit, const glsl_type *sampler_type,
+			   struct YYLTYPE *sampler_loc)
+{
+   char name[16];
+
+   snprintf(name, sizeof(name), "$sampler-%02d", unit);
+   ir_variable *sampler = (ir_variable *)
+      _mesa_symbol_table_find_symbol(state->st, 0, name);
+
+   if (sampler == NULL) {
+      sampler = new(state) ir_variable(sampler_type, name, ir_var_uniform);
+      state->ir.push_head(sampler);
    }
 
-   if (src1 != NULL) {
-      inst->Base.SrcReg[1] = src1->Base;
-      inst->SrcReg[1] = *src1;
-   } else {
-      init_src_reg(& inst->SrcReg[1]);
+   /* If this texture unit was previously accessed using either a
+    * different texture target or a different shadow mode, generate an
+    * error.
+    */
+   if (sampler->type != sampler_type) {
+      yyerror(sampler_loc, state,
+	      "multiple targets used on one texture image unit");
+      return NULL;
    }
 
-   if (src2 != NULL) {
-      inst->Base.SrcReg[2] = src2->Base;
-      inst->SrcReg[2] = *src2;
-   } else {
-      init_src_reg(& inst->SrcReg[2]);
-   }
-}
+   ir_texture *const tex = new(state) ir_texture(opcode);
 
+   tex->sampler = new(state) ir_dereference_variable(sampler);
 
-struct asm_instruction *
-asm_instruction_ctor(gl_inst_opcode op,
-		     const struct prog_dst_register *dst,
-		     const struct asm_src_register *src0,
-		     const struct asm_src_register *src1,
-		     const struct asm_src_register *src2)
-{
-   struct asm_instruction *inst = CALLOC_STRUCT(asm_instruction);
-
-   if (inst) {
-      _mesa_init_instructions(& inst->Base, 1);
-      inst->Base.Opcode = op;
-
-      asm_instruction_set_operands(inst, dst, src0, src1, src2);
+   unsigned count = 0;
+   switch (tex->sampler->type->sampler_dimensionality) {
+   case GLSL_SAMPLER_DIM_1D:
+      count = 1;
+      break;
+   case GLSL_SAMPLER_DIM_2D:
+   case GLSL_SAMPLER_DIM_RECT:
+      count = 2;
+      break;
+   case GLSL_SAMPLER_DIM_3D:
+   case GLSL_SAMPLER_DIM_CUBE:
+      count = 3;
+      break;
    }
 
-   return inst;
-}
+   if (tex->sampler->type->sampler_array)
+      count++;
 
+   tex->coordinate = new(state) ir_swizzle(tex_coord, 0, 1, 2, 3, count);
 
-struct asm_instruction *
-asm_instruction_copy_ctor(const struct prog_instruction *base,
-			  const struct prog_dst_register *dst,
-			  const struct asm_src_register *src0,
-			  const struct asm_src_register *src1,
-			  const struct asm_src_register *src2)
-{
-   struct asm_instruction *inst = CALLOC_STRUCT(asm_instruction);
-
-   if (inst) {
-      _mesa_init_instructions(& inst->Base, 1);
-      inst->Base.Opcode = base->Opcode;
-      inst->Base.CondUpdate = base->CondUpdate;
-      inst->Base.CondDst = base->CondDst;
-      inst->Base.SaturateMode = base->SaturateMode;
-      inst->Base.Precision = base->Precision;
-
-      asm_instruction_set_operands(inst, dst, src0, src1, src2);
+   if (tex->sampler->type->sampler_shadow) {
+      tex->shadow_comparitor =
+	 new(state) ir_swizzle(tex_coord, 2, 2, 2, 2, 1);
    }
 
-   return inst;
+   return tex;
 }
-
-
-void
-init_dst_reg(struct prog_dst_register *r)
-{
-   memset(r, 0, sizeof(*r));
-   r->File = PROGRAM_UNDEFINED;
-   r->WriteMask = WRITEMASK_XYZW;
-   r->CondMask = COND_TR;
-   r->CondSwizzle = SWIZZLE_NOOP;
-}
-
-
-/** Like init_dst_reg() but set the File and Index fields. */
-void
-set_dst_reg(struct prog_dst_register *r, gl_register_file file, GLint index)
-{
-   const GLint maxIndex = 1 << INST_INDEX_BITS;
-   const GLint minIndex = 0;
-   ASSERT(index >= minIndex);
-   (void) minIndex;
-   ASSERT(index <= maxIndex);
-   (void) maxIndex;
-   ASSERT(file == PROGRAM_TEMPORARY ||
-	  file == PROGRAM_ADDRESS ||
-	  file == PROGRAM_OUTPUT);
-   memset(r, 0, sizeof(*r));
-   r->File = file;
-   r->Index = index;
-   r->WriteMask = WRITEMASK_XYZW;
-   r->CondMask = COND_TR;
-   r->CondSwizzle = SWIZZLE_NOOP;
-}
-
-
-void
-init_src_reg(struct asm_src_register *r)
-{
-   memset(r, 0, sizeof(*r));
-   r->Base.File = PROGRAM_UNDEFINED;
-   r->Base.Swizzle = SWIZZLE_NOOP;
-   r->Symbol = NULL;
-}
-
-
-/** Like init_src_reg() but set the File and Index fields.
- * \return GL_TRUE if a valid src register, GL_FALSE otherwise
- */
-void
-set_src_reg(struct asm_src_register *r, gl_register_file file, GLint index)
-{
-   set_src_reg_swz(r, file, index, SWIZZLE_XYZW);
-}
-
-
-void
-set_src_reg_swz(struct asm_src_register *r, gl_register_file file, GLint index,
-                GLuint swizzle)
-{
-   const GLint maxIndex = (1 << INST_INDEX_BITS) - 1;
-   const GLint minIndex = -(1 << INST_INDEX_BITS);
-   ASSERT(file < PROGRAM_FILE_MAX);
-   ASSERT(index >= minIndex);
-   (void) minIndex;
-   ASSERT(index <= maxIndex);
-   (void) maxIndex;
-   memset(r, 0, sizeof(*r));
-   r->Base.File = file;
-   r->Base.Index = index;
-   r->Base.Swizzle = swizzle;
-   r->Symbol = NULL;
-}
-
 
 /**
  * Validate the set of inputs used by a program
@@ -2364,7 +2837,7 @@ set_src_reg_swz(struct asm_src_register *r, gl_register_file file, GLint index,
  * the \c ATTRIB command.
  *
  * \return
- * \c TRUE if the combination of inputs used is valid, \c FALSE otherwise.
+ * \c true if the combination of inputs used is valid, \c false otherwise.
  */
 int
 validate_inputs(struct YYLTYPE *locp, struct asm_parser_state *state)
@@ -2380,43 +2853,30 @@ validate_inputs(struct YYLTYPE *locp, struct asm_parser_state *state)
 }
 
 
-struct asm_symbol *
-declare_variable(struct asm_parser_state *state, char *name, enum asm_type t,
-		 struct YYLTYPE *locp)
+bool
+declare_variable(struct asm_parser_state *state, ir_variable *var,
+		 enum asm_type t, struct YYLTYPE *locp)
 {
-   struct asm_symbol *s = NULL;
-   struct asm_symbol *exist = (struct asm_symbol *)
-      _mesa_symbol_table_find_symbol(state->st, 0, name);
-
-
-   if (exist != NULL) {
+   if (_mesa_symbol_table_find_symbol(state->st, 0, var->name) != NULL) {
       yyerror(locp, state, "redeclared identifier");
+      return false;
    } else {
-      s = (struct asm_symbol *) calloc(1, sizeof(struct asm_symbol));
-      s->name = name;
-      s->type = t;
-
       switch (t) {
       case at_temp:
 	 if (state->prog->NumTemporaries >= state->limits->MaxTemps) {
 	    yyerror(locp, state, "too many temporaries declared");
-	    free(s);
-	    return NULL;
+	    return false;
 	 }
 
-	 s->temp_binding = state->prog->NumTemporaries;
 	 state->prog->NumTemporaries++;
 	 break;
 
       case at_address:
 	 if (state->prog->NumAddressRegs >= state->limits->MaxAddressRegs) {
 	    yyerror(locp, state, "too many address registers declared");
-	    free(s);
-	    return NULL;
+	    return false;
 	 }
 
-	 /* FINISHME: Add support for multiple address registers.
-	  */
 	 state->prog->NumAddressRegs++;
 	 break;
 
@@ -2424,12 +2884,10 @@ declare_variable(struct asm_parser_state *state, char *name, enum asm_type t,
 	 break;
       }
 
-      _mesa_symbol_table_add_symbol(state->st, 0, s->name, s);
-      s->next = state->sym;
-      state->sym = s;
+      _mesa_symbol_table_add_symbol(state->st, 0, var->name, var);
    }
 
-   return s;
+   return true;
 }
 
 
@@ -2554,40 +3012,6 @@ initialize_symbol_from_param(struct gl_program *prog,
       }
       param_var->param_binding_length++;
    }
-
-   return idx;
-}
-
-
-/**
- * Put a float/vector constant/literal into the parameter list.
- * \param param_var  returns info about the parameter/constant's location,
- *                   binding, type, etc.
- * \param vec  the vector/constant to add
- * \param allowSwizzle  if true, try to consolidate constants which only differ
- *                      by a swizzle.  We don't want to do this when building
- *                      arrays of constants that may be indexed indirectly.
- * \return index of the constant in the parameter list.
- */
-int
-initialize_symbol_from_const(struct gl_program *prog,
-			     struct asm_symbol *param_var, 
-			     const struct asm_vector *vec,
-                             GLboolean allowSwizzle)
-{
-   unsigned swizzle;
-   const int idx = _mesa_add_unnamed_constant(prog->Parameters,
-                                              vec->data, vec->count,
-                                              allowSwizzle ? &swizzle : NULL);
-
-   param_var->type = at_param;
-   param_var->param_binding_type = PROGRAM_CONSTANT;
-
-   if (param_var->param_binding_begin == ~0U) {
-      param_var->param_binding_begin = idx;
-      param_var->param_binding_swizzle = allowSwizzle ? swizzle : SWIZZLE_XYZW;
-   }
-   param_var->param_binding_length++;
 
    return idx;
 }

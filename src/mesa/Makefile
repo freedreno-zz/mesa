@@ -77,7 +77,7 @@ main/api_exec_es2.c: main/APIspec.xml main/es_generator.py main/APIspecutil.py m
 program/program_parse.cpp program/program_parse.tab.h: program/program_parse.y
 	bison -v -o program/program_parse.cpp --defines=program/program_parse.tab.h $<
 
-program/lex.yy.c: program/program_lexer.l
+program/program_lexer.cpp: program/program_lexer.l
 	flex --never-interactive --outfile=$@ $<
 
 ######################################################################
