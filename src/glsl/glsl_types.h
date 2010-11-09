@@ -209,6 +209,13 @@ struct glsl_type {
 					       const char *name);
 
    /**
+    * Get the instance of a sampler type
+    */
+   static const glsl_type *get_sampler_instance(glsl_sampler_dim dim,
+						bool shadow, bool array,
+						unsigned sample_type);
+
+   /**
     * Query the total number of scalars that make up a scalar, vector or matrix
     */
    unsigned components() const
@@ -438,6 +445,13 @@ private:
    static const glsl_type builtin_EXT_texture_array_types[];
    static const glsl_type builtin_EXT_texture_buffer_object_types[];
    /*@}*/
+
+   /**
+    * Table of sampler types used internally by get_sampler_instance
+    *
+    * \sa glsl_type::get_sampler_instance
+    */
+   static const glsl_type *const sampler_types[];
 
    /**
     * \name Methods to populate a symbol table with built-in types.

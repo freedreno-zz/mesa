@@ -450,6 +450,125 @@ glsl_type::get_record_instance(const glsl_struct_field *fields,
    return t;
 }
 
+/**
+ * Convert sampler type attributes into an index in the sampler_types array
+ */
+#define SAMPLER_TYPE_INDEX(dim, sample_type, array, shadow)		\
+   ((unsigned(dim) * 12) | (sample_type * 4) | (unsigned(array) * 2)	\
+    | unsigned(shadow))
+
+/**
+ * \note
+ * Arrays like this are \b the argument for C99-style designated initializers.
+ * Too bad C++ and VisualStudio are too cool for that sort of useful
+ * functionality.
+ */
+const glsl_type *const glsl_type::sampler_types[] = {
+   /* GLSL_SAMPLER_DIM_1D */
+   &builtin_130_types[10],                      /* uint */
+   NULL,                                        /* uint, shadow */
+   &builtin_130_types[5],                       /* uint, array */
+   NULL,                                        /* uint, array, shadow */
+   &builtin_130_types[9],                       /* int */
+   NULL,                                        /* int, shadow */
+   &builtin_130_types[4],                       /* int, array */
+   NULL,                                        /* int, array, shadow */
+   &builtin_110_types[0],                       /* float */
+   &builtin_110_types[1],                       /* float, shadow */
+   &builtin_EXT_texture_array_types[0],         /* float, array */
+   &builtin_EXT_texture_array_types[2],         /* float, array, shadow */
+
+   /* GLSL_SAMPLER_DIM_2D */
+   &builtin_130_types[12],                      /* uint */
+   NULL,                                        /* uint, shadow */
+   &builtin_130_types[7],                       /* uint, array */
+   NULL,                                        /* uint, array, shadow */
+   &builtin_130_types[11],                      /* int */
+   NULL,                                        /* int, shadow */
+   &builtin_130_types[6],                       /* int, array */
+   NULL,                                        /* int, array, shadow */
+   &builtin_core_types[15],                     /* float */
+   &builtin_110_types[2],                       /* float, shadow */
+   &builtin_EXT_texture_array_types[1],         /* float, array */
+   &builtin_EXT_texture_array_types[3],         /* float, array, shadow */
+
+   /* GLSL_SAMPLER_DIM_3D */
+   &builtin_130_types[14],                      /* uint */
+   NULL,                                        /* uint, shadow */
+   NULL,                                        /* uint, array */
+   NULL,                                        /* uint, array, shadow */
+   &builtin_130_types[13],                      /* int */
+   NULL,                                        /* int, shadow */
+   NULL,                                        /* int, array */
+   NULL,                                        /* int, array, shadow */
+   &builtin_110_types[3],                       /* float */
+   NULL,                                        /* float, shadow */
+   NULL,                                        /* float, array */
+   NULL,                                        /* float, array, shadow */
+
+   /* GLSL_SAMPLER_DIM_CUBE */
+   &builtin_130_types[16],                      /* uint */
+   NULL,                                        /* uint, shadow */
+   NULL,                                        /* uint, array */
+   NULL,                                        /* uint, array, shadow */
+   &builtin_130_types[15],                      /* int */
+   NULL,                                        /* int, shadow */
+   NULL,                                        /* int, array */
+   NULL,                                        /* int, array, shadow */
+   &builtin_core_types[16],                     /* float */
+   &builtin_130_types[8],                       /* float, shadow */
+   NULL,                                        /* float, array */
+   NULL,                                        /* float, array, shadow */
+
+   /* GLSL_SAMPLER_DIM_RECT */
+   NULL,                                        /* uint */
+   NULL,                                        /* uint, shadow */
+   NULL,                                        /* uint, array */
+   NULL,                                        /* uint, array, shadow */
+   NULL,                                        /* int */
+   NULL,                                        /* int, shadow */
+   NULL,                                        /* int, array */
+   NULL,                                        /* int, array, shadow */
+   &builtin_ARB_texture_rectangle_types[0],     /* float */
+   &builtin_ARB_texture_rectangle_types[1],     /* float, shadow */
+   NULL,                                        /* float, array */
+   NULL,                                        /* float, array, shadow */
+
+   /* GLSL_SAMPLER_DIM_BUF */
+   &builtin_EXT_texture_buffer_object_types[2], /* uint */
+   NULL,                                        /* uint, shadow */
+   NULL,                                        /* uint, array */
+   NULL,                                        /* uint, array, shadow */
+   &builtin_EXT_texture_buffer_object_types[1], /* int */
+   NULL,                                        /* int, shadow */
+   NULL,                                        /* int, array */
+   NULL,                                        /* int, array, shadow */
+   &builtin_EXT_texture_buffer_object_types[0], /* float */
+   NULL,                                        /* float, shadow */
+   NULL,                                        /* float, array */
+   NULL,                                        /* float, array, shadow */
+};
+
+const glsl_type *
+glsl_type::get_sampler_instance(glsl_sampler_dim dim,
+				bool shadow, bool array,
+				unsigned sample_type)
+{
+   const glsl_type *const t =
+      sampler_types[SAMPLER_TYPE_INDEX(dim, sample_type, array, shadow)];
+
+   if (t == NULL)
+      return NULL;
+
+   assert(t->base_type == GLSL_TYPE_SAMPLER);
+   assert(t->sampler_dimensionality == dim);
+   assert(t->sampler_shadow == shadow);
+   assert(t->sampler_array == array);
+   assert(t->sampler_type == sample_type);
+
+   return t;
+}
+
 
 const glsl_type *
 glsl_type::field_type(const char *name) const
