@@ -155,6 +155,9 @@ struct glsl_type {
    static const glsl_type *const vec3_type;
    static const glsl_type *const vec4_type;
    static const glsl_type *const bool_type;
+   static const glsl_type *const bvec2_type;
+   static const glsl_type *const bvec3_type;
+   static const glsl_type *const bvec4_type;
    static const glsl_type *const mat2_type;
    static const glsl_type *const mat2x3_type;
    static const glsl_type *const mat2x4_type;
