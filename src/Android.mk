@@ -24,6 +24,7 @@ MESA_BUILD_I915G := false
 # for testing purpose
 #BOARD_USES_I915C := true
 #BOARD_USES_I915G := true
+#BOARD_USES_I965C := true
 #BOARD_USES_VMWGFX := true
 
 MESA_GRALLOC_NAME := 
@@ -45,6 +46,15 @@ MESA_BUILD_I915G := true
 
 MESA_GRALLOC_NAME := i915
 MESA_GLES_NAME := i915g
+endif
+
+ifeq ($(strip $(BOARD_USES_I965C)),true)
+MESA_BUILD_CLASSIC := true
+MESA_BUILD_I915 := true
+MESA_BUILD_I965C := true
+
+MESA_GRALLOC_NAME := i915
+MESA_GLES_NAME := i965c
 endif
 
 ifeq ($(strip $(BOARD_USES_VMWGFX)),true)
