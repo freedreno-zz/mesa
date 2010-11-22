@@ -37,6 +37,7 @@
  * - POW_TO_EXP2
  * - LOG_TO_LOG2
  * - MOD_TO_FRACT
+ * - LIT_TO_POW_FLAT
  *
  * SUB_TO_ADD_NEG:
  * ---------------
@@ -81,6 +82,17 @@
  * Many GPUs don't have a MOD instruction (945 and 965 included), and
  * if we have to break it down like this anyway, it gives an
  * opportunity to do things like constant fold the (1.0 / op1) easily.
+ *
+ * LIT_TO_POW_FLAT:
+ * ----------------
+ * Lower the LIT instruction into a sequence of equivalent instructions.
+ *
+ * New GPUs have removed support for the CISC-like LIT instruction.  Instead,
+ * this must be implemented using a sequence of simpler instructions.  Even some
+ * older GPUs, such as i915, lack support for a LIT instruction.  This version
+ * of the lowering pass lowers \c ir_unop_lit to a sequence of IR that does
+ * \b not include an if-statement.  In the future it may be beneficial to add
+ * a version of the lowering pass that generates an if-statement.
  */
 
 #include "main/core.h" /* for M_LOG2E */
@@ -107,6 +119,7 @@ private:
    void exp_to_pow(ir_expression *);
    void pow_to_exp2(ir_expression *);
    void log_to_log2(ir_expression *);
+   void lit_to_pow_flat(ir_expression *ir);
 };
 
 /**
@@ -263,10 +276,130 @@ lower_instructions_visitor::mod_to_fract(ir_expression *ir)
    this->progress = true;
 }
 
+void
+lower_instructions_visitor::lit_to_pow_flat(ir_expression *ir)
+{
+   ir_instruction *inst;
+
+   /* The ARB_vertex_program spec says that LIT does:
+    *
+    *    tmp = VectorLoad(op0);
+    *    if (tmp.x < 0) tmp.x = 0;
+    *    if (tmp.y < 0) tmp.y = 0;
+    *    if (tmp.w < -(128.0-epsilon)) tmp.w = -(128.0-epsilon);
+    *    else if (tmp.w > 128-epsilon) tmp.w = 128-epsilon;
+    *    result.x = 1.0;
+    *    result.y = tmp.x;
+    *    result.z = (tmp.x > 0) ? RoughApproxPower(tmp.y, tmp.w) : 0.0;
+    *    result.w = 1.0;
+    *
+    * This can be lowered to:
+    *
+    *    tmp.yzw = max(vec3(0.0, 0.0, -(128.0 - epsilon)), op0.xyw);
+    *    tmp.w = min(128.0 - epsilon, tmp.w);
+    *    tmp.z = pow(tmp.z, tmp.w);
+    *    tmp.xw = vec2(1.0, 1.0);
+    *    if (tmp.y <= 0)
+    *        tmp.z = 0;
+    */
+
+   ir_variable *const tmp_var =
+      new(ir) ir_variable(glsl_type::vec4_type, "lit_tmp", ir_var_temporary);
+   this->base_ir->insert_before(tmp_var);
+
+   /* Generate 'tmp.yzw = max(vec3(0.0, 0.0, -(128.0 - epsilon)), op0.xyw);'
+    * The "other" API defined the minimum and maximum values used here as the
+    * values that can be represented in an 8.8 fixed-point value.
+    */
+   ir_constant_data clamp_data = { { 0 } };
+   clamp_data.f[2] = (float) -(double(0x7fff) / 256.0);
+
+   ir_expression *const max_expr =
+      new(ir) ir_expression(ir_binop_max, glsl_type::vec3_type,
+			    new(ir) ir_constant(glsl_type::vec3_type,
+						&clamp_data),
+			    new(ir) ir_swizzle(ir->operands[0], 0, 1, 3, 0, 3));
+   inst = new(ir) ir_assignment(new(ir) ir_dereference_variable(tmp_var),
+				max_expr, NULL, 0x0E);
+   this->base_ir->insert_before(inst);
+
+   /* Generate 'tmp.w = min(128.0 - epsilon, tmp.w);'
+    */
+   ir_rvalue *const tmp_w =
+      new(ir) ir_swizzle(new(ir) ir_dereference_variable(tmp_var),
+			 3, 3, 3, 3, 1);
+   ir_expression *const min_expr =
+      new(ir) ir_expression(ir_binop_min, glsl_type::float_type,
+			    new(ir) ir_constant(-clamp_data.f[2]),
+			    tmp_w);
+   inst = new(ir) ir_assignment(new(ir) ir_dereference_variable(tmp_var),
+				min_expr, NULL, (1U << 3));
+   this->base_ir->insert_before(inst);
+
+   /* Generate 'tmp.z = pow(tmp.z, tmp.w);'
+    */
+   ir_rvalue *const tmp_z =
+      new(ir) ir_swizzle(new(ir) ir_dereference_variable(tmp_var),
+			 2, 2, 2, 2, 1);
+   ir_expression *const pow_expr =
+      new(ir) ir_expression(ir_binop_pow, glsl_type::float_type,
+			    tmp_z, tmp_w->clone(ir, NULL));
+
+   inst = new(ir) ir_assignment(new(ir) ir_dereference_variable(tmp_var),
+				pow_expr,
+				NULL,
+				(1U << 2));
+   this->base_ir->insert_before(inst);
+
+   /* Generate 'tmp.xw = vec2(1.0, 1.0);'
+    */
+   ir_constant_data output_data = { { 0 } };
+   output_data.f[0] = 1.0F;
+   output_data.f[1] = 1.0F;
+
+   inst = new(ir) ir_assignment(new(ir) ir_dereference_variable(tmp_var),
+				new(ir) ir_constant(glsl_type::vec2_type,
+						    &output_data),
+				NULL,
+				0x09);
+   this->base_ir->insert_before(inst);
+
+   /* Generate 'if (tmp.y <= 0) tmp.z = 0;'
+    */
+   ir_rvalue *const tmp_y =
+      new(ir) ir_swizzle(new(ir) ir_dereference_variable(tmp_var),
+			 1, 1, 1, 1, 1);
+   ir_expression *const cmp_expr =
+      new(ir) ir_expression(ir_binop_lequal,
+			    glsl_type::bool_type,
+			    tmp_y,
+			    new(ir) ir_constant(0.0F));
+
+   inst = new(ir) ir_assignment(new(ir) ir_dereference_variable(tmp_var),
+				new(ir) ir_constant(0.0F),
+				cmp_expr,
+				(1U << 2));
+   this->base_ir->insert_before(inst);
+
+   /* FINISHME: Convert lower_instructions_visitor to an ir_rvalue_visitor so
+    * FINISHME: that this ugly hack can be removed.
+    */
+   ir->operation = ir_binop_add;
+   ir->operands[0] = new(ir) ir_dereference_variable(tmp_var);
+   ir->operands[1] = ir_constant::zero(ir, glsl_type::vec4_type);
+
+   this->progress = true;
+}
+
 ir_visitor_status
 lower_instructions_visitor::visit_leave(ir_expression *ir)
 {
    switch (ir->operation) {
+   case ir_unop_lit:
+      if (lowering(LIT_TO_POW_FLAT))
+	 lit_to_pow_flat(ir);
+      break;
+
    case ir_binop_sub:
       if (lowering(SUB_TO_ADD_NEG))
 	 sub_to_add_neg(ir);

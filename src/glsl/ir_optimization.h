@@ -36,6 +36,7 @@
 #define POW_TO_EXP2             (1U << 4)
 #define LOG_TO_LOG2             (1U << 5)
 #define MOD_TO_FRACT            (1U << 6)
+#define LIT_TO_POW_FLAT         (1U << 7)
 
 bool do_common_optimization(exec_list *ir, bool linked, unsigned max_unroll_iterations);
 

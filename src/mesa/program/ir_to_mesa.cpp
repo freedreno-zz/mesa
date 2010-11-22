@@ -1195,6 +1195,10 @@ ir_to_mesa_visitor::visit(ir_expression *ir)
       break;
    }
 
+   case ir_unop_lit:
+      emit(ir, OPCODE_LIT, result_dst, op[0]);
+      break;
+
    case ir_binop_add:
       emit(ir, OPCODE_ADD, result_dst, op[0], op[1]);
       break;

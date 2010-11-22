@@ -432,6 +432,7 @@ static const char *const operator_strs[] = {
    "dFdx",
    "dFdy",
    "noise",
+   "lit",
    "+",
    "-",
    "*",

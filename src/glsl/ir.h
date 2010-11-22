@@ -823,9 +823,18 @@ enum ir_expression_operation {
    ir_unop_noise,
 
    /**
+    * Calculate lighting coefficients
+    *
+    * Like this noise opcode, this opcode really shouldn't exist.  The
+    * only reason it exists is to facilitate translation of assembly
+    * shaders to IR.
+    */
+   ir_unop_lit,
+
+   /**
     * A sentinel marking the last of the unary operations.
     */
-   ir_last_unop = ir_unop_noise,
+   ir_last_unop = ir_unop_lit,
 
    ir_binop_add,
    ir_binop_sub,

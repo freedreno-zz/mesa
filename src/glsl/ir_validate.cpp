@@ -301,6 +301,11 @@ ir_validate::visit_leave(ir_expression *ir)
       assert(ir->operands[0]->type == ir->type);
       break;
 
+   case ir_unop_lit:
+      assert(ir->type == glsl_type::vec4_type);
+      assert(ir->operands[0]->type == glsl_type::vec4_type);
+      break;
+
    case ir_unop_noise:
       /* XXX what can we assert here? */
       break;
