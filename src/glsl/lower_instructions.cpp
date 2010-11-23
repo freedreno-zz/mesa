@@ -33,6 +33,7 @@
  * - SUB_TO_ADD_NEG
  * - DIV_TO_MUL_RCP
  * - EXP_TO_EXP2
+ * - EXP_TO_POW
  * - POW_TO_EXP2
  * - LOG_TO_LOG2
  * - MOD_TO_FRACT
@@ -61,6 +62,12 @@
  * Many GPUs don't have a base e log or exponent instruction, but they
  * do have base 2 versions, so this pass converts exp and log to exp2
  * and log2 operations.
+ *
+ * EXP_TO_POW:
+ * -----------
+ * Few if any GPUs have an instruction for e**x, but they may have an x**y
+ * instruction.  For these GPUs, convert \c ir_unop_exp to a \c ir_binop_pow
+ * with an immediate value of e for the first parameter.
  *
  * POW_TO_EXP2:
  * -----------
@@ -97,6 +104,7 @@ private:
    void div_to_mul_rcp(ir_expression *);
    void mod_to_fract(ir_expression *);
    void exp_to_exp2(ir_expression *);
+   void exp_to_pow(ir_expression *);
    void pow_to_exp2(ir_expression *);
    void log_to_log2(ir_expression *);
 };
@@ -188,6 +196,15 @@ lower_instructions_visitor::exp_to_exp2(ir_expression *ir)
 }
 
 void
+lower_instructions_visitor::exp_to_pow(ir_expression *ir)
+{
+   ir->operation = ir_binop_pow;
+   ir->operands[1] = ir->operands[0];
+   ir->operands[0] = new(ir) ir_constant(float(M_E));
+   this->progress = true;
+}
+
+void
 lower_instructions_visitor::pow_to_exp2(ir_expression *ir)
 {
    ir_expression *const log2_x =
@@ -261,7 +278,9 @@ lower_instructions_visitor::visit_leave(ir_expression *ir)
       break;
 
    case ir_unop_exp:
-      if (lowering(EXP_TO_EXP2))
+      if (lowering(EXP_TO_POW))
+	 exp_to_pow(ir);
+      else if (lowering(EXP_TO_EXP2))
 	 exp_to_exp2(ir);
       break;
 
