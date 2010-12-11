@@ -191,6 +191,7 @@ static GLuint get_surface_type( GLenum type, GLuint size,
          else {
             return ubyte_types_norm[size];
          }
+      case GL_FIXED: return float_types[size]; /* was uploaded as floats */
       default: assert(0); return 0;
       }      
    }
@@ -206,6 +207,7 @@ static GLuint get_surface_type( GLenum type, GLuint size,
       case GL_UNSIGNED_INT: return uint_types_scale[size];
       case GL_UNSIGNED_SHORT: return ushort_types_scale[size];
       case GL_UNSIGNED_BYTE: return ubyte_types_scale[size];
+      case GL_FIXED: return float_types[size]; /* was uploaded as floats */
       default: assert(0); return 0;
       }      
    }
@@ -224,6 +226,7 @@ static GLuint get_size( GLenum type )
    case GL_UNSIGNED_INT: return sizeof(GLuint);
    case GL_UNSIGNED_SHORT: return sizeof(GLushort);
    case GL_UNSIGNED_BYTE: return sizeof(GLubyte);
+   case GL_FIXED: return sizeof(GLfloat); /* will be uploaded as floats */
    default: return 0;
    }      
 }
@@ -285,6 +288,49 @@ copy_array_to_vbo_array( struct brw_context *brw,
       element->stride = 0;
    } else {
       element->stride = dst_stride;
+   }
+
+   /* upload as floats */
+   if (element->glarray->Type == GL_FIXED) {
+      drm_intel_bo *src_bo = NULL;
+      const char *src;
+      char *dst;
+      GLint i, j;
+
+      /* map source bo */
+      if (_mesa_is_bufferobj(element->glarray->BufferObj)) {
+         struct intel_buffer_object *intel_buffer =
+            intel_buffer_object(element->glarray->BufferObj);
+
+         src_bo = intel_bufferobj_buffer(&brw->intel, intel_buffer, INTEL_READ);
+         drm_intel_gem_bo_map_gtt(src_bo);
+
+         src = (const char *) element->bo->virtual +
+            (unsigned long) element->glarray->Ptr;
+      }
+      else {
+         src = (const char *) element->glarray->Ptr;
+      }
+
+      drm_intel_gem_bo_map_gtt(element->bo);
+      dst = (char *) element->bo->virtual + element->offset;
+
+      for (i = 0; i < element->count; i++) {
+         const GLint *s = (GLint *) src;
+         GLfloat *d = (GLfloat *) dst;
+
+         for (j = 0; j < element->glarray->Size; j++)
+            d[j] = s[j] / 65536.0f;
+
+         src += element->glarray->StrideB;
+         dst += dst_stride;
+      }
+
+      drm_intel_gem_bo_unmap_gtt(element->bo);
+      if (src_bo)
+         drm_intel_gem_bo_unmap_gtt(src_bo);
+
+      return;
    }
 
    if (dst_stride == element->glarray->StrideB) {
@@ -356,7 +402,8 @@ static void brw_prepare_vertices(struct brw_context *brw)
 
       input->element_size = get_size(input->glarray->Type) * input->glarray->Size;
 
-      if (_mesa_is_bufferobj(input->glarray->BufferObj)) {
+      if (_mesa_is_bufferobj(input->glarray->BufferObj) &&
+          input->glarray->Type != GL_FIXED) {
 	 struct intel_buffer_object *intel_buffer =
 	    intel_buffer_object(input->glarray->BufferObj);
 
