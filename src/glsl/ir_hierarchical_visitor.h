@@ -77,6 +77,7 @@ enum ir_visitor_status {
 class ir_hierarchical_visitor {
 public:
    ir_hierarchical_visitor();
+   virtual ~ir_hierarchical_visitor() {}
 
    /**
     * \name Visit methods for leaf-node classes

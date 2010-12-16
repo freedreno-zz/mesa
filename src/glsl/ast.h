@@ -129,6 +129,7 @@ protected:
     * be created.
     */
    ast_node(void);
+   virtual ~ast_node() {}
 };
 
 
