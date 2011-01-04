@@ -74,7 +74,7 @@ read_builtins(GLenum target, const char *protos, const char **functions, unsigne
    return sh;
 }
 
-static const char *builtin_abs =
+static const char builtin_abs[] =
    "((function abs\n"
    "   (signature float\n"
    "     (parameters\n"
@@ -98,7 +98,7 @@ static const char *builtin_abs =
    "))\n"
    ""
 ;
-static const char *builtin_acos =
+static const char builtin_acos[] =
    "((function acos\n"
    "   (signature float\n"
    "     (parameters\n"
@@ -123,7 +123,7 @@ static const char *builtin_acos =
    "))\n"
    ""
 ;
-static const char *builtin_all =
+static const char builtin_all[] =
    "((function all\n"
    "   (signature bool\n"
    "     (parameters\n"
@@ -142,7 +142,7 @@ static const char *builtin_all =
    "))\n"
    ""
 ;
-static const char *builtin_any =
+static const char builtin_any[] =
    "((function any\n"
    "   (signature bool\n"
    "     (parameters\n"
@@ -161,7 +161,7 @@ static const char *builtin_any =
    "))\n"
    ""
 ;
-static const char *builtin_asin =
+static const char builtin_asin[] =
    "((function asin\n"
    "   (signature float\n"
    "     (parameters\n"
@@ -261,7 +261,7 @@ static const char *builtin_asin =
    "))\n"
    ""
 ;
-static const char *builtin_atan =
+static const char builtin_atan[] =
    "((function atan\n"
    "   (signature float\n"
    "     (parameters\n"
@@ -405,7 +405,7 @@ static const char *builtin_atan =
    "))\n"
    ""
 ;
-static const char *builtin_ceil =
+static const char builtin_ceil[] =
    "((function ceil\n"
    "   (signature float\n"
    "     (parameters\n"
@@ -429,7 +429,7 @@ static const char *builtin_ceil =
    "))\n"
    ""
 ;
-static const char *builtin_clamp =
+static const char builtin_clamp[] =
    "((function clamp\n"
    "   (signature float\n"
    "     (parameters\n"
@@ -580,7 +580,7 @@ static const char *builtin_clamp =
    "))\n"
    ""
 ;
-static const char *builtin_cos =
+static const char builtin_cos[] =
    "((function cos\n"
    "   (signature float\n"
    "     (parameters\n"
@@ -604,7 +604,7 @@ static const char *builtin_cos =
    "))\n"
    ""
 ;
-static const char *builtin_cosh =
+static const char builtin_cosh[] =
    "((function cosh\n"
    "   (signature float\n"
    "     (parameters\n"
@@ -637,7 +637,7 @@ static const char *builtin_cosh =
    "))\n"
    ""
 ;
-static const char *builtin_cross =
+static const char builtin_cross[] =
    "((function cross\n"
    "   (signature vec3\n"
    "     (parameters\n"
@@ -647,7 +647,7 @@ static const char *builtin_cross =
    "))\n"
    ""
 ;
-static const char *builtin_dFdx =
+static const char builtin_dFdx[] =
    "((function dFdx\n"
    "   (signature float\n"
    "     (parameters\n"
@@ -671,7 +671,7 @@ static const char *builtin_dFdx =
    "))\n"
    ""
 ;
-static const char *builtin_dFdy =
+static const char builtin_dFdy[] =
    "((function dFdy\n"
    "   (signature float\n"
    "     (parameters\n"
@@ -695,7 +695,7 @@ static const char *builtin_dFdy =
    "))\n"
    ""
 ;
-static const char *builtin_degrees =
+static const char builtin_degrees[] =
    "((function degrees\n"
    "   (signature float\n"
    "     (parameters\n"
@@ -719,7 +719,7 @@ static const char *builtin_degrees =
    "))\n"
    ""
 ;
-static const char *builtin_distance =
+static const char builtin_distance[] =
    "((function distance\n"
    "   (signature float\n"
    "     (parameters\n"
@@ -753,7 +753,7 @@ static const char *builtin_distance =
    "))\n"
    ""
 ;
-static const char *builtin_dot =
+static const char builtin_dot[] =
    "((function dot\n"
    "   (signature float\n"
    "     (parameters\n"
@@ -781,7 +781,7 @@ static const char *builtin_dot =
    "))\n"
    ""
 ;
-static const char *builtin_equal =
+static const char builtin_equal[] =
    "((function equal\n"
    "   (signature bvec2\n"
    "     (parameters\n"
@@ -857,7 +857,7 @@ static const char *builtin_equal =
    "))\n"
    ""
 ;
-static const char *builtin_exp =
+static const char builtin_exp[] =
    "((function exp\n"
    "   (signature float\n"
    "     (parameters\n"
@@ -881,7 +881,7 @@ static const char *builtin_exp =
    "))\n"
    ""
 ;
-static const char *builtin_exp2 =
+static const char builtin_exp2[] =
    "((function exp2\n"
    "   (signature float\n"
    "     (parameters\n"
@@ -905,7 +905,7 @@ static const char *builtin_exp2 =
    "))\n"
    ""
 ;
-static const char *builtin_faceforward =
+static const char builtin_faceforward[] =
    "((function faceforward\n"
    "   (signature float\n"
    "     (parameters\n"
@@ -945,7 +945,7 @@ static const char *builtin_faceforward =
    "))\n"
    ""
 ;
-static const char *builtin_floor =
+static const char builtin_floor[] =
    "((function floor\n"
    "   (signature float\n"
    "     (parameters\n"
@@ -969,7 +969,7 @@ static const char *builtin_floor =
    "))\n"
    ""
 ;
-static const char *builtin_fract =
+static const char builtin_fract[] =
    "((function fract\n"
    "   (signature float\n"
    "     (parameters\n"
@@ -994,7 +994,7 @@ static const char *builtin_fract =
    "\n"
    ""
 ;
-static const char *builtin_ftransform =
+static const char builtin_ftransform[] =
    "((declare (uniform) mat4 gl_ModelViewProjectionMatrix)\n"
    " (declare (in) vec4 gl_Vertex)\n"
    " (function ftransform\n"
@@ -1006,7 +1006,7 @@ static const char *builtin_ftransform =
    "))\n"
    ""
 ;
-static const char *builtin_fwidth =
+static const char builtin_fwidth[] =
    "((function fwidth\n"
    "   (signature float\n"
    "     (parameters\n"
@@ -1038,7 +1038,7 @@ static const char *builtin_fwidth =
    "))\n"
    ""
 ;
-static const char *builtin_greaterThan =
+static const char builtin_greaterThan[] =
    "((function greaterThan\n"
    "   (signature bvec2\n"
    "     (parameters\n"
@@ -1096,7 +1096,7 @@ static const char *builtin_greaterThan =
    "))\n"
    ""
 ;
-static const char *builtin_greaterThanEqual =
+static const char builtin_greaterThanEqual[] =
    "((function greaterThanEqual\n"
    "   (signature bvec2\n"
    "     (parameters\n"
@@ -1154,7 +1154,7 @@ static const char *builtin_greaterThanEqual =
    "))\n"
    ""
 ;
-static const char *builtin_inversesqrt =
+static const char builtin_inversesqrt[] =
    "((function inversesqrt\n"
    "   (signature float\n"
    "     (parameters\n"
@@ -1178,7 +1178,7 @@ static const char *builtin_inversesqrt =
    "))\n"
    ""
 ;
-static const char *builtin_length =
+static const char builtin_length[] =
    "((function length\n"
    "   (signature float\n"
    "     (parameters\n"
@@ -1202,7 +1202,7 @@ static const char *builtin_length =
    "))\n"
    ""
 ;
-static const char *builtin_lessThan =
+static const char builtin_lessThan[] =
    "((function lessThan\n"
    "   (signature bvec2\n"
    "     (parameters\n"
@@ -1260,7 +1260,7 @@ static const char *builtin_lessThan =
    "))\n"
    ""
 ;
-static const char *builtin_lessThanEqual =
+static const char builtin_lessThanEqual[] =
    "((function lessThanEqual\n"
    "   (signature bvec2\n"
    "     (parameters\n"
@@ -1318,7 +1318,7 @@ static const char *builtin_lessThanEqual =
    "))\n"
    ""
 ;
-static const char *builtin_log =
+static const char builtin_log[] =
    "((function log\n"
    "   (signature float\n"
    "     (parameters\n"
@@ -1342,7 +1342,7 @@ static const char *builtin_log =
    "))\n"
    ""
 ;
-static const char *builtin_log2 =
+static const char builtin_log2[] =
    "((function log2\n"
    "   (signature float\n"
    "     (parameters\n"
@@ -1366,7 +1366,7 @@ static const char *builtin_log2 =
    "))\n"
    ""
 ;
-static const char *builtin_matrixCompMult =
+static const char builtin_matrixCompMult[] =
    "((function matrixCompMult\n"
    "   (signature mat2\n"
    "     (parameters\n"
@@ -1460,7 +1460,7 @@ static const char *builtin_matrixCompMult =
    "))\n"
    ""
 ;
-static const char *builtin_max =
+static const char builtin_max[] =
    "((function max\n"
    "   (signature float\n"
    "     (parameters\n"
@@ -1590,7 +1590,7 @@ static const char *builtin_max =
    "))\n"
    ""
 ;
-static const char *builtin_min =
+static const char builtin_min[] =
    "((function min\n"
    "   (signature float\n"
    "     (parameters\n"
@@ -1720,7 +1720,7 @@ static const char *builtin_min =
    "))\n"
    ""
 ;
-static const char *builtin_mix =
+static const char builtin_mix[] =
    "((function mix\n"
    "   (signature float\n"
    "     (parameters\n"
@@ -1811,7 +1811,7 @@ static const char *builtin_mix =
    "))\n"
    ""
 ;
-static const char *builtin_mod =
+static const char builtin_mod[] =
    "((function mod\n"
    "   (signature float\n"
    "     (parameters\n"
@@ -1857,7 +1857,7 @@ static const char *builtin_mod =
    "))\n"
    ""
 ;
-static const char *builtin_noise1 =
+static const char builtin_noise1[] =
    "((function noise1\n"
    "   (signature float\n"
    "     (parameters\n"
@@ -1878,7 +1878,7 @@ static const char *builtin_noise1 =
    "))\n"
    ""
 ;
-static const char *builtin_noise2 =
+static const char builtin_noise2[] =
    "((function noise2\n"
    "  (signature vec2\n"
    "    (parameters (declare (in) vec4 p))\n"
@@ -1942,7 +1942,7 @@ static const char *builtin_noise2 =
    "))\n"
    ""
 ;
-static const char *builtin_noise3 =
+static const char builtin_noise3[] =
    "((function noise3\n"
    "  (signature vec3\n"
    "    (parameters (declare (in) vec4 p))\n"
@@ -2018,7 +2018,7 @@ static const char *builtin_noise3 =
    "))\n"
    ""
 ;
-static const char *builtin_noise4 =
+static const char builtin_noise4[] =
    "((function noise4\n"
    "  (signature vec4\n"
    "    (parameters (declare (in) vec4 p))\n"
@@ -2118,7 +2118,7 @@ static const char *builtin_noise4 =
    "))\n"
    ""
 ;
-static const char *builtin_normalize =
+static const char builtin_normalize[] =
    "((function normalize\n"
    "   (signature float\n"
    "     (parameters\n"
@@ -2142,7 +2142,7 @@ static const char *builtin_normalize =
    "))\n"
    ""
 ;
-static const char *builtin_not =
+static const char builtin_not[] =
    "((function not\n"
    "   (signature bvec2\n"
    "     (parameters\n"
@@ -2161,7 +2161,7 @@ static const char *builtin_not =
    "))\n"
    ""
 ;
-static const char *builtin_notEqual =
+static const char builtin_notEqual[] =
    "((function notEqual\n"
    "   (signature bvec2\n"
    "     (parameters\n"
@@ -2237,7 +2237,7 @@ static const char *builtin_notEqual =
    "))\n"
    ""
 ;
-static const char *builtin_outerProduct =
+static const char builtin_outerProduct[] =
    "((function outerProduct\n"
    "   (signature mat2\n"
    "     (parameters\n"
@@ -2332,7 +2332,7 @@ static const char *builtin_outerProduct =
    "))\n"
    ""
 ;
-static const char *builtin_pow =
+static const char builtin_pow[] =
    "((function pow\n"
    "   (signature float\n"
    "     (parameters\n"
@@ -2360,7 +2360,7 @@ static const char *builtin_pow =
    "))\n"
    ""
 ;
-static const char *builtin_radians =
+static const char builtin_radians[] =
    "((function radians\n"
    "   (signature float\n"
    "     (parameters\n"
@@ -2384,7 +2384,7 @@ static const char *builtin_radians =
    "))\n"
    ""
 ;
-static const char *builtin_reflect =
+static const char builtin_reflect[] =
    "((function reflect\n"
    "   (signature float\n"
    "     (parameters\n"
@@ -2445,7 +2445,7 @@ static const char *builtin_reflect =
    "))\n"
    ""
 ;
-static const char *builtin_refract =
+static const char builtin_refract[] =
    "((function refract\n"
    "   (signature float\n"
    "     (parameters\n"
@@ -2550,7 +2550,7 @@ static const char *builtin_refract =
    "))\n"
    ""
 ;
-static const char *builtin_shadow1D =
+static const char builtin_shadow1D[] =
    "((function shadow1D\n"
    "   (signature vec4\n"
    "     (parameters\n"
@@ -2568,7 +2568,7 @@ static const char *builtin_shadow1D =
    "))\n"
    ""
 ;
-static const char *builtin_shadow1DArray =
+static const char builtin_shadow1DArray[] =
    "((function shadow1DArray\n"
    "   (signature vec4\n"
    "     (parameters\n"
@@ -2586,7 +2586,7 @@ static const char *builtin_shadow1DArray =
    "))\n"
    ""
 ;
-static const char *builtin_shadow1DArrayLod =
+static const char builtin_shadow1DArrayLod[] =
    "((function shadow1DArrayLod\n"
    "   (signature vec4\n"
    "     (parameters\n"
@@ -2598,7 +2598,7 @@ static const char *builtin_shadow1DArrayLod =
    "))\n"
    ""
 ;
-static const char *builtin_shadow1DLod =
+static const char builtin_shadow1DLod[] =
    "((function shadow1DLod\n"
    "   (signature vec4\n"
    "     (parameters\n"
@@ -2610,7 +2610,7 @@ static const char *builtin_shadow1DLod =
    "))\n"
    ""
 ;
-static const char *builtin_shadow1DProj =
+static const char builtin_shadow1DProj[] =
    "((function shadow1DProj\n"
    "   (signature vec4\n"
    "     (parameters\n"
@@ -2628,7 +2628,7 @@ static const char *builtin_shadow1DProj =
    "))\n"
    ""
 ;
-static const char *builtin_shadow1DProjLod =
+static const char builtin_shadow1DProjLod[] =
    "((function shadow1DProjLod\n"
    "   (signature vec4\n"
    "     (parameters\n"
@@ -2640,7 +2640,7 @@ static const char *builtin_shadow1DProjLod =
    "))\n"
    ""
 ;
-static const char *builtin_shadow2D =
+static const char builtin_shadow2D[] =
    "((function shadow2D\n"
    "   (signature vec4\n"
    "     (parameters\n"
@@ -2658,7 +2658,7 @@ static const char *builtin_shadow2D =
    "))\n"
    ""
 ;
-static const char *builtin_shadow2DArray =
+static const char builtin_shadow2DArray[] =
    "((function shadow2DArray\n"
    "   (signature vec4\n"
    "     (parameters\n"
@@ -2669,7 +2669,7 @@ static const char *builtin_shadow2DArray =
    "))\n"
    ""
 ;
-static const char *builtin_shadow2DLod =
+static const char builtin_shadow2DLod[] =
    "((function shadow2DLod\n"
    "   (signature vec4\n"
    "     (parameters\n"
@@ -2681,7 +2681,7 @@ static const char *builtin_shadow2DLod =
    "))\n"
    ""
 ;
-static const char *builtin_shadow2DProj =
+static const char builtin_shadow2DProj[] =
    "((function shadow2DProj\n"
    "   (signature vec4\n"
    "     (parameters\n"
@@ -2699,7 +2699,7 @@ static const char *builtin_shadow2DProj =
    "))\n"
    ""
 ;
-static const char *builtin_shadow2DProjLod =
+static const char builtin_shadow2DProjLod[] =
    "((function shadow2DProjLod\n"
    "   (signature vec4\n"
    "     (parameters\n"
@@ -2711,7 +2711,7 @@ static const char *builtin_shadow2DProjLod =
    "))\n"
    ""
 ;
-static const char *builtin_shadow2DRect =
+static const char builtin_shadow2DRect[] =
    "((function shadow2DRect\n"
    "   (signature vec4\n"
    "     (parameters\n"
@@ -2722,7 +2722,7 @@ static const char *builtin_shadow2DRect =
    "))\n"
    ""
 ;
-static const char *builtin_shadow2DRectProj =
+static const char builtin_shadow2DRectProj[] =
    "((function shadow2DRectProj\n"
    "   (signature vec4\n"
    "     (parameters\n"
@@ -2733,7 +2733,7 @@ static const char *builtin_shadow2DRectProj =
    "))\n"
    ""
 ;
-static const char *builtin_sign =
+static const char builtin_sign[] =
    "((function sign\n"
    "   (signature float\n"
    "     (parameters\n"
@@ -2778,7 +2778,7 @@ static const char *builtin_sign =
    "\n"
    ""
 ;
-static const char *builtin_sin =
+static const char builtin_sin[] =
    "((function sin\n"
    "   (signature float\n"
    "     (parameters\n"
@@ -2802,7 +2802,7 @@ static const char *builtin_sin =
    "))\n"
    ""
 ;
-static const char *builtin_sinh =
+static const char builtin_sinh[] =
    "((function sinh\n"
    "   (signature float\n"
    "     (parameters\n"
@@ -2835,7 +2835,7 @@ static const char *builtin_sinh =
    "))\n"
    ""
 ;
-static const char *builtin_smoothstep =
+static const char builtin_smoothstep[] =
    "((function smoothstep\n"
    "   (signature float\n"
    "     (parameters\n"
@@ -2843,40 +2843,26 @@ static const char *builtin_smoothstep =
    "       (declare (in) float edge1)\n"
    "       (declare (in) float x))\n"
    "     ((declare () float t)\n"
-   "\n"
    "      (assign (constant bool (1)) (x) (var_ref t)\n"
    "              (expression float max\n"
    "	                  (expression float min\n"
    "	                              (expression float / (expression float - (var_ref x) (var_ref edge0)) (expression float - (var_ref edge1) (var_ref edge0)))\n"
    "	                              (constant float (1.0)))\n"
    "	                  (constant float (0.0))))\n"
-   "      (return (expression float * (var_ref t) (expression float * (var_ref t) (expression float - (constant float (3.000000)) (expression float * (constant float (2.000000)) (var_ref t))))))))\n"
-   "\n"
+   "      (return (expression float * (var_ref t) (expression float * (var_ref t) (expression float - (constant float (3.0)) (expression float * (constant float (2.0)) (var_ref t))))))))\n"
    "   (signature vec2\n"
    "     (parameters\n"
    "       (declare (in) float edge0)\n"
    "       (declare (in) float edge1)\n"
    "       (declare (in) vec2 x))\n"
    "     ((declare () vec2 t)\n"
-   "      (declare () vec2 retval)\n"
-   "\n"
-   "      (assign (constant bool (1)) (x) (var_ref t)\n"
-   "              (expression float max\n"
-   "	                  (expression float min\n"
-   "	                              (expression float / (expression float - (swiz x (var_ref x)) (var_ref edge0)) (expression float - (var_ref edge1) (var_ref edge0)))\n"
+   "      (assign (constant bool (1)) (xy) (var_ref t)\n"
+   "              (expression vec2 max\n"
+   "	                  (expression vec2 min\n"
+   "	                              (expression vec2 / (expression vec2 - (var_ref x) (var_ref edge0)) (expression float - (var_ref edge1) (var_ref edge0)))\n"
    "	                              (constant float (1.0)))\n"
    "	                  (constant float (0.0))))\n"
-   "      (assign (constant bool (1)) (x) (var_ref retval) (expression float * (swiz x (var_ref t)) (expression float * (swiz x (var_ref t)) (expression float - (constant float (3.000000)) (expression float * (constant float (2.000000)) (swiz x (var_ref t)))))))\n"
-   "\n"
-   "      (assign (constant bool (1)) (y) (var_ref t)\n"
-   "              (expression float max\n"
-   "	                  (expression float min\n"
-   "	                              (expression float / (expression float - (swiz y (var_ref x)) (var_ref edge0)) (expression float - (var_ref edge1) (var_ref edge0)))\n"
-   "	                              (constant float (1.0)))\n"
-   "	                  (constant float (0.0))))\n"
-   "      (assign (constant bool (1)) (y) (var_ref retval) (expression float * (swiz y (var_ref t)) (expression float * (swiz y (var_ref t)) (expression float - (constant float (3.000000)) (expression float * (constant float (2.000000)) (swiz y (var_ref t)))))))\n"
-   "      (return (var_ref retval))\n"
-   "      ))\n"
+   "      (return (expression vec2 * (var_ref t) (expression vec2 * (var_ref t) (expression vec2 - (constant float (3.0)) (expression vec2 * (constant float (2.0)) (var_ref t))))))))\n"
    "\n"
    "   (signature vec3\n"
    "     (parameters\n"
@@ -2884,33 +2870,13 @@ static const char *builtin_smoothstep =
    "       (declare (in) float edge1)\n"
    "       (declare (in) vec3 x))\n"
    "     ((declare () vec3 t)\n"
-   "      (declare () vec3 retval)\n"
-   "\n"
-   "      (assign (constant bool (1)) (x) (var_ref t)\n"
-   "              (expression float max\n"
-   "	                  (expression float min\n"
-   "	                              (expression float / (expression float - (swiz x (var_ref x)) (var_ref edge0)) (expression float - (var_ref edge1) (var_ref edge0)))\n"
+   "      (assign (constant bool (1)) (xyz) (var_ref t)\n"
+   "              (expression vec3 max\n"
+   "	                  (expression vec3 min\n"
+   "	                              (expression vec3 / (expression vec3 - (var_ref x) (var_ref edge0)) (expression float - (var_ref edge1) (var_ref edge0)))\n"
    "	                              (constant float (1.0)))\n"
    "	                  (constant float (0.0))))\n"
-   "      (assign (constant bool (1)) (x) (var_ref retval) (expression float * (swiz x (var_ref t)) (expression float * (swiz x (var_ref t)) (expression float - (constant float (3.000000)) (expression float * (constant float (2.000000)) (swiz x (var_ref t)))))))\n"
-   "\n"
-   "      (assign (constant bool (1)) (y) (var_ref t)\n"
-   "              (expression float max\n"
-   "	                  (expression float min\n"
-   "	                              (expression float / (expression float - (swiz y (var_ref x)) (var_ref edge0)) (expression float - (var_ref edge1) (var_ref edge0)))\n"
-   "	                              (constant float (1.0)))\n"
-   "	                  (constant float (0.0))))\n"
-   "      (assign (constant bool (1)) (y) (var_ref retval) (expression float * (swiz y (var_ref t)) (expression float * (swiz y (var_ref t)) (expression float - (constant float (3.000000)) (expression float * (constant float (2.000000)) (swiz y (var_ref t)))))))\n"
-   "\n"
-   "      (assign (constant bool (1)) (z) (var_ref t)\n"
-   "              (expression float max\n"
-   "	                  (expression float min\n"
-   "	                              (expression float / (expression float - (swiz z (var_ref x)) (var_ref edge0)) (expression float - (var_ref edge1) (var_ref edge0)))\n"
-   "	                              (constant float (1.0)))\n"
-   "	                  (constant float (0.0))))\n"
-   "      (assign (constant bool (1)) (z) (var_ref retval) (expression float * (swiz z (var_ref t)) (expression float * (swiz z (var_ref t)) (expression float - (constant float (3.000000)) (expression float * (constant float (2.000000)) (swiz z (var_ref t)))))))\n"
-   "      (return (var_ref retval))\n"
-   "      ))\n"
+   "      (return (expression vec3 * (var_ref t) (expression vec3 * (var_ref t) (expression vec3 - (constant float (3.0)) (expression vec3 * (constant float (2.0)) (var_ref t))))))))\n"
    "\n"
    "\n"
    "   (signature vec4\n"
@@ -2919,79 +2885,60 @@ static const char *builtin_smoothstep =
    "       (declare (in) float edge1)\n"
    "       (declare (in) vec4 x))\n"
    "     ((declare () vec4 t)\n"
-   "      (declare () vec4 retval)\n"
-   "\n"
-   "      (assign (constant bool (1)) (x) (var_ref t)\n"
-   "              (expression float max\n"
-   "	                  (expression float min\n"
-   "	                              (expression float / (expression float - (swiz x (var_ref x)) (var_ref edge0)) (expression float - (var_ref edge1) (var_ref edge0)))\n"
+   "      (assign (constant bool (1)) (xyzw) (var_ref t)\n"
+   "              (expression vec4 max\n"
+   "	                  (expression vec4 min\n"
+   "	                              (expression vec4 / (expression vec4 - (var_ref x) (var_ref edge0)) (expression float - (var_ref edge1) (var_ref edge0)))\n"
    "	                              (constant float (1.0)))\n"
    "	                  (constant float (0.0))))\n"
-   "      (assign (constant bool (1)) (x) (var_ref retval) (expression float * (swiz x (var_ref t)) (expression float * (swiz x (var_ref t)) (expression float - (constant float (3.000000)) (expression float * (constant float (2.000000)) (swiz x (var_ref t)))))))\n"
-   "\n"
-   "      (assign (constant bool (1)) (y) (var_ref t)\n"
-   "              (expression float max\n"
-   "	                  (expression float min\n"
-   "	                              (expression float / (expression float - (swiz y (var_ref x)) (var_ref edge0)) (expression float - (var_ref edge1) (var_ref edge0)))\n"
-   "	                              (constant float (1.0)))\n"
-   "	                  (constant float (0.0))))\n"
-   "      (assign (constant bool (1)) (y) (var_ref retval) (expression float * (swiz y (var_ref t)) (expression float * (swiz y (var_ref t)) (expression float - (constant float (3.000000)) (expression float * (constant float (2.000000)) (swiz y (var_ref t)))))))\n"
-   "\n"
-   "      (assign (constant bool (1)) (z) (var_ref t)\n"
-   "              (expression float max\n"
-   "	                  (expression float min\n"
-   "	                              (expression float / (expression float - (swiz z (var_ref x)) (var_ref edge0)) (expression float - (var_ref edge1) (var_ref edge0)))\n"
-   "	                              (constant float (1.0)))\n"
-   "	                  (constant float (0.0))))\n"
-   "      (assign (constant bool (1)) (z) (var_ref retval) (expression float * (swiz z (var_ref t)) (expression float * (swiz z (var_ref t)) (expression float - (constant float (3.000000)) (expression float * (constant float (2.000000)) (swiz z (var_ref t)))))))\n"
-   "\n"
-   "      (assign (constant bool (1)) (w) (var_ref t)\n"
-   "              (expression float max\n"
-   "	                  (expression float min\n"
-   "	                              (expression float / (expression float - (swiz w (var_ref x)) (var_ref edge0)) (expression float - (var_ref edge1) (var_ref edge0)))\n"
-   "	                              (constant float (1.0)))\n"
-   "	                  (constant float (0.0))))\n"
-   "      (assign (constant bool (1)) (w) (var_ref retval) (expression float * (swiz w (var_ref t)) (expression float * (swiz w (var_ref t)) (expression float - (constant float (3.000000)) (expression float * (constant float (2.000000)) (swiz w (var_ref t)))))))\n"
-   "      (return (var_ref retval))\n"
-   "      ))\n"
+   "      (return (expression vec4 * (var_ref t) (expression vec4 * (var_ref t) (expression vec4 - (constant float (3.0)) (expression vec4 * (constant float (2.0)) (var_ref t))))))))\n"
    "\n"
    "   (signature vec2\n"
    "     (parameters\n"
    "       (declare (in) vec2 edge0)\n"
    "       (declare (in) vec2 edge1)\n"
    "       (declare (in) vec2 x))\n"
-   "     ((return (expression vec2 max\n"
+   "     ((declare () vec2 t)\n"
+   "      (assign (constant bool (1)) (xy) (var_ref t)\n"
+   "              (expression vec2 max\n"
    "                          (expression vec2 min\n"
    "                                      (expression vec2 / (expression vec2 - (var_ref x) (var_ref edge0)) (expression vec2 - (var_ref edge1) (var_ref edge0)))\n"
-   "                                      (constant vec2 (1.0 1.0)))\n"
-   "                          (constant vec2 (0.0 0.0))))))\n"
+   "                                      (constant float (1.0)))\n"
+   "                          (constant float (0.0))))\n"
+   "      (return (expression vec2 * (var_ref t) (expression vec2 * (var_ref t) (expression vec2 - (constant float (3.0)) (expression vec2 * (constant float (2.0)) (var_ref t))))))))\n"
    "\n"
    "   (signature vec3\n"
    "     (parameters\n"
    "       (declare (in) vec3 edge0)\n"
    "       (declare (in) vec3 edge1)\n"
    "       (declare (in) vec3 x))\n"
-   "     ((return (expression vec3 max\n"
+   "     ((declare () vec3 t)\n"
+   "      (assign (constant bool (1)) (xyz) (var_ref t)\n"
+   "              (expression vec3 max\n"
    "                          (expression vec3 min\n"
    "                                      (expression vec3 / (expression vec3 - (var_ref x) (var_ref edge0)) (expression vec3 - (var_ref edge1) (var_ref edge0)))\n"
-   "                                      (constant vec3 (1.0 1.0 1.0)))\n"
-   "                          (constant vec3 (0.0 0.0 0.0))))))\n"
+   "                                      (constant float (1.0)))\n"
+   "                          (constant float (0.0))))\n"
+   "      (return (expression vec3 * (var_ref t) (expression vec3 * (var_ref t) (expression vec3 - (constant float (3.0)) (expression vec3 * (constant float (2.0)) (var_ref t))))))))\n"
    "\n"
    "   (signature vec4\n"
    "     (parameters\n"
    "       (declare (in) vec4 edge0)\n"
    "       (declare (in) vec4 edge1)\n"
    "       (declare (in) vec4 x))\n"
-   "     ((return (expression vec4 max\n"
+   "     ((declare () vec4 t)\n"
+   "      (assign (constant bool (1)) (xyzw) (var_ref t)\n"
+   "              (expression vec4 max\n"
    "                          (expression vec4 min\n"
    "                                      (expression vec4 / (expression vec4 - (var_ref x) (var_ref edge0)) (expression vec4 - (var_ref edge1) (var_ref edge0)))\n"
-   "                                      (constant vec4 (1.0 1.0 1.0 1.0)))\n"
-   "                          (constant vec4 (0.0 0.0 0.0 0.0))))))\n"
+   "                                      (constant float (1.0)))\n"
+   "                          (constant float (0.0))))\n"
+   "      (return (expression vec4 * (var_ref t) (expression vec4 * (var_ref t) (expression vec4 - (constant float (3.0)) (expression vec4 * (constant float (2.0)) (var_ref t))))))))\n"
    "))\n"
    "\n"
    ""
 ;
-static const char *builtin_sqrt =
+static const char builtin_sqrt[] =
    "((function sqrt\n"
    "   (signature float\n"
    "     (parameters\n"
@@ -3015,7 +2962,7 @@ static const char *builtin_sqrt =
    "))\n"
    ""
 ;
-static const char *builtin_step =
+static const char builtin_step[] =
    "((function step\n"
    "   (signature float\n"
    "     (parameters\n"
@@ -3086,7 +3033,7 @@ static const char *builtin_step =
    "\n"
    ""
 ;
-static const char *builtin_tan =
+static const char builtin_tan[] =
    "((function tan\n"
    "   (signature float\n"
    "     (parameters\n"
@@ -3110,7 +3057,7 @@ static const char *builtin_tan =
    "))\n"
    ""
 ;
-static const char *builtin_tanh =
+static const char builtin_tanh[] =
    "((function tanh\n"
    "   (signature float\n"
    "     (parameters\n"
@@ -3155,7 +3102,7 @@ static const char *builtin_tanh =
    "))\n"
    ""
 ;
-static const char *builtin_texelFetch =
+static const char builtin_texelFetch[] =
    "((function texelFetch\n"
    "   (signature vec4\n"
    "     (parameters\n"
@@ -3265,7 +3212,7 @@ static const char *builtin_texelFetch =
    "))\n"
    ""
 ;
-static const char *builtin_texture =
+static const char builtin_texture[] =
    "((function texture\n"
    "   (signature vec4\n"
    "     (parameters\n"
@@ -3504,7 +3451,7 @@ static const char *builtin_texture =
    "))\n"
    ""
 ;
-static const char *builtin_texture1D =
+static const char builtin_texture1D[] =
    "((function texture1D\n"
    "   (signature vec4\n"
    "     (parameters\n"
@@ -3522,7 +3469,7 @@ static const char *builtin_texture1D =
    "))\n"
    ""
 ;
-static const char *builtin_texture1DArray =
+static const char builtin_texture1DArray[] =
    "((function texture1DArray\n"
    "   (signature vec4\n"
    "     (parameters\n"
@@ -3540,7 +3487,7 @@ static const char *builtin_texture1DArray =
    "))\n"
    ""
 ;
-static const char *builtin_texture1DArrayLod =
+static const char builtin_texture1DArrayLod[] =
    "((function texture1DArrayLod\n"
    "   (signature vec4\n"
    "     (parameters\n"
@@ -3552,7 +3499,7 @@ static const char *builtin_texture1DArrayLod =
    "))\n"
    ""
 ;
-static const char *builtin_texture1DLod =
+static const char builtin_texture1DLod[] =
    "((function texture1DLod\n"
    "   (signature vec4\n"
    "     (parameters\n"
@@ -3564,7 +3511,7 @@ static const char *builtin_texture1DLod =
    "))\n"
    ""
 ;
-static const char *builtin_texture1DProj =
+static const char builtin_texture1DProj[] =
    "((function texture1DProj\n"
    "   (signature vec4\n"
    "     (parameters\n"
@@ -3595,7 +3542,7 @@ static const char *builtin_texture1DProj =
    "))\n"
    ""
 ;
-static const char *builtin_texture1DProjLod =
+static const char builtin_texture1DProjLod[] =
    "((function texture1DProjLod\n"
    "   (signature vec4\n"
    "     (parameters\n"
@@ -3614,7 +3561,7 @@ static const char *builtin_texture1DProjLod =
    "))\n"
    ""
 ;
-static const char *builtin_texture2D =
+static const char builtin_texture2D[] =
    "((function texture2D\n"
    "   (signature vec4\n"
    "     (parameters\n"
@@ -3632,7 +3579,7 @@ static const char *builtin_texture2D =
    "))\n"
    ""
 ;
-static const char *builtin_texture2DArray =
+static const char builtin_texture2DArray[] =
    "((function texture2DArray\n"
    "   (signature vec4\n"
    "     (parameters\n"
@@ -3650,7 +3597,7 @@ static const char *builtin_texture2DArray =
    "))\n"
    ""
 ;
-static const char *builtin_texture2DArrayLod =
+static const char builtin_texture2DArrayLod[] =
    "((function texture2DArrayLod\n"
    "   (signature vec4\n"
    "     (parameters\n"
@@ -3662,7 +3609,7 @@ static const char *builtin_texture2DArrayLod =
    "))\n"
    ""
 ;
-static const char *builtin_texture2DLod =
+static const char builtin_texture2DLod[] =
    "((function texture2DLod\n"
    "   (signature vec4\n"
    "     (parameters\n"
@@ -3674,7 +3621,7 @@ static const char *builtin_texture2DLod =
    "))\n"
    ""
 ;
-static const char *builtin_texture2DProj =
+static const char builtin_texture2DProj[] =
    "((function texture2DProj\n"
    "   (signature vec4\n"
    "     (parameters\n"
@@ -3705,7 +3652,7 @@ static const char *builtin_texture2DProj =
    "))\n"
    ""
 ;
-static const char *builtin_texture2DProjLod =
+static const char builtin_texture2DProjLod[] =
    "((function texture2DProjLod\n"
    "   (signature vec4\n"
    "     (parameters\n"
@@ -3724,7 +3671,7 @@ static const char *builtin_texture2DProjLod =
    "))\n"
    ""
 ;
-static const char *builtin_texture2DRect =
+static const char builtin_texture2DRect[] =
    "((function texture2DRect\n"
    "   (signature vec4\n"
    "     (parameters\n"
@@ -3735,7 +3682,7 @@ static const char *builtin_texture2DRect =
    "))\n"
    ""
 ;
-static const char *builtin_texture2DRectProj =
+static const char builtin_texture2DRectProj[] =
    "((function texture2DRectProj\n"
    "   (signature vec4\n"
    "     (parameters\n"
@@ -3752,7 +3699,7 @@ static const char *builtin_texture2DRectProj =
    "))\n"
    ""
 ;
-static const char *builtin_texture3D =
+static const char builtin_texture3D[] =
    "((function texture3D\n"
    "   (signature vec4\n"
    "     (parameters\n"
@@ -3770,7 +3717,7 @@ static const char *builtin_texture3D =
    "))\n"
    ""
 ;
-static const char *builtin_texture3DLod =
+static const char builtin_texture3DLod[] =
    "((function texture3DLod\n"
    "   (signature vec4\n"
    "     (parameters\n"
@@ -3782,7 +3729,7 @@ static const char *builtin_texture3DLod =
    "))\n"
    ""
 ;
-static const char *builtin_texture3DProj =
+static const char builtin_texture3DProj[] =
    "((function texture3DProj\n"
    "   (signature vec4\n"
    "     (parameters\n"
@@ -3800,7 +3747,7 @@ static const char *builtin_texture3DProj =
    "))\n"
    ""
 ;
-static const char *builtin_texture3DProjLod =
+static const char builtin_texture3DProjLod[] =
    "((function texture3DProjLod\n"
    "   (signature vec4\n"
    "     (parameters\n"
@@ -3812,7 +3759,7 @@ static const char *builtin_texture3DProjLod =
    "))\n"
    ""
 ;
-static const char *builtin_textureCube =
+static const char builtin_textureCube[] =
    "((function textureCube\n"
    "   (signature vec4\n"
    "     (parameters\n"
@@ -3830,7 +3777,7 @@ static const char *builtin_textureCube =
    "))\n"
    ""
 ;
-static const char *builtin_textureCubeLod =
+static const char builtin_textureCubeLod[] =
    "((function textureCubeLod\n"
    "   (signature vec4\n"
    "     (parameters\n"
@@ -3842,7 +3789,7 @@ static const char *builtin_textureCubeLod =
    "))\n"
    ""
 ;
-static const char *builtin_textureGrad =
+static const char builtin_textureGrad[] =
    "((function textureGrad\n"
    "   (signature vec4\n"
    "     (parameters\n"
@@ -3991,7 +3938,7 @@ static const char *builtin_textureGrad =
    "))\n"
    ""
 ;
-static const char *builtin_textureLod =
+static const char builtin_textureLod[] =
    "((function textureLod\n"
    "   (signature vec4\n"
    "     (parameters\n"
@@ -4122,7 +4069,7 @@ static const char *builtin_textureLod =
    "))\n"
    ""
 ;
-static const char *builtin_textureProj =
+static const char builtin_textureProj[] =
    "((function textureProj\n"
    "   (signature vec4\n"
    "     (parameters\n"
@@ -4322,7 +4269,7 @@ static const char *builtin_textureProj =
    "))\n"
    ""
 ;
-static const char *builtin_textureProjGrad =
+static const char builtin_textureProjGrad[] =
    "((function textureProjGrad\n"
    "   (signature vec4\n"
    "     (parameters\n"
@@ -4447,7 +4394,7 @@ static const char *builtin_textureProjGrad =
    "))\n"
    ""
 ;
-static const char *builtin_textureProjLod =
+static const char builtin_textureProjLod[] =
    "((function textureProjLod\n"
    "   (signature vec4\n"
    "     (parameters\n"
@@ -4557,7 +4504,7 @@ static const char *builtin_textureProjLod =
    "))\n"
    ""
 ;
-static const char *builtin_transpose =
+static const char builtin_transpose[] =
    "((function transpose\n"
    "   (signature mat2\n"
    "     (parameters\n"
@@ -4699,7 +4646,7 @@ static const char *builtin_transpose =
    "\n"
    ""
 ;
-static const char *prototypes_for_100_frag =
+static const char prototypes_for_100_frag[] =
    "(\n"
    "(function radians\n"
    "  (signature float\n"
@@ -5860,7 +5807,7 @@ static const char *functions_for_100_frag [] = {
    builtin_texture2DProj,
    builtin_textureCube,
 };
-static const char *prototypes_for_100_vert =
+static const char prototypes_for_100_vert[] =
    "(\n"
    "(function radians\n"
    "  (signature float\n"
@@ -7027,7 +6974,7 @@ static const char *functions_for_100_vert [] = {
    builtin_textureCube,
    builtin_textureCubeLod,
 };
-static const char *prototypes_for_110_frag =
+static const char prototypes_for_110_frag[] =
    "(\n"
    "(function radians\n"
    "  (signature float\n"
@@ -8429,7 +8376,7 @@ static const char *functions_for_110_frag [] = {
    builtin_texture3DProj,
    builtin_textureCube,
 };
-static const char *prototypes_for_110_vert =
+static const char prototypes_for_110_vert[] =
    "(\n"
    "(function radians\n"
    "  (signature float\n"
@@ -9804,7 +9751,7 @@ static const char *functions_for_110_vert [] = {
    builtin_textureCube,
    builtin_textureCubeLod,
 };
-static const char *prototypes_for_120_frag =
+static const char prototypes_for_120_frag[] =
    "(\n"
    "(function radians\n"
    "  (signature float\n"
@@ -11321,7 +11268,7 @@ static const char *functions_for_120_frag [] = {
    builtin_textureCube,
    builtin_transpose,
 };
-static const char *prototypes_for_120_vert =
+static const char prototypes_for_120_vert[] =
    "(\n"
    "(function radians\n"
    "  (signature float\n"
@@ -12811,7 +12758,7 @@ static const char *functions_for_120_vert [] = {
    builtin_textureCubeLod,
    builtin_transpose,
 };
-static const char *prototypes_for_130_frag =
+static const char prototypes_for_130_frag[] =
    "(\n"
    "(function radians\n"
    "  (signature float\n"
@@ -15874,7 +15821,7 @@ static const char *functions_for_130_frag [] = {
    builtin_textureProjLod,
    builtin_transpose,
 };
-static const char *prototypes_for_130_vert =
+static const char prototypes_for_130_vert[] =
    "(\n"
    "(function radians\n"
    "  (signature float\n"
@@ -18888,7 +18835,7 @@ static const char *functions_for_130_vert [] = {
    builtin_textureProjLod,
    builtin_transpose,
 };
-static const char *prototypes_for_ARB_texture_rectangle_frag =
+static const char prototypes_for_ARB_texture_rectangle_frag[] =
    "(\n"
    "(function texture2DRect\n"
    "  (signature vec4\n"
@@ -18926,7 +18873,7 @@ static const char *functions_for_ARB_texture_rectangle_frag [] = {
    builtin_texture2DRect,
    builtin_texture2DRectProj,
 };
-static const char *prototypes_for_ARB_texture_rectangle_vert =
+static const char prototypes_for_ARB_texture_rectangle_vert[] =
    "(\n"
    "(function texture2DRect\n"
    "  (signature vec4\n"
@@ -18964,7 +18911,7 @@ static const char *functions_for_ARB_texture_rectangle_vert [] = {
    builtin_texture2DRect,
    builtin_texture2DRectProj,
 };
-static const char *prototypes_for_EXT_texture_array_frag =
+static const char prototypes_for_EXT_texture_array_frag[] =
    "(\n"
    "(function texture1DArray\n"
    "  (signature vec4\n"
@@ -19015,7 +18962,7 @@ static const char *functions_for_EXT_texture_array_frag [] = {
    builtin_texture1DArray,
    builtin_texture2DArray,
 };
-static const char *prototypes_for_EXT_texture_array_vert =
+static const char prototypes_for_EXT_texture_array_vert[] =
    "(\n"
    "(function texture1DArray\n"
    "  (signature vec4\n"
