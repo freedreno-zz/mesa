@@ -142,7 +142,6 @@ static const struct {
    { GLX_STENCIL_SIZE,			EGL_STENCIL_SIZE },
    { GLX_SAMPLE_BUFFERS,		EGL_SAMPLE_BUFFERS },
    { GLX_SAMPLES,			EGL_SAMPLES },
-   { GLX_RENDER_TYPE,			EGL_RENDERABLE_TYPE },
    { GLX_X_RENDERABLE,			EGL_NATIVE_RENDERABLE },
    { GLX_X_VISUAL_TYPE,			EGL_NATIVE_VISUAL_TYPE },
    { GLX_CONFIG_CAVEAT,			EGL_CONFIG_CAVEAT },
@@ -217,6 +216,16 @@ convert_fbconfig(Display *dpy, GLXFBConfig fbconfig,
    }
 
    _eglSetConfigKey(&GLX_conf->Base, EGL_SURFACE_TYPE, surface_type);
+
+   _eglSetConfigKey(&GLX_conf->Base, EGL_RENDERABLE_TYPE, EGL_OPENGL_BIT);
+
+   glXGetFBConfigAttrib(dpy, fbconfig, GLX_TRANSPARENT_TYPE, &val);
+   if (val == GLX_NONE) {
+      _eglSetConfigKey(&GLX_conf->Base, EGL_TRANSPARENT_TYPE, EGL_NONE);
+      _eglSetConfigKey(&GLX_conf->Base, EGL_TRANSPARENT_RED_VALUE, 0);
+      _eglSetConfigKey(&GLX_conf->Base, EGL_TRANSPARENT_GREEN_VALUE, 0);
+      _eglSetConfigKey(&GLX_conf->Base, EGL_TRANSPARENT_BLUE_VALUE, 0);
+   }
 
    return EGL_TRUE;
 }
@@ -294,6 +303,7 @@ convert_visual(Display *dpy, XVisualInfo *vinfo,
       surface_type |= EGL_PIXMAP_BIT;
 
    _eglSetConfigKey(&GLX_conf->Base, EGL_SURFACE_TYPE, surface_type);
+   _eglSetConfigKey(&GLX_conf->Base, EGL_RENDERABLE_TYPE, EGL_OPENGL_BIT);
 
    _eglSetConfigKey(&GLX_conf->Base, EGL_NATIVE_RENDERABLE, EGL_TRUE);
 
