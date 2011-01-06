@@ -1692,6 +1692,23 @@ apply_type_qualifier_to_variable(const struct ast_type_qualifier *qual,
    else if (qual->uniform)
       var->mode = ir_var_uniform;
 
+   if (state->all_invariant && (state->current_function == NULL)) {
+      switch (state->target) {
+      case vertex_shader:
+	 if (var->mode == ir_var_out)
+	    var->invariant = true;
+	 break;
+      case geometry_shader:
+	 if ((var->mode == ir_var_in) || (var->mode == ir_var_out))
+	    var->invariant = true;
+	 break;
+      case fragment_shader:
+	 if (var->mode == ir_var_in)
+	    var->invariant = true;
+	 break;
+      }
+   }
+
    if (qual->flat)
       var->interpolation = ir_var_flat;
    else if (qual->noperspective)
