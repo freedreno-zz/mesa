@@ -94,6 +94,14 @@ void rc_rename_regs(struct radeon_compiler *c, void *user)
 	struct rc_instruction * inst;
 	unsigned int * masks;
 
+	/* XXX Remove this once the register allocation works with flow control. */
+	for(inst = c->Program.Instructions.Next;
+					inst != &c->Program.Instructions;
+					inst = inst->Next) {
+		if (inst->U.I.Opcode == RC_OPCODE_BGNLOOP)
+			return;
+	}
+
 	/* The number of instructions in the program is also the maximum
 	 * number of temp registers that could potentially be used. */
 	icount = rc_recompute_ips(c);
