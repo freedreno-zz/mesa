@@ -1,0 +1,117 @@
+<HTML>
+
+<TITLE>Mesa Release Notes</TITLE>
+
+<head><link rel="stylesheet" type="text/css" href="mesa.css"></head>
+
+<BODY>
+
+<body bgcolor="#eeeeee">
+
+<H1>Mesa 7.9.1 Release Notes / January 7, 2011</H1>
+
+<p>
+Mesa 7.9.1 is a bug fix release which fixes bugs found since the 7.9 release.
+</p>
+<p>
+Mesa 7.9.1 implements the OpenGL 2.1 API, but the version reported by
+glGetString(GL_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 2.1.
+</p>
+<p>
+See the <a href="install.html">Compiling/Installing page</a> for prerequisites
+for DRI hardware acceleration.
+</p>
+
+
+<h2>MD5 checksums</h2>
+<pre>
+TBD.
+</pre>
+
+
+<h2>New features</h2>
+<p>None.</p>
+
+<h2>Bug fixes</h2>
+<p>This list is likely incomplete.</p>
+<ul>
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=28800">Bug 28800</a> - [r300c, r300g] Texture corruption with World of Warcraft</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=29420">Bug 29420</a> - Amnesia / HPL2 RendererFeatTest - not rendering correctly</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=29946">Bug 29946</a> - [swrast] piglit valgrind glsl-array-bounds-04 fails</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=30261">Bug 30261</a> - [GLSL 1.20] allowing inconsistent invariant declaration between two vertex shaders</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=30632">Bug 30632</a> - [softpipe] state_tracker/st_manager.c:489: st_context_notify_invalid_framebuffer: Assertion `stfb &amp;&amp; stfb-&gt;iface == stfbi' failed.</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=30694">Bug 30694</a> - wincopy will crash on Gallium drivers when going to front buffer</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=30787">Bug 30787</a> - Invalid asm shader does not generate draw-time error when used with GLSL shader</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=30993">Bug 30993</a> - getFramebufferAttachmentParameteriv wrongly generates error</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=31101">Bug 31101</a> -  [glsl2] abort() in ir_validate::visit_enter(ir_assignment *ir)</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=31193">Bug 31193</a> -  [regression] aa43176e break water reflections</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=31194">Bug 31194</a> - The mesa meta save/restore code doesn't ref the current GLSL program</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=31371">Bug 31371</a> - glslparsertest: ir.cpp:358: ir_constant::ir_constant(const glsl_type*, const ir_constant_data*): Assertion `(type->base_type &gt;= 0) &amp;&amp; (type->base_type &lt;= 3)' failed.</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=31439">Bug 31439</a> - Crash in glBufferSubData() with size == 0</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=31495">Bug 31495</a> - [i965 gles2c bisected] OpenGL ES 2.0 conformance GL2Tests_GetBIFD_input.run regressed</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=31514">Bug 31514</a> - isBuffer returns true for unbound buffers</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=31560">Bug 31560</a> - [tdfx] tdfx_tex.c:702: error: ‘const struct gl_color_table’ has no member named ‘Format’</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=31617">Bug 31617</a> - Radeon/Compiz: 'failed to attach dri2 front buffer', error case not handled</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=31648">Bug 31648</a> -  [GLSL] array-struct-array gets assertion: `(size &gt;= 1) && (size &lt;= 4)' failed.</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=31650">Bug 31650</a> - [GLSL] varying gl_TexCoord fails to be re-declared to different size in the second shader</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=31673">Bug 31673</a> - GL_FRAGMENT_PRECISION_HIGH preprocessor macro undefined in GLSL ES</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=31690">Bug 31690</a> -  i915 shader compiler fails to flatten if in Aquarium webgl demo.</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=31832">Bug 31832</a> - [i915] Bad renderbuffer format: 21</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=31841">Bug 31841</a> - [drm:radeon_cs_ioctl] *ERROR* Invalid command stream !</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=31894">Bug 31894</a> - Writing to gl_PointSize with GLES2 corrupts other varyings</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=31909">Bug 31909</a> - [i965] brw_fs.cpp:1461: void fs_visitor::emit_bool_to_cond_code(ir_rvalue*): Assertion `expr-&gt;operands[i]-&gt;type-&gt;is_scalar()' failed.</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=31934">Bug 31934</a> - [gallium] Mapping empty buffer object causes SIGSEGV</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=31983">Bug 31983</a> -  [i915 gles2] "if (expression with builtin/varying variables) discard" breaks linkage</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=31985">Bug 31985</a> - [GLSL 1.20] initialized uniform array considered as "unsized"</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=31987">Bug 31987</a> - [gles2] if input a wrong pname(GL_NONE) to glGetBoolean, it will not case GL_INVALID_ENUM</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=32035">Bug 32035</a> - [GLSL bisected] comparing unsized array gets segfault</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=32070">Bug 32070</a> - llvmpipe renders stencil demo incorrectly</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=32273">Bug 32273</a> - assertion fails when starting vdrift 2010 release with shaders enabled</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=32287">Bug 32287</a> - [bisected GLSL] float-int failure</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=32311">Bug 32311</a> - [965 bisected] Array look-ups broken on GM45</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=32520">Bug 32520</a> -  [gles2] glBlendFunc(GL_ZERO, GL_DST_COLOR) will result in GL_INVALID_ENUM</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=32825">Bug 32825</a> - egl_glx driver completely broken in 7.9 branch [fix in master]</li>
+</ul>
+
+
+<h2>Changes</h2>
+<ul>
+</ul>
+</body>
+</html>
