@@ -1465,6 +1465,7 @@ ast_expression::hir(exec_list *instructions,
       result = new(ctx) ir_dereference_variable(var);
 
       if (var != NULL) {
+	 var->used = true;
 	 type = result->type;
       } else {
 	 _mesa_glsl_error(& loc, state, "`%s' undeclared",
@@ -1639,8 +1640,16 @@ apply_type_qualifier_to_variable(const struct ast_type_qualifier *qual,
 				 struct _mesa_glsl_parse_state *state,
 				 YYLTYPE *loc)
 {
-   if (qual->invariant)
-      var->invariant = 1;
+   if (qual->invariant) {
+      if (var->used) {
+	 _mesa_glsl_error(loc, state,
+			  "variable `%s' may not be redeclared "
+			  "`invariant' after being used",
+			  var->name);
+      } else {
+	 var->invariant = 1;
+      }
+   }
 
    /* FINISHME: Mark 'in' variables at global scope as read-only. */
    if (qual->constant || qual->attribute || qual->uniform
@@ -1786,6 +1795,11 @@ ast_declarator_list::hir(exec_list *instructions,
 	    _mesa_glsl_error(& loc, state,
 			     "`%s' cannot be marked invariant, fragment shader "
 			     "inputs only\n", decl->identifier);
+	 } else if (earlier->used) {
+	    _mesa_glsl_error(& loc, state,
+			     "variable `%s' may not be redeclared "
+			     "`invariant' after being used",
+			     earlier->name);
 	 } else {
 	    earlier->invariant = true;
 	 }
