@@ -1719,6 +1719,7 @@ void brw_vs_emit(struct brw_vs_compile *c )
 
       switch (inst->Opcode) {
       case OPCODE_ABS:
+	 args[0].negate = GL_FALSE;
 	 brw_MOV(p, dst, brw_abs(args[0]));
 	 break;
       case OPCODE_ADD:
