@@ -791,6 +791,9 @@ driCreateNewScreen(int scrn,
     static const __DRIextension *emptyExtensionList[] = { NULL };
     __DRIscreen *psp;
 
+    if (driDriverAPI.InitScreen == NULL)
+	return NULL;
+
     psp = calloc(1, sizeof *psp);
     if (!psp)
 	return NULL;
