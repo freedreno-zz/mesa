@@ -48,6 +48,7 @@
 #include "program/prog_uniform.h"
 #include "ralloc.h"
 #include <stdbool.h>
+#include "../glsl/glsl_parser_extras.h"
 
 /** Define this to enable shader substitution (see below) */
 #define SHADER_SUBST 0
@@ -1529,8 +1530,7 @@ _mesa_GetShaderPrecisionFormat(GLenum shadertype, GLenum precisiontype,
 void GLAPIENTRY
 _mesa_ReleaseShaderCompiler(void)
 {
-   GET_CURRENT_CONTEXT(ctx);
-   _mesa_error(ctx, GL_INVALID_OPERATION, __FUNCTION__);
+   _mesa_destroy_shader_compiler_caches();
 }
 
 
@@ -1661,6 +1661,10 @@ _mesa_init_shader_dispatch(struct _glapi_table *exec)
 #if FEATURE_ARB_geometry_shader4
    SET_ProgramParameteriARB(exec, _mesa_ProgramParameteriARB);
 #endif
+
+   /* GL_ARB_ES2_compatibility */
+   SET_ReleaseShaderCompiler(exec, _mesa_ReleaseShaderCompiler);
+
 #endif /* FEATURE_GL */
 }
 
