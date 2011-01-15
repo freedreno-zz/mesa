@@ -27,6 +27,9 @@
 
 #define LOG_TAG "MESA-EGL"
 
+#include <stdlib.h>
+#include <string.h>
+#include <dlfcn.h>
 #include <cutils/log.h>
 
 #include "droid.h"
@@ -466,25 +469,91 @@ droid_create_screen(_EGLDisplay *dpy)
 }
 
 static EGLBoolean
-droid_load_driver(_EGLDisplay *disp)
+droid_load_driver(_EGLDisplay *dpy, const char *driver_name)
 {
-   struct droid_egl_display *ddpy = disp->DriverData;
+   struct droid_egl_display *ddpy = droid_egl_display(dpy);
    const __DRIextension **extensions;
+   char path[PATH_MAX], *base = NULL;
+   void *handle;
 
-   extensions = __driDriverExtensions;
+   if (geteuid() == getuid()) {
+      /* don't allow setuid apps to use LIBGL_DRIVERS_PATH */
+      base = getenv("LIBGL_DRIVERS_PATH");
+   }
+   if (!base)
+      base = DEFAULT_DRIVER_DIR;
+   snprintf(path, sizeof(path), "%s/%s_dri.so", base, driver_name);
 
-   if (!droid_bind_extensions(ddpy, droid_driver_extensions, extensions))
+   handle = dlopen(path, RTLD_NOW | RTLD_GLOBAL);
+   if (!handle) {
+      _eglLog(_EGL_WARNING, "DRI2: failed to load %s: %s", path, dlerror());
       return EGL_FALSE;
+   }
+
+   _eglLog(_EGL_DEBUG, "DRI2: dlopen(%s)", path);
+   extensions = dlsym(handle, __DRI_DRIVER_EXTENSIONS);
+   if (!extensions) {
+      _eglLog(_EGL_WARNING, "DRI2: driver exports no extensions");
+      dlclose(handle);
+      return EGL_FALSE;
+   }
+
+   if (!droid_bind_extensions(ddpy, droid_driver_extensions, extensions)) {
+      dlclose(handle);
+      return EGL_FALSE;
+   }
+
+   ddpy->dri_handle = handle;
 
    return EGL_TRUE;
 }
 
-static EGLBoolean
-droid_initialize_android(_EGLDriver *drv, _EGLDisplay *dpy)
+#include <xf86drm.h>
+#include <i915_drm.h>
+#include "dri/intel/intel_chipset.h"
+static const char *
+droid_get_driver_name(int fd)
 {
-   struct droid_egl_display *ddpy;
-   int fd = -1, err, i;
+   drmVersionPtr version;
+   char *name = NULL;
+
+   version = drmGetVersion(fd);
+   if (!version) {
+      _eglLog(_EGL_WARNING, "invalid drm fd");
+      return NULL;
+   }
+   if (!version->name) {
+      _eglLog(_EGL_WARNING, "unable to determine the driver name");
+      drmFreeVersion(version);
+      return NULL;
+   }
+
+   if (strcmp(version->name, "i915") == 0) {
+      struct drm_i915_getparam gp;
+      int id, ret;
+
+      memset(&gp, 0, sizeof(gp));
+      gp.param = I915_PARAM_CHIPSET_ID;
+      gp.value = &id;
+      ret = drmCommandWriteRead(fd, DRM_I915_GETPARAM, &gp, sizeof(gp));
+      if (ret) {
+         _eglLog(_EGL_WARNING, "failed to get param for i915");
+      }
+      else {
+         name = (IS_965(id)) ? "i965" : "i915";
+      }
+   }
+
+   drmFreeVersion(version);
+
+   return name;
+}
+
+static int
+droid_open_device(void)
+{
    const hw_module_t *mod;
+   int fd = -1, err;
 
    err = hw_get_module(GRALLOC_HARDWARE_MODULE_ID, &mod);
    if (!err) {
@@ -496,17 +565,34 @@ droid_initialize_android(_EGLDriver *drv, _EGLDisplay *dpy)
    }
    if (err || fd < 0) {
       _eglLog(_EGL_WARNING, "fail to get drm fd");
-      return EGL_FALSE;
+      fd = -1;
    }
+
+   return fd;
+}
+
+static EGLBoolean
+droid_initialize_android(_EGLDriver *drv, _EGLDisplay *dpy)
+{
+   struct droid_egl_display *ddpy;
+   const char *driver_name;
+   int fd;
+
+   fd = droid_open_device();
+   if (fd < 0)
+      return EGL_FALSE;
+   driver_name = droid_get_driver_name(fd);
+   if (!driver_name)
+      return EGL_FALSE;
 
    ddpy = calloc(1, sizeof(*ddpy));
    if (!ddpy)
       return _eglError(EGL_BAD_ALLOC, "eglInitialize");
 
+   ddpy->fd = fd;
    dpy->DriverData = (void *) ddpy;
 
-   ddpy->fd = fd;
-   if (!droid_load_driver(dpy))
+   if (!droid_load_driver(dpy, driver_name))
       return EGL_FALSE;
 
    ddpy->loader_extension.base.name = __DRI_DRI2_LOADER;
@@ -550,7 +636,9 @@ droid_terminate(_EGLDriver *drv, _EGLDisplay *dpy)
    _eglCleanupDisplay(dpy);
 
    ddpy->core->destroyScreen(ddpy->dri_screen);
+   dlclose(ddpy->dri_handle);
    free(ddpy);
+
    dpy->DriverData = NULL;
 
    return EGL_TRUE;

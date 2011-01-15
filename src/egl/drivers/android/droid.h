@@ -59,6 +59,8 @@ struct droid_egl_display
 {
    int fd;
 
+   void *dri_handle;
+
    __DRIscreen *dri_screen;
    const __DRIconfig **dri_configs;
    __DRIcoreExtension *core;
