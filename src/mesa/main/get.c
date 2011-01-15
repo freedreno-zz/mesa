@@ -260,6 +260,7 @@ static const int extra_EXT_fog_coord_flush_current[] = {
    EXTRA_END
 };
 
+EXTRA_EXT(ARB_ES2_compatibility);
 EXTRA_EXT(ARB_multitexture);
 EXTRA_EXT(ARB_texture_cube_map);
 EXTRA_EXT(MESA_texture_array);
@@ -570,6 +571,14 @@ static const struct value_desc values[] = {
      LOC_CUSTOM, TYPE_BOOLEAN, offsetof(struct gl_client_array, Type), NO_EXTRA },
    { GL_TEXTURE_COORD_ARRAY_STRIDE,
      LOC_CUSTOM, TYPE_BOOLEAN, offsetof(struct gl_client_array, Stride), NO_EXTRA },
+
+   /* GL_ARB_ES2_compatibility */
+   { GL_MAX_VARYING_VECTORS, CONTEXT_INT(Const.MaxVarying),
+     extra_ARB_ES2_compatibility },
+   { GL_MAX_VERTEX_UNIFORM_VECTORS, LOC_CUSTOM, TYPE_INT, 0,
+     extra_ARB_ES2_compatibility },
+   { GL_MAX_FRAGMENT_UNIFORM_VECTORS, LOC_CUSTOM, TYPE_INT, 0,
+     extra_ARB_ES2_compatibility },
 
    /* GL_ARB_multitexture */
    { GL_MAX_TEXTURE_UNITS_ARB,
