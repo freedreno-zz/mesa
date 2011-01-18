@@ -2149,7 +2149,8 @@ ast_declarator_list::hir(exec_list *instructions,
        */
       if (this->type->qualifier.constant && decl->initializer == NULL) {
 	 _mesa_glsl_error(& loc, state,
-			  "const declaration of `%s' must be initialized");
+			  "const declaration of `%s' must be initialized",
+			  decl->identifier);
       }
 
       /* Check if this declaration is actually a re-declaration, either to
