@@ -154,11 +154,11 @@ GLboolean brwCreateContext( int api,
    /* Fragment shaders use real, 32-bit twos-complement integers for all
     * integer types.
     */
-   ctx->FragmentProgram.LowInt.RangeMin = 31;
-   ctx->FragmentProgram.LowInt.RangeMax = 30;
-   ctx->FragmentProgram.LowInt.Precision = 0;
-   ctx->FragmentProgram.HighInt = ctx->FragmentProgram.MediumInt
-      = ctx->FragmentProgram.LowInt;
+   ctx->Const.FragmentProgram.LowInt.RangeMin = 31;
+   ctx->Const.FragmentProgram.LowInt.RangeMax = 30;
+   ctx->Const.FragmentProgram.LowInt.Precision = 0;
+   ctx->Const.FragmentProgram.HighInt = ctx->Const.FragmentProgram.MediumInt
+      = ctx->Const.FragmentProgram.LowInt;
 
    if (intel->is_g4x || intel->gen >= 5) {
       brw->CMD_VF_STATISTICS = CMD_VF_STATISTICS_GM45;
