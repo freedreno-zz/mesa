@@ -1707,6 +1707,7 @@ _mesa_init_shader_dispatch(struct _glapi_table *exec)
 
    /* GL_ARB_ES2_compatibility */
    SET_ReleaseShaderCompiler(exec, _mesa_ReleaseShaderCompiler);
+   SET_GetShaderPrecisionFormat(exec, _mesa_GetShaderPrecisionFormat);
 
 #endif /* FEATURE_GL */
 }
