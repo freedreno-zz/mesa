@@ -221,6 +221,11 @@ translation_unit:
 	   _mesa_glsl_initialize_types(state);
 	}
 	external_declaration_list
+	{
+	   delete state->symbols;
+	   state->symbols = new(ralloc_parent(state)) glsl_symbol_table;
+	   _mesa_glsl_initialize_types(state);
+	}
 	;
 
 version_statement:
@@ -761,6 +766,7 @@ constant_expression:
 declaration:
 	function_prototype ';'
 	{
+	   state->symbols->pop_scope();
 	   $$ = $1;
 	}
 	| init_declarator_list ';'
@@ -805,6 +811,10 @@ function_header:
 	   $$->set_location(yylloc);
 	   $$->return_type = $1;
 	   $$->identifier = $2;
+
+	   state->symbols->add_function($$->identifier,
+					new(state) ir_function($2));
+	   state->symbols->push_scope();
 	}
 	;
 
@@ -889,6 +899,7 @@ init_declarator_list:
 
 	   $$ = $1;
 	   $$->declarations.push_tail(&decl->link);
+	   state->symbols->add_variable($3, new(state) ir_variable(NULL, $3, ir_var_auto));
 	}
 	| init_declarator_list ',' any_identifier '[' ']'
 	{
@@ -898,6 +909,7 @@ init_declarator_list:
 
 	   $$ = $1;
 	   $$->declarations.push_tail(&decl->link);
+	   state->symbols->add_variable($3, new(state) ir_variable(NULL, $3, ir_var_auto));
 	}
 	| init_declarator_list ',' any_identifier '[' constant_expression ']'
 	{
@@ -907,6 +919,7 @@ init_declarator_list:
 
 	   $$ = $1;
 	   $$->declarations.push_tail(&decl->link);
+	   state->symbols->add_variable($3, new(state) ir_variable(NULL, $3, ir_var_auto));
 	}
 	| init_declarator_list ',' any_identifier '[' ']' '=' initializer
 	{
@@ -916,6 +929,7 @@ init_declarator_list:
 
 	   $$ = $1;
 	   $$->declarations.push_tail(&decl->link);
+	   state->symbols->add_variable($3, new(state) ir_variable(NULL, $3, ir_var_auto));
 	}
 	| init_declarator_list ',' any_identifier '[' constant_expression ']' '=' initializer
 	{
@@ -925,6 +939,7 @@ init_declarator_list:
 
 	   $$ = $1;
 	   $$->declarations.push_tail(&decl->link);
+	   state->symbols->add_variable($3, new(state) ir_variable(NULL, $3, ir_var_auto));
 	}
 	| init_declarator_list ',' any_identifier '=' initializer
 	{
@@ -934,6 +949,7 @@ init_declarator_list:
 
 	   $$ = $1;
 	   $$->declarations.push_tail(&decl->link);
+	   state->symbols->add_variable($3, new(state) ir_variable(NULL, $3, ir_var_auto));
 	}
 	;
 
@@ -1004,7 +1020,7 @@ single_declaration:
 	   $$->set_location(yylloc);
 	   $$->declarations.push_tail(&decl->link);
 	}
-	| INVARIANT IDENTIFIER // Vertex only.
+	| INVARIANT variable_identifier // Vertex only.
 	{
 	   void *ctx = state;
 	   ast_declaration *decl = new(ctx) ast_declaration($2, false, NULL, NULL);
@@ -1056,7 +1072,7 @@ layout_qualifier_id_list:
 	;
 
 layout_qualifier_id:
-	IDENTIFIER
+	any_identifier
 	{
 	   $$.i = 0;
 
@@ -1261,11 +1277,12 @@ precision_qualifier:
 	;
 
 struct_specifier:
-	STRUCT IDENTIFIER '{' struct_declaration_list '}'
+	STRUCT any_identifier '{' struct_declaration_list '}'
 	{
 	   void *ctx = state;
 	   $$ = new(ctx) ast_struct_specifier($2, $4);
 	   $$->set_location(yylloc);
+	   state->symbols->add_type($2, glsl_type::void_type);
 	}
 	| STRUCT '{' struct_declaration_list '}'
 	{
@@ -1317,13 +1334,14 @@ struct_declarator_list:
 	;
 
 struct_declarator:
-	IDENTIFIER
+	any_identifier
 	{
 	   void *ctx = state;
 	   $$ = new(ctx) ast_declaration($1, false, NULL, NULL);
 	   $$->set_location(yylloc);
+	   state->symbols->add_variable($1, new(state) ir_variable(NULL, $1, ir_var_auto));
 	}
-	| IDENTIFIER '[' constant_expression ']'
+	| any_identifier '[' constant_expression ']'
 	{
 	   void *ctx = state;
 	   $$ = new(ctx) ast_declaration($1, true, $3, NULL);
@@ -1363,11 +1381,16 @@ compound_statement:
 	   $$ = new(ctx) ast_compound_statement(true, NULL);
 	   $$->set_location(yylloc);
 	}
-	| '{' statement_list '}'
+	| '{'
+	{
+	   state->symbols->push_scope();
+	}
+	statement_list '}'
 	{
 	   void *ctx = state;
-	   $$ = new(ctx) ast_compound_statement(true, $2);
+	   $$ = new(ctx) ast_compound_statement(true, $3);
 	   $$->set_location(yylloc);
+	   state->symbols->pop_scope();
 	}
 	;
 
@@ -1455,7 +1478,7 @@ condition:
 	{
 	   $$ = (ast_node *) $1;
 	}
-	| fully_specified_type IDENTIFIER '=' initializer
+	| fully_specified_type any_identifier '=' initializer
 	{
 	   void *ctx = state;
 	   ast_declaration *decl = new(ctx) ast_declaration($2, false, NULL, $4);
@@ -1575,5 +1598,7 @@ function_definition:
 	   $$->set_location(yylloc);
 	   $$->prototype = $1;
 	   $$->body = $2;
+
+	   state->symbols->pop_scope();
 	}
 	;
