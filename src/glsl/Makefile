@@ -85,8 +85,7 @@ CXX_SOURCES = \
 	s_expression.cpp
 
 LIBS = \
-	$(TOP)/src/glsl/libglsl.a \
-	$(TALLOC_LIBS)
+	$(TOP)/src/glsl/libglsl.a
 
 APPS = glsl_compiler glcpp/glcpp
 
@@ -115,7 +114,6 @@ OBJECTS = \
 	$(CXX_SOURCES:.cpp=.o)
 
 INCLUDES = \
-	$(TALLOC_CFLAGS) \
 	-I. \
 	-I../mesa \
 	-I../mapi \
