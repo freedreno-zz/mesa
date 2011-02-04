@@ -29,6 +29,7 @@
 
 #include "main/glheader.h"
 #include "main/mtypes.h"
+#include "main/compiler.h"
 #include "program/ir_to_mesa.h"
 
 #ifdef __cplusplus

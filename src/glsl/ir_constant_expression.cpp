@@ -86,7 +86,7 @@ ir_expression::constant_expression_value()
       components = op[1]->type->components();
    }
 
-   void *ctx = talloc_parent(this);
+   void *ctx = ralloc_parent(this);
 
    /* Handle array operations here, rather than below. */
    if (op[0]->type->is_array()) {
@@ -719,7 +719,7 @@ ir_swizzle::constant_expression_value()
 	 }
       }
 
-      void *ctx = talloc_parent(this);
+      void *ctx = ralloc_parent(this);
       return new(ctx) ir_constant(this->type, &data);
    }
    return NULL;
@@ -742,7 +742,7 @@ ir_dereference_variable::constant_expression_value()
    if (!var->constant_value)
       return NULL;
 
-   return var->constant_value->clone(talloc_parent(var), NULL);
+   return var->constant_value->clone(ralloc_parent(var), NULL);
 }
 
 
@@ -753,7 +753,7 @@ ir_dereference_array::constant_expression_value()
    ir_constant *idx = this->array_index->constant_expression_value();
 
    if ((array != NULL) && (idx != NULL)) {
-      void *ctx = talloc_parent(this);
+      void *ctx = ralloc_parent(this);
       if (array->type->is_matrix()) {
 	 /* Array access of a matrix results in a vector.
 	  */
@@ -858,7 +858,7 @@ ir_call::constant_expression_value()
     * - Fill "data" with appopriate constant data
     * - Return an ir_constant directly.
     */
-   void *mem_ctx = talloc_parent(this);
+   void *mem_ctx = ralloc_parent(this);
    ir_expression *expr = NULL;
 
    ir_constant_data data;

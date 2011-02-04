@@ -62,7 +62,7 @@ ir_sub_to_add_neg_visitor::visit_leave(ir_expression *ir)
    if (ir->operation != ir_binop_sub)
       return visit_continue;
 
-   void *mem_ctx = talloc_parent(ir);
+   void *mem_ctx = ralloc_parent(ir);
 
    ir->operation = ir_binop_add;
    ir->operands[1] = new(mem_ctx) ir_expression(ir_unop_neg,

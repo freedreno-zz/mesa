@@ -79,7 +79,7 @@ brw_new_shader(GLcontext *ctx, GLuint name, GLuint type)
 {
    struct brw_shader *shader;
 
-   shader = talloc_zero(NULL, struct brw_shader);
+   shader = rzalloc(NULL, struct brw_shader);
    if (shader) {
       shader->base.Type = type;
       shader->base.Name = name;
@@ -93,7 +93,7 @@ struct gl_shader_program *
 brw_new_shader_program(GLcontext *ctx, GLuint name)
 {
    struct brw_shader_program *prog;
-   prog = talloc_zero(NULL, struct brw_shader_program);
+   prog = rzalloc(NULL, struct brw_shader_program);
    if (prog) {
       prog->base.Name = name;
       _mesa_init_shader_program(ctx, &prog->base);
@@ -119,11 +119,11 @@ brw_link_shader(GLcontext *ctx, struct gl_shader_program *prog)
    struct brw_shader *shader =
       (struct brw_shader *)prog->_LinkedShaders[MESA_SHADER_FRAGMENT];
    if (shader != NULL && using_new_fs) {
-	 void *mem_ctx = talloc_new(NULL);
+	 void *mem_ctx = ralloc_context(NULL);
 	 bool progress;
 
 	 if (shader->ir)
-	    talloc_free(shader->ir);
+	    ralloc_free(shader->ir);
 	 shader->ir = new(shader) exec_list;
 	 clone_ir_list(mem_ctx, shader->ir, shader->base.ir);
 
@@ -145,7 +145,7 @@ brw_link_shader(GLcontext *ctx, struct gl_shader_program *prog)
 	 validate_ir_tree(shader->ir);
 
 	 reparent_ir(shader->ir, shader->ir);
-	 talloc_free(mem_ctx);
+	 ralloc_free(mem_ctx);
    }
 
    if (!_mesa_ir_link_shader(ctx, prog))
@@ -187,13 +187,13 @@ type_size(const struct glsl_type *type)
 
 class fs_reg {
 public:
-   /* Callers of this talloc-based new need not call delete. It's
-    * easier to just talloc_free 'ctx' (or any of its ancestors). */
+   /* Callers of this ralloc-based new need not call delete. It's
+    * easier to just ralloc_free 'ctx' (or any of its ancestors). */
    static void* operator new(size_t size, void *ctx)
    {
       void *node;
 
-      node = talloc_size(ctx, size);
+      node = ralloc_size(ctx, size);
       assert(node != NULL);
 
       return node;
@@ -281,13 +281,13 @@ static const fs_reg reg_null(ARF, BRW_ARF_NULL);
 
 class fs_inst : public exec_node {
 public:
-   /* Callers of this talloc-based new need not call delete. It's
-    * easier to just talloc_free 'ctx' (or any of its ancestors). */
+   /* Callers of this ralloc-based new need not call delete. It's
+    * easier to just ralloc_free 'ctx' (or any of its ancestors). */
    static void* operator new(size_t size, void *ctx)
    {
       void *node;
 
-      node = talloc_zero_size(ctx, size);
+      node = rzalloc_size(ctx, size);
       assert(node != NULL);
 
       return node;
@@ -371,7 +371,7 @@ public:
       this->brw = p->brw;
       this->intel = &brw->intel;
       this->ctx = &intel->ctx;
-      this->mem_ctx = talloc_new(NULL);
+      this->mem_ctx = ralloc_context(NULL);
       this->shader = shader;
       this->fail = false;
       this->next_abstract_grf = 1;
@@ -390,7 +390,7 @@ public:
    }
    ~fs_visitor()
    {
-      talloc_free(this->mem_ctx);
+      ralloc_free(this->mem_ctx);
       hash_table_dtor(this->variable_ht);
    }
 
@@ -1270,7 +1270,7 @@ fs_visitor::emit_interpolation()
       if (var->location == 0)
 	 continue;
 
-      this->current_annotation = talloc_asprintf(this->mem_ctx,
+      this->current_annotation = ralloc_asprintf(this->mem_ctx,
 						 "interpolate %s "
 						 "(FRAG_ATTRIB[%d])",
 						 var->name,
@@ -1808,14 +1808,14 @@ fs_visitor::generate_code()
 	 if (annotation_len < 16)
 	    annotation_len = 16;
 
-	 this->annotation_string = talloc_realloc(this->mem_ctx,
-						  annotation_string,
-						  const char *,
-						  annotation_len);
-	 this->annotation_ir = talloc_realloc(this->mem_ctx,
-					      annotation_ir,
-					      ir_instruction *,
-					      annotation_len);
+	 this->annotation_string = reralloc(this->mem_ctx,
+					    annotation_string,
+					    const char *,
+					    annotation_len);
+	 this->annotation_ir = reralloc(this->mem_ctx,
+					annotation_ir,
+					ir_instruction *,
+					annotation_len);
       }
 
       for (unsigned int i = last_native_inst; i < p->nr_insn; i++) {

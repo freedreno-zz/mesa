@@ -29,10 +29,7 @@
 #include <cstdio>
 #include <cstdlib>
 
-extern "C" {
-#include <talloc.h>
-}
-
+#include "ralloc.h"
 #include "list.h"
 #include "ir_visitor.h"
 #include "ir_hierarchical_visitor.h"
@@ -901,7 +898,7 @@ public:
    /**
     * Get a generic ir_call object when an error occurs
     *
-    * Any allocation will be performed with 'ctx' as talloc owner.
+    * Any allocation will be performed with 'ctx' as ralloc owner.
     */
    static ir_call *get_error_instruction(void *ctx);
 

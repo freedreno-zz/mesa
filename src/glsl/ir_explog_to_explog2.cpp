@@ -58,7 +58,7 @@ ir_visitor_status
 ir_explog_to_explog2_visitor::visit_leave(ir_expression *ir)
 {
    if (ir->operation == ir_unop_exp) {
-      void *mem_ctx = talloc_parent(ir);
+      void *mem_ctx = ralloc_parent(ir);
       ir_constant *log2_e = new(mem_ctx) ir_constant(log2f(M_E));
 
       ir->operation = ir_unop_exp2;
@@ -70,7 +70,7 @@ ir_explog_to_explog2_visitor::visit_leave(ir_expression *ir)
    }
 
    if (ir->operation == ir_unop_log) {
-      void *mem_ctx = talloc_parent(ir);
+      void *mem_ctx = ralloc_parent(ir);
 
       ir->operation = ir_binop_mul;
       ir->operands[0] = new(mem_ctx) ir_expression(ir_unop_log2,

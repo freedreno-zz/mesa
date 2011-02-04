@@ -46,7 +46,7 @@
 #include "program/program.h"
 #include "program/prog_parameter.h"
 #include "program/prog_uniform.h"
-#include "talloc.h"
+#include "ralloc.h"
 #include <stdbool.h>
 
 /** Define this to enable shader substitution (see below) */
@@ -1048,9 +1048,9 @@ validate_program(GLcontext *ctx, GLuint program)
    if (!shProg->Validated) {
       /* update info log */
       if (shProg->InfoLog) {
-         talloc_free(shProg->InfoLog);
+         ralloc_free(shProg->InfoLog);
       }
-      shProg->InfoLog = talloc_strdup(shProg, errMsg);
+      shProg->InfoLog = ralloc_strdup(shProg, errMsg);
    }
 }
 
