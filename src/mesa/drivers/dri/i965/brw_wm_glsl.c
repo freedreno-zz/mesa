@@ -32,6 +32,7 @@ GLboolean brw_wm_is_glsl(const struct gl_fragment_program *fp)
 	    case OPCODE_BRK:
 	    case OPCODE_RET:
 	    case OPCODE_BGNLOOP:
+	    case OPCODE_KIL_NV:
 		return GL_TRUE; 
 	    default:
 		break;
@@ -903,9 +904,12 @@ static void brw_wm_emit_glsl(struct brw_context *brw, struct brw_wm_compile *c)
 			 inst->TexSrcTarget,
 			 c->fp->program.Base.SamplerUnits[inst->TexSrcUnit]);
 		break;
-	    case OPCODE_KIL_NV:
-		emit_kil_nv(c);
-		break;
+	    case OPCODE_KIL_NV: {
+	       struct brw_reg temp = get_reg(c, PROGRAM_TEMPORARY, 0, 0, 0,
+					     GL_FALSE, GL_FALSE);
+	       emit_kil_nv(c, brw_vec1_reg(temp.file, temp.nr, temp.subnr));
+	       break;
+	    }
 	    case OPCODE_IF:
 		assert(if_depth < MAX_IF_DEPTH);
 		if_inst[if_depth++] = brw_IF(p, BRW_EXECUTE_8);
