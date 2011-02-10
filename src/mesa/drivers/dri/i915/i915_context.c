@@ -192,8 +192,16 @@ i915CreateContext(int api,
     * FINISHME: vertex shaders?
     */
    ctx->ShaderCompilerOptions[MESA_SHADER_VERTEX].EmitCondCodes = GL_TRUE;
-   ctx->ShaderCompilerOptions[MESA_SHADER_FRAGMENT].EmitNoIfs = GL_TRUE;
-   ctx->ShaderCompilerOptions[MESA_SHADER_FRAGMENT].EmitNoNoise = GL_TRUE;
+
+   struct gl_shader_compiler_options *const fs_options =
+      & ctx->ShaderCompilerOptions[MESA_SHADER_FRAGMENT];
+   fs_options->EmitNoIfs = GL_TRUE;
+   fs_options->EmitNoNoise = GL_TRUE;
+   fs_options->EmitNoMainReturn = GL_TRUE;
+   fs_options->EmitNoIndirectInput = GL_TRUE;
+   fs_options->EmitNoIndirectOutput = GL_TRUE;
+   fs_options->EmitNoIndirectUniform = GL_TRUE;
+   fs_options->EmitNoIndirectTemp = GL_TRUE;
 
    ctx->Const.MaxDrawBuffers = 1;
 
