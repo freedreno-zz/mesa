@@ -1714,6 +1714,8 @@ apply_type_qualifier_to_variable(const struct ast_type_qualifier *qual,
 	 if (var->mode == ir_var_in)
 	    var->invariant = true;
 	 break;
+      case ir_shader:
+         ; /* no op */
       }
    }
 
