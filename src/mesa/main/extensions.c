@@ -869,11 +869,8 @@ make_extension_string_es2(const GLcontext *ctx, GLubyte *str)
 
    if (ctx->Extensions.ARB_framebuffer_object) {
       len += append_extension(&str, "GL_OES_depth24");
-      len += append_extension(&str, "GL_OES_depth32");
       len += append_extension(&str, "GL_OES_fbo_render_mipmap");
       len += append_extension(&str, "GL_OES_rgb8_rgba8");
-      len += append_extension(&str, "GL_OES_stencil1");
-      len += append_extension(&str, "GL_OES_stencil4");
    }
 
    if (ctx->Extensions.EXT_vertex_array)
