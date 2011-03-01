@@ -958,6 +958,8 @@ static yyconst flex_int16_t yy_chk[1172] =
 #include "glsl_parser_extras.h"
 #include "glsl_parser.h"
 
+static int classify_identifier(struct _mesa_glsl_parse_state *, const char *);
+
 #define YY_USER_ACTION						\
    do {								\
       yylloc->source = 0;					\
@@ -974,7 +976,7 @@ static yyconst flex_int16_t yy_chk[1172] =
 	 return token;						 \
       } else {							 \
 	 yylval->identifier = strdup(yytext);			 \
-	 return IDENTIFIER;					 \
+	 return classify_identifier(yyextra, yytext);		 \
       }								 \
    } while (0)
 
@@ -999,7 +1001,7 @@ static yyconst flex_int16_t yy_chk[1172] =
       }									\
    } while (0)
 
-#line 1003 "glsl_lexer.cpp"
+#line 1005 "glsl_lexer.cpp"
 
 #define INITIAL 0
 #define PP 1
@@ -1237,10 +1239,10 @@ YY_DECL
 	register int yy_act;
     struct yyguts_t * yyg = (struct yyguts_t*)yyscanner;
 
-#line 87 "glsl_lexer.lpp"
+#line 89 "glsl_lexer.lpp"
 
 
-#line 1244 "glsl_lexer.cpp"
+#line 1246 "glsl_lexer.cpp"
 
     yylval = yylval_param;
 
@@ -1326,7 +1328,7 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 89 "glsl_lexer.lpp"
+#line 91 "glsl_lexer.lpp"
 ;
 	YY_BREAK
 /* Preprocessor tokens. */ 
@@ -1335,17 +1337,17 @@ case 2:
 yyg->yy_c_buf_p = yy_cp -= 1;
 YY_DO_BEFORE_ACTION; /* set up yytext again */
 YY_RULE_SETUP
-#line 92 "glsl_lexer.lpp"
+#line 94 "glsl_lexer.lpp"
 ;
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 93 "glsl_lexer.lpp"
+#line 95 "glsl_lexer.lpp"
 { BEGIN PP; return VERSION; }
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 94 "glsl_lexer.lpp"
+#line 96 "glsl_lexer.lpp"
 { BEGIN PP; return EXTENSION; }
 	YY_BREAK
 case 5:
@@ -1353,7 +1355,7 @@ case 5:
 yyg->yy_c_buf_p = yy_cp -= 1;
 YY_DO_BEFORE_ACTION; /* set up yytext again */
 YY_RULE_SETUP
-#line 95 "glsl_lexer.lpp"
+#line 97 "glsl_lexer.lpp"
 {
 				   /* Eat characters until the first digit is
 				    * encountered
@@ -1375,7 +1377,7 @@ case 6:
 yyg->yy_c_buf_p = yy_cp -= 1;
 YY_DO_BEFORE_ACTION; /* set up yytext again */
 YY_RULE_SETUP
-#line 110 "glsl_lexer.lpp"
+#line 112 "glsl_lexer.lpp"
 {
 				   /* Eat characters until the first digit is
 				    * encountered
@@ -1393,7 +1395,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 124 "glsl_lexer.lpp"
+#line 126 "glsl_lexer.lpp"
 {
 				  BEGIN PP;
 				  return PRAGMA_DEBUG_ON;
@@ -1401,7 +1403,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 128 "glsl_lexer.lpp"
+#line 130 "glsl_lexer.lpp"
 {
 				  BEGIN PP;
 				  return PRAGMA_DEBUG_OFF;
@@ -1409,7 +1411,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 132 "glsl_lexer.lpp"
+#line 134 "glsl_lexer.lpp"
 {
 				  BEGIN PP;
 				  return PRAGMA_OPTIMIZE_ON;
@@ -1417,7 +1419,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 136 "glsl_lexer.lpp"
+#line 138 "glsl_lexer.lpp"
 {
 				  BEGIN PP;
 				  return PRAGMA_OPTIMIZE_OFF;
@@ -1425,7 +1427,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 140 "glsl_lexer.lpp"
+#line 142 "glsl_lexer.lpp"
 {
 				  BEGIN PP;
 				  return PRAGMA_INVARIANT_ALL;
@@ -1433,38 +1435,38 @@ YY_RULE_SETUP
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 144 "glsl_lexer.lpp"
+#line 146 "glsl_lexer.lpp"
 { BEGIN PRAGMA; }
 	YY_BREAK
 case 13:
 /* rule 13 can match eol */
 YY_RULE_SETUP
-#line 146 "glsl_lexer.lpp"
+#line 148 "glsl_lexer.lpp"
 { BEGIN 0; yylineno++; yycolumn = 0; }
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 147 "glsl_lexer.lpp"
+#line 149 "glsl_lexer.lpp"
 { }
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 149 "glsl_lexer.lpp"
+#line 151 "glsl_lexer.lpp"
 { }
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 150 "glsl_lexer.lpp"
+#line 152 "glsl_lexer.lpp"
 { }
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 151 "glsl_lexer.lpp"
+#line 153 "glsl_lexer.lpp"
 return COLON;
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 152 "glsl_lexer.lpp"
+#line 154 "glsl_lexer.lpp"
 {
 				   yylval->identifier = strdup(yytext);
 				   return IDENTIFIER;
@@ -1472,7 +1474,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 156 "glsl_lexer.lpp"
+#line 158 "glsl_lexer.lpp"
 {
 				    yylval->n = strtol(yytext, NULL, 10);
 				    return INTCONSTANT;
@@ -1481,283 +1483,283 @@ YY_RULE_SETUP
 case 20:
 /* rule 20 can match eol */
 YY_RULE_SETUP
-#line 160 "glsl_lexer.lpp"
+#line 162 "glsl_lexer.lpp"
 { BEGIN 0; yylineno++; yycolumn = 0; return EOL; }
 	YY_BREAK
 case 21:
 /* rule 21 can match eol */
 YY_RULE_SETUP
-#line 162 "glsl_lexer.lpp"
+#line 164 "glsl_lexer.lpp"
 { yylineno++; yycolumn = 0; }
 	YY_BREAK
 case 22:
 YY_RULE_SETUP
-#line 164 "glsl_lexer.lpp"
+#line 166 "glsl_lexer.lpp"
 return ATTRIBUTE;
 	YY_BREAK
 case 23:
 YY_RULE_SETUP
-#line 165 "glsl_lexer.lpp"
+#line 167 "glsl_lexer.lpp"
 return CONST_TOK;
 	YY_BREAK
 case 24:
 YY_RULE_SETUP
-#line 166 "glsl_lexer.lpp"
+#line 168 "glsl_lexer.lpp"
 return BOOL_TOK;
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 167 "glsl_lexer.lpp"
+#line 169 "glsl_lexer.lpp"
 return FLOAT_TOK;
 	YY_BREAK
 case 26:
 YY_RULE_SETUP
-#line 168 "glsl_lexer.lpp"
+#line 170 "glsl_lexer.lpp"
 return INT_TOK;
 	YY_BREAK
 case 27:
 YY_RULE_SETUP
-#line 170 "glsl_lexer.lpp"
+#line 172 "glsl_lexer.lpp"
 return BREAK;
 	YY_BREAK
 case 28:
 YY_RULE_SETUP
-#line 171 "glsl_lexer.lpp"
+#line 173 "glsl_lexer.lpp"
 return CONTINUE;
 	YY_BREAK
 case 29:
 YY_RULE_SETUP
-#line 172 "glsl_lexer.lpp"
+#line 174 "glsl_lexer.lpp"
 return DO;
 	YY_BREAK
 case 30:
 YY_RULE_SETUP
-#line 173 "glsl_lexer.lpp"
+#line 175 "glsl_lexer.lpp"
 return WHILE;
 	YY_BREAK
 case 31:
 YY_RULE_SETUP
-#line 174 "glsl_lexer.lpp"
+#line 176 "glsl_lexer.lpp"
 return ELSE;
 	YY_BREAK
 case 32:
 YY_RULE_SETUP
-#line 175 "glsl_lexer.lpp"
+#line 177 "glsl_lexer.lpp"
 return FOR;
 	YY_BREAK
 case 33:
 YY_RULE_SETUP
-#line 176 "glsl_lexer.lpp"
+#line 178 "glsl_lexer.lpp"
 return IF;
 	YY_BREAK
 case 34:
 YY_RULE_SETUP
-#line 177 "glsl_lexer.lpp"
+#line 179 "glsl_lexer.lpp"
 return DISCARD;
 	YY_BREAK
 case 35:
 YY_RULE_SETUP
-#line 178 "glsl_lexer.lpp"
+#line 180 "glsl_lexer.lpp"
 return RETURN;
 	YY_BREAK
 case 36:
 YY_RULE_SETUP
-#line 180 "glsl_lexer.lpp"
+#line 182 "glsl_lexer.lpp"
 return BVEC2;
 	YY_BREAK
 case 37:
 YY_RULE_SETUP
-#line 181 "glsl_lexer.lpp"
+#line 183 "glsl_lexer.lpp"
 return BVEC3;
 	YY_BREAK
 case 38:
 YY_RULE_SETUP
-#line 182 "glsl_lexer.lpp"
+#line 184 "glsl_lexer.lpp"
 return BVEC4;
 	YY_BREAK
 case 39:
 YY_RULE_SETUP
-#line 183 "glsl_lexer.lpp"
+#line 185 "glsl_lexer.lpp"
 return IVEC2;
 	YY_BREAK
 case 40:
 YY_RULE_SETUP
-#line 184 "glsl_lexer.lpp"
+#line 186 "glsl_lexer.lpp"
 return IVEC3;
 	YY_BREAK
 case 41:
 YY_RULE_SETUP
-#line 185 "glsl_lexer.lpp"
+#line 187 "glsl_lexer.lpp"
 return IVEC4;
 	YY_BREAK
 case 42:
 YY_RULE_SETUP
-#line 186 "glsl_lexer.lpp"
+#line 188 "glsl_lexer.lpp"
 return VEC2;
 	YY_BREAK
 case 43:
 YY_RULE_SETUP
-#line 187 "glsl_lexer.lpp"
+#line 189 "glsl_lexer.lpp"
 return VEC3;
 	YY_BREAK
 case 44:
 YY_RULE_SETUP
-#line 188 "glsl_lexer.lpp"
+#line 190 "glsl_lexer.lpp"
 return VEC4;
 	YY_BREAK
 case 45:
 YY_RULE_SETUP
-#line 189 "glsl_lexer.lpp"
+#line 191 "glsl_lexer.lpp"
 return MAT2X2;
 	YY_BREAK
 case 46:
 YY_RULE_SETUP
-#line 190 "glsl_lexer.lpp"
+#line 192 "glsl_lexer.lpp"
 return MAT3X3;
 	YY_BREAK
 case 47:
 YY_RULE_SETUP
-#line 191 "glsl_lexer.lpp"
+#line 193 "glsl_lexer.lpp"
 return MAT4X4;
 	YY_BREAK
 case 48:
 YY_RULE_SETUP
-#line 192 "glsl_lexer.lpp"
+#line 194 "glsl_lexer.lpp"
 TOKEN_OR_IDENTIFIER(120, MAT2X2);
 	YY_BREAK
 case 49:
 YY_RULE_SETUP
-#line 193 "glsl_lexer.lpp"
+#line 195 "glsl_lexer.lpp"
 TOKEN_OR_IDENTIFIER(120, MAT2X3);
 	YY_BREAK
 case 50:
 YY_RULE_SETUP
-#line 194 "glsl_lexer.lpp"
+#line 196 "glsl_lexer.lpp"
 TOKEN_OR_IDENTIFIER(120, MAT2X4);
 	YY_BREAK
 case 51:
 YY_RULE_SETUP
-#line 195 "glsl_lexer.lpp"
+#line 197 "glsl_lexer.lpp"
 TOKEN_OR_IDENTIFIER(120, MAT3X2);
 	YY_BREAK
 case 52:
 YY_RULE_SETUP
-#line 196 "glsl_lexer.lpp"
+#line 198 "glsl_lexer.lpp"
 TOKEN_OR_IDENTIFIER(120, MAT3X3);
 	YY_BREAK
 case 53:
 YY_RULE_SETUP
-#line 197 "glsl_lexer.lpp"
+#line 199 "glsl_lexer.lpp"
 TOKEN_OR_IDENTIFIER(120, MAT3X4);
 	YY_BREAK
 case 54:
 YY_RULE_SETUP
-#line 198 "glsl_lexer.lpp"
+#line 200 "glsl_lexer.lpp"
 TOKEN_OR_IDENTIFIER(120, MAT4X2);
 	YY_BREAK
 case 55:
 YY_RULE_SETUP
-#line 199 "glsl_lexer.lpp"
+#line 201 "glsl_lexer.lpp"
 TOKEN_OR_IDENTIFIER(120, MAT4X3);
 	YY_BREAK
 case 56:
 YY_RULE_SETUP
-#line 200 "glsl_lexer.lpp"
+#line 202 "glsl_lexer.lpp"
 TOKEN_OR_IDENTIFIER(120, MAT4X4);
 	YY_BREAK
 case 57:
 YY_RULE_SETUP
-#line 202 "glsl_lexer.lpp"
+#line 204 "glsl_lexer.lpp"
 return IN_TOK;
 	YY_BREAK
 case 58:
 YY_RULE_SETUP
-#line 203 "glsl_lexer.lpp"
+#line 205 "glsl_lexer.lpp"
 return OUT_TOK;
 	YY_BREAK
 case 59:
 YY_RULE_SETUP
-#line 204 "glsl_lexer.lpp"
+#line 206 "glsl_lexer.lpp"
 return INOUT_TOK;
 	YY_BREAK
 case 60:
 YY_RULE_SETUP
-#line 205 "glsl_lexer.lpp"
+#line 207 "glsl_lexer.lpp"
 return UNIFORM;
 	YY_BREAK
 case 61:
 YY_RULE_SETUP
-#line 206 "glsl_lexer.lpp"
+#line 208 "glsl_lexer.lpp"
 return VARYING;
 	YY_BREAK
 case 62:
 YY_RULE_SETUP
-#line 207 "glsl_lexer.lpp"
+#line 209 "glsl_lexer.lpp"
 TOKEN_OR_IDENTIFIER(120, CENTROID);
 	YY_BREAK
 case 63:
 YY_RULE_SETUP
-#line 208 "glsl_lexer.lpp"
+#line 210 "glsl_lexer.lpp"
 TOKEN_OR_IDENTIFIER_ES(120, INVARIANT);
 	YY_BREAK
 case 64:
 YY_RULE_SETUP
-#line 210 "glsl_lexer.lpp"
+#line 212 "glsl_lexer.lpp"
 TOKEN_OR_IDENTIFIER_ES(130, FLAT);
 	YY_BREAK
 case 65:
 YY_RULE_SETUP
-#line 211 "glsl_lexer.lpp"
+#line 213 "glsl_lexer.lpp"
 TOKEN_OR_IDENTIFIER(130, SMOOTH);
 	YY_BREAK
 case 66:
 YY_RULE_SETUP
-#line 212 "glsl_lexer.lpp"
+#line 214 "glsl_lexer.lpp"
 TOKEN_OR_IDENTIFIER(130, NOPERSPECTIVE);
 	YY_BREAK
 case 67:
 YY_RULE_SETUP
-#line 214 "glsl_lexer.lpp"
+#line 216 "glsl_lexer.lpp"
 return SAMPLER1D;
 	YY_BREAK
 case 68:
 YY_RULE_SETUP
-#line 215 "glsl_lexer.lpp"
+#line 217 "glsl_lexer.lpp"
 return SAMPLER2D;
 	YY_BREAK
 case 69:
 YY_RULE_SETUP
-#line 216 "glsl_lexer.lpp"
+#line 218 "glsl_lexer.lpp"
 return SAMPLER3D;
 	YY_BREAK
 case 70:
 YY_RULE_SETUP
-#line 217 "glsl_lexer.lpp"
+#line 219 "glsl_lexer.lpp"
 return SAMPLERCUBE;
 	YY_BREAK
 case 71:
 YY_RULE_SETUP
-#line 218 "glsl_lexer.lpp"
+#line 220 "glsl_lexer.lpp"
 return SAMPLER1DSHADOW;
 	YY_BREAK
 case 72:
 YY_RULE_SETUP
-#line 219 "glsl_lexer.lpp"
+#line 221 "glsl_lexer.lpp"
 return SAMPLER2DSHADOW;
 	YY_BREAK
 case 73:
 YY_RULE_SETUP
-#line 221 "glsl_lexer.lpp"
+#line 223 "glsl_lexer.lpp"
 return STRUCT;
 	YY_BREAK
 case 74:
 YY_RULE_SETUP
-#line 222 "glsl_lexer.lpp"
+#line 224 "glsl_lexer.lpp"
 return VOID_TOK;
 	YY_BREAK
 case 75:
 YY_RULE_SETUP
-#line 224 "glsl_lexer.lpp"
+#line 226 "glsl_lexer.lpp"
 {
 		  if ((yyextra->language_version >= 140)
 		      || (yyextra->ARB_fragment_coord_conventions_enable)){
@@ -1770,102 +1772,102 @@ YY_RULE_SETUP
 	YY_BREAK
 case 76:
 YY_RULE_SETUP
-#line 234 "glsl_lexer.lpp"
+#line 236 "glsl_lexer.lpp"
 return INC_OP;
 	YY_BREAK
 case 77:
 YY_RULE_SETUP
-#line 235 "glsl_lexer.lpp"
+#line 237 "glsl_lexer.lpp"
 return DEC_OP;
 	YY_BREAK
 case 78:
 YY_RULE_SETUP
-#line 236 "glsl_lexer.lpp"
+#line 238 "glsl_lexer.lpp"
 return LE_OP;
 	YY_BREAK
 case 79:
 YY_RULE_SETUP
-#line 237 "glsl_lexer.lpp"
+#line 239 "glsl_lexer.lpp"
 return GE_OP;
 	YY_BREAK
 case 80:
 YY_RULE_SETUP
-#line 238 "glsl_lexer.lpp"
+#line 240 "glsl_lexer.lpp"
 return EQ_OP;
 	YY_BREAK
 case 81:
 YY_RULE_SETUP
-#line 239 "glsl_lexer.lpp"
+#line 241 "glsl_lexer.lpp"
 return NE_OP;
 	YY_BREAK
 case 82:
 YY_RULE_SETUP
-#line 240 "glsl_lexer.lpp"
+#line 242 "glsl_lexer.lpp"
 return AND_OP;
 	YY_BREAK
 case 83:
 YY_RULE_SETUP
-#line 241 "glsl_lexer.lpp"
+#line 243 "glsl_lexer.lpp"
 return OR_OP;
 	YY_BREAK
 case 84:
 YY_RULE_SETUP
-#line 242 "glsl_lexer.lpp"
+#line 244 "glsl_lexer.lpp"
 return XOR_OP;
 	YY_BREAK
 case 85:
 YY_RULE_SETUP
-#line 244 "glsl_lexer.lpp"
+#line 246 "glsl_lexer.lpp"
 return MUL_ASSIGN;
 	YY_BREAK
 case 86:
 YY_RULE_SETUP
-#line 245 "glsl_lexer.lpp"
+#line 247 "glsl_lexer.lpp"
 return DIV_ASSIGN;
 	YY_BREAK
 case 87:
 YY_RULE_SETUP
-#line 246 "glsl_lexer.lpp"
+#line 248 "glsl_lexer.lpp"
 return ADD_ASSIGN;
 	YY_BREAK
 case 88:
 YY_RULE_SETUP
-#line 247 "glsl_lexer.lpp"
+#line 249 "glsl_lexer.lpp"
 return MOD_ASSIGN;
 	YY_BREAK
 case 89:
 YY_RULE_SETUP
-#line 248 "glsl_lexer.lpp"
+#line 250 "glsl_lexer.lpp"
 return LEFT_ASSIGN;
 	YY_BREAK
 case 90:
 YY_RULE_SETUP
-#line 249 "glsl_lexer.lpp"
+#line 251 "glsl_lexer.lpp"
 return RIGHT_ASSIGN;
 	YY_BREAK
 case 91:
 YY_RULE_SETUP
-#line 250 "glsl_lexer.lpp"
+#line 252 "glsl_lexer.lpp"
 return AND_ASSIGN;
 	YY_BREAK
 case 92:
 YY_RULE_SETUP
-#line 251 "glsl_lexer.lpp"
+#line 253 "glsl_lexer.lpp"
 return XOR_ASSIGN;
 	YY_BREAK
 case 93:
 YY_RULE_SETUP
-#line 252 "glsl_lexer.lpp"
+#line 254 "glsl_lexer.lpp"
 return OR_ASSIGN;
 	YY_BREAK
 case 94:
 YY_RULE_SETUP
-#line 253 "glsl_lexer.lpp"
+#line 255 "glsl_lexer.lpp"
 return SUB_ASSIGN;
 	YY_BREAK
 case 95:
 YY_RULE_SETUP
-#line 255 "glsl_lexer.lpp"
+#line 257 "glsl_lexer.lpp"
 {
 			    yylval->n = strtol(yytext, NULL, 10);
 			    return INTCONSTANT;
@@ -1873,7 +1875,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 96:
 YY_RULE_SETUP
-#line 259 "glsl_lexer.lpp"
+#line 261 "glsl_lexer.lpp"
 {
 			    yylval->n = strtol(yytext + 2, NULL, 16);
 			    return INTCONSTANT;
@@ -1881,7 +1883,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 97:
 YY_RULE_SETUP
-#line 263 "glsl_lexer.lpp"
+#line 265 "glsl_lexer.lpp"
 {
 			    yylval->n = strtol(yytext, NULL, 8);
 			    return INTCONSTANT;
@@ -1889,7 +1891,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 98:
 YY_RULE_SETUP
-#line 268 "glsl_lexer.lpp"
+#line 270 "glsl_lexer.lpp"
 {
 			    yylval->real = glsl_strtod(yytext, NULL);
 			    return FLOATCONSTANT;
@@ -1897,7 +1899,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 99:
 YY_RULE_SETUP
-#line 272 "glsl_lexer.lpp"
+#line 274 "glsl_lexer.lpp"
 {
 			    yylval->real = glsl_strtod(yytext, NULL);
 			    return FLOATCONSTANT;
@@ -1905,7 +1907,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 100:
 YY_RULE_SETUP
-#line 276 "glsl_lexer.lpp"
+#line 278 "glsl_lexer.lpp"
 {
 			    yylval->real = glsl_strtod(yytext, NULL);
 			    return FLOATCONSTANT;
@@ -1913,7 +1915,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 101:
 YY_RULE_SETUP
-#line 280 "glsl_lexer.lpp"
+#line 282 "glsl_lexer.lpp"
 {
 			    yylval->real = glsl_strtod(yytext, NULL);
 			    return FLOATCONSTANT;
@@ -1921,7 +1923,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 102:
 YY_RULE_SETUP
-#line 284 "glsl_lexer.lpp"
+#line 286 "glsl_lexer.lpp"
 {
 			    yylval->real = glsl_strtod(yytext, NULL);
 			    return FLOATCONSTANT;
@@ -1929,7 +1931,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 103:
 YY_RULE_SETUP
-#line 289 "glsl_lexer.lpp"
+#line 291 "glsl_lexer.lpp"
 {
 			    yylval->n = 1;
 			    return BOOLCONSTANT;
@@ -1937,7 +1939,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 104:
 YY_RULE_SETUP
-#line 293 "glsl_lexer.lpp"
+#line 295 "glsl_lexer.lpp"
 {
 			    yylval->n = 0;
 			    return BOOLCONSTANT;
@@ -1946,412 +1948,412 @@ YY_RULE_SETUP
 /* Reserved words in GLSL 1.10. */
 case 105:
 YY_RULE_SETUP
-#line 300 "glsl_lexer.lpp"
+#line 302 "glsl_lexer.lpp"
 RESERVED_WORD(999, ASM);
 	YY_BREAK
 case 106:
 YY_RULE_SETUP
-#line 301 "glsl_lexer.lpp"
+#line 303 "glsl_lexer.lpp"
 RESERVED_WORD(999, CLASS);
 	YY_BREAK
 case 107:
 YY_RULE_SETUP
-#line 302 "glsl_lexer.lpp"
+#line 304 "glsl_lexer.lpp"
 RESERVED_WORD(999, UNION);
 	YY_BREAK
 case 108:
 YY_RULE_SETUP
-#line 303 "glsl_lexer.lpp"
+#line 305 "glsl_lexer.lpp"
 RESERVED_WORD(999, ENUM);
 	YY_BREAK
 case 109:
 YY_RULE_SETUP
-#line 304 "glsl_lexer.lpp"
+#line 306 "glsl_lexer.lpp"
 RESERVED_WORD(999, TYPEDEF);
 	YY_BREAK
 case 110:
 YY_RULE_SETUP
-#line 305 "glsl_lexer.lpp"
+#line 307 "glsl_lexer.lpp"
 RESERVED_WORD(999, TEMPLATE);
 	YY_BREAK
 case 111:
 YY_RULE_SETUP
-#line 306 "glsl_lexer.lpp"
+#line 308 "glsl_lexer.lpp"
 RESERVED_WORD(999, THIS);
 	YY_BREAK
 case 112:
 YY_RULE_SETUP
-#line 307 "glsl_lexer.lpp"
+#line 309 "glsl_lexer.lpp"
 RESERVED_WORD(999, PACKED_TOK);
 	YY_BREAK
 case 113:
 YY_RULE_SETUP
-#line 308 "glsl_lexer.lpp"
+#line 310 "glsl_lexer.lpp"
 RESERVED_WORD(999, GOTO);
 	YY_BREAK
 case 114:
 YY_RULE_SETUP
-#line 309 "glsl_lexer.lpp"
+#line 311 "glsl_lexer.lpp"
 RESERVED_WORD(130, SWITCH);
 	YY_BREAK
 case 115:
 YY_RULE_SETUP
-#line 310 "glsl_lexer.lpp"
+#line 312 "glsl_lexer.lpp"
 RESERVED_WORD(130, DEFAULT);
 	YY_BREAK
 case 116:
 YY_RULE_SETUP
-#line 311 "glsl_lexer.lpp"
+#line 313 "glsl_lexer.lpp"
 RESERVED_WORD(999, INLINE_TOK);
 	YY_BREAK
 case 117:
 YY_RULE_SETUP
-#line 312 "glsl_lexer.lpp"
+#line 314 "glsl_lexer.lpp"
 RESERVED_WORD(999, NOINLINE);
 	YY_BREAK
 case 118:
 YY_RULE_SETUP
-#line 313 "glsl_lexer.lpp"
+#line 315 "glsl_lexer.lpp"
 RESERVED_WORD(999, VOLATILE);
 	YY_BREAK
 case 119:
 YY_RULE_SETUP
-#line 314 "glsl_lexer.lpp"
+#line 316 "glsl_lexer.lpp"
 RESERVED_WORD(999, PUBLIC_TOK);
 	YY_BREAK
 case 120:
 YY_RULE_SETUP
-#line 315 "glsl_lexer.lpp"
+#line 317 "glsl_lexer.lpp"
 RESERVED_WORD(999, STATIC);
 	YY_BREAK
 case 121:
 YY_RULE_SETUP
-#line 316 "glsl_lexer.lpp"
+#line 318 "glsl_lexer.lpp"
 RESERVED_WORD(999, EXTERN);
 	YY_BREAK
 case 122:
 YY_RULE_SETUP
-#line 317 "glsl_lexer.lpp"
+#line 319 "glsl_lexer.lpp"
 RESERVED_WORD(999, EXTERNAL);
 	YY_BREAK
 case 123:
 YY_RULE_SETUP
-#line 318 "glsl_lexer.lpp"
+#line 320 "glsl_lexer.lpp"
 RESERVED_WORD(999, INTERFACE);
 	YY_BREAK
 case 124:
 YY_RULE_SETUP
-#line 319 "glsl_lexer.lpp"
+#line 321 "glsl_lexer.lpp"
 RESERVED_WORD(999, LONG_TOK);
 	YY_BREAK
 case 125:
 YY_RULE_SETUP
-#line 320 "glsl_lexer.lpp"
+#line 322 "glsl_lexer.lpp"
 RESERVED_WORD(999, SHORT_TOK);
 	YY_BREAK
 case 126:
 YY_RULE_SETUP
-#line 321 "glsl_lexer.lpp"
+#line 323 "glsl_lexer.lpp"
 RESERVED_WORD(999, DOUBLE_TOK);
 	YY_BREAK
 case 127:
 YY_RULE_SETUP
-#line 322 "glsl_lexer.lpp"
+#line 324 "glsl_lexer.lpp"
 RESERVED_WORD(999, HALF);
 	YY_BREAK
 case 128:
 YY_RULE_SETUP
-#line 323 "glsl_lexer.lpp"
+#line 325 "glsl_lexer.lpp"
 RESERVED_WORD(999, FIXED_TOK);
 	YY_BREAK
 case 129:
 YY_RULE_SETUP
-#line 324 "glsl_lexer.lpp"
+#line 326 "glsl_lexer.lpp"
 RESERVED_WORD(999, UNSIGNED);
 	YY_BREAK
 case 130:
 YY_RULE_SETUP
-#line 325 "glsl_lexer.lpp"
+#line 327 "glsl_lexer.lpp"
 RESERVED_WORD(999, INPUT_TOK);
 	YY_BREAK
 case 131:
 YY_RULE_SETUP
-#line 326 "glsl_lexer.lpp"
+#line 328 "glsl_lexer.lpp"
 RESERVED_WORD(999, OUTPUT);
 	YY_BREAK
 case 132:
 YY_RULE_SETUP
-#line 327 "glsl_lexer.lpp"
+#line 329 "glsl_lexer.lpp"
 RESERVED_WORD(999, HVEC2);
 	YY_BREAK
 case 133:
 YY_RULE_SETUP
-#line 328 "glsl_lexer.lpp"
+#line 330 "glsl_lexer.lpp"
 RESERVED_WORD(999, HVEC3);
 	YY_BREAK
 case 134:
 YY_RULE_SETUP
-#line 329 "glsl_lexer.lpp"
+#line 331 "glsl_lexer.lpp"
 RESERVED_WORD(999, HVEC4);
 	YY_BREAK
 case 135:
 YY_RULE_SETUP
-#line 330 "glsl_lexer.lpp"
+#line 332 "glsl_lexer.lpp"
 RESERVED_WORD(999, DVEC2);
 	YY_BREAK
 case 136:
 YY_RULE_SETUP
-#line 331 "glsl_lexer.lpp"
+#line 333 "glsl_lexer.lpp"
 RESERVED_WORD(999, DVEC3);
 	YY_BREAK
 case 137:
 YY_RULE_SETUP
-#line 332 "glsl_lexer.lpp"
+#line 334 "glsl_lexer.lpp"
 RESERVED_WORD(999, DVEC4);
 	YY_BREAK
 case 138:
 YY_RULE_SETUP
-#line 333 "glsl_lexer.lpp"
+#line 335 "glsl_lexer.lpp"
 RESERVED_WORD(999, FVEC2);
 	YY_BREAK
 case 139:
 YY_RULE_SETUP
-#line 334 "glsl_lexer.lpp"
+#line 336 "glsl_lexer.lpp"
 RESERVED_WORD(999, FVEC3);
 	YY_BREAK
 case 140:
 YY_RULE_SETUP
-#line 335 "glsl_lexer.lpp"
+#line 337 "glsl_lexer.lpp"
 RESERVED_WORD(999, FVEC4);
 	YY_BREAK
 case 141:
 YY_RULE_SETUP
-#line 336 "glsl_lexer.lpp"
+#line 338 "glsl_lexer.lpp"
 return SAMPLER2DRECT;
 	YY_BREAK
 case 142:
 YY_RULE_SETUP
-#line 337 "glsl_lexer.lpp"
+#line 339 "glsl_lexer.lpp"
 RESERVED_WORD(999, SAMPLER3DRECT);
 	YY_BREAK
 case 143:
 YY_RULE_SETUP
-#line 338 "glsl_lexer.lpp"
+#line 340 "glsl_lexer.lpp"
 return SAMPLER2DRECTSHADOW;
 	YY_BREAK
 case 144:
 YY_RULE_SETUP
-#line 339 "glsl_lexer.lpp"
+#line 341 "glsl_lexer.lpp"
 RESERVED_WORD(999, SIZEOF);
 	YY_BREAK
 case 145:
 YY_RULE_SETUP
-#line 340 "glsl_lexer.lpp"
+#line 342 "glsl_lexer.lpp"
 RESERVED_WORD(999, CAST);
 	YY_BREAK
 case 146:
 YY_RULE_SETUP
-#line 341 "glsl_lexer.lpp"
+#line 343 "glsl_lexer.lpp"
 RESERVED_WORD(999, NAMESPACE);
 	YY_BREAK
 case 147:
 YY_RULE_SETUP
-#line 342 "glsl_lexer.lpp"
+#line 344 "glsl_lexer.lpp"
 RESERVED_WORD(999, USING);
 	YY_BREAK
 /* Additional reserved words in GLSL 1.20. */
 case 148:
 YY_RULE_SETUP
-#line 345 "glsl_lexer.lpp"
+#line 347 "glsl_lexer.lpp"
 TOKEN_OR_IDENTIFIER_ES(120, LOWP);
 	YY_BREAK
 case 149:
 YY_RULE_SETUP
-#line 346 "glsl_lexer.lpp"
+#line 348 "glsl_lexer.lpp"
 TOKEN_OR_IDENTIFIER_ES(120, MEDIUMP);
 	YY_BREAK
 case 150:
 YY_RULE_SETUP
-#line 347 "glsl_lexer.lpp"
+#line 349 "glsl_lexer.lpp"
 TOKEN_OR_IDENTIFIER_ES(120, HIGHP);
 	YY_BREAK
 case 151:
 YY_RULE_SETUP
-#line 348 "glsl_lexer.lpp"
+#line 350 "glsl_lexer.lpp"
 TOKEN_OR_IDENTIFIER_ES(120, PRECISION);
 	YY_BREAK
 /* Additional reserved words in GLSL 1.30. */
 case 152:
 YY_RULE_SETUP
-#line 351 "glsl_lexer.lpp"
+#line 353 "glsl_lexer.lpp"
 TOKEN_OR_IDENTIFIER(130, COMMON);
 	YY_BREAK
 case 153:
 YY_RULE_SETUP
-#line 352 "glsl_lexer.lpp"
+#line 354 "glsl_lexer.lpp"
 TOKEN_OR_IDENTIFIER(130, PARTITION);
 	YY_BREAK
 case 154:
 YY_RULE_SETUP
-#line 353 "glsl_lexer.lpp"
+#line 355 "glsl_lexer.lpp"
 TOKEN_OR_IDENTIFIER(130, ACTIVE);
 	YY_BREAK
 case 155:
 YY_RULE_SETUP
-#line 354 "glsl_lexer.lpp"
+#line 356 "glsl_lexer.lpp"
 TOKEN_OR_IDENTIFIER_ES(130, SUPERP);
 	YY_BREAK
 case 156:
 YY_RULE_SETUP
-#line 355 "glsl_lexer.lpp"
+#line 357 "glsl_lexer.lpp"
 TOKEN_OR_IDENTIFIER(130, SAMPLERBUFFER);
 	YY_BREAK
 case 157:
 YY_RULE_SETUP
-#line 356 "glsl_lexer.lpp"
+#line 358 "glsl_lexer.lpp"
 TOKEN_OR_IDENTIFIER(130, FILTER);
 	YY_BREAK
 case 158:
 YY_RULE_SETUP
-#line 357 "glsl_lexer.lpp"
+#line 359 "glsl_lexer.lpp"
 TOKEN_OR_IDENTIFIER(130, IMAGE1D);
 	YY_BREAK
 case 159:
 YY_RULE_SETUP
-#line 358 "glsl_lexer.lpp"
+#line 360 "glsl_lexer.lpp"
 TOKEN_OR_IDENTIFIER(130, IMAGE2D);
 	YY_BREAK
 case 160:
 YY_RULE_SETUP
-#line 359 "glsl_lexer.lpp"
+#line 361 "glsl_lexer.lpp"
 TOKEN_OR_IDENTIFIER(130, IMAGE3D);
 	YY_BREAK
 case 161:
 YY_RULE_SETUP
-#line 360 "glsl_lexer.lpp"
+#line 362 "glsl_lexer.lpp"
 TOKEN_OR_IDENTIFIER(130, IMAGECUBE);
 	YY_BREAK
 case 162:
 YY_RULE_SETUP
-#line 361 "glsl_lexer.lpp"
+#line 363 "glsl_lexer.lpp"
 TOKEN_OR_IDENTIFIER(130, IIMAGE1D);
 	YY_BREAK
 case 163:
 YY_RULE_SETUP
-#line 362 "glsl_lexer.lpp"
+#line 364 "glsl_lexer.lpp"
 TOKEN_OR_IDENTIFIER(130, IIMAGE2D);
 	YY_BREAK
 case 164:
 YY_RULE_SETUP
-#line 363 "glsl_lexer.lpp"
+#line 365 "glsl_lexer.lpp"
 TOKEN_OR_IDENTIFIER(130, IIMAGE3D);
 	YY_BREAK
 case 165:
 YY_RULE_SETUP
-#line 364 "glsl_lexer.lpp"
+#line 366 "glsl_lexer.lpp"
 TOKEN_OR_IDENTIFIER(130, IIMAGECUBE);
 	YY_BREAK
 case 166:
 YY_RULE_SETUP
-#line 365 "glsl_lexer.lpp"
+#line 367 "glsl_lexer.lpp"
 TOKEN_OR_IDENTIFIER(130, UIMAGE1D);
 	YY_BREAK
 case 167:
 YY_RULE_SETUP
-#line 366 "glsl_lexer.lpp"
+#line 368 "glsl_lexer.lpp"
 TOKEN_OR_IDENTIFIER(130, UIMAGE2D);
 	YY_BREAK
 case 168:
 YY_RULE_SETUP
-#line 367 "glsl_lexer.lpp"
+#line 369 "glsl_lexer.lpp"
 TOKEN_OR_IDENTIFIER(130, UIMAGE3D);
 	YY_BREAK
 case 169:
 YY_RULE_SETUP
-#line 368 "glsl_lexer.lpp"
+#line 370 "glsl_lexer.lpp"
 TOKEN_OR_IDENTIFIER(130, UIMAGECUBE);
 	YY_BREAK
 case 170:
 YY_RULE_SETUP
-#line 369 "glsl_lexer.lpp"
+#line 371 "glsl_lexer.lpp"
 TOKEN_OR_IDENTIFIER(130, IMAGE1DARRAY);
 	YY_BREAK
 case 171:
 YY_RULE_SETUP
-#line 370 "glsl_lexer.lpp"
+#line 372 "glsl_lexer.lpp"
 TOKEN_OR_IDENTIFIER(130, IMAGE2DARRAY);
 	YY_BREAK
 case 172:
 YY_RULE_SETUP
-#line 371 "glsl_lexer.lpp"
+#line 373 "glsl_lexer.lpp"
 TOKEN_OR_IDENTIFIER(130, IIMAGE1DARRAY);
 	YY_BREAK
 case 173:
 YY_RULE_SETUP
-#line 372 "glsl_lexer.lpp"
+#line 374 "glsl_lexer.lpp"
 TOKEN_OR_IDENTIFIER(130, IIMAGE2DARRAY);
 	YY_BREAK
 case 174:
 YY_RULE_SETUP
-#line 373 "glsl_lexer.lpp"
+#line 375 "glsl_lexer.lpp"
 TOKEN_OR_IDENTIFIER(130, UIMAGE1DARRAY);
 	YY_BREAK
 case 175:
 YY_RULE_SETUP
-#line 374 "glsl_lexer.lpp"
+#line 376 "glsl_lexer.lpp"
 TOKEN_OR_IDENTIFIER(130, UIMAGE2DARRAY);
 	YY_BREAK
 case 176:
 YY_RULE_SETUP
-#line 375 "glsl_lexer.lpp"
+#line 377 "glsl_lexer.lpp"
 TOKEN_OR_IDENTIFIER(130, IMAGE1DSHADOW);
 	YY_BREAK
 case 177:
 YY_RULE_SETUP
-#line 376 "glsl_lexer.lpp"
+#line 378 "glsl_lexer.lpp"
 TOKEN_OR_IDENTIFIER(130, IMAGE2DSHADOW);
 	YY_BREAK
 case 178:
 YY_RULE_SETUP
-#line 377 "glsl_lexer.lpp"
+#line 379 "glsl_lexer.lpp"
 TOKEN_OR_IDENTIFIER(130, IMAGEBUFFER);
 	YY_BREAK
 case 179:
 YY_RULE_SETUP
-#line 378 "glsl_lexer.lpp"
+#line 380 "glsl_lexer.lpp"
 TOKEN_OR_IDENTIFIER(130, IIMAGEBUFFER);
 	YY_BREAK
 case 180:
 YY_RULE_SETUP
-#line 379 "glsl_lexer.lpp"
+#line 381 "glsl_lexer.lpp"
 TOKEN_OR_IDENTIFIER(130, UIMAGEBUFFER);
 	YY_BREAK
 case 181:
 YY_RULE_SETUP
-#line 380 "glsl_lexer.lpp"
+#line 382 "glsl_lexer.lpp"
 TOKEN_OR_IDENTIFIER(130, ROW_MAJOR);
 	YY_BREAK
 case 182:
 YY_RULE_SETUP
-#line 382 "glsl_lexer.lpp"
+#line 384 "glsl_lexer.lpp"
 {
 			    struct _mesa_glsl_parse_state *state = yyextra;
 			    void *ctx = state;	
 			    yylval->identifier = ralloc_strdup(ctx, yytext);
-			    return IDENTIFIER;
+			    return classify_identifier(state, yytext);
 			}
 	YY_BREAK
 case 183:
 YY_RULE_SETUP
-#line 389 "glsl_lexer.lpp"
+#line 391 "glsl_lexer.lpp"
 { return yytext[0]; }
 	YY_BREAK
 case 184:
 YY_RULE_SETUP
-#line 391 "glsl_lexer.lpp"
+#line 393 "glsl_lexer.lpp"
 ECHO;
 	YY_BREAK
-#line 2355 "glsl_lexer.cpp"
+#line 2357 "glsl_lexer.cpp"
 case YY_STATE_EOF(INITIAL):
 case YY_STATE_EOF(PP):
 case YY_STATE_EOF(PRAGMA):
@@ -3494,9 +3496,20 @@ void _mesa_glsl_free (void * ptr , yyscan_t yyscanner)
 
 #define YYTABLES_NAME "yytables"
 
-#line 391 "glsl_lexer.lpp"
+#line 393 "glsl_lexer.lpp"
 
 
+
+int
+classify_identifier(struct _mesa_glsl_parse_state *state, const char *name)
+{
+   if (state->symbols->get_variable(name) || state->symbols->get_function(name))
+      return IDENTIFIER;
+   else if (state->symbols->get_type(name))
+      return TYPE_IDENTIFIER;
+   else
+      return NEW_IDENTIFIER;
+}
 
 void
 _mesa_glsl_lexer_ctor(struct _mesa_glsl_parse_state *state, const char *string)
