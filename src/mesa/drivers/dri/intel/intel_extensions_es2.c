@@ -97,6 +97,8 @@ intelInitExtensionsES1(struct gl_context *ctx)
    _mesa_enable_extension(ctx, "GL_ARB_point_parameters");
 
    _mesa_enable_extension(ctx, "GL_OES_draw_texture");
+
+   _mesa_enable_extension(ctx, "GL_OES_point_sprite");
 }
 
 /**
