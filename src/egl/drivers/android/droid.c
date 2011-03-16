@@ -159,6 +159,9 @@ droid_get_buffers_with_format(__DRIdrawable * driDrawable,
          return NULL;
    }
 
+   dsurf->base.Width = dsurf->buffer->width;
+   dsurf->base.Height = dsurf->buffer->height;
+
    if (width)
       *width = dsurf->buffer->width;
    if (height)
