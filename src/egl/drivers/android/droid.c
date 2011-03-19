@@ -512,8 +512,12 @@ droid_load_driver(_EGLDisplay *dpy, const char *driver_name)
 }
 
 #include <xf86drm.h>
+/* for i915 */
 #include <i915_drm.h>
 #include "dri/intel/intel_chipset.h"
+/* for radeon */
+#include <radeon_drm.h>
+#include "radeon/drm/radeon_drm_public.h"
 static const char *
 droid_get_driver_name(int fd)
 {
@@ -544,6 +548,21 @@ droid_get_driver_name(int fd)
       }
       else {
          name = (IS_965(id)) ? "i965" : "i915";
+      }
+   }
+   else if (strcmp(version->name, "radeon") == 0) {
+      struct drm_radeon_info info;
+      int id, ret;
+
+      memset(&info, 0, sizeof(info));
+      info.request = RADEON_INFO_DEVICE_ID;
+      info.value = (long) &id;
+      ret = drmCommandWriteRead(fd, DRM_RADEON_INFO, &info, sizeof(info));
+      if (ret) {
+         _eglLog(_EGL_WARNING, "failed to get info for radeon");
+      }
+      else {
+         name = (is_r3xx(id)) ? "r300" : "r600";
       }
    }
 
