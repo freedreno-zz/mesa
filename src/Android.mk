@@ -40,10 +40,12 @@ MESA_BUILD_I965C := false
 # Gallium drivers
 MESA_BUILD_GALLIUM := false
 MESA_BUILD_I915G := false
+MESA_BUILD_R600G := false
 MESA_BUILD_SWRAST := false
 
 # gralloc modules
 MESA_BUILD_INTEL := false
+MESA_BUILD_RADEON := false
 MESA_BUILD_VMWGFX := false
 
 MESA_DO_BUILD := false
@@ -71,6 +73,15 @@ MESA_BUILD_CLASSIC := true
 MESA_BUILD_I965C := true
 # gralloc
 MESA_BUILD_INTEL := true
+
+MESA_DO_BUILD := true
+endif
+
+ifeq ($(strip $(BOARD_USES_R600G)),true)
+MESA_BUILD_GALLIUM := true
+MESA_BUILD_R600G := true
+# gralloc
+MESA_BUILD_RADEON := true
 
 MESA_DO_BUILD := true
 endif

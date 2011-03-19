@@ -36,7 +36,6 @@ LOCAL_STATIC_LIBRARIES := \
 	libmesa_st_mesa \
 	libmesa_glsl \
 	libmesa_st_mesa \
-	libmesa_talloc \
 	libmesa_gallium
 
 LOCAL_WHOLE_STATIC_LIBRARIES := \
@@ -66,6 +65,17 @@ LOCAL_SHARED_LIBRARIES += \
 	libdrm \
 	libdrm_intel
 endif # MESA_BUILD_I915G
+
+ifeq ($(strip $(MESA_BUILD_R600G)),true)
+LOCAL_CFLAGS += -D_EGL_PIPE_R600
+LOCAL_STATIC_LIBRARIES := \
+	libmesa_pipe_r600 \
+	libmesa_winsys_r600 \
+	$(LOCAL_STATIC_LIBRARIES)
+LOCAL_SHARED_LIBRARIES += \
+	libdrm \
+	libdrm_radeon
+endif # MESA_BUILD_R600G
 
 LOCAL_MODULE := libGLES_mesa
 LOCAL_MODULE_PATH := $(TARGET_OUT_SHARED_LIBRARIES)/egl

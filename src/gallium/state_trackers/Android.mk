@@ -28,6 +28,7 @@ LOCAL_C_INCLUDES := \
 	external/mesa/src/gallium/auxiliary \
 	external/mesa/src/egl/main \
 	external/mesa/src/gallium/state_trackers/egl \
+	external/mesa/src/gallium/winsys \
 	external/mesa/src/gallium/winsys/sw \
 	external/mesa/src/gralloc \
 	external/drm \

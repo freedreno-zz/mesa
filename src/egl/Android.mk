@@ -72,7 +72,9 @@ LOCAL_C_INCLUDES := \
 	external/mesa/src/gralloc \
 	external/drm \
 	external/drm/include/drm \
-	external/mesa/src/mesa/drivers
+	external/mesa/src/mesa/drivers \
+	external/mesa/src/gallium/include \
+	external/mesa/src/gallium/winsys
 
 LOCAL_MODULE := libmesa_classic_egl
 
