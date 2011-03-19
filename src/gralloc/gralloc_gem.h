@@ -75,6 +75,7 @@ struct drm_gem_drv {
 };
 
 extern const struct drm_gem_drv drm_gem_drv_intel;
+extern const struct drm_gem_drv drm_gem_drv_radeon;
 extern const struct drm_gem_drv drm_gem_drv_pipe;
 
 static inline struct drm_bo_t *

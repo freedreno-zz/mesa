@@ -73,7 +73,7 @@ drm_kms_page_flip(struct drm_module_t *drm, struct drm_bo_t *bo)
 
    while (waits) {
       ret = drmModePageFlip(drm->fd, drm->crtc_id, bo->fb_id, 0x0, NULL);
-      if (ret && errno == -EBUSY) {
+      if (ret && errno == EBUSY) {
          if (drm->swap_interval)
             drm_kms_wait_vblank(drm, 1);
          else

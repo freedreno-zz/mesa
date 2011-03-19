@@ -135,6 +135,10 @@ get_drv_from_fd(int fd)
       if (!drv && !strcmp(version->name, "intel"))
          drv = &drm_gem_drv_intel;
 #endif
+#ifdef ENABLE_RADEON
+      if (!drv && !strcmp(version->name, "radeon"))
+         drv = &drm_gem_drv_radeon;
+#endif
 #ifdef ENABLE_VMWGFX
       if (!drv && !strcmp(version->name, "vmwgfx"))
          drv = &drm_gem_drv_pipe;
