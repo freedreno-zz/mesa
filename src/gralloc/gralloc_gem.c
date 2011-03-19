@@ -117,3 +117,66 @@ drm_gem_validate(buffer_handle_t handle)
 
    return bo;
 }
+
+static const struct drm_gem_drv *
+get_drv_from_fd(int fd)
+{
+   const struct drm_gem_drv *drv = NULL;
+   drmVersionPtr version;
+
+   version = drmGetVersion(fd);
+   if (!version) {
+      LOGE("invalid DRM fd");
+      return NULL;
+   }
+
+   if (version->name) {
+#ifdef ENABLE_INTEL
+      if (!drv && !strcmp(version->name, "intel"))
+         drv = &drm_gem_drv_intel;
+#endif
+#ifdef ENABLE_VMWGFX
+      if (!drv && !strcmp(version->name, "vmwgfx"))
+         drv = &drm_gem_drv_pipe;
+#endif
+   }
+
+   if (!drv)
+      LOGE("unknown driver: %s", (version->name) ? version->name : "NULL");
+
+   drmFreeVersion(version);
+
+   return drv;
+}
+
+static int
+drm_gem_drv_init_locked(struct drm_module_t *drm)
+{
+   const struct drm_gem_drv *drv;
+   int ret;
+
+   if (drm->gem)
+      return 0;
+
+   drv = get_drv_from_fd(drm->fd);
+   if (!drv)
+      return -EINVAL;
+
+   ret = drv->init(drm);
+   if (!ret)
+      drm->drv = (void *) drv;
+
+   return ret;
+}
+
+int
+drm_gem_drv_init(struct drm_module_t *drm)
+{
+   int ret;
+
+   pthread_mutex_lock(&drm->mutex);
+   ret = drm_gem_drv_init_locked(drm);
+   pthread_mutex_unlock(&drm->mutex);
+
+   return ret;
+}

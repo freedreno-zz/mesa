@@ -26,7 +26,7 @@ struct drm_pipe_buffer {
 };
 
 static void
-drm_gem_drv_init_features_locked(struct drm_module_t *drm)
+drm_gem_pipe_init_features(struct drm_module_t *drm)
 {
    drm->mode_dirty_fb = 0;
    drm->mode_page_flip = 0;
@@ -38,12 +38,9 @@ drm_gem_drv_init_features_locked(struct drm_module_t *drm)
 }
 
 static int
-drm_gem_drv_init_locked(struct drm_module_t *drm)
+drm_gem_pipe_init(struct drm_module_t *drm)
 {
    struct drm_pipe_manager *pm;
-
-   if (drm->gem)
-      return 0;
 
    pm = CALLOC(1, sizeof(*pm));
    if (!pm)
@@ -60,21 +57,9 @@ drm_gem_drv_init_locked(struct drm_module_t *drm)
 
    drm->gem = (void *) pm;
 
-   drm_gem_drv_init_features_locked(drm);
+   drm_gem_pipe_init_features(drm);
 
    return 0;
-}
-
-int
-drm_gem_drv_init(struct drm_module_t *drm)
-{
-   int ret;
-
-   pthread_mutex_lock(&drm->mutex);
-   ret = drm_gem_drv_init_locked(drm);
-   pthread_mutex_unlock(&drm->mutex);
-
-   return ret;
 }
 
 static enum pipe_format
@@ -144,7 +129,7 @@ get_pipe_buffer(struct drm_pipe_manager *pm, int width, int height,
 
    if (templ.format == PIPE_FORMAT_NONE ||
        !pm->screen->is_format_supported(pm->screen, templ.format,
-                                        templ.target, 0, templ.bind, 0)) {
+                                        templ.target, 0, templ.bind)) {
       LOGE("unsupported format 0x%x", format);
       return NULL;
    }
@@ -198,9 +183,9 @@ fail:
    return NULL;
 }
 
-struct drm_bo_t *
-drm_gem_drv_alloc(struct drm_module_t *drm, int width, int height,
-                  int format, int usage, int *stride)
+static struct drm_bo_t *
+drm_gem_pipe_alloc(struct drm_module_t *drm, int width, int height,
+                   int format, int usage, int *stride)
 {
    struct drm_pipe_manager *pm = (struct drm_pipe_manager *) drm->gem;
    struct drm_pipe_buffer *buf;
@@ -232,8 +217,8 @@ drm_gem_drv_alloc(struct drm_module_t *drm, int width, int height,
    return bo;
 }
 
-void
-drm_gem_drv_free(struct drm_module_t *drm, struct drm_bo_t *bo)
+static void
+drm_gem_pipe_free(struct drm_module_t *drm, struct drm_bo_t *bo)
 {
    struct drm_pipe_manager *pm = (struct drm_pipe_manager *) drm->gem;
    struct drm_pipe_buffer *buf = (struct drm_pipe_buffer *) bo->data;
@@ -250,9 +235,9 @@ drm_gem_drv_free(struct drm_module_t *drm, struct drm_bo_t *bo)
    free(bo);
 }
 
-int
-drm_gem_drv_map(struct drm_module_t *drm, struct drm_bo_t *bo,
-                int x, int y, int w, int h, int enable_write, void **addr)
+static int
+drm_gem_pipe_map(struct drm_module_t *drm, struct drm_bo_t *bo,
+                 int x, int y, int w, int h, int enable_write, void **addr)
 {
    struct drm_pipe_manager *pm = (struct drm_pipe_manager *) drm->gem;
    struct drm_pipe_buffer *buf = (struct drm_pipe_buffer *) bo->data;
@@ -313,8 +298,8 @@ drm_gem_drv_map(struct drm_module_t *drm, struct drm_bo_t *bo,
    return ret;
 }
 
-void
-drm_gem_drv_unmap(struct drm_module_t *drm, struct drm_bo_t *bo)
+static void
+drm_gem_pipe_unmap(struct drm_module_t *drm, struct drm_bo_t *bo)
 {
    struct drm_pipe_manager *pm = (struct drm_pipe_manager *) drm->gem;
    struct drm_pipe_buffer *buf = (struct drm_pipe_buffer *) bo->data;
@@ -327,7 +312,15 @@ drm_gem_drv_unmap(struct drm_module_t *drm, struct drm_bo_t *bo)
    pipe_transfer_destroy(pm->context, buf->transfer);
    buf->transfer = NULL;
 
-   pm->context->flush(pm->context, PIPE_FLUSH_RENDER_CACHE, NULL);
+   pm->context->flush(pm->context, NULL);
 
    pthread_mutex_unlock(&pm->mutex);
 }
+
+const struct drm_gem_drv drm_gem_drv_pipe = {
+   .init = drm_gem_pipe_init,
+   .alloc = drm_gem_pipe_alloc,
+   .free = drm_gem_pipe_free,
+   .map = drm_gem_pipe_map,
+   .unmap = drm_gem_pipe_unmap,
+};

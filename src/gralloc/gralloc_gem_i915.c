@@ -11,7 +11,7 @@
 #include "gralloc_gem.h"
 
 static void
-drm_gem_drv_init_features_locked(struct drm_module_t *drm)
+drm_gem_intel_init_features(struct drm_module_t *drm)
 {
    struct drm_i915_getparam gp;
 
@@ -40,36 +40,20 @@ drm_gem_drv_init_features_locked(struct drm_module_t *drm)
 
    /* XXX there is a bug in the kernel module */
    drm->mode_page_flip = 0;
-
 }
 
 static int
-drm_gem_drv_init_locked(struct drm_module_t *drm)
+drm_gem_intel_init(struct drm_module_t *drm)
 {
-   if (drm->gem)
-      return 0;
-
    drm->gem = (void *) drm_intel_bufmgr_gem_init(drm->fd, 16 * 1024);
    if (!drm->gem) {
       LOGE("failed to create buffer manager");
       return -ENOMEM;
    }
 
-   drm_gem_drv_init_features_locked(drm);
+   drm_gem_intel_init_features(drm);
 
    return 0;
-}
-
-int
-drm_gem_drv_init(struct drm_module_t *drm)
-{
-   int ret;
-
-   pthread_mutex_lock(&drm->mutex);
-   ret = drm_gem_drv_init_locked(drm);
-   pthread_mutex_unlock(&drm->mutex);
-
-   return ret;
 }
 
 static uint32_t
@@ -89,9 +73,9 @@ drm_gem_get_tiling(struct drm_bo_t *bo)
    return tiling;
 }
 
-struct drm_bo_t *
-drm_gem_drv_alloc(struct drm_module_t *drm, int width, int height,
-                  int format, int usage, int *stride)
+static struct drm_bo_t *
+drm_gem_intel_alloc(struct drm_module_t *drm, int width, int height,
+                    int format, int usage, int *stride)
 {
    drm_intel_bufmgr *bufmgr = (drm_intel_bufmgr *) drm->gem;
    struct drm_bo_t *bo;
@@ -161,16 +145,16 @@ drm_gem_drv_alloc(struct drm_module_t *drm, int width, int height,
    return bo;
 }
 
-void
-drm_gem_drv_free(struct drm_module_t *drm, struct drm_bo_t *bo)
+static void
+drm_gem_intel_free(struct drm_module_t *drm, struct drm_bo_t *bo)
 {
    drm_intel_bo_unreference((drm_intel_bo *) bo->data);
    free(bo);
 }
 
-int
-drm_gem_drv_map(struct drm_module_t *drm, struct drm_bo_t *bo,
-                int x, int y, int w, int h, int enable_write, void **addr)
+static int
+drm_gem_intel_map(struct drm_module_t *drm, struct drm_bo_t *bo,
+                  int x, int y, int w, int h, int enable_write, void **addr)
 {
    drm_intel_bo *ibo = (drm_intel_bo *) bo->data;
    int err;
@@ -198,8 +182,8 @@ drm_gem_drv_map(struct drm_module_t *drm, struct drm_bo_t *bo,
    return err;
 }
 
-void
-drm_gem_drv_unmap(struct drm_module_t *drm, struct drm_bo_t *bo)
+static void
+drm_gem_intel_unmap(struct drm_module_t *drm, struct drm_bo_t *bo)
 {
    drm_intel_bo *ibo = (drm_intel_bo *) bo->data;
 
@@ -209,3 +193,11 @@ drm_gem_drv_unmap(struct drm_module_t *drm, struct drm_bo_t *bo)
    else
       drm_intel_bo_unmap(ibo);
 }
+
+const struct drm_gem_drv drm_gem_drv_intel = {
+   .init = drm_gem_intel_init,
+   .alloc = drm_gem_intel_alloc,
+   .free = drm_gem_intel_free,
+   .map = drm_gem_intel_map,
+   .unmap = drm_gem_intel_unmap,
+};

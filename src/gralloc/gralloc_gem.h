@@ -56,22 +56,55 @@ drm_gem_validate(buffer_handle_t handle);
 struct drm_bo_t *
 drm_gem_create_bo(int width, int height, int format, int usage);
 
-
 int
 drm_gem_drv_init(struct drm_module_t *drm);
 
-struct drm_bo_t *
+
+struct drm_gem_drv {
+   int (*init)(struct drm_module_t *drm);
+
+   struct drm_bo_t *(*alloc)(struct drm_module_t *drm, int width, int height,
+                             int format, int usage, int *stride);
+
+   void (*free)(struct drm_module_t *drm, struct drm_bo_t *bo);
+
+   int (*map)(struct drm_module_t *drm, struct drm_bo_t *bo,
+              int x, int y, int w, int h, int enable_write, void **addr);
+
+   void (*unmap)(struct drm_module_t *drm, struct drm_bo_t *bo);
+};
+
+extern const struct drm_gem_drv drm_gem_drv_intel;
+extern const struct drm_gem_drv drm_gem_drv_pipe;
+
+static inline struct drm_bo_t *
 drm_gem_drv_alloc(struct drm_module_t *drm, int width, int height,
-                  int format, int usage, int *stride);
+                  int format, int usage, int *stride)
+{
+   const struct drm_gem_drv *drv = (const struct drm_gem_drv *) drm->drv;
+   return drv->alloc(drm, width, height, format, usage, stride);
+}
 
-void
-drm_gem_drv_free(struct drm_module_t *drm, struct drm_bo_t *bo);
+static inline void
+drm_gem_drv_free(struct drm_module_t *drm, struct drm_bo_t *bo)
+{
+   const struct drm_gem_drv *drv = (const struct drm_gem_drv *) drm->drv;
+   drv->free(drm, bo);
+}
 
-int
+static inline int
 drm_gem_drv_map(struct drm_module_t *drm, struct drm_bo_t *bo,
-                int x, int y, int w, int h, int enable_write, void **addr);
+                int x, int y, int w, int h, int enable_write, void **addr)
+{
+   const struct drm_gem_drv *drv = (const struct drm_gem_drv *) drm->drv;
+   return drv->map(drm, bo, x, y, w, h, enable_write, addr);
+}
 
-void
-drm_gem_drv_unmap(struct drm_module_t *drm, struct drm_bo_t *bo);
+static inline void
+drm_gem_drv_unmap(struct drm_module_t *drm, struct drm_bo_t *bo)
+{
+   const struct drm_gem_drv *drv = (const struct drm_gem_drv *) drm->drv;
+   drv->unmap(drm, bo);
+}
 
 #endif /* _GRALLOC_GEM_H_ */

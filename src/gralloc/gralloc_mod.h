@@ -26,6 +26,7 @@ struct drm_module_t {
 #endif
 
    /* initialized by drm_gem_drv_init */
+   void *drv;
    void *gem;
    int mode_dirty_fb;
    int mode_page_flip;
