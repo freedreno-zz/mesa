@@ -34,7 +34,13 @@
 
 extern "C" {
 #include "egllog.h"
+
+/* see get_drm_screen_name */
+#include <xf86drm.h>
+#include <radeon_drm.h>
+#include "radeon/drm/radeon_drm_public.h"
 }
+
 #include "util/u_memory.h"
 #include "util/u_inlines.h"
 #include "util/u_format.h"
@@ -157,12 +163,12 @@ import_buffer(struct android_display *adpy, const struct pipe_resource *templ,
 
    if (templ->bind & PIPE_BIND_RENDER_TARGET) {
       if (!screen->is_format_supported(screen, templ->format,
-               templ->target, 0, PIPE_BIND_RENDER_TARGET, 0))
+               templ->target, 0, PIPE_BIND_RENDER_TARGET))
          LOGW("importing unsupported buffer as render target");
    }
    if (templ->bind & PIPE_BIND_SAMPLER_VIEW) {
       if (!screen->is_format_supported(screen, templ->format,
-               templ->target, 0, PIPE_BIND_SAMPLER_VIEW, 0))
+               templ->target, 0, PIPE_BIND_SAMPLER_VIEW))
          LOGW("importing unsupported buffer as sampler view");
    }
 
@@ -399,7 +405,7 @@ android_display_create_window_surface(struct native_display *ndpy,
       LOGW("native window format 0x%x != config format 0x%x",
             format, nconf->color_format);
       if (!adpy->base.screen->is_format_supported(adpy->base.screen,
-               format, PIPE_TEXTURE_2D, 0, PIPE_BIND_RENDER_TARGET, 0)) {
+               format, PIPE_TEXTURE_2D, 0, PIPE_BIND_RENDER_TARGET)) {
          LOGE("and the native window cannot be used as a render target");
          return NULL;
       }
@@ -452,7 +458,7 @@ android_display_init_configs(struct native_display *ndpy)
       color_format = get_pipe_format(native_formats[i]);
       if (color_format == PIPE_FORMAT_NONE ||
           !adpy->base.screen->is_format_supported(adpy->base.screen,
-               color_format, PIPE_TEXTURE_2D, 0, PIPE_BIND_RENDER_TARGET, 0)) {
+               color_format, PIPE_TEXTURE_2D, 0, PIPE_BIND_RENDER_TARGET)) {
          LOGI("skip unsupported native format 0x%x", native_formats[i]);
          continue;
       }
@@ -466,6 +472,27 @@ android_display_init_configs(struct native_display *ndpy)
    }
 
    return TRUE;
+}
+
+static const char *
+get_drm_screen_name(int fd, drmVersionPtr version)
+{
+   const char *name = version->name;
+
+   if (name && !strcmp(name, "radeon")) {
+      int chip_id;
+      struct drm_radeon_info info;
+
+      memset(&info, 0, sizeof(info));
+      info.request = RADEON_INFO_DEVICE_ID;
+      info.value = pointer_to_intptr(&chip_id);
+      if (drmCommandWriteRead(fd, DRM_RADEON_INFO, &info, sizeof(info)) != 0)
+         return NULL;
+
+      name = is_r3xx(chip_id) ? "r300" : "r600";
+   }
+
+   return name;
 }
 
 static boolean
@@ -484,8 +511,23 @@ android_display_init_drm(struct native_display *ndpy)
          err = gr->perform(gr, GRALLOC_MODULE_PERFORM_GET_DRM_FD, &fd);
    }
    if (!err && fd >= 0) {
-      adpy->base.screen =
-         adpy->event_handler->new_drm_screen(&adpy->base, "i915", fd);
+      drmVersionPtr version;
+      const char *name;
+
+      version = drmGetVersion(fd);
+      if (version) {
+         name = get_drm_screen_name(fd, version);
+         if (name) {
+            adpy->base.screen =
+               adpy->event_handler->new_drm_screen(&adpy->base, name, fd);
+         }
+         drmFreeVersion(version);
+      }
+      else {
+         _eglLog(_EGL_WARNING, "invalid fd %d", fd);
+         err = -EINVAL;
+      }
+
       if (adpy->base.screen)
          adpy->use_drm = TRUE;
    }

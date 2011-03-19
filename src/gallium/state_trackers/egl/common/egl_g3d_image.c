@@ -230,10 +230,12 @@ egl_g3d_reference_android_native_buffer(_EGLDisplay *dpy,
    memset(&templ, 0, sizeof(templ));
    templ.target = PIPE_TEXTURE_2D;
    templ.format = format;
-   templ.bind = PIPE_BIND_RENDER_TARGET | PIPE_BIND_SAMPLER_VIEW;
+   /* assume for texturing only */
+   templ.bind = PIPE_BIND_SAMPLER_VIEW;
    templ.width0 = buf->width;
    templ.height0 = buf->height;
    templ.depth0 = 1;
+   templ.array_size = 1;
 
    res = gdpy->native->buffer->import_buffer(gdpy->native,
          &templ, (void *) buf);
