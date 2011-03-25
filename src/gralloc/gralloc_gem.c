@@ -132,7 +132,7 @@ get_drv_from_fd(int fd)
 
    if (version->name) {
 #ifdef ENABLE_INTEL
-      if (!drv && !strcmp(version->name, "intel"))
+      if (!drv && !strcmp(version->name, "i915"))
          drv = &drm_gem_drv_intel;
 #endif
 #ifdef ENABLE_RADEON
