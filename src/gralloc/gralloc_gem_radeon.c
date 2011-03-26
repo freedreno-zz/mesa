@@ -250,7 +250,7 @@ drm_gem_radeon_alloc(struct drm_module_t *drm, int width, int height,
    struct radeon_bo *rbo;
    int aligned_width, aligned_height, cpp;
    int pitch, size, base_align;
-   uint32_t tiling;
+   uint32_t tiling, domain;
 
    bo = drm_gem_create_bo(width, height, format, usage);
    if (!bo)
@@ -264,6 +264,7 @@ drm_gem_radeon_alloc(struct drm_module_t *drm, int width, int height,
    }
 
    tiling = drm_gem_get_tiling(bo);
+   domain = RADEON_GEM_DOMAIN_VRAM;
 
    if (usage & (GRALLOC_USAGE_HW_FB | GRALLOC_USAGE_HW_TEXTURE)) {
       aligned_width = ALIGN(width, eg_get_pitch_align(info, cpp, tiling));
@@ -274,12 +275,15 @@ drm_gem_radeon_alloc(struct drm_module_t *drm, int width, int height,
       aligned_height = height;
    }
 
+   if (!(usage & (GRALLOC_USAGE_HW_FB | GRALLOC_USAGE_HW_RENDER)) &&
+       (usage & GRALLOC_USAGE_SW_READ_OFTEN))
+      domain = RADEON_GEM_DOMAIN_GTT;
+
    pitch = aligned_width * cpp;
    size = ALIGN(aligned_height * pitch, RADEON_GPU_PAGE_SIZE);
    base_align = eg_get_base_align(info, cpp, tiling);
 
-   rbo = radeon_bo_open(info->bufmgr, 0, size,
-         base_align, RADEON_GEM_DOMAIN_VRAM, 0);
+   rbo = radeon_bo_open(info->bufmgr, 0, size, base_align, domain, 0);
    if (!rbo) {
       LOGE("failed to allocate rbo %dx%dx%d", width, height, cpp);
       free(bo);
