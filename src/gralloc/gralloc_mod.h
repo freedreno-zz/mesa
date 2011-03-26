@@ -30,6 +30,7 @@ struct drm_module_t {
    void *gem;
    int mode_dirty_fb;
    int mode_page_flip;
+   int mode_page_flip_blocking; /* page flip should block */
    int swap_interval;
    int vblank_secondary;
 

@@ -30,6 +30,7 @@ drm_gem_pipe_init_features(struct drm_module_t *drm)
 {
    drm->mode_dirty_fb = 0;
    drm->mode_page_flip = 0;
+   drm->mode_page_flip_blocking = 0;
 
    if (strcmp(driver_descriptor.driver_name, "vmwgfx") == 0)
       drm->mode_dirty_fb = 1;

@@ -27,6 +27,8 @@ drm_gem_intel_init_features(struct drm_module_t *drm)
    else
       drm->mode_page_flip = 0;
 
+   drm->mode_page_flip_blocking = 0;
+
    if (drm->resources) {
       int pipe;
 

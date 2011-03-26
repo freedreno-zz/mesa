@@ -85,8 +85,16 @@ drm_kms_page_flip(struct drm_module_t *drm, struct drm_bo_t *bo)
       }
    }
 
-   if (ret)
+   if (ret) {
       LOGE("failed to perform page flip");
+   }
+   else if (drm->mode_page_flip_blocking) {
+      /*
+       * TODO page flip with DRM_MODE_PAGE_FLIP_EVENT instead of waiting for
+       * next vblank
+       */
+      drm_kms_wait_vblank(drm, 1);
+   }
 
    return ret;
 }

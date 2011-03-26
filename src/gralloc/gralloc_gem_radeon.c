@@ -26,6 +26,11 @@
  *    Dave Airlie <airlied@redhat.com>
  */
 
+/*
+ * XXX This driver assumes evergreen.  It works, but is slow and has sync
+ * issues.
+ */
+
 #define LOG_TAG "GRALLOC-RADEON"
 
 #include <cutils/log.h>
@@ -191,8 +196,8 @@ static void
 drm_gem_radeon_init_features(struct drm_module_t *drm)
 {
    drm->mode_dirty_fb = 0;
-   /* XXX there are synchronization issues */
-   drm->mode_page_flip = 0;
+   drm->mode_page_flip = 1;
+   drm->mode_page_flip_blocking = 1;
    drm->swap_interval = 1;
    drm->vblank_secondary = 0;
 }
