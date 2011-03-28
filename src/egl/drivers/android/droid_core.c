@@ -105,6 +105,24 @@ droid_create_context(_EGLDriver *drv, _EGLDisplay *disp, _EGLConfig *conf,
    return NULL;
 }
 
+static EGLBoolean
+droid_destroy_context(_EGLDriver *drv, _EGLDisplay *disp, _EGLContext *ctx)
+{
+   struct droid_egl_display *ddpy = droid_egl_display(disp);
+   struct droid_egl_context *dctx = droid_egl_context(ctx);
+
+   (void) drv;
+
+   if (!_eglPutContext(ctx))
+      return EGL_TRUE;
+
+   (*ddpy->core->destroyContext)(dctx->dri_context);
+
+   free(dctx);
+
+   return EGL_TRUE;
+}
+
 static _EGLSurface *
 droid_create_surface(_EGLDriver *drv, _EGLDisplay *disp, EGLint type,
 		    _EGLConfig *conf, EGLNativeWindowType window,
@@ -203,7 +221,9 @@ droid_destroy_surface(_EGLDriver *drv, _EGLDisplay *disp, _EGLSurface *surf)
 
    (*ddpy->core->destroyDrawable)(dsurf->dri_drawable);
 
-   droid_enqueue_buffer(dsurf);
+   if (dsurf->buffer)
+      droid_enqueue_buffer(dsurf);
+
    dsurf->window->common.decRef(&dsurf->window->common);
 
    free(surf);
@@ -247,8 +267,7 @@ droid_make_current(_EGLDriver *drv, _EGLDisplay *disp, _EGLSurface *dsurf,
             __DRIcontext *old_cctx = droid_egl_context(old_ctx)->dri_context;
             ddpy->core->unbindContext(old_cctx);
          }
-         /* no destroy? */
-         _eglPutContext(old_ctx);
+         droid_destroy_context(drv, disp, old_ctx);
       }
 
       return EGL_TRUE;
@@ -317,6 +336,7 @@ droid_init_core_functions(_EGLDriver *drv)
    struct droid_egl_driver *ddrv = droid_egl_driver(drv);
 
    ddrv->base.API.CreateContext = droid_create_context;
+   ddrv->base.API.DestroyContext = droid_destroy_context;
    ddrv->base.API.CreateWindowSurface = droid_create_window_surface;
    ddrv->base.API.CreatePixmapSurface = droid_create_pixmap_surface;
    ddrv->base.API.CreatePbufferSurface = droid_create_pbuffer_surface;
