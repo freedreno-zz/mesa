@@ -35,6 +35,7 @@ struct drm_module_t {
    int vblank_secondary;
 
    int first_post;
+   int flip_pending;
 };
 
 static inline int

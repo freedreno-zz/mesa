@@ -63,38 +63,54 @@ drm_kms_set_crtc(struct drm_module_t *drm, struct drm_bo_t *bo)
    return ret;
 }
 
+static void page_flip_handler(int fd, unsigned int sequence,
+                              unsigned int tv_sec, unsigned int tv_usec,
+                              void *user_data)
+{
+   struct drm_module_t *drm = (struct drm_module_t *) user_data;
+
+   drm->flip_pending = 0;
+}
+
 static int
 drm_kms_page_flip(struct drm_module_t *drm, struct drm_bo_t *bo)
 {
-   int waits = 3, ret;
+   int retries = 3, ret;
 
    if (drm->swap_interval > 1)
       drm_kms_wait_vblank(drm, drm->swap_interval - 1);
 
-   while (waits) {
-      ret = drmModePageFlip(drm->fd, drm->crtc_id, bo->fb_id, 0x0, NULL);
+   /* TODO throttle page flip instead of retrying here */
+   while (retries) {
+      ret = drmModePageFlip(drm->fd, drm->crtc_id, bo->fb_id,
+            DRM_MODE_PAGE_FLIP_EVENT, (void *) drm);
       if (ret && errno == EBUSY) {
          if (drm->swap_interval)
             drm_kms_wait_vblank(drm, 1);
          else
             usleep(5000);
-         waits--;
+         retries--;
       }
       else {
+         if (!ret)
+            drm->flip_pending = 1;
          break;
       }
    }
 
-   if (ret) {
+   if (drm->mode_page_flip_blocking && drm->flip_pending) {
+      drmEventContext ctx;
+
+      memset(&ctx, 0, sizeof(ctx));
+      ctx.version = DRM_EVENT_CONTEXT_VERSION;
+      ctx.page_flip_handler = page_flip_handler;
+
+      while (drm->flip_pending)
+         drmHandleEvent(drm->fd, &ctx);
+   }
+
+   if (ret)
       LOGE("failed to perform page flip");
-   }
-   else if (drm->mode_page_flip_blocking) {
-      /*
-       * TODO page flip with DRM_MODE_PAGE_FLIP_EVENT instead of waiting for
-       * next vblank
-       */
-      drm_kms_wait_vblank(drm, 1);
-   }
 
    return ret;
 }
