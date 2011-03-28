@@ -222,11 +222,17 @@ drm_mod_post_fb0(struct framebuffer_device_t *fb, buffer_handle_t handle)
    return drm_kms_post(drm, bo);
 }
 
-#include <EGL/egl.h>
+#include <GLES/gl.h>
 static int
 drm_mod_composition_complete_fb0(struct framebuffer_device_t *fb)
 {
-   eglWaitClient();
+   struct drm_module_t *drm = (struct drm_module_t *) fb->common.module;
+
+   if (drm->mode_page_flip)
+      glFlush();
+   else
+      glFinish();
+
    return 0;
 }
 

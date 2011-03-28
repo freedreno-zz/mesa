@@ -16,7 +16,7 @@ LOCAL_SHARED_LIBRARIES := \
 	libdrm \
 	liblog \
 	libcutils \
-	libEGL
+	libGLESv1_CM
 
 ifeq ($(strip $(MESA_BUILD_INTEL)),true)
 LOCAL_SRC_FILES += gralloc_gem_intel.c
