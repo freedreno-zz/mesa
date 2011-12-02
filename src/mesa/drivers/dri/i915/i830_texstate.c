@@ -335,6 +335,7 @@ i830UpdateTextureState(struct intel_context *intel)
       case TEXTURE_1D_BIT:
       case TEXTURE_2D_BIT:
       case TEXTURE_CUBE_BIT:
+      case TEXTURE_EXTERNAL_BIT:
          ok = i830_update_tex_unit(intel, i, TEXCOORDS_ARE_NORMAL);
          break;
       case TEXTURE_RECT_BIT:
