@@ -787,6 +787,7 @@ i915Enable(struct gl_context * ctx, GLenum cap, GLboolean state)
 
    switch (cap) {
    case GL_TEXTURE_2D:
+   case GL_TEXTURE_EXTERNAL_OES:
       break;
 
    case GL_LIGHTING:
