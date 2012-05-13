@@ -296,6 +296,7 @@ brwCreateContext(int api,
    }
 
    brw->prim_restart.in_progress = false;
+   brw->prim_restart.enable_cut_index = false;
 
    brw_init_state( brw );
 
