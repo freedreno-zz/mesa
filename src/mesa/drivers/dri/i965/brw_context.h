@@ -1001,6 +1001,11 @@ struct brw_context
 
    uint32_t render_target_format[MESA_FORMAT_COUNT];
    bool format_supported_as_render_target[MESA_FORMAT_COUNT];
+
+   /* PrimitiveRestart */
+   struct {
+      bool in_progress;
+   } prim_restart;
 };
 
 
