@@ -3340,6 +3340,10 @@ typedef enum
    API_OPENGL_CORE,
 } gl_api;
 
+#define IS_CTX_IN2(ctx, api1, api2) ((ctx->API == api1) || (ctx->API == api2))
+#define IS_CTX_DESKTOP_GL(ctx) IS_CTX_IN2(ctx, API_OPENGL, API_OPENGL_CORE)
+#define IS_CTX_GLES(ctx) IS_CTX_IN2(ctx, API_OPENGLES, API_OPENGLES2)
+
 /**
  * Driver-specific state flags.
  *
