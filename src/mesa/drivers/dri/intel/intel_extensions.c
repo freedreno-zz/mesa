@@ -104,6 +104,7 @@ intelInitExtensions(struct gl_context *ctx)
       ctx->Extensions.ARB_uniform_buffer_object = true;
       ctx->Extensions.ARB_texture_buffer_object = true;
       ctx->Extensions.ARB_texture_cube_map_array = true;
+      ctx->Extensions.ARB_ES3_compatibility = true;
    }
 
    if (intel->gen >= 5)
