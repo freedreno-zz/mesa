@@ -328,8 +328,8 @@ brwCreateContext(int api,
 
    intel->batch.need_workaround_flush = true;
 
-   ctx->VertexProgram._MaintainTnlProgram = true;
-   ctx->FragmentProgram._MaintainTexEnvProgram = true;
+   ctx->VertexProgram._MaintainTnlProgram = ctx->API != API_OPENGL_CORE;
+   ctx->FragmentProgram._MaintainTexEnvProgram = ctx->API != API_OPENGL_CORE;
 
    brw_draw_init( brw );
 
