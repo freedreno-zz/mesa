@@ -465,18 +465,20 @@ _mesa_update_state_locked( struct gl_context *ctx )
    if (MESA_VERBOSE & VERBOSE_STATE)
       _mesa_print_state("_mesa_update_state", new_state);
 
-   /* Determine which state flags effect vertex/fragment program state */
-   if (ctx->FragmentProgram._MaintainTexEnvProgram) {
-      prog_flags |= (_NEW_BUFFERS | _NEW_TEXTURE | _NEW_FOG |
-		     _NEW_VARYING_VP_INPUTS | _NEW_LIGHT | _NEW_POINT |
-		     _NEW_RENDERMODE | _NEW_PROGRAM | _NEW_FRAG_CLAMP |
-		     _NEW_COLOR);
-   }
-   if (ctx->VertexProgram._MaintainTnlProgram) {
-      prog_flags |= (_NEW_VARYING_VP_INPUTS | _NEW_TEXTURE |
-                     _NEW_TEXTURE_MATRIX | _NEW_TRANSFORM | _NEW_POINT |
-                     _NEW_FOG | _NEW_LIGHT |
-                     _MESA_NEW_NEED_EYE_COORDS);
+   if (ctx->API == API_OPENGL_COMPAT || ctx->API == API_OPENGLES) {
+      /* Determine which state flags effect vertex/fragment program state */
+      if (ctx->FragmentProgram._MaintainTexEnvProgram) {
+         prog_flags |= (_NEW_BUFFERS | _NEW_TEXTURE | _NEW_FOG |
+                        _NEW_VARYING_VP_INPUTS | _NEW_LIGHT | _NEW_POINT |
+                        _NEW_RENDERMODE | _NEW_PROGRAM | _NEW_FRAG_CLAMP |
+                        _NEW_COLOR);
+      }
+      if (ctx->VertexProgram._MaintainTnlProgram) {
+         prog_flags |= (_NEW_VARYING_VP_INPUTS | _NEW_TEXTURE |
+                        _NEW_TEXTURE_MATRIX | _NEW_TRANSFORM | _NEW_POINT |
+                        _NEW_FOG | _NEW_LIGHT |
+                        _MESA_NEW_NEED_EYE_COORDS);
+      }
    }
 
    /*
@@ -486,8 +488,10 @@ _mesa_update_state_locked( struct gl_context *ctx )
    if (new_state & prog_flags)
       update_program_enables( ctx );
 
-   if (new_state & (_NEW_MODELVIEW|_NEW_PROJECTION))
-      _mesa_update_modelview_project( ctx, new_state );
+   if (ctx->API == API_OPENGL_COMPAT || ctx->API == API_OPENGLES) {
+      if (new_state & (_NEW_MODELVIEW|_NEW_PROJECTION))
+         _mesa_update_modelview_project( ctx, new_state );
+   }
 
    if (new_state & (_NEW_PROGRAM|_NEW_TEXTURE|_NEW_TEXTURE_MATRIX))
       _mesa_update_texture( ctx, new_state );
@@ -501,8 +505,10 @@ _mesa_update_state_locked( struct gl_context *ctx )
    if (new_state & _NEW_POLYGON)
       update_polygon( ctx );
 
-   if (new_state & _NEW_LIGHT)
-      _mesa_update_lighting( ctx );
+   if (ctx->API == API_OPENGL_COMPAT || ctx->API == API_OPENGLES) {
+      if (new_state & _NEW_LIGHT)
+         _mesa_update_lighting( ctx );
+   }
 
    if (new_state & (_NEW_LIGHT | _NEW_PROGRAM))
       update_twoside( ctx );
@@ -516,8 +522,10 @@ _mesa_update_state_locked( struct gl_context *ctx )
    if (new_state & _NEW_PIXEL)
       _mesa_update_pixel( ctx, new_state );
 
-   if (new_state & _MESA_NEW_SEPARATE_SPECULAR)
-      update_separate_specular( ctx );
+   if (ctx->API == API_OPENGL_COMPAT || ctx->API == API_OPENGLES) {
+      if (new_state & _MESA_NEW_SEPARATE_SPECULAR)
+         update_separate_specular( ctx );
+   }
 
    if (new_state & (_NEW_BUFFERS | _NEW_VIEWPORT))
       update_viewport_matrix(ctx);
