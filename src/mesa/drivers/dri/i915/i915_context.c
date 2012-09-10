@@ -107,6 +107,7 @@ intel_init_texture_formats(struct gl_context *ctx)
    ctx->TextureFormatSupported[MESA_FORMAT_ARGB4444] = true;
    ctx->TextureFormatSupported[MESA_FORMAT_ARGB1555] = true;
    ctx->TextureFormatSupported[MESA_FORMAT_RGB565] = true;
+   ctx->TextureFormatSupported[MESA_FORMAT_RGBX8888_REV] = true;
    ctx->TextureFormatSupported[MESA_FORMAT_L8] = true;
    ctx->TextureFormatSupported[MESA_FORMAT_A8] = true;
    ctx->TextureFormatSupported[MESA_FORMAT_I8] = true;
