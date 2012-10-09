@@ -130,6 +130,18 @@ brw_wm_prog_data_free(const void *in_prog_data)
    ralloc_free((void *)prog_data->pull_param);
 }
 
+static void brw_wm_fs_surf_setup(GLbitfield samplers,
+                                 uint32_t *sampler_to_surf_state_start)
+{
+   unsigned num_samplers = _mesa_fls(samplers);
+   unsigned surf_index = 0;
+
+   for (unsigned s = 0; s < num_samplers; s++) {
+      if (samplers & (1 << s))
+         sampler_to_surf_state_start[s] = SURF_INDEX_TEXTURE(surf_index++);
+   }
+}
+
 /**
  * All Mesa program -> GPU code generation goes through this function.
  * Depending on the instructions used (i.e. flow control instructions)
@@ -171,6 +183,9 @@ bool do_wm_prog(struct brw_context *brw,
    c->prog_data.barycentric_interp_modes =
       brw_compute_barycentric_interp_modes(brw, c->key.flat_shade,
                                            &fp->program);
+
+   brw_wm_fs_surf_setup(fp->program.Base.SamplersUsed,
+                        fp->sampler_to_surf_state_start);
 
    program = brw_wm_fs_emit(brw, c, &fp->program, prog, &program_size);
    if (program == NULL)

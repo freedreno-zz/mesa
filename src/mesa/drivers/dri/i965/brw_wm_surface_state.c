@@ -1381,7 +1381,6 @@ brw_update_texture_surfaces(struct brw_context *brw)
 
    for (unsigned s = 0; s < num_samplers; s++) {
       brw->vs.surf_offset[SURF_INDEX_VS_TEXTURE(s)] = 0;
-      brw->wm.surf_offset[SURF_INDEX_TEXTURE(s)] = 0;
 
       if (vs->SamplersUsed & (1 << s)) {
          const unsigned unit = vs->SamplerUnits[s];
@@ -1400,8 +1399,10 @@ brw_update_texture_surfaces(struct brw_context *brw)
          /* _NEW_TEXTURE */
          if (ctx->Texture.Unit[unit]._ReallyEnabled) {
             intel->vtbl.update_texture_surface(ctx, unit,
-                                               brw->wm.surf_offset,
-                                               SURF_INDEX_TEXTURE(s));
+               brw->wm.surf_offset,
+               brw_surf_index_texture(
+                  (const struct brw_fragment_program *)brw->fragment_program,
+                  s));
          }
       }
    }

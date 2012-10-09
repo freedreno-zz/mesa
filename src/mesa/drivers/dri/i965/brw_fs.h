@@ -195,6 +195,7 @@ public:
    int base_mrf; /**< First MRF in the SEND message, if mlen is nonzero. */
    uint32_t texture_offset; /**< Texture offset bitfield */
    int sampler;
+   int surf_index_offset;
    int target; /**< MRT target. */
    bool eot;
    bool header_present;

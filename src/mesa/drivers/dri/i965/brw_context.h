@@ -262,11 +262,37 @@ struct brw_vertex_program {
 };
 
 
+/** Number of texture sampler units */
+#define BRW_MAX_TEX_UNIT 16
+
 /** Subclass of Mesa fragment program */
 struct brw_fragment_program {
    struct gl_fragment_program program;
    GLuint id;  /**< serial no. to identify frag progs, never re-used */
+
+   /**
+    * Relation assigning shader samplers with a region in the HW surface state
+    * binding table. This used to be explicit one-sampler-one-surface-relation.
+    * However, in order to support image-external-textures a sampler
+    * representing, for example, multi-planar YUV texture may require up to
+    * three HW surfaces, one for each of the components/planes (Y, U and V). The
+    * actual number of HW surfaces associated with a sampler can be deduced from
+    * the format/layout of the texture image - here one simply stores the
+    * starting index.
+    * This relation can be set after linking but must in place before WM FS
+    * emission (one needs to know the surface state indices when generating the
+    * sampling commands). In addition, this relation must be accessible just
+    * before the actual execution of the shader is kicked off. (The contents of
+    * the surface state binding table itself are updated at that point).
+    */
+   uint32_t sampler_to_surf_state_start[BRW_MAX_TEX_UNIT];
 };
+
+static inline uint32_t brw_surf_index_texture(
+   const struct brw_fragment_program *fp, unsigned sampler)
+{
+   return fp->sampler_to_surf_state_start[sampler];
+}
 
 struct brw_shader {
    struct gl_shader base;
@@ -459,9 +485,6 @@ struct brw_vs_prog_data {
    const float **param;
    const float **pull_param;
 };
-
-/** Number of texture sampler units */
-#define BRW_MAX_TEX_UNIT 16
 
 /** Max number of render targets in a shader */
 #define BRW_MAX_DRAW_BUFFERS 8
