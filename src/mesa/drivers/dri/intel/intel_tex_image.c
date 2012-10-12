@@ -388,6 +388,27 @@ intel_image_target_texture_2d(struct gl_context *ctx, GLenum target,
                                   image->format, image->offset,
                                   image->width,  image->height,
                                   image->tile_x, image->tile_y);
+
+   if (image->planar_format) {
+      struct intel_texture_image *intel_image = intel_texture_image(texImage);
+      const struct intel_image_format *f = image->planar_format;
+      unsigned i, index;
+
+      /* Check for sampling support here - shader compile time is too late. */
+      if (f->fourcc != __DRI_IMAGE_FOURCC_YUV420 &&
+          f->fourcc != __DRI_IMAGE_FOURCC_YVU420 &&
+          f->fourcc != __DRI_IMAGE_FOURCC_NV12) {
+         _mesa_error(ctx, GL_INVALID_OPERATION, __func__);
+         return;
+      }
+      
+      intel_image->ext_format = f;
+      for (i = 0; i < f->nplanes; i++) {
+         index = f->planes[i].buffer_index;
+         intel_image->ext_offsets[index] = image->offsets[index];
+         intel_image->ext_strides[index] = image->strides[index];
+      }
+   }
 }
 
 void

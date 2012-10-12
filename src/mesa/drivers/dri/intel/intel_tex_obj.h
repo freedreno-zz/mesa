@@ -71,6 +71,14 @@ struct intel_texture_image
     * Else there is no image data.
     */
    struct intel_mipmap_tree *mt;
+
+   /* If ext_format != NULL, the image represents an external buffer. Depending
+    * on the format the details for the individual components of planar formats
+    * (such as NV12) are set in ext_strides and ext_offsets.
+    */
+   const struct intel_image_format *ext_format;
+   uint32_t ext_strides[3];
+   uint32_t ext_offsets[3];
 };
 
 static INLINE struct intel_texture_object *
