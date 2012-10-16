@@ -255,15 +255,23 @@ static inline uint32_t AUB_TRACE_SUBTYPE(enum state_struct_type ss_type)
    return ss_type & 0xFFFF;
 }
 
+/** Number of texture sampler units */
+#define BRW_MAX_TEX_UNIT 16
+
 /** Subclass of Mesa vertex program */
 struct brw_vertex_program {
    struct gl_vertex_program program;
    GLuint id;
+   /** See equivalent member of 'brw_fragment_program' for details */
+   uint32_t sampler_to_surf_state_start[BRW_MAX_TEX_UNIT];
 };
 
+static inline uint32_t brw_surf_index_vs_texture(
+   const struct brw_vertex_program *vp, unsigned sampler)
+{
+   return vp->sampler_to_surf_state_start[sampler];
+}
 
-/** Number of texture sampler units */
-#define BRW_MAX_TEX_UNIT 16
 
 /** Subclass of Mesa fragment program */
 struct brw_fragment_program {

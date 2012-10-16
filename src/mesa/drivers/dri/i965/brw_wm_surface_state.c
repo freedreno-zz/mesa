@@ -1380,16 +1380,16 @@ brw_update_texture_surfaces(struct brw_context *brw)
    unsigned num_samplers = _mesa_fls(vs->SamplersUsed | fs->SamplersUsed);
 
    for (unsigned s = 0; s < num_samplers; s++) {
-      brw->vs.surf_offset[SURF_INDEX_VS_TEXTURE(s)] = 0;
-
       if (vs->SamplersUsed & (1 << s)) {
          const unsigned unit = vs->SamplerUnits[s];
 
          /* _NEW_TEXTURE */
          if (ctx->Texture.Unit[unit]._ReallyEnabled) {
             intel->vtbl.update_texture_surface(ctx, unit,
-                                               brw->vs.surf_offset,
-                                               SURF_INDEX_VS_TEXTURE(s));
+               brw->vs.surf_offset,
+               brw_surf_index_vs_texture(
+                  (const struct brw_vertex_program *)brw->vertex_program,
+                  s));
          }
       }
 

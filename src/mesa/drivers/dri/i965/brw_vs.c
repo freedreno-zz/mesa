@@ -218,6 +218,19 @@ brw_vs_prog_data_compare(const void *in_a, const void *in_b,
    return true;
 }
 
+static void brw_vs_surf_setup(GLbitfield samplers,
+                              uint32_t *sampler_to_surf_state_start)
+{
+   unsigned num_samplers = _mesa_fls(samplers);
+   unsigned surf_index = 0;
+
+   for (unsigned s = 0; s < num_samplers; s++) {
+      if (samplers & (1 << s)) {
+         sampler_to_surf_state_start[s] = SURF_INDEX_VS_TEXTURE(surf_index++);
+      }
+   }
+}
+
 static bool
 do_vs_prog(struct brw_context *brw,
 	   struct gl_shader_program *prog,
@@ -290,6 +303,9 @@ do_vs_prog(struct brw_context *brw,
       _mesa_fprint_program_opt(stdout, &c.vp->program.Base, PROG_PRINT_DEBUG,
 			       true);
    }
+
+   brw_vs_surf_setup(c.vp->program.Base.SamplersUsed,
+      c.vp->sampler_to_surf_state_start);
 
    /* Emit GEN4 code.
     */
