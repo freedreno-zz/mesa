@@ -373,6 +373,13 @@ brw_populate_sampler_prog_key_data(struct gl_context *ctx,
 	    if (sampler->WrapR == GL_CLAMP)
 	       key->gl_clamp_mask[2] |= 1 << s;
 	 }
+
+         if (unit->_Current->Target == GL_TEXTURE_EXTERNAL_OES) {
+            const struct intel_texture_image *intel_img =
+               (const struct intel_texture_image *)img;
+
+            key->ext_format = intel_img->ext_format;
+         }
       }
    }
 }
