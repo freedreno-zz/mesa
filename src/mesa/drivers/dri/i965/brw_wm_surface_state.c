@@ -840,57 +840,37 @@ brw_update_buffer_texture_surface(struct gl_context *ctx,
 }
 
 static void
-brw_update_texture_surface(struct gl_context *ctx,
-                           unsigned unit,
-                           uint32_t *binding_table,
-                           unsigned surf_index)
+brw_update_texture_component(struct brw_context *brw,
+                             uint32_t *binding_table_slot,
+                             const struct intel_mipmap_tree *mt,
+                             unsigned width, unsigned height,
+                             unsigned depth, unsigned stride,
+                             GLuint target, GLuint tex_format,
+                             uint32_t offset, uint32_t levels)
 {
-   struct intel_context *intel = intel_context(ctx);
-   struct brw_context *brw = brw_context(ctx);
-   struct gl_texture_object *tObj = ctx->Texture.Unit[unit]._Current;
-   struct intel_texture_object *intelObj = intel_texture_object(tObj);
-   struct intel_mipmap_tree *mt = intelObj->mt;
-   struct gl_texture_image *firstImage = tObj->Image[0][tObj->BaseLevel];
-   struct gl_sampler_object *sampler = _mesa_get_samplerobj(ctx, unit);
-   uint32_t *surf;
-   int width, height, depth;
    uint32_t tile_x, tile_y;
+   const struct intel_region *region = mt->region;
+   uint32_t *surf = brw_state_batch(brw, AUB_TRACE_SURFACE_STATE,
+                                    6 * 4, 32, binding_table_slot);
 
-   if (tObj->Target == GL_TEXTURE_BUFFER) {
-      brw_update_buffer_texture_surface(ctx, unit, binding_table, surf_index);
-      return;
-   }
-
-   intel_miptree_get_dimensions_for_image(firstImage, &width, &height, &depth);
-
-   surf = brw_state_batch(brw, AUB_TRACE_SURFACE_STATE,
-			  6 * 4, 32, &binding_table[surf_index]);
-
-   surf[0] = (translate_tex_target(tObj->Target) << BRW_SURFACE_TYPE_SHIFT |
+   surf[0] = (target << BRW_SURFACE_TYPE_SHIFT |
 	      BRW_SURFACE_MIPMAPLAYOUT_BELOW << BRW_SURFACE_MIPLAYOUT_SHIFT |
 	      BRW_SURFACE_CUBEFACE_ENABLES |
-	      (translate_tex_format(intel,
-                                    mt->format,
-				    firstImage->InternalFormat,
-				    tObj->DepthMode,
-				    sampler->sRGBDecode) <<
-	       BRW_SURFACE_FORMAT_SHIFT));
+	      (tex_format << BRW_SURFACE_FORMAT_SHIFT));
 
-   surf[1] = intelObj->mt->region->bo->offset + intelObj->mt->offset; /* reloc */
+   surf[1] = region->bo->offset + offset;
 
-   surf[2] = ((intelObj->_MaxLevel - tObj->BaseLevel) << BRW_SURFACE_LOD_SHIFT |
+   surf[2] = (levels << BRW_SURFACE_LOD_SHIFT |
 	      (width - 1) << BRW_SURFACE_WIDTH_SHIFT |
 	      (height - 1) << BRW_SURFACE_HEIGHT_SHIFT);
 
-   surf[3] = (brw_get_surface_tiling_bits(intelObj->mt->region->tiling) |
+   surf[3] = (brw_get_surface_tiling_bits(region->tiling) |
 	      (depth - 1) << BRW_SURFACE_DEPTH_SHIFT |
-	      (intelObj->mt->region->pitch - 1) <<
-	      BRW_SURFACE_PITCH_SHIFT);
+	      (stride - 1) << BRW_SURFACE_PITCH_SHIFT);
 
-   surf[4] = brw_get_surface_num_multisamples(intelObj->mt->num_samples);
+   surf[4] = brw_get_surface_num_multisamples(mt->num_samples);
 
-   intel_miptree_get_tile_offsets(intelObj->mt, firstImage->Level, 0,
-                                  &tile_x, &tile_y);
+   intel_miptree_get_tile_offsets(mt, 0, 0, &tile_x, &tile_y);
    assert(brw->has_surface_tile_offset || (tile_x == 0 && tile_y == 0));
    /* Note that the low bits of these fields are missing, so
     * there's the possibility of getting in trouble.
@@ -903,10 +883,40 @@ brw_update_texture_surface(struct gl_context *ctx,
 
    /* Emit relocation to surface contents */
    drm_intel_bo_emit_reloc(brw->intel.batch.bo,
-			   binding_table[surf_index] + 4,
-			   intelObj->mt->region->bo,
-                           intelObj->mt->offset,
+			   *binding_table_slot + 4,
+			   region->bo,
+                           offset,
 			   I915_GEM_DOMAIN_SAMPLER, 0);
+}
+
+static void
+brw_update_texture_surface(struct gl_context *ctx,
+                           unsigned unit,
+                           uint32_t *binding_table,
+                           unsigned surf_index)
+{
+   struct brw_context *brw = brw_context(ctx);
+   struct gl_texture_object *tObj = ctx->Texture.Unit[unit]._Current;
+   struct intel_texture_object *intelObj = intel_texture_object(tObj);
+   struct intel_mipmap_tree *mt = intelObj->mt;
+   struct gl_texture_image *firstImage = tObj->Image[0][tObj->BaseLevel];
+   struct gl_sampler_object *sampler = _mesa_get_samplerobj(ctx, unit);
+   int width, height, depth;
+
+   if (tObj->Target == GL_TEXTURE_BUFFER) {
+      brw_update_buffer_texture_surface(ctx, unit, binding_table, surf_index);
+      return;
+   }
+
+   intel_miptree_get_dimensions_for_image(firstImage, &width, &height, &depth);
+
+   brw_update_texture_component(brw, binding_table + surf_index,
+      mt, width, height, depth, mt->region->pitch,
+      translate_tex_target(tObj->Target),
+      translate_tex_format(intel_context(ctx), mt->format,
+         firstImage->InternalFormat, tObj->DepthMode, sampler->sRGBDecode),
+      mt->offset,
+      intelObj->_MaxLevel - tObj->BaseLevel);
 }
 
 /**
