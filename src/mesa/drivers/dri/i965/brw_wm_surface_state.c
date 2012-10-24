@@ -890,6 +890,35 @@ brw_update_texture_component(struct brw_context *brw,
 }
 
 static void
+brw_update_ext_texture_surface(struct brw_context *brw,
+                               uint32_t *binding_table_slots,
+                               const struct intel_texture_image *intel_img)
+{
+   unsigned i;
+   const struct intel_region *region = intel_img->mt->region;
+   const struct intel_image_format *f = intel_img->ext_format;
+
+   for (i = 0; i < f->nplanes; ++i) {
+      int format = BRW_SURFACEFORMAT_R8_UNORM;
+      int index = f->planes[i].buffer_index;
+
+      if (f->planes[i].dri_format == __DRI_IMAGE_FORMAT_GR88)
+         format = BRW_SURFACEFORMAT_R8G8_UNORM;
+
+      brw_update_texture_component(brw, binding_table_slots + i,
+         intel_img->mt,
+         region->width >> f->planes[i].width_shift,
+         region->height >> f->planes[i].height_shift,
+         intel_img->base.Base.Depth,
+         intel_img->ext_strides[index],
+         BRW_SURFACE_2D,
+         format,
+         intel_img->ext_offsets[index],
+         0);
+   }
+}
+
+static void
 brw_update_texture_surface(struct gl_context *ctx,
                            unsigned unit,
                            uint32_t *binding_table,
@@ -900,11 +929,18 @@ brw_update_texture_surface(struct gl_context *ctx,
    struct intel_texture_object *intelObj = intel_texture_object(tObj);
    struct intel_mipmap_tree *mt = intelObj->mt;
    struct gl_texture_image *firstImage = tObj->Image[0][tObj->BaseLevel];
+   const struct intel_texture_image *intel_img =
+      (const struct intel_texture_image *)firstImage;
    struct gl_sampler_object *sampler = _mesa_get_samplerobj(ctx, unit);
    int width, height, depth;
 
    if (tObj->Target == GL_TEXTURE_BUFFER) {
       brw_update_buffer_texture_surface(ctx, unit, binding_table, surf_index);
+      return;
+   }
+   else if (tObj->Target == GL_TEXTURE_EXTERNAL_OES && intel_img->ext_format) {
+      brw_update_ext_texture_surface(brw, binding_table + surf_index,
+                                     intel_img); 
       return;
    }
 
