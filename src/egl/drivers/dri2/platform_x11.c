@@ -212,7 +212,7 @@ dri2_create_surface(_EGLDriver *drv, _EGLDisplay *disp, EGLint type,
 			dri2_surf->drawable, s.data->root,
 			dri2_surf->base.Width, dri2_surf->base.Height);
    } else {
-      dri2_surf->drawable = window;
+      dri2_surf->drawable = (xcb_drawable_t)window;
    }
 
    if (dri2_dpy->dri2) {
@@ -835,10 +835,10 @@ dri2_copy_buffers(_EGLDriver *drv, _EGLDisplay *disp, _EGLSurface *surf,
    (*dri2_dpy->flush->flush)(dri2_surf->dri_drawable);
 
    gc = xcb_generate_id(dri2_dpy->conn);
-   xcb_create_gc(dri2_dpy->conn, gc, target, 0, NULL);
+   xcb_create_gc(dri2_dpy->conn, gc, (xcb_drawable_t)target, 0, NULL);
    xcb_copy_area(dri2_dpy->conn,
 		  dri2_surf->drawable,
-		  target,
+		  (xcb_drawable_t)target,
 		  gc,
 		  0, 0,
 		  0, 0,
