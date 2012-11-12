@@ -85,6 +85,7 @@ intelInitExtensions(struct gl_context *ctx)
    ctx->Extensions.TDFX_texture_compression_FXT1 = true;
    ctx->Extensions.OES_EGL_image = true;
    ctx->Extensions.OES_draw_texture = true;
+   ctx->Extensions.OES_EGL_image_external = true;
 
    if (intel->gen >= 6)
       ctx->Const.GLSLVersion = 140;
