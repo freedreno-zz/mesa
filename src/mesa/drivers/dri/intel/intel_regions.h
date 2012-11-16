@@ -81,6 +81,12 @@ struct intel_region *intel_region_alloc(struct intel_screen *screen,
                                         GLuint height,
 					bool expect_accelerated_upload);
 
+struct intel_region *intel_region_planar_alloc(struct intel_screen *screen,
+					       int fourcc,
+					       GLuint width, GLuint height,
+					       uint32_t *strides,
+					       uint32_t *offsets);
+
 struct intel_region *
 intel_region_alloc_for_handle(struct intel_screen *screen,
 			      GLuint cpp,

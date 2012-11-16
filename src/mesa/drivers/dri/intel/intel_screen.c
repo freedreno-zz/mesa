@@ -304,6 +304,12 @@ intel_allocate_image(int dri_format, void *loaderPrivate)
     case __DRI_IMAGE_FORMAT_GR88:
        image->format = MESA_FORMAT_GR88;
        break;
+    case __DRI_IMAGE_FOURCC_YUV420:
+    case __DRI_IMAGE_FOURCC_YVU420:
+    case __DRI_IMAGE_FOURCC_NV12:
+       image->format = MESA_FORMAT_R8;
+       image->planar_format = intel_image_format_lookup(dri_format);
+       break;
     case __DRI_IMAGE_FORMAT_NONE:
        image->format = MESA_FORMAT_NONE;
        break;
@@ -524,9 +530,19 @@ intel_create_image(__DRIscreen *screen,
    }
 
    image = intel_allocate_image(format, loaderPrivate);
-   cpp = _mesa_get_format_bytes(image->format);
-   image->region =
-      intel_region_alloc(intelScreen, tiling, cpp, width, height, true);
+
+   if (format == __DRI_IMAGE_FOURCC_YUV420 ||
+       format == __DRI_IMAGE_FOURCC_YVU420 ||
+       format == __DRI_IMAGE_FOURCC_NV12) {
+      image->region =
+         intel_region_planar_alloc(intelScreen, format, width, height,
+	 			   image->strides, image->offsets);
+   } else {
+      cpp = _mesa_get_format_bytes(image->format);
+      image->region =
+         intel_region_alloc(intelScreen, tiling, cpp, width, height, true);
+   }
+
    if (image->region == NULL) {
       free(image);
       return NULL;

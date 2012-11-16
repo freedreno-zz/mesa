@@ -43,6 +43,7 @@
 #include <errno.h>
 
 #include "main/hash.h"
+#include "main/macros.h"
 #include "intel_context.h"
 #include "intel_regions.h"
 #include "intel_blit.h"
@@ -150,6 +151,69 @@ intel_region_alloc(struct intel_screen *screen,
 
    region = intel_region_alloc_internal(screen, cpp, width, height,
                                         aligned_pitch, tiling, buffer);
+   if (region == NULL) {
+      drm_intel_bo_unreference(buffer);
+      return NULL;
+   }
+
+   return region;
+}
+
+/**
+ * The region is allocated in a way that it can be accessed by the sampling
+ * engine as it is (width aligned by four and height by two). Also the plane
+ * offsets are on page boundary in order to allow them to be further used as
+ * images on their own.
+ */
+struct intel_region *
+intel_region_planar_alloc(struct intel_screen *screen,
+			  int fourcc, GLuint width, GLuint height,
+			  uint32_t *strides, uint32_t *offsets)
+{
+   drm_intel_bo *buffer;
+   struct intel_region *region;
+   unsigned total;
+
+   /* For now one supports only formats with 2x2 subsampled UV-planes */
+   if (height % 2 || width % 2)
+      return NULL;
+
+   strides[0] = ALIGN(width, 4);
+   offsets[0] = 0;
+
+   total = strides[0] * ALIGN(height, 2);
+
+   switch (fourcc) {
+   case __DRI_IMAGE_FOURCC_YUV420:
+   case __DRI_IMAGE_FOURCC_YVU420:
+      strides[1] = ALIGN(width / 2, 4);
+      offsets[1] = ALIGN(total, 4096);
+
+      total = offsets[1] + strides[1] * ALIGN(height / 2, 2);
+      strides[2] = ALIGN(width / 2, 4);
+
+      offsets[2] = ALIGN(total, 4096);
+      total = offsets[2] + strides[2] * ALIGN(height / 2, 2);
+      break;
+   case __DRI_IMAGE_FOURCC_NV12:
+      strides[1] = ALIGN(width, 4);
+      offsets[1] = ALIGN(total, 4096);
+
+      total = offsets[1] + strides[1] * ALIGN(height / 2, 2);
+
+      strides[2] = 0;
+      offsets[2] = 0;
+      break;
+   default:
+      return NULL;
+   }
+
+   buffer = drm_intel_bo_alloc(screen->bufmgr, "region", total, 0);
+   if (buffer == NULL)
+      return NULL;
+
+   region = intel_region_alloc_internal(screen, 1, width, height,
+                                        width, I915_TILING_NONE, buffer);
    if (region == NULL) {
       drm_intel_bo_unreference(buffer);
       return NULL;
