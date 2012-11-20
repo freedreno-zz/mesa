@@ -1110,7 +1110,7 @@ _mesa_base_fbo_format(struct gl_context *ctx, GLenum internalFormat)
    case GL_RGB16:
       return _mesa_is_desktop_gl(ctx) ? GL_RGB : 0;
    case GL_SRGB8_EXT:
-      return _mesa_is_desktop_gl(ctx) || _mesa_is_gles3(ctx) ? GL_RGB : 0;
+      return _mesa_is_desktop_gl(ctx) ? GL_RGB : 0;
    case GL_RGBA4:
    case GL_RGB5_A1:
    case GL_RGBA8:
@@ -1170,32 +1170,28 @@ _mesa_base_fbo_format(struct gl_context *ctx, GLenum internalFormat)
          ? GL_RG : 0;
    /* signed normalized texture formats */
    case GL_R8_SNORM:
-      return ctx->Version >= 30
-         || (ctx->API == API_OPENGL_COMPAT && ctx->Extensions.EXT_texture_snorm)
+      return (ctx->API == API_OPENGL_COMPAT && ctx->Extensions.EXT_texture_snorm)
          ? GL_RED : 0;
    case GL_RED_SNORM:
    case GL_R16_SNORM:
       return _mesa_is_desktop_gl(ctx) && ctx->Extensions.EXT_texture_snorm
          ? GL_RED : 0;
    case GL_RG8_SNORM:
-      return ctx->Version >= 30
-         || (ctx->API == API_OPENGL_COMPAT && ctx->Extensions.EXT_texture_snorm)
+      return (ctx->API == API_OPENGL_COMPAT && ctx->Extensions.EXT_texture_snorm)
          ? GL_RG : 0;
    case GL_RG_SNORM:
    case GL_RG16_SNORM:
       return _mesa_is_desktop_gl(ctx) && ctx->Extensions.EXT_texture_snorm
          ? GL_RG : 0;
    case GL_RGB8_SNORM:
-      return ctx->Version >= 30
-         || (ctx->API == API_OPENGL_COMPAT && ctx->Extensions.EXT_texture_snorm)
+      return (ctx->API == API_OPENGL_COMPAT && ctx->Extensions.EXT_texture_snorm)
          ? GL_RGB : 0;
    case GL_RGB_SNORM:
    case GL_RGB16_SNORM:
       return _mesa_is_desktop_gl(ctx) && ctx->Extensions.EXT_texture_snorm
          ? GL_RGB : 0;
    case GL_RGBA8_SNORM:
-      return ctx->Version >= 30
-         || (ctx->API == API_OPENGL_COMPAT && ctx->Extensions.EXT_texture_snorm)
+      return (ctx->API == API_OPENGL_COMPAT && ctx->Extensions.EXT_texture_snorm)
          ? GL_RGBA : 0;
    case GL_RGBA_SNORM:
    case GL_RGBA16_SNORM:
@@ -1227,25 +1223,21 @@ _mesa_base_fbo_format(struct gl_context *ctx, GLenum internalFormat)
              ctx->Extensions.ARB_framebuffer_object ? GL_INTENSITY : 0;
    case GL_R16F:
    case GL_R32F:
-      return ctx->Version >= 30
-         || (ctx->API == API_OPENGL_COMPAT &&
+      return (ctx->API == API_OPENGL_COMPAT &&
              ctx->Extensions.ARB_texture_rg &&
              ctx->Extensions.ARB_texture_float) ? GL_RED : 0;
    case GL_RG16F:
    case GL_RG32F:
-      return ctx->Version >= 30
-         || (ctx->API == API_OPENGL_COMPAT &&
+      return (ctx->API == API_OPENGL_COMPAT &&
              ctx->Extensions.ARB_texture_rg &&
              ctx->Extensions.ARB_texture_float) ? GL_RG : 0;
    case GL_RGB16F:
    case GL_RGB32F:
       return (_mesa_is_desktop_gl(ctx) && ctx->Extensions.ARB_texture_float)
-         || _mesa_is_gles3(ctx)
          ? GL_RGB : 0;
    case GL_RGBA16F:
    case GL_RGBA32F:
       return (_mesa_is_desktop_gl(ctx) && ctx->Extensions.ARB_texture_float)
-         || _mesa_is_gles3(ctx)
          ? GL_RGBA : 0;
    case GL_ALPHA16F_ARB:
    case GL_ALPHA32F_ARB:
@@ -1270,10 +1262,10 @@ _mesa_base_fbo_format(struct gl_context *ctx, GLenum internalFormat)
    case GL_RGB9_E5:
       return (_mesa_is_desktop_gl(ctx)
               && ctx->Extensions.EXT_texture_shared_exponent)
-         || _mesa_is_gles3(ctx) ? GL_RGB : 0;
+         ? GL_RGB : 0;
    case GL_R11F_G11F_B10F:
       return (_mesa_is_desktop_gl(ctx) && ctx->Extensions.EXT_packed_float)
-         || _mesa_is_gles3(ctx) ? GL_RGB : 0;
+         ? GL_RGB : 0;
 
    case GL_RGBA8UI_EXT:
    case GL_RGBA16UI_EXT:
@@ -1291,8 +1283,7 @@ _mesa_base_fbo_format(struct gl_context *ctx, GLenum internalFormat)
    case GL_RGB8I_EXT:
    case GL_RGB16I_EXT:
    case GL_RGB32I_EXT:
-      return ctx->Version >= 30
-         || (_mesa_is_desktop_gl(ctx) &&
+      return (_mesa_is_desktop_gl(ctx) &&
              ctx->Extensions.EXT_texture_integer) ? GL_RGB : 0;
 
    case GL_R8UI:
@@ -1312,8 +1303,7 @@ _mesa_base_fbo_format(struct gl_context *ctx, GLenum internalFormat)
    case GL_RG16I:
    case GL_RG32UI:
    case GL_RG32I:
-      return ctx->Version >= 30
-         || (_mesa_is_desktop_gl(ctx) &&
+      return (_mesa_is_desktop_gl(ctx) &&
              ctx->Extensions.ARB_texture_rg &&
              ctx->Extensions.EXT_texture_integer) ? GL_RG : 0;
 
