@@ -369,7 +369,8 @@ _mesa_DrawBuffers(GLsizei n, const GLenum *buffers)
          if (_mesa_is_gles3(ctx) && _mesa_is_user_fbo(ctx->DrawBuffer) &&
              buffers[output] != GL_NONE &&
              buffers[output] != GL_COLOR_ATTACHMENT0 + output) {
-            _mesa_error(ctx, GL_INVALID_OPERATION, "glDrawBuffersARB(buffer)");
+            _mesa_error(ctx, GL_INVALID_OPERATION, "glDrawBuffers(buffer)");
+            return;
          }
 
          /* From the OpenGL 3.0 specification, page 258:
