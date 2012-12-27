@@ -885,7 +885,7 @@ _mesa_pack_rgba_span_from_uints(struct gl_context *ctx, GLuint n, GLuint rgba[][
 #undef FN_NAME
 
 #define DST_TYPE GLubyte
-#define SRC_CONVERT(x) MAX2(x, 0)
+#define SRC_CONVERT(x) CLAMP(x, 0, 0x7f)
 #define FN_NAME pack_ubyte_from_int_rgba
 #include "pack_tmp.h"
 #undef DST_TYPE
