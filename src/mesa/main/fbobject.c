@@ -492,7 +492,7 @@ _mesa_is_legal_color_format(const struct gl_context *ctx, GLenum baseFormat)
    case GL_LUMINANCE_ALPHA:
    case GL_INTENSITY:
    case GL_ALPHA:
-      return ctx->Extensions.ARB_framebuffer_object;
+      return _mesa_is_desktop_gl(ctx) && ctx->Extensions.ARB_framebuffer_object;
    case GL_RED:
    case GL_RG:
       return ctx->Extensions.ARB_texture_rg;
