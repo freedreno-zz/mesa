@@ -325,6 +325,11 @@ slow_read_rgba_pixels( struct gl_context *ctx,
    GLboolean dst_is_integer = _mesa_is_enum_format_integer(format);
    GLboolean dst_is_uint = _mesa_is_format_unsigned(rbFormat);
 
+   if (_mesa_is_format_integer_color(rbFormat) && format == GL_RGBA && type == GL_UNSIGNED_BYTE) {
+      format = GL_RGBA_INTEGER;
+      dst_is_integer = GL_TRUE;
+   }
+
    dstStride = _mesa_image_row_stride(packing, width, format, type);
    dst = (GLubyte *) _mesa_image_address2d(packing, pixels, width, height,
 					   format, type, 0, 0);
