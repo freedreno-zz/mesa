@@ -30,6 +30,7 @@
 
 struct gl_config;
 struct gl_context;
+struct gl_renderbuffer;
 
 extern struct gl_framebuffer *
 _mesa_create_framebuffer(const struct gl_config *visual);
@@ -95,6 +96,9 @@ _mesa_get_color_read_type(struct gl_context *ctx);
 
 extern GLenum
 _mesa_get_color_read_format(struct gl_context *ctx);
+
+extern struct gl_renderbuffer *
+_mesa_get_read_renderbuffer(struct gl_context *ctx, GLenum format);
 
 extern void
 _mesa_print_framebuffer(const struct gl_framebuffer *fb);
