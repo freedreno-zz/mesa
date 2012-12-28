@@ -239,8 +239,10 @@ intelTexImage(struct gl_context * ctx,
        __FUNCTION__, texImage->Width, texImage->Height, texImage->Depth,
        pixels);
 
-   _mesa_store_teximage(ctx, dims, texImage,
-                        format, type, pixels, unpack);
+   if (format != GL_NONE && type != GL_NONE) {
+      _mesa_store_teximage(ctx, dims, texImage,
+                           format, type, pixels, unpack);
+   }
 }
 
 
