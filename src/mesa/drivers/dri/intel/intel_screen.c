@@ -250,6 +250,21 @@ static struct intel_image_format intel_image_formats[] = {
        { 0, 1, 0, __DRI_IMAGE_FORMAT_ARGB8888, 4 } } }
 };
 
+static struct intel_image_format *
+intel_image_format_lookup(int fourcc)
+{
+   struct intel_image_format *f = 0;
+
+   for (unsigned i = 0; i < ARRAY_SIZE(intel_image_formats); i++) {
+      if (intel_image_formats[i].fourcc == fourcc) {
+	 f = &intel_image_formats[i];
+	 break;
+      }
+   }
+
+   return f;
+}
+
 static __DRIimage *
 intel_allocate_image(int dri_format, void *loaderPrivate)
 {
@@ -610,12 +625,7 @@ intel_create_image_from_names(__DRIscreen *screen,
     if (screen == NULL || names == NULL || num_names != 1)
         return NULL;
 
-    for (i = 0; i < ARRAY_SIZE(intel_image_formats); i++) {
-        if (intel_image_formats[i].fourcc == fourcc) {
-           f = &intel_image_formats[i];
-        }
-    }
-
+    f = intel_image_format_lookup(fourcc);
     if (f == NULL)
         return NULL;
 
