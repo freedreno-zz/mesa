@@ -2370,6 +2370,9 @@ copytexture_error_check( struct gl_context *ctx, GLuint dimensions,
                          GLint width, GLint height, GLint border )
 {
    GLint baseFormat;
+   GLint rb_base_format;
+   struct gl_renderbuffer *rb;
+   GLenum rb_internal_format;
 
    /* check target */
    if (!legal_texsubimage_target(ctx, dimensions, target)) {
@@ -2414,29 +2417,54 @@ copytexture_error_check( struct gl_context *ctx, GLuint dimensions,
       return GL_TRUE;
    }
 
-   /* OpenGL ES 1.x and OpenGL ES 2.0 impose additional restrictions on the
-    * internalFormat.
-    */
-   if (_mesa_is_gles(ctx) && !_mesa_is_gles3(ctx)) {
-      switch (internalFormat) {
-      case GL_ALPHA:
-      case GL_RGB:
-      case GL_RGBA:
-      case GL_LUMINANCE:
-      case GL_LUMINANCE_ALPHA:
-         break;
-      default:
+   rb = _mesa_get_read_renderbuffer(ctx, internalFormat);
+   if (rb == NULL) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glCopyTexImage%dD(read buffer)", dimensions);
+      return GL_TRUE;
+   }
+
+   rb_internal_format = rb->InternalFormat;
+   baseFormat = _mesa_base_tex_format(ctx, internalFormat);
+   rb_base_format = _mesa_base_tex_format(ctx, rb->InternalFormat);
+   if (baseFormat < 0) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glCopyTexImage%dD(internalFormat)", dimensions);
+      return GL_TRUE;
+   }
+
+   if (_mesa_is_color_format(internalFormat)) {
+      if (rb_base_format < 0) {
          _mesa_error(ctx, GL_INVALID_VALUE,
                      "glCopyTexImage%dD(internalFormat)", dimensions);
          return GL_TRUE;
       }
    }
 
-   baseFormat = _mesa_base_tex_format(ctx, internalFormat);
-   if (baseFormat < 0) {
-      _mesa_error(ctx, GL_INVALID_VALUE,
-                  "glCopyTexImage%dD(internalFormat)", dimensions);
-      return GL_TRUE;
+   if (_mesa_is_gles(ctx)) {
+      bool valid = true;
+      if (_mesa_base_format_component_count(baseFormat) >
+          _mesa_base_format_component_count(rb_base_format)) {
+         valid = false;
+      }
+      if (baseFormat == GL_DEPTH_COMPONENT ||
+          baseFormat == GL_DEPTH_STENCIL ||
+          rb_base_format == GL_DEPTH_COMPONENT ||
+          rb_base_format == GL_DEPTH_STENCIL ||
+          ((baseFormat == GL_LUMINANCE_ALPHA ||
+            baseFormat == GL_ALPHA) &&
+           rb_base_format != GL_RGBA) ||
+          internalFormat == GL_RGB9_E5) {
+         valid = false;
+      }
+      if (internalFormat == GL_RGB9_E5) {
+         valid = false;
+      }
+      if (!valid) {
+         _mesa_error(ctx, GL_INVALID_OPERATION,
+                     "glCopyTexImage%dD(internalFormat)", dimensions);
+         return GL_TRUE;
+      }
    }
 
    if (is_srgb_format(internalFormat) != is_srgb_format(rb_internal_format)) {
