@@ -2430,13 +2430,20 @@ copytexture_error_check( struct gl_context *ctx, GLuint dimensions,
     *      integer format and the read color buffer is an integer format."
     */
    if (_mesa_is_color_format(internalFormat)) {
-      struct gl_renderbuffer *rb = ctx->ReadBuffer->_ColorReadBuffer;
-
-      if (_mesa_is_enum_format_integer(rb->InternalFormat) !=
-	  _mesa_is_enum_format_integer(internalFormat)) {
-	 _mesa_error(ctx, GL_INVALID_OPERATION,
-		     "glCopyTexImage%dD(integer vs non-integer)", dimensions);
-	 return GL_TRUE;
+      bool is_int = _mesa_is_enum_format_integer(internalFormat);
+      bool is_rbint = _mesa_is_enum_format_integer(rb_internal_format);
+      if (is_int || is_rbint) {
+         if (is_int != is_rbint) {
+            _mesa_error(ctx, GL_INVALID_OPERATION,
+                        "glCopyTexImage%dD(integer vs non-integer)", dimensions);
+            return GL_TRUE;
+         } else if (_mesa_is_gles(ctx) &&
+                    _mesa_is_enum_format_unsigned_int(internalFormat) !=
+                      _mesa_is_enum_format_unsigned_int(rb_internal_format)) {
+            _mesa_error(ctx, GL_INVALID_OPERATION,
+                        "glCopyTexImage%dD(signed vs unsigned integer)", dimensions);
+            return GL_TRUE;
+         }
       }
    }
 
