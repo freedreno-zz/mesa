@@ -2323,6 +2323,29 @@ texsubimage_error_check(struct gl_context *ctx, GLuint dimensions,
 }
 
 
+static bool
+is_srgb_format(GLenum internalFormat)
+{
+   switch (internalFormat) {
+   case GL_SRGB_EXT:
+   case GL_SRGB8_EXT:
+   case GL_COMPRESSED_SRGB_EXT:
+   case GL_COMPRESSED_SRGB_S3TC_DXT1_EXT:
+   case GL_SRGB_ALPHA_EXT:
+   case GL_SRGB8_ALPHA8_EXT:
+   case GL_COMPRESSED_SRGB_ALPHA_EXT:
+   case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT:
+   case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT:
+   case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT:
+   case GL_COMPRESSED_SRGB8_ETC2:
+   case GL_COMPRESSED_SRGB8_ALPHA8_ETC2_EAC:
+   case GL_COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2:
+      return true;
+   default:
+      return false;
+   }
+}
+
 /**
  * Test glCopyTexImage[12]D() parameters for errors.
  * 
@@ -2413,6 +2436,12 @@ copytexture_error_check( struct gl_context *ctx, GLuint dimensions,
    if (baseFormat < 0) {
       _mesa_error(ctx, GL_INVALID_VALUE,
                   "glCopyTexImage%dD(internalFormat)", dimensions);
+      return GL_TRUE;
+   }
+
+   if (is_srgb_format(internalFormat) != is_srgb_format(rb_internal_format)) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glCopyTexImage%dD(srgb usage mismatch)", dimensions);
       return GL_TRUE;
    }
 
