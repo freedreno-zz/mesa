@@ -817,17 +817,25 @@ _mesa_ReadnPixelsARB( GLint x, GLint y, GLsizei width, GLsizei height,
       return;
    }
 
-   /* Check that the destination format and source buffer are both
-    * integer-valued or both non-integer-valued.
-    */
    if (ctx->Extensions.EXT_texture_integer && _mesa_is_color_format(format)) {
-      const struct gl_renderbuffer *rb = ctx->ReadBuffer->_ColorReadBuffer;
-      const GLboolean srcInteger = _mesa_is_format_integer_color(rb->Format);
-      const GLboolean dstInteger = _mesa_is_enum_format_integer(format);
-      if (dstInteger != srcInteger) {
-         _mesa_error(ctx, GL_INVALID_OPERATION,
-                     "glReadPixels(integer / non-integer format mismatch");
-         return;
+      if (_mesa_get_color_read_format(ctx) == format &&
+          _mesa_get_color_read_type(ctx) == type) {
+         /* IMPLEMENTATION_COLOR_READ_FORMAT and
+          * IMPLEMENTATION_COLOR_READ_TYPE are being used. Therefore
+          * we don't need to check integer vs. non-integer below.
+          */
+      } else {
+         /* Check that the destination format and source buffer are both
+          * integer-valued or both non-integer-valued.
+          */
+         const struct gl_renderbuffer *rb = ctx->ReadBuffer->_ColorReadBuffer;
+         const GLboolean srcInteger = _mesa_is_format_integer_color(rb->Format);
+         const GLboolean dstInteger = _mesa_is_enum_format_integer(format);
+         if (dstInteger != srcInteger) {
+            _mesa_error(ctx, GL_INVALID_OPERATION,
+                        "glReadPixels(integer / non-integer format mismatch");
+            return;
+         }
       }
    }
 
