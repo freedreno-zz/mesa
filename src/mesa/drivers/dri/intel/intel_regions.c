@@ -283,7 +283,7 @@ intel_region_release(struct intel_region **region_handle)
  * untiled, the masks are set to 0.
  */
 void
-intel_region_get_tile_masks(struct intel_region *region,
+intel_region_get_tile_masks(const struct intel_region *region,
                             uint32_t *mask_x, uint32_t *mask_y,
                             bool map_stencil_as_y_tiled)
 {
