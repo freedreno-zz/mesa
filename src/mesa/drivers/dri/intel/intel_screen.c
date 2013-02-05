@@ -394,6 +394,8 @@ intel_create_image_from_name(__DRIscreen *screen,
     int cpp;
 
     image = intel_allocate_image(format, loaderPrivate);
+    if (image == NULL)
+       return NULL;
     if (image->format == MESA_FORMAT_NONE)
        cpp = 1;
     else
@@ -651,7 +653,7 @@ intel_create_image_from_names(__DRIscreen *screen,
         return NULL;
 
     image = intel_create_image_from_name(screen, width, height,
-                                         __DRI_IMAGE_FORMAT_NONE,
+                                         __DRI_IMAGE_FORMAT_R8,
                                          names[0], strides[0],
                                          loaderPrivate);
 

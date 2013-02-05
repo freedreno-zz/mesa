@@ -39,6 +39,7 @@
 #include <xf86drm.h>
 #include <i915_drm.h>
 #include <radeon_drm.h>
+#include <gralloc_drm.h>
 
 #include "egl_dri2.h"
 #include "gralloc_drm.h"
@@ -57,6 +58,7 @@ get_format_bpp(int native)
    case HAL_PIXEL_FORMAT_RGB_888:
       bpp = 3;
       break;
+   case HAL_PIXEL_FORMAT_YV12:
    case HAL_PIXEL_FORMAT_RGB_565:
    case HAL_PIXEL_FORMAT_RGBA_5551:
    case HAL_PIXEL_FORMAT_RGBA_4444:
@@ -340,6 +342,7 @@ dri2_create_image_android_native_buffer(_EGLDisplay *disp,
    struct dri2_egl_display *dri2_dpy = dri2_egl_display(disp);
    struct dri2_egl_image *dri2_img;
    int name;
+   uint32_t offsets[3], strides[3], handles[3], tmp;
    EGLint format;
 
    if (!buf || buf->common.magic != ANDROID_NATIVE_BUFFER_MAGIC ||
@@ -356,6 +359,9 @@ dri2_create_image_android_native_buffer(_EGLDisplay *disp,
 
    /* see the table in droid_add_configs_for_visuals */
    switch (buf->format) {
+   case HAL_PIXEL_FORMAT_YV12:
+      format = __DRI_IMAGE_FOURCC_YVU420;
+      break;
    case HAL_PIXEL_FORMAT_BGRA_8888:
       format = __DRI_IMAGE_FORMAT_ARGB8888;
       break;
@@ -389,14 +395,52 @@ dri2_create_image_android_native_buffer(_EGLDisplay *disp,
       return NULL;
    }
 
-   dri2_img->dri_image =
-      dri2_dpy->image->createImageFromName(dri2_dpy->dri_screen,
-					   buf->width,
-					   buf->height,
-					   format,
-					   name,
-					   buf->stride,
-					   dri2_img);
+   switch (format) {
+   case __DRI_IMAGE_FORMAT_ARGB8888:
+   case __DRI_IMAGE_FORMAT_RGB565:
+   case __DRI_IMAGE_FORMAT_ABGR8888:
+   case __DRI_IMAGE_FORMAT_XBGR8888:
+       dri2_img->dri_image =
+          dri2_dpy->image->createImageFromName(dri2_dpy->dri_screen,
+                           buf->width,
+                           buf->height,
+                           format,
+                           name,
+                           buf->stride,
+                           dri2_img);
+       break;
+   case __DRI_IMAGE_FOURCC_YVU420:
+       offsets[0] = offsets[1] = offsets[2] = 0;
+       strides[0] = strides[1] = strides[2] = 0;
+
+       gralloc_drm_resolve_format(buf->handle, &strides[0], &offsets[0],
+                                  &handles[0]);
+
+       /* u anv v are given in wrong order than what we need here thus this:*/
+       tmp = offsets[1];
+       offsets[1] = offsets[2];
+       offsets[2] = tmp;
+       tmp = strides[1];
+       strides[1] = strides[2];
+       strides[2] = tmp;
+
+       dri2_img->dri_image =
+          dri2_dpy->image->createImageFromNames(dri2_dpy->dri_screen,
+                           buf->width,
+                           buf->height,
+                           format,
+                           &name, 1,
+                           (int*)strides,
+                           (int*)offsets,
+                           dri2_img);
+       break;
+   default:
+       /* We should never arrive here */
+      _eglLog(_EGL_WARNING, "unsupported native buffer format 0x%x",
+              buf->format);
+      break;
+   }
+
    if (!dri2_img->dri_image) {
       free(dri2_img);
       _eglError(EGL_BAD_ALLOC, "droid_create_image_mesa_drm");
