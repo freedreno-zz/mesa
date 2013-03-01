@@ -100,6 +100,9 @@ create_version_string(struct gl_context *ctx, const char *prefix)
    if (ctx->VersionString) {
       _mesa_snprintf(ctx->VersionString, max,
 		     "%s%u.%u%s Mesa " PACKAGE_VERSION
+#ifdef MESA_VERSION_STRING_EXTRA
+		     " " MESA_VERSION_STRING_EXTRA
+#endif
 #ifdef MESA_GIT_SHA1
 		     " (" MESA_GIT_SHA1 ")"
 #endif
