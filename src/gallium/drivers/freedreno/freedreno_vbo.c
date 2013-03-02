@@ -155,8 +155,53 @@ fd_draw_vbo(struct pipe_context *pctx, const struct pipe_draw_info *info)
 		return;
 	}
 
-	ctx->needs_flush = true;
+	/* ugly hack to convert rectlist into trilist via index-buffer..
+	 * not clever enough to deal with case when we already have an
+	 * index buffer, but for now this is just for debugging..
+	 */
+	struct pipe_draw_info new_info;
+	struct fd_bo *remap_idx_bo = NULL;
+	if ((info->mode == PIPE_PRIM_QUADS) && !info->indexed) {
+		uint16_t *buf;
+		unsigned end = info->start + info->count;
+		int i, new_count;
 
+		new_count = 6 * align(info->count, 4) / 4;
+
+		remap_idx_bo = fd_bo_new(ctx->screen->dev, 2 * new_count,
+				DRM_FREEDRENO_GEM_TYPE_KMEM);
+		buf = fd_bo_map(remap_idx_bo);
+
+		memset(&new_info, 0, sizeof(new_info));
+
+		i = info->start;
+		new_info.min_index = i;
+
+		for (; (i + 3) < end; i += 4) {
+			*(buf++) = i+0;
+			*(buf++) = i+1;
+			*(buf++) = i+2;
+			*(buf++) = i+0;
+			*(buf++) = i+2;
+			*(buf++) = i+3;
+		}
+
+		new_info.max_index = i + 3;
+
+		new_info.indexed = true;
+		new_info.mode = PIPE_PRIM_TRIANGLES;
+		new_info.start = 0;
+		new_info.count = new_count;
+
+		info = &new_info;
+
+		idx_bo = remap_idx_bo;
+		idx_type = INDEX_SIZE_16_BIT;
+		idx_size = 2 * new_count;
+		idx_offset = 0;
+		src_sel = DI_SRC_SEL_DMA;
+
+	} else
 	if (info->indexed) {
 		struct pipe_index_buffer *idx = &ctx->indexbuf;
 
@@ -176,6 +221,8 @@ fd_draw_vbo(struct pipe_context *pctx, const struct pipe_draw_info *info)
 	}
 
 	fd_resource(fb->cbufs[0]->texture)->dirty = true;
+
+	ctx->needs_flush = true;
 
 	/* figure out the buffers we need: */
 	buffers = FD_BUFFER_COLOR;
@@ -231,6 +278,9 @@ fd_draw_vbo(struct pipe_context *pctx, const struct pipe_draw_info *info)
 	OUT_RING(ring, 0x00000000);
 
 	emit_cacheflush(ring);
+
+	if (remap_idx_bo)
+		fd_bo_del(remap_idx_bo);
 }
 
 void
