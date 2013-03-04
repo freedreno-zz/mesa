@@ -112,7 +112,7 @@ size2indextype(unsigned index_size)
 }
 
 static void
-emit_vertexbufs(struct fd_context *ctx, unsigned count)
+emit_vertexbufs(struct fd_context *ctx)
 {
 	struct fd_vertex_stateobj *vtx = ctx->vtx;
 	struct fd_vertexbuf_stateobj *vertexbuf = &ctx->vertexbuf;
@@ -127,7 +127,7 @@ emit_vertexbufs(struct fd_context *ctx, unsigned count)
 		struct pipe_vertex_buffer *vb =
 				&vertexbuf->vb[elem->vertex_buffer_index];
 		bufs[i].offset = vb->buffer_offset;
-		bufs[i].size = count * vb->stride;
+		bufs[i].size = fd_bo_size(fd_resource(vb->buffer)->bo);
 		bufs[i].prsc = vb->buffer;
 	}
 
@@ -195,7 +195,7 @@ fd_draw_vbo(struct pipe_context *pctx, const struct pipe_draw_info *info)
 
 	fd_state_emit(pctx, ctx->dirty);
 
-	emit_vertexbufs(ctx, info->count);
+	emit_vertexbufs(ctx);
 
 	OUT_PKT3(ring, CP_SET_CONSTANT, 2);
 	OUT_RING(ring, CP_REG(REG_A2XX_VGT_INDX_OFFSET));
@@ -210,6 +210,11 @@ fd_draw_vbo(struct pipe_context *pctx, const struct pipe_draw_info *info)
 
 	OUT_PKT3(ring, CP_WAIT_FOR_IDLE, 1);
 	OUT_RING(ring, 0x0000000);
+
+	OUT_PKT3(ring, CP_SET_CONSTANT, 3);
+	OUT_RING(ring, CP_REG(REG_A2XX_VGT_MAX_VTX_INDX));
+	OUT_RING(ring, info->max_index);        /* VGT_MAX_VTX_INDX */
+	OUT_RING(ring, info->min_index);        /* VGT_MIN_VTX_INDX */
 
 	OUT_PKT3(ring, CP_DRAW_INDX, info->indexed ? 5 : 3);
 	OUT_RING(ring, 0x00000000);        /* viz query info. */
