@@ -100,6 +100,11 @@ emit_gmem2mem_surf(struct fd_ringbuffer *ring, uint32_t swap, uint32_t base,
 	OUT_PKT3(ring, CP_WAIT_FOR_IDLE, 1);
 	OUT_RING(ring, 0x0000000);
 
+	OUT_PKT3(ring, CP_SET_CONSTANT, 3);
+	OUT_RING(ring, CP_REG(REG_A2XX_VGT_MAX_VTX_INDX));
+	OUT_RING(ring, 3);                 /* VGT_MAX_VTX_INDX */
+	OUT_RING(ring, 0);                 /* VGT_MIN_VTX_INDX */
+
 	OUT_PKT3(ring, CP_DRAW_INDX, 3);
 	OUT_RING(ring, 0x00000000);
 	OUT_RING(ring, DRAW(DI_PT_RECTLIST, DI_SRC_SEL_AUTO_INDEX,
@@ -213,6 +218,11 @@ emit_mem2gmem_surf(struct fd_ringbuffer *ring, uint32_t swap, uint32_t base,
 			A2XX_SQ_TEX_3_XY_MIN_FILTER(SQ_TEX_FILTER_POINT));
 	OUT_RING(ring, 0x00000000);
 	OUT_RING(ring, 0x00000200);
+
+	OUT_PKT3(ring, CP_SET_CONSTANT, 3);
+	OUT_RING(ring, CP_REG(REG_A2XX_VGT_MAX_VTX_INDX));
+	OUT_RING(ring, 3);                 /* VGT_MAX_VTX_INDX */
+	OUT_RING(ring, 0);                 /* VGT_MIN_VTX_INDX */
 
 	OUT_PKT3(ring, CP_DRAW_INDX, 3);
 	OUT_RING(ring, 0x00000000);
