@@ -200,6 +200,11 @@ fd_clear(struct pipe_context *pctx, unsigned buffers,
 		OUT_RING(ring, 0x0);
 	}
 
+	OUT_PKT3(ring, CP_SET_CONSTANT, 3);
+	OUT_RING(ring, CP_REG(REG_A2XX_VGT_MAX_VTX_INDX));
+	OUT_RING(ring, 3);                 /* VGT_MAX_VTX_INDX */
+	OUT_RING(ring, 0);                 /* VGT_MIN_VTX_INDX */
+
 	OUT_PKT3(ring, CP_DRAW_INDX, 3);
 	OUT_RING(ring, 0x00000000);
 	OUT_RING(ring, DRAW(DI_PT_RECTLIST, DI_SRC_SEL_AUTO_INDEX,
