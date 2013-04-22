@@ -1,5 +1,7 @@
+/* -*- mode: C; c-file-style: "k&r"; tab-width 4; indent-tabs-mode: t; -*- */
+
 /*
- * Copyright © 2012 Rob Clark <robclark@freedesktop.org>
+ * Copyright (C) 2012-2013 Rob Clark <robclark@freedesktop.org>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -19,23 +21,27 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
+ *
+ * Authors:
+ *    Rob Clark <robclark@freedesktop.org>
  */
 
-#ifndef DISASM_H_
-#define DISASM_H_
+#ifndef FD2_UTIL_H_
+#define FD2_UTIL_H_
 
-enum shader_t {
-	SHADER_VERTEX,
-	SHADER_FRAGMENT,
-};
+#include "freedreno_util.h"
 
-/* bitmask of debug flags */
-enum debug_t {
-	PRINT_RAW      = 0x1,    /* dump raw hexdump */
-};
+#include "a2xx.xml.h"
 
-int disasm_a2xx(uint32_t *dwords, int sizedwords, int level, enum shader_t type);
-int disasm_a3xx(uint32_t *dwords, int sizedwords, int level, enum shader_t type);
-void disasm_set_debug(enum debug_t debug);
+enum a2xx_sq_surfaceformat fd2_pipe2surface(enum pipe_format format);
+enum a2xx_colorformatx fd2_pipe2color(enum pipe_format format);
+uint32_t fd2_tex_swiz(enum pipe_format format, unsigned swizzle_r,
+		unsigned swizzle_g, unsigned swizzle_b, unsigned swizzle_a);
 
-#endif /* DISASM_H_ */
+/* convert x,y to dword */
+static inline uint32_t xy2d(uint16_t x, uint16_t y)
+{
+	return ((y & 0x3fff) << 16) | (x & 0x3fff);
+}
+
+#endif /* FD2_UTIL_H_ */

@@ -1,7 +1,7 @@
 /* -*- mode: C; c-file-style: "k&r"; tab-width 4; indent-tabs-mode: t; -*- */
 
 /*
- * Copyright (C) 2012 Rob Clark <robclark@freedesktop.org>
+ * Copyright (C) 2012-2013 Rob Clark <robclark@freedesktop.org>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -26,34 +26,26 @@
  *    Rob Clark <robclark@freedesktop.org>
  */
 
-#ifndef FREEDRENO_ZSA_H_
-#define FREEDRENO_ZSA_H_
-
+#ifndef FD2_BLEND_H_
+#define FD2_BLEND_H_
 
 #include "pipe/p_state.h"
 #include "pipe/p_context.h"
 
-#include "freedreno_util.h"
-
-struct fd_zsa_stateobj {
-	struct pipe_depth_stencil_alpha_state base;
-	uint32_t rb_depthcontrol;
-	uint32_t rb_colorcontrol;   /* must be OR'd w/ blend->rb_colorcontrol */
-	uint32_t rb_alpha_ref;
-	uint32_t rb_stencilrefmask;
-	uint32_t rb_stencilrefmask_bf;
+struct fd2_blend_stateobj {
+	struct pipe_blend_state base;
+	uint32_t rb_blendcontrol;
+	uint32_t rb_colorcontrol;   /* must be OR'd w/ zsa->rb_colorcontrol */
+	uint32_t rb_colormask;
 };
 
-void fd_zsa_init(struct pipe_context *pctx);
-
-static inline bool fd_depth_enabled(struct fd_zsa_stateobj *zsa)
+static INLINE struct fd2_blend_stateobj *
+fd2_blend_stateobj(struct pipe_blend_state *blend)
 {
-	return zsa->base.depth.enabled;
+	return (struct fd2_blend_stateobj *)blend;
 }
 
-static inline bool fd_stencil_enabled(struct fd_zsa_stateobj *zsa)
-{
-	return zsa->base.stencil[0].enabled;
-}
+void * fd2_blend_state_create(struct pipe_context *pctx,
+		const struct pipe_blend_state *cso);
 
-#endif /* FREEDRENO_ZSA_H_ */
+#endif /* FD2_BLEND_H_ */

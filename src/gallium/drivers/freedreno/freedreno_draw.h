@@ -26,17 +26,17 @@
  *    Rob Clark <robclark@freedesktop.org>
  */
 
-#ifndef FREEDRENO_VBO_H_
-#define FREEDRENO_VBO_H_
+#ifndef FREEDRENO_DRAW_H_
+#define FREEDRENO_DRAW_H_
 
 #include "pipe/p_state.h"
 #include "pipe/p_context.h"
 
-struct fd_vertex_stateobj {
-	struct pipe_vertex_element pipe[PIPE_MAX_ATTRIBS];
-	unsigned num_elements;
-};
+struct fd_ringbuffer;
 
-void fd_vbo_init(struct pipe_context *pctx);
+void fd_draw_emit(const struct pipe_draw_info *info,
+		struct pipe_index_buffer *idx, struct fd_ringbuffer *ring);
 
-#endif /* FREEDRENO_VBO_H_ */
+void fd_draw_init(struct pipe_context *pctx);
+
+#endif /* FREEDRENO_DRAW_H_ */

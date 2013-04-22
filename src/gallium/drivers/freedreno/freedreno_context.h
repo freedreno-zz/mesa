@@ -37,23 +37,18 @@
 
 #include "freedreno_screen.h"
 
-struct fd_blend_stateobj;
-struct fd_rasterizer_stateobj;
-struct fd_zsa_stateobj;
-struct fd_sampler_stateobj;
 struct fd_vertex_stateobj;
-struct fd_shader_stateobj;
 
 struct fd_texture_stateobj {
 	struct pipe_sampler_view *textures[PIPE_MAX_SAMPLERS];
 	unsigned num_textures;
-	struct fd_sampler_stateobj *samplers[PIPE_MAX_SAMPLERS];
+	struct pipe_sampler_state *samplers[PIPE_MAX_SAMPLERS];
 	unsigned num_samplers;
 	unsigned dirty_samplers;
 };
 
 struct fd_program_stateobj {
-	struct fd_shader_stateobj *vp, *fp;
+	void *vp, *fp;
 	enum {
 		FD_SHADER_DIRTY_VP = (1 << 0),
 		FD_SHADER_DIRTY_FP = (1 << 1),
@@ -77,6 +72,11 @@ struct fd_vertexbuf_stateobj {
 	unsigned count;
 	uint32_t enabled_mask;
 	uint32_t dirty_mask;
+};
+
+struct fd_vertex_stateobj {
+	struct pipe_vertex_element pipe[PIPE_MAX_ATTRIBS];
+	unsigned num_elements;
 };
 
 struct fd_gmem_stateobj {
@@ -164,9 +164,9 @@ struct fd_context {
 		FD_DIRTY_SCISSOR     = (1 << 17),
 	} dirty;
 
-	struct fd_blend_stateobj *blend;
-	struct fd_rasterizer_stateobj *rasterizer;
-	struct fd_zsa_stateobj *zsa;
+	struct pipe_blend_state *blend;
+	struct pipe_rasterizer_state *rasterizer;
+	struct pipe_depth_stencil_alpha_state *zsa;
 
 	struct fd_texture_stateobj verttex, fragtex;
 
@@ -183,6 +183,21 @@ struct fd_context {
 	struct fd_constbuf_stateobj constbuf[PIPE_SHADER_TYPES];
 	struct fd_vertexbuf_stateobj vertexbuf;
 	struct pipe_index_buffer indexbuf;
+
+	/* GMEM/tile handling fxns: */
+	void (*emit_tile_prep)(struct fd_context *ctx, uint32_t xoff, uint32_t yoff,
+			uint32_t bin_w, uint32_t bin_h);
+	void (*emit_tile_mem2gmem)(struct fd_context *ctx, uint32_t xoff, uint32_t yoff,
+			uint32_t bin_w, uint32_t bin_h);
+	void (*emit_tile_renderprep)(struct fd_context *ctx, uint32_t xoff, uint32_t yoff,
+			uint32_t bin_w, uint32_t bin_h);
+	void (*emit_tile_gmem2mem)(struct fd_context *ctx, uint32_t xoff, uint32_t yoff,
+			uint32_t bin_w, uint32_t bin_h);
+
+	/* draw: */
+	void (*draw)(struct fd_context *pctx, const struct pipe_draw_info *info);
+	void (*clear)(struct fd_context *ctx, unsigned buffers,
+			const union pipe_color_union *color, double depth, unsigned stencil);
 };
 
 static INLINE struct fd_context *
@@ -191,8 +206,11 @@ fd_context(struct pipe_context *pctx)
 	return (struct fd_context *)pctx;
 }
 
-struct pipe_context * fd_context_create(struct pipe_screen *pscreen, void *priv);
+struct pipe_context * fd_context_init(struct fd_context *ctx,
+		struct pipe_screen *pscreen, void *priv);
 
 void fd_context_render(struct pipe_context *pctx);
+
+void fd_context_destroy(struct pipe_context *pctx);
 
 #endif /* FREEDRENO_CONTEXT_H_ */
