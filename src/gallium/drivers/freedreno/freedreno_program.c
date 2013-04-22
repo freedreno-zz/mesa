@@ -37,7 +37,7 @@
 #include "freedreno_program.h"
 #include "freedreno_compiler.h"
 #include "freedreno_vbo.h"
-#include "freedreno_texture.h"
+#include "fd2_texture.h"
 #include "freedreno_util.h"
 
 static struct fd_shader_stateobj *
@@ -68,7 +68,7 @@ assemble(struct fd_shader_stateobj *so)
 
 	if (fd_mesa_debug & FD_DBG_DISASM) {
 		DBG("disassemble: type=%d", so->type);
-		disasm(so->bin, so->info.sizedwords, 0, so->type);
+		disasm_a2xx(so->bin, so->info.sizedwords, 0, so->type);
 	}
 
 	return so;
@@ -243,7 +243,7 @@ patch_tex_fetches(struct fd_context *ctx, struct fd_shader_stateobj *so,
 	for (i = 0; i < so->num_tfetch_instrs; i++) {
 		struct ir2_instruction *instr = so->tfetch_instrs[i].instr;
 		unsigned samp_id = so->tfetch_instrs[i].samp_id;
-		unsigned const_idx = fd_get_const_idx(ctx, tex, samp_id);
+		unsigned const_idx = fd2_get_const_idx(ctx, tex, samp_id);
 
 		if (const_idx != instr->fetch.const_idx) {
 			instr->fetch.const_idx = const_idx;

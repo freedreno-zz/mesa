@@ -42,7 +42,7 @@
 
 enum a2xx_sq_surfaceformat fd_pipe2surface(enum pipe_format format);
 enum a2xx_colorformatx fd_pipe2color(enum pipe_format format);
-enum a2xx_rb_depth_format fd_pipe2depth(enum pipe_format format);
+enum adreno_rb_depth_format fd_pipe2depth(enum pipe_format format);
 enum pc_di_index_size fd_pipe2index(enum pipe_format format);
 uint32_t fd_tex_swiz(enum pipe_format format, unsigned swizzle_r,
 		unsigned swizzle_g, unsigned swizzle_b, unsigned swizzle_a);

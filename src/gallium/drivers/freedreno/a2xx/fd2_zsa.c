@@ -31,7 +31,7 @@
 #include "util/u_string.h"
 #include "util/u_memory.h"
 
-#include "freedreno_zsa.h"
+#include "fd2_zsa.h"
 #include "freedreno_context.h"
 #include "freedreno_util.h"
 
@@ -61,13 +61,13 @@ stencil_op(unsigned op)
 	}
 }
 
-static void *
-fd_zsa_state_create(struct pipe_context *pctx,
+void *
+fd2_zsa_state_create(struct pipe_context *pctx,
 		const struct pipe_depth_stencil_alpha_state *cso)
 {
-	struct fd_zsa_stateobj *so;
+	struct fd2_zsa_stateobj *so;
 
-	so = CALLOC_STRUCT(fd_zsa_stateobj);
+	so = CALLOC_STRUCT(fd2_zsa_stateobj);
 	if (!so)
 		return NULL;
 
@@ -119,26 +119,4 @@ fd_zsa_state_create(struct pipe_context *pctx,
 	}
 
 	return so;
-}
-
-static void
-fd_zsa_state_bind(struct pipe_context *pctx, void *hwcso)
-{
-	struct fd_context *ctx = fd_context(pctx);
-	ctx->zsa = hwcso;
-	ctx->dirty |= FD_DIRTY_ZSA;
-}
-
-static void
-fd_zsa_state_delete(struct pipe_context *pctx, void *hwcso)
-{
-	FREE(hwcso);
-}
-
-void
-fd_zsa_init(struct pipe_context *pctx)
-{
-	pctx->create_depth_stencil_alpha_state = fd_zsa_state_create;
-	pctx->bind_depth_stencil_alpha_state = fd_zsa_state_bind;
-	pctx->delete_depth_stencil_alpha_state = fd_zsa_state_delete;
 }

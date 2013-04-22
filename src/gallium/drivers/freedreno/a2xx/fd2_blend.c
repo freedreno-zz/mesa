@@ -1,7 +1,7 @@
 /* -*- mode: C; c-file-style: "k&r"; tab-width 4; indent-tabs-mode: t; -*- */
 
 /*
- * Copyright (C) 2012 Rob Clark <robclark@freedesktop.org>
+ * Copyright (C) 2012-2013 Rob Clark <robclark@freedesktop.org>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -30,7 +30,7 @@
 #include "util/u_string.h"
 #include "util/u_memory.h"
 
-#include "freedreno_blend.h"
+#include "fd2_blend.h"
 #include "freedreno_context.h"
 #include "freedreno_util.h"
 
@@ -100,12 +100,12 @@ blend_func(unsigned func)
 	}
 }
 
-static void *
-fd_blend_state_create(struct pipe_context *pctx,
+void *
+fd2_blend_state_create(struct pipe_context *pctx,
 		const struct pipe_blend_state *cso)
 {
 	const struct pipe_rt_blend_state *rt = &cso->rt[0];
-	struct fd_blend_stateobj *so;
+	struct fd2_blend_stateobj *so;
 
 	if (cso->logicop_enable) {
 		DBG("Unsupported! logicop");
@@ -117,7 +117,7 @@ fd_blend_state_create(struct pipe_context *pctx,
 		return NULL;
 	}
 
-	so = CALLOC_STRUCT(fd_blend_stateobj);
+	so = CALLOC_STRUCT(fd2_blend_stateobj);
 	if (!so)
 		return NULL;
 
@@ -150,26 +150,3 @@ fd_blend_state_create(struct pipe_context *pctx,
 
 	return so;
 }
-
-static void
-fd_blend_state_bind(struct pipe_context *pctx, void *hwcso)
-{
-	struct fd_context *ctx = fd_context(pctx);
-	ctx->blend = hwcso;
-	ctx->dirty |= FD_DIRTY_BLEND;
-}
-
-static void
-fd_blend_state_delete(struct pipe_context *pctx, void *hwcso)
-{
-	FREE(hwcso);
-}
-
-void
-fd_blend_init(struct pipe_context *pctx)
-{
-	pctx->create_blend_state = fd_blend_state_create;
-	pctx->bind_blend_state = fd_blend_state_bind;
-	pctx->delete_blend_state = fd_blend_state_delete;
-}
-

@@ -44,7 +44,7 @@
 #include <errno.h>
 #include <stdlib.h>
 
-#include "freedreno_context.h"
+#include "fd2_context.h"
 #include "freedreno_screen.h"
 #include "freedreno_resource.h"
 #include "freedreno_fence.h"
@@ -442,6 +442,31 @@ fd_screen_bo_from_handle(struct pipe_screen *pscreen,
 	return bo;
 }
 
+static struct pipe_context *
+fd_context_create(struct pipe_screen *pscreen, void *priv)
+{
+	struct fd_screen *screen = fd_screen(pscreen);
+
+	/* explicitly checking for GPU revisions that are known to work.  This
+	 * may be overly conservative for a3xx, where spoofing the gpu_id with
+	 * the blob driver seems to generate identical cmdstream dumps.  But
+	 * on a2xx, there seem to be small differences between the GPU revs
+	 * so it is probably better to actually test first on real hardware
+	 * before enabling:
+	 *
+	 * If you have a different adreno version, feel free to add it to one
+	 * of the two cases below and see what happens.  And if it works, please
+	 * send a patch ;-)
+	 */
+	switch (screen->gpu_id) {
+	case 220:
+		return fd2_context_create(pscreen, priv);
+	default:
+		debug_printf("unsupported GPU: a%03d\n", screen->gpu_id);
+		return NULL;
+	}
+}
+
 struct pipe_screen *
 fd_screen_create(struct fd_device *dev)
 {
@@ -477,6 +502,11 @@ fd_screen_create(struct fd_device *dev)
 	}
 	screen->device_id = val;
 
+	if (fd_pipe_get_param(screen->pipe, FD_GPU_ID, &val)) {
+		DBG("could not get gpu-id");
+		goto fail;
+	}
+	screen->gpu_id = val;
 
 	pscreen->destroy = fd_screen_destroy;
 	pscreen->get_param = fd_screen_get_param;

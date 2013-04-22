@@ -28,10 +28,6 @@
 
 #include "freedreno_context.h"
 #include "freedreno_vbo.h"
-#include "freedreno_blend.h"
-#include "freedreno_rasterizer.h"
-#include "freedreno_zsa.h"
-#include "freedreno_state.h"
 #include "freedreno_resource.h"
 #include "freedreno_clear.h"
 #include "freedreno_program.h"
@@ -154,20 +150,18 @@ create_solid_vertexbuf(struct pipe_context *pctx)
 }
 
 struct pipe_context *
-fd_context_create(struct pipe_screen *pscreen, void *priv)
+fd_context_init(struct fd_context *ctx,
+		struct pipe_screen *pscreen, void *priv)
 {
 	struct fd_screen *screen = fd_screen(pscreen);
-	struct fd_context *ctx = CALLOC_STRUCT(fd_context);
 	struct pipe_context *pctx;
-
-	if (!ctx)
-		return NULL;
-
-	DBG("");
 
 	ctx->screen = screen;
 
 	ctx->ring = fd_ringbuffer_new(screen->pipe, 0x100000);
+	if (!ctx->ring)
+		goto fail;
+
 	ctx->draw_start = fd_ringmarker_new(ctx->ring);
 	ctx->draw_end = fd_ringmarker_new(ctx->ring);
 
@@ -181,25 +175,22 @@ fd_context_create(struct pipe_screen *pscreen, void *priv)
 			16, UTIL_SLAB_SINGLETHREADED);
 
 	fd_vbo_init(pctx);
-	fd_blend_init(pctx);
-	fd_rasterizer_init(pctx);
-	fd_zsa_init(pctx);
-	fd_state_init(pctx);
 	fd_resource_context_init(pctx);
 	fd_clear_init(pctx);
 	fd_prog_init(pctx);
 	fd_texture_init(pctx);
 
 	ctx->blitter = util_blitter_create(pctx);
-	if (!ctx->blitter) {
-		fd_context_destroy(pctx);
-		return NULL;
-	}
+	if (!ctx->blitter)
+		goto fail;
 
 	/* construct vertex state used for solid ops (clear, and gmem<->mem) */
 	ctx->solid_vertexbuf = create_solid_vertexbuf(pctx);
 
-	fd_state_emit_setup(pctx);
 
 	return pctx;
+
+fail:
+	fd_context_destroy(pctx);
+	return NULL;
 }

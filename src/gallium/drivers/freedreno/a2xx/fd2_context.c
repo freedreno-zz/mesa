@@ -1,5 +1,7 @@
+/* -*- mode: C; c-file-style: "k&r"; tab-width 4; indent-tabs-mode: t; -*- */
+
 /*
- * Copyright © 2012 Rob Clark <robclark@freedesktop.org>
+ * Copyright (C) 2013 Rob Clark <robclark@freedesktop.org>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -19,23 +21,38 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
+ *
+ * Authors:
+ *    Rob Clark <robclark@freedesktop.org>
  */
 
-#ifndef DISASM_H_
-#define DISASM_H_
 
-enum shader_t {
-	SHADER_VERTEX,
-	SHADER_FRAGMENT,
-};
+#include "fd2_context.h"
+#include "fd2_emit.h"
+#include "fd2_blend.h"
+#include "fd2_rasterizer.h"
+#include "fd2_zsa.h"
 
-/* bitmask of debug flags */
-enum debug_t {
-	PRINT_RAW      = 0x1,    /* dump raw hexdump */
-};
+struct pipe_context *
+fd2_context_create(struct pipe_screen *pscreen, void *priv)
+{
+	struct fd2_context *f2_ctx = CALLOC_STRUCT(fd2_context);
+	struct pipe_context *pctx;
 
-int disasm_a2xx(uint32_t *dwords, int sizedwords, int level, enum shader_t type);
-int disasm_a3xx(uint32_t *dwords, int sizedwords, int level, enum shader_t type);
-void disasm_set_debug(enum debug_t debug);
+	if (!f2_ctx)
+		return NULL;
 
-#endif /* DISASM_H_ */
+	pctx = &f2_ctx->base.base;
+
+	pctx->create_blend_state = fd2_blend_state_create;
+	pctx->create_rasterizer_state = fd2_rasterizer_state_create;
+	pctx->create_depth_stencil_alpha_state = fd2_zsa_state_create;
+
+	pctx = fd_context_init(&f2_ctx->base, pscreen, priv);
+	if (!pctx)
+		return NULL;
+
+	fd2_emit_setup(pctx);
+
+	return pctx;
+}

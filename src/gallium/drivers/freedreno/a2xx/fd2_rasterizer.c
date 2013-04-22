@@ -1,7 +1,7 @@
 /* -*- mode: C; c-file-style: "k&r"; tab-width 4; indent-tabs-mode: t; -*- */
 
 /*
- * Copyright (C) 2012 Rob Clark <robclark@freedesktop.org>
+ * Copyright (C) 2012-2013 Rob Clark <robclark@freedesktop.org>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -31,7 +31,7 @@
 #include "util/u_string.h"
 #include "util/u_memory.h"
 
-#include "freedreno_rasterizer.h"
+#include "fd2_rasterizer.h"
 #include "freedreno_context.h"
 #include "freedreno_util.h"
 
@@ -52,14 +52,14 @@ polygon_mode(unsigned mode)
 	}
 }
 
-static void *
-fd_rasterizer_state_create(struct pipe_context *pctx,
+void *
+fd2_rasterizer_state_create(struct pipe_context *pctx,
 		const struct pipe_rasterizer_state *cso)
 {
-	struct fd_rasterizer_stateobj *so;
+	struct fd2_rasterizer_stateobj *so;
 	float psize_min, psize_max;
 
-	so = CALLOC_STRUCT(fd_rasterizer_stateobj);
+	so = CALLOC_STRUCT(fd2_rasterizer_stateobj);
 	if (!so)
 		return NULL;
 
@@ -126,26 +126,4 @@ fd_rasterizer_state_create(struct pipe_context *pctx,
 			A2XX_PA_SU_SC_MODE_CNTL_POLY_OFFSET_PARA_ENABLE;
 
 	return so;
-}
-
-static void
-fd_rasterizer_state_bind(struct pipe_context *pctx, void *hwcso)
-{
-	struct fd_context *ctx = fd_context(pctx);
-	ctx->rasterizer = hwcso;
-	ctx->dirty |= FD_DIRTY_RASTERIZER;
-}
-
-static void
-fd_rasterizer_state_delete(struct pipe_context *pctx, void *hwcso)
-{
-	FREE(hwcso);
-}
-
-void
-fd_rasterizer_init(struct pipe_context *pctx)
-{
-	pctx->create_rasterizer_state = fd_rasterizer_state_create;
-	pctx->bind_rasterizer_state = fd_rasterizer_state_bind;
-	pctx->delete_rasterizer_state = fd_rasterizer_state_delete;
 }

@@ -37,7 +37,8 @@
 #include "freedreno_state.h"
 #include "freedreno_program.h"
 #include "freedreno_resource.h"
-#include "freedreno_zsa.h"
+#include "fd2_zsa.h"
+#include "fd2_emit.h"
 #include "freedreno_util.h"
 
 /*
@@ -130,7 +131,7 @@ emit_gmem2mem(struct fd_context *ctx, struct fd_ringbuffer *ring,
 {
 	struct pipe_framebuffer_state *pfb = &ctx->framebuffer;
 
-	fd_emit_vertex_bufs(ring, 0x9c, (struct fd_vertex_buf[]) {
+	fd2_emit_vertex_bufs(ring, 0x9c, (struct fd2_vertex_buf[]) {
 			{ .prsc = ctx->solid_vertexbuf, .size = 48 },
 		}, 1);
 
@@ -250,7 +251,7 @@ emit_mem2gmem(struct fd_context *ctx, struct fd_ringbuffer *ring,
 	struct pipe_framebuffer_state *pfb = &ctx->framebuffer;
 	float x0, y0, x1, y1;
 
-	fd_emit_vertex_bufs(ring, 0x9c, (struct fd_vertex_buf[]) {
+	fd2_emit_vertex_bufs(ring, 0x9c, (struct fd2_vertex_buf[]) {
 			{ .prsc = ctx->solid_vertexbuf, .size = 48, .offset = 0x30 },
 			{ .prsc = ctx->solid_vertexbuf, .size = 32, .offset = 0x60 },
 		}, 2);

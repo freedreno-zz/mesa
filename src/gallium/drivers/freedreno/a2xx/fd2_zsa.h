@@ -1,5 +1,7 @@
+/* -*- mode: C; c-file-style: "k&r"; tab-width 4; indent-tabs-mode: t; -*- */
+
 /*
- * Copyright © 2012 Rob Clark <robclark@freedesktop.org>
+ * Copyright (C) 2012-2013 Rob Clark <robclark@freedesktop.org>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -19,23 +21,36 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
+ *
+ * Authors:
+ *    Rob Clark <robclark@freedesktop.org>
  */
 
-#ifndef DISASM_H_
-#define DISASM_H_
+#ifndef FD2_ZSA_H_
+#define FD2_ZSA_H_
 
-enum shader_t {
-	SHADER_VERTEX,
-	SHADER_FRAGMENT,
+
+#include "pipe/p_state.h"
+#include "pipe/p_context.h"
+
+#include "freedreno_util.h"
+
+struct fd2_zsa_stateobj {
+	struct pipe_depth_stencil_alpha_state base;
+	uint32_t rb_depthcontrol;
+	uint32_t rb_colorcontrol;   /* must be OR'd w/ blend->rb_colorcontrol */
+	uint32_t rb_alpha_ref;
+	uint32_t rb_stencilrefmask;
+	uint32_t rb_stencilrefmask_bf;
 };
 
-/* bitmask of debug flags */
-enum debug_t {
-	PRINT_RAW      = 0x1,    /* dump raw hexdump */
-};
+static INLINE struct fd2_zsa_stateobj *
+fd2_zsa_stateobj(struct pipe_depth_stencil_alpha_state *zsa)
+{
+	return (struct fd2_zsa_stateobj *)zsa;
+}
 
-int disasm_a2xx(uint32_t *dwords, int sizedwords, int level, enum shader_t type);
-int disasm_a3xx(uint32_t *dwords, int sizedwords, int level, enum shader_t type);
-void disasm_set_debug(enum debug_t debug);
+void * fd2_zsa_state_create(struct pipe_context *pctx,
+		const struct pipe_depth_stencil_alpha_state *cso);
 
-#endif /* DISASM_H_ */
+#endif /* FD2_ZSA_H_ */

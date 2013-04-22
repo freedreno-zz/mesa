@@ -37,17 +37,13 @@
 
 #include "freedreno_screen.h"
 
-struct fd_blend_stateobj;
-struct fd_rasterizer_stateobj;
-struct fd_zsa_stateobj;
-struct fd_sampler_stateobj;
 struct fd_vertex_stateobj;
 struct fd_shader_stateobj;
 
 struct fd_texture_stateobj {
 	struct pipe_sampler_view *textures[PIPE_MAX_SAMPLERS];
 	unsigned num_textures;
-	struct fd_sampler_stateobj *samplers[PIPE_MAX_SAMPLERS];
+	struct pipe_sampler_state *samplers[PIPE_MAX_SAMPLERS];
 	unsigned num_samplers;
 	unsigned dirty_samplers;
 };
@@ -164,9 +160,9 @@ struct fd_context {
 		FD_DIRTY_SCISSOR     = (1 << 17),
 	} dirty;
 
-	struct fd_blend_stateobj *blend;
-	struct fd_rasterizer_stateobj *rasterizer;
-	struct fd_zsa_stateobj *zsa;
+	struct pipe_blend_state *blend;
+	struct pipe_rasterizer_state *rasterizer;
+	struct pipe_depth_stencil_alpha_state *zsa;
 
 	struct fd_texture_stateobj verttex, fragtex;
 
@@ -191,7 +187,8 @@ fd_context(struct pipe_context *pctx)
 	return (struct fd_context *)pctx;
 }
 
-struct pipe_context * fd_context_create(struct pipe_screen *pscreen, void *priv);
+struct pipe_context * fd_context_init(struct fd_context *ctx,
+		struct pipe_screen *pscreen, void *priv);
 
 void fd_context_render(struct pipe_context *pctx);
 

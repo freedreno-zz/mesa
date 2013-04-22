@@ -34,7 +34,8 @@
 #include "freedreno_vbo.h"
 #include "freedreno_context.h"
 #include "freedreno_state.h"
-#include "freedreno_zsa.h"
+#include "fd2_emit.h"
+#include "fd2_zsa.h"
 #include "freedreno_resource.h"
 #include "freedreno_util.h"
 
@@ -116,7 +117,7 @@ emit_vertexbufs(struct fd_context *ctx)
 {
 	struct fd_vertex_stateobj *vtx = ctx->vtx;
 	struct fd_vertexbuf_stateobj *vertexbuf = &ctx->vertexbuf;
-	struct fd_vertex_buf bufs[PIPE_MAX_ATTRIBS];
+	struct fd2_vertex_buf bufs[PIPE_MAX_ATTRIBS];
 	unsigned i;
 
 	if (!vtx->num_elements)
@@ -134,7 +135,7 @@ emit_vertexbufs(struct fd_context *ctx)
 	// NOTE I believe the 0x78 (or 0x9c in solid_vp) relates to the
 	// CONST(20,0) (or CONST(26,0) in soliv_vp)
 
-	fd_emit_vertex_bufs(ctx->ring, 0x78, bufs, vtx->num_elements);
+	fd2_emit_vertex_bufs(ctx->ring, 0x78, bufs, vtx->num_elements);
 }
 
 static void
@@ -179,11 +180,11 @@ fd_draw_vbo(struct pipe_context *pctx, const struct pipe_draw_info *info)
 
 	/* figure out the buffers we need: */
 	buffers = FD_BUFFER_COLOR;
-	if (fd_depth_enabled(ctx->zsa)) {
+	if (fd_depth_enabled(ctx)) {
 		buffers |= FD_BUFFER_DEPTH;
 		fd_resource(fb->zsbuf->texture)->dirty = true;
 	}
-	if (fd_stencil_enabled(ctx->zsa)) {
+	if (fd_stencil_enabled(ctx)) {
 		buffers |= FD_BUFFER_STENCIL;
 		fd_resource(fb->zsbuf->texture)->dirty = true;
 	}
@@ -196,7 +197,7 @@ fd_draw_vbo(struct pipe_context *pctx, const struct pipe_draw_info *info)
 	if (ctx->dirty & FD_DIRTY_VTXBUF)
 		emit_vertexbufs(ctx, info->count);
 
-	fd_state_emit(pctx, ctx->dirty);
+	fd2_emit_state(pctx, ctx->dirty);
 
 	OUT_PKT3(ring, CP_SET_CONSTANT, 2);
 	OUT_RING(ring, CP_REG(REG_A2XX_VGT_INDX_OFFSET));

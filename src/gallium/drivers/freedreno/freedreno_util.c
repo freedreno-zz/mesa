@@ -289,7 +289,7 @@ fd_pipe2color(enum pipe_format format)
 	}
 }
 
-enum a2xx_rb_depth_format
+enum adreno_rb_depth_format
 fd_pipe2depth(enum pipe_format format)
 {
 	switch (format) {

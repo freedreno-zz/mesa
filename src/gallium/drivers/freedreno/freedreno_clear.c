@@ -35,9 +35,9 @@
 #include "freedreno_clear.h"
 #include "freedreno_context.h"
 #include "freedreno_resource.h"
-#include "freedreno_state.h"
 #include "freedreno_program.h"
-#include "freedreno_zsa.h"
+#include "fd2_zsa.h"
+#include "fd2_emit.h"
 #include "freedreno_util.h"
 
 static uint32_t
@@ -75,11 +75,11 @@ fd_clear(struct pipe_context *pctx, unsigned buffers,
 		colr  = pack_rgba(fb->cbufs[0]->format, color->f);
 
 	/* emit generic state now: */
-	fd_state_emit(pctx, ctx->dirty &
+	fd2_emit_state(pctx, ctx->dirty &
 			(FD_DIRTY_BLEND | FD_DIRTY_VIEWPORT |
 					FD_DIRTY_FRAMEBUFFER | FD_DIRTY_SCISSOR));
 
-	fd_emit_vertex_bufs(ring, 0x9c, (struct fd_vertex_buf[]) {
+	fd2_emit_vertex_bufs(ring, 0x9c, (struct fd2_vertex_buf[]) {
 			{ .prsc = ctx->solid_vertexbuf, .size = 48 },
 		}, 1);
 
