@@ -26,23 +26,13 @@
  *    Rob Clark <robclark@freedesktop.org>
  */
 
-#ifndef FREEDRENO_RASTERIZER_H_
-#define FREEDRENO_RASTERIZER_H_
+#ifndef FD2_COMPILER_H_
+#define FD2_COMPILER_H_
 
-#include "pipe/p_state.h"
-#include "pipe/p_context.h"
+#include "fd2_program.h"
+#include "fd2_util.h"
 
-struct fd_rasterizer_stateobj {
-	struct pipe_rasterizer_state base;
-	uint32_t pa_sc_line_stipple;
-	uint32_t pa_cl_clip_cntl;
-	uint32_t pa_su_vtx_cntl;
-	uint32_t pa_su_point_size;
-	uint32_t pa_su_point_minmax;
-	uint32_t pa_su_line_cntl;
-	uint32_t pa_su_sc_mode_cntl;
-};
+int fd2_compile_shader(struct fd_program_stateobj *prog,
+		struct fd2_shader_stateobj *so);
 
-void fd_rasterizer_init(struct pipe_context *pctx);
-
-#endif /* FREEDRENO_RASTERIZER_H_ */
+#endif /* FD2_COMPILER_H_ */

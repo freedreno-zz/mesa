@@ -44,6 +44,7 @@ struct fd_screen {
 
 	uint32_t gmemsize_bytes;
 	uint32_t device_id;
+	uint32_t gpu_id;
 
 	struct fd_device *dev;
 	struct fd_pipe *pipe;

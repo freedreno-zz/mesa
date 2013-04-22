@@ -1,7 +1,7 @@
 /* -*- mode: C; c-file-style: "k&r"; tab-width 4; indent-tabs-mode: t; -*- */
 
 /*
- * Copyright (C) 2012 Rob Clark <robclark@freedesktop.org>
+ * Copyright (C) 2012-2013 Rob Clark <robclark@freedesktop.org>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -26,13 +26,13 @@
  *    Rob Clark <robclark@freedesktop.org>
  */
 
-#ifndef FREEDRENO_COMPILER_H_
-#define FREEDRENO_COMPILER_H_
+#ifndef FD2_DRAW_H_
+#define FD2_DRAW_H_
 
-#include "freedreno_program.h"
-#include "freedreno_util.h"
+#include "pipe/p_context.h"
 
-int fd_compile_shader(struct fd_program_stateobj *prog,
-		struct fd_shader_stateobj *so);
+#include "freedreno_draw.h"
 
-#endif /* FREEDRENO_COMPILER_H_ */
+void fd2_draw_init(struct pipe_context *pctx);
+
+#endif /* FD2_DRAW_H_ */

@@ -1,7 +1,7 @@
 /* -*- mode: C; c-file-style: "k&r"; tab-width 4; indent-tabs-mode: t; -*- */
 
 /*
- * Copyright (C) 2012 Rob Clark <robclark@freedesktop.org>
+ * Copyright (C) 2013 Rob Clark <robclark@freedesktop.org>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -26,12 +26,50 @@
  *    Rob Clark <robclark@freedesktop.org>
  */
 
-#ifndef FREEDRENO_CLEAR_H_
-#define FREEDRENO_CLEAR_H_
 
-#include "pipe/p_context.h"
+#include "fd2_context.h"
+#include "fd2_blend.h"
+#include "fd2_draw.h"
+#include "fd2_emit.h"
+#include "fd2_gmem.h"
+#include "fd2_program.h"
+#include "fd2_rasterizer.h"
+#include "fd2_texture.h"
+#include "fd2_zsa.h"
 
-void fd_clear_init(struct pipe_context *pctx);
+static void
+fd2_context_destroy(struct pipe_context *pctx)
+{
+	fd2_prog_fini(pctx);
+	fd_context_destroy(pctx);
+}
 
+struct pipe_context *
+fd2_context_create(struct pipe_screen *pscreen, void *priv)
+{
+	struct fd2_context *fd2_ctx = CALLOC_STRUCT(fd2_context);
+	struct pipe_context *pctx;
 
-#endif /* FREEDRENO_CLEAR_H_ */
+	if (!fd2_ctx)
+		return NULL;
+
+	pctx = &fd2_ctx->base.base;
+
+	pctx->destroy = fd2_context_destroy;
+	pctx->create_blend_state = fd2_blend_state_create;
+	pctx->create_rasterizer_state = fd2_rasterizer_state_create;
+	pctx->create_depth_stencil_alpha_state = fd2_zsa_state_create;
+
+	fd2_draw_init(pctx);
+	fd2_gmem_init(pctx);
+	fd2_texture_init(pctx);
+	fd2_prog_init(pctx);
+
+	pctx = fd_context_init(&fd2_ctx->base, pscreen, priv);
+	if (!pctx)
+		return NULL;
+
+	fd2_emit_setup(&fd2_ctx->base);
+
+	return pctx;
+}
