@@ -151,6 +151,8 @@ compile_init(struct fd_compile_context *ctx, struct fd_program_stateobj *prog,
 	memset(ctx->input_export_idx, 0, sizeof(ctx->input_export_idx));
 	memset(ctx->output_export_idx, 0, sizeof(ctx->output_export_idx));
 
+	// use tgsi_shader_scan instead..
+
 	/* do first pass to extract declarations: */
 	while (!tgsi_parse_end_of_tokens(&ctx->parser)) {
 		tgsi_parse_token(&ctx->parser);
