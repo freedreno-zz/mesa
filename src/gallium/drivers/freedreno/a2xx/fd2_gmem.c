@@ -335,15 +335,14 @@ fd2_emit_tile_prep(struct fd_context *ctx, uint32_t xoff, uint32_t yoff,
 	struct fd_ringbuffer *ring = ctx->ring;
 	struct pipe_framebuffer_state *pfb = &ctx->framebuffer;
 	struct fd_gmem_stateobj *gmem = &ctx->gmem;
-	enum a2xx_colorformatx colorformatx =
-			fd_pipe2color(pfb->cbufs[0]->format);
+	enum pipe_format format = pfb->cbufs[0]->format;
 	uint32_t reg;
 
 	OUT_PKT3(ring, CP_SET_CONSTANT, 4);
 	OUT_RING(ring, CP_REG(REG_A2XX_RB_SURFACE_INFO));
 	OUT_RING(ring, gmem->bin_w);                 /* RB_SURFACE_INFO */
-	OUT_RING(ring, A2XX_RB_COLOR_INFO_SWAP(fmt2swap(colorformatx)) |
-			A2XX_RB_COLOR_INFO_FORMAT(colorformatx));
+	OUT_RING(ring, A2XX_RB_COLOR_INFO_SWAP(fmt2swap(format)) |
+			A2XX_RB_COLOR_INFO_FORMAT(fd_pipe2color(format)));
 	reg = A2XX_RB_DEPTH_INFO_DEPTH_BASE(align(gmem->bin_w * gmem->bin_h, 4));
 	if (pfb->zsbuf)
 		reg |= A2XX_RB_DEPTH_INFO_DEPTH_FORMAT(fd_pipe2depth(pfb->zsbuf->format));
@@ -363,13 +362,12 @@ fd2_emit_tile_renderprep(struct fd_context *ctx, uint32_t xoff, uint32_t yoff,
 {
 	struct fd_ringbuffer *ring = ctx->ring;
 	struct pipe_framebuffer_state *pfb = &ctx->framebuffer;
-	enum a2xx_colorformatx colorformatx =
-			fd_pipe2color(pfb->cbufs[0]->format);
+	enum pipe_format format = pfb->cbufs[0]->format;
 
 	OUT_PKT3(ring, CP_SET_CONSTANT, 2);
 	OUT_RING(ring, CP_REG(REG_A2XX_RB_COLOR_INFO));
-	OUT_RING(ring, A2XX_RB_COLOR_INFO_SWAP(fmt2swap(colorformatx)) |
-			A2XX_RB_COLOR_INFO_FORMAT(colorformatx));
+	OUT_RING(ring, A2XX_RB_COLOR_INFO_SWAP(fmt2swap(format)) |
+			A2XX_RB_COLOR_INFO_FORMAT(fd_pipe2color(format)));
 
 	/* setup window scissor and offset for current tile (different
 	 * from mem2gmem):
