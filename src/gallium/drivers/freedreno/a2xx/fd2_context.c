@@ -48,6 +48,8 @@ fd2_context_create(struct pipe_screen *pscreen, void *priv)
 	pctx->create_rasterizer_state = fd2_rasterizer_state_create;
 	pctx->create_depth_stencil_alpha_state = fd2_zsa_state_create;
 
+	fd2_texture_init(pctx);
+
 	pctx = fd_context_init(&f2_ctx->base, pscreen, priv);
 	if (!pctx)
 		return NULL;
