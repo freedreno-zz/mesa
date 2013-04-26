@@ -93,7 +93,7 @@ emit_gmem2mem_surf(struct fd_ringbuffer *ring, uint32_t base,
 	OUT_PKT3(ring, CP_SET_CONSTANT, 2);
 	OUT_RING(ring, CP_REG(REG_A2XX_RB_COLOR_INFO));
 	OUT_RING(ring, A2XX_RB_COLOR_INFO_SWAP(swap) |
-			A2XX_RB_COLOR_INFO_BASE(base / 1024) |
+			A2XX_RB_COLOR_INFO_BASE(base) |
 			A2XX_RB_COLOR_INFO_FORMAT(fd_pipe2color(psurf->format)));
 
 	OUT_PKT3(ring, CP_SET_CONSTANT, 5);
@@ -134,6 +134,10 @@ emit_gmem2mem(struct fd_context *ctx, struct fd_ringbuffer *ring,
 	fd2_emit_vertex_bufs(ring, 0x9c, (struct fd2_vertex_buf[]) {
 			{ .prsc = ctx->solid_vertexbuf, .size = 48 },
 		}, 1);
+
+	OUT_PKT3(ring, CP_SET_CONSTANT, 2);
+	OUT_RING(ring, CP_REG(REG_A2XX_PA_SC_WINDOW_OFFSET));
+	OUT_RING(ring, 0x00000000);          /* PA_SC_WINDOW_OFFSET */
 
 	OUT_PKT3(ring, CP_SET_CONSTANT, 2);
 	OUT_RING(ring, CP_REG(REG_A2XX_VGT_INDX_OFFSET));
@@ -413,6 +417,58 @@ calculate_tiles(struct fd_context *ctx)
 	gmem->height = height;
 }
 
+/* before mem2gmem */
+static void
+emit_tile_prep(struct fd_context *ctx, struct fd_ringbuffer *ring,
+		uint32_t xoff, uint32_t yoff, uint32_t bin_w, uint32_t bin_h)
+{
+	struct pipe_framebuffer_state *pfb = &ctx->framebuffer;
+	struct fd_gmem_stateobj *gmem = &ctx->gmem;
+	enum a2xx_colorformatx colorformatx =
+			fd_pipe2color(pfb->cbufs[0]->format);
+	uint32_t reg;
+
+	OUT_PKT3(ring, CP_SET_CONSTANT, 4);
+	OUT_RING(ring, CP_REG(REG_A2XX_RB_SURFACE_INFO));
+	OUT_RING(ring, gmem->bin_w);                 /* RB_SURFACE_INFO */
+	OUT_RING(ring, A2XX_RB_COLOR_INFO_SWAP(fmt2swap(colorformatx)) |
+			A2XX_RB_COLOR_INFO_FORMAT(colorformatx));
+	reg = A2XX_RB_DEPTH_INFO_DEPTH_BASE(align(gmem->bin_w * gmem->bin_h, 4));
+	if (pfb->zsbuf)
+		reg |= A2XX_RB_DEPTH_INFO_DEPTH_FORMAT(fd_pipe2depth(pfb->zsbuf->format));
+	OUT_RING(ring, reg);                         /* RB_DEPTH_INFO */
+
+	/* setup screen scissor for current tile (same for mem2gmem): */
+	OUT_PKT3(ring, CP_SET_CONSTANT, 3);
+	OUT_RING(ring, CP_REG(REG_A2XX_PA_SC_SCREEN_SCISSOR_TL));
+	OUT_RING(ring, xy2d(0,0));           /* PA_SC_SCREEN_SCISSOR_TL */
+	OUT_RING(ring, xy2d(bin_w, bin_h));  /* PA_SC_SCREEN_SCISSOR_BR */
+}
+
+/* before IB to rendering cmds: */
+static void
+emit_tile_renderprep(struct fd_context *ctx, struct fd_ringbuffer *ring,
+		uint32_t xoff, uint32_t yoff, uint32_t bin_w, uint32_t bin_h)
+{
+	struct pipe_framebuffer_state *pfb = &ctx->framebuffer;
+	enum a2xx_colorformatx colorformatx =
+			fd_pipe2color(pfb->cbufs[0]->format);
+
+	OUT_PKT3(ring, CP_SET_CONSTANT, 2);
+	OUT_RING(ring, CP_REG(REG_A2XX_RB_COLOR_INFO));
+	OUT_RING(ring, A2XX_RB_COLOR_INFO_SWAP(fmt2swap(colorformatx)) |
+			A2XX_RB_COLOR_INFO_FORMAT(colorformatx));
+
+	/* setup window scissor and offset for current tile (different
+	 * from mem2gmem):
+	 */
+	OUT_PKT3(ring, CP_SET_CONSTANT, 2);
+	OUT_RING(ring, CP_REG(REG_A2XX_PA_SC_WINDOW_OFFSET));
+	OUT_RING(ring, A2XX_PA_SC_WINDOW_OFFSET_X(-xoff) |
+			A2XX_PA_SC_WINDOW_OFFSET_Y(-yoff));
+}
+
+
 void
 fd_gmem_render_tiles(struct pipe_context *pctx)
 {
@@ -420,9 +476,7 @@ fd_gmem_render_tiles(struct pipe_context *pctx)
 	struct pipe_framebuffer_state *pfb = &ctx->framebuffer;
 	struct fd_gmem_stateobj *gmem = &ctx->gmem;
 	struct fd_ringbuffer *ring = ctx->ring;
-	enum a2xx_colorformatx colorformatx = fd_pipe2color(pfb->cbufs[0]->format);
 	uint32_t i, timestamp, yoff = 0;
-	uint32_t reg;
 
 	calculate_tiles(ctx);
 
@@ -432,20 +486,6 @@ fd_gmem_render_tiles(struct pipe_context *pctx)
 
 	/* mark the end of the clear/draw cmds before emitting per-tile cmds: */
 	fd_ringmarker_mark(ctx->draw_end);
-
-	/* RB_SURFACE_INFO / RB_DEPTH_INFO can be emitted once per tile pass,
-	 * but RB_COLOR_INFO gets overwritten by gmem2mem and mem2gmem and so
-	 * needs to be emitted for each tile:
-	 */
-	OUT_PKT3(ring, CP_SET_CONSTANT, 4);
-	OUT_RING(ring, CP_REG(REG_A2XX_RB_SURFACE_INFO));
-	OUT_RING(ring, gmem->bin_w);                 /* RB_SURFACE_INFO */
-	OUT_RING(ring, A2XX_RB_COLOR_INFO_SWAP(1) | /* RB_COLOR_INFO */
-			A2XX_RB_COLOR_INFO_FORMAT(colorformatx));
-	reg = A2XX_RB_DEPTH_INFO_DEPTH_BASE(align(gmem->bin_w * gmem->bin_h, 4));
-	if (pfb->zsbuf)
-		reg |= A2XX_RB_DEPTH_INFO_DEPTH_FORMAT(fd_pipe2depth(pfb->zsbuf->format));
-	OUT_RING(ring, reg);                         /* RB_DEPTH_INFO */
 
 	yoff= gmem->miny;
 	for (i = 0; i < gmem->nbins_y; i++) {
@@ -464,34 +504,15 @@ fd_gmem_render_tiles(struct pipe_context *pctx)
 			DBG("bin_h=%d, yoff=%d, bin_w=%d, xoff=%d",
 					bh, yoff, bw, xoff);
 
-			/* setup screen scissor for current tile (same for mem2gmem): */
-			OUT_PKT3(ring, CP_SET_CONSTANT, 3);
-			OUT_RING(ring, CP_REG(REG_A2XX_PA_SC_SCREEN_SCISSOR_TL));
-			OUT_RING(ring, xy2d(0,0));           /* PA_SC_SCREEN_SCISSOR_TL */
-			OUT_RING(ring, xy2d(bw, bh));        /* PA_SC_SCREEN_SCISSOR_BR */
+			emit_tile_prep(ctx, ring, xoff, yoff, bw, bh);
 
 			if (ctx->restore)
 				emit_mem2gmem(ctx, ring, xoff, yoff, bw, bh);
 
-			OUT_PKT3(ring, CP_SET_CONSTANT, 2);
-			OUT_RING(ring, CP_REG(REG_A2XX_RB_COLOR_INFO));
-			OUT_RING(ring, A2XX_RB_COLOR_INFO_SWAP(1) | /* RB_COLOR_INFO */
-					A2XX_RB_COLOR_INFO_FORMAT(colorformatx));
-
-			/* setup window scissor and offset for current tile (different
-			 * from mem2gmem):
-			 */
-			OUT_PKT3(ring, CP_SET_CONSTANT, 2);
-			OUT_RING(ring, CP_REG(REG_A2XX_PA_SC_WINDOW_OFFSET));
-			OUT_RING(ring, A2XX_PA_SC_WINDOW_OFFSET_X(-xoff) |
-					A2XX_PA_SC_WINDOW_OFFSET_Y(-yoff));/* PA_SC_WINDOW_OFFSET */
+			emit_tile_renderprep(ctx, ring, xoff, yoff, bw, bh);
 
 			/* emit IB to drawcmds: */
-			OUT_IB  (ring, ctx->draw_start, ctx->draw_end);
-
-			OUT_PKT3(ring, CP_SET_CONSTANT, 2);
-			OUT_RING(ring, CP_REG(REG_A2XX_PA_SC_WINDOW_OFFSET));
-			OUT_RING(ring, 0x00000000);          /* PA_SC_WINDOW_OFFSET */
+			OUT_IB(ring, ctx->draw_start, ctx->draw_end);
 
 			/* emit gmem2mem to transfer tile back to system memory: */
 			emit_gmem2mem(ctx, ring, xoff, yoff, bw, bh);
