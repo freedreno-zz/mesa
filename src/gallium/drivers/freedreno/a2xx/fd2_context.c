@@ -31,6 +31,7 @@
 #include "fd2_emit.h"
 #include "fd2_blend.h"
 #include "fd2_rasterizer.h"
+#include "fd2_texture.h"
 #include "fd2_zsa.h"
 
 struct pipe_context *
