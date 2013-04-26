@@ -179,6 +179,16 @@ struct fd_context {
 	struct fd_constbuf_stateobj constbuf[PIPE_SHADER_TYPES];
 	struct fd_vertexbuf_stateobj vertexbuf;
 	struct pipe_index_buffer indexbuf;
+
+	/* GMEM/tile handling fxns: */
+	void (*emit_tile_prep)(struct fd_context *ctx, uint32_t xoff, uint32_t yoff,
+			uint32_t bin_w, uint32_t bin_h);
+	void (*emit_tile_mem2gmem)(struct fd_context *ctx, uint32_t xoff, uint32_t yoff,
+			uint32_t bin_w, uint32_t bin_h);
+	void (*emit_tile_renderprep)(struct fd_context *ctx, uint32_t xoff, uint32_t yoff,
+			uint32_t bin_w, uint32_t bin_h);
+	void (*emit_tile_gmem2mem)(struct fd_context *ctx, uint32_t xoff, uint32_t yoff,
+			uint32_t bin_w, uint32_t bin_h);
 };
 
 static INLINE struct fd_context *
