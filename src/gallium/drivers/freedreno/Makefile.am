@@ -20,7 +20,6 @@ libfreedreno_la_SOURCES = \
 	freedreno_surface.c \
 	freedreno_vbo.c \
 	freedreno_state.c \
-	freedreno_clear.c \
 	freedreno_program.c \
 	freedreno_texture.c \
 	freedreno_context.c \

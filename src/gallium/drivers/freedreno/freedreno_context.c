@@ -29,7 +29,6 @@
 #include "freedreno_context.h"
 #include "freedreno_vbo.h"
 #include "freedreno_resource.h"
-#include "freedreno_clear.h"
 #include "freedreno_program.h"
 #include "freedreno_texture.h"
 #include "freedreno_state.h"
@@ -177,7 +176,6 @@ fd_context_init(struct fd_context *ctx,
 
 	fd_vbo_init(pctx);
 	fd_resource_context_init(pctx);
-	fd_clear_init(pctx);
 	fd_prog_init(pctx);
 	fd_texture_init(pctx);
 	fd_state_init(pctx);

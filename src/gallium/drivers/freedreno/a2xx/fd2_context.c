@@ -28,6 +28,7 @@
 
 
 #include "fd2_context.h"
+#include "fd2_clear.h"
 #include "fd2_emit.h"
 #include "fd2_blend.h"
 #include "fd2_rasterizer.h"
@@ -49,6 +50,7 @@ fd2_context_create(struct pipe_screen *pscreen, void *priv)
 	pctx->create_rasterizer_state = fd2_rasterizer_state_create;
 	pctx->create_depth_stencil_alpha_state = fd2_zsa_state_create;
 
+	fd2_clear_init(pctx);
 	fd2_texture_init(pctx);
 
 	pctx = fd_context_init(&f2_ctx->base, pscreen, priv);

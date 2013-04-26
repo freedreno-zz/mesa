@@ -1,7 +1,7 @@
 /* -*- mode: C; c-file-style: "k&r"; tab-width 4; indent-tabs-mode: t; -*- */
 
 /*
- * Copyright (C) 2012 Rob Clark <robclark@freedesktop.org>
+ * Copyright (C) 2012-2013 Rob Clark <robclark@freedesktop.org>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -32,10 +32,11 @@
 #include "util/u_inlines.h"
 #include "util/u_pack_color.h"
 
-#include "freedreno_clear.h"
 #include "freedreno_context.h"
 #include "freedreno_resource.h"
 #include "freedreno_program.h"
+
+#include "fd2_clear.h"
 #include "fd2_zsa.h"
 #include "fd2_emit.h"
 #include "freedreno_util.h"
@@ -49,7 +50,7 @@ pack_rgba(enum pipe_format format, const float *rgba)
 }
 
 static void
-fd_clear(struct pipe_context *pctx, unsigned buffers,
+fd2_clear(struct pipe_context *pctx, unsigned buffers,
 		const union pipe_color_union *color, double depth, unsigned stencil)
 {
 	struct fd_context *ctx = fd_context(pctx);
@@ -231,7 +232,7 @@ fd_clear(struct pipe_context *pctx, unsigned buffers,
 }
 
 static void
-fd_clear_render_target(struct pipe_context *pctx, struct pipe_surface *ps,
+fd2_clear_render_target(struct pipe_context *pctx, struct pipe_surface *ps,
 		const union pipe_color_union *color,
 		unsigned x, unsigned y, unsigned w, unsigned h)
 {
@@ -239,7 +240,7 @@ fd_clear_render_target(struct pipe_context *pctx, struct pipe_surface *ps,
 }
 
 static void
-fd_clear_depth_stencil(struct pipe_context *pctx, struct pipe_surface *ps,
+fd2_clear_depth_stencil(struct pipe_context *pctx, struct pipe_surface *ps,
 		unsigned buffers, double depth, unsigned stencil,
 		unsigned x, unsigned y, unsigned w, unsigned h)
 {
@@ -248,9 +249,9 @@ fd_clear_depth_stencil(struct pipe_context *pctx, struct pipe_surface *ps,
 }
 
 void
-fd_clear_init(struct pipe_context *pctx)
+fd2_clear_init(struct pipe_context *pctx)
 {
-	pctx->clear = fd_clear;
-	pctx->clear_render_target = fd_clear_render_target;
-	pctx->clear_depth_stencil = fd_clear_depth_stencil;
+	pctx->clear = fd2_clear;
+	pctx->clear_render_target = fd2_clear_render_target;
+	pctx->clear_depth_stencil = fd2_clear_depth_stencil;
 }

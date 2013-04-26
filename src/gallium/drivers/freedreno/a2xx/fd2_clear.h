@@ -1,7 +1,7 @@
 /* -*- mode: C; c-file-style: "k&r"; tab-width 4; indent-tabs-mode: t; -*- */
 
 /*
- * Copyright (C) 2012 Rob Clark <robclark@freedesktop.org>
+ * Copyright (C) 2012-2013 Rob Clark <robclark@freedesktop.org>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -26,12 +26,12 @@
  *    Rob Clark <robclark@freedesktop.org>
  */
 
-#ifndef FREEDRENO_CLEAR_H_
-#define FREEDRENO_CLEAR_H_
+#ifndef FD2_CLEAR_H_
+#define FD2_CLEAR_H_
 
 #include "pipe/p_context.h"
 
-void fd_clear_init(struct pipe_context *pctx);
+void fd2_clear_init(struct pipe_context *pctx);
 
 
-#endif /* FREEDRENO_CLEAR_H_ */
+#endif /* FD2_CLEAR_H_ */
