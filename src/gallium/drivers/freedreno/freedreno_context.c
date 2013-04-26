@@ -32,6 +32,7 @@
 #include "freedreno_clear.h"
 #include "freedreno_program.h"
 #include "freedreno_texture.h"
+#include "freedreno_state.h"
 #include "freedreno_gmem.h"
 #include "freedreno_util.h"
 
@@ -179,6 +180,7 @@ fd_context_init(struct fd_context *ctx,
 	fd_clear_init(pctx);
 	fd_prog_init(pctx);
 	fd_texture_init(pctx);
+	fd_state_init(pctx);
 
 	ctx->blitter = util_blitter_create(pctx);
 	if (!ctx->blitter)
