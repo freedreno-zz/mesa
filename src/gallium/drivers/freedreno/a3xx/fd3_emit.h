@@ -1,5 +1,7 @@
+/* -*- mode: C; c-file-style: "k&r"; tab-width 4; indent-tabs-mode: t; -*- */
+
 /*
- * Copyright © 2012 Rob Clark <robclark@freedesktop.org>
+ * Copyright (C) 2013 Rob Clark <robclark@freedesktop.org>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -19,25 +21,28 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
+ *
+ * Authors:
+ *    Rob Clark <robclark@freedesktop.org>
  */
 
-#ifndef DISASM_H_
-#define DISASM_H_
+#ifndef FD3_EMIT_H
+#define FD3_EMIT_H
 
-enum shader_t {
-	SHADER_VERTEX,
-	SHADER_FRAGMENT,
-	SHADER_COMPUTE,
+#include "pipe/p_context.h"
+
+#include "freedreno_context.h"
+
+struct fd_ringbuffer;
+
+struct fd3_vertex_buf {
+	unsigned offset, size;
+	struct pipe_resource *prsc;
 };
 
-/* bitmask of debug flags */
-enum debug_t {
-	PRINT_RAW      = 0x1,    /* dump raw hexdump */
-	PRINT_VERBOSE  = 0x2,
-};
+void fd3_emit_vertex_bufs(struct fd_ringbuffer *ring, uint32_t val,
+		struct fd3_vertex_buf *vbufs, uint32_t n);
+void fd3_emit_state(struct fd_context *ctx, uint32_t dirty);
+void fd3_emit_setup(struct fd_context *ctx);
 
-int disasm_a2xx(uint32_t *dwords, int sizedwords, int level, enum shader_t type);
-int disasm_a3xx(uint32_t *dwords, int sizedwords, int level, enum shader_t type);
-void disasm_set_debug(enum debug_t debug);
-
-#endif /* DISASM_H_ */
+#endif /* FD3_EMIT_H */
