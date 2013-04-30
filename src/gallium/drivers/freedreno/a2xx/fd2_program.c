@@ -34,15 +34,15 @@
 #include "tgsi/tgsi_dump.h"
 #include "tgsi/tgsi_parse.h"
 
-#include "freedreno_program.h"
-#include "freedreno_compiler.h"
+#include "fd2_program.h"
+#include "fd2_compiler.h"
 #include "fd2_texture.h"
 #include "fd2_util.h"
 
-static struct fd_shader_stateobj *
+static struct fd2_shader_stateobj *
 create_shader(enum shader_t type)
 {
-	struct fd_shader_stateobj *so = CALLOC_STRUCT(fd_shader_stateobj);
+	struct fd2_shader_stateobj *so = CALLOC_STRUCT(fd2_shader_stateobj);
 	if (!so)
 		return NULL;
 	so->type = type;
@@ -50,15 +50,15 @@ create_shader(enum shader_t type)
 }
 
 static void
-delete_shader(struct fd_shader_stateobj *so)
+delete_shader(struct fd2_shader_stateobj *so)
 {
 	ir2_shader_destroy(so->ir);
 	FREE(so->tokens);
 	FREE(so);
 }
 
-static struct fd_shader_stateobj *
-assemble(struct fd_shader_stateobj *so)
+static struct fd2_shader_stateobj *
+assemble(struct fd2_shader_stateobj *so)
 {
 	free(so->bin);
 	so->bin = ir2_shader_assemble(so->ir, &so->info);
@@ -78,8 +78,8 @@ fail:
 	return NULL;
 }
 
-static struct fd_shader_stateobj *
-compile(struct fd_program_stateobj *prog, struct fd_shader_stateobj *so)
+static struct fd2_shader_stateobj *
+compile(struct fd_program_stateobj *prog, struct fd2_shader_stateobj *so)
 {
 	int ret;
 
@@ -88,7 +88,7 @@ compile(struct fd_program_stateobj *prog, struct fd_shader_stateobj *so)
 		tgsi_dump(so->tokens, 0);
 	}
 
-	ret = fd_compile_shader(prog, so);
+	ret = fd2_compile_shader(prog, so);
 	if (ret)
 		goto fail;
 
@@ -108,7 +108,7 @@ fail:
 }
 
 static void
-emit(struct fd_ringbuffer *ring, struct fd_shader_stateobj *so)
+emit(struct fd_ringbuffer *ring, struct fd2_shader_stateobj *so)
 {
 	unsigned i;
 
@@ -126,7 +126,7 @@ static void *
 fd_fp_state_create(struct pipe_context *pctx,
 		const struct pipe_shader_state *cso)
 {
-	struct fd_shader_stateobj *so = create_shader(SHADER_FRAGMENT);
+	struct fd2_shader_stateobj *so = create_shader(SHADER_FRAGMENT);
 	if (!so)
 		return NULL;
 	so->tokens = tgsi_dup_tokens(cso->tokens);
@@ -136,7 +136,7 @@ fd_fp_state_create(struct pipe_context *pctx,
 static void
 fd_fp_state_delete(struct pipe_context *pctx, void *hwcso)
 {
-	struct fd_shader_stateobj *so = hwcso;
+	struct fd2_shader_stateobj *so = hwcso;
 	delete_shader(so);
 }
 
@@ -153,7 +153,7 @@ static void *
 fd_vp_state_create(struct pipe_context *pctx,
 		const struct pipe_shader_state *cso)
 {
-	struct fd_shader_stateobj *so = create_shader(SHADER_VERTEX);
+	struct fd2_shader_stateobj *so = create_shader(SHADER_VERTEX);
 	if (!so)
 		return NULL;
 	so->tokens = tgsi_dup_tokens(cso->tokens);
@@ -163,7 +163,7 @@ fd_vp_state_create(struct pipe_context *pctx,
 static void
 fd_vp_state_delete(struct pipe_context *pctx, void *hwcso)
 {
-	struct fd_shader_stateobj *so = hwcso;
+	struct fd2_shader_stateobj *so = hwcso;
 	delete_shader(so);
 }
 
@@ -177,7 +177,7 @@ fd_vp_state_bind(struct pipe_context *pctx, void *hwcso)
 }
 
 static void
-patch_vtx_fetches(struct fd_context *ctx, struct fd_shader_stateobj *so,
+patch_vtx_fetches(struct fd_context *ctx, struct fd2_shader_stateobj *so,
 		struct fd_vertex_stateobj *vtx)
 {
 	unsigned i;
@@ -233,7 +233,7 @@ patch_vtx_fetches(struct fd_context *ctx, struct fd_shader_stateobj *so,
 }
 
 static void
-patch_tex_fetches(struct fd_context *ctx, struct fd_shader_stateobj *so,
+patch_tex_fetches(struct fd_context *ctx, struct fd2_shader_stateobj *so,
 		struct fd_texture_stateobj *tex)
 {
 	unsigned i;
@@ -253,7 +253,7 @@ patch_tex_fetches(struct fd_context *ctx, struct fd_shader_stateobj *so,
 }
 
 void
-fd_program_validate(struct fd_context *ctx)
+fd2_program_validate(struct fd_context *ctx)
 {
 	struct fd_program_stateobj *prog = &ctx->prog;
 
@@ -285,11 +285,13 @@ fd_program_validate(struct fd_context *ctx)
 }
 
 void
-fd_program_emit(struct fd_ringbuffer *ring,
+fd2_program_emit(struct fd_ringbuffer *ring,
 		struct fd_program_stateobj *prog)
 {
-	struct ir2_shader_info *vsi = &prog->vp->info;
-	struct ir2_shader_info *fsi = &prog->fp->info;
+	struct ir2_shader_info *vsi =
+		&((struct fd2_shader_stateobj *)prog->vp)->info;
+	struct ir2_shader_info *fsi =
+		&((struct fd2_shader_stateobj *)prog->fp)->info;
 	uint8_t vs_gprs, fs_gprs, vs_export;
 
 	emit(ring, prog->vp);
@@ -317,10 +319,10 @@ fd_program_emit(struct fd_ringbuffer *ring,
  *          ALU:	MAXv	export0 = R0, R0	; gl_FragColor
  *    NOP
  */
-static struct fd_shader_stateobj *
+static struct fd2_shader_stateobj *
 create_blit_fp(void)
 {
-	struct fd_shader_stateobj *so = create_shader(SHADER_FRAGMENT);
+	struct fd2_shader_stateobj *so = create_shader(SHADER_FRAGMENT);
 	struct ir2_cf *cf;
 	struct ir2_instruction *instr;
 
@@ -359,10 +361,10 @@ create_blit_fp(void)
 *           ALU:	MAXv	export0 = R1, R1
 *     NOP
  */
-static struct fd_shader_stateobj *
+static struct fd2_shader_stateobj *
 create_blit_vp(void)
 {
-	struct fd_shader_stateobj *so = create_shader(SHADER_VERTEX);
+	struct fd2_shader_stateobj *so = create_shader(SHADER_VERTEX);
 	struct ir2_cf *cf;
 	struct ir2_instruction *instr;
 
@@ -407,10 +409,10 @@ create_blit_vp(void)
  *    EXEC_END ADDR(0x1) CNT(0x1)
  *          ALU:	MAXv	export0 = C0, C0	; gl_FragColor
  */
-static struct fd_shader_stateobj *
+static struct fd2_shader_stateobj *
 create_solid_fp(void)
 {
-	struct fd_shader_stateobj *so = create_shader(SHADER_FRAGMENT);
+	struct fd2_shader_stateobj *so = create_shader(SHADER_FRAGMENT);
 	struct ir2_cf *cf;
 	struct ir2_instruction *instr;
 
@@ -440,10 +442,10 @@ create_solid_fp(void)
  *    ALLOC PARAM/PIXEL SIZE(0x0)
  *    EXEC_END ADDR(0x5) CNT(0x0)
  */
-static struct fd_shader_stateobj *
+static struct fd2_shader_stateobj *
 create_solid_vp(void)
 {
-	struct fd_shader_stateobj *so = create_shader(SHADER_VERTEX);
+	struct fd2_shader_stateobj *so = create_shader(SHADER_VERTEX);
 	struct ir2_cf *cf;
 	struct ir2_instruction *instr;
 
@@ -473,7 +475,7 @@ create_solid_vp(void)
 }
 
 void
-fd_prog_init(struct pipe_context *pctx)
+fd2_prog_init(struct pipe_context *pctx)
 {
 	struct fd_context *ctx = fd_context(pctx);
 
@@ -492,7 +494,7 @@ fd_prog_init(struct pipe_context *pctx)
 }
 
 void
-fd_prog_fini(struct pipe_context *pctx)
+fd2_prog_fini(struct pipe_context *pctx)
 {
 	struct fd_context *ctx = fd_context(pctx);
 

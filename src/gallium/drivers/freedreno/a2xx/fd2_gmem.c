@@ -32,12 +32,12 @@
 #include "util/u_inlines.h"
 
 #include "freedreno_state.h"
-#include "freedreno_program.h"
 #include "freedreno_resource.h"
 
 #include "fd2_gmem.h"
 #include "fd2_context.h"
 #include "fd2_emit.h"
+#include "fd2_program.h"
 #include "fd2_util.h"
 #include "fd2_zsa.h"
 
@@ -119,7 +119,7 @@ fd2_emit_tile_gmem2mem(struct fd_context *ctx, uint32_t xoff, uint32_t yoff,
 	OUT_RING(ring, CP_REG(REG_A2XX_VGT_VERTEX_REUSE_BLOCK_CNTL));
 	OUT_RING(ring, 0x0000028f);
 
-	fd_program_emit(ring, &ctx->solid_prog);
+	fd2_program_emit(ring, &ctx->solid_prog);
 
 	OUT_PKT3(ring, CP_SET_CONSTANT, 2);
 	OUT_RING(ring, CP_REG(REG_A2XX_PA_SC_AA_MASK));
@@ -257,7 +257,7 @@ fd2_emit_tile_mem2gmem(struct fd_context *ctx, uint32_t xoff, uint32_t yoff,
 	OUT_RING(ring, CP_REG(REG_A2XX_VGT_VERTEX_REUSE_BLOCK_CNTL));
 	OUT_RING(ring, 0x0000003b);
 
-	fd_program_emit(ring, &ctx->blit_prog);
+	fd2_program_emit(ring, &ctx->blit_prog);
 
 	OUT_PKT0(ring, REG_A2XX_TC_CNTL_STATUS, 1);
 	OUT_RING(ring, A2XX_TC_CNTL_STATUS_L2_INVALIDATE);

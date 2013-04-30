@@ -38,7 +38,6 @@
 #include "freedreno_screen.h"
 
 struct fd_vertex_stateobj;
-struct fd_shader_stateobj;
 
 struct fd_texture_stateobj {
 	struct pipe_sampler_view *textures[PIPE_MAX_SAMPLERS];
@@ -49,7 +48,7 @@ struct fd_texture_stateobj {
 };
 
 struct fd_program_stateobj {
-	struct fd_shader_stateobj *vp, *fp;
+	void *vp, *fp;
 	enum {
 		FD_SHADER_DIRTY_VP = (1 << 0),
 		FD_SHADER_DIRTY_FP = (1 << 1),
@@ -209,5 +208,7 @@ struct pipe_context * fd_context_init(struct fd_context *ctx,
 		struct pipe_screen *pscreen, void *priv);
 
 void fd_context_render(struct pipe_context *pctx);
+
+void fd_context_destroy(struct pipe_context *pctx);
 
 #endif /* FREEDRENO_CONTEXT_H_ */

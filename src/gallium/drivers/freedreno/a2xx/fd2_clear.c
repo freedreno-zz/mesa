@@ -33,11 +33,11 @@
 #include "util/u_pack_color.h"
 
 #include "freedreno_resource.h"
-#include "freedreno_program.h"
 
 #include "fd2_clear.h"
 #include "fd2_context.h"
 #include "fd2_emit.h"
+#include "fd2_program.h"
 #include "fd2_util.h"
 #include "fd2_zsa.h"
 
@@ -92,7 +92,7 @@ fd2_clear(struct pipe_context *pctx, unsigned buffers,
 	OUT_RING(ring, CP_REG(REG_A2XX_VGT_VERTEX_REUSE_BLOCK_CNTL));
 	OUT_RING(ring, 0x0000028f);
 
-	fd_program_emit(ring, &ctx->solid_prog);
+	fd2_program_emit(ring, &ctx->solid_prog);
 
 	OUT_PKT0(ring, REG_A2XX_TC_CNTL_STATUS, 1);
 	OUT_RING(ring, A2XX_TC_CNTL_STATUS_L2_INVALIDATE);

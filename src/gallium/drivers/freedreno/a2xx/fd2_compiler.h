@@ -26,13 +26,13 @@
  *    Rob Clark <robclark@freedesktop.org>
  */
 
-#ifndef FREEDRENO_COMPILER_H_
-#define FREEDRENO_COMPILER_H_
+#ifndef FD2_COMPILER_H_
+#define FD2_COMPILER_H_
 
-#include "freedreno_program.h"
-#include "freedreno_util.h"
+#include "fd2_program.h"
+#include "fd2_util.h"
 
-int fd_compile_shader(struct fd_program_stateobj *prog,
-		struct fd_shader_stateobj *so);
+int fd2_compile_shader(struct fd_program_stateobj *prog,
+		struct fd2_shader_stateobj *so);
 
-#endif /* FREEDRENO_COMPILER_H_ */
+#endif /* FD2_COMPILER_H_ */

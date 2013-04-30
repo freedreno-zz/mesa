@@ -34,8 +34,6 @@
 #include "freedreno_draw.h"
 #include "freedreno_context.h"
 #include "freedreno_state.h"
-#include "fd2_emit.h"
-#include "fd2_zsa.h"
 #include "freedreno_resource.h"
 #include "freedreno_util.h"
 

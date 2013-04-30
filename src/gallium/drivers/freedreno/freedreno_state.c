@@ -33,7 +33,6 @@
 
 #include "freedreno_state.h"
 #include "freedreno_context.h"
-#include "freedreno_program.h"
 #include "freedreno_resource.h"
 #include "freedreno_texture.h"
 #include "freedreno_gmem.h"

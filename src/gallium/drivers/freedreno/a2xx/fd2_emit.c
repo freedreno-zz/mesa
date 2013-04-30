@@ -31,15 +31,16 @@
 #include "util/u_memory.h"
 #include "util/u_helpers.h"
 
-#include "fd2_emit.h"
-#include "fd2_context.h"
-#include "fd2_zsa.h"
-#include "fd2_rasterizer.h"
-#include "fd2_blend.h"
-#include "fd2_texture.h"
-#include "freedreno_program.h"
 #include "freedreno_resource.h"
-#include "freedreno_util.h"
+
+#include "fd2_emit.h"
+#include "fd2_blend.h"
+#include "fd2_context.h"
+#include "fd2_program.h"
+#include "fd2_rasterizer.h"
+#include "fd2_texture.h"
+#include "fd2_util.h"
+#include "fd2_zsa.h"
 
 /* NOTE: just define the position for const regs statically.. the blob
  * driver doesn't seem to change these dynamically, and I can't really
@@ -51,7 +52,7 @@
 static void
 emit_constants(struct fd_ringbuffer *ring, uint32_t base,
 		struct fd_constbuf_stateobj *constbuf,
-		struct fd_shader_stateobj *shader)
+		struct fd2_shader_stateobj *shader)
 {
 	uint32_t enabled_mask = constbuf->enabled_mask;
 	uint32_t start_base = base;
@@ -272,8 +273,8 @@ fd2_emit_state(struct fd_context *ctx, uint32_t dirty)
 	}
 
 	if (dirty & (FD_DIRTY_PROG | FD_DIRTY_VTXSTATE | FD_DIRTY_TEXSTATE)) {
-		fd_program_validate(ctx);
-		fd_program_emit(ring, &ctx->prog);
+		fd2_program_validate(ctx);
+		fd2_program_emit(ring, &ctx->prog);
 	}
 
 	if (dirty & (FD_DIRTY_PROG | FD_DIRTY_CONSTBUF)) {

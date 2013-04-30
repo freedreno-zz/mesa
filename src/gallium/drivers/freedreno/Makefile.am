@@ -20,12 +20,10 @@ libfreedreno_la_SOURCES = \
 	freedreno_surface.c \
 	freedreno_draw.c \
 	freedreno_state.c \
-	freedreno_program.c \
 	freedreno_texture.c \
 	freedreno_context.c \
 	freedreno_screen.c \
-	freedreno_gmem.c \
-	freedreno_compiler.c
+	freedreno_gmem.c
 
 libfreedreno_la_LIBADD = \
 	a2xx/libfd2xx.la

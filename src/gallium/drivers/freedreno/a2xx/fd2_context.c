@@ -33,9 +33,17 @@
 #include "fd2_draw.h"
 #include "fd2_emit.h"
 #include "fd2_gmem.h"
+#include "fd2_program.h"
 #include "fd2_rasterizer.h"
 #include "fd2_texture.h"
 #include "fd2_zsa.h"
+
+static void
+fd2_context_destroy(struct pipe_context *pctx)
+{
+	fd2_prog_fini(pctx);
+	fd_context_destroy(pctx);
+}
 
 struct pipe_context *
 fd2_context_create(struct pipe_screen *pscreen, void *priv)
@@ -48,6 +56,7 @@ fd2_context_create(struct pipe_screen *pscreen, void *priv)
 
 	pctx = &fd2_ctx->base.base;
 
+	pctx->destroy = fd2_context_destroy;
 	pctx->create_blend_state = fd2_blend_state_create;
 	pctx->create_rasterizer_state = fd2_rasterizer_state_create;
 	pctx->create_depth_stencil_alpha_state = fd2_zsa_state_create;
@@ -56,6 +65,7 @@ fd2_context_create(struct pipe_screen *pscreen, void *priv)
 	fd2_draw_init(pctx);
 	fd2_gmem_init(pctx);
 	fd2_texture_init(pctx);
+	fd2_prog_init(pctx);
 
 	pctx = fd_context_init(&fd2_ctx->base, pscreen, priv);
 	if (!pctx)
