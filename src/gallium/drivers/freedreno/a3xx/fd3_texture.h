@@ -1,5 +1,7 @@
+/* -*- mode: C; c-file-style: "k&r"; tab-width 4; indent-tabs-mode: t; -*- */
+
 /*
- * Copyright © 2012 Rob Clark <robclark@freedesktop.org>
+ * Copyright (C) 2013 Rob Clark <robclark@freedesktop.org>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -19,25 +21,48 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
+ *
+ * Authors:
+ *    Rob Clark <robclark@freedesktop.org>
  */
 
-#ifndef DISASM_H_
-#define DISASM_H_
+#ifndef FD3_TEXTURE_H_
+#define FD3_TEXTURE_H_
 
-enum shader_t {
-	SHADER_VERTEX,
-	SHADER_FRAGMENT,
-	SHADER_COMPUTE,
+#include "pipe/p_context.h"
+
+#include "freedreno_texture.h"
+#include "freedreno_resource.h"
+
+#include "fd3_context.h"
+#include "fd3_util.h"
+
+struct fd3_sampler_stateobj {
+	struct pipe_sampler_state base;
+	uint32_t texsamp0, texsamp1;
 };
 
-/* bitmask of debug flags */
-enum debug_t {
-	PRINT_RAW      = 0x1,    /* dump raw hexdump */
-	PRINT_VERBOSE  = 0x2,
+static INLINE struct fd3_sampler_stateobj *
+fd3_sampler_stateobj(struct pipe_sampler_state *samp)
+{
+	return (struct fd3_sampler_stateobj *)samp;
+}
+
+struct fd3_pipe_sampler_view {
+	struct pipe_sampler_view base;
+	struct fd_resource *tex_resource;
+	uint32_t texconst0, texconst1, texconst2, texconst3;
 };
 
-int disasm_a2xx(uint32_t *dwords, int sizedwords, int level, enum shader_t type);
-int disasm_a3xx(uint32_t *dwords, int sizedwords, int level, enum shader_t type);
-void disasm_set_debug(enum debug_t debug);
+static INLINE struct fd3_pipe_sampler_view *
+fd3_pipe_sampler_view(struct pipe_sampler_view *pview)
+{
+	return (struct fd3_pipe_sampler_view *)pview;
+}
 
-#endif /* DISASM_H_ */
+unsigned fd3_get_const_idx(struct fd_context *ctx,
+		struct fd_texture_stateobj *tex, unsigned samp_id);
+
+void fd3_texture_init(struct pipe_context *pctx);
+
+#endif /* FD3_TEXTURE_H_ */
