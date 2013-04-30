@@ -29,10 +29,9 @@
 #include "pipe/p_screen.h"
 #include "util/u_format.h"
 
-#include "freedreno_util.h"
-
 #include "fd2_screen.h"
 #include "fd2_context.h"
+#include "fd2_util.h"
 
 static boolean
 fd2_screen_is_format_supported(struct pipe_screen *pscreen,
@@ -62,7 +61,7 @@ fd2_screen_is_format_supported(struct pipe_screen *pscreen,
 
 	if ((usage & (PIPE_BIND_SAMPLER_VIEW |
 				PIPE_BIND_VERTEX_BUFFER)) &&
-			(fd_pipe2surface(format) != FMT_INVALID)) {
+			(fd2_pipe2surface(format) != FMT_INVALID)) {
 		retval |= usage & (PIPE_BIND_SAMPLER_VIEW |
 				PIPE_BIND_VERTEX_BUFFER);
 	}
@@ -71,7 +70,7 @@ fd2_screen_is_format_supported(struct pipe_screen *pscreen,
 				PIPE_BIND_DISPLAY_TARGET |
 				PIPE_BIND_SCANOUT |
 				PIPE_BIND_SHARED)) &&
-			(fd_pipe2color(format) != COLORX_INVALID)) {
+			(fd2_pipe2color(format) != COLORX_INVALID)) {
 		retval |= usage & (PIPE_BIND_RENDER_TARGET |
 				PIPE_BIND_DISPLAY_TARGET |
 				PIPE_BIND_SCANOUT |

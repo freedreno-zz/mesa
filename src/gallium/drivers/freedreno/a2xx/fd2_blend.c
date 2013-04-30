@@ -31,8 +31,8 @@
 #include "util/u_memory.h"
 
 #include "fd2_blend.h"
-#include "freedreno_context.h"
-#include "freedreno_util.h"
+#include "fd2_context.h"
+#include "fd2_util.h"
 
 static enum adreno_rb_blend_factor
 blend_factor(unsigned factor)

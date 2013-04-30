@@ -32,8 +32,8 @@
 #include "util/u_memory.h"
 
 #include "fd2_zsa.h"
-#include "freedreno_context.h"
-#include "freedreno_util.h"
+#include "fd2_context.h"
+#include "fd2_util.h"
 
 static enum adreno_stencil_op
 stencil_op(unsigned op)

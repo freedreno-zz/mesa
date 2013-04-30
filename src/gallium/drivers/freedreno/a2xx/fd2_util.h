@@ -26,44 +26,22 @@
  *    Rob Clark <robclark@freedesktop.org>
  */
 
-#ifndef FD2_TEXTURE_H_
-#define FD2_TEXTURE_H_
+#ifndef FD2_UTIL_H_
+#define FD2_UTIL_H_
 
-#include "pipe/p_context.h"
+#include "freedreno_util.h"
 
-#include "freedreno_texture.h"
-#include "freedreno_resource.h"
+#include "a2xx.xml.h"
 
-#include "fd2_context.h"
-#include "fd2_util.h"
+enum a2xx_sq_surfaceformat fd2_pipe2surface(enum pipe_format format);
+enum a2xx_colorformatx fd2_pipe2color(enum pipe_format format);
+uint32_t fd2_tex_swiz(enum pipe_format format, unsigned swizzle_r,
+		unsigned swizzle_g, unsigned swizzle_b, unsigned swizzle_a);
 
-struct fd2_sampler_stateobj {
-	struct pipe_sampler_state base;
-	uint32_t tex0, tex3, tex4, tex5;
-};
-
-static INLINE struct fd2_sampler_stateobj *
-fd2_sampler_stateobj(struct pipe_sampler_state *samp)
+/* convert x,y to dword */
+static inline uint32_t xy2d(uint16_t x, uint16_t y)
 {
-	return (struct fd2_sampler_stateobj *)samp;
+	return ((y & 0x3fff) << 16) | (x & 0x3fff);
 }
 
-struct fd2_pipe_sampler_view {
-	struct pipe_sampler_view base;
-	struct fd_resource *tex_resource;
-	enum a2xx_sq_surfaceformat fmt;
-	uint32_t tex0, tex2, tex3;
-};
-
-static INLINE struct fd2_pipe_sampler_view *
-fd2_pipe_sampler_view(struct pipe_sampler_view *pview)
-{
-	return (struct fd2_pipe_sampler_view *)pview;
-}
-
-unsigned fd2_get_const_idx(struct fd_context *ctx,
-		struct fd_texture_stateobj *tex, unsigned samp_id);
-
-void fd2_texture_init(struct pipe_context *pctx);
-
-#endif /* FD2_TEXTURE_H_ */
+#endif /* FD2_UTIL_H_ */

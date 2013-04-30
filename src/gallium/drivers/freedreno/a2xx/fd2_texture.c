@@ -32,7 +32,7 @@
 #include "util/u_inlines.h"
 
 #include "fd2_texture.h"
-#include "freedreno_util.h"
+#include "fd2_util.h"
 
 static enum sq_tex_clamp
 tex_clamp(unsigned wrap)
@@ -118,13 +118,13 @@ fd2_sampler_view_create(struct pipe_context *pctx, struct pipe_resource *prsc,
 	so->base.context = pctx;
 
 	so->tex_resource =  rsc;
-	so->fmt = fd_pipe2surface(cso->format);
+	so->fmt = fd2_pipe2surface(cso->format);
 
 	so->tex0 = A2XX_SQ_TEX_0_PITCH(rsc->pitch);
 	so->tex2 =
 		A2XX_SQ_TEX_2_HEIGHT(prsc->height0 - 1) |
 		A2XX_SQ_TEX_2_WIDTH(prsc->width0 - 1);
-	so->tex3 = fd_tex_swiz(cso->format, cso->swizzle_r, cso->swizzle_g,
+	so->tex3 = fd2_tex_swiz(cso->format, cso->swizzle_r, cso->swizzle_g,
 			cso->swizzle_b, cso->swizzle_a);
 
 	return &so->base;

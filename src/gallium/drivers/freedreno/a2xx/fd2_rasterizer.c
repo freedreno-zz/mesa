@@ -32,8 +32,8 @@
 #include "util/u_memory.h"
 
 #include "fd2_rasterizer.h"
-#include "freedreno_context.h"
-#include "freedreno_util.h"
+#include "fd2_context.h"
+#include "fd2_util.h"
 
 
 static enum adreno_pa_su_sc_draw

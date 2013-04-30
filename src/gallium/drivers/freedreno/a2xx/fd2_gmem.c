@@ -31,14 +31,15 @@
 #include "util/u_memory.h"
 #include "util/u_inlines.h"
 
-#include "freedreno_context.h"
 #include "freedreno_state.h"
 #include "freedreno_program.h"
 #include "freedreno_resource.h"
+
 #include "fd2_gmem.h"
+#include "fd2_context.h"
 #include "fd2_emit.h"
+#include "fd2_util.h"
 #include "fd2_zsa.h"
-#include "freedreno_util.h"
 
 static uint32_t fmt2swap(enum pipe_format format)
 {
@@ -64,7 +65,7 @@ emit_gmem2mem_surf(struct fd_ringbuffer *ring, uint32_t base,
 	OUT_RING(ring, CP_REG(REG_A2XX_RB_COLOR_INFO));
 	OUT_RING(ring, A2XX_RB_COLOR_INFO_SWAP(swap) |
 			A2XX_RB_COLOR_INFO_BASE(base) |
-			A2XX_RB_COLOR_INFO_FORMAT(fd_pipe2color(psurf->format)));
+			A2XX_RB_COLOR_INFO_FORMAT(fd2_pipe2color(psurf->format)));
 
 	OUT_PKT3(ring, CP_SET_CONSTANT, 5);
 	OUT_RING(ring, CP_REG(REG_A2XX_RB_COPY_CONTROL));
@@ -72,7 +73,7 @@ emit_gmem2mem_surf(struct fd_ringbuffer *ring, uint32_t base,
 	OUT_RELOC(ring, rsc->bo, 0, 0);         /* RB_COPY_DEST_BASE */
 	OUT_RING(ring, rsc->pitch >> 5);        /* RB_COPY_DEST_PITCH */
 	OUT_RING(ring,                          /* RB_COPY_DEST_INFO */
-			A2XX_RB_COPY_DEST_INFO_FORMAT(fd_pipe2color(psurf->format)) |
+			A2XX_RB_COPY_DEST_INFO_FORMAT(fd2_pipe2color(psurf->format)) |
 			A2XX_RB_COPY_DEST_INFO_LINEAR |
 			A2XX_RB_COPY_DEST_INFO_SWAP(swap) |
 			A2XX_RB_COPY_DEST_INFO_WRITE_RED |
@@ -184,9 +185,9 @@ emit_mem2gmem_surf(struct fd_ringbuffer *ring, uint32_t base,
 	OUT_RING(ring, CP_REG(REG_A2XX_RB_COLOR_INFO));
 	OUT_RING(ring, A2XX_RB_COLOR_INFO_SWAP(fmt2swap(psurf->format)) |
 			A2XX_RB_COLOR_INFO_BASE(base) |
-			A2XX_RB_COLOR_INFO_FORMAT(fd_pipe2color(psurf->format)));
+			A2XX_RB_COLOR_INFO_FORMAT(fd2_pipe2color(psurf->format)));
 
-	swiz = fd_tex_swiz(psurf->format, PIPE_SWIZZLE_RED, PIPE_SWIZZLE_GREEN,
+	swiz = fd2_tex_swiz(psurf->format, PIPE_SWIZZLE_RED, PIPE_SWIZZLE_GREEN,
 			PIPE_SWIZZLE_BLUE, PIPE_SWIZZLE_ALPHA);
 
 	/* emit fb as a texture: */
@@ -197,7 +198,7 @@ emit_mem2gmem_surf(struct fd_ringbuffer *ring, uint32_t base,
 			A2XX_SQ_TEX_0_CLAMP_Z(SQ_TEX_WRAP) |
 			A2XX_SQ_TEX_0_PITCH(rsc->pitch));
 	OUT_RELOC(ring, rsc->bo, 0,
-			fd_pipe2surface(psurf->format) | 0x800);
+			fd2_pipe2surface(psurf->format) | 0x800);
 	OUT_RING(ring, A2XX_SQ_TEX_2_WIDTH(psurf->width - 1) |
 			A2XX_SQ_TEX_2_HEIGHT(psurf->height - 1));
 	OUT_RING(ring, 0x01000000 | // XXX
@@ -342,7 +343,7 @@ fd2_emit_tile_prep(struct fd_context *ctx, uint32_t xoff, uint32_t yoff,
 	OUT_RING(ring, CP_REG(REG_A2XX_RB_SURFACE_INFO));
 	OUT_RING(ring, gmem->bin_w);                 /* RB_SURFACE_INFO */
 	OUT_RING(ring, A2XX_RB_COLOR_INFO_SWAP(fmt2swap(format)) |
-			A2XX_RB_COLOR_INFO_FORMAT(fd_pipe2color(format)));
+			A2XX_RB_COLOR_INFO_FORMAT(fd2_pipe2color(format)));
 	reg = A2XX_RB_DEPTH_INFO_DEPTH_BASE(align(gmem->bin_w * gmem->bin_h, 4));
 	if (pfb->zsbuf)
 		reg |= A2XX_RB_DEPTH_INFO_DEPTH_FORMAT(fd_pipe2depth(pfb->zsbuf->format));
@@ -367,7 +368,7 @@ fd2_emit_tile_renderprep(struct fd_context *ctx, uint32_t xoff, uint32_t yoff,
 	OUT_PKT3(ring, CP_SET_CONSTANT, 2);
 	OUT_RING(ring, CP_REG(REG_A2XX_RB_COLOR_INFO));
 	OUT_RING(ring, A2XX_RB_COLOR_INFO_SWAP(fmt2swap(format)) |
-			A2XX_RB_COLOR_INFO_FORMAT(fd_pipe2color(format)));
+			A2XX_RB_COLOR_INFO_FORMAT(fd2_pipe2color(format)));
 
 	/* setup window scissor and offset for current tile (different
 	 * from mem2gmem):

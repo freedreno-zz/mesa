@@ -37,7 +37,7 @@
 #include "freedreno_program.h"
 #include "freedreno_compiler.h"
 #include "fd2_texture.h"
-#include "freedreno_util.h"
+#include "fd2_util.h"
 
 static struct fd_shader_stateobj *
 create_shader(enum shader_t type)
@@ -204,7 +204,7 @@ patch_vtx_fetches(struct fd_context *ctx, struct fd_shader_stateobj *so,
 		instr->fetch.const_idx = 20 + (i / 3);
 		instr->fetch.const_idx_sel = i % 3;
 
-		instr->fetch.fmt = fd_pipe2surface(format);
+		instr->fetch.fmt = fd2_pipe2surface(format);
 		instr->fetch.is_normalized = desc->channel[j].normalized;
 		instr->fetch.is_signed =
 				desc->channel[j].type == UTIL_FORMAT_TYPE_SIGNED;

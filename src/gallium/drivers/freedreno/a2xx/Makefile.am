@@ -21,6 +21,7 @@ libfd2xx_la_SOURCES = \
 	fd2_rasterizer.c \
 	fd2_screen.c \
 	fd2_texture.c \
+	fd2_util.c \
 	fd2_zsa.c \
 	disasm-a2xx.c \
 	ir-a2xx.c

@@ -32,14 +32,14 @@
 #include "util/u_inlines.h"
 #include "util/u_pack_color.h"
 
-#include "freedreno_context.h"
 #include "freedreno_resource.h"
 #include "freedreno_program.h"
 
 #include "fd2_clear.h"
-#include "fd2_zsa.h"
+#include "fd2_context.h"
 #include "fd2_emit.h"
-#include "freedreno_util.h"
+#include "fd2_util.h"
+#include "fd2_zsa.h"
 
 static uint32_t
 pack_rgba(enum pipe_format format, const float *rgba)

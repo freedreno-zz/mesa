@@ -31,12 +31,13 @@
 #include "util/u_memory.h"
 #include "util/u_prim.h"
 
-#include "freedreno_context.h"
 #include "freedreno_state.h"
 #include "freedreno_resource.h"
-#include "freedreno_util.h"
+
 #include "fd2_draw.h"
+#include "fd2_context.h"
 #include "fd2_emit.h"
+#include "fd2_util.h"
 #include "fd2_zsa.h"
 
 
