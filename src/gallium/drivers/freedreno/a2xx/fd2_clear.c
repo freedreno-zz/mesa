@@ -76,7 +76,7 @@ fd2_clear(struct pipe_context *pctx, unsigned buffers,
 		colr  = pack_rgba(fb->cbufs[0]->format, color->f);
 
 	/* emit generic state now: */
-	fd2_emit_state(pctx, ctx->dirty &
+	fd2_emit_state(ctx, ctx->dirty &
 			(FD_DIRTY_BLEND | FD_DIRTY_VIEWPORT |
 					FD_DIRTY_FRAMEBUFFER | FD_DIRTY_SCISSOR));
 

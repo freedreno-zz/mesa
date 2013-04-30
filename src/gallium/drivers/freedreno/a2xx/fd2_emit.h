@@ -31,6 +31,8 @@
 
 #include "pipe/p_context.h"
 
+#include "freedreno_context.h"
+
 struct fd_ringbuffer;
 
 struct fd2_vertex_buf {
@@ -40,7 +42,7 @@ struct fd2_vertex_buf {
 
 void fd2_emit_vertex_bufs(struct fd_ringbuffer *ring, uint32_t val,
 		struct fd2_vertex_buf *vbufs, uint32_t n);
-void fd2_emit_state(struct pipe_context *pctx, uint32_t dirty);
-void fd2_emit_setup(struct pipe_context *pctx);
+void fd2_emit_state(struct fd_context *ctx, uint32_t dirty);
+void fd2_emit_setup(struct fd_context *ctx);
 
 #endif /* FD2_EMIT_H */

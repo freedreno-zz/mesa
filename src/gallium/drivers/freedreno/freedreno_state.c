@@ -257,6 +257,35 @@ fd_zsa_state_delete(struct pipe_context *pctx, void *hwcso)
 	FREE(hwcso);
 }
 
+static void *
+fd_vertex_state_create(struct pipe_context *pctx, unsigned num_elements,
+		const struct pipe_vertex_element *elements)
+{
+	struct fd_vertex_stateobj *so = CALLOC_STRUCT(fd_vertex_stateobj);
+
+	if (!so)
+		return NULL;
+
+	memcpy(so->pipe, elements, sizeof(*elements) * num_elements);
+	so->num_elements = num_elements;
+
+	return so;
+}
+
+static void
+fd_vertex_state_delete(struct pipe_context *pctx, void *hwcso)
+{
+	FREE(hwcso);
+}
+
+static void
+fd_vertex_state_bind(struct pipe_context *pctx, void *hwcso)
+{
+	struct fd_context *ctx = fd_context(pctx);
+	ctx->vtx = hwcso;
+	ctx->dirty |= FD_DIRTY_VTXSTATE;
+}
+
 void
 fd_state_init(struct pipe_context *pctx)
 {
@@ -281,4 +310,8 @@ fd_state_init(struct pipe_context *pctx)
 
 	pctx->bind_depth_stencil_alpha_state = fd_zsa_state_bind;
 	pctx->delete_depth_stencil_alpha_state = fd_zsa_state_delete;
+
+	pctx->create_vertex_elements_state = fd_vertex_state_create;
+	pctx->delete_vertex_elements_state = fd_vertex_state_delete;
+	pctx->bind_vertex_elements_state = fd_vertex_state_bind;
 }

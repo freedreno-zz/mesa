@@ -31,7 +31,7 @@
 #include "util/u_memory.h"
 #include "util/u_prim.h"
 
-#include "freedreno_vbo.h"
+#include "freedreno_draw.h"
 #include "freedreno_context.h"
 #include "freedreno_state.h"
 #include "fd2_emit.h"
@@ -39,46 +39,6 @@
 #include "freedreno_resource.h"
 #include "freedreno_util.h"
 
-
-static void *
-fd_vertex_state_create(struct pipe_context *pctx, unsigned num_elements,
-		const struct pipe_vertex_element *elements)
-{
-	struct fd_vertex_stateobj *so = CALLOC_STRUCT(fd_vertex_stateobj);
-
-	if (!so)
-		return NULL;
-
-	memcpy(so->pipe, elements, sizeof(*elements) * num_elements);
-	so->num_elements = num_elements;
-
-	return so;
-}
-
-static void
-fd_vertex_state_delete(struct pipe_context *pctx, void *hwcso)
-{
-	FREE(hwcso);
-}
-
-static void
-fd_vertex_state_bind(struct pipe_context *pctx, void *hwcso)
-{
-	struct fd_context *ctx = fd_context(pctx);
-	ctx->vtx = hwcso;
-	ctx->dirty |= FD_DIRTY_VTXSTATE;
-}
-
-static void
-emit_cacheflush(struct fd_ringbuffer *ring)
-{
-	unsigned i;
-
-	for (i = 0; i < 12; i++) {
-		OUT_PKT3(ring, CP_EVENT_WRITE, 1);
-		OUT_RING(ring, CACHE_FLUSH);
-	}
-}
 
 static enum pc_di_primtype
 mode2primtype(unsigned mode)
@@ -112,55 +72,17 @@ size2indextype(unsigned index_size)
 	return INDEX_SIZE_IGN;
 }
 
-static void
-emit_vertexbufs(struct fd_context *ctx)
+/* this is same for a2xx/a3xx, so split into helper: */
+void
+fd_draw_emit(const struct pipe_draw_info *info, struct pipe_index_buffer *idx,
+		struct fd_ringbuffer *ring)
 {
-	struct fd_vertex_stateobj *vtx = ctx->vtx;
-	struct fd_vertexbuf_stateobj *vertexbuf = &ctx->vertexbuf;
-	struct fd2_vertex_buf bufs[PIPE_MAX_ATTRIBS];
-	unsigned i;
-
-	if (!vtx->num_elements)
-		return;
-
-	for (i = 0; i < vtx->num_elements; i++) {
-		struct pipe_vertex_element *elem = &vtx->pipe[i];
-		struct pipe_vertex_buffer *vb =
-				&vertexbuf->vb[elem->vertex_buffer_index];
-		bufs[i].offset = vb->buffer_offset;
-		bufs[i].size = fd_bo_size(fd_resource(vb->buffer)->bo);
-		bufs[i].prsc = vb->buffer;
-	}
-
-	// NOTE I believe the 0x78 (or 0x9c in solid_vp) relates to the
-	// CONST(20,0) (or CONST(26,0) in soliv_vp)
-
-	fd2_emit_vertex_bufs(ctx->ring, 0x78, bufs, vtx->num_elements);
-}
-
-static void
-fd_draw_vbo(struct pipe_context *pctx, const struct pipe_draw_info *info)
-{
-	struct fd_context *ctx = fd_context(pctx);
-	struct pipe_framebuffer_state *fb = &ctx->framebuffer;
-	struct fd_ringbuffer *ring = ctx->ring;
 	struct fd_bo *idx_bo = NULL;
 	enum pc_di_index_size idx_type = INDEX_SIZE_IGN;
 	enum pc_di_src_sel src_sel;
 	uint32_t idx_size, idx_offset;
-	unsigned buffers;
-
-	/* if we supported transform feedback, we'd have to disable this: */
-	if (((ctx->scissor.maxx - ctx->scissor.minx) *
-			(ctx->scissor.maxy - ctx->scissor.miny)) == 0) {
-		return;
-	}
-
-	ctx->needs_flush = true;
 
 	if (info->indexed) {
-		struct pipe_index_buffer *idx = &ctx->indexbuf;
-
 		assert(!idx->user_buffer);
 
 		idx_bo = fd_resource(idx->buffer)->bo;
@@ -175,6 +97,32 @@ fd_draw_vbo(struct pipe_context *pctx, const struct pipe_draw_info *info)
 		idx_offset = 0;
 		src_sel = DI_SRC_SEL_AUTO_INDEX;
 	}
+
+	OUT_PKT3(ring, CP_DRAW_INDX, info->indexed ? 5 : 3);
+	OUT_RING(ring, 0x00000000);        /* viz query info. */
+	OUT_RING(ring, DRAW(mode2primtype(info->mode),
+			src_sel, idx_type, IGNORE_VISIBILITY));
+	OUT_RING(ring, info->count);       /* NumIndices */
+	if (info->indexed) {
+		OUT_RELOC(ring, idx_bo, idx_offset, 0);
+		OUT_RING (ring, idx_size);
+	}
+}
+
+static void
+fd_draw_vbo(struct pipe_context *pctx, const struct pipe_draw_info *info)
+{
+	struct fd_context *ctx = fd_context(pctx);
+	struct pipe_framebuffer_state *fb = &ctx->framebuffer;
+	unsigned buffers;
+
+	/* if we supported transform feedback, we'd have to disable this: */
+	if (((ctx->scissor.maxx - ctx->scissor.minx) *
+			(ctx->scissor.maxy - ctx->scissor.miny)) == 0) {
+		return;
+	}
+
+	ctx->needs_flush = true;
 
 	fd_resource(fb->cbufs[0]->texture)->dirty = true;
 
@@ -194,52 +142,11 @@ fd_draw_vbo(struct pipe_context *pctx, const struct pipe_draw_info *info)
 	/* and any buffers used, need to be resolved: */
 	ctx->resolve |= buffers;
 
-	if (ctx->dirty & FD_DIRTY_VTXBUF)
-		emit_vertexbufs(ctx, info->count);
-
-	fd2_emit_state(pctx, ctx->dirty);
-
-	OUT_PKT3(ring, CP_SET_CONSTANT, 2);
-	OUT_RING(ring, CP_REG(REG_A2XX_VGT_INDX_OFFSET));
-	OUT_RING(ring, info->start);
-
-	OUT_PKT3(ring, CP_SET_CONSTANT, 2);
-	OUT_RING(ring, CP_REG(REG_A2XX_VGT_VERTEX_REUSE_BLOCK_CNTL));
-	OUT_RING(ring, 0x0000003b);
-
-	OUT_PKT0(ring, REG_A2XX_TC_CNTL_STATUS, 1);
-	OUT_RING(ring, A2XX_TC_CNTL_STATUS_L2_INVALIDATE);
-
-	OUT_PKT3(ring, CP_WAIT_FOR_IDLE, 1);
-	OUT_RING(ring, 0x0000000);
-
-	OUT_PKT3(ring, CP_SET_CONSTANT, 3);
-	OUT_RING(ring, CP_REG(REG_A2XX_VGT_MAX_VTX_INDX));
-	OUT_RING(ring, info->max_index);        /* VGT_MAX_VTX_INDX */
-	OUT_RING(ring, info->min_index);        /* VGT_MIN_VTX_INDX */
-
-	OUT_PKT3(ring, CP_DRAW_INDX, info->indexed ? 5 : 3);
-	OUT_RING(ring, 0x00000000);        /* viz query info. */
-	OUT_RING(ring, DRAW(mode2primtype(info->mode),
-			src_sel, idx_type, IGNORE_VISIBILITY));
-	OUT_RING(ring, info->count);       /* NumIndices */
-	if (info->indexed) {
-		OUT_RELOC(ring, idx_bo, idx_offset, 0);
-		OUT_RING (ring, idx_size);
-	}
-
-	OUT_PKT3(ring, CP_SET_CONSTANT, 2);
-	OUT_RING(ring, CP_REG(REG_A2XX_UNKNOWN_2010));
-	OUT_RING(ring, 0x00000000);
-
-	emit_cacheflush(ring);
+	ctx->draw(ctx, info);
 }
 
 void
-fd_vbo_init(struct pipe_context *pctx)
+fd_draw_init(struct pipe_context *pctx)
 {
-	pctx->create_vertex_elements_state = fd_vertex_state_create;
-	pctx->delete_vertex_elements_state = fd_vertex_state_delete;
-	pctx->bind_vertex_elements_state = fd_vertex_state_bind;
 	pctx->draw_vbo = fd_draw_vbo;
 }

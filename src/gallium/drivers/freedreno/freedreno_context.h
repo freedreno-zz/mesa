@@ -75,6 +75,11 @@ struct fd_vertexbuf_stateobj {
 	uint32_t dirty_mask;
 };
 
+struct fd_vertex_stateobj {
+	struct pipe_vertex_element pipe[PIPE_MAX_ATTRIBS];
+	unsigned num_elements;
+};
+
 struct fd_gmem_stateobj {
 	struct pipe_scissor_state scissor;
 	uint cpp;
@@ -189,6 +194,9 @@ struct fd_context {
 			uint32_t bin_w, uint32_t bin_h);
 	void (*emit_tile_gmem2mem)(struct fd_context *ctx, uint32_t xoff, uint32_t yoff,
 			uint32_t bin_w, uint32_t bin_h);
+
+	/* draw: */
+	void (*draw)(struct fd_context *pctx, const struct pipe_draw_info *info);
 };
 
 static INLINE struct fd_context *

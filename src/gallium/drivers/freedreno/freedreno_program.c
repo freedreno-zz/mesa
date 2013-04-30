@@ -36,7 +36,6 @@
 
 #include "freedreno_program.h"
 #include "freedreno_compiler.h"
-#include "freedreno_vbo.h"
 #include "fd2_texture.h"
 #include "freedreno_util.h"
 

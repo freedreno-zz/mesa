@@ -387,5 +387,4 @@ fd2_gmem_init(struct pipe_context *pctx)
 	ctx->emit_tile_mem2gmem = fd2_emit_tile_mem2gmem;
 	ctx->emit_tile_renderprep = fd2_emit_tile_renderprep;
 	ctx->emit_tile_gmem2mem = fd2_emit_tile_gmem2mem;
-
 }

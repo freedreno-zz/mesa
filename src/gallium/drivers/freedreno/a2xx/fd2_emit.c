@@ -176,9 +176,8 @@ fd2_emit_vertex_bufs(struct fd_ringbuffer *ring, uint32_t val,
 }
 
 void
-fd2_emit_state(struct pipe_context *pctx, uint32_t dirty)
+fd2_emit_state(struct fd_context *ctx, uint32_t dirty)
 {
-	struct fd_context *ctx = fd_context(pctx);
 	struct fd2_blend_stateobj *blend = fd2_blend_stateobj(ctx->blend);
 	struct fd2_zsa_stateobj *zsa = fd2_zsa_stateobj(ctx->zsa);
 	struct fd_ringbuffer *ring = ctx->ring;
@@ -311,9 +310,8 @@ fd2_emit_state(struct pipe_context *pctx, uint32_t dirty)
 /* emit per-context initialization:
  */
 void
-fd2_emit_setup(struct pipe_context *pctx)
+fd2_emit_setup(struct fd_context *ctx)
 {
-	struct fd_context *ctx = fd_context(pctx);
 	struct fd_ringbuffer *ring = ctx->ring;
 
 	OUT_PKT0(ring, REG_A2XX_TP0_CHICKEN, 1);

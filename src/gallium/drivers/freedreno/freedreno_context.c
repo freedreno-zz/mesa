@@ -27,7 +27,7 @@
  */
 
 #include "freedreno_context.h"
-#include "freedreno_vbo.h"
+#include "freedreno_draw.h"
 #include "freedreno_resource.h"
 #include "freedreno_program.h"
 #include "freedreno_texture.h"
@@ -174,7 +174,7 @@ fd_context_init(struct fd_context *ctx,
 	util_slab_create(&ctx->transfer_pool, sizeof(struct pipe_transfer),
 			16, UTIL_SLAB_SINGLETHREADED);
 
-	fd_vbo_init(pctx);
+	fd_draw_init(pctx);
 	fd_resource_context_init(pctx);
 	fd_prog_init(pctx);
 	fd_texture_init(pctx);

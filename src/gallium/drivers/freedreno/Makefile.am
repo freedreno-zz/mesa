@@ -18,7 +18,7 @@ libfreedreno_la_SOURCES = \
 	freedreno_fence.c \
 	freedreno_resource.c \
 	freedreno_surface.c \
-	freedreno_vbo.c \
+	freedreno_draw.c \
 	freedreno_state.c \
 	freedreno_program.c \
 	freedreno_texture.c \

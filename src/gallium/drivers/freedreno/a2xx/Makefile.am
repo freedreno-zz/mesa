@@ -15,6 +15,7 @@ libfd2xx_la_SOURCES = \
 	fd2_blend.c \
 	fd2_clear.c \
 	fd2_context.c \
+	fd2_draw.c \
 	fd2_emit.c \
 	fd2_gmem.c \
 	fd2_rasterizer.c \
