@@ -29,6 +29,7 @@
 #define _INTEL_TEX_OBJ_H
 
 #include "swrast/s_context.h"
+#include "intel_regions.h"
 
 
 struct intel_texture_object
@@ -71,7 +72,43 @@ struct intel_texture_image
     * Else there is no image data.
     */
    struct intel_mipmap_tree *mt;
+
+   /* If ext_format != NULL, the image represents an external buffer. Depending
+    * on the format the details for the individual components of planar formats
+    * (such as NV12) are set in ext_strides and ext_offsets.
+    */
+   const struct intel_image_format *ext_format;
+   uint32_t ext_strides[3];
+   uint32_t ext_offsets[3];
 };
+
+/** Use specifically the format of the first image as this is set directly based
+ *  on the format of "__DRIimage" representing the external surface:
+ *  (see intel_image_target_texture_2d() and intel_set_texture_image_region()).
+ */
+static INLINE unsigned
+resolve_hw_surf_num(const struct gl_texture_unit *units, const GLbitfield *used,
+                    unsigned unit)
+{
+   const struct intel_texture_image *intel_img;
+   const struct gl_texture_object *tex_obj;
+
+   /** Only external textures may require more than one surface */
+   if (!(used[unit] & (1 << TEXTURE_EXTERNAL_INDEX)))
+      return 1;
+
+   tex_obj = units[unit].CurrentTex[TEXTURE_EXTERNAL_INDEX];
+   assert(tex_obj->Target == GL_TEXTURE_EXTERNAL_OES);
+
+   intel_img = (const struct intel_texture_image *)
+      tex_obj->Image[0][tex_obj->BaseLevel];
+
+   /** Assume one surface as no images are bound yet */
+   if (!intel_img)
+      return 1;
+
+   return intel_img->ext_format ? intel_img->ext_format->nplanes : 1;
+}
 
 static INLINE struct intel_texture_object *
 intel_texture_object(struct gl_texture_object *obj)

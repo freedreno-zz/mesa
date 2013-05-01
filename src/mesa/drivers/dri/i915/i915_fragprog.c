@@ -258,6 +258,8 @@ translate_tex_src_target(struct i915_fragment_program *p, GLubyte bit)
       return D0_SAMPLE_TYPE_VOLUME;
    case TEXTURE_CUBE_INDEX:
       return D0_SAMPLE_TYPE_CUBE;
+   case TEXTURE_EXTERNAL_INDEX:
+       return D0_SAMPLE_TYPE_2D;
    default:
       i915_program_error(p, "TexSrcBit: %d", bit);
       return 0;

@@ -547,6 +547,15 @@ gbm_dri_bo_create(struct gbm_device *gbm,
    case GBM_FORMAT_ABGR8888:
       dri_format = __DRI_IMAGE_FORMAT_ABGR8888;
       break;
+   case GBM_FORMAT_YUV420:
+      dri_format = __DRI_IMAGE_FOURCC_YUV420;
+      break;
+   case GBM_FORMAT_YVU420:
+      dri_format = __DRI_IMAGE_FOURCC_YVU420;
+      break;
+   case GBM_FORMAT_NV12:
+      dri_format = __DRI_IMAGE_FOURCC_NV12;
+      break;
    default:
       return NULL;
    }

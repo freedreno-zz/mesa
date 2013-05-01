@@ -236,6 +236,7 @@ i915_miptree_layout(struct intel_mipmap_tree * mt)
       break;
    case GL_TEXTURE_1D:
    case GL_TEXTURE_2D:
+   case GL_TEXTURE_EXTERNAL_OES:
    case GL_TEXTURE_RECTANGLE_ARB:
       i915_miptree_layout_2d(mt);
       break;
@@ -468,6 +469,7 @@ i945_miptree_layout(struct intel_mipmap_tree * mt)
       break;
    case GL_TEXTURE_1D:
    case GL_TEXTURE_2D:
+   case GL_TEXTURE_EXTERNAL_OES:
    case GL_TEXTURE_RECTANGLE_ARB:
       i945_miptree_layout_2d(mt);
       break;

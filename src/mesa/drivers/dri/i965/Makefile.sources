@@ -61,6 +61,7 @@ i965_FILES = \
 	brw_fs_reg_allocate.cpp \
 	brw_fs_schedule_instructions.cpp \
 	brw_fs_vector_splitting.cpp \
+	brw_fs_ext_texture.cpp \
 	brw_fs_visitor.cpp \
 	brw_gs.c \
 	brw_gs_emit.c \

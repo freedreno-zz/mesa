@@ -194,6 +194,7 @@ public:
    int base_mrf; /**< First MRF in the SEND message, if mlen is nonzero. */
    uint32_t texture_offset; /**< Texture offset bitfield */
    int sampler;
+   int surf_index_offset;
    int target; /**< MRT target. */
    bool eot;
    bool header_present;
@@ -352,6 +353,7 @@ public:
    fs_reg *emit_general_interpolation(ir_variable *ir);
    void emit_interpolation_setup_gen4();
    void emit_interpolation_setup_gen6();
+   bool emit_texture_external(ir_texture *ir, fs_reg& coordinate, int sampler);
    fs_reg rescale_texcoord(ir_texture *ir, fs_reg coordinate,
                            bool is_rect, int sampler, int texunit);
    fs_inst *emit_texture_gen4(ir_texture *ir, fs_reg dst, fs_reg coordinate,

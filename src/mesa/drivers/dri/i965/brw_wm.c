@@ -130,6 +130,29 @@ brw_wm_prog_data_free(const void *in_prog_data)
    ralloc_free((void *)prog_data->pull_param);
 }
 
+static bool brw_wm_fs_surf_setup(GLbitfield samplers,
+                                 const GLubyte *samplers_units,
+                                 const GLbitfield *textures_used,
+                                 const struct gl_texture_unit *units,
+                                 uint32_t *sampler_to_surf_state_start)
+{
+   unsigned num_samplers = _mesa_fls(samplers);
+   unsigned surf_index = 0;
+
+   for (unsigned s = 0; s < num_samplers; s++) {
+      if (samplers & (1 << s)) {
+         sampler_to_surf_state_start[s] = SURF_INDEX_TEXTURE(surf_index);
+         surf_index += resolve_hw_surf_num(units, textures_used,
+	                  samplers_units[s]);
+
+         if (surf_index > SURF_INDEX_TEXTURE(BRW_MAX_TEX_UNIT))
+            return false;
+      }
+   }
+
+   return true;
+}
+
 /**
  * All Mesa program -> GPU code generation goes through this function.
  * Depending on the instructions used (i.e. flow control instructions)
@@ -171,6 +194,13 @@ bool do_wm_prog(struct brw_context *brw,
    c->prog_data.barycentric_interp_modes =
       brw_compute_barycentric_interp_modes(brw, c->key.flat_shade,
                                            &fp->program);
+
+   if (!brw_wm_fs_surf_setup(fp->program.Base.SamplersUsed,
+                             fp->program.Base.SamplerUnits,
+                             fp->program.Base.TexturesUsed,
+                             brw->intel.ctx.Texture.Unit,
+                             fp->sampler_to_surf_state_start))
+      return false;
 
    program = brw_wm_fs_emit(brw, c, &fp->program, prog, &program_size);
    if (program == NULL)
@@ -343,6 +373,13 @@ brw_populate_sampler_prog_key_data(struct gl_context *ctx,
 	    if (sampler->WrapR == GL_CLAMP)
 	       key->gl_clamp_mask[2] |= 1 << s;
 	 }
+
+         if (unit->_Current->Target == GL_TEXTURE_EXTERNAL_OES) {
+            const struct intel_texture_image *intel_img =
+               (const struct intel_texture_image *)img;
+
+            key->ext_format = intel_img->ext_format;
+         }
       }
    }
 }

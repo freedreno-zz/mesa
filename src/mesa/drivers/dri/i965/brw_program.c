@@ -40,6 +40,7 @@
 #include "glsl/ralloc.h"
 
 #include "brw_context.h"
+#include "brw_state.h"
 #include "brw_wm.h"
 
 static unsigned
@@ -135,6 +136,7 @@ brwProgramStringNotify(struct gl_context *ctx,
       if (newFP == curFP)
 	 brw->state.dirty.brw |= BRW_NEW_FRAGMENT_PROGRAM;
       newFP->id = get_new_program_id(brw->intel.intelScreen);
+      brw_clear_cache(brw, &brw->cache);
    }
    else if (target == GL_VERTEX_PROGRAM_ARB) {
       struct gl_vertex_program *vprog = (struct gl_vertex_program *) prog;
@@ -206,6 +208,14 @@ brw_get_scratch_bo(struct intel_context *intel,
    }
 }
 
+static void
+brwSamplerUniformChange(struct gl_context *ctx,
+	GLenum target, struct gl_program *prog)
+{
+	brwProgramStringNotify(ctx, target, prog);
+}
+
+
 void brwInitFragProgFuncs( struct dd_function_table *functions )
 {
    assert(functions->ProgramStringNotify == _tnl_program_string); 
@@ -215,6 +225,7 @@ void brwInitFragProgFuncs( struct dd_function_table *functions )
    functions->DeleteProgram = brwDeleteProgram;
    functions->IsProgramNative = brwIsProgramNative;
    functions->ProgramStringNotify = brwProgramStringNotify;
+   functions->SamplerUniformChange = brwSamplerUniformChange;
 
    functions->NewShader = brw_new_shader;
    functions->NewShaderProgram = brw_new_shader_program;

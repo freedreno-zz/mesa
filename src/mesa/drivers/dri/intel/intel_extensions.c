@@ -84,6 +84,7 @@ intelInitExtensions(struct gl_context *ctx)
    ctx->Extensions.TDFX_texture_compression_FXT1 = true;
    ctx->Extensions.OES_EGL_image = true;
    ctx->Extensions.OES_draw_texture = true;
+   ctx->Extensions.OES_EGL_image_external = true;
 
    if (intel->gen >= 6)
       ctx->Const.GLSLVersion = 140;
@@ -183,6 +184,7 @@ intelInitExtensions(struct gl_context *ctx)
       ctx->Extensions.EXT_texture_compression_s3tc = true;
 
    ctx->Extensions.ANGLE_texture_compression_dxt = true;
+   ctx->Extensions.EXT_texture_compression_s3tc = true;
 
    if (intel->gen >= 4) {
       ctx->Extensions.NV_primitive_restart = true;

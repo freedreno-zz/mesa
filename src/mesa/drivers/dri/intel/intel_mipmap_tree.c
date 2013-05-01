@@ -776,12 +776,12 @@ intel_miptree_get_image_offset(struct intel_mipmap_tree *mt,
 }
 
 void
-intel_miptree_get_tile_offsets(struct intel_mipmap_tree *mt,
+intel_miptree_get_tile_offsets(const struct intel_mipmap_tree *mt,
                                GLuint level, GLuint slice,
                                uint32_t *tile_x,
                                uint32_t *tile_y)
 {
-   struct intel_region *region = mt->region;
+   const struct intel_region *region = mt->region;
    uint32_t mask_x, mask_y;
 
    intel_region_get_tile_masks(region, &mask_x, &mask_y, false);

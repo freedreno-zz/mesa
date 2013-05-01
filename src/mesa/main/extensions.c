@@ -211,7 +211,7 @@ static const struct extension extension_table[] = {
    { "GL_ANGLE_texture_compression_dxt5",          o(ANGLE_texture_compression_dxt),           GL | ES1 | ES2, 2011 },
    { "GL_EXT_texture_compression_latc",            o(EXT_texture_compression_latc),            GL,             2006 },
    { "GL_EXT_texture_compression_rgtc",            o(ARB_texture_compression_rgtc),            GL,             2004 },
-   { "GL_EXT_texture_compression_s3tc",            o(EXT_texture_compression_s3tc),            GL,             2000 },
+   { "GL_EXT_texture_compression_s3tc",            o(EXT_texture_compression_s3tc),            GL | ES1 | ES2, 2000 },
    { "GL_EXT_texture_cube_map",                    o(ARB_texture_cube_map),                    GLL,            2001 },
    { "GL_EXT_texture_edge_clamp",                  o(dummy_true),                              GLL,            1997 },
    { "GL_EXT_texture_env_add",                     o(dummy_true),                              GLL,            1999 },

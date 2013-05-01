@@ -52,6 +52,10 @@ endif # MESA_ENABLE_ASM
 LOCAL_CFLAGS := \
    $(patsubst %,-DFEATURE_%=1,$(MESA_ENABLED_APIS))
 
+ifneq ($(strip $(MESA_VERSION_STRING_EXTRA)),)
+    LOCAL_CFLAGS += -DMESA_VERSION_STRING_EXTRA="\"$(MESA_VERSION_STRING_EXTRA)\""
+endif
+
 LOCAL_C_INCLUDES := \
 	$(call intermediates-dir-for STATIC_LIBRARIES,libmesa_program,,) \
 	$(MESA_TOP)/src/mapi \

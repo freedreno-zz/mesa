@@ -1389,6 +1389,11 @@ fs_visitor::visit(ir_texture *ir)
                                     sampler, texunit);
    }
 
+   if (ir->sampler->type->sampler_dimensionality == GLSL_SAMPLER_DIM_EXTERNAL &&
+      emit_texture_external(ir, coordinate, sampler)) {
+      return;
+   }
+
    fs_reg shadow_comparitor;
    if (ir->shadow_comparitor) {
       ir->shadow_comparitor->accept(this);

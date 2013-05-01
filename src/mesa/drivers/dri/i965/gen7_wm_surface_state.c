@@ -282,6 +282,101 @@ gen7_update_buffer_texture_surface(struct gl_context *ctx,
 }
 
 static void
+gen7_update_texture_component(struct brw_context *brw,
+                              uint32_t *binding_table_slot,
+                              const struct intel_mipmap_tree *mt,
+                              unsigned width, unsigned height,
+                              unsigned depth, unsigned stride,
+                              GLenum target, GLuint tex_format,
+                              uint32_t offset, GLuint first_level,
+                              uint32_t levels, int swizzle)
+{
+   uint32_t tile_x, tile_y;
+   const struct intel_region *region = mt->region;
+   uint32_t *surf = brw_state_batch(brw, AUB_TRACE_SURFACE_STATE,
+                                    8 * 4, 32, binding_table_slot);
+   memset(surf, 0, 8 * 4);
+
+   surf[0] = translate_tex_target(target) << BRW_SURFACE_TYPE_SHIFT |
+             tex_format << BRW_SURFACE_FORMAT_SHIFT |
+             gen7_surface_tiling_mode(region->tiling) |
+             BRW_SURFACE_CUBEFACE_ENABLES;
+
+   if (mt->align_h == 4)
+      surf[0] |= GEN7_SURFACE_VALIGN_4;
+   if (mt->align_w == 8)
+      surf[0] |= GEN7_SURFACE_HALIGN_8;
+
+   if (depth > 1 && target != GL_TEXTURE_3D)
+      surf[0] |= GEN7_SURFACE_IS_ARRAY;
+
+   if (mt->array_spacing_lod0)
+      surf[0] |= GEN7_SURFACE_ARYSPC_LOD0;
+
+   surf[1] = region->bo->offset + offset;
+
+   surf[2] = SET_FIELD(width - 1, GEN7_SURFACE_WIDTH) |
+             SET_FIELD(height - 1, GEN7_SURFACE_HEIGHT);
+   surf[3] = SET_FIELD(depth - 1, BRW_SURFACE_DEPTH) | (stride - 1);
+
+   surf[4] = gen7_surface_msaa_bits(mt->num_samples, mt->msaa_layout);
+
+   intel_miptree_get_tile_offsets(mt, first_level, 0, &tile_x, &tile_y);
+   assert(brw->has_surface_tile_offset || (tile_x == 0 && tile_y == 0));
+   /* Note that the low bits of these fields are missing, so
+    * there's the possibility of getting in trouble.
+    */
+   surf[5] = ((tile_x / 4) << BRW_SURFACE_X_OFFSET_SHIFT |
+              (tile_y / 2) << BRW_SURFACE_Y_OFFSET_SHIFT |
+              /* mip count */
+              levels);
+
+   if (brw->intel.is_haswell) {
+      surf[7] =
+         SET_FIELD(swizzle_to_scs(GET_SWZ(swizzle, 0)), GEN7_SURFACE_SCS_R) |
+         SET_FIELD(swizzle_to_scs(GET_SWZ(swizzle, 1)), GEN7_SURFACE_SCS_G) |
+         SET_FIELD(swizzle_to_scs(GET_SWZ(swizzle, 2)), GEN7_SURFACE_SCS_B) |
+         SET_FIELD(swizzle_to_scs(GET_SWZ(swizzle, 3)), GEN7_SURFACE_SCS_A);
+   }
+
+   /* Emit relocation to surface contents */
+   drm_intel_bo_emit_reloc(brw->intel.batch.bo,
+                           *binding_table_slot + 4,
+                           region->bo, offset,
+                           I915_GEM_DOMAIN_SAMPLER, 0);
+
+   gen7_check_surface_setup(surf, false /* is_render_target */);
+}
+
+static void
+gen7_update_ext_texture_surface(struct brw_context *brw,
+                                uint32_t *binding_table_slots,
+                                const struct intel_texture_image *intel_img)
+{
+   unsigned i;
+   const struct intel_region *region = intel_img->mt->region;
+   const struct intel_image_format *f = intel_img->ext_format;
+
+   for (i = 0; i < f->nplanes; ++i) {
+      int format = BRW_SURFACEFORMAT_R8_UNORM;
+      int index = f->planes[i].buffer_index;
+
+      if (f->planes[i].dri_format == __DRI_IMAGE_FORMAT_GR88)
+         format = BRW_SURFACEFORMAT_R8G8_UNORM;
+
+      gen7_update_texture_component(brw, binding_table_slots + i,
+         intel_img->mt,
+         region->width >> f->planes[i].width_shift,
+         region->height >> f->planes[i].height_shift,
+         intel_img->base.Base.Depth, intel_img->ext_strides[index],
+         GL_TEXTURE_EXTERNAL_OES,
+         format,
+         intel_img->ext_offsets[index],
+         0, 0, 0);
+   }
+}
+
+static void
 gen7_update_texture_surface(struct gl_context *ctx,
                             unsigned unit,
                             uint32_t *binding_table,
@@ -293,62 +388,28 @@ gen7_update_texture_surface(struct gl_context *ctx,
    struct intel_texture_object *intelObj = intel_texture_object(tObj);
    struct intel_mipmap_tree *mt = intelObj->mt;
    struct gl_texture_image *firstImage = tObj->Image[0][tObj->BaseLevel];
+   const struct intel_texture_image *intel_img =
+      (const struct intel_texture_image *)firstImage;
    struct gl_sampler_object *sampler = _mesa_get_samplerobj(ctx, unit);
    int width, height, depth;
-   uint32_t tile_x, tile_y;
+   int swizzle = 0;
 
    if (tObj->Target == GL_TEXTURE_BUFFER) {
       gen7_update_buffer_texture_surface(ctx, unit, binding_table, surf_index);
       return;
    }
+   else if (tObj->Target == GL_TEXTURE_EXTERNAL_OES && intel_img->ext_format) {
+      gen7_update_ext_texture_surface(brw, binding_table + surf_index,
+                                      intel_img);
+      return;
+   }
+
+
+   /* We don't support MSAA for textures. */
+   assert(!mt->array_spacing_lod0);
+   assert(mt->num_samples <= 1);
 
    intel_miptree_get_dimensions_for_image(firstImage, &width, &height, &depth);
-
-   uint32_t *surf = brw_state_batch(brw, AUB_TRACE_SURFACE_STATE,
-                                    8 * 4, 32, &binding_table[surf_index]);
-   memset(surf, 0, 8 * 4);
-
-   uint32_t tex_format = translate_tex_format(intel,
-                                              mt->format,
-                                              firstImage->InternalFormat,
-                                              tObj->DepthMode,
-                                              sampler->sRGBDecode);
-
-   surf[0] = translate_tex_target(tObj->Target) << BRW_SURFACE_TYPE_SHIFT |
-             tex_format << BRW_SURFACE_FORMAT_SHIFT |
-             gen7_surface_tiling_mode(mt->region->tiling) |
-             BRW_SURFACE_CUBEFACE_ENABLES;
-
-   if (mt->align_h == 4)
-      surf[0] |= GEN7_SURFACE_VALIGN_4;
-   if (mt->align_w == 8)
-      surf[0] |= GEN7_SURFACE_HALIGN_8;
-
-   if (depth > 1 && tObj->Target != GL_TEXTURE_3D)
-      surf[0] |= GEN7_SURFACE_IS_ARRAY;
-
-   if (mt->array_spacing_lod0)
-      surf[0] |= GEN7_SURFACE_ARYSPC_LOD0;
-
-   surf[1] = mt->region->bo->offset + mt->offset; /* reloc */
-
-   surf[2] = SET_FIELD(width - 1, GEN7_SURFACE_WIDTH) |
-             SET_FIELD(height - 1, GEN7_SURFACE_HEIGHT);
-   surf[3] = SET_FIELD(depth - 1, BRW_SURFACE_DEPTH) |
-             ((intelObj->mt->region->pitch) - 1);
-
-   surf[4] = gen7_surface_msaa_bits(mt->num_samples, mt->msaa_layout);
-
-   intel_miptree_get_tile_offsets(intelObj->mt, firstImage->Level, 0,
-                                  &tile_x, &tile_y);
-   assert(brw->has_surface_tile_offset || (tile_x == 0 && tile_y == 0));
-   /* Note that the low bits of these fields are missing, so
-    * there's the possibility of getting in trouble.
-    */
-   surf[5] = ((tile_x / 4) << BRW_SURFACE_X_OFFSET_SHIFT |
-              (tile_y / 2) << BRW_SURFACE_Y_OFFSET_SHIFT |
-              /* mip count */
-              (intelObj->_MaxLevel - tObj->BaseLevel));
 
    if (intel->is_haswell) {
       /* Handling GL_ALPHA as a surface format override breaks 1.30+ style
@@ -359,23 +420,17 @@ gen7_update_texture_surface(struct gl_context *ctx,
          (firstImage->_BaseFormat == GL_DEPTH_COMPONENT ||
           firstImage->_BaseFormat == GL_DEPTH_STENCIL);
 
-      const int swizzle = unlikely(alpha_depth)
-         ? SWIZZLE_XYZW : brw_get_texture_swizzle(ctx, tObj);
-
-      surf[7] =
-         SET_FIELD(swizzle_to_scs(GET_SWZ(swizzle, 0)), GEN7_SURFACE_SCS_R) |
-         SET_FIELD(swizzle_to_scs(GET_SWZ(swizzle, 1)), GEN7_SURFACE_SCS_G) |
-         SET_FIELD(swizzle_to_scs(GET_SWZ(swizzle, 2)), GEN7_SURFACE_SCS_B) |
-         SET_FIELD(swizzle_to_scs(GET_SWZ(swizzle, 3)), GEN7_SURFACE_SCS_A);
+      swizzle =
+         unlikely(alpha_depth) ? SWIZZLE_XYZW :
+         brw_get_texture_swizzle(ctx, tObj);
    }
 
-   /* Emit relocation to surface contents */
-   drm_intel_bo_emit_reloc(brw->intel.batch.bo,
-			   binding_table[surf_index] + 4,
-			   intelObj->mt->region->bo, intelObj->mt->offset,
-			   I915_GEM_DOMAIN_SAMPLER, 0);
-
-   gen7_check_surface_setup(surf, false /* is_render_target */);
+   gen7_update_texture_component(brw, binding_table + surf_index,
+      mt, width, height, depth, mt->region->pitch, tObj->Target,
+      translate_tex_format(intel, mt->format, firstImage->InternalFormat,
+         tObj->DepthMode, sampler->sRGBDecode),
+      mt->offset, firstImage->Level,
+      intelObj->_MaxLevel - tObj->BaseLevel, swizzle);
 }
 
 /**

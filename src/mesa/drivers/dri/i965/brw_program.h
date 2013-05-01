@@ -40,6 +40,12 @@ struct brw_sampler_prog_key_data {
     */
    uint16_t yuvtex_mask;
    uint16_t yuvtex_swap_mask; /**< UV swaped */
+
+   /**
+    * Format of the sampled texture when it is of the type image
+    * external and needs special sampling/conversion.
+    */
+   const struct intel_image_format *ext_format;
 };
 
 void brw_populate_sampler_prog_key_data(struct gl_context *ctx,

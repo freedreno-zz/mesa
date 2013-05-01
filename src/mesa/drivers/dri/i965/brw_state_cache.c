@@ -348,7 +348,7 @@ brw_init_caches(struct brw_context *brw)
    cache->aux_free[BRW_WM_PROG] = brw_wm_prog_data_free;
 }
 
-static void
+void
 brw_clear_cache(struct brw_context *brw, struct brw_cache *cache)
 {
    struct intel_context *intel = &brw->intel;

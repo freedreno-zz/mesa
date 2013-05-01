@@ -141,6 +141,14 @@ brw_fast_clear_depth(struct gl_context *ctx)
       return false;
    }
 
+   /* check that colorbuffer depth equals to depthbuffer depth on IVB */
+   if(intel->gen == 7) {
+      struct gl_renderbuffer *rb = ctx->DrawBuffer->_ColorDrawBuffers[0];
+      if (_mesa_get_format_bytes(rb->Format) !=
+         _mesa_get_format_bytes(intel_rb_format(depth_irb)))
+         return false;
+   }
+
    uint32_t depth_clear_value;
    switch (mt->format) {
    case MESA_FORMAT_Z32_FLOAT_X24S8:
