@@ -154,9 +154,174 @@ TODO
 */
 }
 
+/* Creates shader:
+ *    EXEC ADDR(0x2) CNT(0x1)
+ *       (S)FETCH:	SAMPLE	R0.xyzw = R0.xyx CONST(0) LOCATION(CENTER)
+ *    ALLOC PARAM/PIXEL SIZE(0x0)
+ *    EXEC_END ADDR(0x3) CNT(0x1)
+ *          ALU:	MAXv	export0 = R0, R0	; gl_FragColor
+ *    NOP
+ */
+static struct fd3_shader_stateobj *
+create_blit_fp(void)
+{
+	struct fd3_shader_stateobj *so = create_shader(SHADER_FRAGMENT);
+	struct ir2_cf *cf;
+	struct ir2_instruction *instr;
+
+	if (!so)
+		return NULL;
+
+	so->ir = ir2_shader_create();
+
+	cf = ir2_cf_create(so->ir, EXEC);
+
+	instr = ir2_instr_create_tex_fetch(cf, 0);
+	ir2_reg_create(instr, 0, "xyzw", 0);
+	ir2_reg_create(instr, 0, "xyx", 0);
+	instr->sync = true;
+
+	cf = ir2_cf_create_alloc(so->ir, SQ_PARAMETER_PIXEL, 0);
+	cf = ir2_cf_create(so->ir, EXEC_END);
+
+	instr = ir2_instr_create_alu(cf, MAXv, ~0);
+	ir2_reg_create(instr, 0, NULL, IR2_REG_EXPORT);
+	ir2_reg_create(instr, 0, NULL, 0);
+	ir2_reg_create(instr, 0, NULL, 0);
+
+	return assemble(so);
+}
+
+/* Creates shader:
+*     EXEC ADDR(0x3) CNT(0x2)
+*           FETCH:	VERTEX	R1.xy01 = R0.x FMT_32_32_FLOAT UNSIGNED STRIDE(8) CONST(26, 1)
+*           FETCH:	VERTEX	R2.xyz1 = R0.x FMT_32_32_32_FLOAT UNSIGNED STRIDE(12) CONST(26, 0)
+*     ALLOC POSITION SIZE(0x0)
+*     EXEC ADDR(0x5) CNT(0x1)
+*           ALU:	MAXv	export62 = R2, R2	; gl_Position
+*     ALLOC PARAM/PIXEL SIZE(0x0)
+*     EXEC_END ADDR(0x6) CNT(0x1)
+*           ALU:	MAXv	export0 = R1, R1
+*     NOP
+ */
+static struct fd3_shader_stateobj *
+create_blit_vp(void)
+{
+	struct fd3_shader_stateobj *so = create_shader(SHADER_VERTEX);
+	struct ir2_cf *cf;
+	struct ir2_instruction *instr;
+
+	if (!so)
+		return NULL;
+
+	so->ir = ir2_shader_create();
+
+	cf = ir2_cf_create(so->ir, EXEC);
+
+	instr = ir2_instr_create_vtx_fetch(cf, 26, 1, FMT_32_32_FLOAT, false, 8);
+	instr->fetch.is_normalized = true;
+	ir2_reg_create(instr, 1, "xy01", 0);
+	ir2_reg_create(instr, 0, "x", 0);
+
+	instr = ir2_instr_create_vtx_fetch(cf, 26, 0, FMT_32_32_32_FLOAT, false, 12);
+	instr->fetch.is_normalized = true;
+	ir2_reg_create(instr, 2, "xyz1", 0);
+	ir2_reg_create(instr, 0, "x", 0);
+
+	cf = ir2_cf_create_alloc(so->ir, SQ_POSITION, 0);
+	cf = ir2_cf_create(so->ir, EXEC);
+
+	instr = ir2_instr_create_alu(cf, MAXv, ~0);
+	ir2_reg_create(instr, 62, NULL, IR2_REG_EXPORT);
+	ir2_reg_create(instr, 2, NULL, 0);
+	ir2_reg_create(instr, 2, NULL, 0);
+
+	cf = ir2_cf_create_alloc(so->ir, SQ_PARAMETER_PIXEL, 0);
+	cf = ir2_cf_create(so->ir, EXEC_END);
+
+	instr = ir2_instr_create_alu(cf, MAXv, ~0);
+	ir2_reg_create(instr, 0, NULL, IR2_REG_EXPORT);
+	ir2_reg_create(instr, 1, NULL, 0);
+	ir2_reg_create(instr, 1, NULL, 0);
+
+	return assemble(so);
+}
+
+/* Creates shader:
+ *    ALLOC PARAM/PIXEL SIZE(0x0)
+ *    EXEC_END ADDR(0x1) CNT(0x1)
+ *          ALU:	MAXv	export0 = C0, C0	; gl_FragColor
+ */
+static struct fd3_shader_stateobj *
+create_solid_fp(void)
+{
+	struct fd3_shader_stateobj *so = create_shader(SHADER_FRAGMENT);
+	struct ir2_cf *cf;
+	struct ir2_instruction *instr;
+
+	if (!so)
+		return NULL;
+
+	so->ir = ir2_shader_create();
+
+	cf = ir2_cf_create_alloc(so->ir, SQ_PARAMETER_PIXEL, 0);
+	cf = ir2_cf_create(so->ir, EXEC_END);
+
+	instr = ir2_instr_create_alu(cf, MAXv, ~0);
+	ir2_reg_create(instr, 0, NULL, IR2_REG_EXPORT);
+	ir2_reg_create(instr, 0, NULL, IR2_REG_CONST);
+	ir2_reg_create(instr, 0, NULL, IR2_REG_CONST);
+
+	return assemble(so);
+}
+
+/* Creates shader:
+ *    EXEC ADDR(0x3) CNT(0x1)
+ *       (S)FETCH:	VERTEX	R1.xyz1 = R0.x FMT_32_32_32_FLOAT
+ *                           UNSIGNED STRIDE(12) CONST(26, 0)
+ *    ALLOC POSITION SIZE(0x0)
+ *    EXEC ADDR(0x4) CNT(0x1)
+ *          ALU:	MAXv	export62 = R1, R1	; gl_Position
+ *    ALLOC PARAM/PIXEL SIZE(0x0)
+ *    EXEC_END ADDR(0x5) CNT(0x0)
+ */
+static struct fd3_shader_stateobj *
+create_solid_vp(void)
+{
+	struct fd3_shader_stateobj *so = create_shader(SHADER_VERTEX);
+	struct ir2_cf *cf;
+	struct ir2_instruction *instr;
+
+	if (!so)
+		return NULL;
+
+	so->ir = ir2_shader_create();
+
+	cf = ir2_cf_create(so->ir, EXEC);
+
+	instr = ir2_instr_create_vtx_fetch(cf, 26, 0, FMT_32_32_32_FLOAT, false, 12);
+	ir2_reg_create(instr, 1, "xyz1", 0);
+	ir2_reg_create(instr, 0, "x", 0);
+
+	cf = ir2_cf_create_alloc(so->ir, SQ_POSITION, 0);
+	cf = ir2_cf_create(so->ir, EXEC);
+
+	instr = ir2_instr_create_alu(cf, MAXv, ~0);
+	ir2_reg_create(instr, 62, NULL, IR2_REG_EXPORT);
+	ir2_reg_create(instr, 1, NULL, 0);
+	ir2_reg_create(instr, 1, NULL, 0);
+
+	cf = ir2_cf_create_alloc(so->ir, SQ_PARAMETER_PIXEL, 0);
+	cf = ir2_cf_create(so->ir, EXEC_END);
+
+	return assemble(so);
+}
+
 void
 fd3_prog_init(struct pipe_context *pctx)
 {
+	struct fd_context *ctx = fd_context(pctx);
+
 	pctx->create_fs_state = fd_fp_state_create;
 	pctx->bind_fs_state = fd_fp_state_bind;
 	pctx->delete_fs_state = fd_fp_state_delete;
@@ -164,6 +329,11 @@ fd3_prog_init(struct pipe_context *pctx)
 	pctx->create_vs_state = fd_vp_state_create;
 	pctx->bind_vs_state = fd_vp_state_bind;
 	pctx->delete_vs_state = fd_vp_state_delete;
+
+	ctx->solid_prog.fp = create_solid_fp();
+	ctx->solid_prog.vp = create_solid_vp();
+	ctx->blit_prog.fp = create_blit_fp();
+	ctx->blit_prog.vp = create_blit_vp();
 }
 
 void
