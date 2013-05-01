@@ -40,10 +40,8 @@
 #include "glsl/ralloc.h"
 
 #include "brw_context.h"
+#include "brw_state.h"
 #include "brw_wm.h"
-
-void
-brw_clear_cache(struct brw_context*, struct brw_cache*);
 
 static unsigned
 get_new_program_id(struct intel_screen *screen)
@@ -210,7 +208,7 @@ brw_get_scratch_bo(struct intel_context *intel,
    }
 }
 
-void
+static void
 brwSamplerUniformChange(struct gl_context *ctx,
 	GLenum target, struct gl_program *prog)
 {
