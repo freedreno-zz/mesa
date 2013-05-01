@@ -35,6 +35,13 @@
 
 struct fd_ringbuffer;
 
+struct fd3_vertex_buf {
+	unsigned offset, size;
+	struct pipe_resource *prsc;
+};
+
+void fd3_emit_vertex_bufs(struct fd_ringbuffer *ring, uint32_t val,
+		struct fd3_vertex_buf *vbufs, uint32_t n);
 void fd3_emit_state(struct fd_context *ctx, uint32_t dirty);
 void fd3_emit_setup(struct fd_context *ctx);
 
