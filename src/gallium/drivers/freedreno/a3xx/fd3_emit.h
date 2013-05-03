@@ -35,6 +35,17 @@
 
 struct fd_ringbuffer;
 
+/* NOTE: this just exists because we don't have proper vertex/vertexbuf
+ * state objs for clear, and mem2gmem/gmem2mem operations..
+ */
+struct fd3_vertex_buf {
+	unsigned offset, size, stride;
+	struct pipe_resource *prsc;
+};
+
+void fd3_emit_vertex_bufs(struct fd_ringbuffer *ring,
+		struct fd_program_stateobj *prog,
+		struct fd3_vertex_buf *vbufs, uint32_t n);
 void fd3_emit_state(struct fd_context *ctx, uint32_t dirty);
 void fd3_emit_setup(struct fd_context *ctx);
 

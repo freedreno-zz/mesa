@@ -62,6 +62,70 @@ static void
 fd3_emit_tile_prep(struct fd_context *ctx, uint32_t xoff, uint32_t yoff,
 		uint32_t bin_w, uint32_t bin_h)
 {
+	struct fd_ringbuffer *ring = ctx->ring;
+	struct pipe_framebuffer_state *pfb = &ctx->framebuffer;
+	struct fd_gmem_stateobj *gmem = &ctx->gmem;
+	int i;
+
+	uint32_t x1 = xoff;
+	uint32_t y1 = yoff;
+	uint32_t x2 = xoff + bin_w - 1;
+	uint32_t y2 = yoff + bin_h - 1;
+
+	if ((xoff == 0) && (yoff == 0)) {
+		OUT_PKT0(ring, REG_A3XX_VSC_BIN_SIZE, 1);
+		OUT_RING(ring, A3XX_VSC_BIN_SIZE_WIDTH(bin_w) |
+				A3XX_VSC_BIN_SIZE_HEIGHT(bin_h));
+	}
+
+	OUT_PKT3(ring, CP_SET_BIN, 3);
+	OUT_RING(ring, 0x00000000);
+	OUT_RING(ring, CP_SET_BIN_1_X1(x1) | CP_SET_BIN_1_Y1(y1));
+	OUT_RING(ring, CP_SET_BIN_2_X2(x2) | CP_SET_BIN_2_Y2(y2));
+
+	OUT_PKT3(ring, CP_REG_RMW, 3);
+	OUT_RING(ring, REG_A3XX_RB_RENDER_CONTROL);
+	OUT_RING(ring, ~A3XX_RB_RENDER_CONTROL_BIN_WIDTH__MASK);
+	OUT_RING(ring, A3XX_RB_RENDER_CONTROL_BIN_WIDTH(bin_w));
+
+	for (i = 0; i < 4; i++) {
+		enum a3xx_color_format format = 0;
+		uint32_t stride = 0;
+
+		if (i < pfb->nr_cbufs) {
+			struct pipe_surface *psurf = pfb->cbufs[i];
+			struct fd_resource *res = fd_resource(psurf->texture);
+
+			format = fd3_pipe2color(psurf->format);
+			stride = res->pitch * res->cpp;
+		}
+
+		OUT_PKT0(ring, REG_A3XX_RB_MRT_BUF_INFO(i), 2);
+		OUT_RING(ring, A3XX_RB_MRT_BUF_INFO_COLOR_FORMAT(format) |
+				A3XX_RB_MRT_BUF_INFO_COLOR_TILE_MODE(TILE_32X32) |
+				A3XX_RB_MRT_BUF_INFO_COLOR_BUF_PITCH(stride));
+		OUT_RING(ring, A3XX_RB_MRT_BUF_BASE_COLOR_BUF_BASE(0));
+
+		OUT_PKT0(ring, REG_A3XX_SP_FS_IMAGE_OUTPUT_REG(i), 1);
+		OUT_RING(ring, A3XX_SP_FS_IMAGE_OUTPUT_REG_MRTFORMAT(format));
+	}
+
+	/* setup scissor/offset for current tile: */
+	OUT_PKT0(ring, REG_A3XX_PA_SC_WINDOW_OFFSET, 1);
+	OUT_RING(ring, A3XX_PA_SC_WINDOW_OFFSET_X(xoff) |
+			A3XX_PA_SC_WINDOW_OFFSET_Y(yoff));
+
+	OUT_PKT0(ring, REG_A3XX_GRAS_SC_WINDOW_SCISSOR_TL, 2);
+	OUT_RING(ring, A3XX_GRAS_SC_WINDOW_SCISSOR_TL_X(0) |
+			A3XX_GRAS_SC_WINDOW_SCISSOR_TL_Y(0));
+	OUT_RING(ring, A3XX_GRAS_SC_WINDOW_SCISSOR_BR_X(pfb->width - 1) |
+			A3XX_GRAS_SC_WINDOW_SCISSOR_BR_Y(pfb->height - 1));
+
+	OUT_PKT0(ring, REG_A3XX_GRAS_SC_SCREEN_SCISSOR_TL, 2);
+	OUT_RING(ring, A3XX_GRAS_SC_SCREEN_SCISSOR_TL_X(x1) |
+			A3XX_GRAS_SC_SCREEN_SCISSOR_TL_Y(y1));
+	OUT_RING(ring, A3XX_GRAS_SC_SCREEN_SCISSOR_BR_X(x2) |
+			A3XX_GRAS_SC_SCREEN_SCISSOR_BR_Y(y2));
 }
 
 /* before IB to rendering cmds: */
@@ -69,6 +133,7 @@ static void
 fd3_emit_tile_renderprep(struct fd_context *ctx, uint32_t xoff, uint32_t yoff,
 		uint32_t bin_w, uint32_t bin_h)
 {
+	/* TODO probably some of tile_prep() needs to move in here.. */
 }
 
 void

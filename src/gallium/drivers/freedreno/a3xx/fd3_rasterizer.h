@@ -34,6 +34,11 @@
 
 struct fd3_rasterizer_stateobj {
 	struct pipe_rasterizer_state base;
+	uint32_t gras_su_point_minmax;
+	uint32_t gras_su_point_size;
+	uint32_t gras_su_poly_offset_scale;
+	uint32_t gras_su_poly_offset_offset;
+
 	uint32_t gras_su_mode_control;
 	uint32_t pc_prim_vtx_cntl;
 };

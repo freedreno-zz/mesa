@@ -88,7 +88,7 @@ fail:
 }
 
 static void *
-fd_fp_state_create(struct pipe_context *pctx,
+fd3_fp_state_create(struct pipe_context *pctx,
 		const struct pipe_shader_state *cso)
 {
 	struct fd3_shader_stateobj *so = create_shader(SHADER_FRAGMENT, cso);
@@ -98,14 +98,14 @@ fd_fp_state_create(struct pipe_context *pctx,
 }
 
 static void
-fd_fp_state_delete(struct pipe_context *pctx, void *hwcso)
+fd3_fp_state_delete(struct pipe_context *pctx, void *hwcso)
 {
 	struct fd3_shader_stateobj *so = hwcso;
 	delete_shader(so);
 }
 
 static void
-fd_fp_state_bind(struct pipe_context *pctx, void *hwcso)
+fd3_fp_state_bind(struct pipe_context *pctx, void *hwcso)
 {
 	struct fd_context *ctx = fd_context(pctx);
 	ctx->prog.fp = hwcso;
@@ -114,7 +114,7 @@ fd_fp_state_bind(struct pipe_context *pctx, void *hwcso)
 }
 
 static void *
-fd_vp_state_create(struct pipe_context *pctx,
+fd3_vp_state_create(struct pipe_context *pctx,
 		const struct pipe_shader_state *cso)
 {
 	struct fd3_shader_stateobj *so = create_shader(SHADER_VERTEX, cso);
@@ -124,14 +124,14 @@ fd_vp_state_create(struct pipe_context *pctx,
 }
 
 static void
-fd_vp_state_delete(struct pipe_context *pctx, void *hwcso)
+fd3_vp_state_delete(struct pipe_context *pctx, void *hwcso)
 {
 	struct fd3_shader_stateobj *so = hwcso;
 	delete_shader(so);
 }
 
 static void
-fd_vp_state_bind(struct pipe_context *pctx, void *hwcso)
+fd3_vp_state_bind(struct pipe_context *pctx, void *hwcso)
 {
 	struct fd_context *ctx = fd_context(pctx);
 	ctx->prog.vp = hwcso;
@@ -165,6 +165,10 @@ fd3_program_emit(struct fd_ringbuffer *ring,
 	struct ir3_shader_info *vsi = &vp->info;
 	struct ir3_shader_info *fsi = &fp->info;
 	int i;
+
+	/* we could probably divide this up into things that need to be
+	 * emitted if frag-prog is dirty vs if vert-prog is dirty..
+	 */
 
 	OUT_PKT0(ring, REG_A3XX_HLSQ_CONTROL_0_REG, 6);
 	OUT_RING(ring, A3XX_HLSQ_CONTROL_0_REG_FSTHREADSIZE(FOUR_QUADS) |
@@ -211,7 +215,7 @@ fd3_program_emit(struct fd_ringbuffer *ring,
 			A3XX_SP_VS_CTRL_REG0_INOUTREGOVERLAP(0) |
 			A3XX_SP_VS_CTRL_REG0_THREADSIZE(TWO_QUADS) |
 			A3XX_SP_VS_CTRL_REG0_SUPERTHREADMODE |
-			COND(vp->num_samplers > 0, A3XX_SP_VS_CTRL_REG0_PIXLODENABLE) |
+			COND(vp->samplers_count > 0, A3XX_SP_VS_CTRL_REG0_PIXLODENABLE) |
 			A3XX_SP_VS_CTRL_REG0_LENGTH(vp->instrlen));
 
 	OUT_RING(ring, A3XX_SP_VS_CTRL_REG1_CONSTLENGTH(vp->constlen) |
@@ -219,33 +223,33 @@ fd3_program_emit(struct fd_ringbuffer *ring,
 			A3XX_SP_VS_CTRL_REG1_CONSTFOOTPRINT(vsi->max_const));
 	OUT_RING(ring, A3XX_SP_VS_PARAM_REG_POSREGID(vp->pos_regid) |
 			A3XX_SP_VS_PARAM_REG_PSIZEREGID(vp->psize_regid) |
-			A3XX_SP_VS_PARAM_REG_TOTALVSOUTVAR(vp->num_varyings));
+			A3XX_SP_VS_PARAM_REG_TOTALVSOUTVAR(vp->outputs_count));
 
-	for (i = 0; i < vp->num_varyings; ) {
+	for (i = 0; i < vp->outputs_count; ) {
 		uint32_t reg = 0;
 
 		OUT_PKT0(ring, REG_A3XX_SP_VS_OUT_REG(i/2), 1);
 
-		reg |= A3XX_SP_VS_OUT_REG_A_REGID(vp->varyings[i].regid);
-		reg |= A3XX_SP_VS_OUT_REG_A_COMPMASK(vp->varyings[i].compmask);
+		reg |= A3XX_SP_VS_OUT_REG_A_REGID(vp->outputs[i].regid);
+		reg |= A3XX_SP_VS_OUT_REG_A_COMPMASK(vp->outputs[i].compmask);
 		i++;
 
-		reg |= A3XX_SP_VS_OUT_REG_B_REGID(vp->varyings[i].regid);
-		reg |= A3XX_SP_VS_OUT_REG_B_COMPMASK(vp->varyings[i].compmask);
+		reg |= A3XX_SP_VS_OUT_REG_B_REGID(vp->outputs[i].regid);
+		reg |= A3XX_SP_VS_OUT_REG_B_COMPMASK(vp->outputs[i].compmask);
 		i++;
 
 		OUT_RING(ring, reg);
 	}
 
-	for (i = 0; i < vp->num_varyings; ) {
+	for (i = 0; i < vp->outputs_count; ) {
 		uint32_t reg = 0;
 
 		OUT_PKT0(ring, REG_A3XX_SP_VS_VPC_DST_REG(i/4), 1);
 
-		reg |= A3XX_SP_VS_VPC_DST_REG_OUTLOC0(vp->varyings[i++].outloc);
-		reg |= A3XX_SP_VS_VPC_DST_REG_OUTLOC1(vp->varyings[i++].outloc);
-		reg |= A3XX_SP_VS_VPC_DST_REG_OUTLOC2(vp->varyings[i++].outloc);
-		reg |= A3XX_SP_VS_VPC_DST_REG_OUTLOC3(vp->varyings[i++].outloc);
+		reg |= A3XX_SP_VS_VPC_DST_REG_OUTLOC0(vp->outputs[i++].outloc);
+		reg |= A3XX_SP_VS_VPC_DST_REG_OUTLOC1(vp->outputs[i++].outloc);
+		reg |= A3XX_SP_VS_VPC_DST_REG_OUTLOC2(vp->outputs[i++].outloc);
+		reg |= A3XX_SP_VS_VPC_DST_REG_OUTLOC3(vp->outputs[i++].outloc);
 
 		OUT_RING(ring, reg);
 	}
@@ -261,7 +265,7 @@ fd3_program_emit(struct fd_ringbuffer *ring,
 			A3XX_SP_FS_CTRL_REG0_INOUTREGOVERLAP(1) |
 			A3XX_SP_FS_CTRL_REG0_THREADSIZE(FOUR_QUADS) |
 			A3XX_SP_FS_CTRL_REG0_SUPERTHREADMODE |
-			COND(fp->num_samplers > 0, A3XX_SP_FS_CTRL_REG0_PIXLODENABLE) |
+			COND(fp->samplers_count > 0, A3XX_SP_FS_CTRL_REG0_PIXLODENABLE) |
 			A3XX_SP_FS_CTRL_REG0_LENGTH(fp->instrlen));
 	OUT_RING(ring, A3XX_SP_FS_CTRL_REG1_CONSTLENGTH(fp->constlen) |
 			// XXX # of varyings:  ???
@@ -324,11 +328,11 @@ fd3_program_emit(struct fd_ringbuffer *ring,
 	OUT_PKT0(ring, REG_A3XX_VFD_CONTROL_0, 2);
 	OUT_RING(ring, A3XX_VFD_CONTROL_0_TOTALATTRTOVS(vp->totalattr) |
 			A3XX_VFD_CONTROL_0_PACKETSIZE(2) |
-			A3XX_VFD_CONTROL_0_STRMDECINSTRCNT(vp->num_inputs) |
-			A3XX_VFD_CONTROL_0_STRMFETCHINSTRCNT(vp->num_inputs));
+			A3XX_VFD_CONTROL_0_STRMDECINSTRCNT(vp->inputs_count) |
+			A3XX_VFD_CONTROL_0_STRMFETCHINSTRCNT(vp->inputs_count));
 	OUT_RING(ring, A3XX_VFD_CONTROL_1_MAXSTORAGE(1) | // XXX
 			A3XX_VFD_CONTROL_1_REGID4VTX(regid(63,0)) |
-			A3XX_VFD_CONTROL_1_REGID4INST(regid(63,0));
+			A3XX_VFD_CONTROL_1_REGID4INST(regid(63,0)));
 }
 
 /* once the compiler is good enough, we should construct TGSI in the
@@ -478,13 +482,13 @@ fd3_prog_init(struct pipe_context *pctx)
 {
 	struct fd_context *ctx = fd_context(pctx);
 
-	pctx->create_fs_state = fd_fp_state_create;
-	pctx->bind_fs_state = fd_fp_state_bind;
-	pctx->delete_fs_state = fd_fp_state_delete;
+	pctx->create_fs_state = fd3_fp_state_create;
+	pctx->bind_fs_state = fd3_fp_state_bind;
+	pctx->delete_fs_state = fd3_fp_state_delete;
 
-	pctx->create_vs_state = fd_vp_state_create;
-	pctx->bind_vs_state = fd_vp_state_bind;
-	pctx->delete_vs_state = fd_vp_state_delete;
+	pctx->create_vs_state = fd3_vp_state_create;
+	pctx->bind_vs_state = fd3_vp_state_bind;
+	pctx->delete_vs_state = fd3_vp_state_delete;
 
 	ctx->solid_prog.fp = create_solid_fp();
 	ctx->solid_prog.vp = create_solid_vp();

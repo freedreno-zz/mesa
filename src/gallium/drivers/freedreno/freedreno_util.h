@@ -60,6 +60,8 @@ extern int fd_mesa_debug;
 
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 
+/* for conditionally setting boolean flag(s): */
+#define COND(bool, val) ((bool) ? (val) : 0)
 
 #define CP_REG(reg) ((0x4 << 16) | ((unsigned int)((reg) - (0x2000))))
 

@@ -44,7 +44,25 @@
 static void
 emit_vertexbufs(struct fd_context *ctx)
 {
-	// XXX
+	struct fd_vertex_stateobj *vtx = ctx->vtx;
+	struct fd_vertexbuf_stateobj *vertexbuf = &ctx->vertexbuf;
+	struct fd3_vertex_buf bufs[PIPE_MAX_ATTRIBS];
+	unsigned i;
+
+	if (!vtx->num_elements)
+		return;
+
+	for (i = 0; i < vtx->num_elements; i++) {
+		struct pipe_vertex_element *elem = &vtx->pipe[i];
+		struct pipe_vertex_buffer *vb =
+				&vertexbuf->vb[elem->vertex_buffer_index];
+		bufs[i].offset = vb->buffer_offset;
+		bufs[i].size   = fd_bo_size(fd_resource(vb->buffer)->bo);
+		bufs[i].stride = vb->stride;
+		bufs[i].prsc   = vb->buffer;
+	}
+
+	fd3_emit_vertex_bufs(ctx->ring, &ctx->prog, bufs, vtx->num_elements);
 }
 
 static void
@@ -77,6 +95,10 @@ fd3_draw(struct fd_context *ctx, const struct pipe_draw_info *info)
 	OUT_RING(ring, info->max_index);        /* VFD_INDEX_MAX */
 	OUT_RING(ring, info->start_instance);   /* VFD_INSTANCEID_OFFSET */
 	OUT_RING(ring, info->start);            /* VFD_INDEX_OFFSET */
+
+	OUT_PKT0(ring, REG_A3XX_PC_RESTART_INDEX, 1);
+	OUT_RING(ring, info->primitive_restart ? /* PC_RESTART_INDEX */
+			info->restart_index : 0xffffffff);
 
 	fd_draw_emit(info, &ctx->indexbuf, ring);
 }

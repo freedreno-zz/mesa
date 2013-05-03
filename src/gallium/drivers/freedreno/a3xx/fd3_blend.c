@@ -60,7 +60,7 @@ fd3_blend_state_create(struct pipe_context *pctx,
 	for (i = 0; i < ARRAY_SIZE(so->rb_mrt); i++) {
 		const struct pipe_rt_blend_state *rt = &cso->rt[i];
 
-		so->rb_mrt[i].blendcontrol =
+		so->rb_mrt[i].blend_control =
 				A3XX_RB_MRT_BLEND_CONTROL_RGB_SRC_FACTOR(fd_blend_factor(rt->rgb_src_factor)) |
 				A3XX_RB_MRT_BLEND_CONTROL_RGB_BLEND_OPCODE(fd_blend_func(rt->rgb_func)) |
 				A3XX_RB_MRT_BLEND_CONTROL_RGB_DEST_FACTOR(fd_blend_factor(rt->rgb_dst_factor)) |

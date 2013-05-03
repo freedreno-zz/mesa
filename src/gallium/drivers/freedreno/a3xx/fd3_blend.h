@@ -35,7 +35,7 @@
 struct fd3_blend_stateobj {
 	struct pipe_blend_state base;
 	struct {
-		uint32_t blendcontrol;
+		uint32_t blend_control;
 		uint32_t control;
 	} rb_mrt[4];
 };

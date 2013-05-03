@@ -44,7 +44,7 @@ struct fd3_shader_stateobj {
 	struct ir3_shader_info info;
 	struct ir3_shader *ir;
 
-	/* special output register locatoins: */
+	/* special output register locations: */
 	uint8_t pos_regid, psize_regid, color_regid;
 
 	/* the instructions length is in units of instruction groups
@@ -58,24 +58,34 @@ struct fd3_shader_stateobj {
 	unsigned constlen;
 
 	/* varyings/outputs: */
-	unsigned num_varyings;
+	unsigned outputs_count;
 	struct {
-		uint16_t regid;
-		uint8_t  compmask;
-		uint8_t  outloc;
-	} varyings[16];
+		uint8_t regid;
+		uint8_t compmask;
+		uint8_t outloc;
+	} outputs[16];
+
+	/* STRIDE_IN_VPC seems to be, ALIGN(next_outloc - 8, 4) / 4, but blob
+	 * driver never uses value of 1, so possibly 0 (no varying), or minimum
+	 * of 2..
+	 */
+	unsigned stride_in_vpc;
 
 	unsigned totalvar; /* sum of varyings size (scalar) */
 
 	/* vertices/inputs: */
-	unsigned num_inputs;
+	unsigned inputs_count;
+	struct {
+		uint8_t regid;
+		uint8_t compmask;
+	} inputs[16];
 	unsigned totalattr;  /* sum of inputs (scalar) */
 
 	/* samplers: */
-	unsigned num_samplers;
+	unsigned samplers_count;
 
 	unsigned first_immediate;     /* const reg # of first immediate */
-	unsigned num_immediates;
+	unsigned immediates_count;
 	struct {
 		uint32_t val[4];
 	} immediates[64];

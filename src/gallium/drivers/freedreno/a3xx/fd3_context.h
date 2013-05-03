@@ -29,10 +29,20 @@
 #ifndef FD3_CONTEXT_H_
 #define FD3_CONTEXT_H_
 
+#include "freedreno_drmif.h"
+
 #include "freedreno_context.h"
 
 struct fd3_context {
 	struct fd_context base;
+
+	struct fd_bo *vs_pvt_mem, *fs_pvt_mem;
+
+	/* not sure how big this actually needs to be.. the blob driver
+	 * combines it w/ the solid_vertexbuf, we could probably do the
+	 * same to save an extra bo allocation..
+	 */
+	struct fd_bo *vsc_size_mem;
 };
 
 static INLINE struct fd3_context *
