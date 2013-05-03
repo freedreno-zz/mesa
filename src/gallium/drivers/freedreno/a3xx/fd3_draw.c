@@ -107,6 +107,159 @@ static void
 fd3_clear(struct fd_context *ctx, unsigned buffers,
 		const union pipe_color_union *color, double depth, unsigned stencil)
 {
+#if 0
+	struct fd_ringbuffer *ring = ctx->ring;
+	struct pipe_framebuffer_state *fb = &ctx->framebuffer;
+	uint32_t reg, colr = 0;
+
+	if ((buffers & PIPE_CLEAR_COLOR) && fb->nr_cbufs)
+		colr  = pack_rgba(fb->cbufs[0]->format, color->f);
+
+	/* emit generic state now: */
+	fd3_emit_state(ctx, ctx->dirty &
+			(FD_DIRTY_BLEND | FD_DIRTY_VIEWPORT |
+					FD_DIRTY_FRAMEBUFFER | FD_DIRTY_SCISSOR));
+
+	fd3_emit_vertex_bufs(ring, 0x9c, (struct fd2_vertex_buf[]) {
+			{ .prsc = ctx->solid_vertexbuf, .size = 48 },
+		}, 1);
+
+	OUT_PKT3(ring, CP_SET_CONSTANT, 2);
+	OUT_RING(ring, CP_REG(REG_A2XX_VGT_INDX_OFFSET));
+	OUT_RING(ring, 0);
+
+	OUT_PKT3(ring, CP_SET_CONSTANT, 2);
+	OUT_RING(ring, CP_REG(REG_A2XX_VGT_VERTEX_REUSE_BLOCK_CNTL));
+	OUT_RING(ring, 0x0000028f);
+
+	fd2_program_emit(ring, &ctx->solid_prog);
+
+	OUT_PKT0(ring, REG_A2XX_TC_CNTL_STATUS, 1);
+	OUT_RING(ring, A2XX_TC_CNTL_STATUS_L2_INVALIDATE);
+
+	OUT_PKT3(ring, CP_SET_CONSTANT, 2);
+	OUT_RING(ring, CP_REG(REG_A2XX_CLEAR_COLOR));
+	OUT_RING(ring, colr);
+
+	OUT_PKT3(ring, CP_SET_CONSTANT, 2);
+	OUT_RING(ring, CP_REG(REG_A2XX_A220_RB_LRZ_VSC_CONTROL));
+	OUT_RING(ring, 0x00000084);
+
+	OUT_PKT3(ring, CP_SET_CONSTANT, 2);
+	OUT_RING(ring, CP_REG(REG_A2XX_RB_COPY_CONTROL));
+	reg = 0;
+	if (buffers & (PIPE_CLEAR_DEPTH | PIPE_CLEAR_STENCIL)) {
+		reg |= A2XX_RB_COPY_CONTROL_DEPTH_CLEAR_ENABLE;
+		switch (fd_pipe2depth(fb->zsbuf->format)) {
+		case DEPTHX_24_8:
+			if (buffers & PIPE_CLEAR_DEPTH)
+				reg |= A2XX_RB_COPY_CONTROL_CLEAR_MASK(0xe);
+			if (buffers & PIPE_CLEAR_STENCIL)
+				reg |= A2XX_RB_COPY_CONTROL_CLEAR_MASK(0x1);
+			break;
+		case DEPTHX_16:
+			if (buffers & PIPE_CLEAR_DEPTH)
+				reg |= A2XX_RB_COPY_CONTROL_CLEAR_MASK(0xf);
+			break;
+		default:
+			assert(1);
+			break;
+		}
+	}
+	OUT_RING(ring, reg);
+
+	OUT_PKT3(ring, CP_SET_CONSTANT, 2);
+	OUT_RING(ring, CP_REG(REG_A2XX_RB_DEPTH_CLEAR));
+	reg = 0;
+	if (buffers & (PIPE_CLEAR_DEPTH | PIPE_CLEAR_STENCIL)) {
+		switch (fd_pipe2depth(fb->zsbuf->format)) {
+		case DEPTHX_24_8:
+			reg = (((uint32_t)(0xffffff * depth)) << 8) |
+				(stencil & 0xff);
+			break;
+		case DEPTHX_16:
+			reg = (uint32_t)(0xffffffff * depth);
+			break;
+		}
+	}
+	OUT_RING(ring, reg);
+
+	OUT_PKT3(ring, CP_SET_CONSTANT, 2);
+	OUT_RING(ring, CP_REG(REG_A2XX_RB_DEPTHCONTROL));
+	reg = 0;
+	if (buffers & PIPE_CLEAR_DEPTH) {
+		reg |= A2XX_RB_DEPTHCONTROL_ZFUNC(FUNC_ALWAYS) |
+				A2XX_RB_DEPTHCONTROL_Z_ENABLE |
+				A2XX_RB_DEPTHCONTROL_Z_WRITE_ENABLE |
+				A2XX_RB_DEPTHCONTROL_EARLY_Z_ENABLE;
+	}
+	if (buffers & PIPE_CLEAR_STENCIL) {
+		reg |= A2XX_RB_DEPTHCONTROL_STENCILFUNC(FUNC_ALWAYS) |
+				A2XX_RB_DEPTHCONTROL_STENCIL_ENABLE |
+				A2XX_RB_DEPTHCONTROL_STENCILZPASS(STENCIL_REPLACE);
+	}
+	OUT_RING(ring, reg);
+
+	OUT_PKT3(ring, CP_SET_CONSTANT, 3);
+	OUT_RING(ring, CP_REG(REG_A2XX_RB_STENCILREFMASK_BF));
+	OUT_RING(ring, 0xff000000 | A2XX_RB_STENCILREFMASK_BF_STENCILWRITEMASK(0xff));
+	OUT_RING(ring, 0xff000000 | A2XX_RB_STENCILREFMASK_STENCILWRITEMASK(0xff));
+
+	OUT_PKT3(ring, CP_SET_CONSTANT, 2);
+	OUT_RING(ring, CP_REG(REG_A2XX_RB_COLORCONTROL));
+	OUT_RING(ring, A2XX_RB_COLORCONTROL_ALPHA_FUNC(FUNC_ALWAYS) |
+			A2XX_RB_COLORCONTROL_BLEND_DISABLE |
+			A2XX_RB_COLORCONTROL_ROP_CODE(12) |
+			A2XX_RB_COLORCONTROL_DITHER_MODE(DITHER_DISABLE) |
+			A2XX_RB_COLORCONTROL_DITHER_TYPE(DITHER_PIXEL));
+
+	OUT_PKT3(ring, CP_SET_CONSTANT, 3);
+	OUT_RING(ring, CP_REG(REG_A2XX_PA_CL_CLIP_CNTL));
+	OUT_RING(ring, 0x00000000);        /* PA_CL_CLIP_CNTL */
+	OUT_RING(ring, A2XX_PA_SU_SC_MODE_CNTL_PROVOKING_VTX_LAST |  /* PA_SU_SC_MODE_CNTL */
+			A2XX_PA_SU_SC_MODE_CNTL_FRONT_PTYPE(PC_DRAW_TRIANGLES) |
+			A2XX_PA_SU_SC_MODE_CNTL_BACK_PTYPE(PC_DRAW_TRIANGLES));
+
+	OUT_PKT3(ring, CP_SET_CONSTANT, 2);
+	OUT_RING(ring, CP_REG(REG_A2XX_PA_SC_AA_MASK));
+	OUT_RING(ring, 0x0000ffff);
+
+	OUT_PKT3(ring, CP_SET_CONSTANT, 3);
+	OUT_RING(ring, CP_REG(REG_A2XX_PA_SC_WINDOW_SCISSOR_TL));
+	OUT_RING(ring, xy2d(0,0));	        /* PA_SC_WINDOW_SCISSOR_TL */
+	OUT_RING(ring, xy2d(fb->width,      /* PA_SC_WINDOW_SCISSOR_BR */
+			fb->height));
+
+	OUT_PKT3(ring, CP_SET_CONSTANT, 2);
+	OUT_RING(ring, CP_REG(REG_A2XX_RB_COLOR_MASK));
+	if (buffers & PIPE_CLEAR_COLOR) {
+		OUT_RING(ring, A2XX_RB_COLOR_MASK_WRITE_RED |
+				A2XX_RB_COLOR_MASK_WRITE_GREEN |
+				A2XX_RB_COLOR_MASK_WRITE_BLUE |
+				A2XX_RB_COLOR_MASK_WRITE_ALPHA);
+	} else {
+		OUT_RING(ring, 0x0);
+	}
+
+	OUT_PKT3(ring, CP_SET_CONSTANT, 3);
+	OUT_RING(ring, CP_REG(REG_A2XX_VGT_MAX_VTX_INDX));
+	OUT_RING(ring, 3);                 /* VGT_MAX_VTX_INDX */
+	OUT_RING(ring, 0);                 /* VGT_MIN_VTX_INDX */
+
+	OUT_PKT3(ring, CP_DRAW_INDX, 3);
+	OUT_RING(ring, 0x00000000);
+	OUT_RING(ring, DRAW(DI_PT_RECTLIST, DI_SRC_SEL_AUTO_INDEX,
+			INDEX_SIZE_IGN, IGNORE_VISIBILITY));
+	OUT_RING(ring, 3);					/* NumIndices */
+
+	OUT_PKT3(ring, CP_SET_CONSTANT, 2);
+	OUT_RING(ring, CP_REG(REG_A2XX_A220_RB_LRZ_VSC_CONTROL));
+	OUT_RING(ring, 0x00000000);
+
+	OUT_PKT3(ring, CP_SET_CONSTANT, 2);
+	OUT_RING(ring, CP_REG(REG_A2XX_RB_COPY_CONTROL));
+	OUT_RING(ring, 0x00000000);
+#endif
 }
 
 void
