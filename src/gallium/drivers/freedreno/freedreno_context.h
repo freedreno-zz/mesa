@@ -125,10 +125,6 @@ struct fd_context {
 	struct fd_ringbuffer *ring;
 	struct fd_ringmarker *draw_start, *draw_end;
 
-	/* scissor can't really be changed mid-render.. we probably need
-	 * to flush out all pending draws and then start a new tile pass
-	 * w/ new stencil state..
-	 */
 	struct pipe_scissor_state scissor;
 
 	/* Track the maximal bounds of the scissor of all the draws within a
