@@ -44,11 +44,42 @@ struct fd3_shader_stateobj {
 	struct ir3_shader_info info;
 	struct ir3_shader *ir;
 
+	/* special output register locatoins: */
+	uint8_t pos_regid, psize_regid, color_regid;
+
+	/* the instructions length is in units of instruction groups
+	 * (4 instructions, 8 dwords):
+	 */
+	unsigned instrlen;
+
+	/* the constants length is in units of vec4's, and is the sum of
+	 * the uniforms and the built-in compiler constants
+	 */
+	unsigned constlen;
+
+	/* varyings/outputs: */
+	unsigned num_varyings;
+	struct {
+		uint16_t regid;
+		uint8_t  compmask;
+		uint8_t  outloc;
+	} varyings[16];
+
+	unsigned totalvar; /* sum of varyings size (scalar) */
+
+	/* vertices/inputs: */
+	unsigned num_inputs;
+	unsigned totalattr;  /* sum of inputs (scalar) */
+
+	/* samplers: */
+	unsigned num_samplers;
+
 	unsigned first_immediate;     /* const reg # of first immediate */
 	unsigned num_immediates;
 	struct {
 		uint32_t val[4];
 	} immediates[64];
+
 };
 
 void fd3_program_emit(struct fd_ringbuffer *ring,

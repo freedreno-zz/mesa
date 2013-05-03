@@ -139,19 +139,196 @@ fd_vp_state_bind(struct pipe_context *pctx, void *hwcso)
 	ctx->dirty |= FD_DIRTY_PROG;
 }
 
+static void
+emit_shader(struct fd_ringbuffer *ring, struct fd3_shader_stateobj *so,
+		enum adreno_state_block state_block)
+{
+	struct ir3_shader_info *si = &so->info;
+	uint32_t i;
+	OUT_PKT3(ring, CP_LOAD_STATE, 2 + si->sizedwords);
+	OUT_RING(ring, CP_LOAD_STATE_0_DST_OFF(0) |
+			CP_LOAD_STATE_0_STATE_SRC(SS_DIRECT) |
+			CP_LOAD_STATE_0_STATE_BLOCK(state_block) |
+			CP_LOAD_STATE_0_NUM_UNIT(so->instrlen));
+	OUT_RING(ring, CP_LOAD_STATE_1_STATE_TYPE(ST_SHADER) |
+			CP_LOAD_STATE_1_EXT_SRC_ADDR(0));
+	for (i = 0; i < si->sizedwords; i++)
+		OUT_RING(ring, so->bin[i]);
+}
+
 void
 fd3_program_emit(struct fd_ringbuffer *ring,
 		struct fd_program_stateobj *prog)
 {
-/*
-	struct ir3_shader_info *vsi =
-		&((struct fd3_shader_stateobj *)prog->vp)->info;
-	struct ir3_shader_info *fsi =
-		&((struct fd3_shader_stateobj *)prog->fp)->info;
-	uint8_t vs_gprs, fs_gprs, vs_export;
+	struct fd3_shader_stateobj *vp = prog->vp;
+	struct fd3_shader_stateobj *fp = prog->fp;
+	struct ir3_shader_info *vsi = &vp->info;
+	struct ir3_shader_info *fsi = &fp->info;
+	int i;
 
-TODO
-*/
+	OUT_PKT0(ring, REG_A3XX_HLSQ_CONTROL_0_REG, 6);
+	OUT_RING(ring, A3XX_HLSQ_CONTROL_0_REG_FSTHREADSIZE(FOUR_QUADS) |
+			A3XX_HLSQ_CONTROL_0_REG_SPSHADERRESTART |
+			A3XX_HLSQ_CONTROL_0_REG_SPCONSTFULLUPDATE);
+	OUT_RING(ring, A3XX_HLSQ_CONTROL_1_REG_VSTHREADSIZE(TWO_QUADS) |
+			A3XX_HLSQ_CONTROL_1_REG_VSSUPERTHREADENABLE);
+	OUT_RING(ring, A3XX_HLSQ_CONTROL_2_REG_PRIMALLOCTHRESHOLD(31));
+	OUT_RING(ring, 0x00000000);        /* HLSQ_CONTROL_3_REG */
+	OUT_RING(ring, A3XX_HLSQ_VS_CONTROL_REG_CONSTLENGTH(vp->constlen) |
+			A3XX_HLSQ_VS_CONTROL_REG_CONSTSTARTOFFSET(0) |
+			A3XX_HLSQ_VS_CONTROL_REG_INSTRLENGTH(vp->instrlen));
+	OUT_RING(ring, A3XX_HLSQ_FS_CONTROL_REG_CONSTLENGTH(fp->constlen) |
+			A3XX_HLSQ_FS_CONTROL_REG_CONSTSTARTOFFSET(128) |
+			A3XX_HLSQ_FS_CONTROL_REG_INSTRLENGTH(fp->instrlen));
+
+	OUT_PKT0(ring, REG_A3XX_SP_SP_CTRL_REG, 1);
+	OUT_RING(ring, A3XX_SP_SP_CTRL_REG_CONSTMODE(0) |
+			A3XX_SP_SP_CTRL_REG_SLEEPMODE(1) |
+			// XXX "resolve" (?) bit set on gmem->mem pass..
+//			COND(!uniforms, A3XX_SP_SP_CTRL_REG_RESOLVE) |
+			// XXX sometimes 0, sometimes 1:
+			A3XX_SP_SP_CTRL_REG_LOMODE(1));
+
+	/* emit unknown sequence of writes to 0x0ec4/0x0ec8 that the blob
+	 * emits as part of the program state (it seems)..
+	 */
+	for (i = 0; i < 6; i++) {
+		OUT_PKT0(ring, REG_A3XX_UNKNOWN_0EC4, 1);
+		OUT_RING(ring, 0x00000000);    /* UNKNOWN_0EC4 */
+
+		OUT_PKT0(ring, REG_A3XX_UNKNOWN_0EC8, 1);
+		OUT_RING(ring, 0x00000000);    /* UNKNOWN_0EC8 */
+	}
+
+	OUT_PKT0(ring, REG_A3XX_SP_VS_LENGTH_REG, 1);
+	OUT_RING(ring, A3XX_SP_VS_LENGTH_REG_SHADERLENGTH(vp->instrlen));
+
+	OUT_PKT0(ring, REG_A3XX_SP_VS_CTRL_REG0, 3);
+	OUT_RING(ring, A3XX_SP_VS_CTRL_REG0_THREADMODE(MULTI) |
+			A3XX_SP_VS_CTRL_REG0_INSTRBUFFERMODE(BUFFER) |
+			A3XX_SP_VS_CTRL_REG0_HALFREGFOOTPRINT(vsi->max_half_reg + 1) |
+			A3XX_SP_VS_CTRL_REG0_FULLREGFOOTPRINT(vsi->max_reg + 1) |
+			A3XX_SP_VS_CTRL_REG0_INOUTREGOVERLAP(0) |
+			A3XX_SP_VS_CTRL_REG0_THREADSIZE(TWO_QUADS) |
+			A3XX_SP_VS_CTRL_REG0_SUPERTHREADMODE |
+			COND(vp->num_samplers > 0, A3XX_SP_VS_CTRL_REG0_PIXLODENABLE) |
+			A3XX_SP_VS_CTRL_REG0_LENGTH(vp->instrlen));
+
+	OUT_RING(ring, A3XX_SP_VS_CTRL_REG1_CONSTLENGTH(vp->constlen) |
+			A3XX_SP_VS_CTRL_REG1_INITIALOUTSTANDING(vp->totalattr) |
+			A3XX_SP_VS_CTRL_REG1_CONSTFOOTPRINT(vsi->max_const));
+	OUT_RING(ring, A3XX_SP_VS_PARAM_REG_POSREGID(vp->pos_regid) |
+			A3XX_SP_VS_PARAM_REG_PSIZEREGID(vp->psize_regid) |
+			A3XX_SP_VS_PARAM_REG_TOTALVSOUTVAR(vp->num_varyings));
+
+	for (i = 0; i < vp->num_varyings; ) {
+		uint32_t reg = 0;
+
+		OUT_PKT0(ring, REG_A3XX_SP_VS_OUT_REG(i/2), 1);
+
+		reg |= A3XX_SP_VS_OUT_REG_A_REGID(vp->varyings[i].regid);
+		reg |= A3XX_SP_VS_OUT_REG_A_COMPMASK(vp->varyings[i].compmask);
+		i++;
+
+		reg |= A3XX_SP_VS_OUT_REG_B_REGID(vp->varyings[i].regid);
+		reg |= A3XX_SP_VS_OUT_REG_B_COMPMASK(vp->varyings[i].compmask);
+		i++;
+
+		OUT_RING(ring, reg);
+	}
+
+	for (i = 0; i < vp->num_varyings; ) {
+		uint32_t reg = 0;
+
+		OUT_PKT0(ring, REG_A3XX_SP_VS_VPC_DST_REG(i/4), 1);
+
+		reg |= A3XX_SP_VS_VPC_DST_REG_OUTLOC0(vp->varyings[i++].outloc);
+		reg |= A3XX_SP_VS_VPC_DST_REG_OUTLOC1(vp->varyings[i++].outloc);
+		reg |= A3XX_SP_VS_VPC_DST_REG_OUTLOC2(vp->varyings[i++].outloc);
+		reg |= A3XX_SP_VS_VPC_DST_REG_OUTLOC3(vp->varyings[i++].outloc);
+
+		OUT_RING(ring, reg);
+	}
+
+	OUT_PKT0(ring, REG_A3XX_SP_FS_LENGTH_REG, 1);
+	OUT_RING(ring, A3XX_SP_FS_LENGTH_REG_SHADERLENGTH(fp->instrlen));
+
+	OUT_PKT0(ring, REG_A3XX_SP_FS_CTRL_REG0, 2);
+	OUT_RING(ring, A3XX_SP_FS_CTRL_REG0_THREADMODE(MULTI) |
+			A3XX_SP_FS_CTRL_REG0_INSTRBUFFERMODE(BUFFER) |
+			A3XX_SP_FS_CTRL_REG0_HALFREGFOOTPRINT(fsi->max_half_reg + 1) |
+			A3XX_SP_FS_CTRL_REG0_FULLREGFOOTPRINT(fsi->max_reg + 1) |
+			A3XX_SP_FS_CTRL_REG0_INOUTREGOVERLAP(1) |
+			A3XX_SP_FS_CTRL_REG0_THREADSIZE(FOUR_QUADS) |
+			A3XX_SP_FS_CTRL_REG0_SUPERTHREADMODE |
+			COND(fp->num_samplers > 0, A3XX_SP_FS_CTRL_REG0_PIXLODENABLE) |
+			A3XX_SP_FS_CTRL_REG0_LENGTH(fp->instrlen));
+	OUT_RING(ring, A3XX_SP_FS_CTRL_REG1_CONSTLENGTH(fp->constlen) |
+			// XXX # of varyings:  ???
+			A3XX_SP_FS_CTRL_REG1_INITIALOUTSTANDING(0) |
+			A3XX_SP_FS_CTRL_REG1_CONSTFOOTPRINT(fsi->max_const) |
+			A3XX_SP_FS_CTRL_REG1_HALFPRECVAROFFSET(63));
+
+	// TODO SP_FS_OBJ_OFFSET_REG / SP_FS_OBJ_START_REG
+
+	OUT_PKT0(ring, REG_A3XX_SP_FS_FLAT_SHAD_MODE_REG_0, 2);
+	OUT_RING(ring, 0x00000000);        /* SP_FS_FLAT_SHAD_MODE_REG_0 */
+	OUT_RING(ring, 0x00000000);        /* SP_FS_FLAT_SHAD_MODE_REG_1 */
+
+	OUT_PKT0(ring, REG_A3XX_SP_FS_OUTPUT_REG, 1);
+	OUT_RING(ring, 0x00000000);        /* SP_FS_OUTPUT_REG */
+
+	OUT_PKT0(ring, REG_A3XX_SP_FS_MRT_REG(0), 4);
+	OUT_RING(ring, A3XX_SP_FS_MRT_REG_REGID(fp->color_regid) |
+			A3XX_SP_FS_MRT_REG_PRECISION(1));
+	OUT_RING(ring, A3XX_SP_FS_MRT_REG_REGID(0) |
+			A3XX_SP_FS_MRT_REG_PRECISION(0));
+	OUT_RING(ring, A3XX_SP_FS_MRT_REG_REGID(0) |
+			A3XX_SP_FS_MRT_REG_PRECISION(0));
+	OUT_RING(ring, A3XX_SP_FS_MRT_REG_REGID(0) |
+			A3XX_SP_FS_MRT_REG_PRECISION(0));
+
+	OUT_PKT0(ring, REG_A3XX_VPC_ATTR, 2);
+	OUT_RING(ring, A3XX_VPC_ATTR_TOTALATTR(fp->totalvar) |
+			A3XX_VPC_ATTR_THRDASSIGN(1) |
+			A3XX_VPC_ATTR_LMSIZE(1));
+	OUT_RING(ring, A3XX_VPC_PACK_NUMFPNONPOSVAR(fp->totalvar) |
+			A3XX_VPC_PACK_NUMNONPOSVSVAR(fp->totalvar));
+
+	OUT_PKT0(ring, REG_A3XX_VPC_VARYING_INTERP_MODE(0), 4);
+	OUT_RING(ring, 0x00000000);        /* VPC_VARYING_INTERP[0].MODE */
+	OUT_RING(ring, 0x00000000);        /* VPC_VARYING_INTERP[1].MODE */
+	OUT_RING(ring, 0x00000000);        /* VPC_VARYING_INTERP[2].MODE */
+	OUT_RING(ring, 0x00000000);        /* VPC_VARYING_INTERP[3].MODE */
+
+	OUT_PKT0(ring, REG_A3XX_VPC_VARYING_PS_REPL_MODE(0), 4);
+	OUT_RING(ring, 0x00000000);        /* VPC_VARYING_PS_REPL[0].MODE */
+	OUT_RING(ring, 0x00000000);        /* VPC_VARYING_PS_REPL[1].MODE */
+	OUT_RING(ring, 0x00000000);        /* VPC_VARYING_PS_REPL[2].MODE */
+	OUT_RING(ring, 0x00000000);        /* VPC_VARYING_PS_REPL[3].MODE */
+
+	OUT_PKT0(ring, REG_A3XX_VFD_VS_THREADING_THRESHOLD, 1);
+	OUT_RING(ring, A3XX_VFD_VS_THREADING_THRESHOLD_REGID_THRESHOLD(15) |
+			A3XX_VFD_VS_THREADING_THRESHOLD_REGID_VTXCNT(252));
+
+	emit_shader(ring, vp, SB_VERT_SHADER);
+
+	OUT_PKT0(ring, REG_A3XX_VFD_PERFCOUNTER0_SELECT, 1);
+	OUT_RING(ring, 0x00000000);        /* VFD_PERFCOUNTER0_SELECT */
+
+	emit_shader(ring, fp, SB_FRAG_SHADER);
+
+	OUT_PKT0(ring, REG_A3XX_VFD_PERFCOUNTER0_SELECT, 1);
+	OUT_RING(ring, 0x00000000);        /* VFD_PERFCOUNTER0_SELECT */
+
+	OUT_PKT0(ring, REG_A3XX_VFD_CONTROL_0, 2);
+	OUT_RING(ring, A3XX_VFD_CONTROL_0_TOTALATTRTOVS(vp->totalattr) |
+			A3XX_VFD_CONTROL_0_PACKETSIZE(2) |
+			A3XX_VFD_CONTROL_0_STRMDECINSTRCNT(vp->num_inputs) |
+			A3XX_VFD_CONTROL_0_STRMFETCHINSTRCNT(vp->num_inputs));
+	OUT_RING(ring, A3XX_VFD_CONTROL_1_MAXSTORAGE(1) | // XXX
+			A3XX_VFD_CONTROL_1_REGID4VTX(regid(63,0)) |
+			A3XX_VFD_CONTROL_1_REGID4INST(regid(63,0));
 }
 
 /* once the compiler is good enough, we should construct TGSI in the
