@@ -32,6 +32,7 @@
 #include "draw/draw_context.h"
 #include "pipe/p_context.h"
 #include "util/u_blitter.h"
+#include "util/u_primconvert.h"
 #include "util/u_slab.h"
 #include "util/u_string.h"
 
@@ -93,6 +94,7 @@ struct fd_context {
 
 	struct fd_screen *screen;
 	struct blitter_context *blitter;
+	struct primconvert_context *primconvert;
 
 	struct util_slab_mempool transfer_pool;
 

@@ -118,6 +118,9 @@ fd_context_destroy(struct pipe_context *pctx)
 	if (ctx->blitter)
 		util_blitter_destroy(ctx->blitter);
 
+	if (ctx->primconvert)
+		util_primconvert_destroy(ctx->primconvert);
+
 	fd_ringmarker_del(ctx->draw_start);
 	fd_ringmarker_del(ctx->draw_end);
 	fd_ringbuffer_del(ctx->ring);
@@ -163,6 +166,9 @@ fd_context_init(struct fd_context *ctx,
 	if (!ctx->blitter)
 		goto fail;
 
+	ctx->primconvert = util_primconvert_create(pctx);
+	if (!ctx->primconvert)
+		goto fail;
 
 	return pctx;
 

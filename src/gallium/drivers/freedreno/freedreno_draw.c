@@ -123,6 +123,12 @@ fd_draw_vbo(struct pipe_context *pctx, const struct pipe_draw_info *info)
 		return;
 	}
 
+	if (info->mode == PIPE_PRIM_QUADS) {
+		util_primconvert_save_index_buffer(ctx->primconvert, &ctx->indexbuf);
+		util_primconvert_draw_vbo(ctx->primconvert, info);
+		return;
+	}
+
 	ctx->needs_flush = true;
 
 	/*
