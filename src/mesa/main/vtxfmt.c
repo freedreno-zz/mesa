@@ -39,12 +39,12 @@
 
 
 /**
- * Use the per-vertex functions found in <vfmt> to initialize the given
- * API dispatch table.
+ * Copy the functions found in the GLvertexformat object into the
+ * dispatch table.
  */
 static void
 install_vtxfmt(struct gl_context *ctx, struct _glapi_table *tab,
-               const GLvertexformat *vfmt, bool beginend)
+               const GLvertexformat *vfmt)
 {
    assert(ctx->Version > 0);
 
@@ -61,7 +61,7 @@ install_vtxfmt(struct gl_context *ctx, struct _glapi_table *tab,
    }
 
    if (ctx->API == API_OPENGL_COMPAT) {
-      _mesa_install_eval_vtxfmt(tab, vfmt, beginend);
+      _mesa_install_eval_vtxfmt(tab, vfmt);
    }
 
    if (ctx->API != API_OPENGL_CORE && ctx->API != API_OPENGLES2) {
@@ -110,40 +110,6 @@ install_vtxfmt(struct gl_context *ctx, struct _glapi_table *tab,
       SET_Begin(tab, vfmt->Begin);
       SET_End(tab, vfmt->End);
       SET_PrimitiveRestartNV(tab, vfmt->PrimitiveRestartNV);
-
-      SET_Rectf(tab, vfmt->Rectf);
-   }
-
-   SET_DrawArrays(tab, vfmt->DrawArrays);
-   SET_DrawElements(tab, vfmt->DrawElements);
-   if (_mesa_is_desktop_gl(ctx) || _mesa_is_gles3(ctx)) {
-      SET_DrawRangeElements(tab, vfmt->DrawRangeElements);
-   }
-
-   SET_MultiDrawElementsEXT(tab, vfmt->MultiDrawElementsEXT);
-
-   if (_mesa_is_desktop_gl(ctx)) {
-      SET_DrawElementsBaseVertex(tab, vfmt->DrawElementsBaseVertex);
-      SET_DrawRangeElementsBaseVertex(tab, vfmt->DrawRangeElementsBaseVertex);
-      SET_MultiDrawElementsBaseVertex(tab, vfmt->MultiDrawElementsBaseVertex);
-      SET_DrawArraysInstancedBaseInstance(tab, vfmt->DrawArraysInstancedBaseInstance);
-      SET_DrawElementsInstancedBaseInstance(tab, vfmt->DrawElementsInstancedBaseInstance);
-      SET_DrawElementsInstancedBaseVertex(tab, vfmt->DrawElementsInstancedBaseVertex);
-      SET_DrawElementsInstancedBaseVertexBaseInstance(tab, vfmt->DrawElementsInstancedBaseVertexBaseInstance);
-   }
-
-   if (_mesa_is_desktop_gl(ctx) || _mesa_is_gles3(ctx)) {
-      SET_DrawArraysInstancedARB(tab, vfmt->DrawArraysInstanced);
-      SET_DrawElementsInstancedARB(tab, vfmt->DrawElementsInstanced);
-   }
-
-   if (_mesa_is_desktop_gl(ctx)) {
-      SET_DrawTransformFeedback(tab, vfmt->DrawTransformFeedback);
-      SET_DrawTransformFeedbackStream(tab, vfmt->DrawTransformFeedbackStream);
-      SET_DrawTransformFeedbackInstanced(tab,
-                                         vfmt->DrawTransformFeedbackInstanced);
-      SET_DrawTransformFeedbackStreamInstanced(tab,
-                                               vfmt->DrawTransformFeedbackStreamInstanced);
    }
 
    /* Originally for GL_NV_vertex_program, this is also used by dlist.c */
@@ -250,9 +216,9 @@ install_vtxfmt(struct gl_context *ctx, struct _glapi_table *tab,
 void
 _mesa_install_exec_vtxfmt(struct gl_context *ctx, const GLvertexformat *vfmt)
 {
-   install_vtxfmt(ctx, ctx->Exec, vfmt, false);
+   install_vtxfmt(ctx, ctx->Exec, vfmt);
    if (ctx->BeginEnd)
-      install_vtxfmt(ctx, ctx->BeginEnd, vfmt, true);
+      install_vtxfmt(ctx, ctx->BeginEnd, vfmt);
 }
 
 
@@ -264,7 +230,7 @@ void
 _mesa_install_save_vtxfmt(struct gl_context *ctx, const GLvertexformat *vfmt)
 {
    if (_mesa_is_desktop_gl(ctx))
-      install_vtxfmt(ctx, ctx->Save, vfmt, false);
+      install_vtxfmt(ctx, ctx->Save, vfmt);
 }
 
 

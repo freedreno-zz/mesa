@@ -87,15 +87,21 @@ static void brwInitDriverFunctions(struct intel_screen *screen,
    intelInitDriverFunctions( functions );
 
    brwInitFragProgFuncs( functions );
-   brw_init_queryobj_functions(functions);
+   brw_init_common_queryobj_functions(functions);
+   if (screen->gen >= 6)
+      gen6_init_queryobj_functions(functions);
+   else
+      gen4_init_queryobj_functions(functions);
 
    functions->QuerySamplesForFormat = brw_query_samples_for_format;
-   functions->BeginTransformFeedback = brw_begin_transform_feedback;
 
-   if (screen->gen >= 7)
+   if (screen->gen >= 7) {
+      functions->BeginTransformFeedback = gen7_begin_transform_feedback;
       functions->EndTransformFeedback = gen7_end_transform_feedback;
-   else
+   } else {
+      functions->BeginTransformFeedback = brw_begin_transform_feedback;
       functions->EndTransformFeedback = brw_end_transform_feedback;
+   }
 
    if (screen->gen >= 6)
       functions->GetSamplePosition = gen6_get_sample_position;
@@ -143,6 +149,23 @@ brwCreateContext(int api,
       return false;
    }
 
+   if (intel->gen >= 6) {
+      /* Create a new hardware context.  Using a hardware context means that
+       * our GPU state will be saved/restored on context switch, allowing us
+       * to assume that the GPU is in the same state we left it in.
+       *
+       * This is required for transform feedback buffer offsets, query objects,
+       * and also allows us to reduce how much state we have to emit.
+       */
+      intel->hw_ctx = drm_intel_gem_context_create(intel->bufmgr);
+
+      if (!intel->hw_ctx) {
+         fprintf(stderr, "Gen6+ requires Kernel 3.6 or later.\n");
+         ralloc_free(brw);
+         return false;
+      }
+   }
+
    brw_init_surface_formats(brw);
 
    /* Initialize swrast, tnl driver tables: */
@@ -152,17 +175,18 @@ brwCreateContext(int api,
 
    ctx->DriverFlags.NewTransformFeedback = BRW_NEW_TRANSFORM_FEEDBACK;
    ctx->DriverFlags.NewRasterizerDiscard = BRW_NEW_RASTERIZER_DISCARD;
+   ctx->DriverFlags.NewUniformBuffer = BRW_NEW_UNIFORM_BUFFER;
 
    ctx->Const.MaxDualSourceDrawBuffers = 1;
    ctx->Const.MaxDrawBuffers = BRW_MAX_DRAW_BUFFERS;
-   ctx->Const.MaxTextureImageUnits = BRW_MAX_TEX_UNIT;
+   ctx->Const.FragmentProgram.MaxTextureImageUnits = BRW_MAX_TEX_UNIT;
    ctx->Const.MaxTextureCoordUnits = 8; /* Mesa limit */
    ctx->Const.MaxTextureUnits = MIN2(ctx->Const.MaxTextureCoordUnits,
-                                     ctx->Const.MaxTextureImageUnits);
-   ctx->Const.MaxVertexTextureImageUnits = BRW_MAX_TEX_UNIT;
+                                     ctx->Const.FragmentProgram.MaxTextureImageUnits);
+   ctx->Const.VertexProgram.MaxTextureImageUnits = BRW_MAX_TEX_UNIT;
    ctx->Const.MaxCombinedTextureImageUnits =
-      ctx->Const.MaxVertexTextureImageUnits +
-      ctx->Const.MaxTextureImageUnits;
+      ctx->Const.VertexProgram.MaxTextureImageUnits +
+      ctx->Const.FragmentProgram.MaxTextureImageUnits;
 
    ctx->Const.MaxTextureLevels = 14; /* 8192 */
    if (ctx->Const.MaxTextureLevels > MAX_TEXTURE_LEVELS)
@@ -230,6 +254,8 @@ brwCreateContext(int api,
 	 (i == MESA_SHADER_FRAGMENT);
       ctx->ShaderCompilerOptions[i].LowerClipDistance = true;
    }
+
+   ctx->ShaderCompilerOptions[MESA_SHADER_VERTEX].PreferDP4 = true;
 
    ctx->Const.VertexProgram.MaxNativeInstructions = (16 * 1024);
    ctx->Const.VertexProgram.MaxAluInstructions = 0;
@@ -371,7 +397,6 @@ brwCreateContext(int api,
 
    brw->prim_restart.in_progress = false;
    brw->prim_restart.enable_cut_index = false;
-   intel->hw_ctx = drm_intel_gem_context_create(intel->bufmgr);
 
    brw_init_state( brw );
 

@@ -132,7 +132,7 @@ ilo_get_shader_param(struct pipe_screen *screen, unsigned shader,
    case PIPE_SHADER_CAP_INDIRECT_TEMP_ADDR:
       return (shader == PIPE_SHADER_FRAGMENT) ? 0 : 1;
    case PIPE_SHADER_CAP_INDIRECT_CONST_ADDR:
-      return (shader == PIPE_SHADER_FRAGMENT) ? 0 : 1;
+      return 1;
    case PIPE_SHADER_CAP_SUBROUTINES:
       return 0;
    case PIPE_SHADER_CAP_INTEGERS:
@@ -329,7 +329,7 @@ ilo_get_param(struct pipe_screen *screen, enum pipe_cap param)
          return 0;
       return ILO_MAX_SO_BUFFERS;
    case PIPE_CAP_PRIMITIVE_RESTART:
-      return false; /* TODO */
+      return true;
    case PIPE_CAP_MAX_COMBINED_SAMPLERS:
       return ILO_MAX_SAMPLERS * 2;
    case PIPE_CAP_INDEP_BLEND_ENABLE:
@@ -395,6 +395,7 @@ ilo_get_param(struct pipe_screen *screen, enum pipe_cap param)
    case PIPE_CAP_USER_CONSTANT_BUFFERS:
       return false; /* TODO push constants */
    case PIPE_CAP_CONSTANT_BUFFER_OFFSET_ALIGNMENT:
+      /* imposed by OWord (Dual) Block Read */
       return 16;
    case PIPE_CAP_START_INSTANCE:
    case PIPE_CAP_QUERY_TIMESTAMP:
@@ -404,10 +405,11 @@ ilo_get_param(struct pipe_screen *screen, enum pipe_cap param)
    case PIPE_CAP_MIN_MAP_BUFFER_ALIGNMENT:
       return 0; /* TODO */
    case PIPE_CAP_CUBE_MAP_ARRAY:
-   case PIPE_CAP_TEXTURE_BUFFER_OBJECTS:
       return false; /* TODO */
+   case PIPE_CAP_TEXTURE_BUFFER_OBJECTS:
+      return true;
    case PIPE_CAP_TEXTURE_BUFFER_OFFSET_ALIGNMENT:
-      return 0; /* TODO */
+      return 1;
    case PIPE_CAP_TGSI_TEXCOORD:
       return false;
    case PIPE_CAP_PREFER_BLIT_BASED_TEXTURE_TRANSFER:
@@ -416,6 +418,9 @@ ilo_get_param(struct pipe_screen *screen, enum pipe_cap param)
       return false; /* TODO */
    case PIPE_CAP_TEXTURE_BORDER_COLOR_QUIRK:
       return 0;
+   case PIPE_CAP_MAX_TEXTURE_BUFFER_SIZE:
+      /* a BRW_SURFACE_BUFFER can have up to 2^27 elements */
+      return 1 << 27;
 
    default:
       return 0;
@@ -470,44 +475,44 @@ ilo_get_name(struct pipe_screen *screen)
       break;
    case PCI_CHIP_HASWELL_GT1:
    case PCI_CHIP_HASWELL_GT2:
-   case PCI_CHIP_HASWELL_GT2_PLUS:
+   case PCI_CHIP_HASWELL_GT3:
    case PCI_CHIP_HASWELL_SDV_GT1:
    case PCI_CHIP_HASWELL_SDV_GT2:
-   case PCI_CHIP_HASWELL_SDV_GT2_PLUS:
+   case PCI_CHIP_HASWELL_SDV_GT3:
    case PCI_CHIP_HASWELL_ULT_GT1:
    case PCI_CHIP_HASWELL_ULT_GT2:
-   case PCI_CHIP_HASWELL_ULT_GT2_PLUS:
+   case PCI_CHIP_HASWELL_ULT_GT3:
    case PCI_CHIP_HASWELL_CRW_GT1:
    case PCI_CHIP_HASWELL_CRW_GT2:
-   case PCI_CHIP_HASWELL_CRW_GT2_PLUS:
+   case PCI_CHIP_HASWELL_CRW_GT3:
       chipset = "Intel(R) Haswell Desktop";
       break;
    case PCI_CHIP_HASWELL_M_GT1:
    case PCI_CHIP_HASWELL_M_GT2:
-   case PCI_CHIP_HASWELL_M_GT2_PLUS:
+   case PCI_CHIP_HASWELL_M_GT3:
    case PCI_CHIP_HASWELL_SDV_M_GT1:
    case PCI_CHIP_HASWELL_SDV_M_GT2:
-   case PCI_CHIP_HASWELL_SDV_M_GT2_PLUS:
+   case PCI_CHIP_HASWELL_SDV_M_GT3:
    case PCI_CHIP_HASWELL_ULT_M_GT1:
    case PCI_CHIP_HASWELL_ULT_M_GT2:
-   case PCI_CHIP_HASWELL_ULT_M_GT2_PLUS:
+   case PCI_CHIP_HASWELL_ULT_M_GT3:
    case PCI_CHIP_HASWELL_CRW_M_GT1:
    case PCI_CHIP_HASWELL_CRW_M_GT2:
-   case PCI_CHIP_HASWELL_CRW_M_GT2_PLUS:
+   case PCI_CHIP_HASWELL_CRW_M_GT3:
       chipset = "Intel(R) Haswell Mobile";
       break;
    case PCI_CHIP_HASWELL_S_GT1:
    case PCI_CHIP_HASWELL_S_GT2:
-   case PCI_CHIP_HASWELL_S_GT2_PLUS:
+   case PCI_CHIP_HASWELL_S_GT3:
    case PCI_CHIP_HASWELL_SDV_S_GT1:
    case PCI_CHIP_HASWELL_SDV_S_GT2:
-   case PCI_CHIP_HASWELL_SDV_S_GT2_PLUS:
+   case PCI_CHIP_HASWELL_SDV_S_GT3:
    case PCI_CHIP_HASWELL_ULT_S_GT1:
    case PCI_CHIP_HASWELL_ULT_S_GT2:
-   case PCI_CHIP_HASWELL_ULT_S_GT2_PLUS:
+   case PCI_CHIP_HASWELL_ULT_S_GT3:
    case PCI_CHIP_HASWELL_CRW_S_GT1:
    case PCI_CHIP_HASWELL_CRW_S_GT2:
-   case PCI_CHIP_HASWELL_CRW_S_GT2_PLUS:
+   case PCI_CHIP_HASWELL_CRW_S_GT3:
       chipset = "Intel(R) Haswell Server";
       break;
    default:
@@ -626,8 +631,9 @@ static bool
 init_dev(struct ilo_dev_info *dev, const struct intel_winsys_info *info)
 {
    dev->devid = info->devid;
-   dev->has_gen7_sol_reset = info->has_gen7_sol_reset;
    dev->has_llc = info->has_llc;
+   dev->has_gen7_sol_reset = info->has_gen7_sol_reset;
+   dev->has_address_swizzling = info->has_address_swizzling;
 
    /*
     * From the Sandy Bridge PRM, volume 4 part 2, page 18:
@@ -648,13 +654,17 @@ init_dev(struct ilo_dev_info *dev, const struct intel_winsys_info *info)
    if (IS_HASWELL(info->devid)) {
       dev->gen = ILO_GEN(7.5);
 
-      if (IS_HSW_GT2(info->devid)) {
+      if (IS_HSW_GT3(info->devid)) {
+         dev->gt = 3;
+         dev->urb_size = 512 * 1024;
+      }
+      else if (IS_HSW_GT2(info->devid)) {
          dev->gt = 2;
-	 dev->urb_size = 256 * 1024;
+         dev->urb_size = 256 * 1024;
       }
       else {
          dev->gt = 1;
-	 dev->urb_size = 128 * 1024;
+         dev->urb_size = 128 * 1024;
       }
    }
    else if (IS_GEN7(info->devid)) {
@@ -662,11 +672,11 @@ init_dev(struct ilo_dev_info *dev, const struct intel_winsys_info *info)
 
       if (IS_IVB_GT2(info->devid)) {
          dev->gt = 2;
-	 dev->urb_size = 256 * 1024;
+         dev->urb_size = 256 * 1024;
       }
       else {
          dev->gt = 1;
-	 dev->urb_size = 128 * 1024;
+         dev->urb_size = 128 * 1024;
       }
    }
    else if (IS_GEN6(info->devid)) {

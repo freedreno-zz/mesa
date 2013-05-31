@@ -82,15 +82,6 @@ upload_3dstate_so_buffers(struct brw_context *brw)
       end = ALIGN(start + xfb_obj->Size[i], 4);
       assert(end <= bo->size);
 
-      /* If we don't have hardware contexts, then we reset our offsets at the
-       * start of every batch, so we track the number of vertices written in
-       * software and increment our pointers by that many.
-       */
-      if (!intel->hw_ctx) {
-         start += brw->sol.offset_0_batch_start * stride;
-         assert(start <= end);
-      }
-
       BEGIN_BATCH(4);
       OUT_BATCH(_3DSTATE_SO_BUFFER << 16 | (4 - 2));
       OUT_BATCH((i << SO_BUFFER_INDEX_SHIFT) | stride);
@@ -195,10 +186,6 @@ upload_3dstate_streamout(struct brw_context *brw, bool active,
    uint32_t dw1 = 0, dw2 = 0;
    int i;
 
-   /* BRW_NEW_RASTERIZER_DISCARD */
-   if (ctx->RasterDiscard)
-      dw1 |= SO_RENDERING_DISABLE;
-
    if (active) {
       int urb_entry_read_offset = 0;
       int urb_entry_read_length = (vue_map->num_slots + 1) / 2 -
@@ -245,12 +232,6 @@ upload_sol_state(struct brw_context *brw)
       upload_3dstate_so_buffers(brw);
       /* BRW_NEW_VUE_MAP_GEOM_OUT */
       upload_3dstate_so_decl_list(brw, &brw->vue_map_geom_out);
-
-      /* If we don't have hardware contexts, then some other client may have
-       * changed the SO write offsets, and we need to rewrite them.
-       */
-      if (!intel->hw_ctx)
-         intel->batch.needs_sol_reset = true;
    }
 
    /* Finally, set up the SOL stage.  This command must always follow updates to
@@ -267,11 +248,21 @@ const struct brw_tracked_state gen7_sol_state = {
       .brw   = (BRW_NEW_BATCH |
 		BRW_NEW_VERTEX_PROGRAM |
                 BRW_NEW_VUE_MAP_GEOM_OUT |
-                BRW_NEW_TRANSFORM_FEEDBACK |
-                BRW_NEW_RASTERIZER_DISCARD)
+                BRW_NEW_TRANSFORM_FEEDBACK)
    },
    .emit = upload_sol_state,
 };
+
+void
+gen7_begin_transform_feedback(struct gl_context *ctx, GLenum mode,
+                              struct gl_transform_feedback_object *obj)
+{
+   struct brw_context *brw = brw_context(ctx);
+   struct intel_context *intel = &brw->intel;
+
+   intel_batchbuffer_flush(intel);
+   intel->batch.needs_sol_reset = true;
+}
 
 void
 gen7_end_transform_feedback(struct gl_context *ctx,

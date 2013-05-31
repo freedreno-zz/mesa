@@ -29,7 +29,6 @@
 
 #include <algorithm>
 #include <stdint.h>
-#include <iostream>
 #include <vector>
 #include <set>
 #include <algorithm>
@@ -64,7 +63,7 @@ struct sel_chan
 	static unsigned chan(unsigned idx) { return (idx-1) & 3; }
 };
 
-inline std::ostream& operator <<(std::ostream& o, sel_chan r) {
+inline sb_ostream& operator <<(sb_ostream& o, sel_chan r) {
 	static const char * ch = "xyzw";
 	o << r.sel() << "." << ch[r.chan()];
 	return o;
@@ -428,7 +427,7 @@ inline value_flags& operator &=(value_flags &l, value_flags r) {
 
 struct value;
 
-std::ostream& operator << (std::ostream &o, value &v);
+sb_ostream& operator << (sb_ostream &o, value &v);
 
 typedef uint32_t value_hash;
 
@@ -963,7 +962,7 @@ public:
 
 class cf_node : public container_node {
 protected:
-	cf_node() : container_node(NT_OP, NST_CF_INST), bc(), jump_target(),
+	cf_node() : container_node(NT_OP, NST_CF_INST), jump_target(),
 		jump_after_target() {};
 public:
 	bc_cf bc;
@@ -983,7 +982,7 @@ public:
 
 class alu_node : public node {
 protected:
-	alu_node() : node(NT_OP, NST_ALU_INST), bc() {};
+	alu_node() : node(NT_OP, NST_ALU_INST) {};
 public:
 	bc_alu bc;
 
@@ -1029,7 +1028,7 @@ public:
 
 class fetch_node : public node {
 protected:
-	fetch_node() : node(NT_OP, NST_FETCH_INST), bc() {};
+	fetch_node() : node(NT_OP, NST_FETCH_INST) {};
 public:
 	bc_fetch bc;
 

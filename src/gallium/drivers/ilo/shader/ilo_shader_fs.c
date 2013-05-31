@@ -26,6 +26,7 @@
  */
 
 #include "tgsi/tgsi_dump.h"
+#include "tgsi/tgsi_util.h"
 #include "toy_compiler.h"
 #include "toy_tgsi.h"
 #include "toy_legalize.h"
@@ -250,6 +251,62 @@ fs_lower_opcode_tgsi_in(struct fs_compile_context *fcc,
 }
 
 static void
+fs_lower_opcode_tgsi_indirect_const(struct fs_compile_context *fcc,
+                                    struct toy_dst dst, int dim,
+                                    struct toy_src idx)
+{
+   const struct toy_dst offset =
+      tdst_ud(tdst(TOY_FILE_MRF, fcc->first_free_mrf, 0));
+   struct toy_compiler *tc = &fcc->tc;
+   unsigned simd_mode, param_size;
+   struct toy_inst *inst;
+   struct toy_src desc, real_src[4];
+   struct toy_dst tmp, real_dst[4];
+   int i;
+
+   tsrc_transpose(idx, real_src);
+
+   /* set offset */
+   inst = tc_MOV(tc, offset, real_src[0]);
+   inst->mask_ctrl = BRW_MASK_DISABLE;
+
+   switch (inst->exec_size) {
+   case BRW_EXECUTE_8:
+      simd_mode = BRW_SAMPLER_SIMD_MODE_SIMD8;
+      param_size = 1;
+      break;
+   case BRW_EXECUTE_16:
+      simd_mode = BRW_SAMPLER_SIMD_MODE_SIMD16;
+      param_size = 2;
+      break;
+   default:
+      assert(!"unsupported execution size");
+      tc_MOV(tc, dst, tsrc_imm_f(0.0f));
+      return;
+      break;
+   }
+
+   desc = tsrc_imm_mdesc_sampler(tc, param_size, param_size * 4, false,
+         simd_mode,
+         GEN5_SAMPLER_MESSAGE_SAMPLE_LD,
+         0,
+         ILO_WM_CONST_SURFACE(dim));
+
+   tmp = tdst(TOY_FILE_VRF, tc_alloc_vrf(tc, param_size * 4), 0);
+   inst = tc_SEND(tc, tmp, tsrc_from(offset), desc, BRW_SFID_SAMPLER);
+   inst->mask_ctrl = BRW_MASK_DISABLE;
+
+   tdst_transpose(dst, real_dst);
+   for (i = 0; i < 4; i++) {
+      const struct toy_src src =
+         tsrc_offset(tsrc_from(tmp), param_size * i, 0);
+
+      /* cast to type D to make sure these are raw moves */
+      tc_MOV(tc, tdst_d(real_dst[i]), tsrc_d(src));
+   }
+}
+
+static void
 fs_lower_opcode_tgsi_const_gen6(struct fs_compile_context *fcc,
                                 struct toy_dst dst, int dim, struct toy_src idx)
 {
@@ -424,7 +481,47 @@ static void
 fs_lower_opcode_tgsi_indirect(struct fs_compile_context *fcc,
                               struct toy_inst *inst)
 {
-   tc_fail(&fcc->tc, "no TGSI indirection support");
+   struct toy_compiler *tc = &fcc->tc;
+   enum tgsi_file_type file;
+   int dim, idx;
+   struct toy_src indirect_dim, indirect_idx;
+
+   assert(inst->src[0].file == TOY_FILE_IMM);
+   file = inst->src[0].val32;
+
+   assert(inst->src[1].file == TOY_FILE_IMM);
+   dim = inst->src[1].val32;
+   indirect_dim = inst->src[2];
+
+   assert(inst->src[3].file == TOY_FILE_IMM);
+   idx = inst->src[3].val32;
+   indirect_idx = inst->src[4];
+
+   /* no dimension indirection */
+   assert(indirect_dim.file == TOY_FILE_IMM);
+   dim += indirect_dim.val32;
+
+   switch (inst->opcode) {
+   case TOY_OPCODE_TGSI_INDIRECT_FETCH:
+      if (file == TGSI_FILE_CONSTANT) {
+         if (idx) {
+            struct toy_dst tmp = tc_alloc_tmp(tc);
+
+            tc_ADD(tc, tmp, indirect_idx, tsrc_imm_d(idx));
+            indirect_idx = tsrc_from(tmp);
+         }
+
+         fs_lower_opcode_tgsi_indirect_const(fcc, inst->dst, dim, indirect_idx);
+         break;
+      }
+      /* fall through */
+   case TOY_OPCODE_TGSI_INDIRECT_STORE:
+   default:
+      tc_fail(tc, "unhandled TGSI indirection");
+      break;
+   }
+
+   tc_discard_inst(tc, inst);
 }
 
 /**
@@ -605,7 +702,7 @@ fs_prepare_tgsi_sampling(struct toy_compiler *tc, const struct toy_inst *inst,
       break;
    }
 
-   num_coords = toy_tgsi_get_texture_coord_dim(inst->tex.target, &ref_pos);
+   num_coords = tgsi_util_get_texture_coord_dim(inst->tex.target, &ref_pos);
    tsrc_transpose(inst->src[0], coords);
    bias_or_lod = tsrc_null();
    ref_or_si = tsrc_null();
@@ -982,6 +1079,8 @@ fs_lower_opcode_tgsi_sampling(struct fs_compile_context *fcc,
 
    /* write to temps first */
    tc_alloc_tmp4(tc, tmp);
+   for (i = 0; i < 4; i++)
+      tmp[i].type = inst->dst.type;
    tdst_transpose(inst->dst, dst);
    inst->dst = tmp[0];
 

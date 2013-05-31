@@ -27,6 +27,7 @@
 
 #include "main/imports.h"
 #include "main/bufferobj.h"
+#include "main/varray.h"
 
 #include "brw_context.h"
 #include "brw_defines.h"
@@ -42,17 +43,23 @@ static bool
 can_cut_index_handle_restart_index(struct gl_context *ctx,
                                    const struct _mesa_index_buffer *ib)
 {
+   /* The FixedIndex variant means 0xFF, 0xFFFF, or 0xFFFFFFFF based on
+    * the index buffer type, which corresponds exactly to the hardware.
+    */
+   if (ctx->Array.PrimitiveRestartFixedIndex)
+      return true;
+
    bool cut_index_will_work;
 
    switch (ib->type) {
    case GL_UNSIGNED_BYTE:
-      cut_index_will_work = (ctx->Array._RestartIndex & 0xff) == 0xff;
+      cut_index_will_work = ctx->Array.RestartIndex == 0xff;
       break;
    case GL_UNSIGNED_SHORT:
-      cut_index_will_work = (ctx->Array._RestartIndex & 0xffff) == 0xffff;
+      cut_index_will_work = ctx->Array.RestartIndex == 0xffff;
       break;
    case GL_UNSIGNED_INT:
-      cut_index_will_work = ctx->Array._RestartIndex == 0xffffffff;
+      cut_index_will_work = ctx->Array.RestartIndex == 0xffffffff;
       break;
    default:
       cut_index_will_work = false;
@@ -73,17 +80,6 @@ can_cut_index_handle_prims(struct gl_context *ctx,
                            const struct _mesa_index_buffer *ib)
 {
    struct intel_context *intel = intel_context(ctx);
-   struct brw_context *brw = brw_context(ctx);
-
-   if (brw->sol.counting_primitives_generated ||
-       brw->sol.counting_primitives_written) {
-      /* Counting primitives generated in hardware is not currently
-       * supported, so take the software path. We need to investigate
-       * the *_PRIMITIVES_COUNT registers to allow this to be handled
-       * entirely in hardware.
-       */
-      return false;
-   }
 
    /* Otherwise Haswell can do it all. */
    if (intel->is_haswell)
@@ -197,16 +193,17 @@ haswell_upload_cut_index(struct brw_context *brw)
    const unsigned cut_index_setting =
       ctx->Array._PrimitiveRestart ? HSW_CUT_INDEX_ENABLE : 0;
 
+   /* BRW_NEW_INDEX_BUFFER */
    BEGIN_BATCH(2);
    OUT_BATCH(_3DSTATE_VF << 16 | cut_index_setting | (2 - 2));
-   OUT_BATCH(ctx->Array._RestartIndex);
+   OUT_BATCH(_mesa_primitive_restart_index(ctx, brw->ib.type));
    ADVANCE_BATCH();
 }
 
 const struct brw_tracked_state haswell_cut_index = {
    .dirty = {
       .mesa  = _NEW_TRANSFORM,
-      .brw   = 0,
+      .brw   = BRW_NEW_INDEX_BUFFER,
       .cache = 0,
    },
    .emit = haswell_upload_cut_index,

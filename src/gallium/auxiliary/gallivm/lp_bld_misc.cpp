@@ -68,7 +68,9 @@
 #endif /* HAVE_LLVM < 0x0300 */
 
 #if HAVE_LLVM >= 0x0303
-#include <llvm/Wrap.h>
+#include <llvm/IR/IRBuilder.h>
+#include <llvm/IR/Module.h>
+#include <llvm/Support/CBindingWrapping.h>
 #endif
 
 #include "pipe/p_config.h"
@@ -77,6 +79,27 @@
 
 #include "lp_bld_misc.h"
 
+namespace {
+
+class LLVMEnsureMultithreaded {
+public:
+   LLVMEnsureMultithreaded()
+   {
+#if HAVE_LLVM < 0x0303
+      if (!llvm::llvm_is_multithreaded()) {
+         llvm::llvm_start_multithreaded();
+      }
+#else
+      if (!LLVMIsMultithreaded()) {
+         LLVMStartMultithreaded();
+      }
+#endif
+   }
+};
+
+static LLVMEnsureMultithreaded lLVMEnsureMultithreaded;
+
+}
 
 extern "C" void
 lp_set_target_options(void)

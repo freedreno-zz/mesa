@@ -33,21 +33,22 @@
 #include "ilo_common.h"
 
 struct ilo_screen;
-struct ilo_context;
-struct winsys_handle;
 
-/*
- * TODO we should have
- *
- *   ilo_resource, inherited by
- *    - ilo_buffer
- *    - ilo_texture
- *    - ilo_global_binding
- */
-struct ilo_resource {
+struct ilo_buffer {
    struct pipe_resource base;
-   struct winsys_handle *handle;
 
+   struct intel_bo *bo;
+   unsigned bo_size;
+   unsigned bo_flags;
+};
+
+struct ilo_texture {
+   struct pipe_resource base;
+
+   bool imported;
+   unsigned bo_flags;
+
+   enum pipe_format bo_format;
    struct intel_bo *bo;
 
    /*
@@ -73,27 +74,40 @@ struct ilo_resource {
    bool interleaved;
 
    /* 2D offsets into a layer/slice/face */
-   struct {
+   struct ilo_texture_slice {
       unsigned x;
       unsigned y;
    } *slice_offsets[PIPE_MAX_TEXTURE_LEVELS];
+
+   struct ilo_texture *separate_s8;
 };
 
-static inline struct ilo_resource *
-ilo_resource(struct pipe_resource *res)
+static inline struct ilo_buffer *
+ilo_buffer(struct pipe_resource *res)
 {
-   return (struct ilo_resource *) res;
+   return (struct ilo_buffer *)
+      ((res && res->target == PIPE_BUFFER) ? res : NULL);
+}
+
+static inline struct ilo_texture *
+ilo_texture(struct pipe_resource *res)
+{
+   return (struct ilo_texture *)
+      ((res && res->target != PIPE_BUFFER) ? res : NULL);
 }
 
 void
 ilo_init_resource_functions(struct ilo_screen *is);
 
-void
-ilo_init_transfer_functions(struct ilo_context *ilo);
+bool
+ilo_buffer_alloc_bo(struct ilo_buffer *buf);
+
+bool
+ilo_texture_alloc_bo(struct ilo_texture *tex);
 
 unsigned
-ilo_resource_get_slice_offset(const struct ilo_resource *res,
-                              int level, int slice, bool tile_aligned,
-                              unsigned *x_offset, unsigned *y_offset);
+ilo_texture_get_slice_offset(const struct ilo_texture *tex,
+                             int level, int slice,
+                             unsigned *x_offset, unsigned *y_offset);
 
 #endif /* ILO_RESOURCE_H */

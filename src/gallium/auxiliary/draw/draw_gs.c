@@ -57,7 +57,6 @@ draw_gs_get_input_index(int semantic, int index,
           input_semantic_indices[i] == index)
          return i;
    }
-   debug_assert(0);
    return -1;
 }
 
@@ -154,29 +153,37 @@ static void tgsi_fetch_gs_input(struct draw_geometry_shader *shader,
                (float)shader->in_prim_idx;
          } else {
             vs_slot = draw_gs_get_input_index(
-                        shader->info.input_semantic_name[slot],
-                        shader->info.input_semantic_index[slot],
-                        shader->input_info);
+               shader->info.input_semantic_name[slot],
+               shader->info.input_semantic_index[slot],
+               shader->input_info);
+            if (vs_slot < 0) {
+               debug_printf("VS/GS signature mismatch!\n");
+               machine->Inputs[idx].xyzw[0].f[prim_idx] = 0;
+               machine->Inputs[idx].xyzw[1].f[prim_idx] = 0;
+               machine->Inputs[idx].xyzw[2].f[prim_idx] = 0;
+               machine->Inputs[idx].xyzw[3].f[prim_idx] = 0;
+            } else {
 #if DEBUG_INPUTS
-            debug_printf("\tSlot = %d, vs_slot = %d, idx = %d:\n",
-                         slot, vs_slot, idx);
-            assert(!util_is_inf_or_nan(input[vs_slot][0]));
-            assert(!util_is_inf_or_nan(input[vs_slot][1]));
-            assert(!util_is_inf_or_nan(input[vs_slot][2]));
-            assert(!util_is_inf_or_nan(input[vs_slot][3]));
+               debug_printf("\tSlot = %d, vs_slot = %d, idx = %d:\n",
+                            slot, vs_slot, idx);
+               assert(!util_is_inf_or_nan(input[vs_slot][0]));
+               assert(!util_is_inf_or_nan(input[vs_slot][1]));
+               assert(!util_is_inf_or_nan(input[vs_slot][2]));
+               assert(!util_is_inf_or_nan(input[vs_slot][3]));
 #endif
-            machine->Inputs[idx].xyzw[0].f[prim_idx] = input[vs_slot][0];
-            machine->Inputs[idx].xyzw[1].f[prim_idx] = input[vs_slot][1];
-            machine->Inputs[idx].xyzw[2].f[prim_idx] = input[vs_slot][2];
-            machine->Inputs[idx].xyzw[3].f[prim_idx] = input[vs_slot][3];
+               machine->Inputs[idx].xyzw[0].f[prim_idx] = input[vs_slot][0];
+               machine->Inputs[idx].xyzw[1].f[prim_idx] = input[vs_slot][1];
+               machine->Inputs[idx].xyzw[2].f[prim_idx] = input[vs_slot][2];
+               machine->Inputs[idx].xyzw[3].f[prim_idx] = input[vs_slot][3];
 #if DEBUG_INPUTS
-            debug_printf("\t\t%f %f %f %f\n",
-                         machine->Inputs[idx].xyzw[0].f[prim_idx],
-                         machine->Inputs[idx].xyzw[1].f[prim_idx],
-                         machine->Inputs[idx].xyzw[2].f[prim_idx],
-                         machine->Inputs[idx].xyzw[3].f[prim_idx]);
+               debug_printf("\t\t%f %f %f %f\n",
+                            machine->Inputs[idx].xyzw[0].f[prim_idx],
+                            machine->Inputs[idx].xyzw[1].f[prim_idx],
+                            machine->Inputs[idx].xyzw[2].f[prim_idx],
+                            machine->Inputs[idx].xyzw[3].f[prim_idx]);
 #endif
-            ++vs_slot;
+               ++vs_slot;
+            }
          }
       }
    }
@@ -241,29 +248,37 @@ llvm_fetch_gs_input(struct draw_geometry_shader *shader,
             /* skip. we handle system values through gallivm */
          } else {
             vs_slot = draw_gs_get_input_index(
-                        shader->info.input_semantic_name[slot],
-                        shader->info.input_semantic_index[slot],
-                        shader->input_info);
+               shader->info.input_semantic_name[slot],
+               shader->info.input_semantic_index[slot],
+               shader->input_info);
+            if (vs_slot < 0) {
+               debug_printf("VS/GS signature mismatch!\n");
+               (*input_data)[i][slot][0][prim_idx] = 0;
+               (*input_data)[i][slot][1][prim_idx] = 0;
+               (*input_data)[i][slot][2][prim_idx] = 0;
+               (*input_data)[i][slot][3][prim_idx] = 0;
+            } else {
 #if DEBUG_INPUTS
-            debug_printf("\tSlot = %d, vs_slot = %d, i = %d:\n",
-                         slot, vs_slot, i);
-            assert(!util_is_inf_or_nan(input[vs_slot][0]));
-            assert(!util_is_inf_or_nan(input[vs_slot][1]));
-            assert(!util_is_inf_or_nan(input[vs_slot][2]));
-            assert(!util_is_inf_or_nan(input[vs_slot][3]));
+               debug_printf("\tSlot = %d, vs_slot = %d, i = %d:\n",
+                            slot, vs_slot, i);
+               assert(!util_is_inf_or_nan(input[vs_slot][0]));
+               assert(!util_is_inf_or_nan(input[vs_slot][1]));
+               assert(!util_is_inf_or_nan(input[vs_slot][2]));
+               assert(!util_is_inf_or_nan(input[vs_slot][3]));
 #endif
-            (*input_data)[i][slot][0][prim_idx] = input[vs_slot][0];
-            (*input_data)[i][slot][1][prim_idx] = input[vs_slot][1];
-            (*input_data)[i][slot][2][prim_idx] = input[vs_slot][2];
-            (*input_data)[i][slot][3][prim_idx] = input[vs_slot][3];
+               (*input_data)[i][slot][0][prim_idx] = input[vs_slot][0];
+               (*input_data)[i][slot][1][prim_idx] = input[vs_slot][1];
+               (*input_data)[i][slot][2][prim_idx] = input[vs_slot][2];
+               (*input_data)[i][slot][3][prim_idx] = input[vs_slot][3];
 #if DEBUG_INPUTS
-            debug_printf("\t\t%f %f %f %f\n",
-                         (*input_data)[i][slot][0][prim_idx],
-                         (*input_data)[i][slot][1][prim_idx],
-                         (*input_data)[i][slot][2][prim_idx],
-                         (*input_data)[i][slot][3][prim_idx]);
+               debug_printf("\t\t%f %f %f %f\n",
+                            (*input_data)[i][slot][0][prim_idx],
+                            (*input_data)[i][slot][1][prim_idx],
+                            (*input_data)[i][slot][2][prim_idx],
+                            (*input_data)[i][slot][3][prim_idx]);
 #endif
-            ++vs_slot;
+               ++vs_slot;
+            }
          }
       }
    }
@@ -320,8 +335,13 @@ llvm_fetch_gs_outputs(struct draw_geometry_shader *shader,
       int i;
       for (i = 0; i < total_verts; ++i) {
          struct vertex_header *vh = (struct vertex_header *)(output_ptr + shader->vertex_size * i);
-         debug_printf("%d) [%f, %f, %f, %f]\n", i,
-                      vh->data[0][0], vh->data[0][1], vh->data[0][2], vh->data[0][3]);
+         debug_printf("%d) Vertex:\n", i);
+         for (j = 0; j < shader->info.num_outputs; ++j) {
+            unsigned *udata = (unsigned*)vh->data[j];
+            debug_printf("    %d) [%f, %f, %f, %f] [%d, %d, %d, %d]\n", j,
+                         vh->data[j][0], vh->data[j][1], vh->data[j][2], vh->data[j][3],
+                         udata[0], udata[1], udata[2], udata[3]);
+         }
          
       }
    }
@@ -646,7 +666,12 @@ int draw_geometry_shader_run(struct draw_geometry_shader *shader,
 void draw_geometry_shader_prepare(struct draw_geometry_shader *shader,
                                   struct draw_context *draw)
 {
-   if (shader && shader->machine->Tokens != shader->state.tokens) {
+#ifdef HAVE_LLVM
+   boolean use_llvm = draw_get_option_use_llvm();
+#else
+   boolean use_llvm = FALSE;
+#endif
+   if (!use_llvm && shader && shader->machine->Tokens != shader->state.tokens) {
       tgsi_exec_machine_bind_shader(shader->machine,
                                     shader->state.tokens,
                                     draw->gs.tgsi.sampler);
@@ -764,6 +789,8 @@ draw_create_geometry_shader(struct draw_context *draw,
       if (gs->info.output_semantic_name[i] == TGSI_SEMANTIC_POSITION &&
           gs->info.output_semantic_index[i] == 0)
          gs->position_output = i;
+      if (gs->info.output_semantic_name[i] == TGSI_SEMANTIC_VIEWPORT_INDEX)
+         gs->viewport_index_output = i;
    }
 
    gs->machine = draw->gs.tgsi.machine;

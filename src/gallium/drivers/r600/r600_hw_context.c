@@ -226,34 +226,6 @@ void r600_flush_emit(struct r600_context *rctx)
 	if (rctx->flags & R600_CONTEXT_FLUSH_AND_INV) {
 		cs->buf[cs->cdw++] = PKT3(PKT3_EVENT_WRITE, 0, 0);
 		cs->buf[cs->cdw++] = EVENT_TYPE(EVENT_TYPE_CACHE_FLUSH_AND_INV_EVENT) | EVENT_INDEX(0);
-		if (rctx->chip_class >= EVERGREEN) {
-			cp_coher_cntl = S_0085F0_CB0_DEST_BASE_ENA(1) |
-					S_0085F0_CB1_DEST_BASE_ENA(1) |
-					S_0085F0_CB2_DEST_BASE_ENA(1) |
-					S_0085F0_CB3_DEST_BASE_ENA(1) |
-					S_0085F0_CB4_DEST_BASE_ENA(1) |
-					S_0085F0_CB5_DEST_BASE_ENA(1) |
-					S_0085F0_CB6_DEST_BASE_ENA(1) |
-					S_0085F0_CB7_DEST_BASE_ENA(1) |
-					S_0085F0_CB8_DEST_BASE_ENA(1) |
-					S_0085F0_CB9_DEST_BASE_ENA(1) |
-					S_0085F0_CB10_DEST_BASE_ENA(1) |
-					S_0085F0_CB11_DEST_BASE_ENA(1) |
-					S_0085F0_DB_DEST_BASE_ENA(1) |
-					S_0085F0_TC_ACTION_ENA(1) |
-					S_0085F0_CB_ACTION_ENA(1) |
-					S_0085F0_DB_ACTION_ENA(1) |
-					S_0085F0_SH_ACTION_ENA(1) |
-					S_0085F0_SMX_ACTION_ENA(1) |
-					S_0085F0_FULL_CACHE_ENA(1);
-		} else {
-			cp_coher_cntl = S_0085F0_SMX_ACTION_ENA(1) |
-					S_0085F0_SH_ACTION_ENA(1) |
-					S_0085F0_VC_ACTION_ENA(1) |
-					S_0085F0_TC_ACTION_ENA(1) |
-					S_0085F0_FULL_CACHE_ENA(1);
-		}
-		emit_flush = 1;
 	}
 
 	if (rctx->flags & R600_CONTEXT_INVAL_READ_CACHES) {

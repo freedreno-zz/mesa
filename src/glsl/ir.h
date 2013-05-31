@@ -1033,6 +1033,16 @@ enum ir_expression_operation {
    ir_unop_unpack_half_2x16_split_y,
    /*@}*/
 
+   /**
+    * \name Bit operations, part of ARB_gpu_shader5.
+    */
+   /*@{*/
+   ir_unop_bitfield_reverse,
+   ir_unop_bit_count,
+   ir_unop_find_msb,
+   ir_unop_find_lsb,
+   /*@}*/
+
    ir_unop_noise,
 
    /**
@@ -1109,6 +1119,15 @@ enum ir_expression_operation {
    /*@}*/
 
    /**
+    * \name First half of a lowered bitfieldInsert() operation.
+    *
+    * \see lower_instructions::bitfield_insert_to_bfm_bfi
+    */
+   /*@{*/
+   ir_binop_bfm,
+   /*@}*/
+
+   /**
     * Load a value the size of a given GLSL type from a uniform block.
     *
     * operand0 is the ir_constant uniform block index in the linked shader.
@@ -1117,18 +1136,53 @@ enum ir_expression_operation {
    ir_binop_ubo_load,
 
    /**
+    * Extract a scalar from a vector
+    *
+    * operand0 is the vector
+    * operand1 is the index of the field to read from operand0
+    */
+   ir_binop_vector_extract,
+
+   /**
     * A sentinel marking the last of the binary operations.
     */
-   ir_last_binop = ir_binop_ubo_load,
+   ir_last_binop = ir_binop_vector_extract,
 
    ir_triop_lrp,
 
    /**
+    * \name Second half of a lowered bitfieldInsert() operation.
+    *
+    * \see lower_instructions::bitfield_insert_to_bfm_bfi
+    */
+   /*@{*/
+   ir_triop_bfi,
+   /*@}*/
+
+   ir_triop_bitfield_extract,
+
+   /**
+    * Generate a value with one field of a vector changed
+    *
+    * operand0 is the vector
+    * operand1 is the value to write into the vector result
+    * operand2 is the index in operand0 to be modified
+    */
+   ir_triop_vector_insert,
+
+   /**
     * A sentinel marking the last of the ternary operations.
     */
-   ir_last_triop = ir_triop_lrp,
+   ir_last_triop = ir_triop_vector_insert,
+
+   ir_quadop_bitfield_insert,
 
    ir_quadop_vector,
+
+   /**
+    * A sentinel marking the last of the ternary operations.
+    */
+   ir_last_quadop = ir_quadop_vector,
 
    /**
     * A sentinel marking the last of all operations.

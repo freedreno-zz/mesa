@@ -125,6 +125,13 @@ struct surface_format_info {
  * color - Color Processing
  *
  * See page 88 of the Sandybridge PRM VOL4_Part1 PDF.
+ *
+ * As of Ivybridge, the columns are no longer in that table and the
+ * information can be found spread across:
+ *
+ * - VOL2_Part1 section 2.5.11 Format Conversion (vertex fetch).
+ * - VOL4_Part1 section 2.12.2.1.2 Sampler Output Channel Mapping.
+ * - VOL4_Part1 section 3.9.11 Render Target Write.
  */
 const struct surface_format_info surface_formats[] = {
 /* smpl filt shad CK  RT  AB  VB  SO  color */
@@ -137,6 +144,8 @@ const struct surface_format_info surface_formats[] = {
    SF( Y, 50,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_R32G32B32X32_FLOAT)
    SF( x,  x,  x,  x,  x,  x,  Y,  x,  x, BRW_SURFACEFORMAT_R32G32B32A32_SSCALED)
    SF( x,  x,  x,  x,  x,  x,  Y,  x,  x, BRW_SURFACEFORMAT_R32G32B32A32_USCALED)
+   SF( x,  x,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_R32G32B32A32_SFIXED)
+   SF( x,  x,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_R64G64_PASSTHRU)
    SF( Y, 50,  x,  x,  x,  x,  Y,  Y,  x, BRW_SURFACEFORMAT_R32G32B32_FLOAT)
    SF( Y,  x,  x,  x,  x,  x,  Y,  Y,  x, BRW_SURFACEFORMAT_R32G32B32_SINT)
    SF( Y,  x,  x,  x,  x,  x,  Y,  Y,  x, BRW_SURFACEFORMAT_R32G32B32_UINT)
@@ -144,6 +153,7 @@ const struct surface_format_info surface_formats[] = {
    SF( x,  x,  x,  x,  x,  x,  Y,  x,  x, BRW_SURFACEFORMAT_R32G32B32_SNORM)
    SF( x,  x,  x,  x,  x,  x,  Y,  x,  x, BRW_SURFACEFORMAT_R32G32B32_SSCALED)
    SF( x,  x,  x,  x,  x,  x,  Y,  x,  x, BRW_SURFACEFORMAT_R32G32B32_USCALED)
+   SF( x,  x,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_R32G32B32_SFIXED)
    SF( Y,  Y,  x,  x,  Y, 45,  Y,  x, 60, BRW_SURFACEFORMAT_R16G16B16A16_UNORM)
    SF( Y,  Y,  x,  x,  Y, 60,  Y,  x,  x, BRW_SURFACEFORMAT_R16G16B16A16_SNORM)
    SF( Y,  x,  x,  x,  Y,  x,  Y,  x,  x, BRW_SURFACEFORMAT_R16G16B16A16_SINT)
@@ -167,6 +177,8 @@ const struct surface_format_info surface_formats[] = {
    SF( x,  x,  x,  x,  x,  x,  Y,  x,  x, BRW_SURFACEFORMAT_R16G16B16A16_USCALED)
    SF( x,  x,  x,  x,  x,  x,  Y,  x,  x, BRW_SURFACEFORMAT_R32G32_SSCALED)
    SF( x,  x,  x,  x,  x,  x,  Y,  x,  x, BRW_SURFACEFORMAT_R32G32_USCALED)
+   SF( x,  x,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_R32G32_SFIXED)
+   SF( x,  x,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_R64_PASSTHRU)
    SF( Y,  Y,  x,  Y,  Y,  Y,  Y,  x, 60, BRW_SURFACEFORMAT_B8G8R8A8_UNORM)
    SF( Y,  Y,  x,  x,  Y,  Y,  x,  x,  x, BRW_SURFACEFORMAT_B8G8R8A8_UNORM_SRGB)
 /* smpl filt shad CK  RT  AB  VB  SO  color */
@@ -231,6 +243,8 @@ const struct surface_format_info surface_formats[] = {
    SF( Y,  x,  x,  x,  Y,  x,  Y,  x,  x, BRW_SURFACEFORMAT_R16_SINT)
    SF( Y,  x,  x,  x,  Y,  x,  Y,  x,  x, BRW_SURFACEFORMAT_R16_UINT)
    SF( Y,  Y,  x,  x,  Y,  Y,  Y,  x,  x, BRW_SURFACEFORMAT_R16_FLOAT)
+   SF(50, 50,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_A8P8_UNORM_PALETTE0)
+   SF(50, 50,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_A8P8_UNORM_PALETTE1)
    SF( Y,  Y,  Y,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_I16_UNORM)
    SF( Y,  Y,  Y,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_L16_UNORM)
    SF( Y,  Y,  Y,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_A16_UNORM)
@@ -247,6 +261,12 @@ const struct surface_format_info surface_formats[] = {
 /* smpl filt shad CK  RT  AB  VB  SO  color */
    SF( x,  x,  x,  x,  x,  x,  Y,  x,  x, BRW_SURFACEFORMAT_R16_SSCALED)
    SF( x,  x,  x,  x,  x,  x,  Y,  x,  x, BRW_SURFACEFORMAT_R16_USCALED)
+   SF(50, 50,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_P8A8_UNORM_PALETTE0)
+   SF(50, 50,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_P8A8_UNORM_PALETTE1)
+   SF( x,  x,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_A1B5G5R5_UNORM)
+   SF( x,  x,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_A4B4G4R4_UNORM)
+   SF( x,  x,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_L8A8_UINT)
+   SF( x,  x,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_L8A8_SINT)
    SF( Y,  Y,  x, 45,  Y,  Y,  Y,  x,  x, BRW_SURFACEFORMAT_R8_UNORM)
    SF( Y,  Y,  x,  x,  Y, 60,  Y,  x,  x, BRW_SURFACEFORMAT_R8_SNORM)
    SF( Y,  x,  x,  x,  Y,  x,  Y,  x,  x, BRW_SURFACEFORMAT_R8_SINT)
@@ -258,11 +278,22 @@ const struct surface_format_info surface_formats[] = {
    SF( Y,  Y,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_A4P4_UNORM)
    SF( x,  x,  x,  x,  x,  x,  Y,  x,  x, BRW_SURFACEFORMAT_R8_SSCALED)
    SF( x,  x,  x,  x,  x,  x,  Y,  x,  x, BRW_SURFACEFORMAT_R8_USCALED)
+   SF(45, 45,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_P8_UNORM_PALETTE0)
    SF(45, 45,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_L8_UNORM_SRGB)
+   SF(45, 45,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_P8_UNORM_PALETTE1)
+   SF(45, 45,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_P4A4_UNORM_PALETTE1)
+   SF(45, 45,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_A4P4_UNORM_PALETTE1)
+   SF( x,  x,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_Y8_SNORM)
+   SF( x,  x,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_L8_UINT)
+   SF( x,  x,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_L8_SINT)
+   SF( x,  x,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_I8_UINT)
+   SF( x,  x,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_I8_SINT)
    SF(45, 45,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_DXT1_RGB_SRGB)
    SF( Y,  Y,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_R1_UINT)
    SF( Y,  Y,  x,  Y,  Y,  x,  x,  x, 60, BRW_SURFACEFORMAT_YCRCB_NORMAL)
    SF( Y,  Y,  x,  Y,  Y,  x,  x,  x, 60, BRW_SURFACEFORMAT_YCRCB_SWAPUVY)
+   SF(45, 45,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_P2_UNORM_PALETTE0)
+   SF(45, 45,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_P2_UNORM_PALETTE1)
    SF( Y,  Y,  x,  Y,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_BC1_UNORM)
    SF( Y,  Y,  x,  Y,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_BC2_UNORM)
    SF( Y,  Y,  x,  Y,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_BC3_UNORM)
@@ -285,10 +316,44 @@ const struct surface_format_info surface_formats[] = {
    SF( x,  x,  x,  x,  x,  x,  Y,  x,  x, BRW_SURFACEFORMAT_R64G64B64_FLOAT)
    SF( Y,  Y,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_BC4_SNORM)
    SF( Y,  Y,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_BC5_SNORM)
+   SF(50, 50,  x,  x,  x,  x, 60,  x,  x, BRW_SURFACEFORMAT_R16G16B16_FLOAT)
    SF( x,  x,  x,  x,  x,  x,  Y,  x,  x, BRW_SURFACEFORMAT_R16G16B16_UNORM)
    SF( x,  x,  x,  x,  x,  x,  Y,  x,  x, BRW_SURFACEFORMAT_R16G16B16_SNORM)
    SF( x,  x,  x,  x,  x,  x,  Y,  x,  x, BRW_SURFACEFORMAT_R16G16B16_SSCALED)
    SF( x,  x,  x,  x,  x,  x,  Y,  x,  x, BRW_SURFACEFORMAT_R16G16B16_USCALED)
+   SF(70, 70,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_BC6H_SF16)
+   SF(70, 70,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_BC7_UNORM)
+   SF(70, 70,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_BC7_UNORM_SRGB)
+   SF(70, 70,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_BC6H_UF16)
+   SF( x,  x,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_PLANAR_420_8)
+   SF( x,  x,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_R8G8B8_UNORM_SRGB)
+   SF( x,  x,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_ETC1_RGB8)
+   SF( x,  x,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_ETC2_RGB8)
+   SF( x,  x,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_EAC_R11)
+   SF( x,  x,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_EAC_RG11)
+   SF( x,  x,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_EAC_SIGNED_R11)
+   SF( x,  x,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_EAC_SIGNED_RG11)
+   SF( x,  x,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_ETC2_SRGB8)
+   SF( x,  x,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_R16G16B16_UINT)
+   SF( x,  x,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_R16G16B16_SINT)
+   SF( x,  x,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_R32_SFIXED)
+   SF( x,  x,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_R10G10B10A2_SNORM)
+   SF( x,  x,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_R10G10B10A2_USCALED)
+   SF( x,  x,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_R10G10B10A2_SSCALED)
+   SF( x,  x,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_R10G10B10A2_SINT)
+   SF( x,  x,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_B10G10R10A2_SNORM)
+   SF( x,  x,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_B10G10R10A2_USCALED)
+   SF( x,  x,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_B10G10R10A2_SSCALED)
+   SF( x,  x,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_B10G10R10A2_UINT)
+   SF( x,  x,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_B10G10R10A2_SINT)
+   SF( x,  x,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_R64G64B64A64_PASSTHRU)
+   SF( x,  x,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_R64G64B64_PASSTHRU)
+   SF( x,  x,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_ETC2_RGB8_PTA)
+   SF( x,  x,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_ETC2_SRGB8_PTA)
+   SF( x,  x,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_ETC2_EAC_RGBA8)
+   SF( x,  x,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_ETC2_EAC_SRGB8_A8)
+   SF( x,  x,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_R8G8B8_UINT)
+   SF( x,  x,  x,  x,  x,  x,  x,  x,  x, BRW_SURFACEFORMAT_R8G8B8_SINT)
 };
 #undef x
 #undef Y
@@ -312,7 +377,7 @@ brw_format_for_mesa_format(gl_format mesa_format)
       [MESA_FORMAT_XRGB8888] = BRW_SURFACEFORMAT_B8G8R8X8_UNORM,
       [MESA_FORMAT_XRGB8888_REV] = 0,
       [MESA_FORMAT_RGB888] = 0,
-      [MESA_FORMAT_BGR888] = 0,
+      [MESA_FORMAT_BGR888] = BRW_SURFACEFORMAT_R8G8B8_UNORM,
       [MESA_FORMAT_RGB565] = BRW_SURFACEFORMAT_B5G6R5_UNORM,
       [MESA_FORMAT_RGB565_REV] = 0,
       [MESA_FORMAT_ARGB4444] = BRW_SURFACEFORMAT_B4G4R4A4_UNORM,
@@ -341,7 +406,6 @@ brw_format_for_mesa_format(gl_format mesa_format)
       [MESA_FORMAT_GR1616] = BRW_SURFACEFORMAT_R16G16_UNORM,
       [MESA_FORMAT_RG1616] = 0,
       [MESA_FORMAT_ARGB2101010] = BRW_SURFACEFORMAT_B10G10R10A2_UNORM,
-      [MESA_FORMAT_ABGR2101010_UINT] = BRW_SURFACEFORMAT_R10G10B10A2_UINT,
       [MESA_FORMAT_Z24_S8] = 0,
       [MESA_FORMAT_S8_Z24] = 0,
       [MESA_FORMAT_Z16] = 0,
@@ -370,7 +434,7 @@ brw_format_for_mesa_format(gl_format mesa_format)
       [MESA_FORMAT_RGBA_FLOAT32] = BRW_SURFACEFORMAT_R32G32B32A32_FLOAT,
       [MESA_FORMAT_RGBA_FLOAT16] = BRW_SURFACEFORMAT_R16G16B16A16_FLOAT,
       [MESA_FORMAT_RGB_FLOAT32] = BRW_SURFACEFORMAT_R32G32B32_FLOAT,
-      [MESA_FORMAT_RGB_FLOAT16] = 0,
+      [MESA_FORMAT_RGB_FLOAT16] = BRW_SURFACEFORMAT_R16G16B16_FLOAT,
       [MESA_FORMAT_ALPHA_FLOAT32] = BRW_SURFACEFORMAT_A32_FLOAT,
       [MESA_FORMAT_ALPHA_FLOAT16] = BRW_SURFACEFORMAT_A16_FLOAT,
       [MESA_FORMAT_LUMINANCE_FLOAT32] = BRW_SURFACEFORMAT_L32_FLOAT,
@@ -414,11 +478,11 @@ brw_format_for_mesa_format(gl_format mesa_format)
 
       [MESA_FORMAT_R_INT8] = BRW_SURFACEFORMAT_R8_SINT,
       [MESA_FORMAT_RG_INT8] = BRW_SURFACEFORMAT_R8G8_SINT,
-      [MESA_FORMAT_RGB_INT8] = 0,
+      [MESA_FORMAT_RGB_INT8] = BRW_SURFACEFORMAT_R8G8B8_SINT,
       [MESA_FORMAT_RGBA_INT8] = BRW_SURFACEFORMAT_R8G8B8A8_SINT,
       [MESA_FORMAT_R_INT16] = BRW_SURFACEFORMAT_R16_SINT,
       [MESA_FORMAT_RG_INT16] = BRW_SURFACEFORMAT_R16G16_SINT,
-      [MESA_FORMAT_RGB_INT16] = 0,
+      [MESA_FORMAT_RGB_INT16] = BRW_SURFACEFORMAT_R16G16B16_SINT,
       [MESA_FORMAT_RGBA_INT16] = BRW_SURFACEFORMAT_R16G16B16A16_SINT,
       [MESA_FORMAT_R_INT32] = BRW_SURFACEFORMAT_R32_SINT,
       [MESA_FORMAT_RG_INT32] = BRW_SURFACEFORMAT_R32G32_SINT,
@@ -427,11 +491,11 @@ brw_format_for_mesa_format(gl_format mesa_format)
 
       [MESA_FORMAT_R_UINT8] = BRW_SURFACEFORMAT_R8_UINT,
       [MESA_FORMAT_RG_UINT8] = BRW_SURFACEFORMAT_R8G8_UINT,
-      [MESA_FORMAT_RGB_UINT8] = 0,
+      [MESA_FORMAT_RGB_UINT8] = BRW_SURFACEFORMAT_R8G8B8_UINT,
       [MESA_FORMAT_RGBA_UINT8] = BRW_SURFACEFORMAT_R8G8B8A8_UINT,
       [MESA_FORMAT_R_UINT16] = BRW_SURFACEFORMAT_R16_UINT,
       [MESA_FORMAT_RG_UINT16] = BRW_SURFACEFORMAT_R16G16_UINT,
-      [MESA_FORMAT_RGB_UINT16] = 0,
+      [MESA_FORMAT_RGB_UINT16] = BRW_SURFACEFORMAT_R16G16B16_UINT,
       [MESA_FORMAT_RGBA_UINT16] = BRW_SURFACEFORMAT_R16G16B16A16_UINT,
       [MESA_FORMAT_R_UINT32] = BRW_SURFACEFORMAT_R32_UINT,
       [MESA_FORMAT_RG_UINT32] = BRW_SURFACEFORMAT_R32G32_UINT,
@@ -446,7 +510,7 @@ brw_format_for_mesa_format(gl_format mesa_format)
       [MESA_FORMAT_SIGNED_RGBA8888_REV] = BRW_SURFACEFORMAT_R8G8B8A8_SNORM,
       [MESA_FORMAT_SIGNED_R16] = BRW_SURFACEFORMAT_R16_SNORM,
       [MESA_FORMAT_SIGNED_GR1616] = BRW_SURFACEFORMAT_R16G16_SNORM,
-      [MESA_FORMAT_SIGNED_RGB_16] = 0,
+      [MESA_FORMAT_SIGNED_RGB_16] = BRW_SURFACEFORMAT_R16G16B16_SNORM,
       [MESA_FORMAT_SIGNED_RGBA_16] = BRW_SURFACEFORMAT_R16G16B16A16_SNORM,
       [MESA_FORMAT_RGBA_16] = BRW_SURFACEFORMAT_R16G16B16A16_UNORM,
 
@@ -459,6 +523,18 @@ brw_format_for_mesa_format(gl_format mesa_format)
       [MESA_FORMAT_SIGNED_L_LATC1] = 0,
       [MESA_FORMAT_LA_LATC2] = 0,
       [MESA_FORMAT_SIGNED_LA_LATC2] = 0,
+
+      [MESA_FORMAT_ETC1_RGB8] = BRW_SURFACEFORMAT_ETC1_RGB8,
+      [MESA_FORMAT_ETC2_RGB8] = BRW_SURFACEFORMAT_ETC2_RGB8,
+      [MESA_FORMAT_ETC2_SRGB8] = BRW_SURFACEFORMAT_ETC2_SRGB8,
+      [MESA_FORMAT_ETC2_RGBA8_EAC] = BRW_SURFACEFORMAT_ETC2_EAC_RGBA8,
+      [MESA_FORMAT_ETC2_SRGB8_ALPHA8_EAC] = BRW_SURFACEFORMAT_ETC2_EAC_SRGB8_A8,
+      [MESA_FORMAT_ETC2_R11_EAC] = BRW_SURFACEFORMAT_EAC_R11,
+      [MESA_FORMAT_ETC2_RG11_EAC] = BRW_SURFACEFORMAT_EAC_RG11,
+      [MESA_FORMAT_ETC2_SIGNED_R11_EAC] = BRW_SURFACEFORMAT_EAC_SIGNED_R11,
+      [MESA_FORMAT_ETC2_SIGNED_RG11_EAC] = BRW_SURFACEFORMAT_EAC_SIGNED_RG11,
+      [MESA_FORMAT_ETC2_RGB8_PUNCHTHROUGH_ALPHA1] = BRW_SURFACEFORMAT_ETC2_RGB8_PTA,
+      [MESA_FORMAT_ETC2_SRGB8_PUNCHTHROUGH_ALPHA1] = BRW_SURFACEFORMAT_ETC2_SRGB8_PTA,
 
       [MESA_FORMAT_SIGNED_A8] = 0,
       [MESA_FORMAT_SIGNED_L8] = 0,
@@ -474,6 +550,25 @@ brw_format_for_mesa_format(gl_format mesa_format)
 
       [MESA_FORMAT_Z32_FLOAT] = 0,
       [MESA_FORMAT_Z32_FLOAT_X24S8] = 0,
+
+      [MESA_FORMAT_ARGB2101010_UINT] = BRW_SURFACEFORMAT_B10G10R10A2_UINT,
+      [MESA_FORMAT_ABGR2101010_UINT] = BRW_SURFACEFORMAT_R10G10B10A2_UINT,
+
+      [MESA_FORMAT_XRGB4444_UNORM] = 0,
+      [MESA_FORMAT_XRGB1555_UNORM] = BRW_SURFACEFORMAT_B5G5R5X1_UNORM,
+      [MESA_FORMAT_XBGR8888_SNORM] = 0,
+      [MESA_FORMAT_XBGR8888_SRGB] = 0,
+      [MESA_FORMAT_XBGR8888_UINT] = 0,
+      [MESA_FORMAT_XBGR8888_SINT] = 0,
+      [MESA_FORMAT_XRGB2101010_UNORM] = BRW_SURFACEFORMAT_B10G10R10X2_UNORM,
+      [MESA_FORMAT_XBGR16161616_UNORM] = BRW_SURFACEFORMAT_R16G16B16X16_UNORM,
+      [MESA_FORMAT_XBGR16161616_SNORM] = 0,
+      [MESA_FORMAT_XBGR16161616_FLOAT] = BRW_SURFACEFORMAT_R16G16B16X16_FLOAT,
+      [MESA_FORMAT_XBGR16161616_UINT] = 0,
+      [MESA_FORMAT_XBGR16161616_SINT] = 0,
+      [MESA_FORMAT_XBGR32323232_FLOAT] = BRW_SURFACEFORMAT_R32G32B32X32_FLOAT,
+      [MESA_FORMAT_XBGR32323232_UINT] = 0,
+      [MESA_FORMAT_XBGR32323232_SINT] = 0,
    };
    assert(mesa_format < MESA_FORMAT_COUNT);
    return table[mesa_format];
@@ -860,10 +955,10 @@ brw_update_texture_component(struct brw_context *brw,
                              unsigned width, unsigned height,
                              unsigned depth, unsigned stride,
                              GLuint target, GLuint tex_format,
-                             uint32_t offset, uint32_t levels)
+                             uint32_t offset, uint32_t levels,
+                             uint32_t first_level)
 {
    uint32_t tile_x, tile_y;
-   const struct intel_region *region = mt->region;
    uint32_t *surf = brw_state_batch(brw, AUB_TRACE_SURFACE_STATE,
                                     6 * 4, 32, binding_table_slot);
 
@@ -872,19 +967,20 @@ brw_update_texture_component(struct brw_context *brw,
 	      BRW_SURFACE_CUBEFACE_ENABLES |
 	      (tex_format << BRW_SURFACE_FORMAT_SHIFT));
 
-   surf[1] = region->bo->offset + offset;
+   surf[1] = mt->region->bo->offset + offset;
+   surf[1] += intel_miptree_get_tile_offsets(mt, first_level, 0,
+                                             &tile_x, &tile_y);
 
    surf[2] = (levels << BRW_SURFACE_LOD_SHIFT |
 	      (width - 1) << BRW_SURFACE_WIDTH_SHIFT |
 	      (height - 1) << BRW_SURFACE_HEIGHT_SHIFT);
 
-   surf[3] = (brw_get_surface_tiling_bits(region->tiling) |
+   surf[3] = (brw_get_surface_tiling_bits(mt->region->tiling) |
 	      (depth - 1) << BRW_SURFACE_DEPTH_SHIFT |
 	      (stride - 1) << BRW_SURFACE_PITCH_SHIFT);
 
    surf[4] = brw_get_surface_num_multisamples(mt->num_samples);
 
-   intel_miptree_get_tile_offsets(mt, 0, 0, &tile_x, &tile_y);
    assert(brw->has_surface_tile_offset || (tile_x == 0 && tile_y == 0));
    /* Note that the low bits of these fields are missing, so
     * there's the possibility of getting in trouble.
@@ -897,10 +993,10 @@ brw_update_texture_component(struct brw_context *brw,
 
    /* Emit relocation to surface contents */
    drm_intel_bo_emit_reloc(brw->intel.batch.bo,
-			   *binding_table_slot + 4,
-			   region->bo,
-                           offset,
-			   I915_GEM_DOMAIN_SAMPLER, 0);
+                           *binding_table_slot + 4,
+                           mt->region->bo,
+                           surf[1] - mt->region->bo->offset,
+                           I915_GEM_DOMAIN_SAMPLER, 0);
 }
 
 static void
@@ -928,7 +1024,8 @@ brw_update_ext_texture_surface(struct brw_context *brw,
          BRW_SURFACE_2D,
          format,
          intel_img->ext_offsets[index],
-         0);
+         0 /*levels*/,
+         0 /*first_level*/);
    }
 }
 
@@ -966,7 +1063,8 @@ brw_update_texture_surface(struct gl_context *ctx,
       translate_tex_format(intel_context(ctx), mt->format,
          firstImage->InternalFormat, tObj->DepthMode, sampler->sRGBDecode),
       mt->offset,
-      intelObj->_MaxLevel - tObj->BaseLevel);
+      intelObj->_MaxLevel - tObj->BaseLevel,
+      firstImage->Level);
 }
 
 /**
@@ -1279,8 +1377,8 @@ brw_update_renderbuffer_surface(struct brw_context *brw,
    /* _NEW_BUFFERS */
    gl_format rb_format = _mesa_get_render_format(ctx, intel_rb_format(irb));
 
-   if (irb->tex_image && !brw->has_surface_tile_offset) {
-      intel_renderbuffer_tile_offsets(irb, &tile_x, &tile_y);
+   if (rb->TexImage && !brw->has_surface_tile_offset) {
+      intel_renderbuffer_get_tile_offsets(irb, &tile_x, &tile_y);
 
       if (tile_x != 0 || tile_y != 0) {
 	 /* Original gen4 hardware couldn't draw to a non-tile-aligned
@@ -1309,7 +1407,7 @@ brw_update_renderbuffer_surface(struct brw_context *brw,
 	      format << BRW_SURFACE_FORMAT_SHIFT);
 
    /* reloc */
-   surf[1] = (intel_renderbuffer_tile_offsets(irb, &tile_x, &tile_y) +
+   surf[1] = (intel_renderbuffer_get_tile_offsets(irb, &tile_x, &tile_y) +
 	      region->bo->offset);
 
    surf[2] = ((rb->Width - 1) << BRW_SURFACE_WIDTH_SHIFT |
@@ -1516,9 +1614,8 @@ brw_upload_wm_ubo_surfaces(struct brw_context *brw)
 
 const struct brw_tracked_state brw_wm_ubo_surfaces = {
    .dirty = {
-      .mesa = (_NEW_PROGRAM |
-	       _NEW_BUFFER_OBJECT),
-      .brw = BRW_NEW_BATCH,
+      .mesa = _NEW_PROGRAM,
+      .brw = BRW_NEW_BATCH | BRW_NEW_UNIFORM_BUFFER,
       .cache = 0,
    },
    .emit = brw_upload_wm_ubo_surfaces,

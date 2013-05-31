@@ -68,24 +68,32 @@ llvmpipe_draw_vbo(struct pipe_context *pipe, const struct pipe_draw_info *info)
     */
    for (i = 0; i < lp->num_vertex_buffers; i++) {
       const void *buf = lp->vertex_buffer[i].user_buffer;
+      size_t size = ~0;
       if (!buf) {
          if (!lp->vertex_buffer[i].buffer) {
             continue;
          }
          buf = llvmpipe_resource_data(lp->vertex_buffer[i].buffer);
+         size = lp->vertex_buffer[i].buffer->width0;
       }
-      draw_set_mapped_vertex_buffer(draw, i, buf);
+      draw_set_mapped_vertex_buffer(draw, i, buf, size);
    }
 
    /* Map index buffer, if present */
    if (info->indexed) {
+      unsigned available_space = ~0;
       mapped_indices = lp->index_buffer.user_buffer;
-      if (!mapped_indices)
+      if (!mapped_indices) {
          mapped_indices = llvmpipe_resource_data(lp->index_buffer.buffer);
-
+         if (lp->index_buffer.buffer->width0 > lp->index_buffer.offset)
+            available_space =
+               (lp->index_buffer.buffer->width0 - lp->index_buffer.offset);
+         else
+            available_space = 0;
+      }
       draw_set_indexes(draw,
                        (ubyte *) mapped_indices + lp->index_buffer.offset,
-                       lp->index_buffer.index_size);
+                       lp->index_buffer.index_size, available_space);
    }
 
    for (i = 0; i < lp->num_so_targets; i++) {
@@ -121,10 +129,10 @@ llvmpipe_draw_vbo(struct pipe_context *pipe, const struct pipe_draw_info *info)
     * unmap vertex/index buffers
     */
    for (i = 0; i < lp->num_vertex_buffers; i++) {
-      draw_set_mapped_vertex_buffer(draw, i, NULL);
+      draw_set_mapped_vertex_buffer(draw, i, NULL, 0);
    }
    if (mapped_indices) {
-      draw_set_indexes(draw, NULL, 0);
+      draw_set_indexes(draw, NULL, 0, 0);
    }
    draw_set_mapped_so_targets(draw, 0, NULL);
 

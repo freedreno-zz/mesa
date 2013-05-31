@@ -85,6 +85,103 @@ br13_for_cpp(int cpp)
    }
 }
 
+/**
+ * Implements a rectangular block transfer (blit) of pixels between two
+ * miptrees.
+ *
+ * Our blitter can operate on 1, 2, or 4-byte-per-pixel data, with generous,
+ * but limited, pitches and sizes allowed.
+ *
+ * The src/dst coordinates are relative to the given level/slice of the
+ * miptree.
+ *
+ * If @src_flip or @dst_flip is set, then the rectangle within that miptree
+ * will be inverted (including scanline order) when copying.  This is common
+ * in GL when copying between window system and user-created
+ * renderbuffers/textures.
+ */
+bool
+intel_miptree_blit(struct intel_context *intel,
+                   struct intel_mipmap_tree *src_mt,
+                   int src_level, int src_slice,
+                   uint32_t src_x, uint32_t src_y, bool src_flip,
+                   struct intel_mipmap_tree *dst_mt,
+                   int dst_level, int dst_slice,
+                   uint32_t dst_x, uint32_t dst_y, bool dst_flip,
+                   uint32_t width, uint32_t height,
+                   GLenum logicop)
+{
+   /* We don't assert on format because we may blit from ARGB8888 to XRGB8888,
+    * for example.
+    */
+   assert(src_mt->cpp == dst_mt->cpp);
+
+   /* According to the Ivy Bridge PRM, Vol1 Part4, section 1.2.1.2 (Graphics
+    * Data Size Limitations):
+    *
+    *    The BLT engine is capable of transferring very large quantities of
+    *    graphics data. Any graphics data read from and written to the
+    *    destination is permitted to represent a number of pixels that
+    *    occupies up to 65,536 scan lines and up to 32,768 bytes per scan line
+    *    at the destination. The maximum number of pixels that may be
+    *    represented per scan line’s worth of graphics data depends on the
+    *    color depth.
+    *
+    * Furthermore, intelEmitCopyBlit (which is called below) uses a signed
+    * 16-bit integer to represent buffer pitch, so it can only handle buffer
+    * pitches < 32k.
+    *
+    * As a result of these two limitations, we can only use the blitter to do
+    * this copy when the region's pitch is less than 32k.
+    */
+   if (src_mt->region->pitch > 32768 ||
+       dst_mt->region->pitch > 32768) {
+      perf_debug("Falling back due to >32k pitch\n");
+      return false;
+   }
+
+   /* The blitter has no idea about HiZ, so we need to get the real depth
+    * data into the two miptrees before we do anything.
+    */
+   intel_miptree_slice_resolve_depth(intel, src_mt, src_level, src_slice);
+   intel_miptree_slice_resolve_depth(intel, dst_mt, dst_level, dst_slice);
+
+   if (src_flip)
+      src_y = src_mt->level[src_level].height - src_y - height;
+
+   if (dst_flip)
+      dst_y = dst_mt->level[dst_level].height - dst_y - height;
+
+   int src_pitch = src_mt->region->pitch;
+   if (src_flip != dst_flip)
+      src_pitch = -src_pitch;
+
+   uint32_t src_image_x, src_image_y;
+   intel_miptree_get_image_offset(src_mt, src_level, src_slice,
+                                  &src_image_x, &src_image_y);
+   src_x += src_image_x;
+   src_y += src_image_y;
+
+   uint32_t dst_image_x, dst_image_y;
+   intel_miptree_get_image_offset(dst_mt, dst_level, dst_slice,
+                                  &dst_image_x, &dst_image_y);
+   dst_x += dst_image_x;
+   dst_y += dst_image_y;
+
+   return intelEmitCopyBlit(intel,
+                            src_mt->cpp,
+                            src_pitch,
+                            src_mt->region->bo, src_mt->offset,
+                            src_mt->region->tiling,
+                            dst_mt->region->pitch,
+                            dst_mt->region->bo, dst_mt->offset,
+                            dst_mt->region->tiling,
+                            src_x, src_y,
+                            dst_x, dst_y,
+                            width, height,
+                            logicop);
+}
+
 /* Copy BitBlt
  */
 bool
@@ -107,18 +204,19 @@ intelEmitCopyBlit(struct intel_context *intel,
    int dst_y2 = dst_y + h;
    int dst_x2 = dst_x + w;
    drm_intel_bo *aper_array[3];
+   uint32_t bcs_swctrl = 0;
    BATCH_LOCALS;
 
    if (dst_tiling != I915_TILING_NONE) {
       if (dst_offset & 4095)
 	 return false;
-      if (dst_tiling == I915_TILING_Y)
+      if (dst_tiling == I915_TILING_Y && intel->gen < 6)
 	 return false;
    }
    if (src_tiling != I915_TILING_NONE) {
       if (src_offset & 4095)
 	 return false;
-      if (src_tiling == I915_TILING_Y)
+      if (src_tiling == I915_TILING_Y && intel->gen < 6)
 	 return false;
    }
 
@@ -150,15 +248,22 @@ intelEmitCopyBlit(struct intel_context *intel,
    if (src_pitch % 4 != 0 || dst_pitch % 4 != 0)
       return false;
 
-   /* For big formats (such as floating point), do the copy using 32bpp and
-    * multiply the coordinates.
+   /* For big formats (such as floating point), do the copy using 16 or 32bpp
+    * and multiply the coordinates.
     */
    if (cpp > 4) {
-      assert(cpp % 4 == 0);
-      dst_x *= cpp / 4;
-      dst_x2 *= cpp / 4;
-      src_x *= cpp / 4;
-      cpp = 4;
+      if (cpp % 4 == 2) {
+         dst_x *= cpp / 2;
+         dst_x2 *= cpp / 2;
+         src_x *= cpp / 2;
+         cpp = 2;
+      } else {
+         assert(cpp % 4 == 0);
+         dst_x *= cpp / 4;
+         dst_x2 *= cpp / 4;
+         src_x *= cpp / 4;
+         cpp = 4;
+      }
    }
 
    BR13 = br13_for_cpp(cpp) | translate_raster_op(logic_op) << 16;
@@ -179,10 +284,16 @@ intelEmitCopyBlit(struct intel_context *intel,
    if (dst_tiling != I915_TILING_NONE) {
       CMD |= XY_DST_TILED;
       dst_pitch /= 4;
+
+      if (dst_tiling == I915_TILING_Y)
+         bcs_swctrl |= BCS_SWCTRL_DST_Y;
    }
    if (src_tiling != I915_TILING_NONE) {
       CMD |= XY_SRC_TILED;
       src_pitch /= 4;
+
+      if (src_tiling == I915_TILING_Y)
+         bcs_swctrl |= BCS_SWCTRL_SRC_Y;
    }
 #endif
 
@@ -193,7 +304,21 @@ intelEmitCopyBlit(struct intel_context *intel,
    assert(dst_x < dst_x2);
    assert(dst_y < dst_y2);
 
-   BEGIN_BATCH_BLT(8);
+   BEGIN_BATCH_BLT(8 + ((bcs_swctrl != 0) ? 14 : 0));
+
+   if (bcs_swctrl != 0) {
+      /* Idle the blitter before we update how tiling is interpreted. */
+      OUT_BATCH(MI_FLUSH_DW);
+      OUT_BATCH(0);
+      OUT_BATCH(0);
+      OUT_BATCH(0);
+
+      OUT_BATCH(MI_LOAD_REGISTER_IMM | (3 - 2));
+      OUT_BATCH(BCS_SWCTRL);
+      OUT_BATCH((BCS_SWCTRL_DST_Y | BCS_SWCTRL_SRC_Y) << 16 |
+                bcs_swctrl);
+   }
+
    OUT_BATCH(CMD | (8 - 2));
    OUT_BATCH(BR13 | (uint16_t)dst_pitch);
    OUT_BATCH((dst_y << 16) | dst_x);
@@ -206,6 +331,18 @@ intelEmitCopyBlit(struct intel_context *intel,
    OUT_RELOC_FENCED(src_buffer,
 		    I915_GEM_DOMAIN_RENDER, 0,
 		    src_offset);
+
+   if (bcs_swctrl != 0) {
+      OUT_BATCH(MI_FLUSH_DW);
+      OUT_BATCH(0);
+      OUT_BATCH(0);
+      OUT_BATCH(0);
+
+      OUT_BATCH(MI_LOAD_REGISTER_IMM | (3 - 2));
+      OUT_BATCH(BCS_SWCTRL);
+      OUT_BATCH((BCS_SWCTRL_DST_Y | BCS_SWCTRL_SRC_Y) << 16);
+   }
+
    ADVANCE_BATCH();
 
    intel_batchbuffer_emit_mi_flush(intel);

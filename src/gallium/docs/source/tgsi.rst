@@ -32,11 +32,8 @@ For inputs which have a floating point type, both absolute value and negation
 modifiers are supported (with absolute value being applied first).
 TGSI_OPCODE_MOV is considered to have float input type for applying modifiers.
 
-For inputs which have signed type only the negate modifier is supported. This
-includes instructions which are otherwise ignorant if the type is signed or
-unsigned, such as TGSI_OPCODE_UADD.
-
-For inputs with unsigned type no modifiers are allowed.
+For inputs which have signed or unsigned type only the negate modifier is
+supported.
 
 Instruction Set
 ---------------
@@ -476,7 +473,7 @@ This instruction replicates its result.
 
 .. opcode:: KILP - Predicated Discard
 
-  discard
+  Not really predicated, just unconditional discard
 
 
 .. opcode:: PK2H - Pack Two 16-bit Floats
@@ -723,25 +720,6 @@ This instruction replicates its result.
   dst.w = round(src.w)
 
 
-.. opcode:: BRA - Branch
-
-  pc = target
-
-.. note::
-
-   Considered for removal.
-
-.. opcode:: CAL - Subroutine Call
-
-  push(pc)
-  pc = target
-
-
-.. opcode:: RET - Subroutine Call Return
-
-  pc = pop()
-
-
 .. opcode:: SSG - Set Sign
 
 .. math::
@@ -859,6 +837,664 @@ This instruction replicates its result.
   dst = texture_sample(unit, coord, lod)
 
 
+.. opcode:: PUSHA - Push Address Register On Stack
+
+  push(src.x)
+  push(src.y)
+  push(src.z)
+  push(src.w)
+
+.. note::
+
+   Considered for cleanup.
+
+.. note::
+
+   Considered for removal.
+
+.. opcode:: POPA - Pop Address Register From Stack
+
+  dst.w = pop()
+  dst.z = pop()
+  dst.y = pop()
+  dst.x = pop()
+
+.. note::
+
+   Considered for cleanup.
+
+.. note::
+
+   Considered for removal.
+
+
+.. opcode:: BRA - Branch
+
+  pc = target
+
+.. note::
+
+   Considered for removal.
+
+
+.. opcode:: CALLNZ - Subroutine Call If Not Zero
+
+   TBD
+
+.. note::
+
+   Considered for cleanup.
+
+.. note::
+
+   Considered for removal.
+
+
+Compute ISA
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+These opcodes are primarily provided for special-use computational shaders.
+Support for these opcodes indicated by a special pipe capability bit (TBD).
+
+XXX doesn't look like most of the opcodes really belong here.
+
+.. opcode:: CEIL - Ceiling
+
+.. math::
+
+  dst.x = \lceil src.x\rceil
+
+  dst.y = \lceil src.y\rceil
+
+  dst.z = \lceil src.z\rceil
+
+  dst.w = \lceil src.w\rceil
+
+
+.. opcode:: TRUNC - Truncate
+
+.. math::
+
+  dst.x = trunc(src.x)
+
+  dst.y = trunc(src.y)
+
+  dst.z = trunc(src.z)
+
+  dst.w = trunc(src.w)
+
+
+.. opcode:: MOD - Modulus
+
+.. math::
+
+  dst.x = src0.x \bmod src1.x
+
+  dst.y = src0.y \bmod src1.y
+
+  dst.z = src0.z \bmod src1.z
+
+  dst.w = src0.w \bmod src1.w
+
+
+.. opcode:: UARL - Integer Address Register Load
+
+  Moves the contents of the source register, assumed to be an integer, into the
+  destination register, which is assumed to be an address (ADDR) register.
+
+
+.. opcode:: SAD - Sum Of Absolute Differences
+
+.. math::
+
+  dst.x = |src0.x - src1.x| + src2.x
+
+  dst.y = |src0.y - src1.y| + src2.y
+
+  dst.z = |src0.z - src1.z| + src2.z
+
+  dst.w = |src0.w - src1.w| + src2.w
+
+
+.. opcode:: TXF - Texel Fetch (as per NV_gpu_shader4), extract a single texel
+                  from a specified texture image. The source sampler may
+		  not be a CUBE or SHADOW.
+                  src 0 is a four-component signed integer vector used to
+		  identify the single texel accessed. 3 components + level.
+		  src 1 is a 3 component constant signed integer vector,
+		  with each component only have a range of
+		  -8..+8 (hw only seems to deal with this range, interface
+		  allows for up to unsigned int).
+		  TXF(uint_vec coord, int_vec offset).
+
+
+.. opcode:: TXQ - Texture Size Query (as per NV_gpu_program4)
+                  retrieve the dimensions of the texture
+                  depending on the target. For 1D (width), 2D/RECT/CUBE
+		  (width, height), 3D (width, height, depth),
+		  1D array (width, layers), 2D array (width, height, layers)
+
+.. math::
+
+  lod = src0.x
+
+  dst.x = texture_width(unit, lod)
+
+  dst.y = texture_height(unit, lod)
+
+  dst.z = texture_depth(unit, lod)
+
+
+Integer ISA
+^^^^^^^^^^^^^^^^^^^^^^^^
+These opcodes are used for integer operations.
+Support for these opcodes indicated by PIPE_SHADER_CAP_INTEGERS (all of them?)
+
+
+.. opcode:: I2F - Signed Integer To Float
+
+   Rounding is unspecified (round to nearest even suggested).
+
+.. math::
+
+  dst.x = (float) src.x
+
+  dst.y = (float) src.y
+
+  dst.z = (float) src.z
+
+  dst.w = (float) src.w
+
+
+.. opcode:: U2F - Unsigned Integer To Float
+
+   Rounding is unspecified (round to nearest even suggested).
+
+.. math::
+
+  dst.x = (float) src.x
+
+  dst.y = (float) src.y
+
+  dst.z = (float) src.z
+
+  dst.w = (float) src.w
+
+
+.. opcode:: F2I - Float to Signed Integer
+
+   Rounding is towards zero (truncate).
+   Values outside signed range (including NaNs) produce undefined results.
+
+.. math::
+
+  dst.x = (int) src.x
+
+  dst.y = (int) src.y
+
+  dst.z = (int) src.z
+
+  dst.w = (int) src.w
+
+
+.. opcode:: F2U - Float to Unsigned Integer
+
+   Rounding is towards zero (truncate).
+   Values outside unsigned range (including NaNs) produce undefined results.
+
+.. math::
+
+  dst.x = (unsigned) src.x
+
+  dst.y = (unsigned) src.y
+
+  dst.z = (unsigned) src.z
+
+  dst.w = (unsigned) src.w
+
+
+.. opcode:: UADD - Integer Add
+
+   This instruction works the same for signed and unsigned integers.
+   The low 32bit of the result is returned.
+
+.. math::
+
+  dst.x = src0.x + src1.x
+
+  dst.y = src0.y + src1.y
+
+  dst.z = src0.z + src1.z
+
+  dst.w = src0.w + src1.w
+
+
+.. opcode:: UMAD - Integer Multiply And Add
+
+   This instruction works the same for signed and unsigned integers.
+   The multiplication returns the low 32bit (as does the result itself).
+
+.. math::
+
+  dst.x = src0.x \times src1.x + src2.x
+
+  dst.y = src0.y \times src1.y + src2.y
+
+  dst.z = src0.z \times src1.z + src2.z
+
+  dst.w = src0.w \times src1.w + src2.w
+
+
+.. opcode:: UMUL - Integer Multiply
+
+   This instruction works the same for signed and unsigned integers.
+   The low 32bit of the result is returned.
+
+.. math::
+
+  dst.x = src0.x \times src1.x
+
+  dst.y = src0.y \times src1.y
+
+  dst.z = src0.z \times src1.z
+
+  dst.w = src0.w \times src1.w
+
+
+.. opcode:: IDIV - Signed Integer Division
+
+   TBD: behavior for division by zero.
+
+.. math::
+
+  dst.x = src0.x \ src1.x
+
+  dst.y = src0.y \ src1.y
+
+  dst.z = src0.z \ src1.z
+
+  dst.w = src0.w \ src1.w
+
+
+.. opcode:: UDIV - Unsigned Integer Division
+
+   For division by zero, 0xffffffff is returned.
+
+.. math::
+
+  dst.x = src0.x \ src1.x
+
+  dst.y = src0.y \ src1.y
+
+  dst.z = src0.z \ src1.z
+
+  dst.w = src0.w \ src1.w
+
+
+.. opcode:: UMOD - Unsigned Integer Remainder
+
+   If second arg is zero, 0xffffffff is returned.
+
+.. math::
+
+  dst.x = src0.x \ src1.x
+
+  dst.y = src0.y \ src1.y
+
+  dst.z = src0.z \ src1.z
+
+  dst.w = src0.w \ src1.w
+
+
+.. opcode:: NOT - Bitwise Not
+
+.. math::
+
+  dst.x = ~src.x
+
+  dst.y = ~src.y
+
+  dst.z = ~src.z
+
+  dst.w = ~src.w
+
+
+.. opcode:: AND - Bitwise And
+
+.. math::
+
+  dst.x = src0.x & src1.x
+
+  dst.y = src0.y & src1.y
+
+  dst.z = src0.z & src1.z
+
+  dst.w = src0.w & src1.w
+
+
+.. opcode:: OR - Bitwise Or
+
+.. math::
+
+  dst.x = src0.x | src1.x
+
+  dst.y = src0.y | src1.y
+
+  dst.z = src0.z | src1.z
+
+  dst.w = src0.w | src1.w
+
+
+.. opcode:: XOR - Bitwise Xor
+
+.. math::
+
+  dst.x = src0.x \oplus src1.x
+
+  dst.y = src0.y \oplus src1.y
+
+  dst.z = src0.z \oplus src1.z
+
+  dst.w = src0.w \oplus src1.w
+
+
+.. opcode:: IMAX - Maximum of Signed Integers
+
+.. math::
+
+  dst.x = max(src0.x, src1.x)
+
+  dst.y = max(src0.y, src1.y)
+
+  dst.z = max(src0.z, src1.z)
+
+  dst.w = max(src0.w, src1.w)
+
+
+.. opcode:: UMAX - Maximum of Unsigned Integers
+
+.. math::
+
+  dst.x = max(src0.x, src1.x)
+
+  dst.y = max(src0.y, src1.y)
+
+  dst.z = max(src0.z, src1.z)
+
+  dst.w = max(src0.w, src1.w)
+
+
+.. opcode:: IMIN - Minimum of Signed Integers
+
+.. math::
+
+  dst.x = min(src0.x, src1.x)
+
+  dst.y = min(src0.y, src1.y)
+
+  dst.z = min(src0.z, src1.z)
+
+  dst.w = min(src0.w, src1.w)
+
+
+.. opcode:: UMIN - Minimum of Unsigned Integers
+
+.. math::
+
+  dst.x = min(src0.x, src1.x)
+
+  dst.y = min(src0.y, src1.y)
+
+  dst.z = min(src0.z, src1.z)
+
+  dst.w = min(src0.w, src1.w)
+
+
+.. opcode:: SHL - Shift Left
+
+.. math::
+
+  dst.x = src0.x << src1.x
+
+  dst.y = src0.y << src1.x
+
+  dst.z = src0.z << src1.x
+
+  dst.w = src0.w << src1.x
+
+
+.. opcode:: ISHR - Arithmetic Shift Right (of Signed Integer)
+
+.. math::
+
+  dst.x = src0.x >> src1.x
+
+  dst.y = src0.y >> src1.x
+
+  dst.z = src0.z >> src1.x
+
+  dst.w = src0.w >> src1.x
+
+
+.. opcode:: USHR - Logical Shift Right
+
+.. math::
+
+  dst.x = src0.x >> (unsigned) src1.x
+
+  dst.y = src0.y >> (unsigned) src1.x
+
+  dst.z = src0.z >> (unsigned) src1.x
+
+  dst.w = src0.w >> (unsigned) src1.x
+
+
+.. opcode:: UCMP - Integer Conditional Move
+
+.. math::
+
+  dst.x = src0.x ? src1.x : src2.x
+
+  dst.y = src0.y ? src1.y : src2.y
+
+  dst.z = src0.z ? src1.z : src2.z
+
+  dst.w = src0.w ? src1.w : src2.w
+
+
+
+.. opcode:: ISSG - Integer Set Sign
+
+.. math::
+
+  dst.x = (src0.x < 0) ? -1 : (src0.x > 0) ? 1 : 0
+
+  dst.y = (src0.y < 0) ? -1 : (src0.y > 0) ? 1 : 0
+
+  dst.z = (src0.z < 0) ? -1 : (src0.z > 0) ? 1 : 0
+
+  dst.w = (src0.w < 0) ? -1 : (src0.w > 0) ? 1 : 0
+
+
+
+.. opcode:: ISLT - Signed Integer Set On Less Than
+
+.. math::
+
+  dst.x = (src0.x < src1.x) ? ~0 : 0
+
+  dst.y = (src0.y < src1.y) ? ~0 : 0
+
+  dst.z = (src0.z < src1.z) ? ~0 : 0
+
+  dst.w = (src0.w < src1.w) ? ~0 : 0
+
+
+.. opcode:: USLT - Unsigned Integer Set On Less Than
+
+.. math::
+
+  dst.x = (src0.x < src1.x) ? ~0 : 0
+
+  dst.y = (src0.y < src1.y) ? ~0 : 0
+
+  dst.z = (src0.z < src1.z) ? ~0 : 0
+
+  dst.w = (src0.w < src1.w) ? ~0 : 0
+
+
+.. opcode:: ISGE - Signed Integer Set On Greater Equal Than
+
+.. math::
+
+  dst.x = (src0.x >= src1.x) ? ~0 : 0
+
+  dst.y = (src0.y >= src1.y) ? ~0 : 0
+
+  dst.z = (src0.z >= src1.z) ? ~0 : 0
+
+  dst.w = (src0.w >= src1.w) ? ~0 : 0
+
+
+.. opcode:: USGE - Unsigned Integer Set On Greater Equal Than
+
+.. math::
+
+  dst.x = (src0.x >= src1.x) ? ~0 : 0
+
+  dst.y = (src0.y >= src1.y) ? ~0 : 0
+
+  dst.z = (src0.z >= src1.z) ? ~0 : 0
+
+  dst.w = (src0.w >= src1.w) ? ~0 : 0
+
+
+.. opcode:: USEQ - Integer Set On Equal
+
+.. math::
+
+  dst.x = (src0.x == src1.x) ? ~0 : 0
+
+  dst.y = (src0.y == src1.y) ? ~0 : 0
+
+  dst.z = (src0.z == src1.z) ? ~0 : 0
+
+  dst.w = (src0.w == src1.w) ? ~0 : 0
+
+
+.. opcode:: USNE - Integer Set On Not Equal
+
+.. math::
+
+  dst.x = (src0.x != src1.x) ? ~0 : 0
+
+  dst.y = (src0.y != src1.y) ? ~0 : 0
+
+  dst.z = (src0.z != src1.z) ? ~0 : 0
+
+  dst.w = (src0.w != src1.w) ? ~0 : 0
+
+
+.. opcode:: INEG - Integer Negate
+
+  Two's complement.
+
+.. math::
+
+  dst.x = -src.x
+
+  dst.y = -src.y
+
+  dst.z = -src.z
+
+  dst.w = -src.w
+
+
+.. opcode:: IABS - Integer Absolute Value
+
+.. math::
+
+  dst.x = |src.x|
+
+  dst.y = |src.y|
+
+  dst.z = |src.z|
+
+  dst.w = |src.w|
+
+
+Geometry ISA
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+These opcodes are only supported in geometry shaders; they have no meaning
+in any other type of shader.
+
+.. opcode:: EMIT - Emit
+
+  Generate a new vertex for the current primitive using the values in the
+  output registers.
+
+
+.. opcode:: ENDPRIM - End Primitive
+
+  Complete the current primitive (consisting of the emitted vertices),
+  and start a new one.
+
+
+GLSL ISA
+^^^^^^^^^^
+
+These opcodes are part of :term:`GLSL`'s opcode set. Support for these
+opcodes is determined by a special capability bit, ``GLSL``.
+Some require glsl version 1.30 (UIF/BREAKC/SWITCH/CASE/DEFAULT/ENDSWITCH).
+
+.. opcode:: CAL - Subroutine Call
+
+  push(pc)
+  pc = target
+
+
+.. opcode:: RET - Subroutine Call Return
+
+  pc = pop()
+
+
+.. opcode:: CONT - Continue
+
+  Unconditionally moves the point of execution to the instruction after the
+  last bgnloop. The instruction must appear within a bgnloop/endloop.
+
+.. note::
+
+   Support for CONT is determined by a special capability bit,
+   ``TGSI_CONT_SUPPORTED``. See :ref:`Screen` for more information.
+
+
+.. opcode:: BGNLOOP - Begin a Loop
+
+  Start a loop. Must have a matching endloop.
+
+
+.. opcode:: BGNSUB - Begin Subroutine
+
+  Starts definition of a subroutine. Must have a matching endsub.
+
+
+.. opcode:: ENDLOOP - End a Loop
+
+  End a loop started with bgnloop.
+
+
+.. opcode:: ENDSUB - End Subroutine
+
+  Ends definition of a subroutine.
+
+
+.. opcode:: NOP - No Operation
+
+  Do nothing.
+
+
 .. opcode:: BRK - Break
 
   Unconditionally moves the point of execution to the instruction after the
@@ -873,6 +1509,11 @@ This instruction replicates its result.
   or switch/endswitch.
   Condition evaluates to true if src0.x != 0 where src0.x is interpreted
   as an integer register.
+
+.. note::
+
+   Considered for removal as it's quite inconsistent wrt other opcodes
+   (could emulate with UIF/BRK/ENDIF). 
 
 
 .. opcode:: IF - Float If
@@ -942,306 +1583,6 @@ This instruction replicates its result.
    Ends a switch expression.
 
 
-.. opcode:: PUSHA - Push Address Register On Stack
-
-  push(src.x)
-  push(src.y)
-  push(src.z)
-  push(src.w)
-
-.. note::
-
-   Considered for cleanup.
-
-.. note::
-
-   Considered for removal.
-
-.. opcode:: POPA - Pop Address Register From Stack
-
-  dst.w = pop()
-  dst.z = pop()
-  dst.y = pop()
-  dst.x = pop()
-
-.. note::
-
-   Considered for cleanup.
-
-.. note::
-
-   Considered for removal.
-
-
-Compute ISA
-^^^^^^^^^^^^^^^^^^^^^^^^
-
-These opcodes are primarily provided for special-use computational shaders.
-Support for these opcodes indicated by a special pipe capability bit (TBD).
-
-XXX so let's discuss it, yeah?
-
-.. opcode:: CEIL - Ceiling
-
-.. math::
-
-  dst.x = \lceil src.x\rceil
-
-  dst.y = \lceil src.y\rceil
-
-  dst.z = \lceil src.z\rceil
-
-  dst.w = \lceil src.w\rceil
-
-
-.. opcode:: I2F - Integer To Float
-
-.. math::
-
-  dst.x = (float) src.x
-
-  dst.y = (float) src.y
-
-  dst.z = (float) src.z
-
-  dst.w = (float) src.w
-
-
-.. opcode:: NOT - Bitwise Not
-
-.. math::
-
-  dst.x = ~src.x
-
-  dst.y = ~src.y
-
-  dst.z = ~src.z
-
-  dst.w = ~src.w
-
-
-.. opcode:: TRUNC - Truncate
-
-.. math::
-
-  dst.x = trunc(src.x)
-
-  dst.y = trunc(src.y)
-
-  dst.z = trunc(src.z)
-
-  dst.w = trunc(src.w)
-
-
-.. opcode:: SHL - Shift Left
-
-.. math::
-
-  dst.x = src0.x << src1.x
-
-  dst.y = src0.y << src1.x
-
-  dst.z = src0.z << src1.x
-
-  dst.w = src0.w << src1.x
-
-
-.. opcode:: SHR - Shift Right
-
-.. math::
-
-  dst.x = src0.x >> src1.x
-
-  dst.y = src0.y >> src1.x
-
-  dst.z = src0.z >> src1.x
-
-  dst.w = src0.w >> src1.x
-
-
-.. opcode:: AND - Bitwise And
-
-.. math::
-
-  dst.x = src0.x & src1.x
-
-  dst.y = src0.y & src1.y
-
-  dst.z = src0.z & src1.z
-
-  dst.w = src0.w & src1.w
-
-
-.. opcode:: OR - Bitwise Or
-
-.. math::
-
-  dst.x = src0.x | src1.x
-
-  dst.y = src0.y | src1.y
-
-  dst.z = src0.z | src1.z
-
-  dst.w = src0.w | src1.w
-
-
-.. opcode:: MOD - Modulus
-
-.. math::
-
-  dst.x = src0.x \bmod src1.x
-
-  dst.y = src0.y \bmod src1.y
-
-  dst.z = src0.z \bmod src1.z
-
-  dst.w = src0.w \bmod src1.w
-
-
-.. opcode:: XOR - Bitwise Xor
-
-.. math::
-
-  dst.x = src0.x \oplus src1.x
-
-  dst.y = src0.y \oplus src1.y
-
-  dst.z = src0.z \oplus src1.z
-
-  dst.w = src0.w \oplus src1.w
-
-
-.. opcode:: UCMP - Integer Conditional Move
-
-.. math::
-
-  dst.x = src0.x ? src1.x : src2.x
-
-  dst.y = src0.y ? src1.y : src2.y
-
-  dst.z = src0.z ? src1.z : src2.z
-
-  dst.w = src0.w ? src1.w : src2.w
-
-
-.. opcode:: UARL - Integer Address Register Load
-
-  Moves the contents of the source register, assumed to be an integer, into the
-  destination register, which is assumed to be an address (ADDR) register.
-
-
-.. opcode:: IABS - Integer Absolute Value
-
-.. math::
-
-  dst.x = |src.x|
-
-  dst.y = |src.y|
-
-  dst.z = |src.z|
-
-  dst.w = |src.w|
-
-
-.. opcode:: SAD - Sum Of Absolute Differences
-
-.. math::
-
-  dst.x = |src0.x - src1.x| + src2.x
-
-  dst.y = |src0.y - src1.y| + src2.y
-
-  dst.z = |src0.z - src1.z| + src2.z
-
-  dst.w = |src0.w - src1.w| + src2.w
-
-
-.. opcode:: TXF - Texel Fetch (as per NV_gpu_shader4), extract a single texel
-                  from a specified texture image. The source sampler may
-		  not be a CUBE or SHADOW.
-                  src 0 is a four-component signed integer vector used to
-		  identify the single texel accessed. 3 components + level.
-		  src 1 is a 3 component constant signed integer vector,
-		  with each component only have a range of
-		  -8..+8 (hw only seems to deal with this range, interface
-		  allows for up to unsigned int).
-		  TXF(uint_vec coord, int_vec offset).
-
-
-.. opcode:: TXQ - Texture Size Query (as per NV_gpu_program4)
-                  retrieve the dimensions of the texture
-                  depending on the target. For 1D (width), 2D/RECT/CUBE
-		  (width, height), 3D (width, height, depth),
-		  1D array (width, layers), 2D array (width, height, layers)
-
-.. math::
-
-  lod = src0
-
-  dst.x = texture_width(unit, lod)
-
-  dst.y = texture_height(unit, lod)
-
-  dst.z = texture_depth(unit, lod)
-
-
-.. opcode:: CONT - Continue
-
-  TBD
-
-.. note::
-
-   Support for CONT is determined by a special capability bit,
-   ``TGSI_CONT_SUPPORTED``. See :ref:`Screen` for more information.
-
-
-Geometry ISA
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-These opcodes are only supported in geometry shaders; they have no meaning
-in any other type of shader.
-
-.. opcode:: EMIT - Emit
-
-  TBD
-
-
-.. opcode:: ENDPRIM - End Primitive
-
-  TBD
-
-
-GLSL ISA
-^^^^^^^^^^
-
-These opcodes are part of :term:`GLSL`'s opcode set. Support for these
-opcodes is determined by a special capability bit, ``GLSL``.
-
-.. opcode:: BGNLOOP - Begin a Loop
-
-  TBD
-
-
-.. opcode:: BGNSUB - Begin Subroutine
-
-  TBD
-
-
-.. opcode:: ENDLOOP - End a Loop
-
-  TBD
-
-
-.. opcode:: ENDSUB - End Subroutine
-
-  TBD
-
-
-.. opcode:: NOP - No Operation
-
-  Do nothing.
-
-
 .. opcode:: NRM4 - 4-component Vector Normalise
 
 This instruction replicates its result.
@@ -1250,15 +1591,6 @@ This instruction replicates its result.
 
   dst = \frac{src.x}{src.x \times src.x + src.y \times src.y + src.z \times src.z + src.w \times src.w}
 
-
-ps_2_x
-^^^^^^^^^^^^
-
-XXX wait what
-
-.. opcode:: CALLNZ - Subroutine Call If Not Zero
-
-  TBD
 
 .. _doubleopcodes:
 

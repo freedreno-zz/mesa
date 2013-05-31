@@ -654,132 +654,6 @@ static void GLAPIENTRY vbo_exec_EvalPoint2( GLint i, GLint j )
 }
 
 
-static void GLAPIENTRY
-vbo_exec_EvalMesh1(GLenum mode, GLint i1, GLint i2)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   GLint i;
-   GLfloat u, du;
-   GLenum prim;
-
-   switch (mode) {
-   case GL_POINT:
-      prim = GL_POINTS;
-      break;
-   case GL_LINE:
-      prim = GL_LINE_STRIP;
-      break;
-   default:
-      _mesa_error( ctx, GL_INVALID_ENUM, "glEvalMesh1(mode)" );
-      return;
-   }
-
-   /* No effect if vertex maps disabled.
-    */
-   if (!ctx->Eval.Map1Vertex4 && 
-       !ctx->Eval.Map1Vertex3)
-      return;
-
-   du = ctx->Eval.MapGrid1du;
-   u = ctx->Eval.MapGrid1u1 + i1 * du;
-
-   CALL_Begin(GET_DISPATCH(), (prim));
-   for (i=i1;i<=i2;i++,u+=du) {
-      CALL_EvalCoord1f(GET_DISPATCH(), (u));
-   }
-   CALL_End(GET_DISPATCH(), ());
-}
-
-
-static void GLAPIENTRY
-vbo_exec_EvalMesh2(GLenum mode, GLint i1, GLint i2, GLint j1, GLint j2)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   GLfloat u, du, v, dv, v1, u1;
-   GLint i, j;
-
-   switch (mode) {
-   case GL_POINT:
-   case GL_LINE:
-   case GL_FILL:
-      break;
-   default:
-      _mesa_error( ctx, GL_INVALID_ENUM, "glEvalMesh2(mode)" );
-      return;
-   }
-
-   /* No effect if vertex maps disabled.
-    */
-   if (!ctx->Eval.Map2Vertex4 && 
-       !ctx->Eval.Map2Vertex3)
-      return;
-
-   du = ctx->Eval.MapGrid2du;
-   dv = ctx->Eval.MapGrid2dv;
-   v1 = ctx->Eval.MapGrid2v1 + j1 * dv;
-   u1 = ctx->Eval.MapGrid2u1 + i1 * du;
-
-   switch (mode) {
-   case GL_POINT:
-      CALL_Begin(GET_DISPATCH(), (GL_POINTS));
-      for (v=v1,j=j1;j<=j2;j++,v+=dv) {
-	 for (u=u1,i=i1;i<=i2;i++,u+=du) {
-	    CALL_EvalCoord2f(GET_DISPATCH(), (u, v));
-	 }
-      }
-      CALL_End(GET_DISPATCH(), ());
-      break;
-   case GL_LINE:
-      for (v=v1,j=j1;j<=j2;j++,v+=dv) {
-	 CALL_Begin(GET_DISPATCH(), (GL_LINE_STRIP));
-	 for (u=u1,i=i1;i<=i2;i++,u+=du) {
-	    CALL_EvalCoord2f(GET_DISPATCH(), (u, v));
-	 }
-	 CALL_End(GET_DISPATCH(), ());
-      }
-      for (u=u1,i=i1;i<=i2;i++,u+=du) {
-	 CALL_Begin(GET_DISPATCH(), (GL_LINE_STRIP));
-	 for (v=v1,j=j1;j<=j2;j++,v+=dv) {
-	    CALL_EvalCoord2f(GET_DISPATCH(), (u, v));
-	 }
-	 CALL_End(GET_DISPATCH(), ());
-      }
-      break;
-   case GL_FILL:
-      for (v=v1,j=j1;j<j2;j++,v+=dv) {
-	 CALL_Begin(GET_DISPATCH(), (GL_TRIANGLE_STRIP));
-	 for (u=u1,i=i1;i<=i2;i++,u+=du) {
-	    CALL_EvalCoord2f(GET_DISPATCH(), (u, v));
-	    CALL_EvalCoord2f(GET_DISPATCH(), (u, v+dv));
-	 }
-	 CALL_End(GET_DISPATCH(), ());
-      }
-      break;
-   }
-}
-
-
-/**
- * Execute a glRectf() function.  This is not suitable for GL_COMPILE
- * modes (as the test for outside begin/end is not compiled),
- * but may be useful for drivers in circumstances which exclude
- * display list interactions.
- *
- * (None of the functions in this file are suitable for GL_COMPILE
- * modes).
- */
-static void GLAPIENTRY
-vbo_exec_Rectf(GLfloat x1, GLfloat y1, GLfloat x2, GLfloat y2)
-{
-   CALL_Begin(GET_DISPATCH(), (GL_QUADS));
-   CALL_Vertex2f(GET_DISPATCH(), (x1, y1));
-   CALL_Vertex2f(GET_DISPATCH(), (x2, y1));
-   CALL_Vertex2f(GET_DISPATCH(), (x2, y2));
-   CALL_Vertex2f(GET_DISPATCH(), (x1, y2));
-   CALL_End(GET_DISPATCH(), ());
-}
-
-
 /**
  * Called via glBegin.
  */
@@ -845,6 +719,34 @@ static void GLAPIENTRY vbo_exec_Begin( GLenum mode )
 
 
 /**
+ * Try to merge / concatenate the two most recent VBO primitives.
+ */
+static void
+try_vbo_merge(struct vbo_exec_context *exec)
+{
+   struct _mesa_prim *cur =  &exec->vtx.prim[exec->vtx.prim_count - 1];
+
+   assert(exec->vtx.prim_count >= 1);
+
+   vbo_try_prim_conversion(cur);
+
+   if (exec->vtx.prim_count >= 2) {
+      struct _mesa_prim *prev = &exec->vtx.prim[exec->vtx.prim_count - 2];
+      assert(prev == cur - 1);
+
+      if (vbo_can_merge_prims(prev, cur)) {
+         assert(cur->begin);
+         assert(cur->end);
+         assert(prev->begin);
+         assert(prev->end);
+         vbo_merge_prims(prev, cur);
+         exec->vtx.prim_count--;  /* drop the last primitive */
+      }
+   }
+}
+
+
+/**
  * Called via glEnd.
  */
 static void GLAPIENTRY vbo_exec_End( void )
@@ -870,6 +772,8 @@ static void GLAPIENTRY vbo_exec_End( void )
 
       exec->vtx.prim[i].end = 1;
       exec->vtx.prim[i].count = idx - exec->vtx.prim[i].start;
+
+      try_vbo_merge(exec);
    }
 
    ctx->Driver.CurrentExecPrimitive = PRIM_OUTSIDE_BEGIN_END;
@@ -910,16 +814,21 @@ static void vbo_exec_vtxfmt_init( struct vbo_exec_context *exec )
    struct gl_context *ctx = exec->ctx;
    GLvertexformat *vfmt = &exec->vtxfmt;
 
-   _MESA_INIT_ARRAYELT_VTXFMT(vfmt, _ae_);
+   vfmt->ArrayElement = _ae_ArrayElement;
 
    vfmt->Begin = vbo_exec_Begin;
    vfmt->End = vbo_exec_End;
    vfmt->PrimitiveRestartNV = vbo_exec_PrimitiveRestartNV;
 
-   _MESA_INIT_DLIST_VTXFMT(vfmt, _mesa_);
-   _MESA_INIT_EVAL_VTXFMT(vfmt, vbo_exec_);
+   vfmt->CallList = _mesa_CallList;
+   vfmt->CallLists = _mesa_CallLists;
 
-   vfmt->Rectf = vbo_exec_Rectf;
+   vfmt->EvalCoord1f = vbo_exec_EvalCoord1f;
+   vfmt->EvalCoord1fv = vbo_exec_EvalCoord1fv;
+   vfmt->EvalCoord2f = vbo_exec_EvalCoord2f;
+   vfmt->EvalCoord2fv = vbo_exec_EvalCoord2fv;
+   vfmt->EvalPoint1 = vbo_exec_EvalPoint1;
+   vfmt->EvalPoint2 = vbo_exec_EvalPoint2;
 
    /* from attrib_tmp.h:
     */

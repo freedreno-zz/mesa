@@ -1101,7 +1101,7 @@ evergreen_create_sampler_view_custom(struct pipe_context *ctx,
 	uint32_t word4 = 0, yuv_format = 0, pitch = 0;
 	unsigned char swizzle[4], array_mode = 0, non_disp_tiling = 0;
 	unsigned height, depth, width;
-	unsigned macro_aspect, tile_split, bankh, bankw, nbanks;
+	unsigned macro_aspect, tile_split, bankh, bankw, nbanks, fmask_bankh;
 	enum pipe_format pipe_format = state->format;
 	struct radeon_surface_level *surflevel;
 
@@ -1188,6 +1188,7 @@ evergreen_create_sampler_view_custom(struct pipe_context *ctx,
 	macro_aspect = eg_macro_tile_aspect(macro_aspect);
 	bankw = eg_bank_wh(bankw);
 	bankh = eg_bank_wh(bankh);
+	fmask_bankh = eg_bank_wh(tmp->fmask_bank_height);
 
 	/* 128 bit formats require tile type = 1 */
 	if (rscreen->chip_class == CAYMAN) {
@@ -1218,9 +1219,8 @@ evergreen_create_sampler_view_custom(struct pipe_context *ctx,
 	view->tex_resource_words[2] = (surflevel[0].offset + r600_resource_va(ctx->screen, texture)) >> 8;
 
 	/* TEX_RESOURCE_WORD3.MIP_ADDRESS */
-	if (texture->nr_samples > 1 && rscreen->msaa_texture_support == MSAA_TEXTURE_COMPRESSED) {
-		/* XXX the 2x and 4x cases are broken. */
-		if (tmp->is_depth || tmp->resource.b.b.nr_samples != 8) {
+	if (texture->nr_samples > 1 && rscreen->has_compressed_msaa_texturing) {
+		if (tmp->is_depth) {
 			/* disable FMASK (0 = disabled) */
 			view->tex_resource_words[3] = 0;
 			view->skip_mip_address_reloc = true;
@@ -1239,6 +1239,8 @@ evergreen_create_sampler_view_custom(struct pipe_context *ctx,
 				       S_030010_ENDIAN_SWAP(endian));
 	view->tex_resource_words[5] = S_030014_BASE_ARRAY(state->u.tex.first_layer) |
 				      S_030014_LAST_ARRAY(state->u.tex.last_layer);
+	view->tex_resource_words[6] = S_030018_TILE_SPLIT(tile_split);
+
 	if (texture->nr_samples > 1) {
 		unsigned log_samples = util_logbase2(texture->nr_samples);
 		if (rscreen->chip_class == CAYMAN) {
@@ -1246,13 +1248,14 @@ evergreen_create_sampler_view_custom(struct pipe_context *ctx,
 		}
 		/* LAST_LEVEL holds log2(nr_samples) for multisample textures */
 		view->tex_resource_words[5] |= S_030014_LAST_LEVEL(log_samples);
+		view->tex_resource_words[6] |= S_030018_FMASK_BANK_HEIGHT(fmask_bankh);
 	} else {
 		view->tex_resource_words[4] |= S_030010_BASE_LEVEL(state->u.tex.first_level);
 		view->tex_resource_words[5] |= S_030014_LAST_LEVEL(state->u.tex.last_level);
+		/* aniso max 16 samples */
+		view->tex_resource_words[6] |= S_030018_MAX_ANISO(4);
 	}
-	/* aniso max 16 samples */
-	view->tex_resource_words[6] = (S_030018_MAX_ANISO(4)) |
-				      (S_030018_TILE_SPLIT(tile_split));
+
 	view->tex_resource_words[7] = S_03001C_DATA_FORMAT(format) |
 				      S_03001C_TYPE(V_03001C_SQ_TEX_VTX_VALID_TEXTURE) |
 				      S_03001C_BANK_WIDTH(bankw) |
@@ -1306,7 +1309,9 @@ static void evergreen_get_scissor_rect(struct r600_context *rctx,
 	*br = S_028244_BR_X(br_x) | S_028244_BR_Y(br_y);
 }
 
-static void evergreen_set_scissor_state(struct pipe_context *ctx,
+static void evergreen_set_scissor_states(struct pipe_context *ctx,
+                                         unsigned start_slot,
+                                         unsigned num_scissors,
 					const struct pipe_scissor_state *state)
 {
 	struct r600_context *rctx = (struct r600_context *)ctx;
@@ -1576,7 +1581,7 @@ void evergreen_init_color_surface(struct r600_context *rctx,
 		surf->cb_color_fmask = surf->cb_color_base;
 		surf->cb_color_cmask = surf->cb_color_base;
 	}
-	surf->cb_color_fmask_slice = S_028C88_TILE_MAX(slice);
+	surf->cb_color_fmask_slice = S_028C88_TILE_MAX(rtex->fmask_slice_tile_max);
 	surf->cb_color_cmask_slice = S_028C80_TILE_MAX(rtex->cmask_slice_tile_max);
 
 	surf->color_initialized = true;
@@ -3534,21 +3539,13 @@ void *evergreen_create_resolve_blend(struct r600_context *rctx)
 void *evergreen_create_decompress_blend(struct r600_context *rctx)
 {
 	struct pipe_blend_state blend;
+	unsigned mode = rctx->screen->has_compressed_msaa_texturing ?
+			V_028808_CB_FMASK_DECOMPRESS : V_028808_CB_DECOMPRESS;
 
 	memset(&blend, 0, sizeof(blend));
 	blend.independent_blend_enable = true;
 	blend.rt[0].colormask = 0xf;
-	return evergreen_create_blend_state_mode(&rctx->context, &blend, V_028808_CB_DECOMPRESS);
-}
-
-void *evergreen_create_fmask_decompress_blend(struct r600_context *rctx)
-{
-	struct pipe_blend_state blend;
-
-	memset(&blend, 0, sizeof(blend));
-	blend.independent_blend_enable = true;
-	blend.rt[0].colormask = 0xf;
-	return evergreen_create_blend_state_mode(&rctx->context, &blend, V_028808_CB_FMASK_DECOMPRESS);
+	return evergreen_create_blend_state_mode(&rctx->context, &blend, mode);
 }
 
 void *evergreen_create_db_flush_dsa(struct r600_context *rctx)
@@ -3865,7 +3862,7 @@ void evergreen_init_state_functions(struct r600_context *rctx)
 	rctx->context.create_sampler_view = evergreen_create_sampler_view;
 	rctx->context.set_framebuffer_state = evergreen_set_framebuffer_state;
 	rctx->context.set_polygon_stipple = evergreen_set_polygon_stipple;
-	rctx->context.set_scissor_state = evergreen_set_scissor_state;
+	rctx->context.set_scissor_states = evergreen_set_scissor_states;
 
 	if (rctx->chip_class == EVERGREEN)
                 rctx->context.get_sample_position = evergreen_get_sample_position;

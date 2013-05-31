@@ -435,6 +435,7 @@ intel_create_image_from_renderbuffer(__DRIcontext *context,
    image->dri_format = intel_dri_format(image->format);
    image->has_depthstencil = irb->mt->stencil_mt? true : false;
 
+   rb->NeedsFinishRenderTexture = true;
    return image;
 }
 
@@ -1225,17 +1226,10 @@ set_max_gl_versions(struct intel_screen *screen)
 
    switch (screen->gen) {
    case 7:
-      if (screen->kernel_has_gen7_sol_reset) {
-         screen->max_gl_core_version = 31;
-         screen->max_gl_compat_version = 30;
-         screen->max_gl_es1_version = 11;
-         screen->max_gl_es2_version = 30;
-      } else {
-         screen->max_gl_core_version = 0;
-         screen->max_gl_compat_version = 21;
-         screen->max_gl_es1_version = 11;
-         screen->max_gl_es2_version = 20;
-      }
+      screen->max_gl_core_version = 31;
+      screen->max_gl_compat_version = 30;
+      screen->max_gl_es1_version = 11;
+      screen->max_gl_es2_version = 30;
       break;
    case 6:
       screen->max_gl_core_version = 31;
@@ -1322,10 +1316,6 @@ __DRIconfig **intelInitScreen2(__DRIscreen *psp)
        return false;
 
    intelScreen->deviceID = drm_intel_bufmgr_gem_get_devid(intelScreen->bufmgr);
-
-   intelScreen->kernel_has_gen7_sol_reset =
-      intel_get_boolean(intelScreen->driScrnPriv,
-			I915_PARAM_HAS_GEN7_SOL_RESET);
 
    if (IS_GEN7(intelScreen->deviceID)) {
       intelScreen->gen = 7;

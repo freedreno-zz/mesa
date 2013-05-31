@@ -33,6 +33,7 @@
 #include "main/formats.h"
 #include "main/macros.h"
 #include "intel_context.h"
+#include "intel_mipmap_tree.h"
 #include "intel_screen.h"
 
 #ifdef __cplusplus
@@ -51,9 +52,6 @@ struct intel_renderbuffer
    struct swrast_renderbuffer Base;
    struct intel_mipmap_tree *mt; /**< The renderbuffer storage. */
    drm_intel_bo *map_bo;
-
-   /* Current texture image this renderbuffer is attached to. */
-   struct gl_texture_image *tex_image;
 
    /**
     * \name Miptree view
@@ -141,10 +139,6 @@ intel_create_wrapped_renderbuffer(struct gl_context * ctx,
 				  int width, int height,
 				  gl_format format);
 
-struct intel_renderbuffer *
-intel_create_fake_renderbuffer_wrapper(struct intel_context *intel,
-                                       struct gl_texture_image *image);
-
 extern void
 intel_fbo_init(struct intel_context *intel);
 
@@ -155,10 +149,14 @@ intel_flip_renderbuffers(struct gl_framebuffer *fb);
 void
 intel_renderbuffer_set_draw_offset(struct intel_renderbuffer *irb);
 
-uint32_t
-intel_renderbuffer_tile_offsets(struct intel_renderbuffer *irb,
-				uint32_t *tile_x,
-				uint32_t *tile_y);
+static inline uint32_t
+intel_renderbuffer_get_tile_offsets(struct intel_renderbuffer *irb,
+                                    uint32_t *tile_x,
+                                    uint32_t *tile_y)
+{
+   return intel_miptree_get_tile_offsets(irb->mt, irb->mt_level, irb->mt_layer,
+                                         tile_x, tile_y);
+}
 
 struct intel_region*
 intel_get_rb_region(struct gl_framebuffer *fb, GLuint attIndex);

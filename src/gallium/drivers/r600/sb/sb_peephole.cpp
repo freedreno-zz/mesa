@@ -33,12 +33,9 @@
 #endif
 
 #include "sb_shader.h"
-
 #include "sb_pass.h"
 
 namespace r600_sb {
-
-using std::cerr;
 
 int peephole::run() {
 
@@ -49,7 +46,7 @@ int peephole::run() {
 
 void peephole::run_on(container_node* c) {
 
-	for (node_riterator I = c->rbegin(), E = c->rend(); I != E; ++I) {
+	for (node_iterator I = c->begin(), E = c->end(); I != E; ++I) {
 		node *n = *I;
 
 		if (n->is_container())
@@ -59,7 +56,8 @@ void peephole::run_on(container_node* c) {
 			if (n->is_alu_inst()) {
 				alu_node *a = static_cast<alu_node*>(n);
 
-				if (a->bc.op_ptr->flags & AF_CC_MASK) {
+				if (a->bc.op_ptr->flags &
+						(AF_PRED | AF_SET | AF_CMOV | AF_KILL)) {
 					optimize_cc_op(a);
 				} else if (a->bc.op == ALU_OP1_FLT_TO_INT) {
 
@@ -76,8 +74,8 @@ void peephole::run_on(container_node* c) {
 void peephole::optimize_cc_op(alu_node* a) {
 	unsigned aflags = a->bc.op_ptr->flags;
 
-	if (aflags & (AF_PRED | AF_SET)) {
-		optimize_SETcc_op(a);
+	if (aflags & (AF_PRED | AF_SET | AF_KILL)) {
+		optimize_cc_op2(a);
 	} else if (aflags & AF_CMOV) {
 		optimize_CNDcc_op(a);
 	}
@@ -93,28 +91,42 @@ void peephole::convert_float_setcc(alu_node *f2i, alu_node *s) {
 	f2i->remove();
 }
 
-void peephole::optimize_SETcc_op(alu_node* a) {
+void peephole::optimize_cc_op2(alu_node* a) {
 
 	unsigned flags = a->bc.op_ptr->flags;
 	unsigned cc = flags & AF_CC_MASK;
+
+	if ((cc != AF_CC_E && cc != AF_CC_NE) || a->pred)
+		return;
+
 	unsigned cmp_type = flags & AF_CMP_TYPE_MASK;
 	unsigned dst_type = flags & AF_DST_TYPE_MASK;
-	bool is_pred = flags & AF_PRED;
 
-	// TODO handle other cases
+	int op_kind = (flags & AF_PRED) ? 1 :
+			(flags & AF_SET) ? 2 :
+			(flags & AF_KILL) ? 3 : 0;
 
-	if (a->src[1]->is_const() && (cc == AF_CC_E || cc == AF_CC_NE) &&
-			a->src[1]->literal_value == literal(0) &&
-			a->bc.src[0].neg == 0 && a->bc.src[0].abs == 0) {
+	bool swapped = false;
+
+	if (a->src[0]->is_const() && a->src[0]->literal_value == literal(0)) {
+		std::swap(a->src[0],a->src[1]);
+		swapped = true;
+		// clear modifiers
+		memset(&a->bc.src[0], 0, sizeof(bc_alu_src));
+		memset(&a->bc.src[1], 0, sizeof(bc_alu_src));
+	}
+
+	if (swapped || (a->src[1]->is_const() &&
+			a->src[1]->literal_value == literal(0))) {
 
 		value *s = a->src[0];
 
 		bool_op_info bop = {};
 
 		PPH_DUMP(
-			cerr << "optSETcc ";
+			sblog << "cc_op2: ";
 			dump::dump_op(a);
-			cerr << "\n";
+			sblog << "\n";
 		);
 
 		if (!get_bool_op_info(s, bop))
@@ -136,14 +148,29 @@ void peephole::optimize_SETcc_op(alu_node* a) {
 		}
 
 		PPH_DUMP(
-			cerr << "boi node: ";
+			sblog << "boi node: ";
 			dump::dump_op(bop.n);
-			cerr << " invert: " << bop.invert << "  int_cvt: " << bop.int_cvt;
-			cerr <<"\n";
+			sblog << " invert: " << bop.invert << "  int_cvt: " << bop.int_cvt;
+			sblog <<"\n";
 		);
 
-		unsigned newop = is_pred ? get_predsetcc_opcode(cc, cmp_type) :
-				get_setcc_opcode(cc, cmp_type, dst_type != AF_FLOAT_DST);
+		unsigned newop;
+
+		switch(op_kind) {
+		case 1:
+			newop = get_predsetcc_op(cc, cmp_type);
+			break;
+		case 2:
+			newop = get_setcc_op(cc, cmp_type, dst_type != AF_FLOAT_DST);
+			break;
+		case 3:
+			newop = get_killcc_op(cc, cmp_type);
+			break;
+		default:
+			newop = ALU_OP0_NOP;
+			assert(!"invalid op kind");
+			break;
+		}
 
 		a->bc.set_op(newop);
 
@@ -163,8 +190,92 @@ void peephole::optimize_SETcc_op(alu_node* a) {
 }
 
 void peephole::optimize_CNDcc_op(alu_node* a) {
+	unsigned flags = a->bc.op_ptr->flags;
+	unsigned cc = flags & AF_CC_MASK;
+	unsigned cmp_type = flags & AF_CMP_TYPE_MASK;
+	bool swap = false;
 
-	//TODO
+	if (cc == AF_CC_E) {
+		swap = !swap;
+		cc = AF_CC_NE;
+	} else if (cc != AF_CC_NE)
+		return;
+
+	value *s = a->src[0];
+
+	bool_op_info bop = {};
+
+	PPH_DUMP(
+		sblog << "cndcc: ";
+		dump::dump_op(a);
+		sblog << "\n";
+	);
+
+	if (!get_bool_op_info(s, bop))
+		return;
+
+	alu_node *d = bop.n;
+
+	if (d->bc.omod)
+		return;
+
+	PPH_DUMP(
+		sblog << "cndcc def: ";
+		dump::dump_op(d);
+		sblog << "\n";
+	);
+
+
+	unsigned dflags = d->bc.op_ptr->flags;
+	unsigned dcc = dflags & AF_CC_MASK;
+	unsigned dcmp_type = dflags & AF_CMP_TYPE_MASK;
+	unsigned ddst_type = dflags & AF_DST_TYPE_MASK;
+	int nds;
+
+	// TODO we can handle some of these cases,
+	// though probably this shouldn't happen
+	if (cmp_type != AF_FLOAT_CMP && ddst_type == AF_FLOAT_DST)
+		return;
+
+	if (d->src[0]->is_const() && d->src[0]->literal_value == literal(0))
+		nds = 1;
+	else if ((d->src[1]->is_const() &&
+			d->src[1]->literal_value == literal(0)))
+		nds = 0;
+	else
+		return;
+
+	// can't propagate ABS modifier to CNDcc because it's OP3
+	if (d->bc.src[nds].abs)
+		return;
+
+	// TODO we can handle some cases for uint comparison
+	if (dcmp_type == AF_UINT_CMP)
+		return;
+
+	if (dcc == AF_CC_NE) {
+		dcc = AF_CC_E;
+		swap = !swap;
+	}
+
+	if (nds == 1) {
+		switch (dcc) {
+		case AF_CC_GT: dcc = AF_CC_GE; swap = !swap; break;
+		case AF_CC_GE: dcc = AF_CC_GT; swap = !swap; break;
+		default: break;
+		}
+	}
+
+	a->src[0] = d->src[nds];
+	a->bc.src[0] = d->bc.src[nds];
+
+	if (swap) {
+		std::swap(a->src[1], a->src[2]);
+		std::swap(a->bc.src[1], a->bc.src[2]);
+	}
+
+	a->bc.set_op(get_cndcc_op(dcc, dcmp_type));
+
 }
 
 bool peephole::get_bool_flt_to_int_source(alu_node* &a) {

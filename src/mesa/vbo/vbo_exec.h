@@ -81,6 +81,7 @@ struct vbo_exec_context
    struct gl_context *ctx;   
    GLvertexformat vtxfmt;
    GLvertexformat vtxfmt_noop;
+   GLboolean validating; /**< if we're in the middle of state validation */
 
    struct {
       struct gl_buffer_object *bufferobj;
@@ -151,9 +152,6 @@ void vbo_exec_FlushVertices( struct gl_context *ctx, GLuint flags );
 
 /* Internal functions:
  */
-void vbo_exec_array_init( struct vbo_exec_context *exec );
-void vbo_exec_array_destroy( struct vbo_exec_context *exec );
-
 
 void vbo_exec_vtx_init( struct vbo_exec_context *exec );
 void vbo_exec_vtx_destroy( struct vbo_exec_context *exec );

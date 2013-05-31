@@ -33,17 +33,12 @@
 #endif
 
 #include <cstring>
-#include <iostream>
-#include <iomanip>
 
 #include "sb_bc.h"
 #include "sb_shader.h"
-
 #include "sb_pass.h"
 
 namespace r600_sb {
-
-using std::cerr;
 
 class regbits {
 	typedef uint32_t basetype;
@@ -75,7 +70,7 @@ public:
 
 	void set(unsigned index, unsigned val);
 
-	sel_chan find_free_bit(unsigned start);
+	sel_chan find_free_bit();
 	sel_chan find_free_chans(unsigned mask);
 	sel_chan find_free_array(unsigned size, unsigned mask);
 
@@ -88,12 +83,14 @@ void regbits::dump() {
 	for (unsigned i = 0; i < size * bt_bits; ++i) {
 
 		if (!(i & 31))
-			cerr << "\n";
+			sblog << "\n";
 
-		if (!(i & 3))
-			cerr << "    " << std::setw(3) << (i / 4) << " ";
+		if (!(i & 3)) {
+			sblog.print_wl(i / 4, 7);
+			sblog << " ";
+		}
 
-		cerr << (get(i) ? 1 : 0);
+		sblog << (get(i) ? 1 : 0);
 	}
 }
 
@@ -148,24 +145,21 @@ void regbits::set(unsigned index, unsigned val) {
 }
 
 // free register for ra means the bit is set
-sel_chan regbits::find_free_bit(unsigned start) {
-	unsigned elt = start >> bt_index_shift;
-	unsigned bit = start & bt_index_mask;
+sel_chan regbits::find_free_bit() {
+	unsigned elt = 0;
+	unsigned bit = 0;
 
-	unsigned end = start < MAX_GPR - num_temps ? MAX_GPR - num_temps : MAX_GPR;
-
-	while (elt < end && !dta[elt]) {
+	while (elt < size && !dta[elt])
 		++elt;
-		bit = 0;
-	}
 
-	if (elt >= end)
+	if (elt >= size)
 		return 0;
 
-	// FIXME this seems broken when not starting from 0
+	bit = __builtin_ctz(dta[elt]) + (elt << bt_index_shift);
 
-	bit += __builtin_ctz(dta[elt]);
-	return ((elt << bt_index_shift) | bit) + 1;
+	assert(bit < ((MAX_GPR - num_temps) << 2));
+
+	return bit + 1;
 }
 
 // find free gpr component to use as indirectly addressable array
@@ -240,14 +234,20 @@ void ra_init::alloc_arrays() {
 		gpr_array *a = *I;
 
 		RA_DUMP(
-			cerr << "array [" << a->array_size << "] at " << a->base_gpr << "\n";
-			cerr << "\n";
+			sblog << "array [" << a->array_size << "] at " << a->base_gpr << "\n";
+			sblog << "\n";
 		);
+
+		// skip preallocated arrays (e.g. with preloaded inputs)
+		if (a->gpr) {
+			RA_DUMP( sblog << "   FIXED at " << a->gpr << "\n"; );
+			continue;
+		}
 
 		bool dead = a->is_dead();
 
 		if (dead) {
-			RA_DUMP( cerr << "   DEAD\n"; );
+			RA_DUMP( sblog << "   DEAD\n"; );
 			continue;
 		}
 
@@ -261,9 +261,9 @@ void ra_init::alloc_arrays() {
 		}
 
 		RA_DUMP(
-			cerr << "  interf: ";
+			sblog << "  interf: ";
 			dump::dump_set(sh, s);
-			cerr << "\n";
+			sblog << "\n";
 		);
 
 		regbits rb(sh, s);
@@ -271,7 +271,7 @@ void ra_init::alloc_arrays() {
 		sel_chan base = rb.find_free_array(a->array_size,
 		                                   (1 << a->base_gpr.chan()));
 
-		RA_DUMP( cerr << "  found base: " << base << "\n"; );
+		RA_DUMP( sblog << "  found base: " << base << "\n"; );
 
 		a->gpr = base;
 	}
@@ -304,9 +304,9 @@ void ra_init::process_op(node* n) {
 	bool copy = n->is_copy_mov();
 
 	RA_DUMP(
-		cerr << "ra_init: process_op : ";
+		sblog << "ra_init: process_op : ";
 		dump::dump_op(n);
-		cerr << "\n";
+		sblog << "\n";
 	);
 
 	if (n->is_alu_packed()) {
@@ -352,15 +352,15 @@ void ra_init::color_bs_constraint(ra_constraint* c) {
 	assert(vv.size() <= 8);
 
 	RA_DUMP(
-		cerr << "color_bs_constraint: ";
+		sblog << "color_bs_constraint: ";
 		dump::dump_vec(vv);
-		cerr << "\n";
+		sblog << "\n";
 	);
 
 	regbits rb(ctx.alu_temp_gprs);
 
 	unsigned chan_count[4] = {};
-	unsigned allowed_chans = 0b1111;
+	unsigned allowed_chans = 0x0F;
 
 	for (vvec::iterator I = vv.begin(), E = vv.end(); I != E; ++I) {
 		value *v = *I;
@@ -377,9 +377,9 @@ void ra_init::color_bs_constraint(ra_constraint* c) {
 			interf = v->interferences;
 
 		RA_DUMP(
-			cerr << "   processing " << *v << "  interferences : ";
+			sblog << "   processing " << *v << "  interferences : ";
 			dump::dump_set(sh, interf);
-			cerr << "\n";
+			sblog << "\n";
 		);
 
 		if (gpr) {
@@ -403,9 +403,9 @@ void ra_init::color_bs_constraint(ra_constraint* c) {
 		rb.from_val_set(sh, interf);
 
 		RA_DUMP(
-			cerr << "   regbits : ";
+			sblog << "   regbits : ";
 			rb.dump();
-			cerr << "\n";
+			sblog << "\n";
 		);
 
 		while (allowed_chans && gpr.sel() < sh.num_nontemp_gpr()) {
@@ -414,7 +414,7 @@ void ra_init::color_bs_constraint(ra_constraint* c) {
 				gpr = gpr + 1;
 
 			RA_DUMP(
-				cerr << "    trying " << gpr << "\n";
+				sblog << "    trying " << gpr << "\n";
 			);
 
 			unsigned chan = gpr.chan();
@@ -438,7 +438,7 @@ void ra_init::color_bs_constraint(ra_constraint* c) {
 		}
 
 		if (!gpr) {
-			cerr << "color_bs_constraint: failed...\n";
+			sblog << "color_bs_constraint: failed...\n";
 			assert(!"coloring failed");
 		}
 	}
@@ -455,11 +455,11 @@ void ra_init::color(value* v) {
 		return;
 
 	RA_DUMP(
-		cerr << "coloring ";
+		sblog << "coloring ";
 		dump::dump_val(v);
-		cerr << "   interferences ";
+		sblog << "   interferences ";
 		dump::dump_set(sh, v->interferences);
-		cerr << "\n";
+		sblog << "\n";
 	);
 
 	if (v->is_reg_pinned()) {
@@ -472,11 +472,11 @@ void ra_init::color(value* v) {
 	sel_chan c;
 
 	if (v->is_chan_pinned()) {
-		RA_DUMP( cerr << "chan_pinned = " << v->pin_gpr.chan() << "  ";	);
+		RA_DUMP( sblog << "chan_pinned = " << v->pin_gpr.chan() << "  ";	);
 		unsigned mask = 1 << v->pin_gpr.chan();
 		c = rb.find_free_chans(mask) + v->pin_gpr.chan();
 	} else {
-		c = rb.find_free_bit(0);
+		c = rb.find_free_bit();
 	}
 
 	assert(c && c.sel() < 128 - ctx.alu_temp_gprs && "color failed");
@@ -486,9 +486,9 @@ void ra_init::color(value* v) {
 void ra_init::assign_color(value* v, sel_chan c) {
 	v->gpr = c;
 	RA_DUMP(
-		cerr << "colored ";
+		sblog << "colored ";
 		dump::dump_val(v);
-		cerr << " to " << c << "\n";
+		sblog << " to " << c << "\n";
 	);
 }
 

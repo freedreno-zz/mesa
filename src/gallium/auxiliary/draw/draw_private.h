@@ -67,6 +67,14 @@ struct draw_pt_front_end;
 
 
 /**
+ * Represents the mapped vertex buffer.
+ */
+struct draw_vertex_buffer {
+   const void *map;
+   size_t size;
+};
+
+/**
  * Basic vertex info.
  * Carry some useful information around with the vertices in the prim pipe.  
  */
@@ -178,12 +186,13 @@ struct draw_context
          /** bytes per index (0, 1, 2 or 4) */
          unsigned eltSizeIB;
          unsigned eltSize;
-         int eltBias;
+         unsigned eltMax;
+         int eltBias;         
          unsigned min_index;
          unsigned max_index;
          
          /** vertex arrays */
-         const void *vbuffer[PIPE_MAX_ATTRIBS];
+         struct draw_vertex_buffer vbuffer[PIPE_MAX_ATTRIBS];
          
          /** constant buffers (for vertex/geometry shader) */
          const void *vs_constants[PIPE_MAX_CONSTANT_BUFFERS];
@@ -232,7 +241,7 @@ struct draw_context
    /** Rasterizer CSOs without culling/stipple/etc */
    void *rasterizer_no_cull[2][2];
 
-   struct pipe_viewport_state viewport;
+   struct pipe_viewport_state viewports[PIPE_MAX_VIEWPORTS];
    boolean identity_viewport;
 
    /** Vertex shader state */
@@ -363,9 +372,6 @@ void draw_new_instance(struct draw_context *draw);
 boolean draw_vs_init( struct draw_context *draw );
 void draw_vs_destroy( struct draw_context *draw );
 
-void draw_vs_set_viewport( struct draw_context *, 
-                           const struct pipe_viewport_state * );
-
 
 /*******************************************************************************
  * Geometry shading code:
@@ -380,11 +386,14 @@ void draw_gs_destroy( struct draw_context *draw );
  */
 uint draw_current_shader_outputs(const struct draw_context *draw);
 uint draw_current_shader_position_output(const struct draw_context *draw);
+uint draw_current_shader_viewport_index_output(const struct draw_context *draw);
 uint draw_current_shader_clipvertex_output(const struct draw_context *draw);
 uint draw_current_shader_clipdistance_output(const struct draw_context *draw, int index);
 int draw_alloc_extra_vertex_attrib(struct draw_context *draw,
                                    uint semantic_name, uint semantic_index);
 void draw_remove_extra_vertex_attribs(struct draw_context *draw);
+boolean draw_current_shader_uses_viewport_index(
+   const struct draw_context *draw);
 
 
 /*******************************************************************************
@@ -450,6 +459,25 @@ void *
 draw_get_rasterizer_no_cull( struct draw_context *draw,
                              boolean scissor,
                              boolean flatshade );
+
+
+/** 
+ * Return index i from the index buffer.
+ * If the index buffer would overflow we return the
+ * index of the first element in the vb.
+ */
+#define DRAW_GET_IDX(_elts, _i)                   \
+   (((_i) >= draw->pt.user.eltMax) ? 0 : (_elts)[_i])
+
+/**
+ * Return index of the given viewport clamping it
+ * to be between 0 <= and < PIPE_MAX_VIEWPORTS
+ */
+static INLINE unsigned
+draw_clamp_viewport_idx(int idx)
+{
+   return ((PIPE_MAX_VIEWPORTS > idx || idx < 0) ? idx : 0);
+}
 
 
 #endif /* DRAW_PRIVATE_H */

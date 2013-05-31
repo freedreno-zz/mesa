@@ -54,11 +54,6 @@ vlVdpVideoSurfaceCreate(VdpDevice device, VdpChromaType chroma_type,
       goto inv_size;
    }
 
-   if (!vlCreateHTAB()) {
-      ret = VDP_STATUS_RESOURCES;
-      goto no_htab;
-   }
-
    p_surf = CALLOC(1, sizeof(vlVdpSurface));
    if (!p_surf) {
       ret = VDP_STATUS_RESOURCES;
@@ -110,7 +105,6 @@ inv_device:
    FREE(p_surf);
 
 no_res:
-no_htab:
 inv_size:
    return ret;
 }
@@ -132,7 +126,9 @@ vlVdpVideoSurfaceDestroy(VdpVideoSurface surface)
       p_surf->video_buffer->destroy(p_surf->video_buffer);
    pipe_mutex_unlock(p_surf->device->mutex);
 
+   vlRemoveDataHTAB(surface);
    FREE(p_surf);
+
    return VDP_STATUS_OK;
 }
 
@@ -269,9 +265,6 @@ vlVdpVideoSurfacePutBitsYCbCr(VdpVideoSurface surface,
    struct pipe_context *pipe;
    struct pipe_sampler_view **sampler_views;
    unsigned i, j;
-
-   if (!vlCreateHTAB())
-      return VDP_STATUS_RESOURCES;
 
    vlVdpSurface *p_surf = vlGetDataHTAB(surface);
    if (!p_surf)

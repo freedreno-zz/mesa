@@ -311,21 +311,29 @@ void draw_set_clip_state( struct draw_context *draw,
 /**
  * Set the draw module's viewport state.
  */
-void draw_set_viewport_state( struct draw_context *draw,
-                              const struct pipe_viewport_state *viewport )
+void draw_set_viewport_states( struct draw_context *draw,
+                               unsigned start_slot,
+                               unsigned num_viewports,
+                               const struct pipe_viewport_state *vps )
 {
+   const struct pipe_viewport_state *viewport = vps;
    draw_do_flush(draw, DRAW_FLUSH_PARAMETER_CHANGE);
-   draw->viewport = *viewport; /* struct copy */
-   draw->identity_viewport = (viewport->scale[0] == 1.0f &&
-                              viewport->scale[1] == 1.0f &&
-                              viewport->scale[2] == 1.0f &&
-                              viewport->scale[3] == 1.0f &&
-                              viewport->translate[0] == 0.0f &&
-                              viewport->translate[1] == 0.0f &&
-                              viewport->translate[2] == 0.0f &&
-                              viewport->translate[3] == 0.0f);
 
-   draw_vs_set_viewport( draw, viewport );
+   debug_assert(start_slot < PIPE_MAX_VIEWPORTS);
+   debug_assert((start_slot + num_viewports) <= PIPE_MAX_VIEWPORTS);
+
+   memcpy(draw->viewports + start_slot, vps,
+          sizeof(struct pipe_viewport_state) * num_viewports);
+
+   draw->identity_viewport = (num_viewports == 1) &&
+      (viewport->scale[0] == 1.0f &&
+       viewport->scale[1] == 1.0f &&
+       viewport->scale[2] == 1.0f &&
+       viewport->scale[3] == 1.0f &&
+       viewport->translate[0] == 0.0f &&
+       viewport->translate[1] == 0.0f &&
+       viewport->translate[2] == 0.0f &&
+       viewport->translate[3] == 0.0f);
 }
 
 
@@ -364,9 +372,11 @@ draw_set_vertex_elements(struct draw_context *draw,
  */
 void
 draw_set_mapped_vertex_buffer(struct draw_context *draw,
-                              unsigned attr, const void *buffer)
+                              unsigned attr, const void *buffer,
+                              size_t size)
 {
-   draw->pt.user.vbuffer[attr] = buffer;
+   draw->pt.user.vbuffer[attr].map  = buffer;
+   draw->pt.user.vbuffer[attr].size = size;
 }
 
 
@@ -481,7 +491,7 @@ draw_alloc_extra_vertex_attrib(struct draw_context *draw,
    uint n;
 
    slot = draw_find_shader_output(draw, semantic_name, semantic_index);
-   if (slot > 0) {
+   if (slot >= 0) {
       return slot;
    }
 
@@ -537,9 +547,10 @@ draw_get_shader_info(const struct draw_context *draw)
  * attributes (such as texcoords for AA lines).  The driver can call this
  * function to find those attributes.
  *
- * Zero is returned if the attribute is not found since this is
- * a don't care / undefined situtation.  Returning -1 would be a bit more
- * work for the drivers.
+ * -1 is returned if the attribute is not found since this is
+ * an undefined situtation. Note, that zero is valid and can
+ * be used by any of the attributes, because position is not
+ * required to be attribute 0 or even at all present.
  */
 int
 draw_find_shader_output(const struct draw_context *draw,
@@ -562,7 +573,7 @@ draw_find_shader_output(const struct draw_context *draw,
       }
    }
 
-   return 0;
+   return -1;
 }
 
 
@@ -625,7 +636,8 @@ void draw_set_render( struct draw_context *draw,
  */
 void
 draw_set_indexes(struct draw_context *draw,
-                 const void *elements, unsigned elem_size)
+                 const void *elements, unsigned elem_size,
+                 unsigned elem_buffer_space)
 {
    assert(elem_size == 0 ||
           elem_size == 1 ||
@@ -633,6 +645,10 @@ draw_set_indexes(struct draw_context *draw,
           elem_size == 4);
    draw->pt.user.elts = elements;
    draw->pt.user.eltSizeIB = elem_size;
+   if (elem_size)
+      draw->pt.user.eltMax = elem_buffer_space / elem_size;
+   else
+      draw->pt.user.eltMax = 0;
 }
 
 
@@ -680,6 +696,31 @@ draw_current_shader_position_output(const struct draw_context *draw)
    if (draw->gs.geometry_shader)
       return draw->gs.position_output;
    return draw->vs.position_output;
+}
+
+
+/**
+ * Return the index of the shader output which will contain the
+ * viewport index.
+ */
+uint
+draw_current_shader_viewport_index_output(const struct draw_context *draw)
+{
+   if (draw->gs.geometry_shader)
+      return draw->gs.geometry_shader->viewport_index_output;
+   return 0;
+}
+
+/**
+ * Returns true if there's a geometry shader bound and the geometry
+ * shader writes out a viewport index.
+ */
+boolean
+draw_current_shader_uses_viewport_index(const struct draw_context *draw)
+{
+   if (draw->gs.geometry_shader)
+      return draw->gs.geometry_shader->info.writes_viewport_index;
+   return FALSE;
 }
 
 

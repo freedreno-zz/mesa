@@ -69,6 +69,8 @@
 
 #include "main/dispatch.h"
 
+#include "vbo/vbo.h"
+
 
 
 /**
@@ -122,8 +124,7 @@ do {						\
  */
 #define ASSERT_OUTSIDE_SAVE_BEGIN_END_WITH_RETVAL(ctx, retval)		\
 do {									\
-   if (ctx->Driver.CurrentSavePrimitive <= GL_POLYGON ||		\
-       ctx->Driver.CurrentSavePrimitive == PRIM_INSIDE_UNKNOWN_PRIM) {	\
+   if (ctx->Driver.CurrentSavePrimitive <= PRIM_MAX) {			\
       _mesa_compile_error( ctx, GL_INVALID_OPERATION, "glBegin/End" );	\
       return retval;							\
    }									\
@@ -137,8 +138,7 @@ do {									\
  */
 #define ASSERT_OUTSIDE_SAVE_BEGIN_END(ctx)				\
 do {									\
-   if (ctx->Driver.CurrentSavePrimitive <= GL_POLYGON ||		\
-       ctx->Driver.CurrentSavePrimitive == PRIM_INSIDE_UNKNOWN_PRIM) {	\
+   if (ctx->Driver.CurrentSavePrimitive <= PRIM_MAX) {			\
       _mesa_compile_error( ctx, GL_INVALID_OPERATION, "glBegin/End" );	\
       return;								\
    }									\
@@ -1356,7 +1356,14 @@ save_DrawElementsInstancedBaseVertexBaseInstance(GLenum mode,
 	       "glDrawElementsInstancedBaseVertexBaseInstance() during display list compile");
 }
 
-static void invalidate_saved_current_state( struct gl_context *ctx )
+
+/**
+ * While building a display list we cache some OpenGL state.
+ * Under some circumstances we need to invalidate that state (immediately
+ * when we start compiling a list, or after glCallList(s)).
+ */
+static void
+invalidate_saved_current_state(struct gl_context *ctx)
 {
    GLint i;
 
@@ -1370,6 +1377,7 @@ static void invalidate_saved_current_state( struct gl_context *ctx )
 
    ctx->Driver.CurrentSavePrimitive = PRIM_UNKNOWN;
 }
+
 
 static void GLAPIENTRY
 save_CallList(GLuint list)
@@ -3771,15 +3779,16 @@ save_ShadeModel(GLenum mode)
       CALL_ShadeModel(ctx->Exec, (mode));
    }
 
+   /* Don't compile this call if it's a no-op.
+    * By avoiding this state change we have a better chance of
+    * coalescing subsequent drawing commands into one batch.
+    */
    if (ctx->ListState.Current.ShadeModel == mode)
       return;
 
    SAVE_FLUSH_VERTICES(ctx);
 
-   /* Only save the value if we know the statechange will take effect:
-    */
-   if (!_mesa_inside_dlist_begin_end(ctx))
-      ctx->ListState.Current.ShadeModel = mode;
+   ctx->ListState.Current.ShadeModel = mode;
 
    n = alloc_instruction(ctx, OPCODE_SHADE_MODEL, 1);
    if (n) {
@@ -5645,28 +5654,20 @@ static void GLAPIENTRY
 save_Begin(GLenum mode)
 {
    GET_CURRENT_CONTEXT(ctx);
-   Node *n;
-   GLboolean error = GL_FALSE;
 
-   if (ctx->ExecuteFlag && !_mesa_valid_prim_mode(ctx, mode, "glBegin")) {
-      error = GL_TRUE;
+   if (!_mesa_is_valid_prim_mode(ctx, mode)) {
+      /* compile this error into the display list */
+      _mesa_compile_error(ctx, GL_INVALID_ENUM, "glBegin(mode)");
    }
-   else if (ctx->Driver.CurrentSavePrimitive == PRIM_UNKNOWN) {
-      /* Typically the first begin.  This may raise an error on
-       * playback, depending on whether CallList is issued from inside
-       * a begin/end or not.
-       */
-      ctx->Driver.CurrentSavePrimitive = PRIM_INSIDE_UNKNOWN_PRIM;
-   }
-   else if (!_mesa_inside_dlist_begin_end(ctx)) {
-      ctx->Driver.CurrentSavePrimitive = mode;
+   else if (_mesa_inside_dlist_begin_end(ctx)) {
+      /* compile this error into the display list */
+      _mesa_compile_error(ctx, GL_INVALID_OPERATION, "recursive glBegin");
    }
    else {
-      _mesa_compile_error(ctx, GL_INVALID_OPERATION, "recursive begin");
-      error = GL_TRUE;
-   }
+      Node *n;
 
-   if (!error) {
+      ctx->Driver.CurrentSavePrimitive = mode;
+
       /* Give the driver an opportunity to hook in an optimized
        * display list compiler.
        */
@@ -5678,10 +5679,10 @@ save_Begin(GLenum mode)
       if (n) {
          n[1].e = mode;
       }
-   }
 
-   if (ctx->ExecuteFlag) {
-      CALL_Begin(ctx->Exec, (mode));
+      if (ctx->ExecuteFlag) {
+         CALL_Begin(ctx->Exec, (mode));
+      }
    }
 }
 
@@ -5702,7 +5703,7 @@ save_Rectf(GLfloat a, GLfloat b, GLfloat c, GLfloat d)
 {
    GET_CURRENT_CONTEXT(ctx);
    Node *n;
-   SAVE_FLUSH_VERTICES(ctx);
+   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
    n = alloc_instruction(ctx, OPCODE_RECTF, 4);
    if (n) {
       n[1].f = a;
@@ -8631,8 +8632,7 @@ _mesa_NewList(GLuint name, GLenum mode)
    ctx->CompileFlag = GL_TRUE;
    ctx->ExecuteFlag = (mode == GL_COMPILE_AND_EXECUTE);
 
-   /* Reset acumulated list state:
-    */
+   /* Reset accumulated list state */
    invalidate_saved_current_state( ctx );
 
    /* Allocate new display list */
@@ -8659,6 +8659,11 @@ _mesa_EndList(void)
 
    if (MESA_VERBOSE & VERBOSE_API)
       _mesa_debug(ctx, "glEndList\n");
+
+   if (ctx->ExecuteFlag && _mesa_inside_dlist_begin_end(ctx)) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glEndList() called inside glBegin/End");
+   }
 
    /* Check that a list is under construction */
    if (!ctx->ListState.CurrentList) {
@@ -8817,6 +8822,9 @@ _mesa_initialize_save_table(const struct gl_context *ctx)
 
    _mesa_loopback_init_api_table(ctx, table);
 
+   /* VBO functions */
+   vbo_initialize_save_dispatch(ctx, table);
+
    /* GL 1.0 */
    SET_Accum(table, save_Accum);
    SET_AlphaFunc(table, save_AlphaFunc);
@@ -8927,6 +8935,7 @@ _mesa_initialize_save_table(const struct gl_context *ctx)
    SET_RasterPos4s(table, save_RasterPos4s);
    SET_RasterPos4sv(table, save_RasterPos4sv);
    SET_ReadBuffer(table, save_ReadBuffer);
+   SET_Rectf(table, save_Rectf);
    SET_Rotated(table, save_Rotated);
    SET_Rotatef(table, save_Rotatef);
    SET_Scaled(table, save_Scaled);
@@ -9256,6 +9265,18 @@ _mesa_initialize_save_table(const struct gl_context *ctx)
 
    /* GL_ARB_uniform_buffer_object */
    SET_UniformBlockBinding(table, save_UniformBlockBinding);
+
+   /* GL_ARB_draw_instanced */
+   SET_DrawArraysInstancedARB(table, save_DrawArraysInstancedARB);
+   SET_DrawElementsInstancedARB(table, save_DrawElementsInstancedARB);
+
+   /* GL_ARB_draw_elements_base_vertex */
+   SET_DrawElementsInstancedBaseVertex(table, save_DrawElementsInstancedBaseVertexARB);
+
+   /* GL_ARB_base_instance */
+   SET_DrawArraysInstancedBaseInstance(table, save_DrawArraysInstancedBaseInstance);
+   SET_DrawElementsInstancedBaseInstance(table, save_DrawElementsInstancedBaseInstance);
+   SET_DrawElementsInstancedBaseVertexBaseInstance(table, save_DrawElementsInstancedBaseVertexBaseInstance);
 }
 
 
@@ -9551,11 +9572,12 @@ mesa_print_display_list(GLuint list)
 static void
 save_vtxfmt_init(GLvertexformat * vfmt)
 {
-   _MESA_INIT_ARRAYELT_VTXFMT(vfmt, _ae_);
+   vfmt->ArrayElement = _ae_ArrayElement;
 
    vfmt->Begin = save_Begin;
 
-   _MESA_INIT_DLIST_VTXFMT(vfmt, save_);
+   vfmt->CallList = save_CallList;
+   vfmt->CallLists = save_CallLists;
 
    vfmt->Color3f = save_Color3f;
    vfmt->Color3fv = save_Color3fv;
@@ -9564,7 +9586,12 @@ save_vtxfmt_init(GLvertexformat * vfmt)
    vfmt->EdgeFlag = save_EdgeFlag;
    vfmt->End = save_End;
 
-   _MESA_INIT_EVAL_VTXFMT(vfmt, save_);
+   vfmt->EvalCoord1f = save_EvalCoord1f;
+   vfmt->EvalCoord1fv = save_EvalCoord1fv;
+   vfmt->EvalCoord2f = save_EvalCoord2f;
+   vfmt->EvalCoord2fv = save_EvalCoord2fv;
+   vfmt->EvalPoint1 = save_EvalPoint1;
+   vfmt->EvalPoint2 = save_EvalPoint2;
 
    vfmt->FogCoordfEXT = save_FogCoordfEXT;
    vfmt->FogCoordfvEXT = save_FogCoordfvEXT;
@@ -9605,36 +9632,6 @@ save_vtxfmt_init(GLvertexformat * vfmt)
    vfmt->VertexAttrib3fvARB = save_VertexAttrib3fvARB;
    vfmt->VertexAttrib4fARB = save_VertexAttrib4fARB;
    vfmt->VertexAttrib4fvARB = save_VertexAttrib4fvARB;
-
-   vfmt->Rectf = save_Rectf;
-
-   /* GL_ARB_draw_instanced */
-   vfmt->DrawArraysInstanced = save_DrawArraysInstancedARB;
-   vfmt->DrawElementsInstanced = save_DrawElementsInstancedARB;
-
-   /* GL_ARB_draw_elements_base_vertex */
-   vfmt->DrawElementsInstancedBaseVertex = save_DrawElementsInstancedBaseVertexARB;
-
-   /* GL_ARB_base_instance */
-   vfmt->DrawArraysInstancedBaseInstance = save_DrawArraysInstancedBaseInstance;
-   vfmt->DrawElementsInstancedBaseInstance = save_DrawElementsInstancedBaseInstance;
-   vfmt->DrawElementsInstancedBaseVertexBaseInstance = save_DrawElementsInstancedBaseVertexBaseInstance;
-
-   /* The driver is required to implement these as
-    * 1) They can probably do a better job.
-    * 2) A lot of new mechanisms would have to be added to this module
-    *     to support it.  That code would probably never get used,
-    *     because of (1).
-    */
-#if 0
-   vfmt->DrawArrays = 0;
-   vfmt->DrawElements = 0;
-   vfmt->DrawRangeElements = 0;
-   vfmt->MultiDrawElemementsEXT = 0;
-   vfmt->DrawElementsBaseVertex = 0;
-   vfmt->DrawRangeElementsBaseVertex = 0;
-   vfmt->MultiDrawElemementsBaseVertex = 0;
-#endif
 }
 
 

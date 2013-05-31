@@ -87,8 +87,6 @@ class bytecode;
 class bc_dump : public vpass {
 	using vpass::visit;
 
-	std::ostream &o;
-
 	uint32_t *bc_data;
 	unsigned ndw;
 
@@ -98,10 +96,10 @@ class bc_dump : public vpass {
 
 public:
 
-	bc_dump(shader &s, std::ostream &o, bytecode *bc = NULL);
+	bc_dump(shader &s, bytecode *bc = NULL);
 
-	bc_dump(shader &s, std::ostream &o, uint32_t *bc_ptr, unsigned ndw) :
-		vpass(s), o(o), bc_data(bc_ptr), ndw(ndw), id(), new_group(), group_index() {}
+	bc_dump(shader &s, uint32_t *bc_ptr, unsigned ndw) :
+		vpass(s), bc_data(bc_ptr), ndw(ndw), id(), new_group(), group_index() {}
 
 	virtual int init();
 	virtual int done();
@@ -252,13 +250,15 @@ class gcm : public pass {
 
 	static const int rp_threshold = 100;
 
+	bool pending_exec_mask_update;
+
 public:
 
 	gcm(shader &sh) : pass(sh),
 		bu_ready(), bu_ready_next(), bu_ready_early(),
 		ready(), op_map(), uses(), nuc_stk(1), ucs_level(),
 		bu_bb(), pending_defs(), pending_nodes(), cur_sq(),
-		live(), live_count() {}
+		live(), live_count(), pending_exec_mask_update() {}
 
 	virtual int run();
 
@@ -338,9 +338,12 @@ public:
 
 	bool run_on(region_node *r);
 
-	alu_node* convert_phi(value *select, node *phi);
+	void convert_kill_instructions(region_node *r, value *em, bool branch,
+	                               container_node *c);
 
-	unsigned try_convert_kills(region_node* r);
+	bool check_and_convert(region_node *r);
+
+	alu_node* convert_phi(value *select, node *phi);
 
 };
 
@@ -410,7 +413,7 @@ public:
 
 	void optimize_cc_op(alu_node *a);
 
-	void optimize_SETcc_op(alu_node *a);
+	void optimize_cc_op2(alu_node *a);
 	void optimize_CNDcc_op(alu_node *a);
 
 	bool get_bool_op_info(value *b, bool_op_info& bop);

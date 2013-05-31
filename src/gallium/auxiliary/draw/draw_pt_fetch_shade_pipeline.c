@@ -71,7 +71,7 @@ static void fetch_pipeline_prepare( struct draw_pt_middle_end *middle,
    unsigned instance_id_index = ~0;
 
    const unsigned gs_out_prim = (gs ? gs->output_primitive :
-                                 u_assembled_primitive(prim));
+                                 u_assembled_prim(prim));
 
    /* Add one to num_outputs because the pipeline occasionally tags on
     * an additional texcoord, eg for AA lines.
@@ -244,7 +244,7 @@ static void fetch_pipeline_generic( struct draw_pt_middle_end *middle,
       return;
    }
    if (draw->collect_statistics) {
-      draw->statistics.ia_vertices += fetch_info->count;
+      draw->statistics.ia_vertices += prim_info->count;
       draw->statistics.ia_primitives +=
          u_decomposed_prims_for_vertices(prim_info->prim, fetch_info->count);
       draw->statistics.vs_invocations += fetch_info->count;
@@ -323,7 +323,7 @@ static void fetch_pipeline_generic( struct draw_pt_middle_end *middle,
     */
    if (draw_current_shader_position_output(draw) != -1) {
 
-      if (draw_pt_post_vs_run( fpme->post_vs, vert_info ))
+      if (draw_pt_post_vs_run( fpme->post_vs, vert_info, prim_info ))
       {
          opt |= PT_PIPELINE;
       }

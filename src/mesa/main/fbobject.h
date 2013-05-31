@@ -71,25 +71,6 @@ extern struct gl_renderbuffer_attachment *
 _mesa_get_attachment(struct gl_context *ctx, struct gl_framebuffer *fb,
                      GLenum attachment);
 
-
-/** Return the texture image for a renderbuffer attachment */
-static inline struct gl_texture_image *
-_mesa_get_attachment_teximage(struct gl_renderbuffer_attachment *att)
-{
-   assert(att->Type == GL_TEXTURE);
-   return att->Texture->Image[att->CubeMapFace][att->TextureLevel];
-}
-
-
-/** Return the (const) texture image for a renderbuffer attachment */
-static inline const struct gl_texture_image *
-_mesa_get_attachment_teximage_const(const struct gl_renderbuffer_attachment *att)
-{
-   assert(att->Type == GL_TEXTURE);
-   return att->Texture->Image[att->CubeMapFace][att->TextureLevel];
-}
-
-
 extern void
 _mesa_remove_attachment(struct gl_context *ctx,
                         struct gl_renderbuffer_attachment *att);
@@ -99,12 +80,18 @@ _mesa_set_texture_attachment(struct gl_context *ctx,
                              struct gl_framebuffer *fb,
                              struct gl_renderbuffer_attachment *att,
                              struct gl_texture_object *texObj,
-                             GLenum texTarget, GLuint level, GLuint zoffset);
+                             GLenum texTarget, GLuint level, GLuint zoffset,
+                             GLboolean layered);
 
 extern void
 _mesa_set_renderbuffer_attachment(struct gl_context *ctx,
                                   struct gl_renderbuffer_attachment *att,
                                   struct gl_renderbuffer *rb);
+
+void
+_mesa_update_texture_renderbuffer(struct gl_context *ctx,
+                                  struct gl_framebuffer *fb,
+                                  struct gl_renderbuffer_attachment *att);
 
 extern void
 _mesa_framebuffer_renderbuffer(struct gl_context *ctx,
@@ -190,6 +177,10 @@ _mesa_FramebufferTexture3D(GLenum target, GLenum attachment,
 extern void GLAPIENTRY
 _mesa_FramebufferTextureLayer(GLenum target, GLenum attachment,
                                  GLuint texture, GLint level, GLint layer);
+
+extern void GLAPIENTRY
+_mesa_FramebufferTexture(GLenum target, GLenum attachment,
+                         GLuint texture, GLint level);
 
 extern void GLAPIENTRY
 _mesa_FramebufferRenderbuffer(GLenum target, GLenum attachment,

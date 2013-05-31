@@ -161,7 +161,7 @@ void radeonsi_flush(struct pipe_context *ctx, struct pipe_fence_handle **fence,
 
 static void r600_flush_from_st(struct pipe_context *ctx,
 			       struct pipe_fence_handle **fence,
-                               enum pipe_flush_flags flags)
+                               unsigned flags)
 {
 	radeonsi_flush(ctx, fence,
                        flags & PIPE_FLUSH_END_OF_FRAME ? RADEON_FLUSH_END_OF_FRAME : 0);
@@ -289,6 +289,7 @@ const char *r600_get_llvm_processor_name(enum radeon_family family)
 		case CHIP_PITCAIRN: return "pitcairn";
 		case CHIP_VERDE: return "verde";
 		case CHIP_OLAND: return "oland";
+		case CHIP_HAINAN: return "hainan";
 		default: return "";
 	}
 }
@@ -300,6 +301,7 @@ static const char *r600_get_family_name(enum radeon_family family)
 	case CHIP_PITCAIRN: return "AMD PITCAIRN";
 	case CHIP_VERDE: return "AMD CAPE VERDE";
 	case CHIP_OLAND: return "AMD OLAND";
+	case CHIP_HAINAN: return "AMD HAINAN";
 	default: return "AMD unknown";
 	}
 }
@@ -362,7 +364,7 @@ static int r600_get_param(struct pipe_screen* pscreen, enum pipe_cap param)
 		return 256;
 
 	case PIPE_CAP_GLSL_FEATURE_LEVEL:
-		return debug_get_bool_option("R600_GLSL130", FALSE) ? 130 : 120;
+		return 130;
 
 	/* Unsupported features. */
 	case PIPE_CAP_TGSI_FS_COORD_ORIGIN_LOWER_LEFT:
@@ -381,6 +383,7 @@ static int r600_get_param(struct pipe_screen* pscreen, enum pipe_cap param)
 	case PIPE_CAP_TEXTURE_BUFFER_OBJECTS:
 	case PIPE_CAP_TEXTURE_BUFFER_OFFSET_ALIGNMENT:
 	case PIPE_CAP_TEXTURE_BORDER_COLOR_QUIRK:
+        case PIPE_CAP_MAX_TEXTURE_BUFFER_SIZE:
 		return 0;
 
 	/* Stream output. */

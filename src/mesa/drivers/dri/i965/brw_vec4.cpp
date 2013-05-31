@@ -247,6 +247,8 @@ vec4_visitor::implied_mrf_writes(vec4_instruction *inst)
    case SHADER_OPCODE_SIN:
    case SHADER_OPCODE_COS:
       return 1;
+   case SHADER_OPCODE_INT_QUOTIENT:
+   case SHADER_OPCODE_INT_REMAINDER:
    case SHADER_OPCODE_POW:
       return 2;
    case VS_OPCODE_URB_WRITE:
@@ -259,6 +261,13 @@ vec4_visitor::implied_mrf_writes(vec4_instruction *inst)
       return 3;
    case SHADER_OPCODE_SHADER_TIME_ADD:
       return 0;
+   case SHADER_OPCODE_TEX:
+   case SHADER_OPCODE_TXL:
+   case SHADER_OPCODE_TXD:
+   case SHADER_OPCODE_TXF:
+   case SHADER_OPCODE_TXF_MS:
+   case SHADER_OPCODE_TXS:
+      return inst->header_present ? 1 : 0;
    default:
       assert(!"not reached");
       return inst->mlen;
@@ -298,9 +307,12 @@ vec4_visitor::dead_code_eliminate()
    foreach_list_safe(node, &this->instructions) {
       vec4_instruction *inst = (vec4_instruction *)node;
 
-      if (inst->dst.file == GRF && this->virtual_grf_use[inst->dst.reg] <= pc) {
-	 inst->remove();
-	 progress = true;
+      if (inst->dst.file == GRF) {
+         assert(this->virtual_grf_end[inst->dst.reg] >= pc);
+         if (this->virtual_grf_end[inst->dst.reg] == pc) {
+            inst->remove();
+            progress = true;
+         }
       }
 
       pc++;
@@ -825,7 +837,7 @@ vec4_visitor::opt_register_coalesce()
       /* Can't coalesce this GRF if someone else was going to
        * read it later.
        */
-      if (this->virtual_grf_use[inst->src[0].reg] > ip)
+      if (this->virtual_grf_end[inst->src[0].reg] > ip)
 	 continue;
 
       /* We need to check interference with the final destination between this
@@ -1064,8 +1076,10 @@ vec4_visitor::split_virtual_grfs()
 }
 
 void
-vec4_visitor::dump_instruction(vec4_instruction *inst)
+vec4_visitor::dump_instruction(backend_instruction *be_inst)
 {
+   vec4_instruction *inst = (vec4_instruction *)be_inst;
+
    printf("%s ", brw_instruction_name(inst->opcode));
 
    switch (inst->dst.file) {
@@ -1144,17 +1158,6 @@ vec4_visitor::dump_instruction(vec4_instruction *inst)
    }
 
    printf("\n");
-}
-
-void
-vec4_visitor::dump_instructions()
-{
-   int ip = 0;
-   foreach_list_safe(node, &this->instructions) {
-      vec4_instruction *inst = (vec4_instruction *)node;
-      printf("%d: ", ip++);
-      dump_instruction(inst);
-   }
 }
 
 /**
@@ -1470,6 +1473,8 @@ vec4_visitor::run()
       if (failed)
          break;
    }
+
+   opt_schedule_instructions();
 
    opt_set_dependency_control();
 

@@ -140,7 +140,7 @@ llvm_middle_end_prepare( struct draw_pt_middle_end *middle,
    struct draw_vertex_shader *vs = draw->vs.vertex_shader;
    struct draw_geometry_shader *gs = draw->gs.geometry_shader;
    const unsigned out_prim = gs ? gs->output_primitive :
-      u_assembled_primitive(in_prim);
+      u_assembled_prim(in_prim);
 
    /* Add one to num_outputs because the pipeline occasionally tags on
     * an additional texcoord, eg for AA lines.
@@ -277,8 +277,8 @@ llvm_middle_end_bind_parameters(struct draw_pt_middle_end *middle)
    fpme->llvm->gs_jit_context.planes =
       (float (*)[DRAW_TOTAL_CLIP_PLANES][4]) draw->pt.user.planes[0];
 
-   fpme->llvm->jit_context.viewport = (float *) draw->viewport.scale;
-   fpme->llvm->gs_jit_context.viewport = (float *) draw->viewport.scale;
+   fpme->llvm->jit_context.viewport = (float *) draw->viewports[0].scale;
+   fpme->llvm->gs_jit_context.viewport = (float *) draw->viewports[0].scale;
 }
 
 
@@ -339,7 +339,7 @@ llvm_pipeline_generic( struct draw_pt_middle_end *middle,
    }
 
    if (draw->collect_statistics) {
-      draw->statistics.ia_vertices += fetch_info->count;
+      draw->statistics.ia_vertices += prim_info->count;
       draw->statistics.ia_primitives +=
          u_decomposed_prims_for_vertices(prim_info->prim, prim_info->count);
       draw->statistics.vs_invocations += fetch_info->count;
@@ -348,7 +348,7 @@ llvm_pipeline_generic( struct draw_pt_middle_end *middle,
    if (fetch_info->linear)
       clipped = fpme->current_variant->jit_func( &fpme->llvm->jit_context,
                                        llvm_vert_info.verts,
-                                       (const char **)draw->pt.user.vbuffer,
+                                       draw->pt.user.vbuffer,
                                        fetch_info->start,
                                        fetch_info->count,
                                        fpme->vertex_size,
@@ -357,8 +357,9 @@ llvm_pipeline_generic( struct draw_pt_middle_end *middle,
    else
       clipped = fpme->current_variant->jit_func_elts( &fpme->llvm->jit_context,
                                             llvm_vert_info.verts,
-                                            (const char **)draw->pt.user.vbuffer,
+                                            draw->pt.user.vbuffer,
                                             fetch_info->elts,
+                                            draw->pt.user.eltMax,
                                             fetch_info->count,
                                             fpme->vertex_size,
                                             draw->pt.vertex_buffer,
@@ -416,7 +417,7 @@ llvm_pipeline_generic( struct draw_pt_middle_end *middle,
     */
    if (draw_current_shader_position_output(draw) != -1) {
       if ((opt & PT_SHADE) && gshader) {
-         clipped = draw_pt_post_vs_run( fpme->post_vs, vert_info );
+         clipped = draw_pt_post_vs_run( fpme->post_vs, vert_info, prim_info );
       }
       if (clipped) {
          opt |= PT_PIPELINE;

@@ -44,17 +44,6 @@ class dst_reg;
 unsigned
 swizzle_for_size(int size);
 
-enum register_file {
-   ARF = BRW_ARCHITECTURE_REGISTER_FILE,
-   GRF = BRW_GENERAL_REGISTER_FILE,
-   MRF = BRW_MESSAGE_REGISTER_FILE,
-   IMM = BRW_IMMEDIATE_VALUE,
-   HW_REG, /* a struct brw_reg */
-   ATTR,
-   UNIFORM, /* prog_data->params[hw_reg] */
-   BAD_FILE
-};
-
 class reg
 {
 public:
@@ -249,8 +238,8 @@ public:
    int virtual_grf_array_size;
    int first_non_payload_grf;
    unsigned int max_grf;
-   int *virtual_grf_def;
-   int *virtual_grf_use;
+   int *virtual_grf_start;
+   int *virtual_grf_end;
    dst_reg userplane[MAX_CLIP_PLANES];
 
    /**
@@ -338,6 +327,7 @@ public:
    bool opt_algebraic();
    bool opt_register_coalesce();
    void opt_set_dependency_control();
+   void opt_schedule_instructions();
 
    bool can_do_source_mods(vec4_instruction *inst);
 
@@ -385,6 +375,13 @@ public:
    vec4_instruction *SCRATCH_READ(dst_reg dst, src_reg index);
    vec4_instruction *SCRATCH_WRITE(dst_reg dst, src_reg src, src_reg index);
    vec4_instruction *LRP(dst_reg dst, src_reg a, src_reg y, src_reg x);
+   vec4_instruction *BFREV(dst_reg dst, src_reg value);
+   vec4_instruction *BFE(dst_reg dst, src_reg bits, src_reg offset, src_reg value);
+   vec4_instruction *BFI1(dst_reg dst, src_reg bits, src_reg offset);
+   vec4_instruction *BFI2(dst_reg dst, src_reg bfi1_dst, src_reg insert, src_reg base);
+   vec4_instruction *FBH(dst_reg dst, src_reg value);
+   vec4_instruction *FBL(dst_reg dst, src_reg value);
+   vec4_instruction *CBIT(dst_reg dst, src_reg value);
 
    int implied_mrf_writes(vec4_instruction *inst);
 
@@ -477,8 +474,7 @@ public:
 
    bool process_move_condition(ir_rvalue *ir);
 
-   void dump_instruction(vec4_instruction *inst);
-   void dump_instructions();
+   void dump_instruction(backend_instruction *inst);
 
 protected:
    void emit_vertex();

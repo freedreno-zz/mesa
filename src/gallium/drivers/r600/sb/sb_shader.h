@@ -271,7 +271,6 @@ public:
 
 	error_map errors;
 
-	bool enable_dump;
 	bool optimized;
 
 	unsigned id;
@@ -296,7 +295,7 @@ public:
 
 	unsigned ngpr, nstack;
 
-	shader(sb_context &sctx, shader_target t, unsigned id, bool dump);
+	shader(sb_context &sctx, shader_target t, unsigned id);
 
 	~shader();
 
@@ -315,7 +314,7 @@ public:
 	value* get_value_version(value* v, unsigned ver);
 
 	void init();
-	void add_gpr_values(vvec& vec, unsigned gpr, unsigned comp_mask, bool src);
+	void add_pinned_gpr_values(vvec& vec, unsigned gpr, unsigned comp_mask, bool src);
 
 	void dump_ir();
 

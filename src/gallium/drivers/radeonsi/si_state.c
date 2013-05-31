@@ -24,12 +24,15 @@
  *      Christian König <christian.koenig@amd.com>
  */
 
+#include <byteswap.h>
+
 #include "util/u_memory.h"
 #include "util/u_framebuffer.h"
 #include "util/u_blitter.h"
 #include "util/u_helpers.h"
 #include "util/u_math.h"
 #include "util/u_pack_color.h"
+#include "util/u_upload_mgr.h"
 #include "util/u_format_s3tc.h"
 #include "tgsi/tgsi_parse.h"
 #include "radeonsi_pipe.h"
@@ -234,6 +237,7 @@ static void si_set_clip_state(struct pipe_context *ctx,
 {
 	struct r600_context *rctx = (struct r600_context *)ctx;
 	struct si_pm4_state *pm4 = CALLOC_STRUCT(si_pm4_state);
+	struct pipe_constant_buffer cb;
 
 	if (pm4 == NULL)
 		return;
@@ -249,11 +253,20 @@ static void si_set_clip_state(struct pipe_context *ctx,
 			       fui(state->ucp[i][3]));
         }
 
+	cb.buffer = NULL;
+	cb.user_buffer = state->ucp;
+	cb.buffer_offset = 0;
+	cb.buffer_size = 4*4*8;
+	ctx->set_constant_buffer(ctx, PIPE_SHADER_VERTEX, 1, &cb);
+	pipe_resource_reference(&cb.buffer, NULL);
+
 	si_pm4_set_state(rctx, clip, pm4);
 }
 
-static void si_set_scissor_state(struct pipe_context *ctx,
-				 const struct pipe_scissor_state *state)
+static void si_set_scissor_states(struct pipe_context *ctx,
+                                  unsigned start_slot,
+                                  unsigned num_scissors,
+                                  const struct pipe_scissor_state *state)
 {
 	struct r600_context *rctx = (struct r600_context *)ctx;
 	struct si_pm4_state *pm4 = CALLOC_STRUCT(si_pm4_state);
@@ -276,8 +289,10 @@ static void si_set_scissor_state(struct pipe_context *ctx,
 	si_pm4_set_state(rctx, scissor, pm4);
 }
 
-static void si_set_viewport_state(struct pipe_context *ctx,
-				  const struct pipe_viewport_state *state)
+static void si_set_viewport_states(struct pipe_context *ctx,
+                                   unsigned start_slot,
+                                   unsigned num_viewports,
+                                   const struct pipe_viewport_state *state)
 {
 	struct r600_context *rctx = (struct r600_context *)ctx;
 	struct si_state_viewport *viewport = CALLOC_STRUCT(si_state_viewport);
@@ -384,6 +399,7 @@ static void *si_create_rs_state(struct pipe_context *ctx,
 	}
 
 	rs->two_side = state->light_twoside;
+	rs->clip_plane_enable = state->clip_plane_enable;
 
 	polygon_dual_mode = (state->fill_front != PIPE_POLYGON_MODE_FILL ||
 				state->fill_back != PIPE_POLYGON_MODE_FILL);
@@ -412,9 +428,6 @@ static void *si_create_rs_state(struct pipe_context *ctx,
 		S_028810_ZCLIP_NEAR_DISABLE(!state->depth_clip) |
 		S_028810_ZCLIP_FAR_DISABLE(!state->depth_clip) |
 		S_028810_DX_LINEAR_ATTR_CLIP_ENA(1);
-	rs->pa_cl_vs_out_cntl =
-		S_02881C_USE_VTX_POINT_SIZE(state->point_size_per_vertex) |
-		S_02881C_VS_OUT_MISC_VEC_ENA(state->point_size_per_vertex);
 
 	clip_rule = state->scissor ? 0xAAAA : 0xFFFF;
 
@@ -484,8 +497,6 @@ static void si_bind_rs_state(struct pipe_context *ctx, void *state)
 	rctx->sprite_coord_enable = rs->sprite_coord_enable;
 	rctx->pa_sc_line_stipple = rs->pa_sc_line_stipple;
 	rctx->pa_su_sc_mode_cntl = rs->pa_su_sc_mode_cntl;
-	rctx->pa_cl_clip_cntl = rs->pa_cl_clip_cntl;
-	rctx->pa_cl_vs_out_cntl = rs->pa_cl_vs_out_cntl;
 
 	si_pm4_bind_state(rctx, rasterizer, rs);
 	si_update_fb_rs_state(rctx);
@@ -1721,6 +1732,12 @@ static void si_cb(struct r600_context *rctx, struct si_pm4_state *pm4,
 	si_pm4_set_reg(pm4, R_028C70_CB_COLOR0_INFO + cb * 0x3C, color_info);
 	si_pm4_set_reg(pm4, R_028C74_CB_COLOR0_ATTRIB + cb * 0x3C, color_attrib);
 
+	/* set CB_COLOR1_INFO for possible dual-src blending */
+	if (state->nr_cbufs == 1) {
+		assert(cb == 0);
+		si_pm4_set_reg(pm4, R_028C70_CB_COLOR0_INFO + 1 * 0x3C, color_info);
+	}
+
 	/* Determine pixel shader export format */
 	max_comp_size = si_colorformat_max_comp_size(format);
 	if (ntype == V_028C70_NUMBER_SRGB ||
@@ -1728,6 +1745,9 @@ static void si_cb(struct r600_context *rctx, struct si_pm4_state *pm4,
 	     max_comp_size <= 10) ||
 	    (ntype == V_028C70_NUMBER_FLOAT && max_comp_size <= 16)) {
 		rctx->export_16bpc |= 1 << cb;
+		/* set SPI_SHADER_COL_FORMAT for possible dual-src blending */
+		if (state->nr_cbufs == 1)
+			rctx->export_16bpc |= 1 << 1;
 	}
 }
 
@@ -1804,7 +1824,7 @@ static void si_set_framebuffer_state(struct pipe_context *ctx,
 {
 	struct r600_context *rctx = (struct r600_context *)ctx;
 	struct si_pm4_state *pm4 = CALLOC_STRUCT(si_pm4_state);
-	uint32_t shader_mask, tl, br;
+	uint32_t tl, br;
 	int tl_x, tl_y, br_x, br_y;
 
 	if (pm4 == NULL)
@@ -1825,10 +1845,6 @@ static void si_set_framebuffer_state(struct pipe_context *ctx,
 	assert(!(rctx->export_16bpc & ~0xff));
 	si_db(rctx, pm4, state);
 
-	shader_mask = 0;
-	for (int i = 0; i < state->nr_cbufs; i++) {
-		shader_mask |= 0xf << (i * 4);
-	}
 	tl_x = 0;
 	tl_y = 0;
 	br_x = state->width;
@@ -1847,7 +1863,6 @@ static void si_set_framebuffer_state(struct pipe_context *ctx,
 	si_pm4_set_reg(pm4, R_028208_PA_SC_WINDOW_SCISSOR_BR, br);
 	si_pm4_set_reg(pm4, R_028200_PA_SC_WINDOW_OFFSET, 0x00000000);
 	si_pm4_set_reg(pm4, R_028230_PA_SC_EDGERULE, 0xAAAAAAAA);
-	si_pm4_set_reg(pm4, R_02823C_CB_SHADER_MASK, shader_mask);
 	si_pm4_set_reg(pm4, R_028BE0_PA_SC_AA_CONFIG, 0x00000000);
 
 	si_pm4_set_state(rctx, framebuffer, pm4);
@@ -2262,11 +2277,31 @@ static void si_sampler_view_destroy(struct pipe_context *ctx,
 	FREE(resource);
 }
 
+static bool wrap_mode_uses_border_color(unsigned wrap, bool linear_filter)
+{
+	return wrap == PIPE_TEX_WRAP_CLAMP_TO_BORDER ||
+	       wrap == PIPE_TEX_WRAP_MIRROR_CLAMP_TO_BORDER ||
+	       (linear_filter &&
+	        (wrap == PIPE_TEX_WRAP_CLAMP ||
+		 wrap == PIPE_TEX_WRAP_MIRROR_CLAMP));
+}
+
+static bool sampler_state_needs_border_color(const struct pipe_sampler_state *state)
+{
+	bool linear_filter = state->min_img_filter != PIPE_TEX_FILTER_NEAREST ||
+			     state->mag_img_filter != PIPE_TEX_FILTER_NEAREST;
+
+	return (state->border_color.ui[0] || state->border_color.ui[1] ||
+		state->border_color.ui[2] || state->border_color.ui[3]) &&
+	       (wrap_mode_uses_border_color(state->wrap_s, linear_filter) ||
+		wrap_mode_uses_border_color(state->wrap_t, linear_filter) ||
+		wrap_mode_uses_border_color(state->wrap_r, linear_filter));
+}
+
 static void *si_create_sampler_state(struct pipe_context *ctx,
 				     const struct pipe_sampler_state *state)
 {
 	struct si_pipe_sampler_state *rstate = CALLOC_STRUCT(si_pipe_sampler_state);
-	union util_color uc;
 	unsigned aniso_flag_offset = state->max_anisotropy > 1 ? 2 : 0;
 	unsigned border_color_type;
 
@@ -2274,20 +2309,10 @@ static void *si_create_sampler_state(struct pipe_context *ctx,
 		return NULL;
 	}
 
-	util_pack_color(state->border_color.f, PIPE_FORMAT_A8R8G8B8_UNORM, &uc);
-	switch (uc.ui) {
-	case 0x000000FF:
-		border_color_type = V_008F3C_SQ_TEX_BORDER_COLOR_OPAQUE_BLACK;
-		break;
-	case 0x00000000:
-		border_color_type = V_008F3C_SQ_TEX_BORDER_COLOR_TRANS_BLACK;
-		break;
-	case 0xFFFFFFFF:
-		border_color_type = V_008F3C_SQ_TEX_BORDER_COLOR_OPAQUE_WHITE;
-		break;
-	default: /* Use border color pointer */
+	if (sampler_state_needs_border_color(state))
 		border_color_type = V_008F3C_SQ_TEX_BORDER_COLOR_REGISTER;
-	}
+	else
+		border_color_type = V_008F3C_SQ_TEX_BORDER_COLOR_TRANS_BLACK;
 
 	rstate->val[0] = (S_008F30_CLAMP_X(si_tex_wrap(state->wrap_s)) |
 			  S_008F30_CLAMP_Y(si_tex_wrap(state->wrap_t)) |
@@ -2306,7 +2331,7 @@ static void *si_create_sampler_state(struct pipe_context *ctx,
 	rstate->val[3] = S_008F3C_BORDER_COLOR_TYPE(border_color_type);
 
 	if (border_color_type == V_008F3C_SQ_TEX_BORDER_COLOR_REGISTER) {
-		memcpy(rstate->border_color, state->border_color.f,
+		memcpy(rstate->border_color, state->border_color.ui,
 		       sizeof(rstate->border_color));
 	}
 
@@ -2429,11 +2454,8 @@ static struct si_pm4_state *si_bind_sampler(struct r600_context *rctx, unsigned 
 			}
 
 			for (j = 0; j < 4; j++) {
-				union fi border_color;
-
-				border_color.f = rstates[i]->border_color[j];
 				border_color_table[4 * rctx->border_color_offset + j] =
-					util_le32_to_cpu(border_color.i);
+					util_le32_to_cpu(rstates[i]->border_color[j]);
 			}
 
 			rstates[i]->val[3] &= C_008F3C_BORDER_COLOR_PTR;
@@ -2496,64 +2518,56 @@ static void si_delete_sampler_state(struct pipe_context *ctx, void *state)
  * Constants
  */
 static void si_set_constant_buffer(struct pipe_context *ctx, uint shader, uint index,
-				   struct pipe_constant_buffer *cb)
+				   struct pipe_constant_buffer *input)
 {
 	struct r600_context *rctx = (struct r600_context *)ctx;
-	struct si_resource *rbuffer = cb ? si_resource(cb->buffer) : NULL;
-	struct si_pm4_state *pm4;
-	uint32_t offset;
-	uint64_t va;
+	struct r600_constbuf_state *state = &rctx->constbuf_state[shader];
+	struct pipe_constant_buffer *cb;
+	const uint8_t *ptr;
 
 	/* Note that the state tracker can unbind constant buffers by
 	 * passing NULL here.
 	 */
-	if (cb == NULL || (!cb->buffer && !cb->user_buffer))
+	if (unlikely(!input || (!input->buffer && !input->user_buffer))) {
+		state->enabled_mask &= ~(1 << index);
+		state->dirty_mask &= ~(1 << index);
+		pipe_resource_reference(&state->cb[index].buffer, NULL);
 		return;
-
-	pm4 = CALLOC_STRUCT(si_pm4_state);
-	si_pm4_inval_shader_cache(pm4);
-
-	if (cb->user_buffer)
-		r600_upload_const_buffer(rctx, &rbuffer, cb->user_buffer, cb->buffer_size, &offset);
-	else
-		offset = 0;
-	va = r600_resource_va(ctx->screen, (void*)rbuffer);
-	va += offset;
-
-	si_pm4_add_bo(pm4, rbuffer, RADEON_USAGE_READ);
-
-	si_pm4_sh_data_begin(pm4);
-
-	/* Fill in a T# buffer resource description */
-	si_pm4_sh_data_add(pm4, va);
-	si_pm4_sh_data_add(pm4, (S_008F04_BASE_ADDRESS_HI(va >> 32) |
-				 S_008F04_STRIDE(0)));
-	si_pm4_sh_data_add(pm4, cb->buffer_size);
-	si_pm4_sh_data_add(pm4, S_008F0C_DST_SEL_X(V_008F0C_SQ_SEL_X) |
-				S_008F0C_DST_SEL_Y(V_008F0C_SQ_SEL_Y) |
-				S_008F0C_DST_SEL_Z(V_008F0C_SQ_SEL_Z) |
-				S_008F0C_DST_SEL_W(V_008F0C_SQ_SEL_W) |
-				S_008F0C_NUM_FORMAT(V_008F0C_BUF_NUM_FORMAT_FLOAT) |
-				S_008F0C_DATA_FORMAT(V_008F0C_BUF_DATA_FORMAT_32));
-
-	switch (shader) {
-	case PIPE_SHADER_VERTEX:
-        	si_pm4_sh_data_end(pm4, R_00B130_SPI_SHADER_USER_DATA_VS_0, SI_SGPR_CONST);
-		si_pm4_set_state(rctx, vs_const, pm4);
-		break;
-
-	case PIPE_SHADER_FRAGMENT:
-        	si_pm4_sh_data_end(pm4, R_00B030_SPI_SHADER_USER_DATA_PS_0, SI_SGPR_CONST);
-		si_pm4_set_state(rctx, ps_const, pm4);
-		break;
-
-	default:
-		R600_ERR("unsupported %d\n", shader);
-		FREE(pm4);
 	}
 
-	if (cb->buffer != &rbuffer->b.b)
-		si_resource_reference(&rbuffer, NULL);
+	cb = &state->cb[index];
+	cb->buffer_size = input->buffer_size;
+
+	ptr = input->user_buffer;
+
+	if (ptr) {
+		/* Upload the user buffer. */
+		if (R600_BIG_ENDIAN) {
+			uint32_t *tmpPtr;
+			unsigned i, size = input->buffer_size;
+
+			if (!(tmpPtr = malloc(size))) {
+				R600_ERR("Failed to allocate BE swap buffer.\n");
+				return;
+			}
+
+			for (i = 0; i < size / 4; ++i) {
+				tmpPtr[i] = bswap_32(((uint32_t *)ptr)[i]);
+			}
+
+			u_upload_data(rctx->uploader, 0, size, tmpPtr, &cb->buffer_offset, &cb->buffer);
+			free(tmpPtr);
+		} else {
+			u_upload_data(rctx->uploader, 0, input->buffer_size, ptr, &cb->buffer_offset, &cb->buffer);
+		}
+	} else {
+		/* Setup the hw buffer. */
+		cb->buffer_offset = input->buffer_offset;
+		pipe_resource_reference(&cb->buffer, input->buffer);
+	}
+
+	state->enabled_mask |= 1 << index;
+	state->dirty_mask |= 1 << index;
 }
 
 /*
@@ -2695,8 +2709,8 @@ void si_init_state_functions(struct r600_context *rctx)
 	rctx->custom_dsa_flush_inplace = si_create_db_flush_dsa(rctx, false, false);
 
 	rctx->context.set_clip_state = si_set_clip_state;
-	rctx->context.set_scissor_state = si_set_scissor_state;
-	rctx->context.set_viewport_state = si_set_viewport_state;
+	rctx->context.set_scissor_states = si_set_scissor_states;
+	rctx->context.set_viewport_states = si_set_viewport_states;
 	rctx->context.set_stencil_ref = si_set_pipe_stencil_ref;
 
 	rctx->context.set_framebuffer_state = si_set_framebuffer_state;
@@ -2790,6 +2804,9 @@ void si_init_config(struct r600_context *rctx)
 		break;
 	case CHIP_OLAND:
 		si_pm4_set_reg(pm4, R_028350_PA_SC_RASTER_CONFIG, 0x00000082);
+		break;
+	case CHIP_HAINAN:
+		si_pm4_set_reg(pm4, R_028350_PA_SC_RASTER_CONFIG, 0x00000000);
 		break;
 	default:
 		si_pm4_set_reg(pm4, R_028350_PA_SC_RASTER_CONFIG, 0x00000000);

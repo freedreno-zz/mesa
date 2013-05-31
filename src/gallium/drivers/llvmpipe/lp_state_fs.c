@@ -229,7 +229,7 @@ generate_fs_loop(struct gallivm_state *gallivm,
                  LLVMValueRef mask_store,
                  LLVMValueRef (*out_color)[4],
                  LLVMValueRef depth_ptr,
-                 unsigned depth_bits,
+                 LLVMValueRef depth_stride,
                  LLVMValueRef facing,
                  LLVMValueRef thread_data_ptr)
 {
@@ -239,16 +239,20 @@ generate_fs_loop(struct gallivm_state *gallivm,
    LLVMValueRef mask_ptr, mask_val;
    LLVMValueRef consts_ptr;
    LLVMValueRef z;
-   LLVMValueRef zs_value = NULL;
+   LLVMValueRef z_value, s_value;
+   LLVMValueRef z_fb, s_fb;
    LLVMValueRef stencil_refs[2];
-   LLVMValueRef depth_ptr_i;
-   LLVMValueRef depth_offset;
    LLVMValueRef outputs[PIPE_MAX_SHADER_OUTPUTS][TGSI_NUM_CHANNELS];
    struct lp_build_for_loop_state loop_state;
    struct lp_build_mask_context mask;
+   /*
+    * TODO: figure out if simple_shader optimization is really worthwile to
+    * keep. Disabled because it may hide some real bugs in the (depth/stencil)
+    * code since tests tend to take another codepath than real shaders.
+    */
    boolean simple_shader = (shader->info.base.file_count[TGSI_FILE_SAMPLER] == 0 &&
                             shader->info.base.num_inputs < 3 &&
-                            shader->info.base.num_instructions < 8);
+                            shader->info.base.num_instructions < 8) && 0;
    const boolean dual_source_blend = key->blend.rt[0].blend_enable &&
                                      util_blend_state_is_dual(&key->blend, 0);
    unsigned attrib;
@@ -261,20 +265,26 @@ generate_fs_loop(struct gallivm_state *gallivm,
    memset(&system_values, 0, sizeof(system_values));
 
    if (key->depth.enabled ||
-       key->stencil[0].enabled ||
-       key->stencil[1].enabled) {
+       key->stencil[0].enabled) {
 
       zs_format_desc = util_format_description(key->zsbuf_format);
       assert(zs_format_desc);
 
       if (!shader->info.base.writes_z) {
-         if (key->alpha.enabled || shader->info.base.uses_kill)
+         if (key->alpha.enabled || shader->info.base.uses_kill) {
             /* With alpha test and kill, can do the depth test early
              * and hopefully eliminate some quads.  But need to do a
              * special deferred depth write once the final mask value
-             * is known.
+             * is known. This only works though if there's either no
+             * stencil test or the stencil value isn't written.
              */
-            depth_mode = EARLY_DEPTH_TEST | LATE_DEPTH_WRITE;
+            if (key->stencil[0].enabled && (key->stencil[0].writemask ||
+                                            (key->stencil[1].enabled &&
+                                             key->stencil[1].writemask)))
+               depth_mode = LATE_DEPTH_TEST | LATE_DEPTH_WRITE;
+            else
+               depth_mode = EARLY_DEPTH_TEST | LATE_DEPTH_WRITE;
+         }
          else
             depth_mode = EARLY_DEPTH_TEST | EARLY_DEPTH_WRITE;
       }
@@ -283,7 +293,9 @@ generate_fs_loop(struct gallivm_state *gallivm,
       }
 
       if (!(key->depth.enabled && key->depth.writemask) &&
-          !(key->stencil[0].enabled && key->stencil[0].writemask))
+          !(key->stencil[0].enabled && (key->stencil[0].writemask ||
+                                        (key->stencil[1].enabled &&
+                                         key->stencil[1].writemask))))
          depth_mode &= ~(LATE_DEPTH_WRITE | EARLY_DEPTH_WRITE);
    }
    else {
@@ -307,12 +319,6 @@ generate_fs_loop(struct gallivm_state *gallivm,
    mask_ptr = LLVMBuildGEP(builder, mask_store,
                            &loop_state.counter, 1, "mask_ptr");
    mask_val = LLVMBuildLoad(builder, mask_ptr, "");
-
-   depth_offset = LLVMBuildMul(builder, loop_state.counter,
-                               lp_build_const_int32(gallivm, depth_bits * type.length),
-                               "");
-
-   depth_ptr_i = LLVMBuildGEP(builder, depth_ptr, &depth_offset, 1, "");
 
    memset(outputs, 0, sizeof outputs);
 
@@ -345,6 +351,10 @@ generate_fs_loop(struct gallivm_state *gallivm,
    z = interp->pos[2];
 
    if (depth_mode & EARLY_DEPTH_TEST) {
+      lp_build_depth_stencil_load_swizzled(gallivm, type,
+                                           zs_format_desc,
+                                           depth_ptr, depth_stride,
+                                           &z_fb, &s_fb, loop_state.counter);
       lp_build_depth_stencil_test(gallivm,
                                   &key->depth,
                                   key->stencil,
@@ -352,14 +362,24 @@ generate_fs_loop(struct gallivm_state *gallivm,
                                   zs_format_desc,
                                   &mask,
                                   stencil_refs,
-                                  z,
-                                  depth_ptr_i, facing,
-                                  &zs_value,
+                                  z, z_fb, s_fb,
+                                  facing,
+                                  &z_value, &s_value,
                                   !simple_shader);
 
       if (depth_mode & EARLY_DEPTH_WRITE) {
-         lp_build_depth_write(gallivm, type, zs_format_desc, depth_ptr_i, zs_value);
+         lp_build_depth_stencil_write_swizzled(gallivm, type, zs_format_desc,
+                                               NULL, NULL, NULL, loop_state.counter,
+                                               depth_ptr, depth_stride,
+                                               z_value, s_value);
       }
+      /*
+       * Note mask check if stencil is enabled must be after ds write not after
+       * stencil test otherwise new stencil values may not get written if all
+       * fragments got killed by depth/stencil test.
+       */
+      if (!simple_shader && key->stencil[0].enabled)
+         lp_build_mask_check(&mask);
    }
 
    lp_build_interp_soa_update_inputs_dyn(interp, gallivm, loop_state.counter);
@@ -402,6 +422,11 @@ generate_fs_loop(struct gallivm_state *gallivm,
          z = LLVMBuildLoad(builder, outputs[pos0][2], "output.z");
       }
 
+      lp_build_depth_stencil_load_swizzled(gallivm, type,
+                                           zs_format_desc,
+                                           depth_ptr, depth_stride,
+                                           &z_fb, &s_fb, loop_state.counter);
+
       lp_build_depth_stencil_test(gallivm,
                                   &key->depth,
                                   key->stencil,
@@ -409,13 +434,16 @@ generate_fs_loop(struct gallivm_state *gallivm,
                                   zs_format_desc,
                                   &mask,
                                   stencil_refs,
-                                  z,
-                                  depth_ptr_i, facing,
-                                  &zs_value,
+                                  z, z_fb, s_fb,
+                                  facing,
+                                  &z_value, &s_value,
                                   !simple_shader);
       /* Late Z write */
       if (depth_mode & LATE_DEPTH_WRITE) {
-         lp_build_depth_write(gallivm, type, zs_format_desc, depth_ptr_i, zs_value);
+         lp_build_depth_stencil_write_swizzled(gallivm, type, zs_format_desc,
+                                               NULL, NULL, NULL, loop_state.counter,
+                                               depth_ptr, depth_stride,
+                                               z_value, s_value);
       }
    }
    else if ((depth_mode & EARLY_DEPTH_TEST) &&
@@ -425,12 +453,10 @@ generate_fs_loop(struct gallivm_state *gallivm,
        * depth value, update from zs_value with the new mask value and
        * write that out.
        */
-      lp_build_deferred_depth_write(gallivm,
-                                    type,
-                                    zs_format_desc,
-                                    &mask,
-                                    depth_ptr_i,
-                                    zs_value);
+      lp_build_depth_stencil_write_swizzled(gallivm, type, zs_format_desc,
+                                            &mask, z_fb, s_fb, loop_state.counter,
+                                            depth_ptr, depth_stride,
+                                            z_value, s_value);
    }
 
 
@@ -1749,7 +1775,7 @@ generate_fragment(struct llvmpipe_context *lp,
    struct lp_type blend_type;
    LLVMTypeRef fs_elem_type;
    LLVMTypeRef blend_vec_type;
-   LLVMTypeRef arg_types[12];
+   LLVMTypeRef arg_types[13];
    LLVMTypeRef func_type;
    LLVMTypeRef int32_type = LLVMInt32TypeInContext(gallivm->context);
    LLVMTypeRef int8_type = LLVMInt8TypeInContext(gallivm->context);
@@ -1762,6 +1788,7 @@ generate_fragment(struct llvmpipe_context *lp,
    LLVMValueRef color_ptr_ptr;
    LLVMValueRef stride_ptr;
    LLVMValueRef depth_ptr;
+   LLVMValueRef depth_stride;
    LLVMValueRef mask_input;
    LLVMValueRef thread_data_ptr;
    LLVMBasicBlockRef block;
@@ -1772,7 +1799,6 @@ generate_fragment(struct llvmpipe_context *lp,
    LLVMValueRef fs_out_color[PIPE_MAX_COLOR_BUFS][TGSI_NUM_CHANNELS][16 / 4];
    LLVMValueRef function;
    LLVMValueRef facing;
-   const struct util_format_description *zs_format_desc;
    unsigned num_fs;
    unsigned i;
    unsigned chan;
@@ -1847,6 +1873,7 @@ generate_fragment(struct llvmpipe_context *lp,
    arg_types[9] = int32_type;                          /* mask_input */
    arg_types[10] = variant->jit_thread_data_ptr_type;  /* per thread data */
    arg_types[11] = LLVMPointerType(int32_type, 0);     /* stride */
+   arg_types[12] = int32_type;                         /* depth_stride */
 
    func_type = LLVMFunctionType(LLVMVoidTypeInContext(gallivm->context),
                                 arg_types, Elements(arg_types), 0);
@@ -1875,6 +1902,7 @@ generate_fragment(struct llvmpipe_context *lp,
    mask_input   = LLVMGetParam(function, 9);
    thread_data_ptr  = LLVMGetParam(function, 10);
    stride_ptr   = LLVMGetParam(function, 11);
+   depth_stride = LLVMGetParam(function, 12);
 
    lp_build_name(context_ptr, "context");
    lp_build_name(x, "x");
@@ -1887,6 +1915,7 @@ generate_fragment(struct llvmpipe_context *lp,
    lp_build_name(thread_data_ptr, "thread_data");
    lp_build_name(mask_input, "mask_input");
    lp_build_name(stride_ptr, "stride_ptr");
+   lp_build_name(depth_stride, "depth_stride");
 
    /*
     * Function body
@@ -1900,10 +1929,7 @@ generate_fragment(struct llvmpipe_context *lp,
    /* code generated texture sampling */
    sampler = lp_llvm_sampler_soa_create(key->state, context_ptr);
 
-   zs_format_desc = util_format_description(key->zsbuf_format);
-
    {
-      unsigned depth_bits = zs_format_desc->block.bits/8;
       LLVMValueRef num_loop = lp_build_const_int32(gallivm, num_fs);
       LLVMTypeRef mask_type = lp_build_int_vec_type(gallivm, fs_type);
       LLVMValueRef mask_store = lp_build_array_alloca(gallivm, mask_type,
@@ -1951,7 +1977,7 @@ generate_fragment(struct llvmpipe_context *lp,
                        mask_store, /* output */
                        color_store,
                        depth_ptr,
-                       depth_bits,
+                       depth_stride,
                        facing,
                        thread_data_ptr);
 

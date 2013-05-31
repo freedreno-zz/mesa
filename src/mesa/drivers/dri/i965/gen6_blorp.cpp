@@ -595,6 +595,15 @@ gen6_blorp_emit_vs_disable(struct brw_context *brw,
       intel_emit_post_sync_nonzero_flush(intel);
    }
 
+   /* Disable the push constant buffers. */
+   BEGIN_BATCH(5);
+   OUT_BATCH(_3DSTATE_CONSTANT_VS << 16 | (5 - 2));
+   OUT_BATCH(0);
+   OUT_BATCH(0);
+   OUT_BATCH(0);
+   OUT_BATCH(0);
+   ADVANCE_BATCH();
+
    BEGIN_BATCH(6);
    OUT_BATCH(_3DSTATE_VS << 16 | (6 - 2));
    OUT_BATCH(0);
@@ -615,6 +624,15 @@ gen6_blorp_emit_gs_disable(struct brw_context *brw,
                            const brw_blorp_params *params)
 {
    struct intel_context *intel = &brw->intel;
+
+   /* Disable all the constant buffers. */
+   BEGIN_BATCH(5);
+   OUT_BATCH(_3DSTATE_CONSTANT_GS << 16 | (5 - 2));
+   OUT_BATCH(0);
+   OUT_BATCH(0);
+   OUT_BATCH(0);
+   OUT_BATCH(0);
+   ADVANCE_BATCH();
 
    BEGIN_BATCH(7);
    OUT_BATCH(_3DSTATE_GS << 16 | (7 - 2));
@@ -732,7 +750,6 @@ gen6_blorp_emit_wm_config(struct brw_context *brw,
       assert(0);
       break;
    }
-   dw4 |= GEN6_WM_STATISTICS_ENABLE;
    dw5 |= GEN6_WM_LINE_AA_WIDTH_1_0;
    dw5 |= GEN6_WM_LINE_END_CAP_AA_WIDTH_0_5;
    dw5 |= (brw->max_wm_threads - 1) << GEN6_WM_MAX_THREADS_SHIFT;
@@ -798,6 +815,21 @@ gen6_blorp_emit_constant_ps(struct brw_context *brw,
    ADVANCE_BATCH();
 }
 
+static void
+gen6_blorp_emit_constant_ps_disable(struct brw_context *brw,
+                                    const brw_blorp_params *params)
+{
+   struct intel_context *intel = &brw->intel;
+
+   /* Disable the push constant buffers. */
+   BEGIN_BATCH(5);
+   OUT_BATCH(_3DSTATE_CONSTANT_PS << 16 | (5 - 2));
+   OUT_BATCH(0);
+   OUT_BATCH(0);
+   OUT_BATCH(0);
+   OUT_BATCH(0);
+   ADVANCE_BATCH();
+}
 
 /**
  * 3DSTATE_BINDING_TABLE_POINTERS
@@ -1084,6 +1116,8 @@ gen6_blorp_exec(struct intel_context *intel,
    gen6_blorp_emit_sf_config(brw, params);
    if (params->use_wm_prog)
       gen6_blorp_emit_constant_ps(brw, params, wm_push_const_offset);
+   else
+      gen6_blorp_emit_constant_ps_disable(brw, params);
    gen6_blorp_emit_wm_config(brw, params, prog_offset, prog_data);
    if (params->use_wm_prog)
       gen6_blorp_emit_binding_table_pointers(brw, params, wm_bind_bo_offset);

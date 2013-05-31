@@ -37,8 +37,13 @@ value* get_select_value_for_em(shader &sh, value *em);
 
 void convert_predset_to_set(shader &sh, alu_node *a);
 unsigned invert_setcc_condition(unsigned cc, bool &swap_args);
-unsigned get_setcc_opcode(unsigned cc, unsigned cmp_type, bool int_dst);
-unsigned get_predsetcc_opcode(unsigned cc, unsigned cmp_type);
+unsigned get_setcc_op(unsigned cc, unsigned cmp_type, bool int_dst);
+unsigned get_predsetcc_op(unsigned cc, unsigned cmp_type);
+unsigned get_killcc_op(unsigned cc, unsigned cmp_type);
+unsigned get_cndcc_op(unsigned cc, unsigned cmp_type);
+
+void convert_to_mov(alu_node &n, value *src,
+                    bool neg = false, bool abs = false);
 
 class expr_handler {
 
@@ -72,10 +77,13 @@ public:
    bool fold_alu_op2(alu_node &n);
    bool fold_alu_op3(alu_node &n);
 
-   void apply_alu_src_mod(const bc_alu &bc, unsigned src, literal &v);
-   void apply_alu_dst_mod(const bc_alu &bc, literal &v);
+   static void apply_alu_src_mod(const bc_alu &bc, unsigned src, literal &v);
+   static void apply_alu_dst_mod(const bc_alu &bc, literal &v);
 
    void assign_source(value *dst, value *src);
+
+   static bool evaluate_condition(unsigned alu_cnd_flags, literal s1,
+                                  literal s2);
 };
 
 } // namespace r600_sb

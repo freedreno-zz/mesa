@@ -27,6 +27,17 @@
 
 #pragma once
 
+enum register_file {
+   BAD_FILE,
+   ARF,
+   GRF,
+   MRF,
+   IMM,
+   HW_REG, /* a struct brw_reg */
+   ATTR,
+   UNIFORM, /* prog_data->params[reg] */
+};
+
 class backend_instruction : public exec_node {
 public:
    bool is_tex();
@@ -56,6 +67,9 @@ public:
     * backend_instruction)
     */
    exec_list instructions;
+
+   virtual void dump_instruction(backend_instruction *inst) = 0;
+   void dump_instructions();
 };
 
 int brw_type_for_base_type(const struct glsl_type *type);

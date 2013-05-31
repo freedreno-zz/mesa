@@ -148,11 +148,12 @@ enum brw_state_id {
    BRW_STATE_VS_CONSTBUF,
    BRW_STATE_PROGRAM_CACHE,
    BRW_STATE_STATE_BASE_ADDRESS,
-   BRW_STATE_SOL_INDICES,
    BRW_STATE_VUE_MAP_GEOM_OUT,
    BRW_STATE_TRANSFORM_FEEDBACK,
    BRW_STATE_RASTERIZER_DISCARD,
    BRW_STATE_STATS_WM,
+   BRW_STATE_UNIFORM_BUFFER,
+   BRW_STATE_META_IN_PROGRESS,
 };
 
 #define BRW_NEW_URB_FENCE               (1 << BRW_STATE_URB_FENCE)
@@ -179,11 +180,12 @@ enum brw_state_id {
 #define BRW_NEW_VS_CONSTBUF            (1 << BRW_STATE_VS_CONSTBUF)
 #define BRW_NEW_PROGRAM_CACHE		(1 << BRW_STATE_PROGRAM_CACHE)
 #define BRW_NEW_STATE_BASE_ADDRESS	(1 << BRW_STATE_STATE_BASE_ADDRESS)
-#define BRW_NEW_SOL_INDICES		(1 << BRW_STATE_SOL_INDICES)
 #define BRW_NEW_VUE_MAP_GEOM_OUT	(1 << BRW_STATE_VUE_MAP_GEOM_OUT)
 #define BRW_NEW_TRANSFORM_FEEDBACK	(1 << BRW_STATE_TRANSFORM_FEEDBACK)
 #define BRW_NEW_RASTERIZER_DISCARD	(1 << BRW_STATE_RASTERIZER_DISCARD)
 #define BRW_NEW_STATS_WM		(1 << BRW_STATE_STATS_WM)
+#define BRW_NEW_UNIFORM_BUFFER          (1 << BRW_STATE_UNIFORM_BUFFER)
+#define BRW_NEW_META_IN_PROGRESS        (1 << BRW_STATE_META_IN_PROGRESS)
 
 struct brw_state_flags {
    /** State update flags signalled by mesa internals */
@@ -823,6 +825,9 @@ struct brw_context
    struct brw_cache cache;
    struct brw_cached_batch_item *cached_batch_items;
 
+   /* Whether a meta-operation is in progress. */
+   bool meta_in_progress;
+
    struct {
       struct brw_vertex_element inputs[VERT_ATTRIB_MAX];
       struct brw_vertex_buffer buffers[VERT_ATTRIB_MAX];
@@ -1108,16 +1113,6 @@ struct brw_context
    } *state_batch_list;
    int state_batch_count;
 
-   struct brw_sol_state {
-      uint32_t svbi_0_starting_index;
-      uint32_t svbi_0_max_index;
-      uint32_t offset_0_batch_start;
-      uint32_t primitives_generated;
-      uint32_t primitives_written;
-      bool counting_primitives_generated;
-      bool counting_primitives_written;
-   } sol;
-
    uint32_t render_target_format[MESA_FORMAT_COUNT];
    bool format_supported_as_render_target[MESA_FORMAT_COUNT];
 
@@ -1188,9 +1183,13 @@ void brw_workaround_depthstencil_alignment(struct brw_context *brw,
 /*======================================================================
  * brw_queryobj.c
  */
-void brw_init_queryobj_functions(struct dd_function_table *functions);
+void brw_init_common_queryobj_functions(struct dd_function_table *functions);
+void gen4_init_queryobj_functions(struct dd_function_table *functions);
 void brw_emit_query_begin(struct brw_context *brw);
 void brw_emit_query_end(struct brw_context *brw);
+
+/** gen6_queryobj.c */
+void gen6_init_queryobj_functions(struct dd_function_table *functions);
 
 /*======================================================================
  * brw_state_dump.c
@@ -1258,6 +1257,9 @@ brw_end_transform_feedback(struct gl_context *ctx,
                            struct gl_transform_feedback_object *obj);
 
 /* gen7_sol_state.c */
+void
+gen7_begin_transform_feedback(struct gl_context *ctx, GLenum mode,
+                              struct gl_transform_feedback_object *obj);
 void
 gen7_end_transform_feedback(struct gl_context *ctx,
 			    struct gl_transform_feedback_object *obj);
@@ -1367,7 +1369,8 @@ brw_program_reloc(struct brw_context *brw, uint32_t state_offset,
 }
 
 bool brw_do_cubemap_normalize(struct exec_list *instructions);
-bool brw_lower_texture_gradients(struct exec_list *instructions);
+bool brw_lower_texture_gradients(struct intel_context *intel,
+                                 struct exec_list *instructions);
 
 struct opcode_desc {
     char    *name;

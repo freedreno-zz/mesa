@@ -40,9 +40,10 @@ brw_blorp_blit_miptrees(struct intel_context *intel,
                         unsigned src_level, unsigned src_layer,
                         struct intel_mipmap_tree *dst_mt,
                         unsigned dst_level, unsigned dst_layer,
-                        int src_x0, int src_y0,
-                        int dst_x0, int dst_y0,
-                        int dst_x1, int dst_y1,
+                        float src_x0, float src_y0,
+                        float src_x1, float src_y1,
+                        float dst_x0, float dst_y0,
+                        float dst_x1, float dst_y1,
                         bool mirror_x, bool mirror_y);
 
 bool
@@ -158,25 +159,22 @@ public:
 
 struct brw_blorp_coord_transform_params
 {
-   void setup(GLuint src0, GLuint dst0, GLuint dst1,
+   void setup(GLfloat src0, GLfloat src1, GLfloat dst0, GLfloat dst1,
               bool mirror);
 
-   int16_t multiplier;
-   int16_t offset;
+   float multiplier;
+   float offset;
 };
 
 
 struct brw_blorp_wm_push_constants
 {
-   uint16_t dst_x0;
-   uint16_t dst_x1;
-   uint16_t dst_y0;
-   uint16_t dst_y1;
+   uint32_t dst_x0;
+   uint32_t dst_x1;
+   uint32_t dst_y0;
+   uint32_t dst_y1;
    brw_blorp_coord_transform_params x_transform;
    brw_blorp_coord_transform_params y_transform;
-
-   /* Pad out to an integral number of registers */
-   uint16_t pad[8];
 };
 
 /* Every 32 bytes of push constant data constitutes one GEN register. */
@@ -317,9 +315,10 @@ public:
                          unsigned src_level, unsigned src_layer,
                          struct intel_mipmap_tree *dst_mt,
                          unsigned dst_level, unsigned dst_layer,
-                         GLuint src_x0, GLuint src_y0,
-                         GLuint dst_x0, GLuint dst_y0,
-                         GLuint width, GLuint height,
+                         GLfloat src_x0, GLfloat src_y0,
+                         GLfloat src_x1, GLfloat src_y1,
+                         GLfloat dst_x0, GLfloat dst_y0,
+                         GLfloat dst_x1, GLfloat dst_y1,
                          bool mirror_x, bool mirror_y);
 
    virtual uint32_t get_wm_prog(struct brw_context *brw,

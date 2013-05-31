@@ -55,8 +55,13 @@ static void si_pipe_shader_vs(struct pipe_context *ctx, struct si_pipe_shader *s
 	 * takes care of adding a dummy export.
 	 */
 	for (nparams = 0, i = 0 ; i < shader->shader.noutput; i++) {
-		if (shader->shader.output[i].name != TGSI_SEMANTIC_POSITION)
+		switch (shader->shader.output[i].name) {
+		case TGSI_SEMANTIC_POSITION:
+		case TGSI_SEMANTIC_PSIZE:
+			break;
+		default:
 			nparams++;
+		}
 	}
 	if (nparams < 1)
 		nparams = 1;
@@ -66,9 +71,15 @@ static void si_pipe_shader_vs(struct pipe_context *ctx, struct si_pipe_shader *s
 
 	si_pm4_set_reg(pm4, R_02870C_SPI_SHADER_POS_FORMAT,
 		       S_02870C_POS0_EXPORT_FORMAT(V_02870C_SPI_SHADER_4COMP) |
-		       S_02870C_POS1_EXPORT_FORMAT(V_02870C_SPI_SHADER_NONE) |
-		       S_02870C_POS2_EXPORT_FORMAT(V_02870C_SPI_SHADER_NONE) |
-		       S_02870C_POS3_EXPORT_FORMAT(V_02870C_SPI_SHADER_NONE));
+		       S_02870C_POS1_EXPORT_FORMAT(shader->shader.vs_out_misc_write ?
+						   V_02870C_SPI_SHADER_4COMP :
+						   V_02870C_SPI_SHADER_NONE) |
+		       S_02870C_POS2_EXPORT_FORMAT((shader->shader.clip_dist_write & 0x0F) ?
+						   V_02870C_SPI_SHADER_4COMP :
+						   V_02870C_SPI_SHADER_NONE) |
+		       S_02870C_POS3_EXPORT_FORMAT((shader->shader.clip_dist_write & 0xF0) ?
+						   V_02870C_SPI_SHADER_4COMP :
+						   V_02870C_SPI_SHADER_NONE));
 
 	va = r600_resource_va(ctx->screen, (void *)shader->bo);
 	si_pm4_add_bo(pm4, shader->bo, RADEON_USAGE_READ);
@@ -202,6 +213,7 @@ static void si_pipe_shader_ps(struct pipe_context *ctx, struct si_pipe_shader *s
 	si_pm4_set_reg(pm4, R_028710_SPI_SHADER_Z_FORMAT, spi_shader_z_format);
 	si_pm4_set_reg(pm4, R_028714_SPI_SHADER_COL_FORMAT,
 		       shader->spi_shader_col_format);
+	si_pm4_set_reg(pm4, R_02823C_CB_SHADER_MASK, shader->cb_shader_mask);
 
 	va = r600_resource_va(ctx->screen, (void *)shader->bo);
 	si_pm4_add_bo(pm4, shader->bo, RADEON_USAGE_READ);
@@ -261,6 +273,7 @@ static bool si_update_draw_info_state(struct r600_context *rctx,
 			       const struct pipe_draw_info *info)
 {
 	struct si_pm4_state *pm4 = CALLOC_STRUCT(si_pm4_state);
+	struct si_shader *vs = &rctx->vs_shader->current->shader;
 	unsigned prim = si_conv_pipe_prim(info->mode);
 	unsigned ls_mask = 0;
 
@@ -297,13 +310,16 @@ static bool si_update_draw_info_state(struct r600_context *rctx,
 		si_pm4_set_reg(pm4, R_028814_PA_SU_SC_MODE_CNTL, rctx->pa_su_sc_mode_cntl);
         }
 	si_pm4_set_reg(pm4, R_02881C_PA_CL_VS_OUT_CNTL,
-		       prim == PIPE_PRIM_POINTS ? rctx->pa_cl_vs_out_cntl : 0
-		       /*| (rctx->rasterizer->clip_plane_enable &
-		       rctx->vs_shader->shader.clip_dist_write)*/);
-	si_pm4_set_reg(pm4, R_028810_PA_CL_CLIP_CNTL, rctx->pa_cl_clip_cntl
-			/*| (rctx->vs_shader->shader.clip_dist_write ||
-			rctx->vs_shader->shader.vs_prohibit_ucps ?
-			0 : rctx->rasterizer->clip_plane_enable & 0x3F)*/);
+		       S_02881C_USE_VTX_POINT_SIZE(vs->vs_out_point_size) |
+		       S_02881C_VS_OUT_CCDIST0_VEC_ENA((vs->clip_dist_write & 0x0F) != 0) |
+		       S_02881C_VS_OUT_CCDIST1_VEC_ENA((vs->clip_dist_write & 0xF0) != 0) |
+		       S_02881C_VS_OUT_MISC_VEC_ENA(vs->vs_out_misc_write) |
+		       (rctx->queued.named.rasterizer->clip_plane_enable &
+			vs->clip_dist_write));
+	si_pm4_set_reg(pm4, R_028810_PA_CL_CLIP_CNTL,
+		       rctx->queued.named.rasterizer->pa_cl_clip_cntl |
+		       (vs->clip_dist_write ? 0 :
+			rctx->queued.named.rasterizer->clip_plane_enable & 0x3F));
 
 	si_pm4_set_state(rctx, draw_info, pm4);
 	return true;
@@ -419,6 +435,78 @@ static void si_update_derived_state(struct r600_context *rctx)
 		 */
 		rctx->emitted.named.ps = NULL;
 		si_update_spi_map(rctx);
+	}
+}
+
+static void si_constant_buffer_update(struct r600_context *rctx)
+{
+	struct pipe_context *ctx = &rctx->context;
+	struct si_pm4_state *pm4;
+	unsigned shader, i;
+	uint64_t va;
+
+	if (!rctx->constbuf_state[PIPE_SHADER_VERTEX].dirty_mask &&
+	    !rctx->constbuf_state[PIPE_SHADER_FRAGMENT].dirty_mask)
+		return;
+
+	for (shader = PIPE_SHADER_VERTEX ; shader <= PIPE_SHADER_FRAGMENT; shader++) {
+		struct r600_constbuf_state *state = &rctx->constbuf_state[shader];
+
+		pm4 = CALLOC_STRUCT(si_pm4_state);
+		if (!pm4)
+			continue;
+
+		si_pm4_inval_shader_cache(pm4);
+		si_pm4_sh_data_begin(pm4);
+
+		for (i = 0; i < 2; i++) {
+			if (state->enabled_mask & (1 << i)) {
+				struct pipe_constant_buffer *cb = &state->cb[i];
+				struct si_resource *rbuffer = si_resource(cb->buffer);
+
+				va = r600_resource_va(ctx->screen, (void*)rbuffer);
+				va += cb->buffer_offset;
+
+				si_pm4_add_bo(pm4, rbuffer, RADEON_USAGE_READ);
+
+				/* Fill in a T# buffer resource description */
+				si_pm4_sh_data_add(pm4, va);
+				si_pm4_sh_data_add(pm4, (S_008F04_BASE_ADDRESS_HI(va >> 32) |
+							 S_008F04_STRIDE(0)));
+				si_pm4_sh_data_add(pm4, cb->buffer_size);
+				si_pm4_sh_data_add(pm4, S_008F0C_DST_SEL_X(V_008F0C_SQ_SEL_X) |
+						   S_008F0C_DST_SEL_Y(V_008F0C_SQ_SEL_Y) |
+						   S_008F0C_DST_SEL_Z(V_008F0C_SQ_SEL_Z) |
+						   S_008F0C_DST_SEL_W(V_008F0C_SQ_SEL_W) |
+						   S_008F0C_NUM_FORMAT(V_008F0C_BUF_NUM_FORMAT_FLOAT) |
+						   S_008F0C_DATA_FORMAT(V_008F0C_BUF_DATA_FORMAT_32));
+			} else {
+				/* Fill in an empty T# buffer resource description */
+				si_pm4_sh_data_add(pm4, 0);
+				si_pm4_sh_data_add(pm4, 0);
+				si_pm4_sh_data_add(pm4, 0);
+				si_pm4_sh_data_add(pm4, 0);
+			}
+		}
+
+		switch (shader) {
+		case PIPE_SHADER_VERTEX:
+			si_pm4_sh_data_end(pm4, R_00B130_SPI_SHADER_USER_DATA_VS_0, SI_SGPR_CONST);
+			si_pm4_set_state(rctx, vs_const, pm4);
+			break;
+
+		case PIPE_SHADER_FRAGMENT:
+			si_pm4_sh_data_end(pm4, R_00B030_SPI_SHADER_USER_DATA_PS_0, SI_SGPR_CONST);
+			si_pm4_set_state(rctx, ps_const, pm4);
+			break;
+
+		default:
+			R600_ERR("unsupported %d\n", shader);
+			FREE(pm4);
+			return;
+		}
+
+		state->dirty_mask = 0;
 	}
 }
 
@@ -546,6 +634,7 @@ void si_draw_vbo(struct pipe_context *ctx, const struct pipe_draw_info *info)
 		return;
 
 	si_update_derived_state(rctx);
+	si_constant_buffer_update(rctx);
 	si_vertex_buffer_update(rctx);
 
 	if (info->indexed) {

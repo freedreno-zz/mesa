@@ -45,6 +45,7 @@
 #include "intel_context.h"
 #include "intel_batchbuffer.h"
 #include "intel_blit.h"
+#include "intel_fbo.h"
 #include "intel_regions.h"
 #include "intel_buffers.h"
 #include "intel_pixel.h"
@@ -176,8 +177,8 @@ do_blit_bitmap( struct gl_context *ctx,
 		const GLubyte *bitmap )
 {
    struct intel_context *intel = intel_context(ctx);
-   struct intel_region *dst;
    struct gl_framebuffer *fb = ctx->DrawBuffer;
+   struct intel_renderbuffer *irb;
    GLfloat tmpColor[4];
    GLubyte ubcolor[4];
    GLuint color;
@@ -200,10 +201,14 @@ do_blit_bitmap( struct gl_context *ctx,
    }
 
    intel_prepare_render(intel);
-   dst = intel_drawbuf_region(intel);
 
-   if (!dst)
-       return false;
+   if (fb->_NumColorDrawBuffers != 1) {
+      perf_debug("accelerated glBitmap() only supports rendering to a "
+                 "single color buffer\n");
+      return false;
+   }
+
+   irb = intel_renderbuffer(fb->_ColorDrawBuffers[0]);
 
    if (_mesa_is_bufferobj(unpack->BufferObj)) {
       bitmap = map_pbo(ctx, width, height, unpack, bitmap);
@@ -222,10 +227,19 @@ do_blit_bitmap( struct gl_context *ctx,
    UNCLAMPED_FLOAT_TO_UBYTE(ubcolor[2], tmpColor[2]);
    UNCLAMPED_FLOAT_TO_UBYTE(ubcolor[3], tmpColor[3]);
 
-   if (dst->cpp == 2)
-      color = PACK_COLOR_565(ubcolor[0], ubcolor[1], ubcolor[2]);
-   else
+   switch (irb->mt->format) {
+   case MESA_FORMAT_ARGB8888:
+   case MESA_FORMAT_XRGB8888:
       color = PACK_COLOR_8888(ubcolor[3], ubcolor[0], ubcolor[1], ubcolor[2]);
+      break;
+   case MESA_FORMAT_RGB565:
+      color = PACK_COLOR_565(ubcolor[0], ubcolor[1], ubcolor[2]);
+      break;
+   default:
+      perf_debug("Unsupported format %s in accelerated glBitmap()\n",
+                 _mesa_get_format_name(irb->mt->format));
+      return false;
+   }
 
    if (!intel_check_blit_fragment_ops(ctx, tmpColor[3] == 1.0F))
       return false;
@@ -259,31 +273,35 @@ do_blit_bitmap( struct gl_context *ctx,
 	  * Have to translate destination coordinates back into source
 	  * coordinates.
 	  */
-	 if (get_bitmap_rect(bitmap_width, bitmap_height, unpack,
-			     bitmap,
-			     -orig_dstx + (dstx + px),
-			     -orig_dsty + y_flip(fb, dsty + py, h),
-			     w, h,
-			     (GLubyte *)stipple,
-			     8,
-			     _mesa_is_winsys_fbo(fb)) == 0)
+         int count = get_bitmap_rect(bitmap_width, bitmap_height, unpack,
+                                     bitmap,
+                                     -orig_dstx + (dstx + px),
+                                     -orig_dsty + y_flip(fb, dsty + py, h),
+                                     w, h,
+                                     (GLubyte *)stipple,
+                                     8,
+                                     _mesa_is_winsys_fbo(fb));
+         if (count == 0)
 	    continue;
 
 	 if (!intelEmitImmediateColorExpandBlit(intel,
-						dst->cpp,
+						irb->mt->cpp,
 						(GLubyte *)stipple,
 						sz,
 						color,
-						dst->pitch,
-						dst->bo,
+						irb->mt->region->pitch,
+						irb->mt->region->bo,
 						0,
-						dst->tiling,
+						irb->mt->region->tiling,
 						dstx + px,
 						dsty + py,
 						w, h,
 						logic_op)) {
 	    return false;
 	 }
+
+         if (ctx->Query.CurrentOcclusionObject)
+            ctx->Query.CurrentOcclusionObject->Result += count;
       }
    }
 out:

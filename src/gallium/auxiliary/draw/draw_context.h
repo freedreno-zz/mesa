@@ -71,8 +71,10 @@ void draw_destroy( struct draw_context *draw );
 
 void draw_flush(struct draw_context *draw);
 
-void draw_set_viewport_state( struct draw_context *draw,
-                              const struct pipe_viewport_state *viewport );
+void draw_set_viewport_states( struct draw_context *draw,
+                               unsigned start_slot,
+                               unsigned num_viewports,
+                               const struct pipe_viewport_state *viewports );
 
 void draw_set_clip_state( struct draw_context *pipe,
                           const struct pipe_clip_state *clip );
@@ -212,10 +214,12 @@ void draw_set_vertex_elements(struct draw_context *draw,
                               const struct pipe_vertex_element *elements);
 
 void draw_set_indexes(struct draw_context *draw,
-                      const void *elements, unsigned elem_size);
+                      const void *elements, unsigned elem_size,
+                      unsigned available_space);
 
 void draw_set_mapped_vertex_buffer(struct draw_context *draw,
-                                   unsigned attr, const void *buffer);
+                                   unsigned attr, const void *buffer,
+                                   size_t size);
 
 void
 draw_set_mapped_constant_buffer(struct draw_context *draw,

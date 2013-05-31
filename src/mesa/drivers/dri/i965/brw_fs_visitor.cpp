@@ -493,6 +493,14 @@ fs_visitor::visit(ir_expression *ir)
       assert(!"not reached: should be handled by lower_quadop_vector");
       break;
 
+   case ir_binop_vector_extract:
+      assert(!"not reached: should be handled by lower_vec_index_to_cond_assign()");
+      break;
+
+   case ir_triop_vector_insert:
+      assert(!"not reached: should be handled by lower_vector_insert()");
+      break;
+
    case ir_unop_sqrt:
       emit_math(SHADER_OPCODE_SQRT, this->result, op[0]);
       break;
@@ -585,6 +593,49 @@ fs_visitor::visit(ir_expression *ir)
       break;
    case ir_binop_pow:
       emit_math(SHADER_OPCODE_POW, this->result, op[0], op[1]);
+      break;
+
+   case ir_unop_bitfield_reverse:
+      emit(BFREV(this->result, op[0]));
+      break;
+   case ir_unop_bit_count:
+      emit(CBIT(this->result, op[0]));
+      break;
+   case ir_unop_find_msb:
+      temp = fs_reg(this, glsl_type::uint_type);
+      emit(FBH(temp, op[0]));
+
+      /* FBH counts from the MSB side, while GLSL's findMSB() wants the count
+       * from the LSB side. If FBH didn't return an error (0xFFFFFFFF), then
+       * subtract the result from 31 to convert the MSB count into an LSB count.
+       */
+
+      /* FBH only supports UD type for dst, so use a MOV to convert UD to D. */
+      emit(MOV(this->result, temp));
+      emit(CMP(reg_null_d, this->result, fs_reg(-1), BRW_CONDITIONAL_NZ));
+
+      temp.negate = true;
+      inst = emit(ADD(this->result, temp, fs_reg(31)));
+      inst->predicate = BRW_PREDICATE_NORMAL;
+      break;
+   case ir_unop_find_lsb:
+      emit(FBL(this->result, op[0]));
+      break;
+   case ir_triop_bitfield_extract:
+      /* Note that the instruction's argument order is reversed from GLSL
+       * and the IR.
+       */
+      emit(BFE(this->result, op[2], op[1], op[0]));
+      break;
+   case ir_binop_bfm:
+      emit(BFI1(this->result, op[0], op[1]));
+      break;
+   case ir_triop_bfi:
+      emit(BFI2(this->result, op[0], op[1], op[2]));
+      break;
+   case ir_quadop_bitfield_insert:
+      assert(!"not reached: should be handled by "
+              "lower_instructions::bitfield_insert_to_bfm_bfi");
       break;
 
    case ir_unop_bit_not:
@@ -2413,9 +2464,11 @@ fs_visitor::fs_visitor(struct brw_context *brw,
    this->virtual_grf_sizes = NULL;
    this->virtual_grf_count = 0;
    this->virtual_grf_array_size = 0;
-   this->virtual_grf_def = NULL;
-   this->virtual_grf_use = NULL;
+   this->virtual_grf_start = NULL;
+   this->virtual_grf_end = NULL;
    this->live_intervals_valid = false;
+
+   this->params_remap = NULL;
 
    this->force_uncompressed_stack = 0;
    this->force_sechalf_stack = 0;

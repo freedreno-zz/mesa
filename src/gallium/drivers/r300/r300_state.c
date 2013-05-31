@@ -1722,8 +1722,10 @@ static void r300_set_sample_mask(struct pipe_context *pipe,
     r300_mark_atom_dirty(r300, &r300->sample_mask);
 }
 
-static void r300_set_scissor_state(struct pipe_context* pipe,
-                                   const struct pipe_scissor_state* state)
+static void r300_set_scissor_states(struct pipe_context* pipe,
+                                    unsigned start_slot,
+                                    unsigned num_scissors,
+                                    const struct pipe_scissor_state* state)
 {
     struct r300_context* r300 = r300_context(pipe);
 
@@ -1733,8 +1735,10 @@ static void r300_set_scissor_state(struct pipe_context* pipe,
     r300_mark_atom_dirty(r300, &r300->scissor_state);
 }
 
-static void r300_set_viewport_state(struct pipe_context* pipe,
-                                    const struct pipe_viewport_state* state)
+static void r300_set_viewport_states(struct pipe_context* pipe,
+                                     unsigned start_slot,
+                                     unsigned num_viewports,
+                                     const struct pipe_viewport_state* state)
 {
     struct r300_context* r300 = r300_context(pipe);
     struct r300_viewport_state* viewport =
@@ -1743,7 +1747,7 @@ static void r300_set_viewport_state(struct pipe_context* pipe,
     r300->viewport = *state;
 
     if (r300->draw) {
-        draw_set_viewport_state(r300->draw, state);
+        draw_set_viewport_states(r300->draw, start_slot, num_viewports, state);
         viewport->vte_control = R300_VTX_XY_FMT | R300_VTX_Z_FMT;
         return;
     }
@@ -1821,10 +1825,10 @@ static void r300_set_vertex_buffers_swtcl(struct pipe_context* pipe,
     for (i = 0; i < count; i++) {
         if (buffers[i].user_buffer) {
             draw_set_mapped_vertex_buffer(r300->draw, start_slot + i,
-                                          buffers[i].user_buffer);
+                                          buffers[i].user_buffer, ~0);
         } else if (buffers[i].buffer) {
             draw_set_mapped_vertex_buffer(r300->draw, start_slot + i,
-                r300_resource(buffers[i].buffer)->malloced_buffer);
+                                          r300_resource(buffers[i].buffer)->malloced_buffer, ~0);
         }
     }
 }
@@ -1856,7 +1860,7 @@ static void r300_set_index_buffer_swtcl(struct pipe_context* pipe,
         }
         draw_set_indexes(r300->draw,
                          (const ubyte *) buf + ib->offset,
-                         ib->index_size);
+                         ib->index_size, ~0);
     }
 }
 
@@ -2162,9 +2166,9 @@ void r300_init_state_functions(struct r300_context* r300)
     r300->context.create_sampler_view = r300_create_sampler_view;
     r300->context.sampler_view_destroy = r300_sampler_view_destroy;
 
-    r300->context.set_scissor_state = r300_set_scissor_state;
+    r300->context.set_scissor_states = r300_set_scissor_states;
 
-    r300->context.set_viewport_state = r300_set_viewport_state;
+    r300->context.set_viewport_states = r300_set_viewport_states;
 
     if (r300->screen->caps.has_tcl) {
         r300->context.set_vertex_buffers = r300_set_vertex_buffers_hwtcl;

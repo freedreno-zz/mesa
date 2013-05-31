@@ -136,6 +136,13 @@ ALU2(SHL)
 ALU2(SHR)
 ALU2(ASR)
 ALU3(LRP)
+ALU1(BFREV)
+ALU3(BFE)
+ALU2(BFI1)
+ALU3(BFI2)
+ALU1(FBH)
+ALU1(FBL)
+ALU1(CBIT)
 
 /** Gen4 predicated IF. */
 vec4_instruction *
@@ -1382,6 +1389,39 @@ vec4_visitor::visit(ir_expression *ir)
       assert(!"derivatives not valid in vertex shader");
       break;
 
+   case ir_unop_bitfield_reverse:
+      emit(BFREV(result_dst, op[0]));
+      break;
+   case ir_unop_bit_count:
+      emit(CBIT(result_dst, op[0]));
+      break;
+   case ir_unop_find_msb: {
+      src_reg temp = src_reg(this, glsl_type::uint_type);
+
+      inst = emit(FBH(dst_reg(temp), op[0]));
+      inst->dst.writemask = WRITEMASK_XYZW;
+
+      /* FBH counts from the MSB side, while GLSL's findMSB() wants the count
+       * from the LSB side. If FBH didn't return an error (0xFFFFFFFF), then
+       * subtract the result from 31 to convert the MSB count into an LSB count.
+       */
+
+      /* FBH only supports UD type for dst, so use a MOV to convert UD to D. */
+      temp.swizzle = BRW_SWIZZLE_NOOP;
+      emit(MOV(result_dst, temp));
+
+      src_reg src_tmp = src_reg(result_dst);
+      emit(CMP(dst_null_d(), src_tmp, src_reg(-1), BRW_CONDITIONAL_NZ));
+
+      src_tmp.negate = true;
+      inst = emit(ADD(result_dst, src_tmp, src_reg(31)));
+      inst->predicate = BRW_PREDICATE_NORMAL;
+      break;
+   }
+   case ir_unop_find_lsb:
+      emit(FBL(result_dst, op[0]));
+      break;
+
    case ir_unop_noise:
       assert(!"not reached: should be handled by lower_noise");
       break;
@@ -1582,6 +1622,10 @@ vec4_visitor::visit(ir_expression *ir)
          inst = emit(SHR(result_dst, op[0], op[1]));
       break;
 
+   case ir_binop_bfm:
+      emit(BFI1(result_dst, op[0], op[1]));
+      break;
+
    case ir_binop_ubo_load: {
       ir_constant *uniform_block = ir->operands[0]->as_constant();
       ir_constant *const_offset_ir = ir->operands[1]->as_constant();
@@ -1627,6 +1671,10 @@ vec4_visitor::visit(ir_expression *ir)
       break;
    }
 
+   case ir_binop_vector_extract:
+      assert(!"should have been lowered by vec_index_to_cond_assign");
+      break;
+
    case ir_triop_lrp:
       op[0] = fix_3src_operand(op[0]);
       op[1] = fix_3src_operand(op[1]);
@@ -1635,6 +1683,32 @@ vec4_visitor::visit(ir_expression *ir)
        * and the IR.
        */
       emit(LRP(result_dst, op[2], op[1], op[0]));
+      break;
+
+   case ir_triop_bfi:
+      op[0] = fix_3src_operand(op[0]);
+      op[1] = fix_3src_operand(op[1]);
+      op[2] = fix_3src_operand(op[2]);
+      emit(BFI2(result_dst, op[0], op[1], op[2]));
+      break;
+
+   case ir_triop_bitfield_extract:
+      op[0] = fix_3src_operand(op[0]);
+      op[1] = fix_3src_operand(op[1]);
+      op[2] = fix_3src_operand(op[2]);
+      /* Note that the instruction's argument order is reversed from GLSL
+       * and the IR.
+       */
+      emit(BFE(result_dst, op[2], op[1], op[0]));
+      break;
+
+   case ir_triop_vector_insert:
+      assert(!"should have been lowered by lower_vector_insert");
+      break;
+
+   case ir_quadop_bitfield_insert:
+      assert(!"not reached: should be handled by "
+              "bitfield_insert_to_bfm_bfi\n");
       break;
 
    case ir_quadop_vector:
@@ -2271,7 +2345,7 @@ vec4_visitor::visit(ir_texture *ir)
       emit(MOV(dst_reg(MRF, param_base, ir->coordinate->type, zero_mask),
 	       src_reg(0)));
       /* Load the shadow comparitor */
-      if (ir->shadow_comparitor) {
+      if (ir->shadow_comparitor && ir->op != ir_txd) {
 	 emit(MOV(dst_reg(MRF, param_base + 1, ir->shadow_comparitor->type,
 			  WRITEMASK_X),
 		  shadow_comparitor));
@@ -2317,12 +2391,18 @@ vec4_visitor::visit(ir_texture *ir)
 	    emit(MOV(dst_reg(MRF, param_base + 1, type, WRITEMASK_YW), dPdy));
 	    inst->mlen++;
 
-	    if (ir->type->vector_elements == 3) {
+	    if (ir->type->vector_elements == 3 || ir->shadow_comparitor) {
 	       dPdx.swizzle = BRW_SWIZZLE_ZZZZ;
 	       dPdy.swizzle = BRW_SWIZZLE_ZZZZ;
 	       emit(MOV(dst_reg(MRF, param_base + 2, type, WRITEMASK_X), dPdx));
 	       emit(MOV(dst_reg(MRF, param_base + 2, type, WRITEMASK_Y), dPdy));
 	       inst->mlen++;
+
+               if (ir->shadow_comparitor) {
+                  emit(MOV(dst_reg(MRF, param_base + 2,
+                                   ir->shadow_comparitor->type, WRITEMASK_Z),
+                           shadow_comparitor));
+               }
 	    }
 	 } else /* intel->gen == 4 */ {
 	    emit(MOV(dst_reg(MRF, param_base + 1, type, WRITEMASK_XYZ), dPdx));
@@ -2524,6 +2604,10 @@ vec4_visitor::emit_psiz_and_flags(struct brw_reg reg)
       if (prog_data->vue_map.slots_valid & VARYING_BIT_PSIZ) {
          emit(MOV(brw_writemask(reg, WRITEMASK_W),
                   src_reg(output_reg[VARYING_SLOT_PSIZ])));
+      }
+      if (prog_data->vue_map.slots_valid & VARYING_BIT_LAYER) {
+         emit(MOV(retype(brw_writemask(reg, WRITEMASK_Y), BRW_REGISTER_TYPE_D),
+                  src_reg(output_reg[VARYING_SLOT_LAYER])));
       }
    }
 }
@@ -3101,8 +3185,8 @@ vec4_visitor::vec4_visitor(struct brw_context *brw,
 				       hash_table_pointer_hash,
 				       hash_table_pointer_compare);
 
-   this->virtual_grf_def = NULL;
-   this->virtual_grf_use = NULL;
+   this->virtual_grf_start = NULL;
+   this->virtual_grf_end = NULL;
    this->virtual_grf_sizes = NULL;
    this->virtual_grf_count = 0;
    this->virtual_grf_reg_map = NULL;

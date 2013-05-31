@@ -672,6 +672,30 @@ do_assignment(exec_list *instructions, struct _mesa_glsl_parse_state *state,
    void *ctx = state;
    bool error_emitted = (lhs->type->is_error() || rhs->type->is_error());
 
+   /* If the assignment LHS comes back as an ir_binop_vector_extract
+    * expression, move it to the RHS as an ir_triop_vector_insert.
+    */
+   if (lhs->ir_type == ir_type_expression) {
+      ir_expression *const expr = lhs->as_expression();
+
+      if (unlikely(expr->operation == ir_binop_vector_extract)) {
+         ir_rvalue *new_rhs =
+            validate_assignment(state, lhs->type, rhs, is_initializer);
+
+         if (new_rhs == NULL) {
+            _mesa_glsl_error(& lhs_loc, state, "type mismatch");
+            return lhs;
+         } else {
+            rhs = new(ctx) ir_expression(ir_triop_vector_insert,
+                                         expr->operands[0]->type,
+                                         expr->operands[0],
+                                         new_rhs,
+                                         expr->operands[1]);
+            lhs = expr->operands[0]->clone(ctx, NULL);
+         }
+      }
+   }
+
    ir_variable *lhs_var = lhs->variable_referenced();
    if (lhs_var)
       lhs_var->assigned = true;
@@ -4030,13 +4054,23 @@ ast_process_structure_or_interface_block(exec_list *instructions,
 	 fields[i].name = decl->identifier;
 
          if (qual->flags.q.row_major || qual->flags.q.column_major) {
-            if (!field_type->is_matrix() && !field_type->is_record()) {
+            if (!qual->flags.q.uniform) {
+               _mesa_glsl_error(&loc, state,
+                                "row_major and column_major can only be "
+                                "applied to uniform interface blocks.");
+            } else if (!field_type->is_matrix() && !field_type->is_record()) {
                _mesa_glsl_error(&loc, state,
                                 "uniform block layout qualifiers row_major and "
                                 "column_major can only be applied to matrix and "
                                 "structure types");
             } else
                validate_matrix_layout_for_type(state, &loc, field_type);
+         }
+
+         if (qual->flags.q.uniform && qual->has_interpolation()) {
+            _mesa_glsl_error(&loc, state,
+                             "interpolation qualifiers cannot be used "
+                             "with uniform interface blocks");
          }
 
          if (field_type->is_matrix() ||
@@ -4096,12 +4130,12 @@ ast_struct_specifier::hir(exec_list *instructions,
 }
 
 ir_rvalue *
-ast_uniform_block::hir(exec_list *instructions,
-		       struct _mesa_glsl_parse_state *state)
+ast_interface_block::hir(exec_list *instructions,
+		          struct _mesa_glsl_parse_state *state)
 {
    YYLTYPE loc = this->get_location();
 
-   /* The ast_uniform_block has a list of ast_declarator_lists.  We
+   /* The ast_interface_block has a list of ast_declarator_lists.  We
     * need to turn those into ir_variables with an association
     * with this uniform block.
     */
@@ -4128,16 +4162,32 @@ ast_uniform_block::hir(exec_list *instructions,
                                                true,
                                                block_row_major);
 
+   ir_variable_mode var_mode;
+   const char *iface_type_name;
+   if (this->layout.flags.q.in) {
+      var_mode = ir_var_shader_in;
+      iface_type_name = "in";
+   } else if (this->layout.flags.q.out) {
+      var_mode = ir_var_shader_out;
+      iface_type_name = "out";
+   } else if (this->layout.flags.q.uniform) {
+      var_mode = ir_var_uniform;
+      iface_type_name = "uniform";
+   } else {
+      assert(!"interface block layout qualifier not found!");
+   }
+
    const glsl_type *block_type =
       glsl_type::get_interface_instance(fields,
                                         num_variables,
                                         packing,
                                         this->block_name);
 
-   if (!state->symbols->add_type(block_type->name, block_type)) {
+   if (!state->symbols->add_interface(block_type->name, block_type, var_mode)) {
       YYLTYPE loc = this->get_location();
-      _mesa_glsl_error(&loc, state, "Uniform block name `%s' already taken in "
-                       "the current scope.\n", this->block_name);
+      _mesa_glsl_error(&loc, state, "Interface block `%s' with type `%s' "
+                       "already taken in the current scope.\n",
+                       this->block_name, iface_type_name);
    }
 
    /* Since interface blocks cannot contain statements, it should be
@@ -4161,11 +4211,11 @@ ast_uniform_block::hir(exec_list *instructions,
 
          var = new(state) ir_variable(block_array_type,
                                       this->instance_name,
-                                      ir_var_uniform);
+                                      var_mode);
       } else {
          var = new(state) ir_variable(block_type,
                                       this->instance_name,
-                                      ir_var_uniform);
+                                      var_mode);
       }
 
       var->interface_type = block_type;
@@ -4181,7 +4231,7 @@ ast_uniform_block::hir(exec_list *instructions,
          ir_variable *var =
             new(state) ir_variable(fields[i].type,
                                    ralloc_strdup(state, fields[i].name),
-                                   ir_var_uniform);
+                                   var_mode);
          var->interface_type = block_type;
 
          state->symbols->add_variable(var);

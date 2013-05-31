@@ -373,7 +373,7 @@ nv30_render_vbo(struct pipe_context *pipe, const struct pipe_draw_info *info)
    nv30_render_validate(nv30);
 
    if (nv30->draw_dirty & NV30_NEW_VIEWPORT)
-      draw_set_viewport_state(draw, &nv30->viewport);
+      draw_set_viewport_states(draw, 0, 1, &nv30->viewport);
    if (nv30->draw_dirty & NV30_NEW_RASTERIZER)
       draw_set_rasterizer_state(draw, &nv30->rast->pipe, NULL);
    if (nv30->draw_dirty & NV30_NEW_CLIP)
@@ -412,7 +412,7 @@ nv30_render_vbo(struct pipe_context *pipe, const struct pipe_draw_info *info)
                                   PIPE_TRANSFER_UNSYNCHRONIZED |
                                   PIPE_TRANSFER_READ, &transfer[i]);
       }
-      draw_set_mapped_vertex_buffer(draw, i, map);
+      draw_set_mapped_vertex_buffer(draw, i, map, ~0);
    }
 
    if (info->indexed) {
@@ -423,9 +423,9 @@ nv30_render_vbo(struct pipe_context *pipe, const struct pipe_draw_info *info)
                                   PIPE_TRANSFER_READ, &transferi);
       draw_set_indexes(draw,
                        (ubyte *) map + nv30->idxbuf.offset,
-                       nv30->idxbuf.index_size);
+                       nv30->idxbuf.index_size, ~0);
    } else {
-      draw_set_indexes(draw, NULL, 0);
+      draw_set_indexes(draw, NULL, 0, 0);
    }
 
    draw_vbo(draw, info);

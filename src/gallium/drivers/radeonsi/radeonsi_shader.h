@@ -101,16 +101,19 @@ struct si_pipe_shader_selector {
 
 struct si_shader {
 	unsigned		ninput;
-	struct si_shader_io	input[32];
+	struct si_shader_io	input[40];
 
 	unsigned		noutput;
-	struct si_shader_io	output[32];
+	struct si_shader_io	output[40];
 
 	unsigned		ninterp;
 	bool			uses_kill;
 	bool			uses_instanceid;
 	bool			fs_write_all;
+	bool			vs_out_misc_write;
+	bool			vs_out_point_size;
 	unsigned		nr_cbufs;
+	unsigned		clip_dist_write;
 };
 
 union si_shader_key {
@@ -137,6 +140,7 @@ struct si_pipe_shader {
 	unsigned			num_vgprs;
 	unsigned			spi_ps_input_ena;
 	unsigned			spi_shader_col_format;
+	unsigned			cb_shader_mask;
 	unsigned			sprite_coord_enable;
 	unsigned			so_strides[4];
 	union si_shader_key		key;

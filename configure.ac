@@ -31,7 +31,7 @@ AC_SUBST([OSMESA_VERSION])
 
 dnl Versions for external dependencies
 LIBDRM_REQUIRED=2.4.24
-LIBDRM_RADEON_REQUIRED=2.4.44
+LIBDRM_RADEON_REQUIRED=2.4.45
 LIBDRM_INTEL_REQUIRED=2.4.38
 LIBDRM_NVVIEUX_REQUIRED=2.4.33
 LIBDRM_NOUVEAU_REQUIRED="2.4.33 libdrm >= 2.4.41"
@@ -687,20 +687,6 @@ if test "x$enable_opengl" = xno -a \
     AC_MSG_ERROR([Building OpenGL ES2 without OpenGL is not supported])
 fi
 
-API_DEFINES=""
-if test "x$enable_opengl" = xno; then
-    API_DEFINES="$API_DEFINES -DFEATURE_GL=0"
-else
-    API_DEFINES="$API_DEFINES -DFEATURE_GL=1"
-fi
-if test "x$enable_gles1" = xyes; then
-    API_DEFINES="$API_DEFINES -DFEATURE_ES1=1"
-fi
-if test "x$enable_gles2" = xyes; then
-    API_DEFINES="$API_DEFINES -DFEATURE_ES2=1"
-fi
-AC_SUBST([API_DEFINES])
-
 AM_CONDITIONAL(HAVE_OPENGL, test "x$enable_opengl" = xyes)
 AM_CONDITIONAL(HAVE_OPENGL_ES1, test "x$enable_gles1" = xyes)
 AM_CONDITIONAL(HAVE_OPENGL_ES2, test "x$enable_gles2" = xyes)
@@ -753,11 +739,6 @@ if test "x$enable_dri" = xno; then
     enable_shared_glapi=no
 fi
 
-if test "x$enable_shared_glapi" = xyes; then
-    # libGL will use libglapi for function lookups (IN_DRI_DRIVER means to use
-    # the remap table)
-    DEFINES="$DEFINES -DIN_DRI_DRIVER"
-fi
 AM_CONDITIONAL(HAVE_SHARED_GLAPI, test "x$enable_shared_glapi" = xyes)
 
 dnl
@@ -957,7 +938,7 @@ DRI_DIRS=""
 case "$with_dri_drivers" in
 no) ;;
 yes)
-    # classic DRI drivers require FEATURE_GL to build
+    # classic DRI drivers
     if test "x$enable_opengl" = xyes; then
         DRI_DIRS="yes"
     fi
@@ -981,7 +962,7 @@ if test "x$enable_dri" = xyes; then
     # Platform specific settings and drivers to build
     case "$host_os" in
     linux*)
-        DEFINES="$DEFINES -DUSE_EXTERNAL_DXTN_LIB=1 -DIN_DRI_DRIVER"
+        DEFINES="$DEFINES -DUSE_EXTERNAL_DXTN_LIB=1"
         DEFINES="$DEFINES -DHAVE_ALIAS"
 
         case "$host_cpu" in
@@ -1006,21 +987,21 @@ if test "x$enable_dri" = xyes; then
         ;;
     freebsd* | dragonfly* | *netbsd*)
         DEFINES="$DEFINES -DHAVE_PTHREAD -DUSE_EXTERNAL_DXTN_LIB=1"
-        DEFINES="$DEFINES -DIN_DRI_DRIVER -DHAVE_ALIAS"
+        DEFINES="$DEFINES -DHAVE_ALIAS"
 
         if test "x$DRI_DIRS" = "xyes"; then
             DRI_DIRS="i915 i965 nouveau r200 radeon swrast"
         fi
         ;;
     gnu*)
-        DEFINES="$DEFINES -DUSE_EXTERNAL_DXTN_LIB=1 -DIN_DRI_DRIVER"
+        DEFINES="$DEFINES -DUSE_EXTERNAL_DXTN_LIB=1"
         DEFINES="$DEFINES -DHAVE_ALIAS"
 	;;
     solaris*)
-        DEFINES="$DEFINES -DUSE_EXTERNAL_DXTN_LIB=1 -DIN_DRI_DRIVER"
+        DEFINES="$DEFINES -DUSE_EXTERNAL_DXTN_LIB=1"
         ;;
     cygwin*)
-        DEFINES="$DEFINES -DUSE_EXTERNAL_DXTN_LIB=1 -DIN_DRI_DRIVER"
+        DEFINES="$DEFINES -DUSE_EXTERNAL_DXTN_LIB=1"
         if test "x$DRI_DIRS" = "xyes"; then
             DRI_DIRS="swrast"
         fi
@@ -1733,7 +1714,7 @@ radeon_llvm_check() {
                       sources with the --enable-experimental-targets=R600
                       configure flag])
     fi
-    LLVM_COMPONENTS="${LLVM_COMPONENTS} r600 bitreader"
+    LLVM_COMPONENTS="${LLVM_COMPONENTS} r600 bitreader ipo"
     NEED_RADEON_LLVM=yes
     AC_CHECK_LIB([elf], [elf_memory], [ELF_LIB=-lelf],
                                  [AC_MSG_ERROR([radeonsi and r600g require libelf when using LLVM])])
@@ -1789,7 +1770,7 @@ if test "x$with_gallium_drivers" != x; then
             if test "x$enable_r600_llvm" = xyes -o "x$enable_opencl" = xyes; then
                 radeon_llvm_check
                 R600_NEED_RADEON_GALLIUM=yes;
-                LLVM_COMPONENTS="${LLVM_COMPONENTS} ipo bitreader asmparser"
+                LLVM_COMPONENTS="${LLVM_COMPONENTS} bitreader asmparser"
             fi
             if test "x$enable_r600_llvm" = xyes; then
                 USE_R600_LLVM_COMPILER=yes;

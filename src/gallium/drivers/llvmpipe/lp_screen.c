@@ -224,10 +224,14 @@ llvmpipe_get_param(struct pipe_screen *screen, enum pipe_cap param)
       return 0;
    case PIPE_CAP_TEXTURE_BUFFER_OBJECTS:
       return 1;
+   case PIPE_CAP_MAX_TEXTURE_BUFFER_SIZE:
+      return 65536;
    case PIPE_CAP_TEXTURE_BUFFER_OFFSET_ALIGNMENT:
       return 1;
    case PIPE_CAP_PREFER_BLIT_BASED_TEXTURE_TRANSFER:
       return 0;
+   case PIPE_CAP_MAX_VIEWPORTS:
+      return PIPE_MAX_VIEWPORTS;
    }
    /* should only get here on unhandled cases */
    debug_printf("Unexpected PIPE_CAP %d query\n", param);
@@ -359,12 +363,6 @@ llvmpipe_is_format_supported( struct pipe_screen *_screen,
    if (bind & PIPE_BIND_DISPLAY_TARGET) {
       if(!winsys->is_displaytarget_format_supported(winsys, bind, format))
          return FALSE;
-   }
-
-   /* TODO: Support Z32_FLOAT_S8X24_UINT. See lp_bld_depth.c. */
-   if (format_desc->colorspace == UTIL_FORMAT_COLORSPACE_ZS &&
-       format_desc->block.bits > 32) {
-      return FALSE;
    }
 
    if (bind & PIPE_BIND_DEPTH_STENCIL) {

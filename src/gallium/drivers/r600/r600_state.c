@@ -1215,8 +1215,10 @@ static void r600_emit_scissor_state(struct r600_context *rctx, struct r600_atom 
 	}
 }
 
-static void r600_set_scissor_state(struct pipe_context *ctx,
-				   const struct pipe_scissor_state *state)
+static void r600_set_scissor_states(struct pipe_context *ctx,
+                                    unsigned start_slot,
+                                    unsigned num_scissors,
+                                    const struct pipe_scissor_state *state)
 {
 	struct r600_context *rctx = (struct r600_context *)ctx;
 
@@ -1404,7 +1406,7 @@ static void r600_init_color_surface(struct r600_context *rctx,
 		if (rtex->fmask_size) {
 			color_info |= S_0280A0_TILE_MODE(V_0280A0_FRAG_ENABLE);
 			surf->cb_color_fmask = rtex->fmask_offset >> 8;
-			surf->cb_color_mask |= S_028100_FMASK_TILE_MAX(slice);
+			surf->cb_color_mask |= S_028100_FMASK_TILE_MAX(rtex->fmask_slice_tile_max);
 		} else { /* cmask only */
 			color_info |= S_0280A0_TILE_MODE(V_0280A0_CLEAR_ENABLE);
 		}
@@ -1455,7 +1457,7 @@ static void r600_init_color_surface(struct r600_context *rctx,
 		surf->cb_color_cmask = 0;
 		surf->cb_color_fmask = 0;
 		surf->cb_color_mask = S_028100_CMASK_BLOCK_MAX(cmask.slice_tile_max) |
-				      S_028100_FMASK_TILE_MAX(slice);
+				      S_028100_FMASK_TILE_MAX(fmask.slice_tile_max);
 	}
 
 	surf->cb_color_info = color_info;
@@ -3252,7 +3254,7 @@ void r600_init_state_functions(struct r600_context *rctx)
 	rctx->context.create_sampler_view = r600_create_sampler_view;
 	rctx->context.set_framebuffer_state = r600_set_framebuffer_state;
 	rctx->context.set_polygon_stipple = r600_set_polygon_stipple;
-	rctx->context.set_scissor_state = r600_set_scissor_state;
+	rctx->context.set_scissor_states = r600_set_scissor_states;
 
 	rctx->context.get_sample_position = r600_get_sample_position;
 }

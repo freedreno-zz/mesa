@@ -271,6 +271,8 @@ void evergreen_compute_upload_input(
 	uint32_t * global_size_start;
 	uint32_t * local_size_start;
 	uint32_t * kernel_parameters_start;
+	struct pipe_box box;
+	struct pipe_transfer *transfer = NULL;
 
 	if (shader->input_size == 0) {
 		return;
@@ -278,11 +280,16 @@ void evergreen_compute_upload_input(
 
 	if (!shader->kernel_param) {
 		/* Add space for the grid dimensions */
-		shader->kernel_param = r600_compute_buffer_alloc_vram(
-						ctx->screen, input_size);
+		shader->kernel_param = (struct r600_resource *)
+			pipe_buffer_create(ctx_->screen, PIPE_BIND_CUSTOM,
+					PIPE_USAGE_IMMUTABLE, input_size);
 	}
 
-	num_work_groups_start = r600_buffer_mmap_sync_with_rings(ctx, shader->kernel_param, PIPE_TRANSFER_WRITE);
+	u_box_1d(0, input_size, &box);
+	num_work_groups_start = ctx_->transfer_map(ctx_,
+			(struct pipe_resource*)shader->kernel_param,
+			0, PIPE_TRANSFER_WRITE | PIPE_TRANSFER_DISCARD_RANGE,
+			&box, &transfer);
 	global_size_start = num_work_groups_start + (3 * (sizeof(uint) /4));
 	local_size_start = global_size_start + (3 * (sizeof(uint)) / 4);
 	kernel_parameters_start = local_size_start + (3 * (sizeof(uint)) / 4);
@@ -306,7 +313,7 @@ void evergreen_compute_upload_input(
 			((unsigned*)num_work_groups_start)[i]);
 	}
 
-	ctx->ws->buffer_unmap(shader->kernel_param->cs_buf);
+	ctx_->transfer_unmap(ctx_, transfer);
 
 	/* ID=0 is reserved for the parameters */
 	evergreen_cs_set_constant_buffer(ctx, 0, 0, input_size,
@@ -454,7 +461,7 @@ static void compute_emit_cs(struct r600_context *ctx, const uint *block_layout,
 #if 0
 	COMPUTE_DBG(ctx->screen, "cdw: %i\n", cs->cdw);
 	for (i = 0; i < cs->cdw; i++) {
-		COMPUTE_DBG(ctx->screen, "%4i : 0x%08X\n", i, ctx->cs->buf[i]);
+		COMPUTE_DBG(ctx->screen, "%4i : 0x%08X\n", i, cs->buf[i]);
 	}
 #endif
 
@@ -896,67 +903,47 @@ void *r600_compute_global_transfer_map(
 {
 	struct r600_context *rctx = (struct r600_context*)ctx_;
 	struct compute_memory_pool *pool = rctx->screen->global_pool;
-	struct pipe_transfer *transfer = util_slab_alloc(&rctx->pool_transfers);
 	struct r600_resource_global* buffer =
 		(struct r600_resource_global*)resource;
-	uint32_t* map;
 
-	compute_memory_finalize_pending(pool, ctx_);
-
-	assert(resource->target == PIPE_BUFFER);
-
-	COMPUTE_DBG(rctx->screen, "* r600_compute_global_get_transfer()\n"
+	COMPUTE_DBG(rctx->screen, "* r600_compute_global_transfer_map()\n"
 			"level = %u, usage = %u, box(x = %u, y = %u, z = %u "
 			"width = %u, height = %u, depth = %u)\n", level, usage,
 			box->x, box->y, box->z, box->width, box->height,
 			box->depth);
+	COMPUTE_DBG(rctx->screen, "Buffer: %u (buffer offset in global memory) "
+		"+ %u (box.x)\n", buffer->chunk->start_in_dw, box->x);
 
-	transfer->resource = resource;
-	transfer->level = level;
-	transfer->usage = usage;
-	transfer->box = *box;
-	transfer->stride = 0;
-	transfer->layer_stride = 0;
 
-	assert(transfer->resource->target == PIPE_BUFFER);
-	assert(transfer->resource->bind & PIPE_BIND_GLOBAL);
-	assert(transfer->box.x >= 0);
-	assert(transfer->box.y == 0);
-	assert(transfer->box.z == 0);
+	compute_memory_finalize_pending(pool, ctx_);
+
+	assert(resource->target == PIPE_BUFFER);
+	assert(resource->bind & PIPE_BIND_GLOBAL);
+	assert(box->x >= 0);
+	assert(box->y == 0);
+	assert(box->z == 0);
 
 	///TODO: do it better, mapping is not possible if the pool is too big
-
-	COMPUTE_DBG(rctx->screen, "* r600_compute_global_transfer_map()\n");
-
-	if (!(map = r600_buffer_mmap_sync_with_rings(rctx, buffer->chunk->pool->bo, transfer->usage))) {
-		util_slab_free(&rctx->pool_transfers, transfer);
-		return NULL;
-	}
-
-	*ptransfer = transfer;
-
-	COMPUTE_DBG(rctx->screen, "Buffer: %p + %u (buffer offset in global memory) "
-		"+ %u (box.x)\n", map, buffer->chunk->start_in_dw, transfer->box.x);
-	return ((char*)(map + buffer->chunk->start_in_dw)) + transfer->box.x;
+	return pipe_buffer_map_range(ctx_, (struct pipe_resource*)buffer->chunk->pool->bo,
+			box->x + (buffer->chunk->start_in_dw * 4),
+			box->width, usage, ptransfer);
 }
 
 void r600_compute_global_transfer_unmap(
 	struct pipe_context *ctx_,
 	struct pipe_transfer* transfer)
 {
-	struct r600_context *ctx = NULL;
-	struct r600_resource_global* buffer = NULL;
-
-	assert(transfer->resource->target == PIPE_BUFFER);
-	assert(transfer->resource->bind & PIPE_BIND_GLOBAL);
-
-	ctx = (struct r600_context *)ctx_;
-	buffer = (struct r600_resource_global*)transfer->resource;
-
-	COMPUTE_DBG(ctx->screen, "* r600_compute_global_transfer_unmap()\n");
-
-	ctx->ws->buffer_unmap(buffer->chunk->pool->bo->cs_buf);
-	util_slab_free(&ctx->pool_transfers, transfer);
+	/* struct r600_resource_global are not real resources, they just map
+	 * to an offset within the compute memory pool.  The function
+	 * r600_compute_global_transfer_map() maps the memory pool
+	 * resource rather than the struct r600_resource_global passed to
+	 * it as an argument and then initalizes ptransfer->resource with
+	 * the memory pool resource (via pipe_buffer_map_range).
+	 * When transfer_unmap is called it uses the memory pool's
+	 * vtable which calls r600_buffer_transfer_map() rather than
+	 * this function.
+	 */
+	assert (!"This function should not be called");
 }
 
 void r600_compute_global_transfer_flush_region(

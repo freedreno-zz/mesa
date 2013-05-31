@@ -34,8 +34,8 @@
 static const int ilo_cp_private = 2;
 
 /**
- * Dump the contents of the parser bo.  This must be called in a post-flush
- * hook.
+ * Dump the contents of the parser bo.  This can only be called in the flush
+ * callback.
  */
 void
 ilo_cp_dump(struct ilo_cp *cp)
@@ -94,10 +94,10 @@ ilo_cp_clear_buffer(struct ilo_cp *cp)
 
    /*
     * Recalculate cp->size.  This is needed not only because cp->stolen is
-    * reset above, but also that we added cp->reserve_for_pre_flush and
-    * ilo_cp_private to cp->size in ilo_cp_flush().
+    * reset above, but also that ilo_cp_private are added to cp->size in
+    * ilo_cp_end_buffer().
     */
-   cp->size = cp->bo_size - (cp->reserve_for_pre_flush + ilo_cp_private);
+   cp->size = cp->bo_size - ilo_cp_private;
 }
 
 /**
@@ -131,6 +131,11 @@ ilo_cp_upload_buffer(struct ilo_cp *cp)
 {
    int err;
 
+   if (!cp->sys) {
+      cp->bo->unmap(cp->bo);
+      return 0;
+   }
+
    err = cp->bo->pwrite(cp->bo, 0, cp->used * 4, cp->ptr);
    if (likely(!err && cp->stolen)) {
       const int offset = cp->bo_size - cp->stolen;
@@ -156,8 +161,11 @@ ilo_cp_realloc_bo(struct ilo_cp *cp)
     */
    bo = cp->winsys->alloc_buffer(cp->winsys,
          "batch buffer", cp->bo_size * 4, 0);
-   if (unlikely(!bo))
-      return;
+   if (unlikely(!bo)) {
+      /* reuse the old one */
+      bo = cp->bo;
+      bo->reference(bo);
+   }
 
    if (cp->bo)
       cp->bo->unreference(cp->bo);
@@ -176,17 +184,21 @@ static int
 ilo_cp_exec_bo(struct ilo_cp *cp)
 {
    const bool do_exec = !(ilo_debug & ILO_DEBUG_NOHW);
+   struct intel_context *ctx;
    unsigned long flags;
    int err;
 
    switch (cp->ring) {
    case ILO_CP_RING_RENDER:
+      ctx = cp->render_ctx;
       flags = INTEL_EXEC_RENDER;
       break;
    case ILO_CP_RING_BLT:
+      ctx = NULL;
       flags = INTEL_EXEC_BLT;
       break;
    default:
+      ctx = NULL;
       flags = 0;
       break;
    }
@@ -194,7 +206,7 @@ ilo_cp_exec_bo(struct ilo_cp *cp)
    flags |= cp->one_off_flags;
 
    if (likely(do_exec))
-      err = cp->bo->exec(cp->bo, cp->used * 4, cp->hw_ctx, flags);
+      err = cp->bo->exec(cp->bo, cp->used * 4, ctx, flags);
    else
       err = 0;
 
@@ -203,67 +215,39 @@ ilo_cp_exec_bo(struct ilo_cp *cp)
    return err;
 }
 
-static void
-ilo_cp_call_hook(struct ilo_cp *cp, enum ilo_cp_hook hook)
-{
-   const bool no_implicit_flush = cp->no_implicit_flush;
-
-   if (!cp->hooks[hook].func)
-      return;
-
-   /* no implicit flush in hooks */
-   cp->no_implicit_flush = true;
-   cp->hooks[hook].func(cp, cp->hooks[hook].data);
-
-   cp->no_implicit_flush = no_implicit_flush;
-}
-
 /**
  * Flush the command parser and execute the commands.  When the parser buffer
- * is empty, the hooks are not invoked.
+ * is empty, the callback is not invoked.
  */
 void
 ilo_cp_flush(struct ilo_cp *cp)
 {
    int err;
 
+   ilo_cp_set_owner(cp, NULL, 0);
+
    /* sanity check */
-   assert(cp->bo_size == cp->size +
-         cp->reserve_for_pre_flush + ilo_cp_private + cp->stolen);
+   assert(cp->bo_size == cp->size + cp->stolen + ilo_cp_private);
 
    if (!cp->used) {
+      /* return the space stolen and etc. */
       ilo_cp_clear_buffer(cp);
+
       return;
    }
 
-   /* make the reserved space available temporarily */
-   cp->size += cp->reserve_for_pre_flush;
-   ilo_cp_call_hook(cp, ILO_CP_HOOK_PRE_FLUSH);
-
    ilo_cp_end_buffer(cp);
 
-   if (cp->sys) {
-      err = ilo_cp_upload_buffer(cp);
-      if (likely(!err))
-         err = ilo_cp_exec_bo(cp);
-   }
-   else {
-      cp->bo->unmap(cp->bo);
+   /* upload and execute */
+   err = ilo_cp_upload_buffer(cp);
+   if (likely(!err))
       err = ilo_cp_exec_bo(cp);
-   }
 
-   if (likely(!err)) {
-      ilo_cp_call_hook(cp, ILO_CP_HOOK_POST_FLUSH);
-      ilo_cp_clear_buffer(cp);
-   }
-   else {
-      /* reset first so that post-flush hook knows nothing was executed */
-      ilo_cp_clear_buffer(cp);
-      ilo_cp_call_hook(cp, ILO_CP_HOOK_POST_FLUSH);
-   }
+   if (likely(!err && cp->flush_callback))
+      cp->flush_callback(cp, cp->flush_callback_data);
 
+   ilo_cp_clear_buffer(cp);
    ilo_cp_realloc_bo(cp);
-   ilo_cp_call_hook(cp, ILO_CP_HOOK_NEW_BATCH);
 }
 
 /**
@@ -274,8 +258,8 @@ ilo_cp_destroy(struct ilo_cp *cp)
 {
    if (cp->bo)
       cp->bo->unreference(cp->bo);
-   if (cp->hw_ctx)
-      cp->winsys->destroy_context(cp->winsys, cp->hw_ctx);
+   if (cp->render_ctx)
+      cp->winsys->destroy_context(cp->winsys, cp->render_ctx);
 
    FREE(cp->sys);
    FREE(cp);
@@ -294,13 +278,10 @@ ilo_cp_create(struct intel_winsys *winsys, bool direct_map)
       return NULL;
 
    cp->winsys = winsys;
-   cp->hw_ctx = winsys->create_context(winsys);
+   cp->render_ctx = winsys->create_context(winsys);
 
    cp->ring = ILO_CP_RING_RENDER;
    cp->no_implicit_flush = false;
-   cp->reserve_for_pre_flush = 0;
-
-   memset(cp->hooks, 0, sizeof(cp->hooks));
 
    cp->bo_size = 8192;
 

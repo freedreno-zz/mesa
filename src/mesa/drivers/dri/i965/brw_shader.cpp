@@ -152,6 +152,9 @@ brw_link_shader(struct gl_context *ctx, struct gl_shader_program *shProg)
        */
       brw_lower_packing_builtins(brw, (gl_shader_type) stage, shader->ir);
       do_mat_op_to_vec(shader->ir);
+      const int bitfield_insert = intel->gen >= 7
+                                  ? BITFIELD_INSERT_TO_BFM_BFI
+                                  : 0;
       const int lrp_to_arith = intel->gen < 6 ? LRP_TO_ARITH : 0;
       lower_instructions(shader->ir,
 			 MOD_TO_FRACT |
@@ -159,6 +162,7 @@ brw_link_shader(struct gl_context *ctx, struct gl_shader_program *shProg)
 			 SUB_TO_ADD_NEG |
 			 EXP_TO_EXP2 |
 			 LOG_TO_LOG2 |
+                         bitfield_insert |
                          lrp_to_arith);
 
       /* Pre-gen6 HW can only nest if-statements 16 deep.  Beyond this,
@@ -168,9 +172,9 @@ brw_link_shader(struct gl_context *ctx, struct gl_shader_program *shProg)
 	 lower_if_to_cond_assign(shader->ir, 16);
 
       do_lower_texture_projection(shader->ir);
-      if (intel->gen < 8 && !intel->is_haswell)
-         brw_lower_texture_gradients(shader->ir);
+      brw_lower_texture_gradients(intel, shader->ir);
       do_vec_index_to_cond_assign(shader->ir);
+      lower_vector_insert(shader->ir, true);
       brw_do_cubemap_normalize(shader->ir);
       lower_noise(shader->ir);
       lower_quadop_vector(shader->ir, false);
@@ -206,7 +210,8 @@ brw_link_shader(struct gl_context *ctx, struct gl_shader_program *shProg)
 				   false /* loops */
 				   ) || progress;
 
-	 progress = do_common_optimization(shader->ir, true, true, 32)
+	 progress = do_common_optimization(shader->ir, true, true, 32,
+                                           &ctx->ShaderCompilerOptions[stage])
 	   || progress;
       } while (progress);
 
@@ -551,5 +556,16 @@ backend_instruction::is_control_flow()
       return true;
    default:
       return false;
+   }
+}
+
+void
+backend_visitor::dump_instructions()
+{
+   int ip = 0;
+   foreach_list(node, &this->instructions) {
+      backend_instruction *inst = (backend_instruction *)node;
+      printf("%d: ", ip++);
+      dump_instruction(inst);
    }
 }

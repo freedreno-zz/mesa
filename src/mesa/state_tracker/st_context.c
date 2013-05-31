@@ -209,6 +209,7 @@ static void st_init_driver_flags(struct gl_driver_flags *f)
 {
    f->NewArray = ST_NEW_VERTEX_ARRAYS;
    f->NewRasterizerDiscard = ST_NEW_RASTERIZER;
+   f->NewUniformBuffer = ST_NEW_UNIFORM_BUFFER;
 }
 
 struct st_context *st_create_context(gl_api api, struct pipe_context *pipe,
@@ -239,7 +240,7 @@ struct st_context *st_create_context(gl_api api, struct pipe_context *pipe,
     * driver prefers DP4 or MUL/MAD for vertex transformation.
     */
    if (debug_get_option_mesa_mvp_dp4())
-      _mesa_set_mvp_with_dp4( ctx, GL_TRUE );
+      ctx->ShaderCompilerOptions[MESA_SHADER_VERTEX].PreferDP4 = GL_TRUE;
 
    return st_create_context_priv(ctx, pipe, options);
 }

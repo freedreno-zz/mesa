@@ -26,18 +26,15 @@
 
 #include "sb_bc.h"
 #include "sb_shader.h"
-
 #include "sb_pass.h"
 
 namespace r600_sb {
 
-using std::cerr;
-
-shader::shader(sb_context &sctx, shader_target t, unsigned id, bool dump)
+shader::shader(sb_context &sctx, shader_target t, unsigned id)
 : ctx(sctx), next_temp_value_index(temp_regid_offset),
   prep_regs_count(), pred_sels(),
   regions(), inputs(), undef(), val_pool(sizeof(value)),
-  pool(), all_nodes(), src_stats(), opt_stats(), errors(), enable_dump(dump),
+  pool(), all_nodes(), src_stats(), opt_stats(), errors(),
   optimized(), id(id),
   coal(*this), bbs(),
   target(t), vt(ex), ex(*this), root(),
@@ -61,7 +58,7 @@ bool shader::assign_slot(alu_node* n, alu_node *slots[5]) {
 	return true;
 }
 
-void shader::add_gpr_values(vvec& vec, unsigned gpr, unsigned comp_mask,
+void shader::add_pinned_gpr_values(vvec& vec, unsigned gpr, unsigned comp_mask,
                             bool src) {
 	unsigned chan = 0;
 	while (comp_mask) {
@@ -71,6 +68,11 @@ void shader::add_gpr_values(vvec& vec, unsigned gpr, unsigned comp_mask,
 			if (!v->is_rel()) {
 				v->gpr = v->pin_gpr = v->select;
 				v->fix();
+			}
+			if (v->array && !v->array->gpr) {
+				// if pinned value can be accessed with indirect addressing
+				// pin the entire array to its original location
+				v->array->gpr = v->array->base_gpr;
 			}
 			vec.push_back(v);
 		}
@@ -199,7 +201,7 @@ void shader::add_input(unsigned gpr, bool preloaded, unsigned comp_mask) {
 	i.comp_mask = comp_mask;
 
 	if (preloaded) {
-		add_gpr_values(root->dst, gpr, comp_mask, true);
+		add_pinned_gpr_values(root->dst, gpr, comp_mask, true);
 	}
 
 }
@@ -217,9 +219,9 @@ void shader::init_call_fs(cf_node* cf) {
 	for(inputs_vec::const_iterator I = inputs.begin(),
 			E = inputs.end(); I != E; ++I, ++gpr) {
 		if (!I->preloaded)
-			add_gpr_values(cf->dst, gpr, I->comp_mask, false);
+			add_pinned_gpr_values(cf->dst, gpr, I->comp_mask, false);
 		else
-			add_gpr_values(cf->src, gpr, I->comp_mask, true);
+			add_pinned_gpr_values(cf->src, gpr, I->comp_mask, true);
 	}
 }
 
@@ -258,6 +260,7 @@ node* shader::create_node(node_type nt, node_subtype nst, node_flags flags) {
 
 alu_node* shader::create_alu() {
 	alu_node* n = new (pool.allocate(sizeof(alu_node))) alu_node();
+	memset(&n->bc, 0, sizeof(bc_alu));
 	all_nodes.push_back(n);
 	return n;
 }
@@ -278,6 +281,7 @@ alu_packed_node* shader::create_alu_packed() {
 
 cf_node* shader::create_cf() {
 	cf_node* n = new (pool.allocate(sizeof(cf_node))) cf_node();
+	memset(&n->bc, 0, sizeof(bc_cf));
 	n->bc.barrier = 1;
 	all_nodes.push_back(n);
 	return n;
@@ -285,6 +289,7 @@ cf_node* shader::create_cf() {
 
 fetch_node* shader::create_fetch() {
 	fetch_node* n = new (pool.allocate(sizeof(fetch_node))) fetch_node();
+	memset(&n->bc, 0, sizeof(bc_fetch));
 	all_nodes.push_back(n);
 	return n;
 }
@@ -347,6 +352,11 @@ shader::~shader() {
 	for (node_vec::iterator I = all_nodes.begin(), E = all_nodes.end();
 			I != E; ++I)
 		(*I)->~node();
+
+	for (gpr_array_vec::iterator I = gpr_arrays.begin(), E = gpr_arrays.end();
+			I != E; ++I) {
+		delete *I;
+	}
 }
 
 void shader::dump_ir() {
@@ -387,7 +397,7 @@ void shader::add_gpr_array(unsigned gpr_start, unsigned gpr_count,
 			gpr_array *a = new gpr_array(
 					sel_chan(gpr_start, chan), gpr_count);
 
-			SB_DUMP_PASS( cerr << "add_gpr_array: @" << a->base_gpr
+			SB_DUMP_PASS( sblog << "add_gpr_array: @" << a->base_gpr
 			         << " [" << a->array_size << "]\n";
 			);
 
@@ -462,6 +472,7 @@ const char* shader::get_hw_chip_name() {
 		TRANSLATE_CHIP(TURKS);
 		TRANSLATE_CHIP(CAICOS);
 		TRANSLATE_CHIP(CAYMAN);
+		TRANSLATE_CHIP(ARUBA);
 #undef TRANSLATE_CHIP
 
 		default:
@@ -683,39 +694,39 @@ void shader_stats::accumulate(shader_stats& s) {
 	cf += s.cf;
 }
 
-void shader_stats::dump(std::ostream& o) {
-	o << "dw:" << ndw << ", gpr:" << ngpr << ", stk:" << nstack
+void shader_stats::dump() {
+	sblog << "dw:" << ndw << ", gpr:" << ngpr << ", stk:" << nstack
 			<< ", alu groups:" << alu_groups << ", alu clauses: " << alu_clauses
 			<< ", alu:" << alu << ", fetch:" << fetch
 			<< ", fetch clauses:" << fetch_clauses
 			<< ", cf:" << cf;
 
 	if (shaders > 1)
-		o << ", shaders:" << shaders;
+		sblog << ", shaders:" << shaders;
 
-	o << "\n";
+	sblog << "\n";
 }
 
-static void print_diff(std::ostream &o, unsigned d1, unsigned d2) {
+static void print_diff(unsigned d1, unsigned d2) {
 	if (d1)
-		o << ((int)d2 - (int)d1) * 100 / (int)d1 << "%";
+		sblog << ((int)d2 - (int)d1) * 100 / (int)d1 << "%";
 	else if (d2)
-		o << "N/A";
+		sblog << "N/A";
 	else
-		o << "0%";
+		sblog << "0%";
 }
 
-void shader_stats::dump_diff(std::ostream& o, shader_stats& s) {
-	o << "dw:"; print_diff(o, ndw, s.ndw);
-	o << ", gpr:" ; print_diff(o, ngpr, s.ngpr);
-	o << ", stk:" ; print_diff(o, nstack, s.nstack);
-	o << ", alu groups:" ; print_diff(o, alu_groups, s.alu_groups);
-	o << ", alu clauses: " ; print_diff(o, alu_clauses, s.alu_clauses);
-	o << ", alu:" ; print_diff(o, alu, s.alu);
-	o << ", fetch:" ; print_diff(o, fetch, s.fetch);
-	o << ", fetch clauses:" ; print_diff(o, fetch_clauses, s.fetch_clauses);
-	o << ", cf:" ; print_diff(o, cf, s.cf);
-	o << "\n";
+void shader_stats::dump_diff(shader_stats& s) {
+	sblog << "dw:"; print_diff(ndw, s.ndw);
+	sblog << ", gpr:" ; print_diff(ngpr, s.ngpr);
+	sblog << ", stk:" ; print_diff(nstack, s.nstack);
+	sblog << ", alu groups:" ; print_diff(alu_groups, s.alu_groups);
+	sblog << ", alu clauses: " ; print_diff(alu_clauses, s.alu_clauses);
+	sblog << ", alu:" ; print_diff(alu, s.alu);
+	sblog << ", fetch:" ; print_diff(fetch, s.fetch);
+	sblog << ", fetch clauses:" ; print_diff(fetch_clauses, s.fetch_clauses);
+	sblog << ", cf:" ; print_diff(cf, s.cf);
+	sblog << "\n";
 }
 
 } // namespace r600_sb

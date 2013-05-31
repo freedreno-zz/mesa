@@ -597,6 +597,7 @@ radeon_image_target_renderbuffer_storage(struct gl_context *ctx,
    rb->Format = image->format;
    rb->_BaseFormat = _mesa_base_fbo_format(&radeon->glCtx,
                                            image->internal_format);
+   rb->NeedsFinishRenderTexture = GL_TRUE;
 }
 
 /**
@@ -781,44 +782,14 @@ radeon_update_wrapper(struct gl_context *ctx, struct radeon_renderbuffer *rrb,
 	return GL_TRUE;
 }
 
-
-static struct radeon_renderbuffer *
-radeon_wrap_texture(struct gl_context * ctx, struct gl_texture_image *texImage)
-{
-  const GLuint name = ~0;   /* not significant, but distinct for debugging */
-  struct radeon_renderbuffer *rrb;
-
-   /* make an radeon_renderbuffer to wrap the texture image */
-   rrb = CALLOC_STRUCT(radeon_renderbuffer);
-
-   radeon_print(RADEON_TEXTURE, RADEON_TRACE,
-		"%s(%p, rrb %p, texImage %p) \n",
-		__func__, ctx, rrb, texImage);
-
-   if (!rrb) {
-      _mesa_error(ctx, GL_OUT_OF_MEMORY, "glFramebufferTexture");
-      return NULL;
-   }
-
-   _mesa_init_renderbuffer(&rrb->base.Base, name);
-   rrb->base.Base.ClassID = RADEON_RB_CLASS;
-
-   if (!radeon_update_wrapper(ctx, rrb, texImage)) {
-      free(rrb);
-      return NULL;
-   }
-
-   return rrb;
-  
-}
 static void
 radeon_render_texture(struct gl_context * ctx,
                      struct gl_framebuffer *fb,
                      struct gl_renderbuffer_attachment *att)
 {
-   struct gl_texture_image *newImage
-      = att->Texture->Image[att->CubeMapFace][att->TextureLevel];
-   struct radeon_renderbuffer *rrb = radeon_renderbuffer(att->Renderbuffer);
+   struct gl_renderbuffer *rb = att->Renderbuffer;
+   struct gl_texture_image *newImage = rb->TexImage;
+   struct radeon_renderbuffer *rrb = radeon_renderbuffer(rb);
    radeon_texture_image *radeon_image;
    GLuint imageOffset;
 
@@ -835,25 +806,11 @@ radeon_render_texture(struct gl_context * ctx,
    if (!radeon_image->mt) {
       /* Fallback on drawing to a texture without a miptree.
        */
-      _mesa_reference_renderbuffer(&att->Renderbuffer, NULL);
       _swrast_render_texture(ctx, fb, att);
       return;
    }
-   else if (!rrb) {
-      rrb = radeon_wrap_texture(ctx, newImage);
-      if (rrb) {
-         /* bind the wrapper to the attachment point */
-         _mesa_reference_renderbuffer(&att->Renderbuffer, &rrb->base.Base);
-      }
-      else {
-         /* fallback to software rendering */
-         _swrast_render_texture(ctx, fb, att);
-         return;
-      }
-   }
 
    if (!radeon_update_wrapper(ctx, rrb, newImage)) {
-       _mesa_reference_renderbuffer(&att->Renderbuffer, NULL);
        _swrast_render_texture(ctx, fb, att);
        return;
    }
@@ -861,7 +818,7 @@ radeon_render_texture(struct gl_context * ctx,
    DBG("Begin render texture tid %lx tex=%u w=%d h=%d refcount=%d\n",
        _glthread_GetID(),
        att->Texture->Name, newImage->Width, newImage->Height,
-       rrb->base.Base.RefCount);
+       rb->RefCount);
 
    /* point the renderbufer's region to the texture image region */
    if (rrb->bo != radeon_image->mt->bo) {
@@ -893,14 +850,11 @@ radeon_render_texture(struct gl_context * ctx,
 }
 
 static void
-radeon_finish_render_texture(struct gl_context * ctx,
-                            struct gl_renderbuffer_attachment *att)
+radeon_finish_render_texture(struct gl_context *ctx, struct gl_renderbuffer *rb)
 {
-    struct gl_texture_object *tex_obj = att->Texture;
-    struct gl_texture_image *image =
-	tex_obj->Image[att->CubeMapFace][att->TextureLevel];
+    struct gl_texture_image *image = rb->TexImage;
     radeon_texture_image *radeon_image = (radeon_texture_image *)image;
-    
+
     if (radeon_image)
 	radeon_image->used_as_render_target = GL_FALSE;
 
@@ -925,7 +879,7 @@ radeon_validate_framebuffer(struct gl_context *ctx, struct gl_framebuffer *fb)
 		}
 
 		if (att->Type == GL_TEXTURE) {
-			mesa_format = att->Texture->Image[att->CubeMapFace][att->TextureLevel]->TexFormat;
+			mesa_format = att->Renderbuffer->TexImage->TexFormat;
 		} else {
 			/* All renderbuffer formats are renderable, but not sampable */
 			continue;

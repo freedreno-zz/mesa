@@ -394,7 +394,8 @@ gen7_pipeline_sol(struct ilo_3d_pipeline *p,
    gen6_pipeline_update_max_svbi(p, ilo, session);
 
    /* 3DSTATE_SO_BUFFER */
-   if (DIRTY(STREAM_OUTPUT_TARGETS) || dirty_sh) {
+   if ((DIRTY(STREAM_OUTPUT_TARGETS) || dirty_sh) &&
+       ilo->stream_output_targets.num_targets) {
       int i;
 
       for (i = 0; i < ilo->stream_output_targets.num_targets; i++) {
@@ -402,7 +403,7 @@ gen7_pipeline_sol(struct ilo_3d_pipeline *p,
          int base = 0;
 
          /* reset HW write offsets and offset buffer base */
-         if (!p->cp->hw_ctx) {
+         if (!p->cp->render_ctx) {
             ilo_cp_set_one_off_flags(p->cp, INTEL_EXEC_GEN7_SOL_RESET);
             base += p->state.so_num_vertices * stride;
          }
@@ -416,7 +417,7 @@ gen7_pipeline_sol(struct ilo_3d_pipeline *p,
    }
 
    /* 3DSTATE_SO_DECL_LIST */
-   if (dirty_sh)
+   if (dirty_sh && ilo->stream_output_targets.num_targets)
       p->gen7_3DSTATE_SO_DECL_LIST(p->dev, so_info, sh, p->cp);
 
    /* 3DSTATE_STREAMOUT */
@@ -545,10 +546,17 @@ gen7_pipeline_wm(struct ilo_3d_pipeline *p,
    /* 3DSTATE_DEPTH_BUFFER and 3DSTATE_CLEAR_PARAMS */
    if (DIRTY(FRAMEBUFFER) || DIRTY(DEPTH_STENCIL_ALPHA) ||
        session->state_bo_changed) {
+      const bool hiz = false;
+
       p->gen7_3DSTATE_DEPTH_BUFFER(p->dev,
             ilo->framebuffer.zsbuf,
             ilo->depth_stencil_alpha,
-            false, p->cp);
+            hiz, p->cp);
+
+      p->gen6_3DSTATE_HIER_DEPTH_BUFFER(p->dev,
+            (hiz) ? ilo->framebuffer.zsbuf : NULL, p->cp);
+
+      p->gen6_3DSTATE_STENCIL_BUFFER(p->dev, ilo->framebuffer.zsbuf, p->cp);
 
       /* TODO */
       p->gen6_3DSTATE_CLEAR_PARAMS(p->dev, 0, p->cp);

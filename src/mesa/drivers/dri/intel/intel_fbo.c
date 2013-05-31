@@ -293,10 +293,14 @@ intel_image_target_renderbuffer_storage(struct gl_context *ctx,
 
    irb = intel_renderbuffer(rb);
    intel_miptree_release(&irb->mt);
-   irb->mt = intel_miptree_create_for_region(intel,
-                                             GL_TEXTURE_2D,
-                                             image->format,
-                                             image->region);
+   irb->mt = intel_miptree_create_for_bo(intel,
+                                         image->region->bo,
+                                         image->format,
+                                         image->offset,
+                                         image->region->width,
+                                         image->region->height,
+                                         image->region->pitch,
+                                         image->region->tiling);
    if (!irb->mt)
       return;
 
@@ -306,6 +310,7 @@ intel_image_target_renderbuffer_storage(struct gl_context *ctx,
    rb->Format = image->format;
    rb->_BaseFormat = _mesa_base_fbo_format(&intel->ctx,
 					   image->internal_format);
+   rb->NeedsFinishRenderTexture = true;
 }
 
 /**
@@ -489,22 +494,6 @@ intel_renderbuffer_update_wrapper(struct intel_context *intel,
    struct intel_mipmap_tree *mt = intel_image->mt;
    int level = image->Level;
 
-   rb->Format = image->TexFormat;
-   rb->InternalFormat = image->InternalFormat;
-   rb->_BaseFormat = image->_BaseFormat;
-   rb->NumSamples = mt->num_samples;
-
-   if (mt->msaa_layout != INTEL_MSAA_LAYOUT_NONE) {
-      assert(level == 0);
-      rb->Width = mt->logical_width0;
-      rb->Height = mt->logical_height0;
-   }
-   else {
-      rb->Width = mt->level[level].width;
-      rb->Height = mt->level[level].height;
-   }
-
-   rb->Delete = intel_delete_renderbuffer;
    rb->AllocStorage = intel_nop_alloc_storage;
 
    intel_miptree_check_level_layer(mt, level, layer);
@@ -534,36 +523,6 @@ intel_renderbuffer_update_wrapper(struct intel_context *intel,
    return true;
 }
 
-/**
- * Create a fake intel_renderbuffer that wraps a gl_texture_image.
- */
-struct intel_renderbuffer *
-intel_create_fake_renderbuffer_wrapper(struct intel_context *intel,
-                                       struct gl_texture_image *image)
-{
-   struct gl_context *ctx = &intel->ctx;
-   struct intel_renderbuffer *irb;
-   struct gl_renderbuffer *rb;
-
-   irb = CALLOC_STRUCT(intel_renderbuffer);
-   if (!irb) {
-      _mesa_error(ctx, GL_OUT_OF_MEMORY, "creating renderbuffer");
-      return NULL;
-   }
-
-   rb = &irb->Base.Base;
-
-   _mesa_init_renderbuffer(rb, 0);
-   rb->ClassID = INTEL_RB_CLASS;
-
-   if (!intel_renderbuffer_update_wrapper(intel, irb, image, image->Face)) {
-      intel_delete_renderbuffer(ctx, rb);
-      return NULL;
-   }
-
-   return irb;
-}
-
 void
 intel_renderbuffer_set_draw_offset(struct intel_renderbuffer *irb)
 {
@@ -580,32 +539,6 @@ intel_renderbuffer_set_draw_offset(struct intel_renderbuffer *irb)
 }
 
 /**
- * Rendering to tiled buffers requires that the base address of the
- * buffer be aligned to a page boundary.  We generally render to
- * textures by pointing the surface at the mipmap image level, which
- * may not be aligned to a tile boundary.
- *
- * This function returns an appropriately-aligned base offset
- * according to the tiling restrictions, plus any required x/y offset
- * from there.
- */
-uint32_t
-intel_renderbuffer_tile_offsets(struct intel_renderbuffer *irb,
-				uint32_t *tile_x,
-				uint32_t *tile_y)
-{
-   struct intel_region *region = irb->mt->region;
-   uint32_t mask_x, mask_y;
-
-   intel_region_get_tile_masks(region, &mask_x, &mask_y, false);
-
-   *tile_x = irb->draw_x & mask_x;
-   *tile_y = irb->draw_y & mask_y;
-   return intel_region_get_aligned_offset(region, irb->draw_x & ~mask_x,
-                                          irb->draw_y & ~mask_y, false);
-}
-
-/**
  * Called by glFramebufferTexture[123]DEXT() (and other places) to
  * prepare for rendering into texture memory.  This might be called
  * many times to choose different texture levels, cube faces, etc
@@ -617,8 +550,9 @@ intel_render_texture(struct gl_context * ctx,
                      struct gl_renderbuffer_attachment *att)
 {
    struct intel_context *intel = intel_context(ctx);
-   struct gl_texture_image *image = _mesa_get_attachment_teximage(att);
-   struct intel_renderbuffer *irb = intel_renderbuffer(att->Renderbuffer);
+   struct gl_renderbuffer *rb = att->Renderbuffer;
+   struct intel_renderbuffer *irb = intel_renderbuffer(rb);
+   struct gl_texture_image *image = rb->TexImage;
    struct intel_texture_image *intel_image = intel_texture_image(image);
    struct intel_mipmap_tree *mt = intel_image->mt;
    int layer;
@@ -636,38 +570,21 @@ intel_render_texture(struct gl_context * ctx,
       /* Fallback on drawing to a texture that doesn't have a miptree
        * (has a border, width/height 0, etc.)
        */
-      _mesa_reference_renderbuffer(&att->Renderbuffer, NULL);
       _swrast_render_texture(ctx, fb, att);
       return;
    }
-   else if (!irb) {
-      intel_miptree_check_level_layer(mt, att->TextureLevel, layer);
 
-      irb = (struct intel_renderbuffer *)intel_new_renderbuffer(ctx, ~0);
-
-      if (irb) {
-         /* bind the wrapper to the attachment point */
-         _mesa_reference_renderbuffer(&att->Renderbuffer, &irb->Base.Base);
-      }
-      else {
-         /* fallback to software rendering */
-         _swrast_render_texture(ctx, fb, att);
-         return;
-      }
-   }
+   intel_miptree_check_level_layer(mt, att->TextureLevel, layer);
 
    if (!intel_renderbuffer_update_wrapper(intel, irb, image, layer)) {
-       _mesa_reference_renderbuffer(&att->Renderbuffer, NULL);
        _swrast_render_texture(ctx, fb, att);
        return;
    }
 
-   irb->tex_image = image;
-
    DBG("Begin render %s texture tex=%u w=%d h=%d refcount=%d\n",
        _mesa_get_format_name(image->TexFormat),
        att->Texture->Name, image->Width, image->Height,
-       irb->Base.Base.RefCount);
+       rb->RefCount);
 
    /* update drawing region, etc */
    intel_draw_buffer(ctx);
@@ -678,20 +595,11 @@ intel_render_texture(struct gl_context * ctx,
  * Called by Mesa when rendering to a texture is done.
  */
 static void
-intel_finish_render_texture(struct gl_context * ctx,
-                            struct gl_renderbuffer_attachment *att)
+intel_finish_render_texture(struct gl_context * ctx, struct gl_renderbuffer *rb)
 {
    struct intel_context *intel = intel_context(ctx);
-   struct gl_texture_object *tex_obj = att->Texture;
-   struct gl_texture_image *image =
-      tex_obj->Image[att->CubeMapFace][att->TextureLevel];
-   struct intel_renderbuffer *irb = intel_renderbuffer(att->Renderbuffer);
 
-   DBG("Finish render %s texture tex=%u\n",
-       _mesa_get_format_name(image->TexFormat), att->Texture->Name);
-
-   if (irb)
-      irb->tex_image = NULL;
+   DBG("Finish render %s texture\n", _mesa_get_format_name(rb->Format));
 
    /* Since we've (probably) rendered to the texture and will (likely) use
     * it in the texture domain later on in this batchbuffer, flush the
@@ -797,10 +705,7 @@ intel_validate_framebuffer(struct gl_context *ctx, struct gl_framebuffer *fb)
       }
 
       if (fb->Attachment[i].Type == GL_TEXTURE) {
-	 const struct gl_texture_image *img =
-	    _mesa_get_attachment_teximage_const(&fb->Attachment[i]);
-
-	 if (img->Border) {
+	 if (rb->TexImage->Border) {
 	    fbo_incomplete(fb, "FBO incomplete: texture with border\n");
 	    continue;
 	 }
@@ -915,14 +820,6 @@ intel_blit_framebuffer(struct gl_context *ctx,
                        GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1,
                        GLbitfield mask, GLenum filter)
 {
-   /* Try faster, glCopyTexSubImage2D approach first which uses the BLT. */
-   mask = intel_blit_framebuffer_copy_tex_sub_image(ctx,
-                                                    srcX0, srcY0, srcX1, srcY1,
-                                                    dstX0, dstY0, dstX1, dstY1,
-                                                    mask, filter);
-   if (mask == 0x0)
-      return;
-
 #ifndef I915
    mask = brw_blorp_framebuffer(intel_context(ctx),
                                 srcX0, srcY0, srcX1, srcY1,
@@ -931,6 +828,15 @@ intel_blit_framebuffer(struct gl_context *ctx,
    if (mask == 0x0)
       return;
 #endif
+
+   /* Try glCopyTexSubImage2D approach which uses the BLT. */
+   mask = intel_blit_framebuffer_copy_tex_sub_image(ctx,
+                                                    srcX0, srcY0, srcX1, srcY1,
+                                                    dstX0, dstY0, dstX1, dstY1,
+                                                    mask, filter);
+   if (mask == 0x0)
+      return;
+
 
    _mesa_meta_BlitFramebuffer(ctx,
                               srcX0, srcY0, srcX1, srcY1,
@@ -1008,21 +914,21 @@ intel_renderbuffer_move_to_temp(struct intel_context *intel,
                                 struct intel_renderbuffer *irb,
                                 bool invalidate)
 {
-   struct intel_texture_image *intel_image =
-      intel_texture_image(irb->tex_image);
+   struct gl_renderbuffer *rb =&irb->Base.Base;
+   struct intel_texture_image *intel_image = intel_texture_image(rb->TexImage);
    struct intel_mipmap_tree *new_mt;
    int width, height, depth;
 
-   intel_miptree_get_dimensions_for_image(irb->tex_image, &width, &height, &depth);
+   intel_miptree_get_dimensions_for_image(rb->TexImage, &width, &height, &depth);
 
-   new_mt = intel_miptree_create(intel, irb->tex_image->TexObject->Target,
+   new_mt = intel_miptree_create(intel, rb->TexImage->TexObject->Target,
                                  intel_image->base.Base.TexFormat,
                                  intel_image->base.Base.Level,
                                  intel_image->base.Base.Level,
                                  width, height, depth,
                                  true,
                                  irb->mt->num_samples,
-                                 false /* force_y_tiling */);
+                                 INTEL_MIPTREE_TILING_ANY);
 
    if (intel->vtbl.is_hiz_depth_format(intel, new_mt->format)) {
       intel_miptree_alloc_hiz(intel, new_mt);

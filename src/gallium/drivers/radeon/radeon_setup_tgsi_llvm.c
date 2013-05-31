@@ -654,6 +654,9 @@ void radeon_llvm_emit_prepare_cube_coords(
 			opcode == TGSI_OPCODE_TXB2 ||
 			opcode == TGSI_OPCODE_TXL2) {
 			coords[3] = coords_arg[4];
+		} else if (opcode == TGSI_OPCODE_TXB ||
+			opcode == TGSI_OPCODE_TXL) {
+			coords[3] = coords_arg[3];
 		}
 	}
 
@@ -1172,7 +1175,9 @@ void radeon_llvm_context_init(struct radeon_llvm_context * ctx)
 	/* XXX: We need to revisit this.I think the correct way to do this is
 	 * to use length = 4 here and use the elem_bld for everything. */
 	type.floating = TRUE;
+	type.fixed = FALSE;
 	type.sign = TRUE;
+	type.norm = FALSE;
 	type.width = 32;
 	type.length = 1;
 

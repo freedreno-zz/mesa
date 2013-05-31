@@ -1130,7 +1130,7 @@ gen7_emit_3DSTATE_SO_BUFFER(const struct ilo_dev_info *dev,
 {
    const uint32_t cmd = ILO_GPE_CMD(0x3, 0x1, 0x18);
    const uint8_t cmd_len = 4;
-   struct ilo_resource *res;
+   struct ilo_buffer *buf;
    int end;
 
    ILO_GPE_VALID_GEN(dev, 7, 7);
@@ -1145,7 +1145,7 @@ gen7_emit_3DSTATE_SO_BUFFER(const struct ilo_dev_info *dev,
       return;
    }
 
-   res = ilo_resource(so_target->buffer);
+   buf = ilo_buffer(so_target->buffer);
 
    /* DWord-aligned */
    assert(stride % 4 == 0 && base % 4 == 0);
@@ -1159,8 +1159,8 @@ gen7_emit_3DSTATE_SO_BUFFER(const struct ilo_dev_info *dev,
    ilo_cp_write(cp, cmd | (cmd_len - 2));
    ilo_cp_write(cp, index << SO_BUFFER_INDEX_SHIFT |
                     stride);
-   ilo_cp_write_bo(cp, base, res->bo, INTEL_DOMAIN_RENDER, INTEL_DOMAIN_RENDER);
-   ilo_cp_write_bo(cp, end, res->bo, INTEL_DOMAIN_RENDER, INTEL_DOMAIN_RENDER);
+   ilo_cp_write_bo(cp, base, buf->bo, INTEL_DOMAIN_RENDER, INTEL_DOMAIN_RENDER);
+   ilo_cp_write_bo(cp, end, buf->bo, INTEL_DOMAIN_RENDER, INTEL_DOMAIN_RENDER);
    ilo_cp_end(cp);
 }
 
@@ -1296,7 +1296,7 @@ gen7_fill_null_SURFACE_STATE(const struct ilo_dev_info *dev,
 
 static void
 gen7_fill_buffer_SURFACE_STATE(const struct ilo_dev_info *dev,
-                               const struct ilo_resource *res,
+                               const struct ilo_buffer *buf,
                                unsigned offset, unsigned size,
                                unsigned struct_size,
                                enum pipe_format elem_format,
@@ -1374,14 +1374,6 @@ gen7_fill_buffer_SURFACE_STATE(const struct ilo_dev_info *dev,
 
    pitch = struct_size;
 
-   /*
-    * From the Ivy Bridge PRM, volume 4 part 1, page 65:
-    *
-    *     "If Surface Type is SURFTYPE_BUFFER, this field (Tiled Surface) must
-    *      be false (because buffers are supported only in linear memory)."
-    */
-   assert(res->tiling == INTEL_TILING_NONE);
-
    pitch--;
    num_entries--;
    /* bits [6:0] */
@@ -1415,7 +1407,7 @@ gen7_fill_buffer_SURFACE_STATE(const struct ilo_dev_info *dev,
 
 static void
 gen7_fill_normal_SURFACE_STATE(const struct ilo_dev_info *dev,
-                               struct ilo_resource *res,
+                               struct ilo_texture *tex,
                                enum pipe_format format,
                                unsigned first_level, unsigned num_levels,
                                unsigned first_layer, unsigned num_layers,
@@ -1429,8 +1421,11 @@ gen7_fill_normal_SURFACE_STATE(const struct ilo_dev_info *dev,
    ILO_GPE_VALID_GEN(dev, 7, 7);
    assert(num_dwords == 8);
 
-   surface_type = ilo_gpe_gen6_translate_texture(res->base.target);
+   surface_type = ilo_gpe_gen6_translate_texture(tex->base.target);
    assert(surface_type != BRW_SURFACE_BUFFER);
+
+   if (format == PIPE_FORMAT_Z32_FLOAT_S8X24_UINT && tex->separate_s8)
+      format = PIPE_FORMAT_Z32_FLOAT;
 
    if (is_rt)
       surface_format = ilo_translate_render_format(format);
@@ -1438,41 +1433,36 @@ gen7_fill_normal_SURFACE_STATE(const struct ilo_dev_info *dev,
       surface_format = ilo_translate_texture_format(format);
    assert(surface_format >= 0);
 
-   width = res->base.width0;
-   height = res->base.height0;
-   pitch = res->bo_stride;
+   width = tex->base.width0;
+   height = tex->base.height0;
+   depth = (tex->base.target == PIPE_TEXTURE_3D) ?
+      tex->base.depth0 : num_layers;
+   pitch = tex->bo_stride;
 
-   switch (res->base.target) {
-   case PIPE_TEXTURE_3D:
-      depth = res->base.depth0;
-      break;
-   case PIPE_TEXTURE_CUBE:
-   case PIPE_TEXTURE_CUBE_ARRAY:
+   if (surface_type == BRW_SURFACE_CUBE) {
       /*
        * From the Ivy Bridge PRM, volume 4 part 1, page 70:
        *
-       *     "For SURFTYPE_CUBE: For Sampling Engine Surfaces, the range of
+       *     "For SURFTYPE_CUBE:For Sampling Engine Surfaces, the range of
        *      this field is [0,340], indicating the number of cube array
        *      elements (equal to the number of underlying 2D array elements
        *      divided by 6). For other surfaces, this field must be zero."
        *
-       *     "Errata: For SURFTYPE_CUBE sampling engine surfaces, the range of
-       *      this field is limited to [0,85]."
+       * When is_rt is true, we treat the texture as a 2D one to avoid the
+       * restriction.
        */
-      if (!is_rt) {
+      if (is_rt) {
+         surface_type = BRW_SURFACE_2D;
+      }
+      else {
          assert(num_layers % 6 == 0);
          depth = num_layers / 6;
-         break;
       }
-      assert(num_layers == 1);
-      /* fall through */
-   default:
-      depth = num_layers;
-      break;
    }
 
    /* sanity check the size */
    assert(width >= 1 && height >= 1 && depth >= 1 && pitch >= 1);
+   assert(first_layer < 2048 && num_layers <= 2048);
    switch (surface_type) {
    case BRW_SURFACE_1D:
       assert(width <= 16384 && height == 1 && depth <= 2048);
@@ -1482,49 +1472,66 @@ gen7_fill_normal_SURFACE_STATE(const struct ilo_dev_info *dev,
       break;
    case BRW_SURFACE_3D:
       assert(width <= 2048 && height <= 2048 && depth <= 2048);
+      if (!is_rt)
+         assert(first_layer == 0);
       break;
    case BRW_SURFACE_CUBE:
       assert(width <= 16384 && height <= 16384 && depth <= 86);
       assert(width == height);
+      if (is_rt)
+         assert(first_layer == 0);
       break;
    default:
       assert(!"unexpected surface type");
       break;
    }
 
-   /*
-    * Compute the offset to the layer manually.
-    *
-    * For rendering, the hardware requires LOD to be the same for all render
-    * targets and the depth buffer.  We need to compute the offset to the
-    * layer manually and always set LOD to 0.
-    */
    if (is_rt) {
-      /* we lose the capability for layered rendering */
-      assert(num_levels == 1 && num_layers == 1);
+      /*
+       * Compute the offset to the layer manually.
+       *
+       * For rendering, the hardware requires LOD to be the same for all
+       * render targets and the depth buffer.  We need to compute the offset
+       * to the layer manually and always set LOD to 0.
+       */
+      if (true) {
+         /* we lose the capability for layered rendering */
+         assert(num_layers == 1);
 
-      layer_offset = ilo_resource_get_slice_offset(res,
-            first_level, first_layer, true, &x_offset, &y_offset);
+         layer_offset = ilo_texture_get_slice_offset(tex,
+               first_level, first_layer, &x_offset, &y_offset);
 
-      assert(x_offset % 4 == 0);
-      assert(y_offset % 2 == 0);
-      x_offset /= 4;
-      y_offset /= 2;
+         assert(x_offset % 4 == 0);
+         assert(y_offset % 2 == 0);
+         x_offset /= 4;
+         y_offset /= 2;
 
-      /* derive the size for the LOD */
-      width = u_minify(res->base.width0, first_level);
-      height = u_minify(res->base.height0, first_level);
-      if (surface_type == BRW_SURFACE_3D)
-         depth = u_minify(res->base.depth0, first_level);
+         /* derive the size for the LOD */
+         width = u_minify(width, first_level);
+         height = u_minify(height, first_level);
+         if (surface_type == BRW_SURFACE_3D)
+            depth = u_minify(depth, first_level);
+         else
+            depth = 1;
 
-      first_level = 0;
-      first_layer = 0;
-      lod = 0;
+         first_level = 0;
+         first_layer = 0;
+         lod = 0;
+      }
+      else {
+         layer_offset = 0;
+         x_offset = 0;
+         y_offset = 0;
+      }
+
+      assert(num_levels == 1);
+      lod = first_level;
    }
    else {
       layer_offset = 0;
       x_offset = 0;
       y_offset = 0;
+
       lod = num_levels - 1;
    }
 
@@ -1551,7 +1558,7 @@ gen7_fill_normal_SURFACE_STATE(const struct ilo_dev_info *dev,
     *
     *     "For linear surfaces, this field (X Offset) must be zero."
     */
-   if (res->tiling == INTEL_TILING_NONE) {
+   if (tex->tiling == INTEL_TILING_NONE) {
       if (is_rt) {
          const int elem_size = util_format_get_blocksize(format);
          assert(layer_offset % elem_size == 0);
@@ -1563,18 +1570,18 @@ gen7_fill_normal_SURFACE_STATE(const struct ilo_dev_info *dev,
 
    dw[0] = surface_type << BRW_SURFACE_TYPE_SHIFT |
            surface_format << BRW_SURFACE_FORMAT_SHIFT |
-           ilo_gpe_gen6_translate_winsys_tiling(res->tiling) << 13;
+           ilo_gpe_gen6_translate_winsys_tiling(tex->tiling) << 13;
 
    if (surface_type != BRW_SURFACE_3D && depth > 1)
       dw[0] |= GEN7_SURFACE_IS_ARRAY;
 
-   if (res->valign_4)
+   if (tex->valign_4)
       dw[0] |= GEN7_SURFACE_VALIGN_4;
 
-   if (res->halign_8)
+   if (tex->halign_8)
       dw[0] |= GEN7_SURFACE_HALIGN_8;
 
-   if (res->array_spacing_full)
+   if (tex->array_spacing_full)
       dw[0] |= GEN7_SURFACE_ARYSPC_FULL;
    else
       dw[0] |= GEN7_SURFACE_ARYSPC_LOD0;
@@ -1594,14 +1601,14 @@ gen7_fill_normal_SURFACE_STATE(const struct ilo_dev_info *dev,
            (pitch - 1);
 
    dw[4] = first_layer << 18 |
-           (depth - 1) << 7;
+           (num_layers - 1) << 7;
 
    /*
     * MSFMT_MSS means the samples are not interleaved and MSFMT_DEPTH_STENCIL
     * means the samples are interleaved.  The layouts are the same when the
     * number of samples is 1.
     */
-   if (res->interleaved && res->base.nr_samples > 1) {
+   if (tex->interleaved && tex->base.nr_samples > 1) {
       assert(!is_rt);
       dw[4] |= GEN7_SURFACE_MSFMT_DEPTH_STENCIL;
    }
@@ -1609,9 +1616,9 @@ gen7_fill_normal_SURFACE_STATE(const struct ilo_dev_info *dev,
       dw[4] |= GEN7_SURFACE_MSFMT_MSS;
    }
 
-   if (res->base.nr_samples > 4)
+   if (tex->base.nr_samples > 4)
       dw[4] |= GEN7_SURFACE_MULTISAMPLECOUNT_8;
-   else if (res->base.nr_samples > 2)
+   else if (tex->base.nr_samples > 2)
       dw[4] |= GEN7_SURFACE_MULTISAMPLECOUNT_4;
    else
       dw[4] |= GEN7_SURFACE_MULTISAMPLECOUNT_1;
@@ -1673,15 +1680,15 @@ gen7_emit_surf_SURFACE_STATE(const struct ilo_dev_info *dev,
    ILO_GPE_VALID_GEN(dev, 7, 7);
 
    if (surface && surface->texture) {
-      struct ilo_resource *res = ilo_resource(surface->texture);
+      struct ilo_texture *tex = ilo_texture(surface->texture);
 
-      bo = res->bo;
+      bo = tex->bo;
 
       /*
        * classic i965 sets render_cache_rw for constant buffers and sol
        * surfaces but not render buffers.  Why?
        */
-      gen7_fill_normal_SURFACE_STATE(dev, res, surface->format,
+      gen7_fill_normal_SURFACE_STATE(dev, tex, surface->format,
             surface->u.tex.level, 1,
             surface->u.tex.first_layer,
             surface->u.tex.last_layer - surface->u.tex.first_layer + 1,
@@ -1701,19 +1708,37 @@ gen7_emit_view_SURFACE_STATE(const struct ilo_dev_info *dev,
                              const struct pipe_sampler_view *view,
                              struct ilo_cp *cp)
 {
-   struct ilo_resource *res = ilo_resource(view->texture);
+   struct intel_bo *bo;
    uint32_t dw[8];
 
    ILO_GPE_VALID_GEN(dev, 7, 7);
 
-   gen7_fill_normal_SURFACE_STATE(dev, res, view->format,
-         view->u.tex.first_level,
-         view->u.tex.last_level - view->u.tex.first_level + 1,
-         view->u.tex.first_layer,
-         view->u.tex.last_layer - view->u.tex.first_layer + 1,
-         false, false, dw, Elements(dw));
+   if (view->texture->target == PIPE_BUFFER) {
+      const unsigned elem_size = util_format_get_blocksize(view->format);
+      const unsigned first_elem = view->u.buf.first_element;
+      const unsigned num_elems = view->u.buf.last_element - first_elem + 1;
+      struct ilo_buffer *buf = ilo_buffer(view->texture);
 
-   return gen7_emit_SURFACE_STATE(dev, res->bo, false, dw, Elements(dw), cp);
+      gen7_fill_buffer_SURFACE_STATE(dev, buf,
+            first_elem * elem_size, num_elems * elem_size,
+            elem_size, view->format, false, false, dw, Elements(dw));
+
+      bo = buf->bo;
+   }
+   else {
+      struct ilo_texture *tex = ilo_texture(view->texture);
+
+      gen7_fill_normal_SURFACE_STATE(dev, tex, view->format,
+            view->u.tex.first_level,
+            view->u.tex.last_level - view->u.tex.first_level + 1,
+            view->u.tex.first_layer,
+            view->u.tex.last_layer - view->u.tex.first_layer + 1,
+            false, false, dw, Elements(dw));
+
+      bo = tex->bo;
+   }
+
+   return gen7_emit_SURFACE_STATE(dev, bo, false, dw, Elements(dw), cp);
 }
 
 static uint32_t
@@ -1722,17 +1747,17 @@ gen7_emit_cbuf_SURFACE_STATE(const struct ilo_dev_info *dev,
                              struct ilo_cp *cp)
 {
    const enum pipe_format elem_format = PIPE_FORMAT_R32G32B32A32_FLOAT;
-   struct ilo_resource *res = ilo_resource(cbuf->buffer);
+   struct ilo_buffer *buf = ilo_buffer(cbuf->buffer);
    uint32_t dw[8];
 
    ILO_GPE_VALID_GEN(dev, 7, 7);
 
-   gen7_fill_buffer_SURFACE_STATE(dev, res,
+   gen7_fill_buffer_SURFACE_STATE(dev, buf,
          cbuf->buffer_offset, cbuf->buffer_size,
          util_format_get_blocksize(elem_format), elem_format,
          false, false, dw, Elements(dw));
 
-   return gen7_emit_SURFACE_STATE(dev, res->bo, false, dw, Elements(dw), cp);
+   return gen7_emit_SURFACE_STATE(dev, buf->bo, false, dw, Elements(dw), cp);
 }
 
 static uint32_t

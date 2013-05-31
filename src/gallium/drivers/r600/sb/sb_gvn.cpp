@@ -33,14 +33,10 @@
 #endif
 
 #include "sb_shader.h"
-
 #include "sb_pass.h"
-
 #include "sb_sched.h"
 
 namespace r600_sb {
-
-using std::cerr;
 
 bool gvn::visit(node& n, bool enter) {
 	if (enter) {
@@ -159,7 +155,8 @@ void gvn::process_alu_src_constants(node &n, value* &v) {
 
 	rp_kcache_tracker kc(sh);
 
-	kc.try_reserve(v->gvn_source->select);
+	if (v->gvn_source->is_kcache())
+		kc.try_reserve(v->gvn_source->select);
 
 	// don't propagate 3rd constant to the trans-only instruction
 	if (!n.is_alu_packed()) {
@@ -197,16 +194,15 @@ void gvn::process_op(node& n, bool rewrite) {
 				process_src(v->rel, rewrite);
 			}
 
-			if (rewrite && v->gvn_source && v->gvn_source->is_readonly()
-					&& n.is_any_alu()) {
+			if (rewrite && v->gvn_source && v->gvn_source->is_readonly() &&
+					n.is_any_alu()) {
 				process_alu_src_constants(n, v);
-			} else {
-				if (rewrite && (n.is_fetch_op(FETCH_OP_VFETCH) ||
-						n.is_fetch_op(FETCH_OP_SEMFETCH)))
-					process_src(v, false);
-				else
-					process_src(v, rewrite);
-			}
+			} else if (rewrite && v->gvn_source && v->gvn_source->is_const() &&
+					(n.is_fetch_op(FETCH_OP_VFETCH) ||
+							n.is_fetch_op(FETCH_OP_SEMFETCH)))
+				process_src(v, false);
+			else
+				process_src(v, rewrite);
 		}
 	}
 	if (n.pred)

@@ -87,7 +87,7 @@ struct si_pipe_sampler_view {
 
 struct si_pipe_sampler_state {
 	uint32_t			val[4];
-	float				border_color[4];
+	uint32_t			border_color[4];
 };
 
 struct si_cs_shader_state {
@@ -124,6 +124,13 @@ struct r600_fence_block {
 #define R600_CONSTANT_ARRAY_SIZE 256
 #define R600_RESOURCE_ARRAY_SIZE 160
 
+struct r600_constbuf_state
+{
+	struct pipe_constant_buffer	cb[2];
+	uint32_t			enabled_mask;
+	uint32_t			dirty_mask;
+};
+
 struct r600_context {
 	struct pipe_context		context;
 	struct blitter_context		*blitter;
@@ -139,8 +146,6 @@ struct r600_context {
 	struct pipe_framebuffer_state	framebuffer;
 	unsigned			pa_sc_line_stipple;
 	unsigned			pa_su_sc_mode_cntl;
-	unsigned			pa_cl_clip_cntl;
-	unsigned			pa_cl_vs_out_cntl;
 	/* for saving when using blitter */
 	struct pipe_stencil_ref		stencil_ref;
 	struct si_pipe_shader_selector	*ps_shader;
@@ -153,6 +158,7 @@ struct r600_context {
 	/* shader information */
 	unsigned			sprite_coord_enable;
 	unsigned			export_16bpc;
+	struct r600_constbuf_state	constbuf_state[PIPE_SHADER_TYPES];
 	struct r600_textures_info	vs_samplers;
 	struct r600_textures_info	ps_samplers;
 	struct si_resource		*border_color_table;

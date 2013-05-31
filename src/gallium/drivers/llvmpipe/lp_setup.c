@@ -390,8 +390,8 @@ lp_setup_try_clear( struct lp_setup_context *setup,
                     unsigned stencil,
                     unsigned flags )
 {
-   uint32_t zsmask = 0;
-   uint32_t zsvalue = 0;
+   uint64_t zsmask = 0;
+   uint64_t zsvalue = 0;
    union lp_rast_cmd_arg color_arg;
    unsigned i;
 
@@ -404,16 +404,16 @@ lp_setup_try_clear( struct lp_setup_context *setup,
 
    if (flags & PIPE_CLEAR_DEPTHSTENCIL) {
       uint32_t zmask = (flags & PIPE_CLEAR_DEPTH) ? ~0 : 0;
-      uint32_t smask = (flags & PIPE_CLEAR_STENCIL) ? ~0 : 0;
+      uint8_t smask = (flags & PIPE_CLEAR_STENCIL) ? ~0 : 0;
 
-      zsvalue = util_pack_z_stencil(setup->fb.zsbuf->format,
-                                    depth,
-                                    stencil);
+      zsvalue = util_pack64_z_stencil(setup->fb.zsbuf->format,
+                                      depth,
+                                      stencil);
 
 
-      zsmask = util_pack_mask_z_stencil(setup->fb.zsbuf->format,
-                                        zmask,
-                                        smask);
+      zsmask = util_pack64_mask_z_stencil(setup->fb.zsbuf->format,
+                                          zmask,
+                                          smask);
 
       zsvalue &= zsmask;
    }
@@ -616,17 +616,20 @@ lp_setup_set_blend_color( struct lp_setup_context *setup,
 
 
 void
-lp_setup_set_scissor( struct lp_setup_context *setup,
-                      const struct pipe_scissor_state *scissor )
+lp_setup_set_scissors( struct lp_setup_context *setup,
+                       const struct pipe_scissor_state *scissors )
 {
+   unsigned i;
    LP_DBG(DEBUG_SETUP, "%s\n", __FUNCTION__);
 
-   assert(scissor);
+   assert(scissors);
 
-   setup->scissor.x0 = scissor->minx;
-   setup->scissor.x1 = scissor->maxx-1;
-   setup->scissor.y0 = scissor->miny;
-   setup->scissor.y1 = scissor->maxy-1;
+   for (i = 0; i < PIPE_MAX_VIEWPORTS; ++i) {
+      setup->scissors[i].x0 = scissors[i].minx;
+      setup->scissors[i].x1 = scissors[i].maxx-1;
+      setup->scissors[i].y0 = scissors[i].miny;
+      setup->scissors[i].y1 = scissors[i].maxy-1;
+   }
    setup->dirty |= LP_SETUP_NEW_SCISSOR;
 }
 
@@ -704,8 +707,7 @@ lp_setup_set_fragment_sampler_views(struct lp_setup_context *setup,
                 * still are tiled.
                 */
                mip_ptr = llvmpipe_get_texture_image_all(lp_tex, first_level,
-                                                        LP_TEX_USAGE_READ,
-                                                        LP_TEX_LAYOUT_LINEAR);
+                                                        LP_TEX_USAGE_READ);
                jit_tex->base = lp_tex->linear_img.data;
             }
             else {
@@ -736,8 +738,7 @@ lp_setup_set_fragment_sampler_views(struct lp_setup_context *setup,
                if (llvmpipe_resource_is_texture(res)) {
                   for (j = first_level; j <= last_level; j++) {
                      mip_ptr = llvmpipe_get_texture_image_all(lp_tex, j,
-                                                              LP_TEX_USAGE_READ,
-                                                              LP_TEX_LAYOUT_LINEAR);
+                                                              LP_TEX_USAGE_READ);
                      jit_tex->mip_offsets[j] = (uint8_t *)mip_ptr - (uint8_t *)jit_tex->base;
                      /*
                       * could get mip offset directly but need call above to
@@ -748,23 +749,28 @@ lp_setup_set_fragment_sampler_views(struct lp_setup_context *setup,
                      jit_tex->img_stride[j] = lp_tex->img_stride[j];
                   }
 
-                  /*
-                   * We don't use anything like first_element (for buffers) or
-                   * first_layer (for arrays), instead adjust the last_element
-                   * (width) or last_layer (depth) plus the base pointer.
-                   * Less parameters and faster at shader execution.
-                   * XXX Could do the same for mip levels.
-                   */
                   if (res->target == PIPE_TEXTURE_1D_ARRAY ||
                       res->target == PIPE_TEXTURE_2D_ARRAY) {
+                     /*
+                      * For array textures, we don't have first_layer, instead
+                      * adjust last_layer (stored as depth) plus the mip level offsets
+                      * (as we have mip-first layout can't just adjust base ptr).
+                      * XXX For mip levels, could do something similar.
+                      */
                      jit_tex->depth = view->u.tex.last_layer - view->u.tex.first_layer + 1;
-                     jit_tex->base = (uint8_t *)jit_tex->base +
-                                     view->u.tex.first_layer * lp_tex->img_stride[0];
+                     for (j = first_level; j <= last_level; j++) {
+                        jit_tex->mip_offsets[j] += view->u.tex.first_layer *
+                                                   lp_tex->img_stride[j];
+                     }
                      assert(view->u.tex.first_layer <= view->u.tex.last_layer);
                      assert(view->u.tex.last_layer < res->array_size);
                   }
                }
                else {
+                  /*
+                   * For buffers, we don't have first_element, instead adjust
+                   * last_element (stored as width) plus the base pointer.
+                   */
                   unsigned view_blocksize = util_format_get_blocksize(view->format);
                   /* probably don't really need to fill that out */
                   jit_tex->mip_offsets[0] = 0;
@@ -1007,10 +1013,13 @@ try_update_scene_state( struct lp_setup_context *setup )
    }
 
    if (setup->dirty & LP_SETUP_NEW_SCISSOR) {
-      setup->draw_region = setup->framebuffer;
-      if (setup->scissor_test) {
-         u_rect_possible_intersection(&setup->scissor,
-                                      &setup->draw_region);
+      unsigned i;
+      for (i = 0; i < PIPE_MAX_VIEWPORTS; ++i) {
+         setup->draw_regions[i] = setup->framebuffer;
+         if (setup->scissor_test) {
+            u_rect_possible_intersection(&setup->scissors[i],
+                                         &setup->draw_regions[i]);
+         }
       }
       /* If the framebuffer is large we have to think about fixed-point
        * integer overflow.  For 2K by 2K images, coordinates need 15 bits
@@ -1056,6 +1065,7 @@ lp_setup_update_state( struct lp_setup_context *setup,
        * to know about vertex shader point size attribute.
        */
       setup->psize = lp->psize_slot;
+      setup->viewport_index_slot = lp->viewport_index_slot;
 
       assert(lp->dirty == 0);
 

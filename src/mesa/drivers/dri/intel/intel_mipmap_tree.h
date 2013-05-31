@@ -84,8 +84,8 @@ struct intel_miptree_map {
    int x, y, w, h;
    /** Possibly malloced temporary buffer for the mapping. */
    void *buffer;
-   /** Possible pointer to a BO temporary for the mapping. */
-   drm_intel_bo *bo;
+   /** Possible pointer to a temporary linear miptree for the mapping. */
+   struct intel_mipmap_tree *mt;
    /** Pointer to the start of (map_x, map_y) returned by the mapping. */
    void *ptr;
    /** Stride of the mapping. */
@@ -387,7 +387,11 @@ struct intel_mipmap_tree
    GLuint refcount;
 };
 
-
+enum intel_miptree_tiling_mode {
+   INTEL_MIPTREE_TILING_ANY,
+   INTEL_MIPTREE_TILING_Y,
+   INTEL_MIPTREE_TILING_NONE,
+};
 
 struct intel_mipmap_tree *intel_miptree_create(struct intel_context *intel,
                                                GLenum target,
@@ -399,7 +403,7 @@ struct intel_mipmap_tree *intel_miptree_create(struct intel_context *intel,
                                                GLuint depth0,
 					       bool expect_accelerated_upload,
                                                GLuint num_samples,
-                                               bool force_y_tiling);
+                                               enum intel_miptree_tiling_mode);
 
 struct intel_mipmap_tree *
 intel_miptree_create_layout(struct intel_context *intel,
@@ -410,14 +414,18 @@ intel_miptree_create_layout(struct intel_context *intel,
                             GLuint width0,
                             GLuint height0,
                             GLuint depth0,
-                            bool for_region,
+                            bool for_bo,
                             GLuint num_samples);
 
 struct intel_mipmap_tree *
-intel_miptree_create_for_region(struct intel_context *intel,
-				GLenum target,
-				gl_format format,
-				struct intel_region *region);
+intel_miptree_create_for_bo(struct intel_context *intel,
+                            drm_intel_bo *bo,
+                            gl_format format,
+                            uint32_t offset,
+                            uint32_t width,
+                            uint32_t height,
+                            int pitch,
+                            uint32_t tiling);
 
 struct intel_mipmap_tree*
 intel_miptree_create_for_dri2_buffer(struct intel_context *intel,
@@ -475,8 +483,8 @@ void
 intel_miptree_get_dimensions_for_image(struct gl_texture_image *image,
                                        int *width, int *height, int *depth);
 
-void
-intel_miptree_get_tile_offsets(const struct intel_mipmap_tree *mt,
+uint32_t
+intel_miptree_get_tile_offsets(struct intel_mipmap_tree *mt,
                                GLuint level, GLuint slice,
                                uint32_t *tile_x,
                                uint32_t *tile_y);

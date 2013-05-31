@@ -73,6 +73,7 @@ static const struct debug_named_value debug_options[] = {
 	{ "sbstat", DBG_SB_STAT, "Print optimization statistics for shaders" },
 	{ "sbdump", DBG_SB_DUMP, "Print IR dumps after some optimization passes" },
 	{ "sbnofallback", DBG_SB_NO_FALLBACK, "Abort on errors instead of fallback" },
+	{ "sbdisasm", DBG_SB_DISASM, "Use sb disassembler for shader dumps" },
 
 	DEBUG_NAMED_VALUE_END /* must be last */
 };
@@ -182,7 +183,7 @@ static void r600_flush(struct pipe_context *ctx, unsigned flags)
 
 static void r600_flush_from_st(struct pipe_context *ctx,
 			       struct pipe_fence_handle **fence,
-			       enum pipe_flush_flags flags)
+			       unsigned flags)
 {
 	struct r600_context *rctx = (struct r600_context *)ctx;
 	struct r600_fence **rfence = (struct r600_fence**)fence;
@@ -332,9 +333,6 @@ static void r600_destroy_context(struct pipe_context *context)
 	if (rctx->custom_blend_decompress) {
 		rctx->context.delete_blend_state(&rctx->context, rctx->custom_blend_decompress);
 	}
-	if (rctx->custom_blend_fmask_decompress) {
-		rctx->context.delete_blend_state(&rctx->context, rctx->custom_blend_fmask_decompress);
-	}
 	util_unreference_framebuffer_state(&rctx->framebuffer.state);
 
 	if (rctx->blitter) {
@@ -429,7 +427,6 @@ static struct pipe_context *r600_create_context(struct pipe_screen *screen, void
 		rctx->custom_dsa_flush = evergreen_create_db_flush_dsa(rctx);
 		rctx->custom_blend_resolve = evergreen_create_resolve_blend(rctx);
 		rctx->custom_blend_decompress = evergreen_create_decompress_blend(rctx);
-		rctx->custom_blend_fmask_decompress = evergreen_create_fmask_decompress_blend(rctx);
 		rctx->has_vertex_cache = !(rctx->family == CHIP_CEDAR ||
 					   rctx->family == CHIP_PALM ||
 					   rctx->family == CHIP_SUMO ||
@@ -590,9 +587,14 @@ static int r600_get_param(struct pipe_screen* pscreen, enum pipe_cap param)
 	case PIPE_CAP_TEXTURE_BUFFER_OBJECTS:
         case PIPE_CAP_PREFER_BLIT_BASED_TEXTURE_TRANSFER:
 	case PIPE_CAP_QUERY_PIPELINE_STATISTICS:
+	case PIPE_CAP_TEXTURE_MULTISAMPLE:
 		return 1;
+
 	case PIPE_CAP_TGSI_TEXCOORD:
 		return 0;
+
+	case PIPE_CAP_MAX_TEXTURE_BUFFER_SIZE:
+		return MIN2(rscreen->info.vram_size, 0xFFFFFFFF);
 
         case PIPE_CAP_MIN_MAP_BUFFER_ALIGNMENT:
                 return R600_MAP_BUFFER_ALIGNMENT;
@@ -605,9 +607,6 @@ static int r600_get_param(struct pipe_screen* pscreen, enum pipe_cap param)
 
 	case PIPE_CAP_GLSL_FEATURE_LEVEL:
 		return 140;
-
-	case PIPE_CAP_TEXTURE_MULTISAMPLE:
-		return rscreen->msaa_texture_support != MSAA_TEXTURE_SAMPLE_ZERO;
 
 	/* Supported except the original R600. */
 	case PIPE_CAP_INDEP_BLEND_ENABLE:
@@ -799,14 +798,16 @@ const char * r600_llvm_gpu_string(enum radeon_family family)
 
 	switch (family) {
 	case CHIP_R600:
-	case CHIP_RV610:
 	case CHIP_RV630:
-	case CHIP_RV620:
 	case CHIP_RV635:
 	case CHIP_RV670:
+		gpu_family = "r600";
+		break;
+	case CHIP_RV610:
+	case CHIP_RV620:
 	case CHIP_RS780:
 	case CHIP_RS880:
-		gpu_family = "r600";
+		gpu_family = "rs880";
 		break;
 	case CHIP_RV710:
 		gpu_family = "rv710";
@@ -824,6 +825,8 @@ const char * r600_llvm_gpu_string(enum radeon_family family)
 		break;
 	case CHIP_SUMO:
 	case CHIP_SUMO2:
+		gpu_family = "sumo";
+		break;
 	case CHIP_REDWOOD:
 		gpu_family = "redwood";
 		break;
@@ -1253,23 +1256,19 @@ struct pipe_screen *r600_screen_create(struct radeon_winsys *ws)
 	case R600:
 	case R700:
 		rscreen->has_msaa = rscreen->info.drm_minor >= 22;
-		rscreen->msaa_texture_support = MSAA_TEXTURE_DECOMPRESSED;
+		rscreen->has_compressed_msaa_texturing = false;
 		break;
 	case EVERGREEN:
 		rscreen->has_msaa = rscreen->info.drm_minor >= 19;
-		rscreen->msaa_texture_support =
-			rscreen->info.drm_minor >= 24 ? MSAA_TEXTURE_COMPRESSED :
-							MSAA_TEXTURE_DECOMPRESSED;
+		rscreen->has_compressed_msaa_texturing = rscreen->info.drm_minor >= 24;
 		break;
 	case CAYMAN:
 		rscreen->has_msaa = rscreen->info.drm_minor >= 19;
-		/* We should be able to read compressed MSAA textures, but it doesn't work. */
-		rscreen->msaa_texture_support = MSAA_TEXTURE_SAMPLE_ZERO;
+		rscreen->has_compressed_msaa_texturing = true;
 		break;
 	default:
 		rscreen->has_msaa = FALSE;
-		rscreen->msaa_texture_support = 0;
-		break;
+		rscreen->has_compressed_msaa_texturing = false;
 	}
 
 	rscreen->has_cp_dma = rscreen->info.drm_minor >= 27 &&

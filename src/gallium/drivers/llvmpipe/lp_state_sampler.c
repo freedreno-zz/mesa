@@ -300,14 +300,12 @@ prepare_shader_sampling(
                /* must trigger allocation first before we can get base ptr */
                /* XXX this may fail due to OOM ? */
                mip_ptr = llvmpipe_get_texture_image_all(lp_tex, view->u.tex.first_level,
-                                                        LP_TEX_USAGE_READ,
-                                                        LP_TEX_LAYOUT_LINEAR);
+                                                        LP_TEX_USAGE_READ);
                addr = lp_tex->linear_img.data;
 
                for (j = first_level; j <= last_level; j++) {
                   mip_ptr = llvmpipe_get_texture_image_all(lp_tex, j,
-                                                           LP_TEX_USAGE_READ,
-                                                           LP_TEX_LAYOUT_LINEAR);
+                                                           LP_TEX_USAGE_READ);
                   mip_offsets[j] = (uint8_t *)mip_ptr - (uint8_t *)addr;
                   /*
                    * could get mip offset directly but need call above to
@@ -320,8 +318,10 @@ prepare_shader_sampling(
                if (res->target == PIPE_TEXTURE_1D_ARRAY ||
                    res->target == PIPE_TEXTURE_2D_ARRAY) {
                   num_layers = view->u.tex.last_layer - view->u.tex.first_layer + 1;
-                  addr = (uint8_t *)addr +
-                                  view->u.tex.first_layer * lp_tex->img_stride[0];
+                  for (j = first_level; j <= last_level; j++) {
+                     mip_offsets[j] += view->u.tex.first_layer *
+                                       lp_tex->img_stride[j];
+                  }
                   assert(view->u.tex.first_layer <= view->u.tex.last_layer);
                   assert(view->u.tex.last_layer < res->array_size);
                }

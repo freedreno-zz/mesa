@@ -49,6 +49,14 @@ value* get_select_value_for_em(shader& sh, value* em) {
 	return d0;
 }
 
+void convert_to_mov(alu_node &n, value *src, bool neg, bool abs) {
+	n.src.resize(1);
+	n.src[0] = src;
+	n.bc.src[0].abs = abs;
+	n.bc.src[0].neg = neg;
+	n.bc.set_op(ALU_OP1_MOV);
+}
+
 expr_handler::expr_handler(shader& sh) : sh(sh), vt(sh.vt) {}
 
 value * expr_handler::get_const(const literal &l) {
@@ -177,17 +185,109 @@ bool expr_handler::fold(container_node& n) {
 
 bool expr_handler::fold_setcc(alu_node &n) {
 
-	// TODO
+	value* v0 = n.src[0]->gvalue();
+	value* v1 = n.src[1]->gvalue();
+
+	assert(v0 && v1 && n.dst[0]);
+
+	unsigned flags = n.bc.op_ptr->flags;
+	unsigned cc = flags & AF_CC_MASK;
+	unsigned cmp_type = flags & AF_CMP_TYPE_MASK;
+	unsigned dst_type = flags & AF_DST_TYPE_MASK;
+
+	bool cond_result;
+	bool have_result = false;
+
+	bool isc0 = v0->is_const();
+	bool isc1 = v1->is_const();
+
+	literal dv, cv0, cv1;
+
+	if (isc0) {
+		cv0 = v0->get_const_value();
+		apply_alu_src_mod(n.bc, 0, cv0);
+	}
+
+	if (isc1) {
+		cv1 = v1->get_const_value();
+		apply_alu_src_mod(n.bc, 1, cv1);
+	}
+
+	if (isc0 && isc1) {
+		cond_result = evaluate_condition(flags, cv0, cv1);
+		have_result = true;
+	} else if (isc1) {
+		if (cmp_type == AF_FLOAT_CMP) {
+			if (n.bc.src[0].abs && !n.bc.src[0].neg) {
+				if (cv1.f < 0.0f && (cc == AF_CC_GT || cc == AF_CC_NE)) {
+					cond_result = true;
+					have_result = true;
+				} else if (cv1.f <= 0.0f && cc == AF_CC_GE) {
+					cond_result = true;
+					have_result = true;
+				}
+			} else if (n.bc.src[0].abs && n.bc.src[0].neg) {
+				if (cv1.f > 0.0f && (cc == AF_CC_GE || cc == AF_CC_E)) {
+					cond_result = false;
+					have_result = true;
+				} else if (cv1.f >= 0.0f && cc == AF_CC_GT) {
+					cond_result = false;
+					have_result = true;
+				}
+			}
+		} else if (cmp_type == AF_UINT_CMP && cv1.u == 0 && cc == AF_CC_GE) {
+			cond_result = true;
+			have_result = true;
+		}
+	} else if (isc0) {
+		if (cmp_type == AF_FLOAT_CMP) {
+			if (n.bc.src[1].abs && !n.bc.src[1].neg) {
+				if (cv0.f <= 0.0f && cc == AF_CC_GT) {
+					cond_result = false;
+					have_result = true;
+				} else if (cv0.f < 0.0f && (cc == AF_CC_GE || cc == AF_CC_E)) {
+					cond_result = false;
+					have_result = true;
+				}
+			} else if (n.bc.src[1].abs && n.bc.src[1].neg) {
+				if (cv0.f >= 0.0f && cc == AF_CC_GE) {
+					cond_result = true;
+					have_result = true;
+				} else if (cv0.f > 0.0f && (cc == AF_CC_GT || cc == AF_CC_NE)) {
+					cond_result = true;
+					have_result = true;
+				}
+			}
+		} else if (cmp_type == AF_UINT_CMP && cv0.u == 0 && cc == AF_CC_GT) {
+			cond_result = false;
+			have_result = true;
+		}
+	} else if (v0 == v1) {
+		bc_alu_src &s0 = n.bc.src[0], &s1 = n.bc.src[1];
+		if (s0.abs == s1.abs && s0.neg == s1.neg && cmp_type != AF_FLOAT_CMP) {
+			// NOTE can't handle float comparisons here because of NaNs
+			cond_result = (cc == AF_CC_E || cc == AF_CC_GE);
+			have_result = true;
+		}
+	}
+
+	if (have_result) {
+		literal result;
+
+		if (cond_result)
+			result = dst_type != AF_FLOAT_DST ?
+					literal(0xFFFFFFFFu) : literal(1.0f);
+		else
+			result = literal(0);
+
+		convert_to_mov(n, sh.get_const_value(result));
+		return fold_alu_op1(n);
+	}
 
 	return false;
 }
 
 bool expr_handler::fold(alu_node& n) {
-
-	if (n.bc.op_ptr->flags & (AF_PRED | AF_KILL)) {
-		fold_setcc(n);
-		return false;
-	}
 
 	switch (n.bc.op_ptr->src_count) {
 	case 1: return fold_alu_op1(n);
@@ -283,7 +383,7 @@ bool expr_handler::fold_alu_op1(alu_node& n) {
 	if (n.src.empty())
 		return false;
 
-	value* v0 = n.src[0];
+	value* v0 = n.src[0]->gvalue();
 
 	assert(v0 && n.dst[0]);
 
@@ -337,7 +437,7 @@ bool expr_handler::fold_alu_op1(alu_node& n) {
 	case ALU_OP1_RECIP_FF:
 	case ALU_OP1_RECIP_IEEE: dv = 1.0f / cv.f; break;
 //	case ALU_OP1_RECIP_INT:
-//	case ALU_OP1_RECIP_UINT:
+	case ALU_OP1_RECIP_UINT: dv.u = (1ull << 32) / cv.u; break;
 //	case ALU_OP1_RNDNE: dv = floor(cv.f + 0.5f); break;
 	case ALU_OP1_SIN: dv = sin(cv.f * 2.0f * M_PI); break;
 	case ALU_OP1_SQRT_IEEE: dv = sqrt(cv.f); break;
@@ -352,13 +452,20 @@ bool expr_handler::fold_alu_op1(alu_node& n) {
 	return true;
 }
 
+
 bool expr_handler::fold_alu_op2(alu_node& n) {
 
 	if (n.src.size() < 2)
 		return false;
 
-	value* v0 = n.src[0];
-	value* v1 = n.src[1];
+	unsigned flags = n.bc.op_ptr->flags;
+
+	if (flags & AF_SET) {
+		return fold_setcc(n);
+	}
+
+	value* v0 = n.src[0]->gvalue();
+	value* v1 = n.src[1]->gvalue();
 
 	assert(v0 && v1 && n.dst[0]);
 
@@ -414,15 +521,68 @@ bool expr_handler::fold_alu_op2(alu_node& n) {
 		case ALU_OP2_SUB_INT: dv = cv0.i - cv1.i; break;
 		case ALU_OP2_XOR_INT: dv = cv0.i ^ cv1.i; break;
 
-		case ALU_OP2_SETE: dv = cv0.f == cv1.f ? 1.0f : 0.0f; break;
-
 		default:
 			return false;
 		}
 
 	} else { // one source is const
 
-		// TODO handle 1 * anything, 0 * anything, 0 + anything, etc
+		if (isc0 && cv0 == literal(0)) {
+			switch (n.bc.op) {
+			case ALU_OP2_ADD:
+			case ALU_OP2_ADD_INT:
+			case ALU_OP2_MAX_UINT:
+			case ALU_OP2_OR_INT:
+			case ALU_OP2_XOR_INT:
+				convert_to_mov(n, n.src[1], n.bc.src[1].neg,  n.bc.src[1].abs);
+				return fold_alu_op1(n);
+			case ALU_OP2_AND_INT:
+			case ALU_OP2_ASHR_INT:
+			case ALU_OP2_LSHL_INT:
+			case ALU_OP2_LSHR_INT:
+			case ALU_OP2_MIN_UINT:
+			case ALU_OP2_MUL:
+			case ALU_OP2_MULHI_UINT:
+			case ALU_OP2_MULLO_UINT:
+				convert_to_mov(n, sh.get_const_value(literal(0)));
+				return fold_alu_op1(n);
+			}
+		} else if (isc1 && cv1 == literal(0)) {
+			switch (n.bc.op) {
+			case ALU_OP2_ADD:
+			case ALU_OP2_ADD_INT:
+			case ALU_OP2_ASHR_INT:
+			case ALU_OP2_LSHL_INT:
+			case ALU_OP2_LSHR_INT:
+			case ALU_OP2_MAX_UINT:
+			case ALU_OP2_OR_INT:
+			case ALU_OP2_SUB_INT:
+			case ALU_OP2_XOR_INT:
+				convert_to_mov(n, n.src[0], n.bc.src[0].neg,  n.bc.src[0].abs);
+				return fold_alu_op1(n);
+			case ALU_OP2_AND_INT:
+			case ALU_OP2_MIN_UINT:
+			case ALU_OP2_MUL:
+			case ALU_OP2_MULHI_UINT:
+			case ALU_OP2_MULLO_UINT:
+				convert_to_mov(n, sh.get_const_value(literal(0)));
+				return fold_alu_op1(n);
+			}
+		} else if (isc0 && cv0 == literal(1.0f)) {
+			switch (n.bc.op) {
+			case ALU_OP2_MUL:
+			case ALU_OP2_MUL_IEEE:
+				convert_to_mov(n, n.src[1], n.bc.src[1].neg,  n.bc.src[1].abs);
+				return fold_alu_op1(n);
+			}
+		} else if (isc1 && cv1 == literal(1.0f)) {
+			switch (n.bc.op) {
+			case ALU_OP2_MUL:
+			case ALU_OP2_MUL_IEEE:
+				convert_to_mov(n, n.src[0], n.bc.src[0].neg,  n.bc.src[0].abs);
+				return fold_alu_op1(n);
+			}
+		}
 
 		return false;
 	}
@@ -432,25 +592,72 @@ bool expr_handler::fold_alu_op2(alu_node& n) {
 	return true;
 }
 
+bool expr_handler::evaluate_condition(unsigned alu_cnd_flags,
+                                      literal s1, literal s2) {
+
+	unsigned cmp_type = alu_cnd_flags & AF_CMP_TYPE_MASK;
+	unsigned cc = alu_cnd_flags & AF_CC_MASK;
+
+	switch (cmp_type) {
+	case AF_FLOAT_CMP: {
+		switch (cc) {
+		case AF_CC_E : return s1.f == s2.f;
+		case AF_CC_GT: return s1.f >  s2.f;
+		case AF_CC_GE: return s1.f >= s2.f;
+		case AF_CC_NE: return s1.f != s2.f;
+		case AF_CC_LT: return s1.f <  s2.f;
+		case AF_CC_LE: return s1.f <= s2.f;
+		default:
+			assert(!"invalid condition code");
+			return false;
+		}
+	}
+	case AF_INT_CMP: {
+		switch (cc) {
+		case AF_CC_E : return s1.i == s2.i;
+		case AF_CC_GT: return s1.i >  s2.i;
+		case AF_CC_GE: return s1.i >= s2.i;
+		case AF_CC_NE: return s1.i != s2.i;
+		case AF_CC_LT: return s1.i <  s2.i;
+		case AF_CC_LE: return s1.i <= s2.i;
+		default:
+			assert(!"invalid condition code");
+			return false;
+		}
+	}
+	case AF_UINT_CMP: {
+		switch (cc) {
+		case AF_CC_E : return s1.u == s2.u;
+		case AF_CC_GT: return s1.u >  s2.u;
+		case AF_CC_GE: return s1.u >= s2.u;
+		case AF_CC_NE: return s1.u != s2.u;
+		case AF_CC_LT: return s1.u <  s2.u;
+		case AF_CC_LE: return s1.u <= s2.u;
+		default:
+			assert(!"invalid condition code");
+			return false;
+		}
+	}
+	default:
+		assert(!"invalid cmp_type");
+		return false;
+	}
+}
+
 bool expr_handler::fold_alu_op3(alu_node& n) {
 
 	if (n.src.size() < 3)
 		return false;
 
-	// TODO handle CNDxx by some common path
-
-	value* v0 = n.src[0];
-	value* v1 = n.src[1];
-	value* v2 = n.src[2];
+	value* v0 = n.src[0]->gvalue();
+	value* v1 = n.src[1]->gvalue();
+	value* v2 = n.src[2]->gvalue();
 
 	assert(v0 && v1 && v2 && n.dst[0]);
 
 	bool isc0 = v0->is_const();
 	bool isc1 = v1->is_const();
 	bool isc2 = v2->is_const();
-
-	if (!isc0 && !isc1 && !isc2)
-		return false;
 
 	literal dv, cv0, cv1, cv2;
 
@@ -469,8 +676,34 @@ bool expr_handler::fold_alu_op3(alu_node& n) {
 		apply_alu_src_mod(n.bc, 2, cv2);
 	}
 
+	unsigned flags = n.bc.op_ptr->flags;
+
+	if (flags & AF_CMOV) {
+		int src = 0;
+
+		if (v1 == v2 && n.bc.src[1].neg == n.bc.src[2].neg) {
+			// result doesn't depend on condition, convert to MOV
+			src = 1;
+		} else if (isc0) {
+			// src0 is const, condition can be evaluated, convert to MOV
+			bool cond = evaluate_condition(n.bc.op_ptr->flags & (AF_CC_MASK |
+					AF_CMP_TYPE_MASK), cv0, literal(0));
+			src = cond ? 1 : 2;
+		}
+
+		if (src) {
+			// if src is selected, convert to MOV
+			convert_to_mov(n, n.src[src], n.bc.src[src].neg);
+			return fold_alu_op1(n);
+		}
+	}
+
+	if (!isc0 && !isc1 && !isc2)
+		return false;
+
 	if (isc0 && isc1 && isc2) {
 		switch (n.bc.op) {
+		case ALU_OP3_MULADD_IEEE:
 		case ALU_OP3_MULADD: dv = cv0.f * cv1.f + cv2.f; break;
 
 		// TODO
@@ -478,11 +711,29 @@ bool expr_handler::fold_alu_op3(alu_node& n) {
 		default:
 			return false;
 		}
-
 	} else {
+		if (isc0 && isc1) {
+			switch (n.bc.op) {
+			case ALU_OP3_MULADD:
+			case ALU_OP3_MULADD_IEEE:
+				dv = cv0.f * cv1.f;
+				n.bc.set_op(ALU_OP2_ADD);
+				n.src[0] = sh.get_const_value(dv);
+				memset(&n.bc.src[0], 0, sizeof(bc_alu_src));
+				n.src[1] = n.src[2];
+				n.bc.src[1] = n.bc.src[2];
+				n.src.resize(2);
+				return fold_alu_op2(n);
+			}
+		}
 
-		// TODO
-
+		if ((isc0 && cv0 == literal(0)) || (isc1 && cv1 == literal(0))) {
+			switch (n.bc.op) {
+			case ALU_OP3_MULADD:
+				convert_to_mov(n, n.src[2], n.bc.src[2].neg,  n.bc.src[2].abs);
+				return fold_alu_op1(n);
+			}
+		}
 		return false;
 	}
 
@@ -506,7 +757,7 @@ unsigned invert_setcc_condition(unsigned cc, bool &swap_args) {
 	return ncc;
 }
 
-unsigned get_setcc_opcode(unsigned cc, unsigned cmp_type, bool int_dst) {
+unsigned get_setcc_op(unsigned cc, unsigned cmp_type, bool int_dst) {
 
 	if (int_dst && cmp_type == AF_FLOAT_CMP) {
 		switch (cc) {
@@ -538,6 +789,8 @@ unsigned get_setcc_opcode(unsigned cc, unsigned cmp_type, bool int_dst) {
 		}
 		case AF_UINT_CMP: {
 			switch (cc) {
+			case AF_CC_E: return ALU_OP2_SETE_INT;
+			case AF_CC_NE: return ALU_OP2_SETNE_INT;
 			case AF_CC_GT: return ALU_OP2_SETGT_UINT;
 			case AF_CC_GE: return ALU_OP2_SETGE_UINT;
 			}
@@ -550,7 +803,7 @@ unsigned get_setcc_opcode(unsigned cc, unsigned cmp_type, bool int_dst) {
 	return ~0u;
 }
 
-unsigned get_predsetcc_opcode(unsigned cc, unsigned cmp_type) {
+unsigned get_predsetcc_op(unsigned cc, unsigned cmp_type) {
 
 	switch(cmp_type) {
 	case AF_FLOAT_CMP: {
@@ -573,6 +826,8 @@ unsigned get_predsetcc_opcode(unsigned cc, unsigned cmp_type) {
 	}
 	case AF_UINT_CMP: {
 		switch (cc) {
+		case AF_CC_E: return ALU_OP2_PRED_SETE_INT;
+		case AF_CC_NE: return ALU_OP2_PRED_SETNE_INT;
 		case AF_CC_GT: return ALU_OP2_PRED_SETGT_UINT;
 		case AF_CC_GE: return ALU_OP2_PRED_SETGE_UINT;
 		}
@@ -584,6 +839,68 @@ unsigned get_predsetcc_opcode(unsigned cc, unsigned cmp_type) {
 	return ~0u;
 }
 
+unsigned get_killcc_op(unsigned cc, unsigned cmp_type) {
+
+	switch(cmp_type) {
+	case AF_FLOAT_CMP: {
+		switch (cc) {
+		case AF_CC_E: return ALU_OP2_KILLE;
+		case AF_CC_NE: return ALU_OP2_KILLNE;
+		case AF_CC_GT: return ALU_OP2_KILLGT;
+		case AF_CC_GE: return ALU_OP2_KILLGE;
+		}
+		break;
+	}
+	case AF_INT_CMP: {
+		switch (cc) {
+		case AF_CC_E: return ALU_OP2_KILLE_INT;
+		case AF_CC_NE: return ALU_OP2_KILLNE_INT;
+		case AF_CC_GT: return ALU_OP2_KILLGT_INT;
+		case AF_CC_GE: return ALU_OP2_KILLGE_INT;
+		}
+		break;
+	}
+	case AF_UINT_CMP: {
+		switch (cc) {
+		case AF_CC_E: return ALU_OP2_KILLE_INT;
+		case AF_CC_NE: return ALU_OP2_KILLNE_INT;
+		case AF_CC_GT: return ALU_OP2_KILLGT_UINT;
+		case AF_CC_GE: return ALU_OP2_KILLGE_UINT;
+		}
+		break;
+	}
+	}
+
+	assert(!"unexpected cc&cmp_type combination");
+	return ~0u;
+}
+
+unsigned get_cndcc_op(unsigned cc, unsigned cmp_type) {
+
+	switch(cmp_type) {
+	case AF_FLOAT_CMP: {
+		switch (cc) {
+		case AF_CC_E: return ALU_OP3_CNDE;
+		case AF_CC_GT: return ALU_OP3_CNDGT;
+		case AF_CC_GE: return ALU_OP3_CNDGE;
+		}
+		break;
+	}
+	case AF_INT_CMP: {
+		switch (cc) {
+		case AF_CC_E: return ALU_OP3_CNDE_INT;
+		case AF_CC_GT: return ALU_OP3_CNDGT_INT;
+		case AF_CC_GE: return ALU_OP3_CNDGE_INT;
+		}
+		break;
+	}
+	}
+
+	assert(!"unexpected cc&cmp_type combination");
+	return ~0u;
+}
+
+
 void convert_predset_to_set(shader& sh, alu_node* a) {
 
 	unsigned flags = a->bc.op_ptr->flags;
@@ -594,7 +911,7 @@ void convert_predset_to_set(shader& sh, alu_node* a) {
 
 	cc = invert_setcc_condition(cc, swap_args);
 
-	unsigned newop = get_setcc_opcode(cc, cmp_type, true);
+	unsigned newop = get_setcc_op(cc, cmp_type, true);
 
 	a->dst.resize(1);
 	a->bc.set_op(newop);

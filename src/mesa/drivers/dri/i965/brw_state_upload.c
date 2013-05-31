@@ -33,6 +33,7 @@
 
 #include "brw_context.h"
 #include "brw_state.h"
+#include "drivers/common/meta.h"
 #include "intel_batchbuffer.h"
 #include "intel_buffers.h"
 
@@ -165,7 +166,6 @@ static const struct brw_tracked_state *gen6_atoms[] =
 
    &brw_drawing_rect,
 
-   &gen6_sol_indices,
    &brw_indices,
    &brw_index_buffer,
    &brw_vertices,
@@ -368,10 +368,11 @@ static struct dirty_bit_map brw_bits[] = {
    DEFINE_BIT(BRW_NEW_VS_CONSTBUF),
    DEFINE_BIT(BRW_NEW_PROGRAM_CACHE),
    DEFINE_BIT(BRW_NEW_STATE_BASE_ADDRESS),
-   DEFINE_BIT(BRW_NEW_SOL_INDICES),
    DEFINE_BIT(BRW_NEW_VUE_MAP_GEOM_OUT),
    DEFINE_BIT(BRW_NEW_TRANSFORM_FEEDBACK),
    DEFINE_BIT(BRW_NEW_RASTERIZER_DISCARD),
+   DEFINE_BIT(BRW_NEW_UNIFORM_BUFFER),
+   DEFINE_BIT(BRW_NEW_META_IN_PROGRESS),
    {0, 0, 0}
 };
 
@@ -457,6 +458,11 @@ void brw_upload_state(struct brw_context *brw)
    if (brw->vertex_program != ctx->VertexProgram._Current) {
       brw->vertex_program = ctx->VertexProgram._Current;
       brw->state.dirty.brw |= BRW_NEW_VERTEX_PROGRAM;
+   }
+
+   if (brw->meta_in_progress != _mesa_meta_in_progress(ctx)) {
+      brw->meta_in_progress = _mesa_meta_in_progress(ctx);
+      brw->state.dirty.brw |= BRW_NEW_META_IN_PROGRESS;
    }
 
    if ((state->mesa | state->cache | state->brw) == 0)
