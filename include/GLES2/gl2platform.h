@@ -27,4 +27,6 @@
 #define GL_APIENTRY KHRONOS_APIENTRY
 #endif
 
+#define GL_STENCIL_INDEX 0x1901
+
 #endif /* __gl2platform_h_ */
