@@ -1,6 +1,5 @@
 /*
  * Mesa 3-D graphics library
- * Version:  7.75
  *
  * Copyright (C) 1999-2008  Brian Paul   All Rights Reserved.
  * Copyright (c) 2008-2009 VMware, Inc.
@@ -36,5 +35,7 @@ extern gl_format
 _mesa_choose_tex_format(struct gl_context *ctx, GLenum target,
                         GLint internalFormat, GLenum format, GLenum type);
 
+extern GLboolean
+_mesa_tex_target_is_array(GLenum target);
 
 #endif

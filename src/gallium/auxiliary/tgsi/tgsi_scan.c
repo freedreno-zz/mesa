@@ -196,9 +196,13 @@ tgsi_scan_shader(const struct tgsi_token *tokens,
                   info->output_semantic_index[reg] = (ubyte)fulldecl->Semantic.Index;
                   info->num_outputs++;
 
-                  if (procType == TGSI_PROCESSOR_VERTEX &&
+                  if ((procType == TGSI_PROCESSOR_VERTEX || procType == TGSI_PROCESSOR_GEOMETRY) &&
                       fulldecl->Semantic.Name == TGSI_SEMANTIC_CLIPDIST) {
                      info->num_written_clipdistance += util_bitcount(fulldecl->Declaration.UsageMask);
+                  }
+                  if ((procType == TGSI_PROCESSOR_VERTEX || procType == TGSI_PROCESSOR_GEOMETRY) &&
+                      fulldecl->Semantic.Name == TGSI_SEMANTIC_CULLDIST) {
+                     info->num_written_culldistance += util_bitcount(fulldecl->Declaration.UsageMask);
                   }
                   /* extra info for special outputs */
                   if (procType == TGSI_PROCESSOR_FRAGMENT &&
@@ -216,6 +220,11 @@ tgsi_scan_shader(const struct tgsi_token *tokens,
                       fulldecl->Semantic.Name ==
                       TGSI_SEMANTIC_VIEWPORT_INDEX) {
                      info->writes_viewport_index = TRUE;
+                  }
+                  if (procType == TGSI_PROCESSOR_GEOMETRY &&
+                      fulldecl->Semantic.Name ==
+                      TGSI_SEMANTIC_LAYER) {
+                     info->writes_layer = TRUE;
                   }
                }
 

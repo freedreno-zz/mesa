@@ -326,6 +326,13 @@ draw_print_arrays(struct draw_context *draw, uint prim, int start, uint count)
                             (void *) u);
             }
             break;
+         case PIPE_FORMAT_A8R8G8B8_UNORM:
+            {
+               ubyte *u = (ubyte *) ptr;
+               debug_printf("ARGB %d %d %d %d  @ %p\n", u[0], u[1], u[2], u[3],
+                            (void *) u);
+            }
+            break;
          default:
             debug_printf("other format %s (fix me)\n",
                      util_format_name(draw->pt.vertex_element[j].src_format));
@@ -412,46 +419,6 @@ draw_pt_arrays_restart(struct draw_context *draw,
    }
 }
 
-
-
-/**
- * Non-instanced drawing.
- * \sa draw_arrays_instanced
- */
-void
-draw_arrays(struct draw_context *draw, unsigned prim,
-            unsigned start, unsigned count)
-{
-   draw_arrays_instanced(draw, prim, start, count, 0, 1);
-}
-
-
-/**
- * Instanced drawing.
- * \sa draw_vbo
- */
-void
-draw_arrays_instanced(struct draw_context *draw,
-                      unsigned mode,
-                      unsigned start,
-                      unsigned count,
-                      unsigned startInstance,
-                      unsigned instanceCount)
-{
-   struct pipe_draw_info info;
-
-   util_draw_init_info(&info);
-
-   info.mode = mode;
-   info.start = start;
-   info.count = count;
-   info.start_instance = startInstance;
-   info.instance_count = instanceCount;
-   info.min_index = start;
-   info.max_index = start + count - 1;
-
-   draw_vbo(draw, &info);
-}
 
 /**
  * Resolve true values within pipe_draw_info.

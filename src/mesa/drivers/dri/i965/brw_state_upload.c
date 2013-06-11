@@ -111,7 +111,6 @@ static const struct brw_tracked_state *gen6_atoms[] =
    &gen6_sf_vp,
 
    /* Command packets: */
-   &brw_invariant_state,
 
    /* must do before binding table pointers, cc state ptrs */
    &brw_state_base_address,
@@ -123,7 +122,6 @@ static const struct brw_tracked_state *gen6_atoms[] =
    &gen6_blend_state,		/* must do before cc unit */
    &gen6_color_calc_state,	/* must do before cc unit */
    &gen6_depth_stencil_state,	/* must do before cc unit */
-   &gen6_cc_state_pointers,
 
    &gen6_vs_push_constants, /* Before vs_state */
    &gen6_wm_push_constants, /* Before wm_state */
@@ -177,8 +175,6 @@ static const struct brw_tracked_state *gen7_atoms[] =
    &brw_wm_prog,
 
    /* Command packets: */
-   &brw_invariant_state,
-   &gen7_push_constant_alloc,
 
    /* must do before binding table pointers, cc state ptrs */
    &brw_state_base_address,
@@ -191,9 +187,6 @@ static const struct brw_tracked_state *gen7_atoms[] =
    &gen6_blend_state,		/* must do before cc unit */
    &gen6_color_calc_state,	/* must do before cc unit */
    &gen6_depth_stencil_state,	/* must do before cc unit */
-   &gen7_blend_state_pointer,
-   &gen7_cc_state_pointer,
-   &gen7_depth_stencil_state_pointer,
 
    &gen6_vs_push_constants, /* Before vs_state */
    &gen6_wm_push_constants, /* Before wm_surfaces and constant_buffer */
@@ -241,6 +234,24 @@ static const struct brw_tracked_state *gen7_atoms[] =
    &haswell_cut_index,
 };
 
+static void
+brw_upload_initial_gpu_state(struct brw_context *brw)
+{
+   struct intel_context *intel = &brw->intel;
+
+   /* On platforms with hardware contexts, we can set our initial GPU state
+    * right away rather than doing it via state atoms.  This saves a small
+    * amount of overhead on every draw call.
+    */
+   if (!intel->hw_ctx)
+      return;
+
+   brw_upload_invariant_state(brw);
+
+   if (intel->gen >= 7) {
+      gen7_allocate_push_constants(brw);
+   }
+}
 
 void brw_init_state( struct brw_context *brw )
 {
@@ -270,6 +281,8 @@ void brw_init_state( struct brw_context *brw )
       assert((*atoms)->emit);
       atoms++;
    }
+
+   brw_upload_initial_gpu_state(brw);
 }
 
 
@@ -281,8 +294,8 @@ void brw_destroy_state( struct brw_context *brw )
 /***********************************************************************
  */
 
-static GLuint check_state( const struct brw_state_flags *a,
-			   const struct brw_state_flags *b )
+static bool
+check_state(const struct brw_state_flags *a, const struct brw_state_flags *b)
 {
    return ((a->mesa & b->mesa) |
 	   (a->brw & b->brw) |
@@ -377,9 +390,6 @@ static struct dirty_bit_map brw_bits[] = {
 };
 
 static struct dirty_bit_map cache_bits[] = {
-   DEFINE_BIT(CACHE_NEW_BLEND_STATE),
-   DEFINE_BIT(CACHE_NEW_DEPTH_STENCIL_STATE),
-   DEFINE_BIT(CACHE_NEW_COLOR_CALC_STATE),
    DEFINE_BIT(CACHE_NEW_CC_VP),
    DEFINE_BIT(CACHE_NEW_CC_UNIT),
    DEFINE_BIT(CACHE_NEW_WM_PROG),
@@ -414,7 +424,7 @@ brw_update_dirty_count(struct dirty_bit_map *bit_map, int32_t bits)
 }
 
 static void
-brw_print_dirty_count(struct dirty_bit_map *bit_map, int32_t bits)
+brw_print_dirty_count(struct dirty_bit_map *bit_map)
 {
    int i;
 
@@ -513,9 +523,9 @@ void brw_upload_state(struct brw_context *brw)
       brw_update_dirty_count(brw_bits, state->brw);
       brw_update_dirty_count(cache_bits, state->cache);
       if (dirty_count++ % 1000 == 0) {
-	 brw_print_dirty_count(mesa_bits, state->mesa);
-	 brw_print_dirty_count(brw_bits, state->brw);
-	 brw_print_dirty_count(cache_bits, state->cache);
+	 brw_print_dirty_count(mesa_bits);
+	 brw_print_dirty_count(brw_bits);
+	 brw_print_dirty_count(cache_bits);
 	 fprintf(stderr, "\n");
       }
    }

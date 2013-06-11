@@ -37,23 +37,18 @@
 
 #include "freedreno_screen.h"
 
-struct fd_blend_stateobj;
-struct fd_rasterizer_stateobj;
-struct fd_zsa_stateobj;
-struct fd_sampler_stateobj;
 struct fd_vertex_stateobj;
-struct fd_shader_stateobj;
 
 struct fd_texture_stateobj {
 	struct pipe_sampler_view *textures[PIPE_MAX_SAMPLERS];
 	unsigned num_textures;
-	struct fd_sampler_stateobj *samplers[PIPE_MAX_SAMPLERS];
+	struct pipe_sampler_state *samplers[PIPE_MAX_SAMPLERS];
 	unsigned num_samplers;
 	unsigned dirty_samplers;
 };
 
 struct fd_program_stateobj {
-	struct fd_shader_stateobj *vp, *fp;
+	void *vp, *fp;
 	enum {
 		FD_SHADER_DIRTY_VP = (1 << 0),
 		FD_SHADER_DIRTY_FP = (1 << 1),
@@ -79,6 +74,11 @@ struct fd_vertexbuf_stateobj {
 	uint32_t dirty_mask;
 };
 
+struct fd_vertex_stateobj {
+	struct pipe_vertex_element pipe[PIPE_MAX_ATTRIBS];
+	unsigned num_elements;
+};
+
 struct fd_gmem_stateobj {
 	struct pipe_scissor_state scissor;
 	uint cpp;
@@ -102,11 +102,6 @@ struct fd_context {
 	/* shaders used by mem->gmem blits: */
 	struct fd_program_stateobj blit_prog; // TODO move to screen?
 
-	/* vertex buff used for clear/gmem->mem vertices, and mem->gmem
-	 * vertices and tex coords:
-	 */
-	struct pipe_resource *solid_vertexbuf;
-
 	/* do we need to mem2gmem before rendering.  We don't, if for example,
 	 * there was a glClear() that invalidated the entire previous buffer
 	 * contents.  Keep track of which buffer(s) are cleared, or needs
@@ -122,14 +117,33 @@ struct fd_context {
 
 	bool needs_flush;
 
+	/* To decide whether to render to system memory, keep track of the
+	 * number of draws, and whether any of them require multisample,
+	 * depth_test (or depth write), stencil_test, blending, and
+	 * color_logic_Op (since those functions are disabled when by-
+	 * passing GMEM.
+	 */
+	enum {
+		FD_GMEM_CLEARS_DEPTH_STENCIL = 0x01,
+		FD_GMEM_DEPTH_ENABLED        = 0x02,
+		FD_GMEM_STENCIL_ENABLED      = 0x04,
+
+		FD_GMEM_MSAA_ENABLED         = 0x08,
+		FD_GMEM_BLEND_ENABLED        = 0x10,
+		FD_GMEM_LOGICOP_ENABLED      = 0x20,
+	} gmem_reason;
+	unsigned num_draws;
+
 	struct fd_ringbuffer *ring;
 	struct fd_ringmarker *draw_start, *draw_end;
 
-	/* scissor can't really be changed mid-render.. we probably need
-	 * to flush out all pending draws and then start a new tile pass
-	 * w/ new stencil state..
-	 */
 	struct pipe_scissor_state scissor;
+
+	/* we don't have a disable/enable bit for scissor, so instead we keep
+	 * a disabled-scissor state which matches the entire bound framebuffer
+	 * and use that when scissor is not enabled.
+	 */
+	struct pipe_scissor_state disabled_scissor;
 
 	/* Track the maximal bounds of the scissor of all the draws within a
 	 * batch.  Used at the tile rendering step (fd_gmem_render_tiles(),
@@ -164,9 +178,9 @@ struct fd_context {
 		FD_DIRTY_SCISSOR     = (1 << 17),
 	} dirty;
 
-	struct fd_blend_stateobj *blend;
-	struct fd_rasterizer_stateobj *rasterizer;
-	struct fd_zsa_stateobj *zsa;
+	struct pipe_blend_state *blend;
+	struct pipe_rasterizer_state *rasterizer;
+	struct pipe_depth_stencil_alpha_state *zsa;
 
 	struct fd_texture_stateobj verttex, fragtex;
 
@@ -183,6 +197,25 @@ struct fd_context {
 	struct fd_constbuf_stateobj constbuf[PIPE_SHADER_TYPES];
 	struct fd_vertexbuf_stateobj vertexbuf;
 	struct pipe_index_buffer indexbuf;
+
+	/* GMEM/tile handling fxns: */
+	void (*emit_tile_init)(struct fd_context *ctx);
+	void (*emit_tile_prep)(struct fd_context *ctx, uint32_t xoff, uint32_t yoff,
+			uint32_t bin_w, uint32_t bin_h);
+	void (*emit_tile_mem2gmem)(struct fd_context *ctx, uint32_t xoff, uint32_t yoff,
+			uint32_t bin_w, uint32_t bin_h);
+	void (*emit_tile_renderprep)(struct fd_context *ctx, uint32_t xoff, uint32_t yoff,
+			uint32_t bin_w, uint32_t bin_h);
+	void (*emit_tile_gmem2mem)(struct fd_context *ctx, uint32_t xoff, uint32_t yoff,
+			uint32_t bin_w, uint32_t bin_h);
+
+	/* optional, for GMEM bypass: */
+	void (*emit_sysmem_prep)(struct fd_context *ctx);
+
+	/* draw: */
+	void (*draw)(struct fd_context *pctx, const struct pipe_draw_info *info);
+	void (*clear)(struct fd_context *ctx, unsigned buffers,
+			const union pipe_color_union *color, double depth, unsigned stencil);
 };
 
 static INLINE struct fd_context *
@@ -191,8 +224,19 @@ fd_context(struct pipe_context *pctx)
 	return (struct fd_context *)pctx;
 }
 
-struct pipe_context * fd_context_create(struct pipe_screen *pscreen, void *priv);
+static INLINE struct pipe_scissor_state *
+fd_context_get_scissor(struct fd_context *ctx)
+{
+	if (ctx->rasterizer && ctx->rasterizer->scissor)
+		return &ctx->scissor;
+	return &ctx->disabled_scissor;
+}
+
+struct pipe_context * fd_context_init(struct fd_context *ctx,
+		struct pipe_screen *pscreen, void *priv);
 
 void fd_context_render(struct pipe_context *pctx);
+
+void fd_context_destroy(struct pipe_context *pctx);
 
 #endif /* FREEDRENO_CONTEXT_H_ */

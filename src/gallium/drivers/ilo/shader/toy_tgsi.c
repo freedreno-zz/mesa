@@ -1619,9 +1619,9 @@ static const toy_tgsi_translate soa_translate_table[TGSI_OPCODE_LAST] = {
    [TGSI_OPCODE_ATOMUMAX]     = soa_unsupported,
    [TGSI_OPCODE_ATOMIMIN]     = soa_unsupported,
    [TGSI_OPCODE_ATOMIMAX]     = soa_unsupported,
-   [TGSI_OPCODE_TEX2]         = soa_unsupported,
-   [TGSI_OPCODE_TXB2]         = soa_unsupported,
-   [TGSI_OPCODE_TXL2]         = soa_unsupported,
+   [TGSI_OPCODE_TEX2]         = soa_passthrough,
+   [TGSI_OPCODE_TXB2]         = soa_passthrough,
+   [TGSI_OPCODE_TXL2]         = soa_passthrough,
 };
 
 static bool
@@ -2565,11 +2565,11 @@ dump_reg_mapping(void *key, void *val, void *data)
 
    if (tgsi_dim) {
       ilo_printf("  v%d:\t%s[%d][%d]\n", vrf,
-            tgsi_file_names[tgsi_file], tgsi_dim, tgsi_index);
+                 tgsi_file_name(tgsi_file), tgsi_dim, tgsi_index);
    }
    else {
       ilo_printf("  v%d:\t%s[%d]\n", vrf,
-            tgsi_file_names[tgsi_file], tgsi_index);
+                 tgsi_file_name(tgsi_file), tgsi_index);
    }
 
    return PIPE_OK;

@@ -494,6 +494,8 @@ intel_renderbuffer_update_wrapper(struct intel_context *intel,
    struct intel_mipmap_tree *mt = intel_image->mt;
    int level = image->Level;
 
+   rb->Depth = image->Depth;
+
    rb->AllocStorage = intel_nop_alloc_storage;
 
    intel_miptree_check_level_layer(mt, level, layer);
@@ -581,9 +583,9 @@ intel_render_texture(struct gl_context * ctx,
        return;
    }
 
-   DBG("Begin render %s texture tex=%u w=%d h=%d refcount=%d\n",
+   DBG("Begin render %s texture tex=%u w=%d h=%d d=%d refcount=%d\n",
        _mesa_get_format_name(image->TexFormat),
-       att->Texture->Name, image->Width, image->Height,
+       att->Texture->Name, image->Width, image->Height, image->Depth,
        rb->RefCount);
 
    /* update drawing region, etc */

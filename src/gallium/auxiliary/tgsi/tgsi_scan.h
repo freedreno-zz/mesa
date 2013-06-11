@@ -76,7 +76,9 @@ struct tgsi_shader_info
    boolean pixel_center_integer;
    boolean color0_writes_all_cbufs;
    boolean writes_viewport_index;
+   boolean writes_layer;
 
+   unsigned num_written_culldistance;
    unsigned num_written_clipdistance;
    /**
     * Bitmask indicating which register files are accessed with

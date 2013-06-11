@@ -347,7 +347,7 @@ ilo_get_param(struct pipe_screen *screen, enum pipe_cap param)
       return false;
    case PIPE_CAP_TGSI_INSTANCEID:
    case PIPE_CAP_VERTEX_ELEMENT_INSTANCE_DIVISOR:
-      return false; /* TODO */
+      return true;
    case PIPE_CAP_FRAGMENT_COLOR_CLAMPED:
       return false;
    case PIPE_CAP_MIXED_COLORBUFFER_FORMATS:
@@ -403,9 +403,8 @@ ilo_get_param(struct pipe_screen *screen, enum pipe_cap param)
    case PIPE_CAP_TEXTURE_MULTISAMPLE:
       return false; /* TODO */
    case PIPE_CAP_MIN_MAP_BUFFER_ALIGNMENT:
-      return 0; /* TODO */
+      return 0;
    case PIPE_CAP_CUBE_MAP_ARRAY:
-      return false; /* TODO */
    case PIPE_CAP_TEXTURE_BUFFER_OBJECTS:
       return true;
    case PIPE_CAP_TEXTURE_BUFFER_OFFSET_ALIGNMENT:
@@ -421,6 +420,8 @@ ilo_get_param(struct pipe_screen *screen, enum pipe_cap param)
    case PIPE_CAP_MAX_TEXTURE_BUFFER_SIZE:
       /* a BRW_SURFACE_BUFFER can have up to 2^27 elements */
       return 1 << 27;
+   case PIPE_CAP_MAX_VIEWPORTS:
+      return ILO_MAX_VIEWPORTS;
 
    default:
       return 0;
@@ -712,6 +713,8 @@ ilo_screen_create(struct intel_winsys *ws)
       return NULL;
 
    is->winsys = ws;
+
+   is->winsys->enable_reuse(is->winsys);
 
    info = is->winsys->get_info(is->winsys);
    if (!init_dev(&is->dev, info)) {

@@ -1250,6 +1250,38 @@ vec4_visitor::try_emit_sat(ir_expression *ir)
    return true;
 }
 
+bool
+vec4_visitor::try_emit_mad(ir_expression *ir, int mul_arg)
+{
+   /* 3-src instructions were introduced in gen6. */
+   if (intel->gen < 6)
+      return false;
+
+   /* MAD can only handle floating-point data. */
+   if (ir->type->base_type != GLSL_TYPE_FLOAT)
+      return false;
+
+   ir_rvalue *nonmul = ir->operands[1 - mul_arg];
+   ir_expression *mul = ir->operands[mul_arg]->as_expression();
+
+   if (!mul || mul->operation != ir_binop_mul)
+      return false;
+
+   nonmul->accept(this);
+   src_reg src0 = fix_3src_operand(this->result);
+
+   mul->operands[0]->accept(this);
+   src_reg src1 = fix_3src_operand(this->result);
+
+   mul->operands[1]->accept(this);
+   src_reg src2 = fix_3src_operand(this->result);
+
+   this->result = src_reg(this, ir->type);
+   emit(BRW_OPCODE_MAD, dst_reg(this->result), src0, src1, src2);
+
+   return true;
+}
+
 void
 vec4_visitor::emit_bool_comparison(unsigned int op,
 				 dst_reg dst, src_reg src0, src_reg src1)
@@ -1281,6 +1313,20 @@ vec4_visitor::emit_minmax(uint32_t conditionalmod, dst_reg dst,
    }
 }
 
+static bool
+is_16bit_constant(ir_rvalue *rvalue)
+{
+   ir_constant *constant = rvalue->as_constant();
+   if (!constant)
+      return false;
+
+   if (constant->type != glsl_type::int_type &&
+       constant->type != glsl_type::uint_type)
+      return false;
+
+   return constant->value.u[0] < (1 << 16);
+}
+
 void
 vec4_visitor::visit(ir_expression *ir)
 {
@@ -1292,6 +1338,11 @@ vec4_visitor::visit(ir_expression *ir)
 
    if (try_emit_sat(ir))
       return;
+
+   if (ir->operation == ir_binop_add) {
+      if (try_emit_mad(ir, 0) || try_emit_mad(ir, 1))
+	 return;
+   }
 
    for (operand = 0; operand < ir->get_num_operands(); operand++) {
       this->result.file = BAD_FILE;
@@ -1435,19 +1486,29 @@ vec4_visitor::visit(ir_expression *ir)
 
    case ir_binop_mul:
       if (ir->type->is_integer()) {
-	 /* For integer multiplication, the MUL uses the low 16 bits
-	  * of one of the operands (src0 on gen6, src1 on gen7).  The
-	  * MACH accumulates in the contribution of the upper 16 bits
-	  * of that operand.
-	  *
-	  * FINISHME: Emit just the MUL if we know an operand is small
-	  * enough.
-	  */
-	 struct brw_reg acc = retype(brw_acc_reg(), BRW_REGISTER_TYPE_D);
+	 /* For integer multiplication, the MUL uses the low 16 bits of one of
+	  * the operands (src0 through SNB, src1 on IVB and later).  The MACH
+	  * accumulates in the contribution of the upper 16 bits of that
+	  * operand.  If we can determine that one of the args is in the low
+	  * 16 bits, though, we can just emit a single MUL.
+          */
+         if (is_16bit_constant(ir->operands[0])) {
+            if (intel->gen < 7)
+               emit(MUL(result_dst, op[0], op[1]));
+            else
+               emit(MUL(result_dst, op[1], op[0]));
+         } else if (is_16bit_constant(ir->operands[1])) {
+            if (intel->gen < 7)
+               emit(MUL(result_dst, op[1], op[0]));
+            else
+               emit(MUL(result_dst, op[0], op[1]));
+         } else {
+            struct brw_reg acc = retype(brw_acc_reg(), BRW_REGISTER_TYPE_D);
 
-	 emit(MUL(acc, op[0], op[1]));
-	 emit(MACH(dst_null_d(), op[0], op[1]));
-	 emit(MOV(result_dst, src_reg(acc)));
+            emit(MUL(acc, op[0], op[1]));
+            emit(MACH(dst_null_d(), op[0], op[1]));
+            emit(MOV(result_dst, src_reg(acc)));
+         }
       } else {
 	 emit(MUL(result_dst, op[0], op[1]));
       }
@@ -2567,8 +2628,10 @@ vec4_visitor::emit_psiz_and_flags(struct brw_reg reg)
       current_annotation = "Clipping flags";
       for (i = 0; i < key->nr_userclip_plane_consts; i++) {
 	 vec4_instruction *inst;
+         gl_varying_slot slot = (prog_data->vue_map.slots_valid & VARYING_BIT_CLIP_VERTEX)
+            ? VARYING_SLOT_CLIP_VERTEX : VARYING_SLOT_POS;
 
-	 inst = emit(DP4(dst_null_f(), src_reg(output_reg[VARYING_SLOT_POS]),
+	 inst = emit(DP4(dst_null_f(), src_reg(output_reg[slot]),
                          src_reg(this->userplane[i])));
 	 inst->conditional_mod = BRW_CONDITIONAL_L;
 

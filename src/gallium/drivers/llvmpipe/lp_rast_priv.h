@@ -86,6 +86,7 @@ struct lp_rasterizer_task
 
    struct lp_scene *scene;
    unsigned x, y;          /**< Pos of this tile in framebuffer, in pixels */
+   unsigned width, height; /**< width, height of current tile, in pixels */
 
    uint8_t *color_tiles[PIPE_MAX_COLOR_BUFS];
    uint8_t *depth_tile;
@@ -202,7 +203,8 @@ lp_rast_get_unswizzled_depth_tile_pointer(struct lp_rasterizer_task *task,
  */
 static INLINE uint8_t *
 lp_rast_get_unswizzled_color_block_pointer(struct lp_rasterizer_task *task,
-                                           unsigned buf, unsigned x, unsigned y)
+                                           unsigned buf, unsigned x, unsigned y,
+                                           unsigned layer)
 {
    unsigned px, py, pixel_offset, format_bytes;
    uint8_t *color;
@@ -224,6 +226,10 @@ lp_rast_get_unswizzled_color_block_pointer(struct lp_rasterizer_task *task,
 
    color = color + pixel_offset;
 
+   if (layer) {
+      color += layer * task->scene->cbufs[buf].layer_stride;
+   }
+
    assert(lp_check_alignment(color, llvmpipe_get_format_alignment(task->scene->fb.cbufs[buf]->format)));
    return color;
 }
@@ -235,7 +241,7 @@ lp_rast_get_unswizzled_color_block_pointer(struct lp_rasterizer_task *task,
  */
 static INLINE uint8_t *
 lp_rast_get_unswizzled_depth_block_pointer(struct lp_rasterizer_task *task,
-                                           unsigned x, unsigned y)
+                                           unsigned x, unsigned y, unsigned layer)
 {
    unsigned px, py, pixel_offset, format_bytes;
    uint8_t *depth;
@@ -255,6 +261,10 @@ lp_rast_get_unswizzled_depth_block_pointer(struct lp_rasterizer_task *task,
    pixel_offset = px * format_bytes + py * task->scene->zsbuf.stride;
 
    depth = depth + pixel_offset;
+
+   if (layer) {
+      depth += layer * task->scene->zsbuf.layer_stride;
+   }
 
    assert(lp_check_alignment(depth, llvmpipe_get_format_alignment(task->scene->fb.zsbuf->format)));
    return depth;
@@ -277,37 +287,42 @@ lp_rast_shade_quads_all( struct lp_rasterizer_task *task,
    struct lp_fragment_shader_variant *variant = state->variant;
    uint8_t *color[PIPE_MAX_COLOR_BUFS];
    unsigned stride[PIPE_MAX_COLOR_BUFS];
-   void *depth = NULL;
+   uint8_t *depth = NULL;
    unsigned depth_stride = 0;
    unsigned i;
 
    /* color buffer */
    for (i = 0; i < scene->fb.nr_cbufs; i++) {
       stride[i] = scene->cbufs[i].stride;
-
-      color[i] = lp_rast_get_unswizzled_color_block_pointer(task, i, x, y);
+      color[i] = lp_rast_get_unswizzled_color_block_pointer(task, i, x, y, inputs->layer);
    }
 
    if (scene->zsbuf.map) {
-      depth = lp_rast_get_unswizzled_depth_block_pointer(task, x, y);
+      depth = lp_rast_get_unswizzled_depth_block_pointer(task, x, y, inputs->layer);
       depth_stride = scene->zsbuf.stride;
    }
 
-   /* run shader on 4x4 block */
-   BEGIN_JIT_CALL(state, task);
-   variant->jit_function[RAST_WHOLE]( &state->jit_context,
-                                      x, y,
-                                      inputs->frontfacing,
-                                      GET_A0(inputs),
-                                      GET_DADX(inputs),
-                                      GET_DADY(inputs),
-                                      color,
-                                      depth,
-                                      0xffff,
-                                      &task->thread_data,
-                                      stride,
-                                      depth_stride);
-   END_JIT_CALL();
+   /*
+    * The rasterizer may produce fragments outside our
+    * allocated 4x4 blocks hence need to filter them out here.
+    */
+   if ((x % TILE_SIZE) < task->width && (y % TILE_SIZE) < task->height) {
+      /* run shader on 4x4 block */
+      BEGIN_JIT_CALL(state, task);
+      variant->jit_function[RAST_WHOLE]( &state->jit_context,
+                                         x, y,
+                                         inputs->frontfacing,
+                                         GET_A0(inputs),
+                                         GET_DADX(inputs),
+                                         GET_DADY(inputs),
+                                         color,
+                                         depth,
+                                         0xffff,
+                                         &task->thread_data,
+                                         stride,
+                                         depth_stride);
+      END_JIT_CALL();
+   }
 }
 
 void lp_rast_triangle_1( struct lp_rasterizer_task *, 
@@ -341,6 +356,6 @@ lp_rast_set_state(struct lp_rasterizer_task *task,
                   const union lp_rast_cmd_arg arg);
  
 void
-lp_debug_bin( const struct cmd_bin *bin );
+lp_debug_bin( const struct cmd_bin *bin, int x, int y );
 
 #endif

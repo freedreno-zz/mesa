@@ -542,43 +542,39 @@ static void
 ilo_blitter_begin(struct ilo_context *ilo, enum ilo_blitter_op op)
 {
    /* as documented in util/u_blitter.h */
-   util_blitter_save_vertex_buffer_slot(ilo->blitter,
-         ilo->vertex_buffers.buffers);
-   util_blitter_save_vertex_elements(ilo->blitter, ilo->vertex_elements);
+   util_blitter_save_vertex_buffer_slot(ilo->blitter, ilo->vb.states);
+   util_blitter_save_vertex_elements(ilo->blitter, (void *) ilo->ve);
    util_blitter_save_vertex_shader(ilo->blitter, ilo->vs);
    util_blitter_save_geometry_shader(ilo->blitter, ilo->gs);
-   util_blitter_save_so_targets(ilo->blitter,
-         ilo->stream_output_targets.num_targets,
-         ilo->stream_output_targets.targets);
+   util_blitter_save_so_targets(ilo->blitter, ilo->so.count, ilo->so.states);
 
    util_blitter_save_fragment_shader(ilo->blitter, ilo->fs);
-   util_blitter_save_depth_stencil_alpha(ilo->blitter,
-         ilo->depth_stencil_alpha);
-   util_blitter_save_blend(ilo->blitter, ilo->blend);
+   util_blitter_save_depth_stencil_alpha(ilo->blitter, (void *) ilo->dsa);
+   util_blitter_save_blend(ilo->blitter, (void *) ilo->blend);
 
    /* undocumented? */
-   util_blitter_save_viewport(ilo->blitter, &ilo->viewport);
+   util_blitter_save_viewport(ilo->blitter, &ilo->viewport.viewport0);
    util_blitter_save_stencil_ref(ilo->blitter, &ilo->stencil_ref);
    util_blitter_save_sample_mask(ilo->blitter, ilo->sample_mask);
 
    switch (op) {
    case ILO_BLITTER_CLEAR:
-      util_blitter_save_rasterizer(ilo->blitter, ilo->rasterizer);
+      util_blitter_save_rasterizer(ilo->blitter, (void *) ilo->rasterizer);
       break;
    case ILO_BLITTER_CLEAR_SURFACE:
-      util_blitter_save_framebuffer(ilo->blitter, &ilo->framebuffer);
+      util_blitter_save_framebuffer(ilo->blitter, &ilo->fb.state);
       break;
    case ILO_BLITTER_BLIT:
-      util_blitter_save_rasterizer(ilo->blitter, ilo->rasterizer);
-      util_blitter_save_framebuffer(ilo->blitter, &ilo->framebuffer);
+      util_blitter_save_rasterizer(ilo->blitter, (void *) ilo->rasterizer);
+      util_blitter_save_framebuffer(ilo->blitter, &ilo->fb.state);
 
       util_blitter_save_fragment_sampler_states(ilo->blitter,
-            ilo->samplers[PIPE_SHADER_FRAGMENT].num_samplers,
-            (void **) ilo->samplers[PIPE_SHADER_FRAGMENT].samplers);
+            ilo->sampler[PIPE_SHADER_FRAGMENT].count,
+            (void **) ilo->sampler[PIPE_SHADER_FRAGMENT].cso);
 
       util_blitter_save_fragment_sampler_views(ilo->blitter,
-            ilo->sampler_views[PIPE_SHADER_FRAGMENT].num_views,
-            ilo->sampler_views[PIPE_SHADER_FRAGMENT].views);
+            ilo->view[PIPE_SHADER_FRAGMENT].count,
+            ilo->view[PIPE_SHADER_FRAGMENT].states);
 
       /* disable render condition? */
       break;
@@ -605,10 +601,10 @@ ilo_clear(struct pipe_context *pipe,
    ilo_blitter_begin(ilo, ILO_BLITTER_CLEAR);
 
    util_blitter_clear(ilo->blitter,
-         ilo->framebuffer.width, ilo->framebuffer.height,
-         ilo->framebuffer.nr_cbufs, buffers,
-         (ilo->framebuffer.nr_cbufs) ? ilo->framebuffer.cbufs[0]->format :
-                                        PIPE_FORMAT_NONE,
+         ilo->fb.state.width, ilo->fb.state.height,
+         ilo->fb.state.nr_cbufs, buffers,
+         (ilo->fb.state.nr_cbufs) ? ilo->fb.state.cbufs[0]->format :
+                                    PIPE_FORMAT_NONE,
          color, depth, stencil);
 
    ilo_blitter_end(ilo);

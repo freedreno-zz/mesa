@@ -2400,12 +2400,41 @@ Edge flags are used to control which lines or points are actually
 drawn when the polygon mode converts triangles/quads/polygons into
 points or lines.
 
-TGSI_SEMANTIC_STENCIL
-""""""""""""""""""""""
 
-For fragment shaders, this semantic label indicates than an output
+TGSI_SEMANTIC_STENCIL
+"""""""""""""""""""""
+
+For fragment shaders, this semantic label indicates that an output
 is a writable stencil reference value. Only the Y component is writable.
 This allows the fragment shader to change the fragments stencilref value.
+
+
+TGSI_SEMANTIC_VIEWPORT_INDEX
+""""""""""""""""""""""""""""
+
+For geometry shaders, this semantic label indicates that an output
+contains the index of the viewport (and scissor) to use.
+Only the X value is used.
+
+
+TGSI_SEMANTIC_LAYER
+"""""""""""""""""""
+
+For geometry shaders, this semantic label indicates that an output
+contains the layer value to use for the color and depth/stencil surfaces.
+Only the X value is used. (Also known as rendertarget array index.)
+
+
+TGSI_SEMANTIC_CULLDIST
+""""""""""""""""""""""
+
+Used as distance to plane for performing application-defined culling
+of individual primitives against a plane. When components of vertex
+elements are given this label, these values are assumed to be a
+float32 signed distance to a plane. Primitives will be completely
+discarded if the plane distance for all of the vertices in the
+primitive are < 0. If a vertex has a cull distance of NaN, that
+vertex counts as "out" (as if its < 0);
 
 
 Declaration Interpolate

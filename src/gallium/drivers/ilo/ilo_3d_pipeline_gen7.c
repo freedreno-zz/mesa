@@ -202,8 +202,8 @@ gen7_pipeline_common_urb(struct ilo_3d_pipeline *p,
        *      Allocation Size must be sized to the maximum of the vertex input
        *      and output structures."
        */
-      if (vs_entry_size < ilo->vertex_elements->num_elements)
-         vs_entry_size = ilo->vertex_elements->num_elements;
+      if (vs_entry_size < ilo->ve->count)
+         vs_entry_size = ilo->ve->count;
 
       vs_entry_size *= sizeof(float) * 4;
       vs_total_size = ilo->dev->urb_size - offset;
@@ -385,7 +385,7 @@ gen7_pipeline_sol(struct ilo_3d_pipeline *p,
       sh = ilo->gs->shader;
       dirty_sh = DIRTY(GS);
    }
-   else if (ilo->vs) {
+   else {
       so_info = &ilo->vs->info.stream_output;
       sh = ilo->vs->shader;
       dirty_sh = DIRTY(VS);
@@ -394,11 +394,10 @@ gen7_pipeline_sol(struct ilo_3d_pipeline *p,
    gen6_pipeline_update_max_svbi(p, ilo, session);
 
    /* 3DSTATE_SO_BUFFER */
-   if ((DIRTY(STREAM_OUTPUT_TARGETS) || dirty_sh) &&
-       ilo->stream_output_targets.num_targets) {
+   if ((DIRTY(STREAM_OUTPUT_TARGETS) || dirty_sh) && ilo->so.enabled) {
       int i;
 
-      for (i = 0; i < ilo->stream_output_targets.num_targets; i++) {
+      for (i = 0; i < ilo->so.count; i++) {
          const int stride = so_info->stride[i] * 4; /* in bytes */
          int base = 0;
 
@@ -409,7 +408,7 @@ gen7_pipeline_sol(struct ilo_3d_pipeline *p,
          }
 
          p->gen7_3DSTATE_SO_BUFFER(p->dev, i, base, stride,
-               ilo->stream_output_targets.targets[i], p->cp);
+               ilo->so.states[i], p->cp);
       }
 
       for (; i < 4; i++)
@@ -417,16 +416,15 @@ gen7_pipeline_sol(struct ilo_3d_pipeline *p,
    }
 
    /* 3DSTATE_SO_DECL_LIST */
-   if (dirty_sh && ilo->stream_output_targets.num_targets)
+   if (dirty_sh && ilo->so.enabled)
       p->gen7_3DSTATE_SO_DECL_LIST(p->dev, so_info, sh, p->cp);
 
    /* 3DSTATE_STREAMOUT */
    if (DIRTY(STREAM_OUTPUT_TARGETS) || DIRTY(RASTERIZER) || dirty_sh) {
-      const unsigned buffer_mask =
-         (1 << ilo->stream_output_targets.num_targets) - 1;
+      const unsigned buffer_mask = (1 << ilo->so.count) - 1;
 
       p->gen7_3DSTATE_STREAMOUT(p->dev, buffer_mask, sh->out.count,
-            ilo->rasterizer->rasterizer_discard, p->cp);
+            ilo->rasterizer->state.rasterizer_discard, p->cp);
    }
 }
 
@@ -443,15 +441,13 @@ gen7_pipeline_sf(struct ilo_3d_pipeline *p,
          (ilo->vs)? ilo->vs->shader : NULL;
 
       p->gen7_3DSTATE_SBE(p->dev,
-            ilo->rasterizer, fs, last_sh, p->cp);
+            &ilo->rasterizer->state, fs, last_sh, p->cp);
    }
 
    /* 3DSTATE_SF */
    if (DIRTY(RASTERIZER) || DIRTY(FRAMEBUFFER)) {
       gen7_wa_pipe_control_cs_stall(p, true, true);
-
-      p->gen7_3DSTATE_SF(p->dev,
-            ilo->rasterizer, ilo->framebuffer.zsbuf, p->cp);
+      p->gen7_3DSTATE_SF(p->dev, ilo->rasterizer, ilo->fb.state.zsbuf, p->cp);
    }
 }
 
@@ -464,8 +460,8 @@ gen7_pipeline_wm(struct ilo_3d_pipeline *p,
    if (DIRTY(FS) || DIRTY(BLEND) || DIRTY(DEPTH_STENCIL_ALPHA) ||
        DIRTY(RASTERIZER)) {
       const struct ilo_shader *fs = (ilo->fs)? ilo->fs->shader : NULL;
-      const bool cc_may_kill = (ilo->depth_stencil_alpha->alpha.enabled ||
-                                   ilo->blend->alpha_to_coverage);
+      const bool cc_may_kill = (ilo->dsa->alpha.enabled ||
+                                ilo->blend->alpha_to_coverage);
 
       if (fs)
          assert(!fs->pcb.clip_state_size);
@@ -474,7 +470,7 @@ gen7_pipeline_wm(struct ilo_3d_pipeline *p,
          gen7_wa_pipe_control_wm_max_threads_stall(p);
 
       p->gen7_3DSTATE_WM(p->dev,
-            fs, ilo->rasterizer, cc_may_kill, p->cp);
+            fs, &ilo->rasterizer->state, cc_may_kill, p->cp);
    }
 
    /* 3DSTATE_BINDING_TABLE_POINTERS_PS */
@@ -497,11 +493,8 @@ gen7_pipeline_wm(struct ilo_3d_pipeline *p,
    if (DIRTY(FS) || DIRTY(FRAGMENT_SAMPLERS) ||
        DIRTY(BLEND)) {
       const struct ilo_shader *fs = (ilo->fs)? ilo->fs->shader : NULL;
-      const int num_samplers =
-         ilo->samplers[PIPE_SHADER_FRAGMENT].num_samplers;
-      const bool dual_blend = (!ilo->blend->logicop_enable &&
-                                  ilo->blend->rt[0].blend_enable &&
-                                  util_blend_state_is_dual(ilo->blend, 0));
+      const int num_samplers = ilo->sampler[PIPE_SHADER_FRAGMENT].count;
+      const bool dual_blend = ilo->blend->dual_blend;
 
       if (fs)
          assert(!fs->pcb.clip_state_size);
@@ -544,19 +537,10 @@ gen7_pipeline_wm(struct ilo_3d_pipeline *p,
     */
 
    /* 3DSTATE_DEPTH_BUFFER and 3DSTATE_CLEAR_PARAMS */
-   if (DIRTY(FRAMEBUFFER) || DIRTY(DEPTH_STENCIL_ALPHA) ||
-       session->state_bo_changed) {
-      const bool hiz = false;
-
-      p->gen7_3DSTATE_DEPTH_BUFFER(p->dev,
-            ilo->framebuffer.zsbuf,
-            ilo->depth_stencil_alpha,
-            hiz, p->cp);
-
-      p->gen6_3DSTATE_HIER_DEPTH_BUFFER(p->dev,
-            (hiz) ? ilo->framebuffer.zsbuf : NULL, p->cp);
-
-      p->gen6_3DSTATE_STENCIL_BUFFER(p->dev, ilo->framebuffer.zsbuf, p->cp);
+   if (DIRTY(FRAMEBUFFER) || session->state_bo_changed) {
+      p->gen7_3DSTATE_DEPTH_BUFFER(p->dev, ilo->fb.state.zsbuf, p->cp);
+      p->gen6_3DSTATE_HIER_DEPTH_BUFFER(p->dev, ilo->fb.state.zsbuf, p->cp);
+      p->gen6_3DSTATE_STENCIL_BUFFER(p->dev, ilo->fb.state.zsbuf, p->cp);
 
       /* TODO */
       p->gen6_3DSTATE_CLEAR_PARAMS(p->dev, 0, p->cp);
@@ -571,24 +555,21 @@ gen7_pipeline_wm_multisample(struct ilo_3d_pipeline *p,
    /* 3DSTATE_MULTISAMPLE and 3DSTATE_SAMPLE_MASK */
    if (DIRTY(SAMPLE_MASK) || DIRTY(FRAMEBUFFER)) {
       const uint32_t *packed_sample_pos;
-      int num_samples = 1;
 
       gen7_wa_pipe_control_cs_stall(p, true, true);
 
-      if (ilo->framebuffer.nr_cbufs)
-         num_samples = ilo->framebuffer.cbufs[0]->texture->nr_samples;
-
       packed_sample_pos =
-         (num_samples > 4) ? p->packed_sample_position_8x :
-         (num_samples > 1) ? &p->packed_sample_position_4x :
+         (ilo->fb.num_samples > 4) ? p->packed_sample_position_8x :
+         (ilo->fb.num_samples > 1) ? &p->packed_sample_position_4x :
          &p->packed_sample_position_1x;
 
-      p->gen6_3DSTATE_MULTISAMPLE(p->dev, num_samples, packed_sample_pos,
-            ilo->rasterizer->half_pixel_center, p->cp);
+      p->gen6_3DSTATE_MULTISAMPLE(p->dev,
+            ilo->fb.num_samples, packed_sample_pos,
+            ilo->rasterizer->state.half_pixel_center, p->cp);
 
       p->gen7_3DSTATE_SAMPLE_MASK(p->dev,
-            (num_samples > 1) ? ilo->sample_mask : 0x1,
-            num_samples, p->cp);
+            (ilo->fb.num_samples > 1) ? ilo->sample_mask : 0x1,
+            ilo->fb.num_samples, p->cp);
    }
 }
 
@@ -736,10 +717,10 @@ gen7_pipeline_estimate_states(const struct ilo_3d_pipeline *p,
     * sampler views (vs, fs)
     * constant buffers (vs, fs)
     */
-   count = ilo->framebuffer.nr_cbufs;
+   count = ilo->fb.state.nr_cbufs;
    for (shader_type = 0; shader_type < PIPE_SHADER_TYPES; shader_type++) {
-      count += ilo->sampler_views[shader_type].num_views;
-      count += ilo->constant_buffers[shader_type].num_buffers;
+      count += ilo->view[shader_type].count;
+      count += ilo->cbuf[shader_type].count;
    }
 
    if (count) {
@@ -749,7 +730,7 @@ gen7_pipeline_estimate_states(const struct ilo_3d_pipeline *p,
 
    /* samplers (vs, fs) */
    for (shader_type = 0; shader_type < PIPE_SHADER_TYPES; shader_type++) {
-      count = ilo->samplers[shader_type].num_samplers;
+      count = ilo->sampler[shader_type].count;
       if (count) {
          size += gen7->estimate_state_size(p->dev,
                ILO_GPE_GEN7_SAMPLER_BORDER_COLOR_STATE, count);
@@ -845,9 +826,7 @@ ilo_3d_pipeline_init_gen7(struct ilo_3d_pipeline *p)
    GEN6_USE(p, DEPTH_STENCIL_STATE, gen7);
    GEN6_USE(p, SCISSOR_RECT, gen7);
    GEN6_USE(p, BINDING_TABLE_STATE, gen7);
-   GEN6_USE(p, surf_SURFACE_STATE, gen7);
-   GEN6_USE(p, view_SURFACE_STATE, gen7);
-   GEN6_USE(p, cbuf_SURFACE_STATE, gen7);
+   GEN6_USE(p, SURFACE_STATE, gen7);
    GEN6_USE(p, SAMPLER_STATE, gen7);
    GEN6_USE(p, SAMPLER_BORDER_COLOR_STATE, gen7);
    GEN6_USE(p, push_constant_buffer, gen7);

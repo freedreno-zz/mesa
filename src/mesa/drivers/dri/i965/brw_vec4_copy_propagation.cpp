@@ -95,6 +95,7 @@ try_constant_propagation(vec4_instruction *inst, int arg, src_reg *values[4])
       inst->src[arg] = value;
       return true;
 
+   case BRW_OPCODE_MACH:
    case BRW_OPCODE_MUL:
    case BRW_OPCODE_ADD:
       if (arg == 1) {
@@ -102,9 +103,10 @@ try_constant_propagation(vec4_instruction *inst, int arg, src_reg *values[4])
 	 return true;
       } else if (arg == 0 && inst->src[1].file != IMM) {
 	 /* Fit this constant in by commuting the operands.  Exception: we
-	  * can't do this for 32-bit integer MUL because it's asymmetric.
+	  * can't do this for 32-bit integer MUL/MACH because it's asymmetric.
 	  */
-	 if (inst->opcode == BRW_OPCODE_MUL &&
+	 if ((inst->opcode == BRW_OPCODE_MUL ||
+              inst->opcode == BRW_OPCODE_MACH) &&
 	     (inst->src[1].type == BRW_REGISTER_TYPE_D ||
 	      inst->src[1].type == BRW_REGISTER_TYPE_UD))
 	    break;
@@ -216,6 +218,7 @@ vec4_visitor::try_copy_propagation(struct intel_context *intel,
       return false;
 
    bool is_3src_inst = (inst->opcode == BRW_OPCODE_LRP ||
+                        inst->opcode == BRW_OPCODE_MAD ||
                         inst->opcode == BRW_OPCODE_BFE ||
                         inst->opcode == BRW_OPCODE_BFI2);
    if (is_3src_inst && value.file == UNIFORM)

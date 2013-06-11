@@ -141,14 +141,7 @@ typedef void
                              struct ilo_cp *cp);
 
 typedef ilo_gpe_gen6_3DSTATE_CLEAR_PARAMS ilo_gpe_gen7_3DSTATE_CLEAR_PARAMS;
-
-typedef void
-(*ilo_gpe_gen7_3DSTATE_DEPTH_BUFFER)(const struct ilo_dev_info *dev,
-                                     const struct pipe_surface *surface,
-                                     const struct pipe_depth_stencil_alpha_state *dsa,
-                                     bool hiz,
-                                     struct ilo_cp *cp);
-
+typedef ilo_gpe_gen6_3DSTATE_DEPTH_BUFFER ilo_gpe_gen7_3DSTATE_DEPTH_BUFFER;
 typedef ilo_gpe_gen6_3DSTATE_STENCIL_BUFFER ilo_gpe_gen7_3DSTATE_STENCIL_BUFFER;
 typedef ilo_gpe_gen6_3DSTATE_HIER_DEPTH_BUFFER ilo_gpe_gen7_3DSTATE_HIER_DEPTH_BUFFER;
 typedef ilo_gpe_gen6_3DSTATE_VERTEX_BUFFERS ilo_gpe_gen7_3DSTATE_VERTEX_BUFFERS;
@@ -173,7 +166,7 @@ typedef ilo_gpe_gen6_3DSTATE_CLIP ilo_gpe_gen7_3DSTATE_CLIP;
 
 typedef void
 (*ilo_gpe_gen7_3DSTATE_SF)(const struct ilo_dev_info *dev,
-                           const struct pipe_rasterizer_state *rasterizer,
+                           const struct ilo_rasterizer_state *rasterizer,
                            const struct pipe_surface *zs_surf,
                            struct ilo_cp *cp);
 
@@ -382,8 +375,8 @@ typedef ilo_gpe_gen6_INTERFACE_DESCRIPTOR_DATA ilo_gpe_gen7_INTERFACE_DESCRIPTOR
 
 typedef uint32_t
 (*ilo_gpe_gen7_SF_CLIP_VIEWPORT)(const struct ilo_dev_info *dev,
-                                 const struct pipe_viewport_state *viewports,
-                                 int num_viewports,
+                                 const struct ilo_viewport_cso *viewports,
+                                 unsigned num_viewports,
                                  struct ilo_cp *cp);
 
 typedef ilo_gpe_gen6_CC_VIEWPORT ilo_gpe_gen7_CC_VIEWPORT;
@@ -392,9 +385,7 @@ typedef ilo_gpe_gen6_BLEND_STATE ilo_gpe_gen7_BLEND_STATE;
 typedef ilo_gpe_gen6_DEPTH_STENCIL_STATE ilo_gpe_gen7_DEPTH_STENCIL_STATE;
 typedef ilo_gpe_gen6_SCISSOR_RECT ilo_gpe_gen7_SCISSOR_RECT;
 typedef ilo_gpe_gen6_BINDING_TABLE_STATE ilo_gpe_gen7_BINDING_TABLE_STATE;
-typedef ilo_gpe_gen6_surf_SURFACE_STATE ilo_gpe_gen7_surf_SURFACE_STATE;
-typedef ilo_gpe_gen6_view_SURFACE_STATE ilo_gpe_gen7_view_SURFACE_STATE;
-typedef ilo_gpe_gen6_cbuf_SURFACE_STATE ilo_gpe_gen7_cbuf_SURFACE_STATE;
+typedef ilo_gpe_gen6_SURFACE_STATE ilo_gpe_gen7_SURFACE_STATE;
 typedef ilo_gpe_gen6_SAMPLER_STATE ilo_gpe_gen7_SAMPLER_STATE;
 typedef ilo_gpe_gen6_SAMPLER_BORDER_COLOR_STATE ilo_gpe_gen7_SAMPLER_BORDER_COLOR_STATE;
 typedef ilo_gpe_gen6_push_constant_buffer ilo_gpe_gen7_push_constant_buffer;
@@ -490,9 +481,7 @@ struct ilo_gpe_gen7 {
    GEN7_EMIT(DEPTH_STENCIL_STATE);
    GEN7_EMIT(SCISSOR_RECT);
    GEN7_EMIT(BINDING_TABLE_STATE);
-   GEN7_EMIT(surf_SURFACE_STATE);
-   GEN7_EMIT(view_SURFACE_STATE);
-   GEN7_EMIT(cbuf_SURFACE_STATE);
+   GEN7_EMIT(SURFACE_STATE);
    GEN7_EMIT(SAMPLER_STATE);
    GEN7_EMIT(SAMPLER_BORDER_COLOR_STATE);
    GEN7_EMIT(push_constant_buffer);

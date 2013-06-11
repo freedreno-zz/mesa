@@ -44,12 +44,14 @@ ilo_shader_variant_init(struct ilo_shader_variant *variant,
 
    switch (info->type) {
    case PIPE_SHADER_VERTEX:
-      variant->u.vs.rasterizer_discard = ilo->rasterizer->rasterizer_discard;
+      variant->u.vs.rasterizer_discard =
+         ilo->rasterizer->state.rasterizer_discard;
       variant->u.vs.num_ucps =
-         util_last_bit(ilo->rasterizer->clip_plane_enable);
+         util_last_bit(ilo->rasterizer->state.clip_plane_enable);
       break;
    case PIPE_SHADER_GEOMETRY:
-      variant->u.gs.rasterizer_discard = ilo->rasterizer->rasterizer_discard;
+      variant->u.gs.rasterizer_discard =
+         ilo->rasterizer->state.rasterizer_discard;
       variant->u.gs.num_inputs = ilo->vs->shader->out.count;
       for (i = 0; i < ilo->vs->shader->out.count; i++) {
          variant->u.gs.semantic_names[i] =
@@ -60,25 +62,23 @@ ilo_shader_variant_init(struct ilo_shader_variant *variant,
       break;
    case PIPE_SHADER_FRAGMENT:
       variant->u.fs.flatshade =
-         (info->has_color_interp && ilo->rasterizer->flatshade);
+         (info->has_color_interp && ilo->rasterizer->state.flatshade);
       variant->u.fs.fb_height = (info->has_pos) ?
-         ilo->framebuffer.height : 1;
-      variant->u.fs.num_cbufs = ilo->framebuffer.nr_cbufs;
+         ilo->fb.state.height : 1;
+      variant->u.fs.num_cbufs = ilo->fb.state.nr_cbufs;
       break;
    default:
       assert(!"unknown shader type");
       break;
    }
 
-   num_views = ilo->sampler_views[info->type].num_views;
+   num_views = ilo->view[info->type].count;
    assert(info->num_samplers <= num_views);
 
    variant->num_sampler_views = info->num_samplers;
    for (i = 0; i < info->num_samplers; i++) {
-      const struct pipe_sampler_view *view =
-         ilo->sampler_views[info->type].views[i];
-      const struct pipe_sampler_state *sampler =
-         ilo->samplers[info->type].samplers[i];
+      const struct pipe_sampler_view *view = ilo->view[info->type].states[i];
+      const struct ilo_sampler_cso *sampler = ilo->sampler[info->type].cso[i];
 
       if (view) {
          variant->sampler_view_swizzles[i].r = view->swizzle_r;
@@ -104,13 +104,10 @@ ilo_shader_variant_init(struct ilo_shader_variant *variant,
        * the HW wrap mode is set to BRW_TEXCOORDMODE_CLAMP_BORDER, and we need
        * to manually saturate the texture coordinates.
        */
-      if (sampler && sampler->min_img_filter != PIPE_TEX_FILTER_NEAREST) {
-         if (sampler->wrap_s == PIPE_TEX_WRAP_CLAMP)
-            variant->saturate_tex_coords[0] |= 1 << i;
-         if (sampler->wrap_t == PIPE_TEX_WRAP_CLAMP)
-            variant->saturate_tex_coords[1] |= 1 << i;
-         if (sampler->wrap_r == PIPE_TEX_WRAP_CLAMP)
-            variant->saturate_tex_coords[2] |= 1 << i;
+      if (sampler) {
+         variant->saturate_tex_coords[0] |= sampler->saturate_s << i;
+         variant->saturate_tex_coords[1] |= sampler->saturate_t << i;
+         variant->saturate_tex_coords[2] |= sampler->saturate_r << i;
       }
    }
 }
@@ -135,7 +132,7 @@ ilo_shader_variant_guess(struct ilo_shader_variant *variant,
    case PIPE_SHADER_FRAGMENT:
       variant->u.fs.flatshade = false;
       variant->u.fs.fb_height = (info->has_pos) ?
-         ilo->framebuffer.height : 1;
+         ilo->fb.state.height : 1;
       variant->u.fs.num_cbufs = 1;
       break;
    default:

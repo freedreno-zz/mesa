@@ -71,7 +71,7 @@ struct draw_pt_front_end;
  */
 struct draw_vertex_buffer {
    const void *map;
-   size_t size;
+   uint32_t size;
 };
 
 /**
@@ -389,6 +389,9 @@ uint draw_current_shader_position_output(const struct draw_context *draw);
 uint draw_current_shader_viewport_index_output(const struct draw_context *draw);
 uint draw_current_shader_clipvertex_output(const struct draw_context *draw);
 uint draw_current_shader_clipdistance_output(const struct draw_context *draw, int index);
+uint draw_current_shader_num_written_clipdistances(const struct draw_context *draw);
+uint draw_current_shader_culldistance_output(const struct draw_context *draw, int index);
+uint draw_current_shader_num_written_culldistances(const struct draw_context *draw);
 int draw_alloc_extra_vertex_attrib(struct draw_context *draw,
                                    uint semantic_name, uint semantic_index);
 void draw_remove_extra_vertex_attribs(struct draw_context *draw);
@@ -459,6 +462,10 @@ void *
 draw_get_rasterizer_no_cull( struct draw_context *draw,
                              boolean scissor,
                              boolean flatshade );
+
+void
+draw_stats_clipper_primitives(struct draw_context *draw,
+                              const struct draw_prim_info *prim_info);
 
 
 /** 

@@ -94,8 +94,6 @@ struct data_block {
  * For each screen tile we have one of these bins.
  */
 struct cmd_bin {
-   ushort x;
-   ushort y;
    const struct lp_rast_state *last_state;       /* most recent state set in bin */
    struct cmd_block *head;
    struct cmd_block *tail;
@@ -137,9 +135,12 @@ struct lp_scene {
    struct {
       uint8_t *map;
       unsigned stride;
-      unsigned blocksize;
+      unsigned layer_stride;
    } zsbuf, cbufs[PIPE_MAX_COLOR_BUFS];
-   
+
+   /* OpenGL permits different amount of layers per rt, but rendering limited to minimum */
+   unsigned fb_max_layer;
+
    /** the framebuffer to render the scene into */
    struct pipe_framebuffer_state fb;
 
@@ -375,7 +376,7 @@ void
 lp_scene_bin_iter_begin( struct lp_scene *scene );
 
 struct cmd_bin *
-lp_scene_bin_iter_next( struct lp_scene *scene );
+lp_scene_bin_iter_next( struct lp_scene *scene, int *x, int *y );
 
 
 

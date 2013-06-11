@@ -77,164 +77,10 @@ intelGetString(struct gl_context * ctx, GLenum name)
 
    case GL_RENDERER:
       switch (intel->intelScreen->deviceID) {
-      case PCI_CHIP_845_G:
-         chipset = "Intel(R) 845G";
-         break;
-      case PCI_CHIP_I830_M:
-         chipset = "Intel(R) 830M";
-         break;
-      case PCI_CHIP_I855_GM:
-         chipset = "Intel(R) 852GM/855GM";
-         break;
-      case PCI_CHIP_I865_G:
-         chipset = "Intel(R) 865G";
-         break;
-      case PCI_CHIP_I915_G:
-         chipset = "Intel(R) 915G";
-         break;
-      case PCI_CHIP_E7221_G:
-	 chipset = "Intel (R) E7221G (i915)";
-	 break;
-      case PCI_CHIP_I915_GM:
-         chipset = "Intel(R) 915GM";
-         break;
-      case PCI_CHIP_I945_G:
-         chipset = "Intel(R) 945G";
-         break;
-      case PCI_CHIP_I945_GM:
-         chipset = "Intel(R) 945GM";
-         break;
-      case PCI_CHIP_I945_GME:
-         chipset = "Intel(R) 945GME";
-         break;
-      case PCI_CHIP_G33_G:
-	 chipset = "Intel(R) G33";
-	 break;
-      case PCI_CHIP_Q35_G:
-	 chipset = "Intel(R) Q35";
-	 break;
-      case PCI_CHIP_Q33_G:
-	 chipset = "Intel(R) Q33";
-	 break;
-      case PCI_CHIP_IGD_GM:
-      case PCI_CHIP_IGD_G:
-	 chipset = "Intel(R) IGD";
-	 break;
-      case PCI_CHIP_I965_Q:
-	 chipset = "Intel(R) 965Q";
-	 break;
-      case PCI_CHIP_I965_G:
-      case PCI_CHIP_I965_G_1:
-	 chipset = "Intel(R) 965G";
-	 break;
-      case PCI_CHIP_I946_GZ:
-	 chipset = "Intel(R) 946GZ";
-	 break;
-      case PCI_CHIP_I965_GM:
-	 chipset = "Intel(R) 965GM";
-	 break;
-      case PCI_CHIP_I965_GME:
-	 chipset = "Intel(R) 965GME/GLE";
-	 break;
-      case PCI_CHIP_GM45_GM:
-	 chipset = "Mobile Intel® GM45 Express Chipset";
-	 break; 
-      case PCI_CHIP_IGD_E_G:
-	 chipset = "Intel(R) Integrated Graphics Device";
-	 break;
-      case PCI_CHIP_G45_G:
-         chipset = "Intel(R) G45/G43";
-         break;
-      case PCI_CHIP_Q45_G:
-         chipset = "Intel(R) Q45/Q43";
-         break;
-      case PCI_CHIP_G41_G:
-         chipset = "Intel(R) G41";
-         break;
-      case PCI_CHIP_B43_G:
-      case PCI_CHIP_B43_G1:
-         chipset = "Intel(R) B43";
-         break;
-      case PCI_CHIP_ILD_G:
-         chipset = "Intel(R) Ironlake Desktop";
-         break;
-      case PCI_CHIP_ILM_G:
-         chipset = "Intel(R) Ironlake Mobile";
-         break;
-      case PCI_CHIP_SANDYBRIDGE_GT1:
-      case PCI_CHIP_SANDYBRIDGE_GT2:
-      case PCI_CHIP_SANDYBRIDGE_GT2_PLUS:
-	 chipset = "Intel(R) Sandybridge Desktop";
-	 break;
-      case PCI_CHIP_SANDYBRIDGE_M_GT1:
-      case PCI_CHIP_SANDYBRIDGE_M_GT2:
-      case PCI_CHIP_SANDYBRIDGE_M_GT2_PLUS:
-	 chipset = "Intel(R) Sandybridge Mobile";
-	 break;
-      case PCI_CHIP_SANDYBRIDGE_S:
-	 chipset = "Intel(R) Sandybridge Server";
-	 break;
-      case PCI_CHIP_IVYBRIDGE_GT1:
-      case PCI_CHIP_IVYBRIDGE_GT2:
-	 chipset = "Intel(R) Ivybridge Desktop";
-	 break;
-      case PCI_CHIP_IVYBRIDGE_M_GT1:
-      case PCI_CHIP_IVYBRIDGE_M_GT2:
-	 chipset = "Intel(R) Ivybridge Mobile";
-	 break;
-      case PCI_CHIP_IVYBRIDGE_S_GT1:
-      case PCI_CHIP_IVYBRIDGE_S_GT2:
-	 chipset = "Intel(R) Ivybridge Server";
-	 break;
-      case PCI_CHIP_BAYTRAIL_M_1:
-      case PCI_CHIP_BAYTRAIL_M_2:
-      case PCI_CHIP_BAYTRAIL_M_3:
-      case PCI_CHIP_BAYTRAIL_M_4:
-      case PCI_CHIP_BAYTRAIL_D:
-         chipset = "Intel(R) Bay Trail";
-         break;
-      case PCI_CHIP_HASWELL_GT1:
-      case PCI_CHIP_HASWELL_GT2:
-      case PCI_CHIP_HASWELL_GT3:
-      case PCI_CHIP_HASWELL_SDV_GT1:
-      case PCI_CHIP_HASWELL_SDV_GT2:
-      case PCI_CHIP_HASWELL_SDV_GT3:
-      case PCI_CHIP_HASWELL_ULT_GT1:
-      case PCI_CHIP_HASWELL_ULT_GT2:
-      case PCI_CHIP_HASWELL_ULT_GT3:
-      case PCI_CHIP_HASWELL_CRW_GT1:
-      case PCI_CHIP_HASWELL_CRW_GT2:
-      case PCI_CHIP_HASWELL_CRW_GT3:
-	 chipset = "Intel(R) Haswell Desktop";
-	 break;
-      case PCI_CHIP_HASWELL_M_GT1:
-      case PCI_CHIP_HASWELL_M_GT2:
-      case PCI_CHIP_HASWELL_M_GT3:
-      case PCI_CHIP_HASWELL_SDV_M_GT1:
-      case PCI_CHIP_HASWELL_SDV_M_GT2:
-      case PCI_CHIP_HASWELL_SDV_M_GT3:
-      case PCI_CHIP_HASWELL_ULT_M_GT1:
-      case PCI_CHIP_HASWELL_ULT_M_GT2:
-      case PCI_CHIP_HASWELL_ULT_M_GT3:
-      case PCI_CHIP_HASWELL_CRW_M_GT1:
-      case PCI_CHIP_HASWELL_CRW_M_GT2:
-      case PCI_CHIP_HASWELL_CRW_M_GT3:
-	 chipset = "Intel(R) Haswell Mobile";
-	 break;
-      case PCI_CHIP_HASWELL_S_GT1:
-      case PCI_CHIP_HASWELL_S_GT2:
-      case PCI_CHIP_HASWELL_S_GT3:
-      case PCI_CHIP_HASWELL_SDV_S_GT1:
-      case PCI_CHIP_HASWELL_SDV_S_GT2:
-      case PCI_CHIP_HASWELL_SDV_S_GT3:
-      case PCI_CHIP_HASWELL_ULT_S_GT1:
-      case PCI_CHIP_HASWELL_ULT_S_GT2:
-      case PCI_CHIP_HASWELL_ULT_S_GT3:
-      case PCI_CHIP_HASWELL_CRW_S_GT1:
-      case PCI_CHIP_HASWELL_CRW_S_GT2:
-      case PCI_CHIP_HASWELL_CRW_S_GT3:
-	 chipset = "Intel(R) Haswell Server";
-	 break;
+#undef CHIPSET
+#define CHIPSET(id, symbol, str) case id: chipset = str; break;
+#include "pci_ids/i915_pci_ids.h"
+#include "pci_ids/i965_pci_ids.h"
       default:
          chipset = "Unknown Intel Chipset";
          break;
@@ -286,7 +132,7 @@ intel_flush_front(struct gl_context *ctx)
     __DRIdrawable *driDrawable = driContext->driDrawablePriv;
     __DRIscreen *const screen = intel->intelScreen->driScrnPriv;
 
-    if (_mesa_is_winsys_fbo(ctx->DrawBuffer) && intel->front_buffer_dirty) {
+    if (intel->front_buffer_dirty && _mesa_is_winsys_fbo(ctx->DrawBuffer)) {
       if (screen->dri2.loader->flushFrontBuffer != NULL &&
           driDrawable &&
           driDrawable->loaderPrivate) {
@@ -339,17 +185,6 @@ intel_update_renderbuffers(__DRIcontext *context, __DRIdrawable *drawable)
    __DRIbuffer *buffers = NULL;
    int i, count;
    const char *region_name;
-
-   /* If we're rendering to the fake front buffer, make sure all the
-    * pending drawing has landed on the real front buffer.  Otherwise
-    * when we eventually get to DRI2GetBuffersWithFormat the stale
-    * real front buffer contents will get copied to the new fake front
-    * buffer.
-    */
-   if (intel->is_front_buffer_rendering) {
-      intel_flush(&intel->ctx);
-      intel_flush_front(&intel->ctx);
-   }
 
    /* Set this up front, so that in case our buffers get invalidated
     * while we're getting new buffers, we don't clobber the stamp and
@@ -1079,8 +914,26 @@ intel_query_dri2_buffers(struct intel_context *intel,
    if ((intel->is_front_buffer_rendering ||
 	intel->is_front_buffer_reading ||
 	!back_rb) && front_rb) {
+      /* If a fake front buffer is in use, then querying for
+       * __DRI_BUFFER_FRONT_LEFT will cause the server to copy the image from
+       * the real front buffer to the fake front buffer.  So before doing the
+       * query, we need to make sure all the pending drawing has landed in the
+       * real front buffer.
+       */
+      intel_flush(&intel->ctx);
+      intel_flush_front(&intel->ctx);
+
       attachments[i++] = __DRI_BUFFER_FRONT_LEFT;
       attachments[i++] = intel_bits_per_pixel(front_rb);
+   } else if (front_rb && intel->front_buffer_dirty) {
+      /* We have pending front buffer rendering, but we aren't querying for a
+       * front buffer.  If the front buffer we have is a fake front buffer,
+       * the X server is going to throw it away when it processes the query.
+       * So before doing the query, make sure all the pending drawing has
+       * landed in the real front buffer.
+       */
+      intel_flush(&intel->ctx);
+      intel_flush_front(&intel->ctx);
    }
 
    if (back_rb) {

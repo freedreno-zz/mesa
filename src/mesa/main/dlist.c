@@ -1,6 +1,5 @@
 /*
  * Mesa 3-D graphics library
- * Version:  7.7
  *
  * Copyright (C) 1999-2008  Brian Paul   All Rights Reserved.
  * Copyright (C) 2009  VMware, Inc.  All Rights Reserved.
@@ -7025,7 +7024,10 @@ save_SamplerParameteriv(GLuint sampler, GLenum pname, const GLint *params)
 static void GLAPIENTRY
 save_SamplerParameteri(GLuint sampler, GLenum pname, GLint param)
 {
-   save_SamplerParameteriv(sampler, pname, &param);
+   GLint parray[4];
+   parray[0] = param;
+   parray[1] = parray[2] = parray[3] = 0;
+   save_SamplerParameteriv(sampler, pname, parray);
 }
 
 static void GLAPIENTRY
@@ -7056,7 +7058,10 @@ save_SamplerParameterfv(GLuint sampler, GLenum pname, const GLfloat *params)
 static void GLAPIENTRY
 save_SamplerParameterf(GLuint sampler, GLenum pname, GLfloat param)
 {
-   save_SamplerParameterfv(sampler, pname, &param);
+   GLfloat parray[4];
+   parray[0] = param;
+   parray[1] = parray[2] = parray[3] = 0.0F;
+   save_SamplerParameterfv(sampler, pname, parray);
 }
 
 static void GLAPIENTRY
