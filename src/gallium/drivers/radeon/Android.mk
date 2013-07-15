@@ -21,57 +21,18 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-# src/gallium/Android.mk
+LOCAL_PATH := $(call my-dir)
 
-GALLIUM_TOP := $(call my-dir)
-GALLIUM_COMMON_MK := $(GALLIUM_TOP)/Android.common.mk
+# get C_SOURCES
+include $(LOCAL_PATH)/Makefile.sources
 
-SUBDIRS := \
-	targets/egl-static \
-	state_trackers/egl \
-	auxiliary
+include $(CLEAR_VARS)
 
-# swrast
-SUBDIRS += winsys/sw/android drivers/softpipe
+LOCAL_SRC_FILES := $(C_SOURCES)
 
-# i915g
-ifneq ($(filter i915g, $(MESA_GPU_DRIVERS)),)
-SUBDIRS += winsys/i915/drm drivers/i915
-endif
+LOCAL_C_INCLUDES := $(DRM_TOP)
 
-# ilo
-ifneq ($(filter ilo, $(MESA_GPU_DRIVERS)),)
-SUBDIRS += winsys/intel/drm drivers/ilo
-endif
+LOCAL_MODULE := libmesa_pipe_radeon
 
-# nouveau
-ifneq ($(filter nouveau, $(MESA_GPU_DRIVERS)),)
-SUBDIRS += \
-	winsys/nouveau/drm \
-	drivers/nouveau \
-	drivers/nvfx \
-	drivers/nv50 \
-	drivers/nvc0
-endif
-
-# r300g/r600g/radeonsi
-ifneq ($(filter r300g r600g radeonsi, $(MESA_GPU_DRIVERS)),)
-SUBDIRS += winsys/radeon/drm
-ifneq ($(filter r300g, $(MESA_GPU_DRIVERS)),)
-SUBDIRS += drivers/r300
-endif
-ifneq ($(filter r600g, $(MESA_GPU_DRIVERS)),)
-SUBDIRS += drivers/r600 drivers/radeon
-endif
-ifneq ($(filter radeonsi, $(MESA_GPU_DRIVERS)),)
-SUBDIRS += drivers/radeonsi
-endif
-endif
-
-# vmwgfx
-ifneq ($(filter vmwgfx, $(MESA_GPU_DRIVERS)),)
-SUBDIRS += winsys/svga/drm drivers/svga
-endif
-
-mkfiles := $(patsubst %,$(GALLIUM_TOP)/%/Android.mk,$(SUBDIRS))
-include $(mkfiles)
+include $(GALLIUM_COMMON_MK)
+include $(BUILD_STATIC_LIBRARY)

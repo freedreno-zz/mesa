@@ -35,6 +35,11 @@
 
 static void r300_apply_hyperz_blacklist(struct r300_capabilities* caps)
 {
+#ifdef ANDROID
+    extern const char *__progname;
+    const char *arg = strrchr(__progname, '/');
+    const char *program_invocation_short_name = arg ? arg + 1 : __progname;
+#endif
     static const char *list[] = {
         "X",    /* the DDX or indirect rendering */
         "Xorg", /* (alternative name) */
