@@ -49,6 +49,7 @@
 #include "util/u_debug.h"
 
 #define DRIVER_MAP_GALLIUM_ONLY
+#define _eglLog(...)
 #include "pci_ids/pci_id_driver_map.h"
 
 struct pipe_loader_drm_device {
@@ -104,6 +105,8 @@ find_drm_driver_name(struct pipe_loader_drm_device *ddev)
 {
    struct pipe_loader_device *dev = &ddev->base;
    int i, j;
+
+   // XXX get rid of this..
 
    for (i = 0; driver_map[i].driver; i++) {
       if (dev->u.pci.vendor_id != driver_map[i].vendor_id)
@@ -187,6 +190,9 @@ boolean
 pipe_loader_drm_probe_fd(struct pipe_loader_device **dev, int fd)
 {
    struct pipe_loader_drm_device *ddev = CALLOC_STRUCT(pipe_loader_drm_device);
+
+   // XXX do we need PIPE_LOADER_DEVICE_PLATFORM or something like that??
+   // or just nuke this and make it work like the other loaders?
 
    ddev->base.type = PIPE_LOADER_DEVICE_PCI;
    ddev->base.ops = &pipe_loader_drm_ops;

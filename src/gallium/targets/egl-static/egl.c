@@ -62,52 +62,6 @@ get_st_api(enum st_api_type api)
 
 #ifdef HAVE_LIBUDEV
 
-static boolean
-drm_fd_get_pci_id(int fd, int *vendor_id, int *chip_id)
-{
-   struct udev *udev = NULL;
-   struct udev_device *device = NULL, *parent;
-   struct stat buf;
-   const char *pci_id;
-
-   *chip_id = -1;
-
-   udev = udev_new();
-   if (fstat(fd, &buf) < 0) {
-      _eglLog(_EGL_WARNING, "failed to stat fd %d", fd);
-      goto out;
-   }
-
-   device = udev_device_new_from_devnum(udev, 'c', buf.st_rdev);
-   if (device == NULL) {
-      _eglLog(_EGL_WARNING,
-              "could not create udev device for fd %d", fd);
-      goto out;
-   }
-
-   parent = udev_device_get_parent(device);
-   if (parent == NULL) {
-      _eglLog(_EGL_WARNING, "could not get parent device");
-      goto out;
-   }
-
-   pci_id = udev_device_get_property_value(parent, "PCI_ID");
-   if (pci_id == NULL ||
-       sscanf(pci_id, "%x:%x", vendor_id, chip_id) != 2) {
-      _eglLog(_EGL_WARNING, "malformed or no PCI ID");
-      *chip_id = -1;
-      goto out;
-   }
-
-out:
-   if (device)
-      udev_device_unref(device);
-   if (udev)
-      udev_unref(udev);
-
-   return (*chip_id >= 0);
-}
-
 #elif defined(PIPE_OS_ANDROID) && !defined(_EGL_NO_DRM)
 
 #include <xf86drm.h>
@@ -117,6 +71,8 @@ out:
 #include <radeon_drm.h>
 /* for util_strcmp */
 #include "util/u_string.h"
+
+// XXX this stuff should be folded back into common driver loader code:
 
 static boolean
 drm_fd_get_pci_id(int fd, int *vendor_id, int *chip_id)
@@ -192,48 +148,13 @@ drm_fd_get_pci_id(int fd, int *vendor_id, int *chip_id)
 
 #endif /* HAVE_LIBUDEV */
 
-static const char *
-drm_fd_get_screen_name(int fd)
-{
-   int vendor_id, chip_id;
-   int idx, i;
-
-   if (!drm_fd_get_pci_id(fd, &vendor_id, &chip_id)) {
-      _eglLog(_EGL_WARNING, "failed to get driver name for fd %d", fd);
-      return NULL;
-   }
-
-   for (idx = 0; driver_map[idx].driver; idx++) {
-      if (vendor_id != driver_map[idx].vendor_id)
-         continue;
-
-      /* done if no chip id */
-      if (driver_map[idx].num_chips_ids == -1)
-         break;
-
-      for (i = 0; i < driver_map[idx].num_chips_ids; i++) {
-         if (driver_map[idx].chip_ids[i] == chip_id)
-            break;
-      }
-      /* matched! */
-      if (i < driver_map[idx].num_chips_ids)
-         break;
-   }
-
-   _eglLog((driver_map[idx].driver) ? _EGL_INFO : _EGL_WARNING,
-         "pci id for fd %d: %04x:%04x, driver %s",
-         fd, vendor_id, chip_id, driver_map[idx].driver);
-
-   return driver_map[idx].driver;
-}
-
 static struct pipe_screen *
 create_drm_screen(const char *name, int fd)
 {
    struct pipe_screen *screen;
 
    if (!name) {
-      name = drm_fd_get_screen_name(fd);
+      name = common_get_driver_for_fd(fd);
       if (!name)
          return NULL;
    }
@@ -243,6 +164,8 @@ create_drm_screen(const char *name, int fd)
       _eglLog(_EGL_INFO, "created a pipe screen for %s", name);
    else
       _eglLog(_EGL_WARNING, "failed to create a pipe screen for %s", name);
+
+//   free(name);
 
    return screen;
 }

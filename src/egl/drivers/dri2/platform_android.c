@@ -673,32 +673,7 @@ droid_get_pci_id(int fd, int *vendor_id, int *chip_id)
 static const char *
 droid_get_driver_name(int fd)
 {
-   int vendor_id = -1, chip_id = -1;
-   int idx, i;
-   char *name;
-
-   if (!droid_get_pci_id(fd, &vendor_id, &chip_id))
-      return NULL;
-
-   for (idx = 0; driver_map[idx].driver; idx++) {
-      if (vendor_id != driver_map[idx].vendor_id)
-         continue;
-
-      if (driver_map[idx].num_chips_ids == -1)
-         break;
-
-      for (i = 0; i < driver_map[idx].num_chips_ids; i++) {
-         if (driver_map[idx].chip_ids[i] == chip_id)
-            break;
-      }
-      if (i < driver_map[idx].num_chips_ids)
-	      break;
-   }
-
-   _eglLog(_EGL_INFO, "pci id for fd %d: %04x:%04x, driver %s",
-         fd, vendor_id, chip_id, driver_map[idx].driver);
-
-   return driver_map[idx].driver;
+   return common_get_driver_for_fd(fd);
 }
 
 static int
