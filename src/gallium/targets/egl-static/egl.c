@@ -40,6 +40,8 @@
 #include "egl_pipe.h"
 #include "egl_st.h"
 
+#include <cutils/properties.h>
+
 static struct egl_g3d_loader egl_g3d_loader;
 
 static struct st_module {
@@ -231,12 +233,15 @@ static struct pipe_screen *
 create_drm_screen(const char *name, int fd)
 {
    struct pipe_screen *screen;
+   char value[PROPERTY_VALUE_MAX];
 
    if (!name) {
       name = drm_fd_get_screen_name(fd);
       if (!name)
          return NULL;
    }
+   if (!property_get("debug.mesa.driver", value, NULL))
+       property_set("debug.mesa.driver", name);
 
    screen = egl_pipe_create_drm_screen(name, fd);
    if (screen)
