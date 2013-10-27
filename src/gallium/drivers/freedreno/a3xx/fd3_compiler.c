@@ -241,6 +241,7 @@ add_dst_reg(struct fd3_compile_context *ctx, struct ir3_instruction *instr,
 		const struct tgsi_dst_register *dst, unsigned chan)
 {
 	unsigned flags = 0, num = 0;
+	struct ir3_register *reg;
 
 	switch (dst->File) {
 	case TGSI_FILE_OUTPUT:
@@ -256,10 +257,17 @@ add_dst_reg(struct fd3_compile_context *ctx, struct ir3_instruction *instr,
 		break;
 	}
 
+	if (dst->Indirect)
+		flags |= IR3_REG_RELATIV;
 	if (ctx->so->half_precision)
 		flags |= IR3_REG_HALF;
 
-	return ir3_reg_create(instr, regid(num, chan), flags);
+	reg = ir3_reg_create(instr, regid(num, chan), flags);
+
+	if (dst->Indirect)
+		ctx->last_rel = instr;
+
+	return reg;
 }
 
 static struct ir3_register *
