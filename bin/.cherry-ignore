@@ -16,3 +16,6 @@ d8ac987f6ab228df1a478b36c3d889992754374f glsl: Disallow uniform block layout qua
 # Doesn't cherry-pick cleanly. Haven't heard back from requests to authors to
 # rebase.
 57f38e9f921bcfac0087765b4acb2c258604ea29 radeonsi: fix blitting the last 2 mipmap levels of compressed textures
+
+# Code being fixed is not present in 9.2
+f278d49c4bcfedbda10cb224cb251e3755e88288 i965: Do not set bilinear_filter flag in case of multisample blits
