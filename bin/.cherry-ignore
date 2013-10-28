@@ -8,3 +8,11 @@ d8ac987f6ab228df1a478b36c3d889992754374f glsl: Disallow uniform block layout qua
 # Previously cherry picked (patch originally appeared twice on master with a
 # revert in between)
 4e5eb8ba25054ede4798fa424e6f32b23aba0f98 i965/vec4: Only zero out unused message components when there are any.
+
+# Backported as 7ab2b8c4c4607817c91946dcba943b29f1bd1895 but without "cherry
+# picked from" in commit message
+360a141f24a9d00891665b7fedb77ffb116944ca wayland: Don't rely on static variable for identifying wl_drm buffers
+
+# Doesn't cherry-pick cleanly. Haven't heard back from requests to authors to
+# rebase.
+57f38e9f921bcfac0087765b4acb2c258604ea29 radeonsi: fix blitting the last 2 mipmap levels of compressed textures
