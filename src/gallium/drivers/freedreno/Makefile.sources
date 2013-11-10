@@ -35,6 +35,7 @@ a3xx_SOURCES := \
 	a3xx/fd3_draw.c \
 	a3xx/fd3_emit.c \
 	a3xx/fd3_gmem.c \
+	a3xx/fd3_optimize.c \
 	a3xx/fd3_program.c \
 	a3xx/fd3_rasterizer.c \
 	a3xx/fd3_screen.c \

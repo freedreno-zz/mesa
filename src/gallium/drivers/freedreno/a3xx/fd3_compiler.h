@@ -63,6 +63,20 @@ static inline void regmask_set(regmask_t *regmask, struct ir3_register *reg)
 			(*regmask)[idx / 8] |= 1 << (idx % 8);
 }
 
+/* set bits in a if not set in b, conceptually:
+ *   a |= (reg & ~b)
+ */
+static inline void regmask_set_if_not(regmask_t *a,
+		struct ir3_register *reg, regmask_t *b)
+{
+	unsigned idx = regmask_idx(reg);
+	unsigned i;
+	for (i = 0; i < 4; i++, idx++)
+		if (reg->wrmask & (1 << i))
+			if (!((*b)[idx / 8] & (1 << (idx % 8))))
+				(*a)[idx / 8] |= 1 << (idx % 8);
+}
+
 static inline unsigned regmask_get(regmask_t *regmask,
 		struct ir3_register *reg)
 {
@@ -86,9 +100,21 @@ static inline uint32_t regid(int num, int comp)
 	return (num << 2) | (comp & 0x3);
 }
 
+static inline uint32_t reg_num(struct ir3_register *reg)
+{
+	return reg->num >> 2;
+}
+
+static inline uint32_t reg_comp(struct ir3_register *reg)
+{
+	return reg->num & 0x3;
+}
+
 /* ************************************************************************* */
 
 int fd3_compile_shader(struct fd3_shader_stateobj *so,
 		const struct tgsi_token *tokens);
+
+void fd3_optimize_run(struct fd3_shader_stateobj *so);
 
 #endif /* FD3_COMPILER_H_ */

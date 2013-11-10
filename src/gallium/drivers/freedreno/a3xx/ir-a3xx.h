@@ -37,6 +37,7 @@ struct ir3_shader * fd_asm_parse(const char *src);
 
 struct ir3_shader_info {
 	uint16_t sizedwords;
+	uint16_t instrs_count;   /* expanded to account for rpt's */
 	/* NOTE: max_reg, etc, does not include registers not touched
 	 * by the shader (ie. vertex fetched via VFD_DECODE but not
 	 * touched by shader)
@@ -187,6 +188,9 @@ void * ir3_shader_assemble(struct ir3_shader *shader,
 struct ir3_instruction * ir3_instr_create(struct ir3_shader *shader,
 		int category, opc_t opc);
 struct ir3_instruction * ir3_instr_clone(struct ir3_instruction *instr);
+struct ir3_instruction * ir3_instr_insert(struct ir3_shader *shader,
+		unsigned n, int category, opc_t opc);
+void ir3_instr_del(struct ir3_shader *shader, unsigned n);
 
 struct ir3_register * ir3_reg_create(struct ir3_instruction *instr,
 		int num, int flags);

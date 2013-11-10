@@ -514,6 +514,7 @@ void * ir3_shader_assemble(struct ir3_shader *shader, struct ir3_shader_info *in
 	info->max_reg       = -1;
 	info->max_half_reg  = -1;
 	info->max_const     = -1;
+	info->instrs_count  = 0;
 
 	/* need a integer number of instruction "groups" (sets of four
 	 * instructions), so pad out w/ NOPs if needed:
@@ -528,6 +529,7 @@ void * ir3_shader_assemble(struct ir3_shader *shader, struct ir3_shader_info *in
 		int ret = emit[instr->category](instr, dwords, info);
 		if (ret)
 			goto fail;
+		info->instrs_count += 1 + instr->repeat;
 		dwords += 2;
 	}
 
@@ -587,6 +589,30 @@ struct ir3_instruction * ir3_instr_clone(struct ir3_instruction *instr)
 	}
 
 	return new_instr;
+}
+
+struct ir3_instruction * ir3_instr_insert(struct ir3_shader *shader,
+		unsigned n, int category, opc_t opc)
+{
+	struct ir3_instruction *instr =
+			ir3_alloc(shader, sizeof(struct ir3_instruction));
+	instr->shader = shader;
+	instr->category = category;
+	instr->opc = opc;
+	assert((shader->instrs_count + 1) < ARRAY_SIZE(shader->instrs));
+	memmove(&shader->instrs[n+1], &shader->instrs[n],
+			sizeof(shader->instrs[n]) * (shader->instrs_count - n));
+	shader->instrs_count++;
+	shader->instrs[n] = instr;
+	return instr;
+}
+
+void ir3_instr_del(struct ir3_shader *shader, unsigned n)
+{
+	assert(n < shader->instrs_count);
+	shader->instrs_count--;
+	memmove(&shader->instrs[n], &shader->instrs[n + 1],
+			sizeof(shader->instrs[n]) * (shader->instrs_count - n));
 }
 
 struct ir3_register * ir3_reg_create(struct ir3_instruction *instr,
