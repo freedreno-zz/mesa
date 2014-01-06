@@ -327,6 +327,12 @@ static const int extra_EXT_framebuffer_sRGB_and_new_buffers[] = {
    EXTRA_END
 };
 
+static const int extra_EXT_packed_float[] = {
+   EXT(EXT_packed_float),
+   EXTRA_NEW_BUFFERS,
+   EXTRA_END
+};
+
 static const int extra_MESA_texture_array_es3[] = {
    EXT(MESA_texture_array),
    EXTRA_API_ES3,
@@ -756,6 +762,45 @@ find_custom_value(struct gl_context *ctx, const struct value_desc *d, union valu
       unit = ctx->Texture.CurrentUnit;
       v->value_int =
 	 ctx->Texture.Unit[unit].CurrentTex[d->offset]->Name;
+      break;
+
+   /* GL_EXT_packed_float */
+   case GL_RGBA_SIGNED_COMPONENTS_EXT:
+      {
+         /* Note: we only check the 0th color attachment. */
+         const struct gl_renderbuffer *rb =
+            ctx->DrawBuffer->_ColorDrawBuffers[0];
+         if (rb && _mesa_is_format_signed(rb->Format)) {
+            /* Issue 17 of GL_EXT_packed_float:  If a component (such as
+             * alpha) has zero bits, the component should not be considered
+             * signed and so the bit for the respective component should be
+             * zeroed.
+             */
+            GLint r_bits =
+               _mesa_get_format_bits(rb->Format, GL_RED_BITS);
+            GLint g_bits =
+               _mesa_get_format_bits(rb->Format, GL_GREEN_BITS);
+            GLint b_bits =
+               _mesa_get_format_bits(rb->Format, GL_BLUE_BITS);
+            GLint a_bits =
+               _mesa_get_format_bits(rb->Format, GL_ALPHA_BITS);
+            GLint l_bits =
+               _mesa_get_format_bits(rb->Format, GL_TEXTURE_LUMINANCE_SIZE);
+            GLint i_bits =
+               _mesa_get_format_bits(rb->Format, GL_TEXTURE_INTENSITY_SIZE);
+
+            v->value_int_4[0] = r_bits + l_bits + i_bits > 0;
+            v->value_int_4[1] = g_bits + l_bits + i_bits > 0;
+            v->value_int_4[2] = b_bits + l_bits + i_bits > 0;
+            v->value_int_4[3] = a_bits + i_bits > 0;
+         }
+         else {
+            v->value_int_4[0] =
+            v->value_int_4[1] =
+            v->value_int_4[2] =
+            v->value_int_4[3] = 0;
+         }
+      }
       break;
 
    /* GL_ARB_vertex_buffer_object */
