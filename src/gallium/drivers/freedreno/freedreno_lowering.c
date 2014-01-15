@@ -91,6 +91,10 @@ reg_src(struct tgsi_full_src_register *src,
 	src->Register.SwizzleW = swiz[sw];
 }
 
+#define TGSI_SWIZZLE__ TGSI_SWIZZLE_X  /* don't-care value! */
+#define SWIZ(x,y,z,w) TGSI_SWIZZLE_ ## x, TGSI_SWIZZLE_ ## y, \
+		TGSI_SWIZZLE_ ## z, TGSI_SWIZZLE_ ## w
+
 /*
  * if (dst.x aliases src.x) {
  *   MOV tmpA.x, src.x
@@ -130,8 +134,7 @@ create_mov(struct tgsi_transform_context *tctx,
 	new_inst.Instruction.NumDstRegs = 1;
 	reg_dst(&new_inst.Dst[0], dst, mask);
 	new_inst.Instruction.NumSrcRegs = 1;
-	reg_src(&new_inst.Src[0], src, TGSI_SWIZZLE_X, TGSI_SWIZZLE_Y,
-			TGSI_SWIZZLE_Z, TGSI_SWIZZLE_W);
+	reg_src(&new_inst.Src[0], src, SWIZ(X,Y,Z,W));
 	tctx->emit_instruction(tctx, &new_inst);
 }
 
@@ -190,8 +193,8 @@ transform_dst(struct tgsi_transform_context *tctx,
 		new_inst.Instruction.NumDstRegs = 1;
 		reg_dst(&new_inst.Dst[0], dst, TGSI_WRITEMASK_Y);
 		new_inst.Instruction.NumSrcRegs = 2;
-		reg_src(&new_inst.Src[0], src0, 0, TGSI_SWIZZLE_Y, 0, 0);
-		reg_src(&new_inst.Src[1], src1, 0, TGSI_SWIZZLE_Y, 0, 0);
+		reg_src(&new_inst.Src[0], src0, SWIZ(_,Y,_,_));
+		reg_src(&new_inst.Src[1], src1, SWIZ(_,Y,_,_));
 		tctx->emit_instruction(tctx, &new_inst);
 	}
 
@@ -202,7 +205,7 @@ transform_dst(struct tgsi_transform_context *tctx,
 		new_inst.Instruction.NumDstRegs = 1;
 		reg_dst(&new_inst.Dst[0], dst, TGSI_WRITEMASK_Z);
 		new_inst.Instruction.NumSrcRegs = 1;
-		reg_src(&new_inst.Src[0], src0, 0, 0, TGSI_SWIZZLE_Z, 0);
+		reg_src(&new_inst.Src[0], src0, SWIZ(_,_,Z,_));
 		tctx->emit_instruction(tctx, &new_inst);
 	}
 
@@ -213,7 +216,7 @@ transform_dst(struct tgsi_transform_context *tctx,
 		new_inst.Instruction.NumDstRegs = 1;
 		reg_dst(&new_inst.Dst[0], dst, TGSI_WRITEMASK_W);
 		new_inst.Instruction.NumSrcRegs = 1;
-		reg_src(&new_inst.Src[0], src1, 0, 0, 0, TGSI_SWIZZLE_W);
+		reg_src(&new_inst.Src[0], src1, SWIZ(_,_,_,W));
 		tctx->emit_instruction(tctx, &new_inst);
 	}
 
@@ -224,7 +227,7 @@ transform_dst(struct tgsi_transform_context *tctx,
 		new_inst.Instruction.NumDstRegs = 1;
 		reg_dst(&new_inst.Dst[0], dst, TGSI_WRITEMASK_X);
 		new_inst.Instruction.NumSrcRegs = 1;
-		reg_src(&new_inst.Src[0], &ctx->imm, TGSI_SWIZZLE_Y, 0, 0, 0);
+		reg_src(&new_inst.Src[0], &ctx->imm, SWIZ(Y,_,_,_));
 		tctx->emit_instruction(tctx, &new_inst);
 	}
 }
@@ -260,10 +263,8 @@ transform_xpd(struct tgsi_transform_context *tctx,
 		new_inst.Instruction.NumDstRegs = 1;
 		reg_dst(&new_inst.Dst[0], &ctx->tmp[A].dst, TGSI_WRITEMASK_XYZ);
 		new_inst.Instruction.NumSrcRegs = 2;
-		reg_src(&new_inst.Src[0], src0, TGSI_SWIZZLE_Y,
-				TGSI_SWIZZLE_Z, TGSI_SWIZZLE_X, 0);
-		reg_src(&new_inst.Src[1], src1, TGSI_SWIZZLE_Z,
-				TGSI_SWIZZLE_X, TGSI_SWIZZLE_Y, 0);
+		reg_src(&new_inst.Src[0], src0, SWIZ(Y,Z,X,_));
+		reg_src(&new_inst.Src[1], src1, SWIZ(Z,X,Y,_));
 		tctx->emit_instruction(tctx, &new_inst);
 
 		/* MUL tmpB.xyz, src1.yzx, src0.zxy */
@@ -272,10 +273,8 @@ transform_xpd(struct tgsi_transform_context *tctx,
 		new_inst.Instruction.NumDstRegs = 1;
 		reg_dst(&new_inst.Dst[0], &ctx->tmp[B].dst, TGSI_WRITEMASK_XYZ);
 		new_inst.Instruction.NumSrcRegs = 2;
-		reg_src(&new_inst.Src[0], src1, TGSI_SWIZZLE_Y,
-				TGSI_SWIZZLE_Z, TGSI_SWIZZLE_X, 0);
-		reg_src(&new_inst.Src[1], src0, TGSI_SWIZZLE_Z,
-				TGSI_SWIZZLE_X, TGSI_SWIZZLE_Y, 0);
+		reg_src(&new_inst.Src[0], src1, SWIZ(Y,Z,X,_));
+		reg_src(&new_inst.Src[1], src0, SWIZ(Z,X,Y,_));
 		tctx->emit_instruction(tctx, &new_inst);
 
 		/* SUB dst.xyz, tmpA.xyz, tmpB.xyz */
@@ -284,10 +283,8 @@ transform_xpd(struct tgsi_transform_context *tctx,
 		new_inst.Instruction.NumDstRegs = 1;
 		reg_dst(&new_inst.Dst[0], dst, TGSI_WRITEMASK_XYZ);
 		new_inst.Instruction.NumSrcRegs = 2;
-		reg_src(&new_inst.Src[0], &ctx->tmp[A].src, TGSI_SWIZZLE_X,
-				TGSI_SWIZZLE_Y, TGSI_SWIZZLE_Z, 0);
-		reg_src(&new_inst.Src[1], &ctx->tmp[B].src, TGSI_SWIZZLE_X,
-				TGSI_SWIZZLE_Y, TGSI_SWIZZLE_Z, 0);
+		reg_src(&new_inst.Src[0], &ctx->tmp[A].src, SWIZ(X,Y,Z,_));
+		reg_src(&new_inst.Src[1], &ctx->tmp[B].src, SWIZ(X,Y,Z,_));
 		tctx->emit_instruction(tctx, &new_inst);
 	}
 
@@ -298,7 +295,7 @@ transform_xpd(struct tgsi_transform_context *tctx,
 		new_inst.Instruction.NumDstRegs = 1;
 		reg_dst(&new_inst.Dst[0], dst, TGSI_WRITEMASK_W);
 		new_inst.Instruction.NumSrcRegs = 1;
-		reg_src(&new_inst.Src[0], &ctx->imm, 0, 0, 0, TGSI_SWIZZLE_Y);
+		reg_src(&new_inst.Src[0], &ctx->imm, SWIZ(_,_,_,Y));
 		tctx->emit_instruction(tctx, &new_inst);
 	}
 }
@@ -341,7 +338,7 @@ transform_scs(struct tgsi_transform_context *tctx,
 		new_inst.Instruction.NumDstRegs = 1;
 		reg_dst(&new_inst.Dst[0], dst, TGSI_WRITEMASK_X);
 		new_inst.Instruction.NumSrcRegs = 1;
-		reg_src(&new_inst.Src[0], src, TGSI_SWIZZLE_X, 0, 0, 0);
+		reg_src(&new_inst.Src[0], src, SWIZ(X,_,_,_));
 		tctx->emit_instruction(tctx, &new_inst);
 	}
 
@@ -352,7 +349,7 @@ transform_scs(struct tgsi_transform_context *tctx,
 		new_inst.Instruction.NumDstRegs = 1;
 		reg_dst(&new_inst.Dst[0], dst, TGSI_WRITEMASK_Y);
 		new_inst.Instruction.NumSrcRegs = 1;
-		reg_src(&new_inst.Src[0], src, TGSI_SWIZZLE_X, 0, 0, 0);
+		reg_src(&new_inst.Src[0], src, SWIZ(X,_,_,_));
 		tctx->emit_instruction(tctx, &new_inst);
 	}
 
@@ -363,8 +360,7 @@ transform_scs(struct tgsi_transform_context *tctx,
 		new_inst.Instruction.NumDstRegs = 1;
 		reg_dst(&new_inst.Dst[0], dst, TGSI_WRITEMASK_ZW);
 		new_inst.Instruction.NumSrcRegs = 1;
-		reg_src(&new_inst.Src[0], &ctx->imm, 0, 0,
-				TGSI_SWIZZLE_X, TGSI_SWIZZLE_Y);
+		reg_src(&new_inst.Src[0], &ctx->imm, SWIZ(_,_,X,Y));
 		tctx->emit_instruction(tctx, &new_inst);
 	}
 }
@@ -401,10 +397,8 @@ transform_lrp(struct tgsi_transform_context *tctx,
 		new_inst.Instruction.NumDstRegs = 1;
 		reg_dst(&new_inst.Dst[0], &ctx->tmp[A].dst, TGSI_WRITEMASK_XYZW);
 		new_inst.Instruction.NumSrcRegs = 2;
-		reg_src(&new_inst.Src[0], src0, TGSI_SWIZZLE_X,
-				TGSI_SWIZZLE_Y, TGSI_SWIZZLE_Z, TGSI_SWIZZLE_W);
-		reg_src(&new_inst.Src[1], src1, TGSI_SWIZZLE_X,
-				TGSI_SWIZZLE_Y, TGSI_SWIZZLE_Z, TGSI_SWIZZLE_W);
+		reg_src(&new_inst.Src[0], src0, SWIZ(X,Y,Z,W));
+		reg_src(&new_inst.Src[1], src1, SWIZ(X,Y,Z,W));
 		tctx->emit_instruction(tctx, &new_inst);
 
 		/* SUB tmpB, imm{1.0}, src0 */
@@ -413,10 +407,8 @@ transform_lrp(struct tgsi_transform_context *tctx,
 		new_inst.Instruction.NumDstRegs = 1;
 		reg_dst(&new_inst.Dst[0], &ctx->tmp[B].dst, TGSI_WRITEMASK_XYZW);
 		new_inst.Instruction.NumSrcRegs = 2;
-		reg_src(&new_inst.Src[0], &ctx->imm, TGSI_SWIZZLE_Y,
-				TGSI_SWIZZLE_Y, TGSI_SWIZZLE_Y, TGSI_SWIZZLE_Y);
-		reg_src(&new_inst.Src[1], src0, TGSI_SWIZZLE_X,
-				TGSI_SWIZZLE_Y, TGSI_SWIZZLE_Z, TGSI_SWIZZLE_W);
+		reg_src(&new_inst.Src[0], &ctx->imm, SWIZ(Y,Y,Y,Y));
+		reg_src(&new_inst.Src[1], src0, SWIZ(X,Y,Z,W));
 		tctx->emit_instruction(tctx, &new_inst);
 
 		/* MUL tmpB, tmpB, src2 */
@@ -425,10 +417,8 @@ transform_lrp(struct tgsi_transform_context *tctx,
 		new_inst.Instruction.NumDstRegs = 1;
 		reg_dst(&new_inst.Dst[0], &ctx->tmp[B].dst, TGSI_WRITEMASK_XYZW);
 		new_inst.Instruction.NumSrcRegs = 2;
-		reg_src(&new_inst.Src[0], &ctx->tmp[B].src, TGSI_SWIZZLE_X,
-				TGSI_SWIZZLE_Y, TGSI_SWIZZLE_Z, TGSI_SWIZZLE_W);
-		reg_src(&new_inst.Src[1], src2, TGSI_SWIZZLE_X,
-				TGSI_SWIZZLE_Y, TGSI_SWIZZLE_Z, TGSI_SWIZZLE_W);
+		reg_src(&new_inst.Src[0], &ctx->tmp[B].src, SWIZ(X,Y,Z,W));
+		reg_src(&new_inst.Src[1], src2, SWIZ(X,Y,Z,W));
 		tctx->emit_instruction(tctx, &new_inst);
 
 		/* ADD dst, tmpA, tmpB */
@@ -437,10 +427,8 @@ transform_lrp(struct tgsi_transform_context *tctx,
 		new_inst.Instruction.NumDstRegs = 1;
 		reg_dst(&new_inst.Dst[0], dst, TGSI_WRITEMASK_XYZW);
 		new_inst.Instruction.NumSrcRegs = 2;
-		reg_src(&new_inst.Src[0], &ctx->tmp[A].src, TGSI_SWIZZLE_X,
-				TGSI_SWIZZLE_Y, TGSI_SWIZZLE_Z, TGSI_SWIZZLE_W);
-		reg_src(&new_inst.Src[1], &ctx->tmp[B].src, TGSI_SWIZZLE_X,
-				TGSI_SWIZZLE_Y, TGSI_SWIZZLE_Z, TGSI_SWIZZLE_W);
+		reg_src(&new_inst.Src[0], &ctx->tmp[A].src, SWIZ(X,Y,Z,W));
+		reg_src(&new_inst.Src[1], &ctx->tmp[B].src, SWIZ(X,Y,Z,W));
 		tctx->emit_instruction(tctx, &new_inst);
 	}
 }
@@ -473,8 +461,7 @@ transform_frc(struct tgsi_transform_context *tctx,
 		new_inst.Instruction.NumDstRegs = 1;
 		reg_dst(&new_inst.Dst[0], &ctx->tmp[A].dst, TGSI_WRITEMASK_XYZW);
 		new_inst.Instruction.NumSrcRegs = 1;
-		reg_src(&new_inst.Src[0], src, TGSI_SWIZZLE_X,
-				TGSI_SWIZZLE_Y, TGSI_SWIZZLE_Z, TGSI_SWIZZLE_W);
+		reg_src(&new_inst.Src[0], src, SWIZ(X,Y,Z,W));
 		tctx->emit_instruction(tctx, &new_inst);
 
 		/* SUB dst, src, tmpA */
@@ -483,10 +470,8 @@ transform_frc(struct tgsi_transform_context *tctx,
 		new_inst.Instruction.NumDstRegs = 1;
 		reg_dst(&new_inst.Dst[0], dst, TGSI_WRITEMASK_XYZW);
 		new_inst.Instruction.NumSrcRegs = 2;
-		reg_src(&new_inst.Src[0], src, TGSI_SWIZZLE_X,
-				TGSI_SWIZZLE_Y, TGSI_SWIZZLE_Z, TGSI_SWIZZLE_W);
-		reg_src(&new_inst.Src[1], &ctx->tmp[A].src, TGSI_SWIZZLE_X,
-				TGSI_SWIZZLE_Y, TGSI_SWIZZLE_Z, TGSI_SWIZZLE_W);
+		reg_src(&new_inst.Src[0], src, SWIZ(X,Y,Z,W));
+		reg_src(&new_inst.Src[1], &ctx->tmp[A].src, SWIZ(X,Y,Z,W));
 		tctx->emit_instruction(tctx, &new_inst);
 	}
 }
@@ -521,7 +506,7 @@ transform_pow(struct tgsi_transform_context *tctx,
 		new_inst.Instruction.NumDstRegs = 1;
 		reg_dst(&new_inst.Dst[0], &ctx->tmp[A].dst, TGSI_WRITEMASK_X);
 		new_inst.Instruction.NumSrcRegs = 1;
-		reg_src(&new_inst.Src[0], src0, TGSI_SWIZZLE_X, 0, 0, 0);
+		reg_src(&new_inst.Src[0], src0, SWIZ(X,_,_,_));
 		tctx->emit_instruction(tctx, &new_inst);
 
 		/* MUL tmpA.x, src1.x, tmpA.x */
@@ -530,8 +515,8 @@ transform_pow(struct tgsi_transform_context *tctx,
 		new_inst.Instruction.NumDstRegs = 1;
 		reg_dst(&new_inst.Dst[0], &ctx->tmp[A].dst, TGSI_WRITEMASK_X);
 		new_inst.Instruction.NumSrcRegs = 2;
-		reg_src(&new_inst.Src[0], src1, TGSI_SWIZZLE_X, 0, 0, 0);
-		reg_src(&new_inst.Src[1], &ctx->tmp[A].src, TGSI_SWIZZLE_X, 0, 0, 0);
+		reg_src(&new_inst.Src[0], src1, SWIZ(X,_,_,_));
+		reg_src(&new_inst.Src[1], &ctx->tmp[A].src, SWIZ(X,_,_,_));
 		tctx->emit_instruction(tctx, &new_inst);
 
 		/* EX2 dst, tmpA.x */
@@ -540,7 +525,7 @@ transform_pow(struct tgsi_transform_context *tctx,
 		new_inst.Instruction.NumDstRegs = 1;
 		reg_dst(&new_inst.Dst[0], dst, TGSI_WRITEMASK_XYZW);
 		new_inst.Instruction.NumSrcRegs = 1;
-		reg_src(&new_inst.Src[0], &ctx->tmp[A].src, TGSI_SWIZZLE_X, 0, 0, 0);
+		reg_src(&new_inst.Src[0], &ctx->tmp[A].src, SWIZ(X,_,_,_));
 		tctx->emit_instruction(tctx, &new_inst);
 	}
 }
@@ -579,10 +564,8 @@ transform_lit(struct tgsi_transform_context *tctx,
 		new_inst.Instruction.NumDstRegs = 1;
 		reg_dst(&new_inst.Dst[0], &ctx->tmp[A].dst, TGSI_WRITEMASK_XY);
 		new_inst.Instruction.NumSrcRegs = 2;
-		reg_src(&new_inst.Src[0], src, TGSI_SWIZZLE_X,
-				TGSI_SWIZZLE_Y, 0, 0);
-		reg_src(&new_inst.Src[1], &ctx->imm, TGSI_SWIZZLE_X,
-				TGSI_SWIZZLE_X, 0, 0);
+		reg_src(&new_inst.Src[0], src, SWIZ(X,Y,_,_));
+		reg_src(&new_inst.Src[1], &ctx->imm, SWIZ(X,X,_,_));
 		tctx->emit_instruction(tctx, &new_inst);
 
 		/* CLAMP tmpA.z, src.w, -imm{128.0}, imm{128.0} */
@@ -591,10 +574,10 @@ transform_lit(struct tgsi_transform_context *tctx,
 		new_inst.Instruction.NumDstRegs = 1;
 		reg_dst(&new_inst.Dst[0], &ctx->tmp[A].dst, TGSI_WRITEMASK_Z);
 		new_inst.Instruction.NumSrcRegs = 3;
-		reg_src(&new_inst.Src[0], src, 0, 0, TGSI_SWIZZLE_W, 0);
-		reg_src(&new_inst.Src[1], &ctx->imm, 0, 0, TGSI_SWIZZLE_Z, 0);
+		reg_src(&new_inst.Src[0], src, SWIZ(_,_,W,_));
+		reg_src(&new_inst.Src[1], &ctx->imm, SWIZ(_,_,Z,_));
 		new_inst.Src[1].Register.Negate = true;
-		reg_src(&new_inst.Src[2], &ctx->imm, 0, 0, TGSI_SWIZZLE_Z, 0);
+		reg_src(&new_inst.Src[2], &ctx->imm, SWIZ(_,_,Z,_));
 		tctx->emit_instruction(tctx, &new_inst);
 
 		/* LG2 tmpA.y, tmpA.y */
@@ -603,7 +586,7 @@ transform_lit(struct tgsi_transform_context *tctx,
 		new_inst.Instruction.NumDstRegs = 1;
 		reg_dst(&new_inst.Dst[0], &ctx->tmp[A].dst, TGSI_WRITEMASK_Y);
 		new_inst.Instruction.NumSrcRegs = 1;
-		reg_src(&new_inst.Src[0], &ctx->tmp[A].src, TGSI_SWIZZLE_Y, 0, 0, 0);
+		reg_src(&new_inst.Src[0], &ctx->tmp[A].src, SWIZ(Y,_,_,_));
 		tctx->emit_instruction(tctx, &new_inst);
 
 		/* MUL tmpA.y, tmpA.z, tmpA.y */
@@ -612,8 +595,8 @@ transform_lit(struct tgsi_transform_context *tctx,
 		new_inst.Instruction.NumDstRegs = 1;
 		reg_dst(&new_inst.Dst[0], &ctx->tmp[A].dst, TGSI_WRITEMASK_Y);
 		new_inst.Instruction.NumSrcRegs = 2;
-		reg_src(&new_inst.Src[0], &ctx->tmp[A].src, 0, TGSI_SWIZZLE_Z, 0, 0);
-		reg_src(&new_inst.Src[1], &ctx->tmp[A].src, 0, TGSI_SWIZZLE_Y, 0, 0);
+		reg_src(&new_inst.Src[0], &ctx->tmp[A].src, SWIZ(_,Z,_,_));
+		reg_src(&new_inst.Src[1], &ctx->tmp[A].src, SWIZ(_,Y,_,_));
 		tctx->emit_instruction(tctx, &new_inst);
 
 		/* EX2 tmpA.y, tmpA.y */
@@ -622,7 +605,7 @@ transform_lit(struct tgsi_transform_context *tctx,
 		new_inst.Instruction.NumDstRegs = 1;
 		reg_dst(&new_inst.Dst[0], &ctx->tmp[A].dst, TGSI_WRITEMASK_Y);
 		new_inst.Instruction.NumSrcRegs = 1;
-		reg_src(&new_inst.Src[0], &ctx->tmp[A].src, TGSI_SWIZZLE_Y, 0, 0, 0);
+		reg_src(&new_inst.Src[0], &ctx->tmp[A].src, SWIZ(Y,_,_,_));
 		tctx->emit_instruction(tctx, &new_inst);
 
 		/* CMP tmpA.y, -src.x, tmpA.y, imm{0.0} */
@@ -631,10 +614,10 @@ transform_lit(struct tgsi_transform_context *tctx,
 		new_inst.Instruction.NumDstRegs = 1;
 		reg_dst(&new_inst.Dst[0], &ctx->tmp[A].dst, TGSI_WRITEMASK_Y);
 		new_inst.Instruction.NumSrcRegs = 3;
-		reg_src(&new_inst.Src[0], src, 0, TGSI_SWIZZLE_X, 0, 0);
+		reg_src(&new_inst.Src[0], src, SWIZ(_,X,_,_));
 		new_inst.Src[0].Register.Negate = true;
-		reg_src(&new_inst.Src[1], &ctx->tmp[A].src, 0, TGSI_SWIZZLE_Y, 0, 0);
-		reg_src(&new_inst.Src[2], &ctx->imm, 0, TGSI_SWIZZLE_X, 0, 0);
+		reg_src(&new_inst.Src[1], &ctx->tmp[A].src, SWIZ(_,Y,_,_));
+		reg_src(&new_inst.Src[2], &ctx->imm, SWIZ(_,X,_,_));
 		tctx->emit_instruction(tctx, &new_inst);
 
 		/* MOV dst.yz, tmpA.xy */
@@ -643,8 +626,7 @@ transform_lit(struct tgsi_transform_context *tctx,
 		new_inst.Instruction.NumDstRegs = 1;
 		reg_dst(&new_inst.Dst[0], dst, TGSI_WRITEMASK_YZ);
 		new_inst.Instruction.NumSrcRegs = 1;
-		reg_src(&new_inst.Src[0], &ctx->tmp[A].src, 0, TGSI_SWIZZLE_X,
-				TGSI_SWIZZLE_Y, 0);
+		reg_src(&new_inst.Src[0], &ctx->tmp[A].src, SWIZ(_,X,Y,_));
 		tctx->emit_instruction(tctx, &new_inst);
 	}
 
@@ -655,8 +637,7 @@ transform_lit(struct tgsi_transform_context *tctx,
 		new_inst.Instruction.NumDstRegs = 1;
 		reg_dst(&new_inst.Dst[0], dst, TGSI_WRITEMASK_XW);
 		new_inst.Instruction.NumSrcRegs = 1;
-		reg_src(&new_inst.Src[0], &ctx->imm, TGSI_SWIZZLE_Y, 0,
-				0, TGSI_SWIZZLE_Y);
+		reg_src(&new_inst.Src[0], &ctx->imm, SWIZ(Y,_,_,Y));
 		tctx->emit_instruction(tctx, &new_inst);
 	}
 }
@@ -693,7 +674,7 @@ transform_exp(struct tgsi_transform_context *tctx,
 		new_inst.Instruction.NumDstRegs = 1;
 		reg_dst(&new_inst.Dst[0], &ctx->tmp[A].dst, TGSI_WRITEMASK_X);
 		new_inst.Instruction.NumSrcRegs = 1;
-		reg_src(&new_inst.Src[0], src, TGSI_SWIZZLE_X, 0, 0, 0);
+		reg_src(&new_inst.Src[0], src, SWIZ(X,_,_,_));
 		tctx->emit_instruction(tctx, &new_inst);
 	}
 
@@ -704,7 +685,7 @@ transform_exp(struct tgsi_transform_context *tctx,
 		new_inst.Instruction.NumDstRegs = 1;
 		reg_dst(&new_inst.Dst[0], &ctx->tmp[A].dst, TGSI_WRITEMASK_Y);
 		new_inst.Instruction.NumSrcRegs = 1;
-		reg_src(&new_inst.Src[0], src, TGSI_SWIZZLE_X, 0, 0, 0);
+		reg_src(&new_inst.Src[0], src, SWIZ(X,_,_,_));
 		tctx->emit_instruction(tctx, &new_inst);
 	}
 
@@ -715,8 +696,8 @@ transform_exp(struct tgsi_transform_context *tctx,
 		new_inst.Instruction.NumDstRegs = 1;
 		reg_dst(&new_inst.Dst[0], dst, TGSI_WRITEMASK_Y);
 		new_inst.Instruction.NumSrcRegs = 2;
-		reg_src(&new_inst.Src[0], src, 0, TGSI_SWIZZLE_X, 0, 0);
-		reg_src(&new_inst.Src[1], &ctx->tmp[A].src, 0, TGSI_SWIZZLE_X, 0, 0);
+		reg_src(&new_inst.Src[0], src, SWIZ(_,X,_,_));
+		reg_src(&new_inst.Src[1], &ctx->tmp[A].src, SWIZ(_,X,_,_));
 		tctx->emit_instruction(tctx, &new_inst);
 	}
 
@@ -727,7 +708,7 @@ transform_exp(struct tgsi_transform_context *tctx,
 		new_inst.Instruction.NumDstRegs = 1;
 		reg_dst(&new_inst.Dst[0], dst, TGSI_WRITEMASK_X);
 		new_inst.Instruction.NumSrcRegs = 1;
-		reg_src(&new_inst.Src[0], &ctx->tmp[A].src, TGSI_SWIZZLE_X, 0, 0, 0);
+		reg_src(&new_inst.Src[0], &ctx->tmp[A].src, SWIZ(X,_,_,_));
 		tctx->emit_instruction(tctx, &new_inst);
 	}
 
@@ -738,7 +719,7 @@ transform_exp(struct tgsi_transform_context *tctx,
 		new_inst.Instruction.NumDstRegs = 1;
 		reg_dst(&new_inst.Dst[0], dst, TGSI_WRITEMASK_Z);
 		new_inst.Instruction.NumSrcRegs = 1;
-		reg_src(&new_inst.Src[0], &ctx->tmp[A].src, 0, 0, TGSI_SWIZZLE_Y, 0);
+		reg_src(&new_inst.Src[0], &ctx->tmp[A].src, SWIZ(_,_,Y,_));
 		tctx->emit_instruction(tctx, &new_inst);
 	}
 
@@ -749,7 +730,7 @@ transform_exp(struct tgsi_transform_context *tctx,
 		new_inst.Instruction.NumDstRegs = 1;
 		reg_dst(&new_inst.Dst[0], dst, TGSI_WRITEMASK_W);
 		new_inst.Instruction.NumSrcRegs = 1;
-		reg_src(&new_inst.Src[0], &ctx->imm, 0, 0, 0, TGSI_SWIZZLE_Y);
+		reg_src(&new_inst.Src[0], &ctx->imm, SWIZ(_,_,_,Y));
 		tctx->emit_instruction(tctx, &new_inst);
 	}
 }
@@ -787,7 +768,7 @@ transform_log(struct tgsi_transform_context *tctx,
 		new_inst.Instruction.NumDstRegs = 1;
 		reg_dst(&new_inst.Dst[0], &ctx->tmp[A].dst, TGSI_WRITEMASK_X);
 		new_inst.Instruction.NumSrcRegs = 1;
-		reg_src(&new_inst.Src[0], src, TGSI_SWIZZLE_X, 0, 0, 0);
+		reg_src(&new_inst.Src[0], src, SWIZ(X,_,_,_));
 		new_inst.Src[0].Register.Absolute = true;
 		tctx->emit_instruction(tctx, &new_inst);
 	}
@@ -799,7 +780,7 @@ transform_log(struct tgsi_transform_context *tctx,
 		new_inst.Instruction.NumDstRegs = 1;
 		reg_dst(&new_inst.Dst[0], &ctx->tmp[A].dst, TGSI_WRITEMASK_Y);
 		new_inst.Instruction.NumSrcRegs = 1;
-		reg_src(&new_inst.Src[0], &ctx->tmp[A].src, 0, TGSI_SWIZZLE_X, 0, 0);
+		reg_src(&new_inst.Src[0], &ctx->tmp[A].src, SWIZ(_,X,_,_));
 		tctx->emit_instruction(tctx, &new_inst);
 	}
 
@@ -810,7 +791,7 @@ transform_log(struct tgsi_transform_context *tctx,
 		new_inst.Instruction.NumDstRegs = 1;
 		reg_dst(&new_inst.Dst[0], &ctx->tmp[A].dst, TGSI_WRITEMASK_Z);
 		new_inst.Instruction.NumSrcRegs = 1;
-		reg_src(&new_inst.Src[0], &ctx->tmp[A].src, TGSI_SWIZZLE_Y, 0, 0, 0);
+		reg_src(&new_inst.Src[0], &ctx->tmp[A].src, SWIZ(Y,_,_,_));
 		tctx->emit_instruction(tctx, &new_inst);
 
 		/* RCP tmpA.z, tmpA.z */
@@ -819,7 +800,7 @@ transform_log(struct tgsi_transform_context *tctx,
 		new_inst.Instruction.NumDstRegs = 1;
 		reg_dst(&new_inst.Dst[0], &ctx->tmp[A].dst, TGSI_WRITEMASK_Z);
 		new_inst.Instruction.NumSrcRegs = 1;
-		reg_src(&new_inst.Src[0], &ctx->tmp[A].src, TGSI_SWIZZLE_Z, 0, 0, 0);
+		reg_src(&new_inst.Src[0], &ctx->tmp[A].src, SWIZ(Z,_,_,_));
 		tctx->emit_instruction(tctx, &new_inst);
 
 		/* MUL dst.y, |src.x|, tmpA.z */
@@ -828,9 +809,9 @@ transform_log(struct tgsi_transform_context *tctx,
 		new_inst.Instruction.NumDstRegs = 1;
 		reg_dst(&new_inst.Dst[0], dst, TGSI_WRITEMASK_Y);
 		new_inst.Instruction.NumSrcRegs = 2;
-		reg_src(&new_inst.Src[0], src, 0, TGSI_SWIZZLE_X, 0, 0);
+		reg_src(&new_inst.Src[0], src, SWIZ(_,X,_,_));
 		new_inst.Src[0].Register.Absolute = true;
-		reg_src(&new_inst.Src[1], &ctx->tmp[A].src, 0, TGSI_SWIZZLE_Z, 0, 0);
+		reg_src(&new_inst.Src[1], &ctx->tmp[A].src, SWIZ(_,Z,_,_));
 		tctx->emit_instruction(tctx, &new_inst);
 	}
 
@@ -841,8 +822,7 @@ transform_log(struct tgsi_transform_context *tctx,
 		new_inst.Instruction.NumDstRegs = 1;
 		reg_dst(&new_inst.Dst[0], dst, TGSI_WRITEMASK_XZ);
 		new_inst.Instruction.NumSrcRegs = 1;
-		reg_src(&new_inst.Src[0], &ctx->tmp[A].src, TGSI_SWIZZLE_Y, 0,
-				TGSI_SWIZZLE_X, 0);
+		reg_src(&new_inst.Src[0], &ctx->tmp[A].src, SWIZ(Y,_,X,_));
 		tctx->emit_instruction(tctx, &new_inst);
 	}
 
@@ -853,7 +833,7 @@ transform_log(struct tgsi_transform_context *tctx,
 		new_inst.Instruction.NumDstRegs = 1;
 		reg_dst(&new_inst.Dst[0], dst, TGSI_WRITEMASK_W);
 		new_inst.Instruction.NumSrcRegs = 1;
-		reg_src(&new_inst.Src[0], &ctx->imm, 0, 0, 0, TGSI_SWIZZLE_Y);
+		reg_src(&new_inst.Src[0], &ctx->imm, SWIZ(_,_,_,Y));
 		tctx->emit_instruction(tctx, &new_inst);
 	}
 }
