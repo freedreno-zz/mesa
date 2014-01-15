@@ -422,20 +422,6 @@ get_internal_temp_hr(struct fd3_compile_context *ctx,
 	return tmp_src;
 }
 
-/* same as get_internal_temp, but w/ src.xxxx (for instructions that
- * replicate their results)
- */
-static struct tgsi_src_register *
-get_internal_temp_repl(struct fd3_compile_context *ctx,
-		struct tgsi_dst_register *tmp_dst)
-{
-	struct tgsi_src_register *tmp_src =
-			get_internal_temp(ctx, tmp_dst);
-	tmp_src->SwizzleX = tmp_src->SwizzleY =
-		tmp_src->SwizzleZ = tmp_src->SwizzleW = TGSI_SWIZZLE_X;
-	return tmp_src;
-}
-
 static inline bool
 is_const(struct tgsi_src_register *src)
 {
@@ -716,89 +702,6 @@ vectorize(struct fd3_compile_context *ctx, struct ir3_instruction *instr,
  * Handlers for TGSI instructions which do not have a 1:1 mapping to
  * native instructions:
  */
-
-static inline void
-get_swiz(unsigned *swiz, struct tgsi_src_register *src)
-{
-	swiz[0] = src->SwizzleX;
-	swiz[1] = src->SwizzleY;
-	swiz[2] = src->SwizzleZ;
-	swiz[3] = src->SwizzleW;
-}
-
-static void
-trans_dotp(const struct instr_translater *t,
-		struct fd3_compile_context *ctx,
-		struct tgsi_full_instruction *inst)
-{
-	struct ir3_instruction *instr;
-	struct tgsi_dst_register tmp_dst;
-	struct tgsi_src_register *tmp_src;
-	struct tgsi_dst_register *dst  = &inst->Dst[0].Register;
-	struct tgsi_src_register *src0 = &inst->Src[0].Register;
-	struct tgsi_src_register *src1 = &inst->Src[1].Register;
-	unsigned swiz0[4];
-	unsigned swiz1[4];
-	opc_t opc_mad    = ctx->so->half_precision ? OPC_MAD_F16 : OPC_MAD_F32;
-	unsigned n = t->arg;     /* number of components */
-	unsigned i, swapped = 0;
-
-	tmp_src = get_internal_temp_repl(ctx, &tmp_dst);
-
-	/* in particular, can't handle const for src1 for cat3/mad:
-	 */
-	if (is_rel_or_const(src1)) {
-		if (!is_rel_or_const(src0)) {
-			struct tgsi_src_register *tmp;
-			tmp = src0;
-			src0 = src1;
-			src1 = tmp;
-			swapped = 1;
-		} else {
-			src0 = get_unconst(ctx, src0);
-		}
-	}
-
-	get_swiz(swiz0, src0);
-	get_swiz(swiz1, src1);
-
-	instr = instr_create(ctx, 2, OPC_MUL_F);
-	add_dst_reg(ctx, instr, &tmp_dst, TGSI_SWIZZLE_X);
-	add_src_reg(ctx, instr, src0, swiz0[0]);
-	add_src_reg(ctx, instr, src1, swiz1[0]);
-
-	for (i = 1; i < n; i++) {
-		add_nop(ctx, 1);
-
-		instr = instr_create(ctx, 3, opc_mad);
-		add_dst_reg(ctx, instr, &tmp_dst, TGSI_SWIZZLE_X);
-		add_src_reg(ctx, instr, src0, swiz0[i]);
-		add_src_reg(ctx, instr, src1, swiz1[i]);
-		add_src_reg(ctx, instr, tmp_src, TGSI_SWIZZLE_X);
-	}
-
-	/* DPH(a,b) = (a.x * b.x) + (a.y * b.y) + (a.z * b.z) + b.w */
-	if (t->tgsi_opc == TGSI_OPCODE_DPH) {
-		add_nop(ctx, 2);
-
-		instr = instr_create(ctx, 2, OPC_ADD_F);
-		add_dst_reg(ctx, instr, &tmp_dst, TGSI_SWIZZLE_X);
-		if (swapped)
-			add_src_reg(ctx, instr, src0, swiz0[i]);
-		else
-			add_src_reg(ctx, instr, src1, swiz1[i]);
-		add_src_reg(ctx, instr, tmp_src, TGSI_SWIZZLE_X);
-
-		n++;
-	}
-
-	add_nop(ctx, 3);
-
-	/* because of get_internal_temp_repl(), this will replicate
-	 * the results to all components of dst:
-	 */
-	create_mov(ctx, dst, tmp_src);
-}
 
 static void
 trans_clamp(const struct instr_translater *t,
@@ -1363,10 +1266,6 @@ static const struct instr_translater translaters[TGSI_OPCODE_LAST] = {
 	INSTR(MUL,          instr_cat2, .opc = OPC_MUL_F),
 	INSTR(ADD,          instr_cat2, .opc = OPC_ADD_F),
 	INSTR(SUB,          instr_cat2, .opc = OPC_ADD_F),
-	INSTR(DP2,          trans_dotp, .arg = 2),
-	INSTR(DP3,          trans_dotp, .arg = 3),
-	INSTR(DP4,          trans_dotp, .arg = 4),
-	INSTR(DPH,          trans_dotp, .arg = 3),   /* almost like DP3 */
 	INSTR(MIN,          instr_cat2, .opc = OPC_MIN_F),
 	INSTR(MAX,          instr_cat2, .opc = OPC_MAX_F),
 	INSTR(MAD,          instr_cat3, .opc = OPC_MAD_F32, .hopc = OPC_MAD_F16),
