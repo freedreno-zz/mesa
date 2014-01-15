@@ -1600,19 +1600,16 @@ compile_instructions(struct fd3_compile_context *ctx)
 }
 
 int
-fd3_compile_shader(struct fd3_shader_stateobj *so,
+fd3_compile_shader_new(struct fd3_shader_stateobj *so,
+		const struct tgsi_token *tokens);
+
+int
+fd3_compile_shader_new(struct fd3_shader_stateobj *so,
 		const struct tgsi_token *tokens)
 {
-	int fd3_compile_shader_new(struct fd3_shader_stateobj *so,
-			const struct tgsi_token *tokens);
 	struct fd3_compile_context ctx;
 
 	assert(!so->ir);
-
-	if (1 /* debug */) {
-		struct fd3_shader_stateobj so_tmp = *so;
-		fd3_compile_shader_new(&so_tmp, tokens);
-	}
 
 	so->ir = ir3_shader_create();
 
@@ -1623,8 +1620,6 @@ fd3_compile_shader(struct fd3_shader_stateobj *so,
 
 	compile_instructions(&ctx);
 
-	if (ctx.optimize)
-		fd3_optimize_run(so);
 
 	compile_free(&ctx);
 
