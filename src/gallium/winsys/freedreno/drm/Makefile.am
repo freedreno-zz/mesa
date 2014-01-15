@@ -31,3 +31,20 @@ AM_CFLAGS = \
 noinst_LTLIBRARIES = libfreedrenodrm.la
 
 libfreedrenodrm_la_SOURCES = $(C_SOURCES)
+
+noinst_PROGRAMS = \
+	fd3asm
+
+fd3asm_CFLAGS = \
+	-I$(top_srcdir)/src/gallium/drivers/freedreno/a3xx \
+	-I$(top_srcdir)/src/gallium/drivers/freedreno \
+	$(AM_CFLAGS)
+
+fd3asm_SOURCES = \
+	$(top_srcdir)/src/gallium/drivers/freedreno/a3xx/fd3asm.c
+
+fd3asm_LDADD = \
+	../../../drivers/freedreno/libfreedreno.la \
+	../../../auxiliary/libgallium.la \
+	libfreedrenodrm.la \
+	$(FREEDRENO_LIBS) -lm -ldl
