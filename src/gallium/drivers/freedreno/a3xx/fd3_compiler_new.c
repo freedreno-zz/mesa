@@ -106,9 +106,6 @@ struct fd3_compile_context {
 	 */
 	struct tgsi_dst_register tmp_dst;
 	struct tgsi_src_register *tmp_src;
-
-	/* enable optimization passes: */
-	boolean optimize;
 };
 
 
@@ -139,19 +136,6 @@ compile_init(struct fd3_compile_context *ctx, struct fd3_shader_stateobj *so,
 	memset(ctx->base_reg, 0, sizeof(ctx->base_reg));
 
 	tgsi_scan_shader(tokens, &ctx->info);
-
-	ctx->optimize = !!(fd_mesa_debug & FD_DBG_OPTIMIZE);
-
-#define FM(x) (1 << TGSI_FILE_##x)
-	/* optimize can't deal with relative addressing: */
-	if (info->indirect_files & (FM(TEMPORARY) | FM(INPUT) | FM(OUTPUT)))
-		ctx->optimize = false;
-
-#define OPCS(x) (info->opcode_count[TGSI_OPCODE_ ## x])
-	/* optimizer can't (yet) deal with more than one basic block: */
-	if (OPCS(IF) || OPCS(UIF) || OPCS(SWITCH) ||
-			OPCS(BGNLOOP) || OPCS(BGNSUB))
-		ctx->optimize = false;
 
 	/* Immediates go after constants: */
 	ctx->base_reg[TGSI_FILE_CONSTANT]  = 0;
