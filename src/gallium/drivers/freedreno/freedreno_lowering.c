@@ -838,6 +838,144 @@ transform_log(struct tgsi_transform_context *tctx,
 	}
 }
 
+/* DP4 - 4-component Dot Product
+ *   dst = src0.x \times src1.x + src0.y \times src1.y + src0.z \times src1.z + src0.w \times src1.w
+ *
+ * DP3 - 3-component Dot Product
+ *   dst = src0.x \times src1.x + src0.y \times src1.y + src0.z \times src1.z
+ *
+ * DPH - Homogeneous Dot Product
+ *   dst = src0.x \times src1.x + src0.y \times src1.y + src0.z \times src1.z + src1.w
+ *
+ * DP2 - 2-component Dot Product
+ *   dst = src0.x \times src1.x + src0.y \times src1.y
+ *
+ * DP2A - 2-component Dot Product And Add
+ *   dst = src0.x \times src1.x + src0.y \times src1.y + src2.x
+ *
+ * NOTE: these are translated into sequence of MUL/MAD(/ADD) scalar
+ * operations, which is what you'd prefer for a ISA that is natively
+ * scalar.  Probably a native vector ISA would at least already have
+ * DP4/DP3 instructions, but perhaps there is room for an alternative
+ * translation for DPH/DP2/DP2A using vector instructions.
+ *
+ * ; needs: 1 tmp
+ * MUL tmpA.x, src0.x, src1.x
+ * MAD tmpA.x, src0.y, src1.y, tmpA.x
+ * if (DPH || DP3 || DP4) {
+ *   MAD tmpA.x, src0.z, src1.z, tmpA.x
+ *   if (DPH) {
+ *     ADD tmpA.x, src1.w, tmpA.x
+ *   } else if (DP4) {
+ *     MAD tmpA.x, src0.w, src1.w, tmpA.x
+ *   }
+ * } else if (DP2A) {
+ *   ADD tmpA.x, src2.x, tmpA.x
+ * }
+ * ; fixup last instruction to replicate into dst
+ */
+#define DP4_GROW  (19 - 4)
+#define DP3_GROW  (14 - 4)
+#define DPH_GROW  (18 - 4)
+#define DP2_GROW  ( 9 - 4)
+#define DP2A_GROW (13 - 4)
+#define DOTP_TMP  1
+static void
+transform_dotp(struct tgsi_transform_context *tctx,
+		struct tgsi_full_instruction *inst)
+{
+	struct fd_lowering_context *ctx = fd_lowering_context(tctx);
+	struct tgsi_full_dst_register *dst  = &inst->Dst[0];
+	struct tgsi_full_src_register *src0 = &inst->Src[0];
+	struct tgsi_full_src_register *src1 = &inst->Src[1];
+	struct tgsi_full_src_register *src2 = &inst->Src[2]; /* only DP2A */
+	struct tgsi_full_instruction new_inst;
+	unsigned opcode = inst->Instruction.Opcode;
+
+	/* NOTE: any potential last instruction must replicate src on all
+	 * components (since it could be re-written to write to final dst)
+	 */
+
+	if (dst->Register.WriteMask & TGSI_WRITEMASK_XYZW) {
+		/* MUL tmpA.x, src0.x, src1.x */
+		new_inst = tgsi_default_full_instruction();
+		new_inst.Instruction.Opcode = TGSI_OPCODE_MUL;
+		new_inst.Instruction.NumDstRegs = 1;
+		reg_dst(&new_inst.Dst[0], &ctx->tmp[A].dst, TGSI_WRITEMASK_X);
+		new_inst.Instruction.NumSrcRegs = 2;
+		reg_src(&new_inst.Src[0], src0, SWIZ(X,_,_,_));
+		reg_src(&new_inst.Src[1], src1, SWIZ(X,_,_,_));
+		tctx->emit_instruction(tctx, &new_inst);
+
+		/* MAD tmpA.x, src0.y, src1.y, tmpA.x */
+		new_inst = tgsi_default_full_instruction();
+		new_inst.Instruction.Opcode = TGSI_OPCODE_MAD;
+		new_inst.Instruction.NumDstRegs = 1;
+		reg_dst(&new_inst.Dst[0], &ctx->tmp[A].dst, TGSI_WRITEMASK_X);
+		new_inst.Instruction.NumSrcRegs = 3;
+		reg_src(&new_inst.Src[0], src0, SWIZ(Y,Y,Y,Y));
+		reg_src(&new_inst.Src[1], src1, SWIZ(Y,Y,Y,Y));
+		reg_src(&new_inst.Src[2], &ctx->tmp[A].src, SWIZ(X,X,X,X));
+
+		if ((opcode == TGSI_OPCODE_DPH) ||
+				(opcode == TGSI_OPCODE_DP3) ||
+				(opcode == TGSI_OPCODE_DP4)) {
+			tctx->emit_instruction(tctx, &new_inst);
+
+			/* MAD tmpA.x, src0.z, src1.z, tmpA.x */
+			new_inst = tgsi_default_full_instruction();
+			new_inst.Instruction.Opcode = TGSI_OPCODE_MAD;
+			new_inst.Instruction.NumDstRegs = 1;
+			reg_dst(&new_inst.Dst[0], &ctx->tmp[A].dst, TGSI_WRITEMASK_X);
+			new_inst.Instruction.NumSrcRegs = 3;
+			reg_src(&new_inst.Src[0], src0, SWIZ(Z,Z,Z,Z));
+			reg_src(&new_inst.Src[1], src1, SWIZ(Z,Z,Z,Z));
+			reg_src(&new_inst.Src[2], &ctx->tmp[A].src, SWIZ(X,X,X,X));
+
+			if (opcode == TGSI_OPCODE_DPH) {
+				tctx->emit_instruction(tctx, &new_inst);
+
+				/* ADD tmpA.x, src1.w, tmpA.x */
+				new_inst = tgsi_default_full_instruction();
+				new_inst.Instruction.Opcode = TGSI_OPCODE_ADD;
+				new_inst.Instruction.NumDstRegs = 1;
+				reg_dst(&new_inst.Dst[0], &ctx->tmp[A].dst, TGSI_WRITEMASK_X);
+				new_inst.Instruction.NumSrcRegs = 2;
+				reg_src(&new_inst.Src[0], src1, SWIZ(W,W,W,W));
+				reg_src(&new_inst.Src[1], &ctx->tmp[A].src, SWIZ(X,X,X,X));
+			} else if (opcode == TGSI_OPCODE_DP4) {
+				tctx->emit_instruction(tctx, &new_inst);
+
+				/* MAD tmpA.x, src0.w, src1.w, tmpA.x */
+				new_inst = tgsi_default_full_instruction();
+				new_inst.Instruction.Opcode = TGSI_OPCODE_MAD;
+				new_inst.Instruction.NumDstRegs = 1;
+				reg_dst(&new_inst.Dst[0], &ctx->tmp[A].dst, TGSI_WRITEMASK_X);
+				new_inst.Instruction.NumSrcRegs = 3;
+				reg_src(&new_inst.Src[0], src0, SWIZ(W,W,W,W));
+				reg_src(&new_inst.Src[1], src1, SWIZ(W,W,W,W));
+				reg_src(&new_inst.Src[2], &ctx->tmp[A].src, SWIZ(X,X,X,X));
+			}
+		} else if (opcode == TGSI_OPCODE_DP2A) {
+			tctx->emit_instruction(tctx, &new_inst);
+
+			/* ADD tmpA.x, src2.x, tmpA.x */
+			new_inst = tgsi_default_full_instruction();
+			new_inst.Instruction.Opcode = TGSI_OPCODE_ADD;
+			new_inst.Instruction.NumDstRegs = 1;
+			reg_dst(&new_inst.Dst[0], &ctx->tmp[A].dst, TGSI_WRITEMASK_X);
+			new_inst.Instruction.NumSrcRegs = 2;
+			reg_src(&new_inst.Src[0], src2, SWIZ(X,X,X,X));
+			reg_src(&new_inst.Src[1], &ctx->tmp[A].src, SWIZ(X,X,X,X));
+		}
+
+		/* fixup last instruction to write to dst: */
+		reg_dst(&new_inst.Dst[0], dst, TGSI_WRITEMASK_XYZW);
+
+		tctx->emit_instruction(tctx, &new_inst);
+	}
+}
+
 static void
 transform_instr(struct tgsi_transform_context *tctx,
 		struct tgsi_full_instruction *inst)
@@ -916,6 +1054,13 @@ transform_instr(struct tgsi_transform_context *tctx,
 	case TGSI_OPCODE_LOG:
 		transform_log(tctx, inst);
 		break;
+	case TGSI_OPCODE_DP4:
+	case TGSI_OPCODE_DP3:
+	case TGSI_OPCODE_DPH:
+	case TGSI_OPCODE_DP2:
+	case TGSI_OPCODE_DP2A:
+		transform_dotp(tctx, inst);
+		break;
 	default:
 		tctx->emit_instruction(tctx, inst);
 		break;
@@ -944,7 +1089,12 @@ fd_transform_lowering(const struct tgsi_token *tokens)
 			OPCS(POW) ||
 			OPCS(LIT) ||
 			OPCS(EXP) ||
-			OPCS(LOG)))
+			OPCS(LOG) ||
+			OPCS(DP4) ||
+			OPCS(DP3) ||
+			OPCS(DPH) ||
+			OPCS(DP2) ||
+			OPCS(DP2A)))
 		return tokens;
 
 #if 0  /* debug */
@@ -989,6 +1139,26 @@ fd_transform_lowering(const struct tgsi_token *tokens)
 	if (OPCS(LOG)) {
 		newlen += LOG_GROW * OPCS(LOG);
 		numtmp = MAX2(numtmp, LOG_TMP);
+	}
+	if (OPCS(DP4)) {
+		newlen += DP4_GROW * OPCS(DP4);
+		numtmp = MAX2(numtmp, DOTP_TMP);
+	}
+	if (OPCS(DP3)) {
+		newlen += DP3_GROW * OPCS(DP3);
+		numtmp = MAX2(numtmp, DOTP_TMP);
+	}
+	if (OPCS(DPH)) {
+		newlen += DPH_GROW * OPCS(DPH);
+		numtmp = MAX2(numtmp, DOTP_TMP);
+	}
+	if (OPCS(DP2)) {
+		newlen += DP2_GROW * OPCS(DP2);
+		numtmp = MAX2(numtmp, DOTP_TMP);
+	}
+	if (OPCS(DP2A)) {
+		newlen += DP2A_GROW * OPCS(DP2A);
+		numtmp = MAX2(numtmp, DOTP_TMP);
 	}
 
 	ctx.numtmp = numtmp;
