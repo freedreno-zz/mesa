@@ -32,6 +32,7 @@
 /* low level intermediate representation of an adreno shader program */
 
 struct ir3_shader;
+struct ir3_instruction;
 
 struct ir3_shader * fd_asm_parse(const char *src);
 
@@ -62,6 +63,10 @@ struct ir3_register {
 		 * that the shader needs no more input:
 		 */
 		IR3_REG_EI     = 0x200,
+		/* meta-flags, for intermediate stages of IR, ie.
+		 * before register assignment is done:
+		 */
+		IR3_REG_SSA    = 0x1000,   /* 'instr' is ptr to assigning instr */
 	} flags;
 	union {
 		/* normal registers:
@@ -74,6 +79,19 @@ struct ir3_register {
 		float   fim_val;
 		/* relative: */
 		int offset;
+		/* for IR3_REG_SSA, src registers contain ptr back to
+		 * assigning instruction.
+		 *
+		 * XXX for inputs to a basic-block, ie. inputs to shader
+		 * or inputs to sub-block (ie. if/else/loop/etc) we need
+		 * some sort of meta-instruction to point to?
+		 *
+		 * XXX rough idea is that each assigning instruction
+		 * becomes the unique "name" for the register.  And
+		 * after the graph is constructed with this links, then
+		 * we can do register assignment and clear SSA flag.
+		 */
+		struct ir3_instruction *instr;
 	};
 
 	/* used for cat5 instructions, but also for internal/IR level
@@ -136,6 +154,10 @@ struct ir3_instruction {
 		IR3_INSTR_P     = 0x080,
 		IR3_INSTR_S     = 0x100,
 		IR3_INSTR_S2EN  = 0x200,
+		/* meta-flags, for intermediate stages of IR, ie.
+		 * before register assignment is done:
+		 */
+		IR3_INSTR_MARK  = 0x1000,
 	} flags;
 	int repeat;
 	unsigned regs_count;
@@ -168,6 +190,12 @@ struct ir3_instruction {
 			int offset;
 			int iim_val;
 		} cat6;
+		/* for meta-instructions, just used to hold extra data
+		 * before instruction scheduling, etc
+		 */
+		struct {
+			int dummy;
+		} meta;
 	};
 };
 
@@ -191,8 +219,11 @@ struct ir3_instruction * ir3_instr_clone(struct ir3_instruction *instr);
 struct ir3_instruction * ir3_instr_insert(struct ir3_shader *shader,
 		unsigned n, int category, opc_t opc);
 void ir3_instr_del(struct ir3_shader *shader, unsigned n);
+const char *ir3_instr_name(struct ir3_instruction *instr);
 
 struct ir3_register * ir3_reg_create(struct ir3_instruction *instr,
 		int num, int flags);
+
+void * ir3_alloc(struct ir3_shader *shader, int sz);
 
 #endif /* IR3_H_ */

@@ -36,9 +36,12 @@
 
 #include "tgsi/tgsi_parse.h"
 #include "tgsi/tgsi_text.h"
+#include "tgsi/tgsi_dump.h"
 
 #include "fd3_compiler.h"
 #include "fd3_program.h"
+
+#include "freedreno_lowering.h"
 
 #include "instr-a3xx.h"
 #include "ir-a3xx.h"
@@ -79,7 +82,7 @@ int main(int argc, char **argv)
 	int i;
 	for (i = 1; i < argc; i++) {
 		const char *filename = argv[i];
-		struct tgsi_token tokens[1000];
+		struct tgsi_token tokens[1000], *toks;
 		struct tgsi_parse_context parse;
 		struct fd3_shader_stateobj so;
 		void *ptr;
@@ -90,7 +93,11 @@ int main(int argc, char **argv)
 		if (!tgsi_text_translate(ptr, tokens, Elements(tokens)))
 			errx(1, "could not parse `%s'", filename);
 
-		tgsi_parse_init(&parse, tokens);
+		toks = fd_transform_lowering(tokens);
+		if (!toks)
+			toks = tokens;
+
+		tgsi_parse_init(&parse, toks);
 		switch(parse.FullHeader.Processor.Processor) {
 		case TGSI_PROCESSOR_FRAGMENT:
 			so.type = SHADER_FRAGMENT;
@@ -103,6 +110,6 @@ int main(int argc, char **argv)
 			break;
 		}
 
-		fd3_compile_shader_new(&so, tokens);
+		fd3_compile_shader_new(&so, toks);
 	}
 }

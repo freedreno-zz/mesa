@@ -1424,6 +1424,7 @@ decl_in(struct fd3_compile_context *ctx, struct tgsi_full_declaration *decl)
 		unsigned n = so->inputs_count++;
 		unsigned r = regid(i + base, 0);
 		unsigned ncomp;
+		unsigned j;
 
 		/* TODO use ctx->info.input_usage_mask[decl->Range.n] to figure out ncomp: */
 		ncomp = 4;
@@ -1438,14 +1439,11 @@ decl_in(struct fd3_compile_context *ctx, struct tgsi_full_declaration *decl)
 
 		so->total_in += ncomp;
 
-		/* for frag shaders, we need to generate the corresponding bary instr: */
-		if (ctx->type == TGSI_PROCESSOR_FRAGMENT) {
-			unsigned j;
+		for (j = 0; j < ncomp; j++) {
+			struct ir3_instruction *instr;
+			struct ir3_register *dst;
 
-			for (j = 0; j < ncomp; j++) {
-				struct ir3_instruction *instr;
-				struct ir3_register *dst;
-
+			if (ctx->type == TGSI_PROCESSOR_FRAGMENT) {
 				instr = instr_create(ctx, 2, OPC_BARY_F);
 
 				/* dst register: */
@@ -1458,9 +1456,12 @@ decl_in(struct fd3_compile_context *ctx, struct tgsi_full_declaration *decl)
 
 				/* input base (always r0.xy): */
 				ir3_reg_create(instr, regid(0,0), 0)->wrmask = 0x3;
-			}
+				nop = 6;
 
-			nop = 6;
+			} else {
+				instr = instr_create(ctx, -1, OPC_META_INPUT);
+				dst = ir3_reg_create(instr, r + j, flags);
+			}
 		}
 	}
 

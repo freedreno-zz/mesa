@@ -190,6 +190,12 @@ typedef enum {
 	OPC_LDC_4 = 30,
 	OPC_LDLV = 31,
 
+	/* meta instructions (category -1): */
+	// XXX maybe these should be private to ir-a3xx.. really
+	// it is part of the IR and not the physical instruction
+	// encoding
+	OPC_META_INPUT = 0,
+
 } opc_t;
 
 typedef enum {
