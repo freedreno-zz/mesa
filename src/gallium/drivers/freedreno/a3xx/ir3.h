@@ -161,7 +161,7 @@ struct ir3_instruction {
 	} flags;
 	int repeat;
 	unsigned regs_count;
-	struct ir3_register *regs[4];
+	struct ir3_register *regs[5];
 	union {
 		struct {
 			char inv;
@@ -194,7 +194,7 @@ struct ir3_instruction {
 		 * before instruction scheduling, etc
 		 */
 		struct {
-			int dummy;
+			int off;                        /* component/offset */
 		} meta;
 	};
 };
@@ -206,6 +206,15 @@ struct ir3_shader {
 	struct ir3_instruction *instrs[MAX_INSTRS];
 	uint32_t heap[128 * MAX_INSTRS];
 	unsigned heap_idx;
+};
+
+struct ir3_block {
+	unsigned ntemporaries, ninputs, noutputs;
+	/* maps TGSI_FILE_TEMPORARY index back to the assigning instruction: */
+	struct ir3_instruction **temporaries;
+	struct ir3_instruction **inputs;
+	struct ir3_instruction **outputs;
+	struct ir3_block *parent;
 };
 
 struct ir3_shader * ir3_shader_create(void);
@@ -225,5 +234,19 @@ struct ir3_register * ir3_reg_create(struct ir3_instruction *instr,
 		int num, int flags);
 
 void * ir3_alloc(struct ir3_shader *shader, int sz);
+
+
+static inline bool ir3_instr_check_mark(struct ir3_instruction *instr, uint32_t mark)
+{
+	if (mark != (instr->flags & IR3_INSTR_MARK))
+		return true;  /* already visited */
+	instr->flags ^= IR3_INSTR_MARK;
+	return false;
+}
+
+static  inline uint32_t ir3_block_get_mark(struct ir3_block *block)
+{
+	return block->outputs[0]->flags & IR3_INSTR_MARK;
+}
 
 #endif /* IR3_H_ */

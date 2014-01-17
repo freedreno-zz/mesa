@@ -44,7 +44,7 @@
 #include "fd3_util.h"
 
 #include "instr-a3xx.h"
-#include "ir-a3xx.h"
+#include "ir3.h"
 
 
 struct fd3_compile_context {

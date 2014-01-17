@@ -194,7 +194,16 @@ typedef enum {
 	// XXX maybe these should be private to ir-a3xx.. really
 	// it is part of the IR and not the physical instruction
 	// encoding
+	/* placeholder instr to mark inputs: */
 	OPC_META_INPUT = 0,
+	/* The "fan-in" and "fan-out" instructions are used for keeping
+	 * track of instructions that write to multiple dst registers
+	 * (fan-out) like texture sample instructions, or read multiple
+	 * consecutive scalar registers (fan-in) (bary.f, texture samp)
+	 */
+	OPC_META_FO = 1,
+	OPC_META_FI = 2,
+
 
 } opc_t;
 

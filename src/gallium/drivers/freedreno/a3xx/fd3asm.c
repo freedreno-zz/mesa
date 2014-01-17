@@ -44,7 +44,7 @@
 #include "freedreno_lowering.h"
 
 #include "instr-a3xx.h"
-#include "ir-a3xx.h"
+#include "ir3.h"
 
 int
 fd3_compile_shader_new(struct fd3_shader_stateobj *so,

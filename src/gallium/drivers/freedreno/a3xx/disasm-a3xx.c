@@ -918,7 +918,7 @@ struct opc_info {
 #define GETINFO(instr) (&(opcs[((instr)->opc_cat << NOPC_BITS) | getopc(instr)]))
 
 // XXX hack.. probably should move this table somewhere common:
-#include "ir-a3xx.h"
+#include "ir3.h"
 const char *ir3_instr_name(struct ir3_instruction *instr)
 {
 	if (instr->category == -1) return "??meta??";

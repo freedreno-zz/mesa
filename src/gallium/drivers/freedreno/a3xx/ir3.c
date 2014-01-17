@@ -21,7 +21,7 @@
  * SOFTWARE.
  */
 
-#include "ir-a3xx.h"
+#include "ir3.h"
 
 #include <stdlib.h>
 #include <stdio.h>

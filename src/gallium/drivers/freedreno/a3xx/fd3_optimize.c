@@ -31,7 +31,7 @@
 #include "fd3_util.h"
 
 #include "instr-a3xx.h"
-#include "ir-a3xx.h"
+#include "ir3.h"
 
 #define REG(so, n) (struct ir3_register){ \
 		.flags  = ((so)->half_precision) ? IR3_REG_HALF : 0, \
