@@ -22,3 +22,8 @@ f5cfb4ae21df8eebfc6b86c0ce858b1c0a9160dd i965: Ignore 'centroid' interpolation q
 # Picking it would require at least also picking:
 # 73c3c7e3, 3e0e9e3b, c59a605c
 b2d1c579bb84a88179072a6a783f8827e218db55 glcpp: Set extension defines after resolving the GLSL version.
+
+# These patches depend on other code not in stable branch.
+# (at least 3b22146dc714b6090f7423abbc4df53d7d1fdaa9)
+e190709119d8eb85c67bfbad5be699d39ad0118e mesa: Ensure that transform feedback refers to the correct program.
+43e77215b13b2f86e461cd8a62b542fc6854dd1c i965/gen7: Use to the correct program when uploading transform feedback state.
