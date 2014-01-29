@@ -33,3 +33,25 @@ noinst_LTLIBRARIES = libfreedrenodrm.la
 libfreedrenodrm_la_SOURCES = $(C_SOURCES)
 
 EXTRA_DIST = Android.mk
+
+noinst_PROGRAMS = \
+	fd3asm
+
+fd3asm_CFLAGS = \
+	-I$(top_srcdir)/src/gallium/drivers/freedreno/ir3 \
+	-I$(top_srcdir)/src/gallium/drivers/freedreno \
+	$(PTHREAD_CFLAGS) \
+	$(AM_CFLAGS)
+
+fd3asm_SOURCES = \
+	$(top_srcdir)/src/gallium/drivers/freedreno/a3xx/fd3emu.c \
+	$(top_srcdir)/src/gallium/drivers/freedreno/a3xx/fd3asm.c
+
+fd3asm_LDADD = \
+	../../../drivers/freedreno/libfreedreno.la \
+	../../../auxiliary/libgallium.la \
+	../../../../util/libmesautil.la \
+	libfreedrenodrm.la \
+	$(FREEDRENO_LIBS) \
+	$(PTHREAD_LIBS) \
+	-lm -ldl

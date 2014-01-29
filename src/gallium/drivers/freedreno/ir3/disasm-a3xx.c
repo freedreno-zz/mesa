@@ -749,7 +749,8 @@ static void print_instr(uint32_t *dwords, int level, int n)
 	uint32_t opc = instr_opc(instr);
 	const char *name;
 
-	printf("%s%04d[%08xx_%08xx] ", levels[level], n, dwords[1], dwords[0]);
+	if (level >= 0)
+		printf("%s%04d[%08xx_%08xx] ", levels[level], n, dwords[1], dwords[0]);
 
 #if 0
 	/* print unknown bits: */

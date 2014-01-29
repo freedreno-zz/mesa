@@ -4,6 +4,7 @@ include Makefile.sources
 include $(top_srcdir)/src/gallium/Automake.inc
 
 AM_CFLAGS = \
+	-O0 \
 	-Wno-packed-bitfield-compat \
 	-I$(top_srcdir)/src/gallium/drivers/freedreno/ir3 \
 	$(GALLIUM_DRIVER_CFLAGS) \
