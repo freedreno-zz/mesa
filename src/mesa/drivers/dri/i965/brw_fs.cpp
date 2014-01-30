@@ -1099,7 +1099,7 @@ fs_visitor::emit_general_interpolation(ir_variable *ir)
 		*/
                struct brw_reg interp = interp_reg(location, k);
                emit_linterp(attr, fs_reg(interp), interpolation_mode,
-                            ir->centroid,
+                            ir->centroid && !c->key.persample_shading,
                             c->key.persample_shading);
 
                if (brw->needs_unlit_centroid_workaround && ir->centroid) {
