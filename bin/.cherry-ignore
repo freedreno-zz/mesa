@@ -12,12 +12,6 @@ f0f202e6b764be803470e27cba9102f14361ae22 glx: conditionaly build dri3 and presen
 # http://lists.freedesktop.org/archives/mesa-stable/2013-December/000500.html
 a057b837ddd1c725a7504eedc53c6df05a012773 egl: add HAVE_LIBDRM define, fix EGL X11 platform
 
-# These don't pick clean, and there's a rumor of a regression.  Anuj said he
-# would come back with a backported version of these patches if necessary.
-3313cc269bd428ca96a132d86da5fddc0f27386a i965: Add an option to ignore sample qualifier
-a92e5f7cf63d496ad7830b5cea4bbab287c25b8e i965: Use sample barycentric coordinates with per sample shading
-f5cfb4ae21df8eebfc6b86c0ce858b1c0a9160dd i965: Ignore 'centroid' interpolation qualifier in case of persample shading
-
 # Author requested skipping due to regressions
 # Picking it would require at least also picking:
 # 73c3c7e3, 3e0e9e3b, c59a605c
@@ -27,3 +21,10 @@ b2d1c579bb84a88179072a6a783f8827e218db55 glcpp: Set extension defines after reso
 # (at least 3b22146dc714b6090f7423abbc4df53d7d1fdaa9)
 e190709119d8eb85c67bfbad5be699d39ad0118e mesa: Ensure that transform feedback refers to the correct program.
 43e77215b13b2f86e461cd8a62b542fc6854dd1c i965/gen7: Use to the correct program when uploading transform feedback state.
+
+# Author requested to ignore these four (since they depend on commits not in
+# stable).
+3313cc269bd428ca96a132d86da5fddc0f27386a i965: Add an option to ignore sample qualifier
+a92e5f7cf63d496ad7830b5cea4bbab287c25b8e i965: Use sample barycentric coordinates with per sample shading
+f5cfb4ae21df8eebfc6b86c0ce858b1c0a9160dd i965: Ignore 'centroid' interpolation qualifier in case of persample shading
+dc2f94bc786768329973403248820a2e5249f102 i965: Ignore 'centroid' interpolation qualifier in case of persample shading
