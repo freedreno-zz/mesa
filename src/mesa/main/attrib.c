@@ -1377,6 +1377,7 @@ copy_array_object(struct gl_context *ctx,
 
    /* _Enabled must be the same than on push */
    dest->_Enabled = src->_Enabled;
+   dest->NewArrays = src->NewArrays;
    dest->_MaxElement = src->_MaxElement;
 }
 
