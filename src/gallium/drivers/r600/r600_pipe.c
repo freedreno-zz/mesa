@@ -43,7 +43,7 @@
 
 static const struct debug_named_value r600_debug_options[] = {
 	/* features */
-	{ "nohyperz", DBG_NO_HYPERZ, "Disable Hyper-Z" },
+	{ "hyperz", DBG_HYPERZ, "Enable Hyper-Z" },
 #if defined(R600_USE_LLVM)
 	{ "nollvm", DBG_NO_LLVM, "Disable the LLVM shader compiler" },
 #endif
@@ -894,8 +894,8 @@ struct pipe_screen *r600_screen_create(struct radeon_winsys *ws)
 		rscreen->b.debug_flags |= DBG_COMPUTE;
 	if (debug_get_bool_option("R600_DUMP_SHADERS", FALSE))
 		rscreen->b.debug_flags |= DBG_FS | DBG_VS | DBG_GS | DBG_PS | DBG_CS;
-	if (!debug_get_bool_option("R600_HYPERZ", TRUE))
-		rscreen->b.debug_flags |= DBG_NO_HYPERZ;
+	if (debug_get_bool_option("R600_HYPERZ", FALSE))
+		rscreen->b.debug_flags |= DBG_HYPERZ;
 	if (!debug_get_bool_option("R600_LLVM", TRUE))
 		rscreen->b.debug_flags |= DBG_NO_LLVM;
 

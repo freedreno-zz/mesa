@@ -542,7 +542,7 @@ r600_texture_create_object(struct pipe_screen *screen,
 	if (rtex->is_depth &&
 	    !(base->flags & (R600_RESOURCE_FLAG_TRANSFER |
 			     R600_RESOURCE_FLAG_FLUSHED_DEPTH)) &&
-	    !(rscreen->debug_flags & DBG_NO_HYPERZ)) {
+	    (rscreen->debug_flags & DBG_HYPERZ)) {
 		if (rscreen->chip_class >= SI) {
 			/* XXX implement Hyper-Z for SI.
 			 * Reuse the CMASK allocator, which is almost the same as HTILE. */

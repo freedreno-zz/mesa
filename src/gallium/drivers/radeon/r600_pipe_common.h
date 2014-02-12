@@ -73,7 +73,7 @@
 #define DBG_PS			(1 << 11)
 #define DBG_CS			(1 << 12)
 /* features */
-#define DBG_NO_HYPERZ		(1 << 13)
+#define DBG_HYPERZ		(1 << 13)
 /* The maximum allowed bit is 15. */
 
 struct r600_common_context;
