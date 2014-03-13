@@ -159,6 +159,9 @@ _mesa_base_tex_format( struct gl_context *ctx, GLint internalFormat )
          case GL_DEPTH_COMPONENT24:
          case GL_DEPTH_COMPONENT32:
             return GL_DEPTH_COMPONENT;
+         case GL_DEPTH_STENCIL:
+         case GL_DEPTH24_STENCIL8:
+            return GL_DEPTH_STENCIL;
          default:
             ; /* fallthrough */
       }
@@ -295,16 +298,6 @@ _mesa_base_tex_format( struct gl_context *ctx, GLint internalFormat )
          case GL_INTENSITY8_SNORM:
          case GL_INTENSITY16_SNORM:
             return GL_INTENSITY;
-         default:
-            ; /* fallthrough */
-      }
-   }
-
-   if (ctx->Extensions.EXT_packed_depth_stencil) {
-      switch (internalFormat) {
-         case GL_DEPTH_STENCIL_EXT:
-         case GL_DEPTH24_STENCIL8_EXT:
-            return GL_DEPTH_STENCIL_EXT;
          default:
             ; /* fallthrough */
       }
