@@ -118,6 +118,9 @@ struct xa_context {
     int has_solid_color;
     float solid_color[4];
 
+    int has_solid_mask;
+    float solid_mask[4];
+
     unsigned int num_bound_samplers;
     struct pipe_sampler_view *bound_sampler_views[XA_MAX_SAMPLERS];
     const struct xa_composite *comp;
@@ -151,6 +154,7 @@ enum xa_vs_traits {
     VS_LINGRAD_FILL = 1 << 3,
     VS_RADGRAD_FILL = 1 << 4,
     VS_YUV = 1 << 5,
+    VS_SOLID_MASK = 1 << 6,
 
     VS_FILL = (VS_SOLID_FILL | VS_LINGRAD_FILL | VS_RADGRAD_FILL)
 };
@@ -173,6 +177,7 @@ enum xa_fs_traits {
     FS_SRC_LUMINANCE = 1 << 14,
     FS_MASK_LUMINANCE = 1 << 15,
     FS_DST_LUMINANCE = 1 << 16,
+    FS_SOLID_MASK = 1 << 17,
 
     FS_FILL = (FS_SOLID_FILL | FS_LINGRAD_FILL | FS_RADGRAD_FILL),
     FS_COMPONENT_ALPHA = (FS_CA_FULL | FS_CA_SRCALPHA)
@@ -220,6 +225,12 @@ xa_pixel_to_float4_a8(uint32_t pixel, float *color)
     color[1] = ((float)a) / 255.;
     color[2] = ((float)a) / 255.;
     color[3] = ((float)a) / 255.;
+}
+
+static INLINE int
+is_solid_fill(struct xa_picture *pic)
+{
+    return pic->src_pict && (pic->src_pict->type == xa_src_pict_solid_fill);
 }
 
 /*
@@ -286,7 +297,7 @@ void renderer_begin_solid(struct xa_context *r);
 void renderer_solid(struct xa_context *r,
 		    int x0, int y0, int x1, int y1, float *color);
 void
-renderer_begin_textures(struct xa_context *r);
+renderer_begin_textures(struct xa_context *r, const struct xa_composite *comp);
 
 void
 renderer_texture(struct xa_context *r,

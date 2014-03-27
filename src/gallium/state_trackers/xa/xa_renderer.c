@@ -136,7 +136,7 @@ renderer_init_state(struct xa_context *r)
 }
 
 static INLINE void
-add_vertex_color(struct xa_context *r, float x, float y, float color[4])
+add_vertex_coord(struct xa_context *r, float x, float y)
 {
     float *vertex = r->buffer + r->buffer_size;
 
@@ -145,98 +145,86 @@ add_vertex_color(struct xa_context *r, float x, float y, float color[4])
     vertex[2] = 0.f;		/*z */
     vertex[3] = 1.f;		/*w */
 
-    vertex[4] = color[0];	/*r */
-    vertex[5] = color[1];	/*g */
-    vertex[6] = color[2];	/*b */
-    vertex[7] = color[3];	/*a */
-
-    r->buffer_size += 8;
+    r->buffer_size += 4;
 }
 
 static INLINE void
-add_vertex_1tex(struct xa_context *r, float x, float y, float s, float t)
+add_vertex_color(struct xa_context *r, const float *color)
 {
     float *vertex = r->buffer + r->buffer_size;
 
-    vertex[0] = x;
-    vertex[1] = y;
-    vertex[2] = 0.f;		/*z */
-    vertex[3] = 1.f;		/*w */
+    vertex[0] = color[0];	/*r */
+    vertex[1] = color[1];	/*g */
+    vertex[2] = color[2];	/*b */
+    vertex[3] = color[3];	/*a */
 
-    vertex[4] = s;		/*s */
-    vertex[5] = t;		/*t */
-    vertex[6] = 0.f;		/*r */
-    vertex[7] = 1.f;		/*q */
-
-    r->buffer_size += 8;
-}
-
-static INLINE void
-add_vertex_2tex(struct xa_context *r,
-		float x, float y, float s0, float t0, float s1, float t1)
-{
-    float *vertex = r->buffer + r->buffer_size;
-
-    vertex[0] = x;
-    vertex[1] = y;
-    vertex[2] = 0.f;		/*z */
-    vertex[3] = 1.f;		/*w */
-
-    vertex[4] = s0;		/*s */
-    vertex[5] = t0;		/*t */
-    vertex[6] = 0.f;		/*r */
-    vertex[7] = 1.f;		/*q */
-
-    vertex[8] = s1;		/*s */
-    vertex[9] = t1;		/*t */
-    vertex[10] = 0.f;		/*r */
-    vertex[11] = 1.f;		/*q */
-
-    r->buffer_size += 12;
+    r->buffer_size += 4;
 }
 
 static void
 add_vertex_data1(struct xa_context *r,
                  float srcX, float srcY,  float dstX, float dstY,
                  float width, float height,
-                 struct pipe_resource *src, const float *src_matrix)
+                 struct pipe_resource *src, const float *src_matrix,
+                 const float *src_color)
 {
     float s0, t0, s1, t1, s2, t2, s3, t3;
-    float pt0[2], pt1[2], pt2[2], pt3[2];
 
-    pt0[0] = srcX;
-    pt0[1] = srcY;
-    pt1[0] = (srcX + width);
-    pt1[1] = srcY;
-    pt2[0] = (srcX + width);
-    pt2[1] = (srcY + height);
-    pt3[0] = srcX;
-    pt3[1] = (srcY + height);
+    if (src) {
+	float pt0[2], pt1[2], pt2[2], pt3[2];
 
-    if (src_matrix) {
-	map_point((float *)src_matrix, pt0[0], pt0[1], &pt0[0], &pt0[1]);
-	map_point((float *)src_matrix, pt1[0], pt1[1], &pt1[0], &pt1[1]);
-	map_point((float *)src_matrix, pt2[0], pt2[1], &pt2[0], &pt2[1]);
-	map_point((float *)src_matrix, pt3[0], pt3[1], &pt3[0], &pt3[1]);
+	pt0[0] = srcX;
+	pt0[1] = srcY;
+	pt1[0] = (srcX + width);
+	pt1[1] = srcY;
+	pt2[0] = (srcX + width);
+	pt2[1] = (srcY + height);
+	pt3[0] = srcX;
+	pt3[1] = (srcY + height);
+
+	if (src_matrix) {
+	    map_point((float *)src_matrix, pt0[0], pt0[1], &pt0[0], &pt0[1]);
+	    map_point((float *)src_matrix, pt1[0], pt1[1], &pt1[0], &pt1[1]);
+	    map_point((float *)src_matrix, pt2[0], pt2[1], &pt2[0], &pt2[1]);
+	    map_point((float *)src_matrix, pt3[0], pt3[1], &pt3[0], &pt3[1]);
+	}
+
+	s0 =  pt0[0] / src->width0;
+	s1 =  pt1[0] / src->width0;
+	s2 =  pt2[0] / src->width0;
+	s3 =  pt3[0] / src->width0;
+	t0 =  pt0[1] / src->height0;
+	t1 =  pt1[1] / src->height0;
+	t2 =  pt2[1] / src->height0;
+	t3 =  pt3[1] / src->height0;
+    } else {
+	s0 = s1 = s2 = s3 = t0 = t1 = t2 = t3 = 0.0;
     }
 
-    s0 =  pt0[0] / src->width0;
-    s1 =  pt1[0] / src->width0;
-    s2 =  pt2[0] / src->width0;
-    s3 =  pt3[0] / src->width0;
-    t0 =  pt0[1] / src->height0;
-    t1 =  pt1[1] / src->height0;
-    t2 =  pt2[1] / src->height0;
-    t3 =  pt3[1] / src->height0;
-
     /* 1st vertex */
-    add_vertex_1tex(r, dstX, dstY, s0, t0);
+    add_vertex_coord(r, dstX, dstY);
+    if (src_color)
+	add_vertex_color(r, src_color);
+    else
+	add_vertex_coord(r, s0, t0);
     /* 2nd vertex */
-    add_vertex_1tex(r, dstX + width, dstY, s1, t1);
+    add_vertex_coord(r, dstX + width, dstY);
+    if (src_color)
+	add_vertex_color(r, src_color);
+    else
+	add_vertex_coord(r, s1, t1);
     /* 3rd vertex */
-    add_vertex_1tex(r, dstX + width, dstY + height, s2, t2);
+    add_vertex_coord(r, dstX + width, dstY + height);
+    if (src_color)
+	add_vertex_color(r, src_color);
+    else
+	add_vertex_coord(r, s2, t2);
     /* 4th vertex */
-    add_vertex_1tex(r, dstX, dstY + height, s3, t3);
+    add_vertex_coord(r, dstX, dstY + height);
+    if (src_color)
+	add_vertex_color(r, src_color);
+    else
+	add_vertex_coord(r, s3, t3);
 }
 
 static void
@@ -245,55 +233,95 @@ add_vertex_data2(struct xa_context *r,
                  float dstX, float dstY, float width, float height,
                  struct pipe_resource *src,
                  struct pipe_resource *mask,
-                 const float *src_matrix, const float *mask_matrix)
+                 const float *src_matrix, const float *src_color,
+                 const float *mask_matrix, const float *mask_color)
 {
     float src_s0, src_t0, src_s1, src_t1;
     float mask_s0, mask_t0, mask_s1, mask_t1;
-    float spt0[2], spt1[2];
-    float mpt0[2], mpt1[2];
 
-    spt0[0] = srcX;
-    spt0[1] = srcY;
-    spt1[0] = srcX + width;
-    spt1[1] = srcY + height;
 
-    mpt0[0] = maskX;
-    mpt0[1] = maskY;
-    mpt1[0] = maskX + width;
-    mpt1[1] = maskY + height;
+    if (src) {
+	float spt0[2], spt1[2];
 
-    if (src_matrix) {
-	map_point((float *)src_matrix, spt0[0], spt0[1], &spt0[0], &spt0[1]);
-	map_point((float *)src_matrix, spt1[0], spt1[1], &spt1[0], &spt1[1]);
+	spt0[0] = srcX;
+	spt0[1] = srcY;
+	spt1[0] = srcX + width;
+	spt1[1] = srcY + height;
+
+	if (src_matrix) {
+	    map_point((float *)src_matrix, spt0[0], spt0[1], &spt0[0], &spt0[1]);
+	    map_point((float *)src_matrix, spt1[0], spt1[1], &spt1[0], &spt1[1]);
+	}
+
+	src_s0 = spt0[0] / src->width0;
+	src_t0 = spt0[1] / src->height0;
+	src_s1 = spt1[0] / src->width0;
+	src_t1 = spt1[1] / src->height0;
+    } else {
+	src_s0 = src_t0 = src_s1 = src_t1 = 0.0;
     }
 
-    if (mask_matrix) {
-	map_point((float *)mask_matrix, mpt0[0], mpt0[1], &mpt0[0], &mpt0[1]);
-	map_point((float *)mask_matrix, mpt1[0], mpt1[1], &mpt1[0], &mpt1[1]);
+    if (mask) {
+	float mpt0[2], mpt1[2];
+
+	mpt0[0] = maskX;
+	mpt0[1] = maskY;
+	mpt1[0] = maskX + width;
+	mpt1[1] = maskY + height;
+
+	if (mask_matrix) {
+	    map_point((float *)mask_matrix, mpt0[0], mpt0[1], &mpt0[0], &mpt0[1]);
+	    map_point((float *)mask_matrix, mpt1[0], mpt1[1], &mpt1[0], &mpt1[1]);
+	}
+
+	mask_s0 = mpt0[0] / mask->width0;
+	mask_t0 = mpt0[1] / mask->height0;
+	mask_s1 = mpt1[0] / mask->width0;
+	mask_t1 = mpt1[1] / mask->height0;
+    } else {
+	mask_s0 = mask_t0 = mask_s1 = mask_t1 = 0.0;
     }
-
-    src_s0 = spt0[0] / src->width0;
-    src_t0 = spt0[1] / src->height0;
-    src_s1 = spt1[0] / src->width0;
-    src_t1 = spt1[1] / src->height0;
-
-    mask_s0 = mpt0[0] / mask->width0;
-    mask_t0 = mpt0[1] / mask->height0;
-    mask_s1 = mpt1[0] / mask->width0;
-    mask_t1 = mpt1[1] / mask->height0;
 
     /* 1st vertex */
-    add_vertex_2tex(r, dstX, dstY,
-		    src_s0, src_t0, mask_s0, mask_t0);
+    add_vertex_coord(r, dstX, dstY);
+    if (src_color)
+	add_vertex_color(r, src_color);
+    else
+	add_vertex_coord(r, src_s0, src_t0);
+    if (mask_color)
+	add_vertex_color(r, mask_color);
+    else
+	add_vertex_coord(r, mask_s0, mask_t0);
     /* 2nd vertex */
-    add_vertex_2tex(r, dstX + width, dstY,
-		    src_s1, src_t0, mask_s1, mask_t0);
+    add_vertex_coord(r, dstX + width, dstY);
+    if (src_color)
+	add_vertex_color(r, src_color);
+    else
+	add_vertex_coord(r, src_s1, src_t0);
+    if (mask_color)
+	add_vertex_color(r, mask_color);
+    else
+	add_vertex_coord(r, mask_s1, mask_t0);
     /* 3rd vertex */
-    add_vertex_2tex(r, dstX + width, dstY + height,
-		    src_s1, src_t1, mask_s1, mask_t1);
+    add_vertex_coord(r, dstX + width, dstY + height);
+    if (src_color)
+	add_vertex_color(r, src_color);
+    else
+	add_vertex_coord(r, src_s1, src_t1);
+    if (mask_color)
+	add_vertex_color(r, mask_color);
+    else
+	add_vertex_coord(r, mask_s1, mask_t1);
     /* 4th vertex */
-    add_vertex_2tex(r, dstX, dstY + height,
-		    src_s0, src_t1, mask_s0, mask_t1);
+    add_vertex_coord(r, dstX, dstY + height);
+    if (src_color)
+	add_vertex_color(r, src_color);
+    else
+	add_vertex_coord(r, src_s0, src_t1);
+    if (mask_color)
+	add_vertex_color(r, mask_color);
+    else
+	add_vertex_coord(r, mask_s0, mask_t1);
 }
 
 static void
@@ -322,13 +350,17 @@ setup_vertex_data_yuv(struct xa_context *r,
     t1 = spt1[1] / tex->height0;
 
     /* 1st vertex */
-    add_vertex_1tex(r, dstX, dstY, s0, t0);
+    add_vertex_coord(r, dstX, dstY);
+    add_vertex_coord(r, s0, t0);
     /* 2nd vertex */
-    add_vertex_1tex(r, dstX + dstW, dstY, s1, t0);
+    add_vertex_coord(r, dstX + dstW, dstY);
+    add_vertex_coord(r, s1, t0);
     /* 3rd vertex */
-    add_vertex_1tex(r, dstX + dstW, dstY + dstH, s1, t1);
+    add_vertex_coord(r, dstX + dstW, dstY + dstH);
+    add_vertex_coord(r, s1, t1);
     /* 4th vertex */
-    add_vertex_1tex(r, dstX, dstY + dstH, s0, t1);
+    add_vertex_coord(r, dstX, dstY + dstH);
+    add_vertex_coord(r, s0, t1);
 }
 
 /* Set up framebuffer, viewport and vertex shader constant buffer
@@ -509,10 +541,14 @@ renderer_copy(struct xa_context *r,
 
     /* draw quad */
     renderer_draw_conditional(r, 4 * 8);
-    add_vertex_1tex(r, x0, y0, s0, t0);
-    add_vertex_1tex(r, x1, y0, s1, t0);
-    add_vertex_1tex(r, x1, y1, s1, t1);
-    add_vertex_1tex(r, x0, y1, s0, t1);
+    add_vertex_coord(r, x0, y0);
+    add_vertex_coord(r, s0, t0);
+    add_vertex_coord(r, x1, y0);
+    add_vertex_coord(r, s1, t0);
+    add_vertex_coord(r, x1, y1);
+    add_vertex_coord(r, s1, t1);
+    add_vertex_coord(r, x0, y1);
+    add_vertex_coord(r, s0, t1);
 }
 
 void
@@ -555,13 +591,17 @@ renderer_solid(struct xa_context *r,
     renderer_draw_conditional(r, 4 * 8);
 
     /* 1st vertex */
-    add_vertex_color(r, x0, y0, color);
+    add_vertex_coord(r, x0, y0);
+    add_vertex_color(r, color);
     /* 2nd vertex */
-    add_vertex_color(r, x1, y0, color);
+    add_vertex_coord(r, x1, y0);
+    add_vertex_color(r, color);
     /* 3rd vertex */
-    add_vertex_color(r, x1, y1, color);
+    add_vertex_coord(r, x1, y1);
+    add_vertex_color(r, color);
     /* 4th vertex */
-    add_vertex_color(r, x0, y1, color);
+    add_vertex_coord(r, x0, y1);
+    add_vertex_color(r, color);
 }
 
 void
@@ -571,9 +611,14 @@ renderer_draw_flush(struct xa_context *r)
 }
 
 void
-renderer_begin_textures(struct xa_context *r)
+renderer_begin_textures(struct xa_context *r,
+	const struct xa_composite *comp)
 {
-    r->attrs_per_vertex = 1 + r->num_bound_samplers;
+    r->attrs_per_vertex = 1;
+    if (comp->src)
+	r->attrs_per_vertex++;
+    if (comp->mask)
+	r->attrs_per_vertex++;
     r->buffer_size = 0;
 }
 
@@ -585,6 +630,7 @@ renderer_texture(struct xa_context *r,
 		 const float *mask_matrix)
 {
     struct pipe_sampler_view **sampler_view = r->bound_sampler_views;
+    unsigned n = 0;
 
 #if 0
     if (src_matrix) {
@@ -608,7 +654,9 @@ renderer_texture(struct xa_context *r,
 			 pos[0], pos[1], /* src */
 			 pos[4], pos[5], /* dst */
 			 width, height,
-			 sampler_view[0]->texture, src_matrix);
+			 r->has_solid_color ? NULL : sampler_view[n++]->texture,
+			 r->has_solid_color ? NULL : src_matrix,
+			 r->has_solid_color ? r->solid_color : NULL);
 	break;
     case 3:
 	renderer_draw_conditional(r, 4 * 12);
@@ -617,8 +665,12 @@ renderer_texture(struct xa_context *r,
 			 pos[2], pos[3], /* mask */
 			 pos[4], pos[5], /* dst */
 			 width, height,
-			 sampler_view[0]->texture, sampler_view[1]->texture,
-			 src_matrix, mask_matrix);
+			 r->has_solid_color ? NULL : sampler_view[n++]->texture,
+			 r->has_solid_mask ? NULL : sampler_view[n++]->texture,
+			 r->has_solid_color ? NULL : src_matrix,
+			 r->has_solid_color ? r->solid_color : NULL,
+			 r->has_solid_mask ? NULL : mask_matrix,
+			 r->has_solid_mask ? r->solid_mask : NULL);
 	break;
     default:
 	break;
