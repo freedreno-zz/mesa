@@ -42,14 +42,14 @@
 /* Vertex shader:
  * IN[0]    = vertex pos
  * IN[1]    = src tex coord | solid fill color
- * IN[2]    = mask tex coord
+ * IN[2]    = mask tex coord | solid mask color
  * IN[3]    = dst tex coord
  * CONST[0] = (2/dst_width, 2/dst_height, 1, 1)
  * CONST[1] = (-1, -1, 0, 0)
  *
  * OUT[0]   = vertex pos
  * OUT[1]   = src tex coord | solid fill color
- * OUT[2]   = mask tex coord
+ * OUT[2]   = mask tex coord | solid mask color
  * OUT[3]   = dst tex coord
  */
 
@@ -58,7 +58,7 @@
  * SAMP[1]  = mask
  * SAMP[2]  = dst
  * IN[0]    = pos src | solid fill color
- * IN[1]    = pos mask
+ * IN[1]    = pos mask | solid mask color
  * IN[2]    = pos dst
  * CONST[0] = (0, 0, 0, 1)
  *
@@ -268,6 +268,7 @@ create_vs(struct pipe_context *pipe, unsigned vs_traits)
     boolean is_fill = (vs_traits & VS_FILL) != 0;
     boolean is_composite = (vs_traits & VS_COMPOSITE) != 0;
     boolean has_mask = (vs_traits & VS_MASK) != 0;
+    boolean is_solid_mask = (vs_traits & VS_SOLID_MASK) != 0;
     boolean is_yuv = (vs_traits & VS_YUV) != 0;
     unsigned input_slot = 0;
 
@@ -296,15 +297,17 @@ create_vs(struct pipe_context *pipe, unsigned vs_traits)
 	src = ureg_DECL_vs_input(ureg, input_slot++);
 	dst = ureg_DECL_output(ureg, TGSI_SEMANTIC_GENERIC, 0);
 	ureg_MOV(ureg, dst, src);
-    }
-
-    if (is_fill) {
+    } else if (is_fill) {
 	src = ureg_DECL_vs_input(ureg, input_slot++);
 	dst = ureg_DECL_output(ureg, TGSI_SEMANTIC_COLOR, 0);
 	ureg_MOV(ureg, dst, src);
     }
 
-    if (has_mask) {
+    if (is_solid_mask) {
+	src = ureg_DECL_vs_input(ureg, input_slot++);
+	dst = ureg_DECL_output(ureg, TGSI_SEMANTIC_COLOR, 1);
+	ureg_MOV(ureg, dst, src);
+    } else if (has_mask) {
 	src = ureg_DECL_vs_input(ureg, input_slot++);
 	dst = ureg_DECL_output(ureg, TGSI_SEMANTIC_GENERIC, 1);
 	ureg_MOV(ureg, dst, src);
@@ -436,6 +439,7 @@ create_fs(struct pipe_context *pipe, unsigned fs_traits)
     struct ureg_dst out;
     struct ureg_src imm0 = { 0 };
     unsigned has_mask = (fs_traits & FS_MASK) != 0;
+    unsigned is_solid_mask = (fs_traits & FS_SOLID_MASK) != 0;
     unsigned is_fill = (fs_traits & FS_FILL) != 0;
     unsigned is_composite = (fs_traits & FS_COMPOSITE) != 0;
     unsigned is_solid = (fs_traits & FS_SOLID_FILL) != 0;
@@ -452,6 +456,7 @@ create_fs(struct pipe_context *pipe, unsigned fs_traits)
     unsigned src_luminance = (fs_traits & FS_SRC_LUMINANCE) != 0;
     unsigned mask_luminance = (fs_traits & FS_MASK_LUMINANCE) != 0;
     unsigned dst_luminance = (fs_traits & FS_DST_LUMINANCE) != 0;
+    unsigned n = 0;
 
 #if 0
     print_fs_traits(fs_traits);
@@ -474,7 +479,7 @@ create_fs(struct pipe_context *pipe, unsigned fs_traits)
 	imm0 = ureg_imm4f(ureg, 0, 0, 0, 1);
     }
     if (is_composite) {
-	src_sampler = ureg_DECL_sampler(ureg, 0);
+	src_sampler = ureg_DECL_sampler(ureg, n++);
 	src_input = ureg_DECL_fs_input(ureg,
 				       TGSI_SEMANTIC_GENERIC, 0,
 				       TGSI_INTERPOLATE_PERSPECTIVE);
@@ -492,8 +497,12 @@ create_fs(struct pipe_context *pipe, unsigned fs_traits)
 	return create_yuv_shader(pipe, ureg);
     }
 
-    if (has_mask) {
-	mask_sampler = ureg_DECL_sampler(ureg, 1);
+    if (is_solid_mask) {
+	mask_pos = ureg_DECL_fs_input(ureg,
+				       TGSI_SEMANTIC_COLOR, 1,
+				       TGSI_INTERPOLATE_PERSPECTIVE);
+    } else if (has_mask) {
+	mask_sampler = ureg_DECL_sampler(ureg, n++);
 	mask_pos = ureg_DECL_fs_input(ureg,
 				      TGSI_SEMANTIC_GENERIC, 1,
 				      TGSI_INTERPOLATE_PERSPECTIVE);
@@ -552,10 +561,15 @@ create_fs(struct pipe_context *pipe, unsigned fs_traits)
 	    ureg_MOV(ureg, out, ureg_src(src));
     }
 
-    if (has_mask) {
+    if (is_solid_mask) {
+	mask = ureg_dst(mask_pos);
+    } else if (has_mask) {
 	mask = ureg_DECL_temporary(ureg);
 	xrender_tex(ureg, mask, mask_pos, mask_sampler, imm0,
 		    mask_repeat_none, mask_swizzle, mask_set_alpha);
+    }
+
+    if (has_mask) {
 	/* src IN mask */
 
 	src_in_mask(ureg, (dst_luminance) ? src : out, ureg_src(src),
