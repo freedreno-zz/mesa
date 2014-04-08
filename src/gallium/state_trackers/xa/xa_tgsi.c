@@ -479,10 +479,12 @@ create_fs(struct pipe_context *pipe, unsigned fs_traits)
 	imm0 = ureg_imm4f(ureg, 0, 0, 0, 1);
     }
     if (is_composite) {
-	src_sampler = ureg_DECL_sampler(ureg, n++);
-	src_input = ureg_DECL_fs_input(ureg,
-				       TGSI_SEMANTIC_GENERIC, 0,
-				       TGSI_INTERPOLATE_PERSPECTIVE);
+	if (!(dst_luminance && src_set_alpha)) {
+	    src_sampler = ureg_DECL_sampler(ureg, n++);
+	    src_input = ureg_DECL_fs_input(ureg,
+					   TGSI_SEMANTIC_GENERIC, 0,
+					   TGSI_INTERPOLATE_PERSPECTIVE);
+	}
     } else if (is_fill) {
 	if (is_solid)
 	    src_input = ureg_DECL_fs_input(ureg,
@@ -502,10 +504,12 @@ create_fs(struct pipe_context *pipe, unsigned fs_traits)
 				       TGSI_SEMANTIC_COLOR, 1,
 				       TGSI_INTERPOLATE_PERSPECTIVE);
     } else if (has_mask) {
-	mask_sampler = ureg_DECL_sampler(ureg, n++);
-	mask_pos = ureg_DECL_fs_input(ureg,
-				      TGSI_SEMANTIC_GENERIC, 1,
-				      TGSI_INTERPOLATE_PERSPECTIVE);
+	if (!(dst_luminance && mask_set_alpha)) {
+	    mask_sampler = ureg_DECL_sampler(ureg, n++);
+	    mask_pos = ureg_DECL_fs_input(ureg,
+					  TGSI_SEMANTIC_GENERIC, 1,
+					  TGSI_INTERPOLATE_PERSPECTIVE);
+	}
     }
 #if 0				/* unused right now */
     dst_sampler = ureg_DECL_sampler(ureg, 2);
@@ -519,14 +523,22 @@ create_fs(struct pipe_context *pipe, unsigned fs_traits)
 	    src = ureg_DECL_temporary(ureg);
 	else
 	    src = out;
-	xrender_tex(ureg, src, src_input, src_sampler, imm0,
+
+	if (dst_luminance && src_set_alpha) {
+	    ureg_MOV(ureg, ureg_writemask(src, TGSI_WRITEMASK_W),
+		    ureg_scalar(imm0, TGSI_SWIZZLE_W));
+	} else {
+	    xrender_tex(ureg, src, src_input, src_sampler, imm0,
 		    src_repeat_none, src_swizzle, src_set_alpha);
+	}
     } else if (is_fill) {
 	if (is_solid) {
-	    if (has_mask || src_luminance || dst_luminance)
-		src = ureg_dst(src_input);
-	    else
+	    if (has_mask || src_luminance || dst_luminance) {
+		src = ureg_DECL_temporary(ureg);
+		ureg_MOV(ureg, src, src_input);
+	    } else {
 		ureg_MOV(ureg, out, src_input);
+	    }
 	} else if (is_lingrad || is_radgrad) {
 	    struct ureg_src coords, const0124, matrow0, matrow1, matrow2;
 
@@ -565,8 +577,13 @@ create_fs(struct pipe_context *pipe, unsigned fs_traits)
 	mask = ureg_dst(mask_pos);
     } else if (has_mask) {
 	mask = ureg_DECL_temporary(ureg);
-	xrender_tex(ureg, mask, mask_pos, mask_sampler, imm0,
+	if (dst_luminance && mask_set_alpha) {
+	    ureg_MOV(ureg, ureg_writemask(mask, TGSI_WRITEMASK_W),
+		    ureg_scalar(imm0, TGSI_SWIZZLE_W));
+	} else {
+	    xrender_tex(ureg, mask, mask_pos, mask_sampler, imm0,
 		    mask_repeat_none, mask_swizzle, mask_set_alpha);
+	}
     }
 
     if (has_mask) {
