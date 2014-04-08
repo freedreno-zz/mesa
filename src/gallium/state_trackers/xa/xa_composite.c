@@ -315,6 +315,7 @@ bind_shaders(struct xa_context *ctx, const struct xa_composite *comp)
     struct xa_shader shader;
     struct xa_picture *src_pic = comp->src;
     struct xa_picture *mask_pic = comp->mask;
+    struct xa_picture *dst_pic = comp->dst;
 
     ctx->has_solid_color = FALSE;
 
@@ -335,6 +336,9 @@ bind_shaders(struct xa_context *ctx, const struct xa_composite *comp)
 	    vs_traits |= VS_COMPOSITE;
 	}
 
+	if (is_xrgb_to_alpha(dst_pic, src_pic))
+	    ctx->has_solid_color = TRUE;
+
 	fs_traits |= picture_format_fixups(src_pic, 0);
     }
 
@@ -350,6 +354,8 @@ bind_shaders(struct xa_context *ctx, const struct xa_composite *comp)
 	    vs_traits |= VS_SOLID_MASK;
 	    xa_pixel_to_float4(mask_pic->src_pict->solid_fill.color,
 		    ctx->solid_mask);
+	    ctx->has_solid_mask = TRUE;
+	} else if (is_xrgb_to_alpha(dst_pic, mask_pic)) {
 	    ctx->has_solid_mask = TRUE;
 	}
 
@@ -387,6 +393,7 @@ bind_samplers(struct xa_context *ctx,
     struct pipe_context *pipe = ctx->pipe;
     struct xa_picture *src_pic = comp->src;
     struct xa_picture *mask_pic = comp->mask;
+    struct xa_picture *dst_pic = comp->dst;
     unsigned n = 0;
 
     /* unref old sampler views: */
@@ -395,7 +402,8 @@ bind_samplers(struct xa_context *ctx,
     memset(&src_sampler, 0, sizeof(struct pipe_sampler_state));
     memset(&mask_sampler, 0, sizeof(struct pipe_sampler_state));
 
-    if (src_pic && !is_solid_fill(src_pic)) {
+    if (src_pic && !is_solid_fill(src_pic) &&
+	    !is_xrgb_to_alpha(dst_pic, src_pic)) {
 	unsigned src_wrap = xa_repeat_to_gallium(src_pic->wrap);
 	int filter;
 
@@ -418,7 +426,8 @@ bind_samplers(struct xa_context *ctx,
 	n++;
     }
 
-    if (mask_pic && !is_solid_fill(mask_pic)) {
+    if (mask_pic && !is_solid_fill(mask_pic) &&
+	    !is_xrgb_to_alpha(dst_pic, mask_pic)) {
 	unsigned mask_wrap = xa_repeat_to_gallium(mask_pic->wrap);
 	int filter;
 

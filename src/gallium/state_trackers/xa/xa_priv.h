@@ -233,6 +233,16 @@ is_solid_fill(struct xa_picture *pic)
     return pic->src_pict && (pic->src_pict->type == xa_src_pict_solid_fill);
 }
 
+/* a8 dst and xRGB src (or mask) is a special case.  The texture fetch
+ * is optimized out.
+ */
+static INLINE int
+is_xrgb_to_alpha(struct xa_picture *dst, struct xa_picture *src)
+{
+    return (dst->pict_format == xa_format_a8) &&
+	    (xa_format_a(src->pict_format) == 0);
+}
+
 /*
  * xa_tgsi.c
  */
