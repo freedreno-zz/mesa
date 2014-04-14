@@ -28,3 +28,12 @@ e190709119d8eb85c67bfbad5be699d39ad0118e mesa: Ensure that transform feedback re
 a92e5f7cf63d496ad7830b5cea4bbab287c25b8e i965: Use sample barycentric coordinates with per sample shading
 f5cfb4ae21df8eebfc6b86c0ce858b1c0a9160dd i965: Ignore 'centroid' interpolation qualifier in case of persample shading
 dc2f94bc786768329973403248820a2e5249f102 i965: Ignore 'centroid' interpolation qualifier in case of persample shading
+
+# This depends on the clear_buffer_object extensions work which is not in 10.0
+# (See commit 5f7bc0c75904a40da0973329badea8497e53a26a on other branches)
+aff7c5e78ab133866a90f67613508735c9b75094
+
+# These patches are fixing code not present in 10.0
+f34d75d6f69f4c0bf391e0adf1fd469601b01b04
+e8d85034dad37177fce780ee3e09501e60be6e81
+a61d859519d520b849c11ad5c1c1972870abd956
