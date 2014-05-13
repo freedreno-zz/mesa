@@ -307,6 +307,10 @@ returned).  Otherwise, if the ``wait`` parameter is FALSE, the call
 will not block and the return value will be TRUE if the query has
 completed or FALSE otherwise.
 
+``get_query_result`` (if it returns TRUE) will clear/reset previous query
+results.  In other words, subsequent calls to ``get_query_result`` will
+only return results since the previous call.
+
 The interface currently includes the following types of queries:
 
 ``PIPE_QUERY_OCCLUSION_COUNTER`` counts the number of fragments which
