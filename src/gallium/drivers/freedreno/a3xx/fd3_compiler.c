@@ -69,6 +69,7 @@
  */
 
 struct fd3_compile_context {
+	struct fd3_shader_key key;
 	const struct tgsi_token *tokens;
 	bool free_tokens;
 	struct ir3_shader *ir;
@@ -147,7 +148,7 @@ static type_t get_ftype(struct fd3_compile_context *ctx);
 
 static unsigned
 compile_init(struct fd3_compile_context *ctx, struct fd3_shader_variant *so,
-		const struct tgsi_token *tokens)
+		const struct tgsi_token *tokens, struct fd3_shader_key key)
 {
 	unsigned ret;
 	struct tgsi_shader_info *info = &ctx->info;
@@ -169,6 +170,7 @@ compile_init(struct fd3_compile_context *ctx, struct fd3_shader_variant *so,
 			.lower_DP2A = true,
 	};
 
+	ctx->key = key;
 	ctx->tokens = fd_transform_lowering(&lconfig, tokens, &ctx->info);
 	ctx->free_tokens = !!ctx->tokens;
 	if (!ctx->tokens) {
@@ -1074,72 +1076,145 @@ trans_arl(const struct instr_translater *t,
 	add_src_reg(ctx, instr, tmp_src, chan)->flags |= IR3_REG_HALF;
 }
 
-/* texture fetch/sample instructions: */
-static void
-trans_samp(const struct instr_translater *t,
-		struct fd3_compile_context *ctx,
+/*
+ * texture fetch/sample instructions:
+ */
+
+static unsigned
+shadow_n(struct fd3_compile_context *ctx, unsigned samp)
+{
+	unsigned shadow_samplers = ctx->so->so->shadow_samplers;
+	unsigned i, n;
+	for (i = 0, n = 0; i < samp; i++)
+		if (shadow_samplers & (1 << i))
+			n++;
+	return n;
+}
+
+static unsigned
+pipe2cmp(unsigned cfunc)
+{
+	switch (cfunc) {
+	case PIPE_FUNC_LESS:
+		return IR3_COND_LT;
+	case PIPE_FUNC_EQUAL:
+		return IR3_COND_EQ;
+	case PIPE_FUNC_LEQUAL:
+		return IR3_COND_LE;
+	case PIPE_FUNC_GREATER:
+		return IR3_COND_GT;
+	case PIPE_FUNC_NOTEQUAL:
+		return IR3_COND_NE;
+	case PIPE_FUNC_GEQUAL:
+		return IR3_COND_GE;
+	}
+	return 0;
+}
+
+struct tex_info {
+	int8_t order[4];
+	unsigned src_wrmask, r, flags;
+};
+
+static const struct tex_info *
+get_tex_info(struct fd3_compile_context *ctx,
 		struct tgsi_full_instruction *inst)
 {
-	struct ir3_instruction *instr;
-	struct tgsi_src_register *coord = &inst->Src[0].Register;
-	struct tgsi_src_register *samp  = &inst->Src[1].Register;
-	unsigned tex = inst->Texture.Texture;
-	int8_t *order;
-	unsigned i, flags = 0, src_wrmask;
-	bool needs_mov = false;
+	static const struct tex_info tex1d = {
+		.order = { 0, -1, -1, -1 },  /* coord.x */
+		.src_wrmask = TGSI_WRITEMASK_XY,
+		.r = TGSI_SWIZZLE_Z,
+		.flags = 0,
+	};
+	static const struct tex_info tex2d = {
+		.order = { 0,  1, -1, -1 },  /* coord.xy */
+		.src_wrmask = TGSI_WRITEMASK_XY,
+		.r = TGSI_SWIZZLE_Z,
+		.flags = 0,
+	};
+	static const struct tex_info tex3d = {
+		.order = { 0,  1,  2, -1 },  /* coord.xyz */
+		.src_wrmask = TGSI_WRITEMASK_XYZ,
+		.r = TGSI_SWIZZLE_W,
+		.flags = IR3_INSTR_3D,
+	};
+	static const struct tex_info txp1d = {
+		.order = { 0, -1,  3, -1 },  /* coord.xw */
+		.src_wrmask = TGSI_WRITEMASK_XYZ,
+		.r = TGSI_SWIZZLE_Z,
+		.flags = IR3_INSTR_P,
+	};
+	static const struct tex_info txp2d = {
+		.order = { 0,  1,  3, -1 },  /* coord.xyw */
+		.src_wrmask = TGSI_WRITEMASK_XYZ,
+		.r = TGSI_SWIZZLE_W,
+		.flags = IR3_INSTR_P,
+	};
+	static const struct tex_info txp3d = {
+		.order = { 0,  1,  2,  3 },  /* coord.xyzw */
+		.src_wrmask = TGSI_WRITEMASK_XYZW,
+		.r = TGSI_SWIZZLE_W,  // ???
+		.flags = IR3_INSTR_P | IR3_INSTR_3D,
+	};
 
-	switch (t->arg) {
+	unsigned tex = inst->Texture.Texture;
+
+	switch (inst->Instruction.Opcode) {
 	case TGSI_OPCODE_TEX:
 		switch (tex) {
 		case TGSI_TEXTURE_1D:
-			order = (int8_t[4]){ 0, -1, -1, -1 };  /* coord.x */
-			src_wrmask = TGSI_WRITEMASK_XY;
-			break;
+		case TGSI_TEXTURE_SHADOW1D:
+			return &tex1d;
 		case TGSI_TEXTURE_2D:
+		case TGSI_TEXTURE_SHADOW2D:
 		case TGSI_TEXTURE_RECT:
-			order = (int8_t[4]){ 0,  1, -1, -1 };  /* coord.xy */
-			src_wrmask = TGSI_WRITEMASK_XY;
-			break;
+		case TGSI_TEXTURE_SHADOWRECT:
+			return &tex2d;
 		case TGSI_TEXTURE_3D:
 		case TGSI_TEXTURE_CUBE:
-			order = (int8_t[4]){ 0,  1,  2, -1 };  /* coord.xyz */
-			src_wrmask = TGSI_WRITEMASK_XYZ;
-			flags |= IR3_INSTR_3D;
-			break;
+		case TGSI_TEXTURE_SHADOWCUBE:
+			return &tex3d;
 		default:
 			compile_error(ctx, "unknown texture type: %s\n",
 					tgsi_texture_names[tex]);
-			break;
+			return NULL;
 		}
 		break;
 	case TGSI_OPCODE_TXP:
 		switch (tex) {
 		case TGSI_TEXTURE_1D:
-			order = (int8_t[4]){ 0, -1,  3, -1 };  /* coord.xw */
-			src_wrmask = TGSI_WRITEMASK_XYZ;
-			break;
+		case TGSI_TEXTURE_SHADOW1D:
+			return &txp1d;
 		case TGSI_TEXTURE_2D:
+		case TGSI_TEXTURE_SHADOW2D:
 		case TGSI_TEXTURE_RECT:
-			order = (int8_t[4]){ 0,  1,  3, -1 };  /* coord.xyw */
-			src_wrmask = TGSI_WRITEMASK_XYZ;
-			break;
+		case TGSI_TEXTURE_SHADOWRECT:
+			return &txp2d;
 		case TGSI_TEXTURE_3D:
 		case TGSI_TEXTURE_CUBE:
-			order = (int8_t[4]){ 0,  1,  2,  3 };  /* coord.xyzw */
-			src_wrmask = TGSI_WRITEMASK_XYZW;
-			flags |= IR3_INSTR_3D;
-			break;
+		case TGSI_TEXTURE_SHADOWCUBE:
+			return &txp3d;
 		default:
 			compile_error(ctx, "unknown texture type: %s\n",
 					tgsi_texture_names[tex]);
 			break;
 		}
-		flags |= IR3_INSTR_P;
-		break;
-	default:
-		compile_assert(ctx, 0);
 		break;
 	}
+	compile_assert(ctx, 0);
+	return NULL;
+}
+
+static struct tgsi_src_register *
+get_tex_coord(struct fd3_compile_context *ctx,
+		struct tgsi_full_instruction *inst,
+		const struct tex_info *tinf)
+{
+	struct tgsi_src_register *coord = &inst->Src[0].Register;
+	struct ir3_instruction *instr;
+	unsigned tex = inst->Texture.Texture;
+	bool needs_mov = false;
+	unsigned i;
 
 	/* cat5 instruction cannot seem to handle const or relative: */
 	if (is_rel_or_const(coord))
@@ -1155,8 +1230,8 @@ trans_samp(const struct instr_translater *t,
 	 * might need to emit some mov instructions to shuffle things
 	 * around:
 	 */
-	for (i = 1; (i < 4) && (order[i] >= 0) && !needs_mov; i++)
-		if (src_swiz(coord, i) != (src_swiz(coord, 0) + order[i]))
+	for (i = 1; (i < 4) && (tinf->order[i] >= 0) && !needs_mov; i++)
+		if (src_swiz(coord, i) != (src_swiz(coord, 0) + tinf->order[i]))
 			needs_mov = true;
 
 	if (needs_mov) {
@@ -1169,18 +1244,18 @@ trans_samp(const struct instr_translater *t,
 		/* need to move things around: */
 		tmp_src = get_internal_temp(ctx, &tmp_dst);
 
-		for (j = 0; (j < 4) && (order[j] >= 0); j++) {
-			instr = instr_create(ctx, 1, 0);
+		for (j = 0; (j < 4) && (tinf->order[j] >= 0); j++) {
+			instr = instr_create(ctx, 1, 0);  /* mov */
 			instr->cat1.src_type = type_mov;
 			instr->cat1.dst_type = type_mov;
 			add_dst_reg(ctx, instr, &tmp_dst, j);
 			add_src_reg(ctx, instr, coord,
-					src_swiz(coord, order[j]));
+					src_swiz(coord, tinf->order[j]));
 		}
 
 		/* fix up .y coord: */
 		if (tex == TGSI_TEXTURE_1D) {
-			instr = instr_create(ctx, 1, 0);
+			instr = instr_create(ctx, 1, 0);  /* mov */
 			instr->cat1.src_type = type_mov;
 			instr->cat1.dst_type = type_mov;
 			add_dst_reg(ctx, instr, &tmp_dst, 1);  /* .y */
@@ -1190,16 +1265,91 @@ trans_samp(const struct instr_translater *t,
 		coord = tmp_src;
 	}
 
+	return coord;
+}
+
+static void
+trans_samp(const struct instr_translater *t,
+		struct fd3_compile_context *ctx,
+		struct tgsi_full_instruction *inst)
+{
+	struct ir3_instruction *instr;
+	struct tgsi_dst_register *dst;
+	struct tgsi_src_register *coord;
+	struct tgsi_src_register *samp  = &inst->Src[1].Register;
+	struct tgsi_dst_register tmp_dst;
+	struct tgsi_src_register *tmp_src;
+	const struct tex_info *tinf;
+
+	if (is_shadow(inst)) {
+		/* if emulating shadow, redirect dest to temp: */
+		tmp_src = get_internal_temp(ctx, &tmp_dst);
+		dst = &tmp_dst;
+	} else {
+		dst = &inst->Dst[0].Register;
+	}
+
+	tinf = get_tex_info(ctx, inst);
+	coord = get_tex_coord(ctx, inst, tinf);
+
 	instr = instr_create(ctx, 5, t->opc);
 	instr->cat5.type = get_ftype(ctx);
 	instr->cat5.samp = samp->Index;
 	instr->cat5.tex  = samp->Index;
-	instr->flags |= flags;
+	instr->flags |= tinf->flags;
 
-	add_dst_reg_wrmask(ctx, instr, &inst->Dst[0].Register, 0,
-			inst->Dst[0].Register.WriteMask);
+	add_dst_reg_wrmask(ctx, instr, dst, 0, dst->WriteMask);
+	add_src_reg_wrmask(ctx, instr, coord, coord->SwizzleX, tinf->src_wrmask);
 
-	add_src_reg_wrmask(ctx, instr, coord, coord->SwizzleX, src_wrmask);
+	// XXX ugg, we need to generate nop variant too in case non-depth texture??
+	// ... check radeonTransformTEX().. r300 seems to need same..
+
+	if (is_shadow(inst)) {
+		/* emulate shadow samp by inserting instructions: */
+		unsigned n = shadow_n(ctx, samp->Index);
+		unsigned cfunc = (ctx->key.compare_func >> (3 * n)) & 0x7;
+
+		/* now write to real dest: */
+		dst = &inst->Dst[0].Register;
+
+		if ((cfunc == PIPE_FUNC_ALWAYS) || (cfunc == PIPE_FUNC_NEVER)) {
+			/* note: this will overwrite the dst written by sam instr,
+			 * but that's ok, optimizer will trim the fat..
+			 */
+			struct tgsi_src_register constval;
+			float val = (cfunc == PIPE_FUNC_ALWAYS) ? 1.0 : 0.0;
+
+			get_immediate(ctx, &constval, fui(val));
+			create_mov(ctx, dst, &constval);
+
+		} else {
+			struct tgsi_src_register ref = *coord;
+
+			ref.SwizzleX = ref.SwizzleY = ref.SwizzleZ = ref.SwizzleW =
+					src_swiz(coord, tinf->r);
+
+			/* cmps.f.<cond> tmp0, ref, tmp0 */
+			instr = instr_create(ctx, 2, OPC_CMPS_F);
+			instr->cat2.condition = pipe2cmp(cfunc);
+			vectorize(ctx, instr, &tmp_dst, 2, &ref, 0, tmp_src, 0);
+
+			/* cov.u16f16 dst, tmp0 */
+			instr = instr_create(ctx, 1, 0);
+			instr->cat1.src_type = get_utype(ctx);
+			instr->cat1.dst_type = get_ftype(ctx);
+			vectorize(ctx, instr, dst, 1, tmp_src, 0);
+		}
+
+		// XXX does this need to be dependent on format?  Not
+		// quite sure how to handle this, but hardcoding .w
+		// to 1.0 at least makes it work for common cases:
+		instr = instr_create(ctx, 1, 0);
+		instr->cat1.src_type = get_ftype(ctx);
+		instr->cat1.dst_type = get_ftype(ctx);
+
+		add_dst_reg(ctx, instr, dst, 3);
+		ir3_reg_create(instr, 0, IR3_REG_IMMED)->fim_val = 1.0;
+	}
 }
 
 /*
@@ -2446,7 +2596,7 @@ fd3_compile_shader(struct fd3_shader_variant *so,
 
 	assert(so->ir);
 
-	if (compile_init(&ctx, so, tokens) != TGSI_PARSE_OK) {
+	if (compile_init(&ctx, so, tokens, key) != TGSI_PARSE_OK) {
 		ret = -1;
 		goto out;
 	}

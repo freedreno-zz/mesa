@@ -49,6 +49,8 @@ struct fd_texture_stateobj {
 	struct pipe_sampler_state *samplers[PIPE_MAX_SAMPLERS];
 	unsigned num_samplers;
 	unsigned dirty_samplers;
+	/* which samplers are shadow samplers: */
+	uint16_t shadow_samplers;
 };
 
 struct fd_program_stateobj {

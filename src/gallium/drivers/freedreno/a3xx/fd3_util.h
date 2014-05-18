@@ -51,7 +51,17 @@ uint32_t fd3_tex_swiz(enum pipe_format format, unsigned swizzle_r,
  * passed around through a lot of the emit code in various parts
  * which would otherwise not necessarily need to incl fd3_program.h
  */
-struct fd3_shader_key {
+#define PACKED __attribute__((__packed__))
+
+struct PACKED fd3_shader_key {
+	/* an "array" of packed 3 bit PIPE_FUNC_x.  Note there is not
+	 * enough room to store a compare func for all 16 samplers.  But
+	 * hopefully not all samplers are shadow samplers.  The values
+	 * are packed so value is omitted for non-shadow-samplers.
+	 */
+#define SHADER_KEY_MAX_COMPARE_FUNCS 4
+	unsigned compare_func : SHADER_KEY_MAX_COMPARE_FUNCS * 3;
+
 	/* vertex shader variant parameters: */
 	unsigned binning_pass : 1;
 

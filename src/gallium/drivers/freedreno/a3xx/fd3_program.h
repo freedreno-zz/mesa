@@ -137,6 +137,9 @@ struct fd3_shader_stateobj {
 
 	struct fd3_shader_variant *variants;
 
+	/* which samplers are shadow samplers: */
+	uint16_t shadow_samplers;
+
 	/* so far, only used for blit_prog shader.. values for
 	 * VPC_VARYING_INTERP[i].MODE and VPC_VARYING_PS_REPL[i].MODE
 	 *
@@ -149,7 +152,9 @@ struct fd3_shader_variant * fd3_shader_variant(struct fd3_shader_stateobj *so,
 		struct fd3_shader_key key);
 
 void fd3_program_emit(struct fd_ringbuffer *ring,
-		struct fd_program_stateobj *prog, struct fd3_shader_key key);
+		const struct fd3_shader_variant *vp,
+		const struct fd3_shader_variant *fp,
+		struct fd3_shader_key key);
 
 void fd3_prog_init(struct pipe_context *pctx);
 

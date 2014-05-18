@@ -40,4 +40,23 @@ int fd3_compile_shader_old(struct fd3_shader_variant *so,
 		const struct tgsi_token *tokens,
 		struct fd3_shader_key key);
 
+static inline bool
+is_shadow(const struct tgsi_full_instruction *inst)
+{
+	if (inst->Instruction.Texture) {
+		switch (inst->Texture.Texture) {
+		case TGSI_TEXTURE_SHADOW1D:
+		case TGSI_TEXTURE_SHADOW2D:
+		case TGSI_TEXTURE_SHADOWRECT:
+		case TGSI_TEXTURE_SHADOW1D_ARRAY:
+		case TGSI_TEXTURE_SHADOW2D_ARRAY:
+		case TGSI_TEXTURE_SHADOWCUBE:
+		case TGSI_TEXTURE_SHADOWCUBE_ARRAY:
+			return true;
+		}
+	}
+
+	return false;
+}
+
 #endif /* FD3_COMPILER_H_ */

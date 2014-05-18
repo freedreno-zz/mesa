@@ -136,6 +136,16 @@ use_hw_binning(struct fd_context *ctx)
 	return fd_binning_enabled && ((gmem->nbins_x * gmem->nbins_y) > 2);
 }
 
+static void
+program_emit(struct fd_ringbuffer *ring, struct fd_program_stateobj *prog,
+		struct fd3_shader_key key)
+{
+	const struct fd3_shader_variant *vp, *fp;
+	vp = fd3_shader_variant(prog->vp, key);
+	fp = fd3_shader_variant(prog->fp, key);
+	fd3_program_emit(ring, vp, fp, key);
+}
+
 /* workaround for (hlsq?) lockup with hw binning on a3xx patchlevel 0 */
 static void update_vsc_pipe(struct fd_context *ctx);
 static void
@@ -170,7 +180,7 @@ emit_binning_workaround(struct fd_context *ctx)
 			A3XX_GRAS_SC_CONTROL_RASTER_MODE(1));
 
 	fd_wfi(ctx, ring);
-	fd3_program_emit(ring, &ctx->solid_prog, key);
+	program_emit(ring, &ctx->solid_prog, key);
 	fd3_emit_vertex_bufs(ring, fd3_shader_variant(ctx->solid_prog.vp, key),
 			(struct fd3_vertex_buf[]) {{
 				.prsc = fd3_ctx->solid_vbuf,
@@ -390,7 +400,7 @@ fd3_emit_tile_gmem2mem(struct fd_context *ctx, struct fd_tile *tile)
 	OUT_RING(ring, 0);            /* VFD_INDEX_OFFSET */
 
 	fd_wfi(ctx, ring);
-	fd3_program_emit(ring, &ctx->solid_prog, key);
+	program_emit(ring, &ctx->solid_prog, key);
 	fd3_emit_vertex_bufs(ring, fd3_shader_variant(ctx->solid_prog.vp, key),
 			(struct fd3_vertex_buf[]) {{
 				.prsc = fd3_ctx->solid_vbuf,
@@ -539,7 +549,7 @@ fd3_emit_tile_mem2gmem(struct fd_context *ctx, struct fd_tile *tile)
 	OUT_RING(ring, 0);            /* VFD_INDEX_OFFSET */
 
 	fd_wfi(ctx, ring);
-	fd3_program_emit(ring, &ctx->blit_prog, key);
+	program_emit(ring, &ctx->blit_prog, key);
 	fd3_emit_vertex_bufs(ring, fd3_shader_variant(ctx->blit_prog.vp, key),
 			(struct fd3_vertex_buf[]) {{
 				.prsc = fd3_ctx->blit_texcoord_vbuf,

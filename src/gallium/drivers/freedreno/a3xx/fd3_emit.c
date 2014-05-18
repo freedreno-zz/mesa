@@ -359,16 +359,49 @@ fd3_emit_vertex_bufs(struct fd_ringbuffer *ring,
 			A3XX_VFD_CONTROL_1_REGID4INST(regid(63,0)));
 }
 
+/* deal with shadow sampler emulation variants, ie. figure out if we
+ * need a special shadow-sampler variant and adjust the shader key
+ * accordingly
+ */
+static struct fd3_shader_variant *
+get_shader_variant(struct fd3_shader_stateobj *so,
+		struct fd3_shader_key key, struct fd_texture_stateobj *tex)
+{
+	key.compare_func = 0;
+
+	/* if this shader uses a sampler w/ condition set, then we need
+	 * to generate a shader variant to handle that condition in the
+	 * shader.  This check avoids generating shader variants for
+	 * *every* shader when a shadow sampler is bound, even if the
+	 * shader isn't using that particular sampler:
+	 */
+	if (so->shadow_samplers & tex->shadow_samplers) {
+		unsigned i, j;
+		for (i = 0, j = 0; i < tex->num_samplers; i++) {
+			struct pipe_sampler_state *samp = tex->samplers[i];
+			/* only consider shadow samplers actually used by
+			 * the shader:
+			 */
+			if (samp && (so->shadow_samplers & (1 << i))) {
+				key.compare_func |= (samp->compare_func << (3 * j));
+				j++;
+			}
+		}
+printf("compare_func: %x, shadow_samplers: %x\n", key.compare_func, so->shadow_samplers);
+	}
+
+	return fd3_shader_variant(so, key);
+}
+
 void
 fd3_emit_state(struct fd_context *ctx, struct fd_ringbuffer *ring,
 		struct fd_program_stateobj *prog, uint32_t dirty,
 		struct fd3_shader_key key)
 {
-	struct fd3_shader_variant *vp;
-	struct fd3_shader_variant *fp;
+	struct fd3_shader_variant *vp, *fp;
 
-	fp = fd3_shader_variant(prog->fp, key);
-	vp = fd3_shader_variant(prog->vp, key);
+	fp = get_shader_variant(prog->fp, key, &ctx->fragtex);
+	vp = get_shader_variant(prog->vp, key, &ctx->verttex);
 
 	emit_marker(ring, 5);
 
@@ -495,7 +528,7 @@ fd3_emit_state(struct fd_context *ctx, struct fd_ringbuffer *ring,
 
 	if (dirty & FD_DIRTY_PROG) {
 		fd_wfi(ctx, ring);
-		fd3_program_emit(ring, prog, key);
+		fd3_program_emit(ring, vp, fp, key);
 	}
 
 	OUT_PKT3(ring, CP_EVENT_WRITE, 1);

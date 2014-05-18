@@ -107,8 +107,9 @@ create_variant(struct fd3_shader_stateobj *so, struct fd3_shader_key key)
 	v->type = so->type;
 
 	if (fd_mesa_debug & FD_DBG_DISASM) {
-		DBG("dump tgsi: type=%d, k={bp=%u,cts=%u,hp=%u}", so->type,
-			key.binning_pass, key.color_two_side, key.half_precision);
+		DBG("dump tgsi: type=%d, k={bp=%u,cts=%u,hp=%u,cf=%x}", so->type,
+			key.binning_pass, key.color_two_side, key.half_precision,
+			key.compare_func);
 		tgsi_dump(tokens, 0);
 	}
 
@@ -200,14 +201,52 @@ delete_shader(struct fd3_shader_stateobj *so)
 	free(so);
 }
 
+/* to avoid regenerating shaders if shadow compare_func changes on a
+ * sampler that is not used by this shader, we need to keep track of
+ * which samplers we use:
+ */
+static uint16_t
+get_shadow_samplers(const struct tgsi_token *tokens)
+{
+	struct tgsi_parse_context parser;
+	unsigned shadow_samplers = 0;
+
+	if (tgsi_parse_init(&parser, tokens) != TGSI_PARSE_OK) {
+		debug_error("tgsi_parse_init() failed!");
+		return 0;
+	}
+
+	while (!tgsi_parse_end_of_tokens(&parser)) {
+		tgsi_parse_token(&parser);
+
+		if (parser.FullToken.Token.Type == TGSI_TOKEN_TYPE_INSTRUCTION) {
+			struct tgsi_full_instruction *inst =
+					&parser.FullToken.FullInstruction;
+			if (is_shadow(inst)) {
+				struct tgsi_src_register *samp = &inst->Src[1].Register;
+				shadow_samplers |= (1 << samp->Index);
+			}
+		}
+	}
+
+	return shadow_samplers;
+}
+
 static struct fd3_shader_stateobj *
 create_shader(struct pipe_context *pctx, const struct pipe_shader_state *cso,
 		enum shader_t type)
 {
 	struct fd3_shader_stateobj *so = CALLOC_STRUCT(fd3_shader_stateobj);
+
 	so->pctx = pctx;
 	so->type = type;
 	so->tokens = tgsi_dup_tokens(cso->tokens);
+
+	/* we need to know which samplers are shadow samplers, so we can
+	 * generate appropriate variants based on compare_func:
+	 */
+	so->shadow_samplers = get_shadow_samplers(cso->tokens);
+
 	return so;
 }
 
@@ -326,21 +365,18 @@ find_output_regid(const struct fd3_shader_variant *so, fd3_semantic semantic)
 
 void
 fd3_program_emit(struct fd_ringbuffer *ring,
-		struct fd_program_stateobj *prog, struct fd3_shader_key key)
+		const struct fd3_shader_variant *vp,
+		const struct fd3_shader_variant *fp,
+		struct fd3_shader_key key)
 {
-	const struct fd3_shader_variant *vp, *fp;
 	const struct ir3_shader_info *vsi, *fsi;
 	uint32_t pos_regid, posz_regid, psize_regid, color_regid;
 	int i, j, k;
-
-	vp = fd3_shader_variant(prog->vp, key);
 
 	if (key.binning_pass) {
 		/* use dummy stateobj to simplify binning vs non-binning: */
 		static const struct fd3_shader_variant binning_fp = {};
 		fp = &binning_fp;
-	} else {
-		fp = fd3_shader_variant(prog->fp, key);
 	}
 
 	vsi = &vp->info;

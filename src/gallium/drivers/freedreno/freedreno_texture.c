@@ -54,11 +54,16 @@ static void bind_sampler_states(struct fd_texture_stateobj *prog,
 {
 	unsigned i;
 	unsigned new_nr = 0;
+	unsigned shadow_samplers = 0;
 
 	for (i = 0; i < nr; i++) {
-		if (hwcso[i])
+		struct pipe_sampler_state *samp = hwcso[i];
+		if (samp) {
 			new_nr++;
-		prog->samplers[i] = hwcso[i];
+			if (samp->compare_mode)
+				shadow_samplers |= (1 << i);
+		}
+		prog->samplers[i] = samp;
 		prog->dirty_samplers |= (1 << i);
 	}
 
@@ -68,6 +73,7 @@ static void bind_sampler_states(struct fd_texture_stateobj *prog,
 	}
 
 	prog->num_samplers = new_nr;
+	prog->shadow_samplers = shadow_samplers;
 }
 
 static void set_sampler_views(struct fd_texture_stateobj *prog,
