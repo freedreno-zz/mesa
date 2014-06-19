@@ -73,6 +73,10 @@
 #include <llvm/Support/CBindingWrapping.h>
 #endif
 
+#if HAVE_LLVM >= 0x0305
+#include <llvm/Support/Host.h>
+#endif
+
 #include "pipe/p_config.h"
 #include "util/u_debug.h"
 #include "util/u_cpu_detect.h"
@@ -309,8 +313,8 @@ lp_build_create_jit_compiler_for_module(LLVMExecutionEngineRef *OutJIT,
       /*
        * AVX feature is not automatically detected from CPUID by the X86 target
        * yet, because the old (yet default) JIT engine is not capable of
-       * emitting the opcodes.  But as we're using MCJIT here, it is safe to
-       * add set this attribute.
+       * emitting the opcodes. On newer llvm versions it is and at least some
+       * versions (tested with 3.3) will emit avx opcodes without this anyway.
        */
       MAttrs.push_back("+avx");
       if (util_cpu_caps.has_f16c) {
@@ -320,7 +324,25 @@ lp_build_create_jit_compiler_for_module(LLVMExecutionEngineRef *OutJIT,
    }
    builder.setJITMemoryManager(JITMemoryManager::CreateDefaultMemManager());
 
+#if HAVE_LLVM >= 0x0305
+   StringRef MCPU = llvm::sys::getHostCPUName();
+   /*
+    * The cpu bits are no longer set automatically, so need to set mcpu manually.
+    * Note that the MAttrs set above will be sort of ignored (since we should
+    * not set any which would not be set by specifying the cpu anyway).
+    * It ought to be safe though since getHostCPUName() should include bits
+    * not only from the cpu but environment as well (for instance if it's safe
+    * to use avx instructions which need OS support). According to
+    * http://llvm.org/bugs/show_bug.cgi?id=19429 however if I understand this
+    * right it may be necessary to specify older cpu (or disable mattrs) though
+    * when not using MCJIT so no instructions are generated which the old JIT
+    * can't handle. Not entirely sure if we really need to do anything yet.
+    */
+   builder.setMCPU(MCPU);
+#endif
+
    ExecutionEngine *JIT;
+
 #if HAVE_LLVM >= 0x0302
    JIT = builder.create();
 #else
