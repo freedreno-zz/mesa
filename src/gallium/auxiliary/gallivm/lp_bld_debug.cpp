@@ -61,7 +61,9 @@
 #include <llvm/MC/MCRegisterInfo.h>
 #endif /* HAVE_LLVM >= 0x0301 */
 
-#if HAVE_LLVM >= 0x0303
+#if HAVE_LLVM >= 0x0305
+#define OwningPtr std::unique_ptr
+#elif HAVE_LLVM >= 0x0303
 #include <llvm/ADT/OwningPtr.h>
 #endif
 
