@@ -273,6 +273,10 @@ vec4_visitor::try_copy_propagation(vec4_instruction *inst, int arg,
    if (has_source_modifiers && value.type != inst->src[arg].type)
       return false;
 
+   if (has_source_modifiers &&
+       inst->opcode == SHADER_OPCODE_GEN4_SCRATCH_WRITE)
+      return false;
+
    bool is_3src_inst = (inst->opcode == BRW_OPCODE_LRP ||
                         inst->opcode == BRW_OPCODE_MAD ||
                         inst->opcode == BRW_OPCODE_BFE ||
