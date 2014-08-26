@@ -16,3 +16,5 @@ e6967270c75a5b669152127bb7a746d55f4407a6 i965: Fix depth (array slices) computat
 e5adc560cc8544200faa3e04504202839626ab37
 cf1b5eee7f36af29d1d5caba3538ad4985e51f81
 
+# The patch depends on earlier ones that are not part of 10.2.
+b3121bfd413973f460e2cc9a9f852bdfa1265fcf mesa: guard better when building with sse4.1 optimisations
