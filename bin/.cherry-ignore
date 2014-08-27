@@ -21,3 +21,6 @@ b3121bfd413973f460e2cc9a9f852bdfa1265fcf mesa: guard better when building with s
 
 # The PIPE_CAP is not in mesa 10.2 - breaks the build.
 72969e0efb7a5a011629c1001e81aa2329ede6b1 radeon/compute: Report a value for PIPE_SHADER_CAP_MAX_CONST_BUFFER_SIZE
+
+# No whitespace fixes for the stable branches.
+38fccc37c1fa57c1fd373e8d71621bb4aed31083 radeonsi/compute: Whitespace fixes
