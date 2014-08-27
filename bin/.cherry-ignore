@@ -24,3 +24,7 @@ b3121bfd413973f460e2cc9a9f852bdfa1265fcf mesa: guard better when building with s
 
 # No whitespace fixes for the stable branches.
 38fccc37c1fa57c1fd373e8d71621bb4aed31083 radeonsi/compute: Whitespace fixes
+
+# The commit relies of patches restructuring r600_resource, which never made
+# it in the 10.2 branch.
+a15088338ebe544efd90bfa7934cb99521488141 radeonsi/compute: Stop leaking the input buffer
