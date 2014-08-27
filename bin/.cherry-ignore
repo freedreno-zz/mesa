@@ -18,3 +18,6 @@ cf1b5eee7f36af29d1d5caba3538ad4985e51f81
 
 # The patch depends on earlier ones that are not part of 10.2.
 b3121bfd413973f460e2cc9a9f852bdfa1265fcf mesa: guard better when building with sse4.1 optimisations
+
+# The PIPE_CAP is not in mesa 10.2 - breaks the build.
+72969e0efb7a5a011629c1001e81aa2329ede6b1 radeon/compute: Report a value for PIPE_SHADER_CAP_MAX_CONST_BUFFER_SIZE
