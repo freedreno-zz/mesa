@@ -34,6 +34,7 @@
 #include "pipe/p_context.h"
 #include "pipe/p_defines.h"
 #include "pipe/p_screen.h"
+#include "util/u_math.h"
 
 #include "st_context.h"
 #include "st_extensions.h"
@@ -277,8 +278,6 @@ void st_init_limits(struct st_context *st)
    c->MaxProgramTextureGatherComponents = screen->get_param(screen, PIPE_CAP_MAX_TEXTURE_GATHER_COMPONENTS);
    c->MinProgramTextureGatherOffset = screen->get_param(screen, PIPE_CAP_MIN_TEXTURE_GATHER_OFFSET);
    c->MaxProgramTextureGatherOffset = screen->get_param(screen, PIPE_CAP_MAX_TEXTURE_GATHER_OFFSET);
-
-   c->UniformBooleanTrue = ~0;
 
    c->MaxTransformFeedbackBuffers =
       screen->get_param(screen, PIPE_CAP_MAX_STREAM_OUTPUT_BUFFERS);
@@ -642,6 +641,8 @@ void st_init_extensions(struct st_context *st)
          ctx->Extensions.EXT_shader_integer_mix = GL_TRUE;
       }
    }
+
+   ctx->Const.UniformBooleanTrue = ctx->Const.NativeIntegers ? ~0 : fui(1.0f);
 
    /* Below are the cases which cannot be moved into tables easily. */
 
