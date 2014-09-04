@@ -647,6 +647,9 @@ _mesa_init_constants(struct gl_context *ctx)
    /* GL_ARB_framebuffer_object */
    ctx->Const.MaxSamples = 0;
 
+   /* GLSL default if NativeIntegers == FALSE */
+   ctx->Const.UniformBooleanTrue = FLT_AS_UINT(1.0f);
+
    /* GL_ARB_sync */
    ctx->Const.MaxServerWaitTimeout = 0x1fff7fffffffULL;
 
