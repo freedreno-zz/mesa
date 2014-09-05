@@ -2225,7 +2225,7 @@ _mesa_compute_compressed_pixelstore(GLuint dims, mesa_format texFormat,
 
       if (packing->RowLength) {
          store->TotalBytesPerRow = packing->CompressedBlockSize *
-            (packing->RowLength + bw - 1) / bw;
+            ((packing->RowLength + bw - 1) / bw);
       }
 
       store->SkipBytes += packing->SkipPixels * packing->CompressedBlockSize / bw;
