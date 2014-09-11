@@ -1919,6 +1919,7 @@ trans_cov(const struct instr_translater *t,
 
 	}
 	vectorize(ctx, instr, dst, 1, src, 0);
+	put_dst(ctx, inst, dst);
 }
 
 /*
