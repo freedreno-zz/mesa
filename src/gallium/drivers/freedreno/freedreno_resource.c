@@ -323,9 +323,6 @@ fd_resource_from_handle(struct pipe_screen *pscreen,
 	if (!rsc)
 		return NULL;
 
-	if (handle->offset != 0)
-		return NULL;
-
 	*prsc = *tmpl;
 
 	pipe_reference_init(&prsc->reference, 1);
@@ -338,6 +335,7 @@ fd_resource_from_handle(struct pipe_screen *pscreen,
 	rsc->base.vtbl = &fd_resource_vtbl;
 	rsc->cpp = util_format_get_blocksize(tmpl->format);
 	slice->pitch /= rsc->cpp;
+	slice->offset = handle->offset;
 
 	assert(rsc->cpp);
 
