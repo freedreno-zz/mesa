@@ -689,7 +689,8 @@ dri2_lookup_egl_image(struct dri_screen *screen, void *handle)
 static __DRIimage *
 dri2_create_image_from_winsys(__DRIscreen *_screen,
                               int width, int height, int format,
-                              struct winsys_handle *whandle, int pitch,
+                              struct winsys_handle *whandle,
+                              int pitch, GLboolean external,
                               void *loaderPrivate)
 {
    struct dri_screen *screen = dri_screen(_screen);
@@ -698,7 +699,9 @@ dri2_create_image_from_winsys(__DRIscreen *_screen,
    unsigned tex_usage;
    enum pipe_format pf;
 
-   tex_usage = PIPE_BIND_RENDER_TARGET | PIPE_BIND_SAMPLER_VIEW;
+   tex_usage = PIPE_BIND_SAMPLER_VIEW;
+   if (external == GL_FALSE)
+      tex_usage |= PIPE_BIND_RENDER_TARGET;
 
    switch (format) {
    case __DRI_IMAGE_FORMAT_RGB565:
@@ -763,7 +766,8 @@ dri2_create_image_from_name(__DRIscreen *_screen,
    whandle.handle = name;
 
    return dri2_create_image_from_winsys(_screen, width, height, format,
-                                        &whandle, pitch, loaderPrivate);
+                                        &whandle, pitch, GL_FALSE,
+                                        loaderPrivate);
 }
 
 static __DRIimage *
@@ -771,7 +775,8 @@ dri2_create_image_from_fd(__DRIscreen *_screen,
                           int width, int height, int fourcc,
                           int *fds, int num_fds, int *strides,
                           int *offsets, unsigned *error,
-                          int *dri_components, void *loaderPrivate)
+                          int *dri_components, GLboolean external,
+                          void *loaderPrivate)
 {
    static __DRIimage *img;
    struct winsys_handle whandle;
@@ -801,7 +806,8 @@ dri2_create_image_from_fd(__DRIscreen *_screen,
    whandle.offset = offsets[0];
 
    img = dri2_create_image_from_winsys(_screen, width, height, format,
-                                       &whandle, pitch, loaderPrivate);
+                                       &whandle, pitch, external,
+                                       loaderPrivate);
    if (img == NULL)
       *error = __DRI_IMAGE_ERROR_BAD_ALLOC;
 
@@ -1105,7 +1111,8 @@ dri2_from_fds(__DRIscreen *screen, int width, int height, int fourcc,
 
    img = dri2_create_image_from_fd(screen, width, height, fourcc,
                                    fds, num_fds, strides, offsets,
-                                   &error, &dri_components, loaderPrivate);
+                                   &error, &dri_components, GL_FALSE,
+                                   loaderPrivate);
    if (img == NULL)
       return NULL;
 
@@ -1130,7 +1137,8 @@ dri2_from_dma_bufs(__DRIscreen *screen,
 
    img = dri2_create_image_from_fd(screen, width, height, fourcc,
                                    fds, num_fds, strides, offsets,
-                                   error, &dri_components, loaderPrivate);
+                                   error, &dri_components, GL_TRUE,
+                                   loaderPrivate);
    if (img == NULL)
       return NULL;
 
