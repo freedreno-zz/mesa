@@ -1712,6 +1712,11 @@ dri2_create_image_dma_buf(_EGLDisplay *disp, _EGLContext *ctx,
       return NULL;
    }
 
+   if (!dri2_dpy->image->createImageFromDmaBufs) {
+      _eglError(EGL_BAD_PARAMETER, "not supported");
+      return NULL;
+   }
+
    err = _eglParseImageAttribList(&attrs, disp, attr_list);
    if (err != EGL_SUCCESS) {
       _eglError(err, "bad attribute");
