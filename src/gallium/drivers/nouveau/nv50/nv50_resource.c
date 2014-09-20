@@ -3,6 +3,8 @@
 #include "util/u_inlines.h"
 #include "util/u_format.h"
 
+#include "state_tracker/drm_driver.h"
+
 #include "nouveau_screen.h"
 
 #include "nv50/nv50_resource.h"
@@ -24,6 +26,8 @@ nv50_resource_from_handle(struct pipe_screen * screen,
                           const struct pipe_resource *templ,
                           struct winsys_handle *whandle)
 {
+   if (whandle->offset != 0)
+      return NULL;
    if (templ->target == PIPE_BUFFER)
       return NULL;
    else

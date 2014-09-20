@@ -101,6 +101,7 @@ wayland_create_drm_buffer(struct wayland_display *display,
    resource = resource_surface_get_single_resource(surface->rsurf, attachment);
    resource_surface_get_size(surface->rsurf, &width, &height);
 
+   memset(&wsh, 0, sizeof(wsh));
    wsh.type = DRM_API_HANDLE_TYPE_SHARED;
    screen->resource_get_handle(screen, resource, &wsh);
 

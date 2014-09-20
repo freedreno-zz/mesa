@@ -32,6 +32,8 @@
 #include "util/u_string.h"
 #include "util/u_surface.h"
 
+#include "state_tracker/drm_driver.h"
+
 #include "freedreno_resource.h"
 #include "freedreno_screen.h"
 #include "freedreno_surface.h"
@@ -319,6 +321,9 @@ fd_resource_from_handle(struct pipe_screen *pscreen,
 			tmpl->usage, tmpl->bind, tmpl->flags);
 
 	if (!rsc)
+		return NULL;
+
+	if (handle->offset != 0)
 		return NULL;
 
 	*prsc = *tmpl;

@@ -25,6 +25,8 @@
 
 #include "util/u_debug.h"
 
+#include "state_tracker/drm_driver.h"
+
 #include "svga_resource.h"
 #include "svga_resource_buffer.h"
 #include "svga_resource_texture.h"
@@ -49,6 +51,8 @@ svga_resource_from_handle(struct pipe_screen * screen,
                           const struct pipe_resource *template,
                           struct winsys_handle *whandle)
 {
+   if (whandle->offset != 0)
+      return NULL;
    if (template->target == PIPE_BUFFER)
       return NULL;
    else

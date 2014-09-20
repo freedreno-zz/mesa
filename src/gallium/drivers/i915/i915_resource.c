@@ -1,5 +1,7 @@
 #include "util/u_debug.h"
 
+#include "state_tracker/drm_driver.h"
+
 #include "i915_resource.h"
 #include "i915_context.h"
 #include "i915_screen.h"
@@ -25,6 +27,8 @@ i915_resource_from_handle(struct pipe_screen * screen,
 			 const struct pipe_resource *template,
 			 struct winsys_handle *whandle)
 {
+   if (whandle->offset != 0)
+      return NULL;
    if (template->target == PIPE_BUFFER)
       return NULL;
    else

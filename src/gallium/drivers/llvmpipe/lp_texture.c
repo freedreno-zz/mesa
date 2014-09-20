@@ -428,6 +428,9 @@ llvmpipe_resource_from_handle(struct pipe_screen *screen,
    struct sw_winsys *winsys = llvmpipe_screen(screen)->winsys;
    struct llvmpipe_resource *lpr;
 
+   if (whandle->offset != 0)
+      return NULL;
+
    /* XXX Seems like from_handled depth textures doesn't work that well */
 
    lpr = CALLOC_STRUCT(llvmpipe_resource);

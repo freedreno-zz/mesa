@@ -1,5 +1,6 @@
 
 #include "pipe/p_context.h"
+#include "state_tracker/drm_driver.h"
 #include "nvc0/nvc0_resource.h"
 #include "nouveau_screen.h"
 
@@ -21,6 +22,8 @@ nvc0_resource_from_handle(struct pipe_screen * screen,
                           const struct pipe_resource *templ,
                           struct winsys_handle *whandle)
 {
+   if (whandle->offset != 0)
+      return NULL;
    if (templ->target == PIPE_BUFFER) {
       return NULL;
    } else {

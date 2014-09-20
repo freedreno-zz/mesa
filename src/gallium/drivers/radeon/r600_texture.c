@@ -29,6 +29,7 @@
 #include "util/u_format.h"
 #include "util/u_memory.h"
 #include "util/u_pack_color.h"
+#include "state_tracker/drm_driver.h"
 #include <errno.h>
 #include <inttypes.h>
 
@@ -791,6 +792,9 @@ static struct pipe_resource *r600_texture_from_handle(struct pipe_screen *screen
 	struct radeon_surface surface;
 	bool scanout;
 	int r;
+
+	if (whandle->offset != 0)
+		return NULL;
 
 	/* Support only 2D textures without mipmaps */
 	if ((templ->target != PIPE_TEXTURE_2D && templ->target != PIPE_TEXTURE_RECT) ||

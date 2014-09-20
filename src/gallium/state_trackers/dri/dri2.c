@@ -777,7 +777,7 @@ dri2_create_image_from_fd(__DRIscreen *_screen,
    struct winsys_handle whandle;
    int format, pitch, cpp;
 
-   if (num_fds != 1 || offsets[0] != 0) {
+   if (num_fds != 1) {
       *error = __DRI_IMAGE_ERROR_BAD_MATCH;
       return NULL;
    }
@@ -798,6 +798,7 @@ dri2_create_image_from_fd(__DRIscreen *_screen,
    memset(&whandle, 0, sizeof(whandle));
    whandle.type = DRM_API_HANDLE_TYPE_FD;
    whandle.handle = (unsigned)fds[0];
+   whandle.offset = offsets[0];
 
    img = dri2_create_image_from_winsys(_screen, width, height, format,
                                        &whandle, pitch, loaderPrivate);

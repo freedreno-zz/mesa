@@ -38,6 +38,8 @@
 #include "util/u_memory.h"
 #include "util/u_transfer.h"
 
+#include "state_tracker/drm_driver.h"
+
 #include "sp_context.h"
 #include "sp_flush.h"
 #include "sp_texture.h"
@@ -213,6 +215,9 @@ softpipe_resource_from_handle(struct pipe_screen *screen,
    struct sw_winsys *winsys = softpipe_screen(screen)->winsys;
    struct softpipe_resource *spr = CALLOC_STRUCT(softpipe_resource);
    if (!spr)
+      return NULL;
+
+   if (whandle->offset != 0)
       return NULL;
 
    spr->base = *templat;

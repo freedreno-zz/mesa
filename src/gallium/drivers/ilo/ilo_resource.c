@@ -25,6 +25,8 @@
  *    Chia-I Wu <olv@lunarg.com>
  */
 
+#include "state_tracker/drm_driver.h"
+
 #include "ilo_layout.h"
 #include "ilo_screen.h"
 #include "ilo_resource.h"
@@ -456,6 +458,8 @@ ilo_resource_from_handle(struct pipe_screen *screen,
                          const struct pipe_resource *templ,
                          struct winsys_handle *handle)
 {
+   if (handle->offset != 0)
+      return NULL;
    if (templ->target == PIPE_BUFFER)
       return NULL;
    else

@@ -1103,6 +1103,9 @@ struct pipe_resource *r300_texture_from_handle(struct pipe_screen *screen,
     enum radeon_bo_layout microtile, macrotile;
     unsigned stride;
 
+    if (whandle->offset != 0)
+       return NULL;
+
     /* Support only 2D textures without mipmaps */
     if ((base->target != PIPE_TEXTURE_2D &&
           base->target != PIPE_TEXTURE_RECT) ||

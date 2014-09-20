@@ -329,6 +329,9 @@ vc4_resource_from_handle(struct pipe_screen *pscreen,
         struct pipe_resource *prsc = &rsc->base.b;
         struct vc4_resource_slice *slice = &rsc->slices[0];
 
+        if (handle->offset != 0)
+                return NULL;
+
         if (!rsc)
                 return NULL;
 
