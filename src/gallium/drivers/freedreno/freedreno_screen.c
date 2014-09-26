@@ -222,6 +222,9 @@ fd_screen_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
 	case PIPE_CAP_CONDITIONAL_RENDER_INVERTED:
 		return 0;
 
+	case PIPE_CAP_MAX_VIEWPORTS:
+		return 1;
+
 	/* Stream output. */
 	case PIPE_CAP_MAX_STREAM_OUTPUT_BUFFERS:
 	case PIPE_CAP_STREAM_OUTPUT_PAUSE_RESUME:
