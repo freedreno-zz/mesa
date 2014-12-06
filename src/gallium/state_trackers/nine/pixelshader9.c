@@ -72,9 +72,10 @@ NinePixelShader9_ctor( struct NinePixelShader9 *This,
     This->sampler_mask = info.sampler_mask;
     This->rt_mask = info.rt_mask;
     This->const_used_size = info.const_used_size;
-    if (info.const_used_size == ~0)
-        This->const_used_size = NINE_CONSTBUF_SIZE(device->max_ps_const_f);
-    This->lconstf = info.lconstf;
+    /* no constant relative addressing for ps */
+    assert(info.const_used_size != ~0);
+    assert(info.lconstf.data == NULL);
+    assert(info.lconstf.ranges == NULL);
 
     return D3D_OK;
 }
@@ -100,9 +101,6 @@ NinePixelShader9_dtor( struct NinePixelShader9 *This )
 
     if (This->byte_code.tokens)
         FREE((void *)This->byte_code.tokens); /* const_cast */
-
-    FREE(This->lconstf.data);
-    FREE(This->lconstf.ranges);
 
     NineUnknown_dtor(&This->base);
 }
