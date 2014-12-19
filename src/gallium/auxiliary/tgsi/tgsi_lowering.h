@@ -69,6 +69,13 @@ struct tgsi_lowering_config
    unsigned lower_DP2:1;
    unsigned lower_DP2A:1;
 
+   /* If lowering alpha-test, a constant w/ the semantic
+    * ALPHAREF is inserted.  The driver should pass in the
+    * actual alpha-ref value via this constant (.x coord)
+    */
+   unsigned lower_alpha_test:1;
+   unsigned alpha_func:3;    /* PIPE_FUNC_x */
+
    /* bitmask of (1 << TGSI_TEXTURE_type): */
    unsigned lower_TXP;
 

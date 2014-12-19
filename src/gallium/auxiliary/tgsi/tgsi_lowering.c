@@ -37,15 +37,22 @@ struct tgsi_lowering_context {
    struct tgsi_transform_context base;
    const struct tgsi_lowering_config *config;
    struct tgsi_shader_info *info;
+
+   bool alpha_test;
+   unsigned colorout;
+   unsigned colortmp;   /* tmp register to hold original color out */
+   unsigned alpharef;   /* const slot used to hold alpharef value */
+
    unsigned two_side_colors;
    unsigned two_side_idx[PIPE_MAX_SHADER_INPUTS];
    unsigned color_base;  /* base register for chosen COLOR/BCOLOR's */
    int face_idx;
+
    unsigned numtmp;
    struct {
       struct tgsi_full_src_register src;
       struct tgsi_full_dst_register dst;
-   } tmp[2];
+   } tmp[3];
 #define A 0
 #define B 1
    struct tgsi_full_src_register imm;
@@ -1146,6 +1153,148 @@ transform_samp(struct tgsi_transform_context *tctx,
    return 0;
 }
 
+/* Alpha-test emulation:
+ * Redirects writes to COLOR output to a temporary and appends
+ * extra instructions to do conditional kill based on output
+ * alpha value
+ */
+#define ALPHATEST_GROW (                        \
+      3 +         /* CONST[], ALPHAREF */       \
+      NINST(2) +  /* SEQ/SNE/SLE/SGT/SLT */     \
+      NINST(1) +  /* IF */                      \
+      NINST(0) +  /* KILL */                    \
+      NINST(0) +  /* ENDIF */                   \
+      NINST(1)    /* MOV */                     \
+      )
+#define ALPHATEST_TMP  1
+
+static void
+emit_alphatest_decls(struct tgsi_transform_context *tctx)
+{
+   struct tgsi_lowering_context *ctx = tgsi_lowering_context(tctx);
+   struct tgsi_full_declaration decl;
+
+   /* NOTE: the temporaries we need are handled in emit_decls() */
+
+   decl = tgsi_default_full_declaration();
+   decl.Declaration.File = TGSI_FILE_CONSTANT;
+   decl.Declaration.Semantic = true;
+   decl.Range.First = decl.Range.Last = ctx->alpharef;
+   decl.Semantic.Name = TGSI_SEMANTIC_ALPHAREF;
+   decl.Semantic.Index = 0;
+   tctx->emit_declaration(tctx, &decl);
+}
+
+static void
+emit_alphatest_instrs(struct tgsi_transform_context *tctx)
+{
+   struct tgsi_lowering_context *ctx = tgsi_lowering_context(tctx);
+   struct tgsi_full_instruction new_inst;
+   int c = ctx->colortmp;
+
+   if (ctx->config->alpha_func == PIPE_FUNC_NEVER) {
+      /* KILL */
+      new_inst = tgsi_default_full_instruction();
+      new_inst.Instruction.Opcode = TGSI_OPCODE_KILL;
+      new_inst.Instruction.NumDstRegs = 0;
+      new_inst.Instruction.NumSrcRegs = 0;
+      tctx->emit_instruction(tctx, &new_inst);
+   } else {
+      unsigned opcode;
+
+      /* the alpha-func refers to when to *pass* the fragment,
+       * we invert the logic to decide when to kill it:
+       */
+      switch (ctx->config->alpha_func) {
+      case PIPE_FUNC_LESS:
+         opcode = TGSI_OPCODE_SGE;
+         break;
+      case PIPE_FUNC_EQUAL:
+         opcode = TGSI_OPCODE_SNE;
+         break;
+      case PIPE_FUNC_LEQUAL:
+         opcode = TGSI_OPCODE_SGT;
+         break;
+      case PIPE_FUNC_GREATER:
+         opcode = TGSI_OPCODE_SLE;
+         break;
+      case PIPE_FUNC_NOTEQUAL:
+         opcode = TGSI_OPCODE_SEQ;
+         break;
+      case PIPE_FUNC_GEQUAL:
+         opcode = TGSI_OPCODE_SLT;
+         break;
+      default:
+         assert(0);
+         return;
+      }
+
+      /* SEQ/SNE/SGE/SLE/SGT/SLT tmpA.x, tmpColor.w, alpharef.x */
+      new_inst = tgsi_default_full_instruction();
+      new_inst.Instruction.Opcode = opcode;
+      new_inst.Instruction.NumDstRegs = 1;
+      reg_dst(&new_inst.Dst[0], &ctx->tmp[A].dst, TGSI_WRITEMASK_X);
+      new_inst.Instruction.NumSrcRegs = 2;
+      reg_src(&new_inst.Src[0], &ctx->tmp[c].src, SWIZ(W, W, W, W));
+      new_inst.Src[1].Register.File = TGSI_FILE_CONSTANT;
+      new_inst.Src[1].Register.Index = ctx->alpharef;
+      new_inst.Src[1].Register.SwizzleX = TGSI_SWIZZLE_X;
+      new_inst.Src[1].Register.SwizzleY = TGSI_SWIZZLE_X;
+      new_inst.Src[1].Register.SwizzleZ = TGSI_SWIZZLE_X;
+      new_inst.Src[1].Register.SwizzleW = TGSI_SWIZZLE_X;
+      tctx->emit_instruction(tctx, &new_inst);
+
+      /* IF tmpA.x :0 */
+      new_inst = tgsi_default_full_instruction();
+      new_inst.Instruction.Opcode = TGSI_OPCODE_IF;
+      new_inst.Label.Label = 0;
+      new_inst.Instruction.NumDstRegs = 0;
+      new_inst.Instruction.NumSrcRegs = 1;
+      reg_src(&new_inst.Src[0], &ctx->tmp[A].src, SWIZ(X, _, _, _));
+      tctx->emit_instruction(tctx, &new_inst);
+
+      /* KILL */
+      new_inst = tgsi_default_full_instruction();
+      new_inst.Instruction.Opcode = TGSI_OPCODE_KILL;
+      new_inst.Instruction.NumDstRegs = 0;
+      new_inst.Instruction.NumSrcRegs = 0;
+      tctx->emit_instruction(tctx, &new_inst);
+
+      /* ENDIF */
+      new_inst = tgsi_default_full_instruction();
+      new_inst.Instruction.Opcode = TGSI_OPCODE_ENDIF;
+      new_inst.Instruction.NumDstRegs = 0;
+      new_inst.Instruction.NumSrcRegs = 0;
+      tctx->emit_instruction(tctx, &new_inst);
+   }
+
+   /* MOV OUT[color], tmpColor */
+   /* (would be nice if we could create_mov() here..) */
+   new_inst = tgsi_default_full_instruction();
+   new_inst.Instruction.Opcode = TGSI_OPCODE_MOV;
+   new_inst.Instruction.NumDstRegs = 1;
+   new_inst.Dst[0].Register.File  = TGSI_FILE_OUTPUT;
+   new_inst.Dst[0].Register.Index = ctx->colorout;
+   new_inst.Dst[0].Register.WriteMask = TGSI_WRITEMASK_XYZW;
+   new_inst.Instruction.NumSrcRegs = 1;
+   reg_src(&new_inst.Src[0], &ctx->tmp[c].src, SWIZ(X, Y, Z, W));
+   tctx->emit_instruction(tctx, &new_inst);
+}
+
+static void
+rename_color_outputs(struct tgsi_lowering_context *ctx,
+                    struct tgsi_full_instruction *inst)
+{
+   unsigned i;
+   for (i = 0; i < inst->Instruction.NumDstRegs; i++) {
+      struct tgsi_dst_register *dst = &inst->Dst[i].Register;
+      if ((dst->File == TGSI_FILE_OUTPUT) &&
+          (dst->Index == ctx->colorout)) {
+         *dst = ctx->tmp[ctx->colortmp].dst.Register;
+      }
+   }
+}
+
 /* Two-sided color emulation:
  * For each COLOR input, create a corresponding BCOLOR input, plus
  * CMP instruction to select front or back color based on FACE
@@ -1288,6 +1437,9 @@ emit_decls(struct tgsi_transform_context *tctx)
 
    if (ctx->two_side_colors)
       emit_twoside(tctx);
+
+   if (ctx->alpha_test)
+      emit_alphatest_decls(tctx);
 }
 
 static void
@@ -1307,7 +1459,6 @@ rename_color_inputs(struct tgsi_lowering_context *ctx,
          }
       }
    }
-
 }
 
 static void
@@ -1326,6 +1477,12 @@ transform_instr(struct tgsi_transform_context *tctx,
     */
    if (ctx->two_side_colors)
       rename_color_inputs(ctx, inst);
+
+   /* if emulating alpha-test, we need to re-write some dst
+    * registers:
+    */
+   if (ctx->alpha_test)
+      rename_color_outputs(ctx, inst);
 
    switch (inst->Instruction.Opcode) {
    case TGSI_OPCODE_DST:
@@ -1406,6 +1563,10 @@ transform_instr(struct tgsi_transform_context *tctx,
       if (transform_samp(tctx, inst))
          goto skip;
       break;
+   case TGSI_OPCODE_END:
+      if (ctx->alpha_test)
+         emit_alphatest_instrs(tctx);
+      goto skip;   /* emit the actual END instruction itself */
    default:
    skip:
       tctx->emit_instruction(tctx, inst);
@@ -1452,6 +1613,20 @@ tgsi_transform_lowering(const struct tgsi_lowering_config *config,
       }
    }
 
+   if ((info->processor == TGSI_PROCESSOR_FRAGMENT) &&
+       config->lower_alpha_test &&
+       (config->alpha_func != PIPE_FUNC_ALWAYS)) {
+      int i;
+      ctx.alpha_test = true;
+      for (i = 0; i < info->file_max[TGSI_FILE_OUTPUT]; i++) {
+         /* TODO not sure what to do in case of MRT */
+         if (info->output_semantic_name[i] == TGSI_SEMANTIC_COLOR) {
+             ctx.colorout = i;
+             break;
+         }
+      }
+   }
+
    ctx.saturate = config->saturate_r | config->saturate_s | config->saturate_t;
 
 #define OPCS(x) ((config->lower_ ## x) ? info->opcode_count[TGSI_OPCODE_ ## x] : 0)
@@ -1472,7 +1647,8 @@ tgsi_transform_lowering(const struct tgsi_lowering_config *config,
          OPCS(DP2A) ||
          OPCS(TXP) ||
          ctx.two_side_colors ||
-         ctx.saturate))
+         ctx.saturate ||
+         ctx.alpha_test))
       return NULL;
 
 #if 0  /* debug */
@@ -1553,6 +1729,14 @@ tgsi_transform_lowering(const struct tgsi_lowering_config *config,
 
       newlen += SAMP_GROW * n;
       numtmp = MAX2(numtmp, SAMP_TMP);
+   }
+
+   if (ctx.alpha_test) {
+      newlen += ALPHATEST_GROW;
+      numtmp = MAX2(numtmp, ALPHATEST_TMP);
+      /* and one more tmp to hold temporary color output: */
+      ctx.colortmp = numtmp++;
+      ctx.alpharef = info->file_max[TGSI_FILE_CONSTANT] + 1;
    }
 
    /* specifically don't include two_side_colors temps in the count: */
