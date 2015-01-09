@@ -137,7 +137,9 @@ glsl_test_SOURCES = \
 	test.cpp \
 	test_optpass.cpp
 
-glsl_test_LDADD = libglsl.la
+glsl_test_LDADD =					\
+	libglsl.la					\
+	$(PTHREAD_LIBS)
 
 # We write our own rules for yacc and lex below. We'd rather use automake,
 # but automake makes it especially difficult for a number of reasons:
