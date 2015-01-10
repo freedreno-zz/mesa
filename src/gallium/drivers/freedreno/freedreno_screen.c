@@ -79,7 +79,7 @@ DEBUG_GET_ONCE_FLAGS_OPTION(fd_mesa_debug, "FD_MESA_DEBUG", debug_options, 0)
 
 int fd_mesa_debug = 0;
 bool fd_binning_enabled = true;
-static bool glsl130 = false;
+static bool glsl130 = true;
 
 static const char *
 fd_screen_get_name(struct pipe_screen *pscreen)

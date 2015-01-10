@@ -393,7 +393,7 @@ compute_version_es2(const struct gl_extensions *extensions)
                               extensions->EXT_texture_snorm &&
                               extensions->NV_primitive_restart &&
                               extensions->OES_depth_texture_cube_map);
-   if (ver_3_0) {
+   if (1 || ver_3_0) {
       return 30;
    } else if (ver_2_0) {
       return 20;
