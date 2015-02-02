@@ -2497,7 +2497,7 @@ texsubimage_error_check(struct gl_context *ctx, GLuint dimensions,
    }
 
    if (error_check_subtexture_dimensions(ctx, "glTexSubImage", dimensions,
-                                         texImage, xoffset, yoffset, 0,
+                                         texImage, xoffset, yoffset, zoffset,
                                          width, height, 1)) {
       return GL_TRUE;
    }
