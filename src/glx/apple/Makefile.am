@@ -1,6 +1,7 @@
 noinst_LTLIBRARIES = libappleglx.la
 
 AM_CFLAGS = \
+	-I$(top_srcdir)/src \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/src/glx \
 	-I$(top_srcdir)/src/mesa \
