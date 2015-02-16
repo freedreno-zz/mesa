@@ -729,7 +729,7 @@ _mesa_get_compressed_teximage(struct gl_context *ctx,
       GLubyte *src;
 
       /* map src texture buffer */
-      ctx->Driver.MapTextureImage(ctx, texImage, 0,
+      ctx->Driver.MapTextureImage(ctx, texImage, slice,
                                   0, 0, texImage->Width, texImage->Height,
                                   GL_MAP_READ_BIT, &src, &srcRowStride);
 
@@ -741,7 +741,7 @@ _mesa_get_compressed_teximage(struct gl_context *ctx,
             src += srcRowStride;
          }
 
-         ctx->Driver.UnmapTextureImage(ctx, texImage, 0);
+         ctx->Driver.UnmapTextureImage(ctx, texImage, slice);
 
          /* Advance to next slice */
          dest += store.TotalBytesPerRow * (store.TotalRowsPerSlice - store.CopyRowsPerSlice);
