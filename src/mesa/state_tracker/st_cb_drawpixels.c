@@ -1102,7 +1102,7 @@ st_DrawPixels(struct gl_context *ctx, GLint x, GLint y,
    const GLfloat *color;
    struct pipe_context *pipe = st->pipe;
    GLboolean write_stencil = GL_FALSE, write_depth = GL_FALSE;
-   struct pipe_sampler_view *sv[2];
+   struct pipe_sampler_view *sv[2] = { NULL };
    int num_sampler_view = 1;
    struct st_fp_variant *fpv;
    struct gl_pixelstore_attrib clippedUnpack;
@@ -1156,8 +1156,9 @@ st_DrawPixels(struct gl_context *ctx, GLint x, GLint y,
 
       color = NULL;
       if (st->pixel_xfer.pixelmap_enabled) {
-	  sv[1] = st->pixel_xfer.pixelmap_sampler_view;
-	  num_sampler_view++;
+         pipe_sampler_view_reference(&sv[1],
+                                     st->pixel_xfer.pixelmap_sampler_view);
+         num_sampler_view++;
       }
    }
 
@@ -1178,7 +1179,8 @@ st_DrawPixels(struct gl_context *ctx, GLint x, GLint y,
             if (write_stencil) {
                enum pipe_format stencil_format =
                      util_format_stencil_only(pt->format);
-
+               /* we should not be doing pixel map/transfer (see above) */
+               assert(num_sampler_view == 1);
                sv[1] = st_create_texture_sampler_view_format(st->pipe, pt,
                                                              stencil_format);
                num_sampler_view++;
@@ -1469,7 +1471,7 @@ st_CopyPixels(struct gl_context *ctx, GLint srcx, GLint srcy,
    struct st_renderbuffer *rbRead;
    void *driver_vp, *driver_fp;
    struct pipe_resource *pt;
-   struct pipe_sampler_view *sv[2];
+   struct pipe_sampler_view *sv[2] = { NULL };
    int num_sampler_view = 1;
    GLfloat *color;
    enum pipe_format srcFormat;
@@ -1518,7 +1520,8 @@ st_CopyPixels(struct gl_context *ctx, GLint srcx, GLint srcy,
       driver_vp = make_passthrough_vertex_shader(st, GL_FALSE);
 
       if (st->pixel_xfer.pixelmap_enabled) {
-         sv[1] = st->pixel_xfer.pixelmap_sampler_view;
+         pipe_sampler_view_reference(&sv[1],
+                                     st->pixel_xfer.pixelmap_sampler_view);
          num_sampler_view++;
       }
    }
