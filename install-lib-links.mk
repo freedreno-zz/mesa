@@ -14,5 +14,9 @@ all-local : .install-mesa-links
 			ln -f $$f $(top_builddir)/$(LIB_DIR);	\
 		fi;						\
 	done && touch $@
+
+clean-local:
+	$(RM) .install-mesa-links
+
 endif
 endif
