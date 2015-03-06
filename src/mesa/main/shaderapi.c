@@ -1704,7 +1704,7 @@ _mesa_GetProgramBinary(GLuint program, GLsizei bufSize, GLsizei *length,
     *
     *     "If <length> is NULL, then no length is returned."
     */
-   if (length == NULL)
+   if (length != NULL)
       *length = 0;
 
    (void) binaryFormat;
