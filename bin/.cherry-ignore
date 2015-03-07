@@ -1,2 +1,18 @@
 # No whitespace commits in stable.
 a10bf5c10caf27232d4df8da74d5c35c23eb883d
+
+# The following patches address code which is missing in 10.4
+# http://lists.freedesktop.org/archives/mesa-dev/2015-March/078515.html
+06084652fefe49c3d6bf1b476ff74ff602fdc22a common: Correct texture init for meta pbo uploads and downloads.
+
+# http://lists.freedesktop.org/archives/mesa-dev/2015-March/078547.html
+ccc5ce6f72c1ec86be4dfcef96c0b51fba0faa6d common: Correct PBO 2D_ARRAY handling.
+
+# http://lists.freedesktop.org/archives/mesa-dev/2015-March/078549.html
+546aba143d13ba3f993ead4cc30b2404abfc0202 common: Fix PBOs for 1D_ARRAY.
+
+# http://lists.freedesktop.org/archives/mesa-dev/2015-March/078501.html
+2b2fa1865248c6e3b7baec81c4f92774759b201f mesa: Indent break statements and add a missing one.
+
+# http://lists.freedesktop.org/archives/mesa-dev/2015-March/078502.html
+87109acbed9c9b52f33d58ca06d9048d0ac7a215 mesa: Free memory allocated for luminance in readpixels.
