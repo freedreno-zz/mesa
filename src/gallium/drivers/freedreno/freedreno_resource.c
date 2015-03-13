@@ -199,7 +199,7 @@ setup_slices(struct fd_resource *rsc)
 	for (level = 0; level <= prsc->last_level; level++) {
 		struct fd_resource_slice *slice = fd_resource_slice(rsc, level);
 
-		slice->pitch = align(width, 32);
+		slice->pitch = width = align(width, 32);
 		slice->offset = size;
 		slice->size0 = slice->pitch * height * rsc->cpp;
 
