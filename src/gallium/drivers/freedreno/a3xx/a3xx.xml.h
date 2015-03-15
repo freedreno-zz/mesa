@@ -13,7 +13,7 @@ The rules-ng-ng source files this header was generated from are:
 - /home/robclark/src/freedreno/envytools/rnndb/adreno/a2xx.xml          (  32901 bytes, from 2014-06-02 15:21:30)
 - /home/robclark/src/freedreno/envytools/rnndb/adreno/adreno_common.xml (  10347 bytes, from 2014-10-01 18:55:57)
 - /home/robclark/src/freedreno/envytools/rnndb/adreno/adreno_pm4.xml    (  14960 bytes, from 2014-07-27 17:22:13)
-- /home/robclark/src/freedreno/envytools/rnndb/adreno/a3xx.xml          (  60533 bytes, from 2014-10-15 18:32:43)
+- /home/robclark/src/freedreno/envytools/rnndb/adreno/a3xx.xml          (  64771 bytes, from 2015-03-15 21:55:57)
 - /home/robclark/src/freedreno/envytools/rnndb/adreno/a4xx.xml          (  41068 bytes, from 2014-08-01 12:22:48)
 
 Copyright (C) 2013-2014 by the following authors:
@@ -2572,7 +2572,7 @@ static inline uint32_t A3XX_TEX_CONST_2_SWAP(enum a3xx_color_swap val)
 }
 
 #define REG_A3XX_TEX_CONST_3					0x00000003
-#define A3XX_TEX_CONST_3_LAYERSZ1__MASK				0x0000000f
+#define A3XX_TEX_CONST_3_LAYERSZ1__MASK				0x00001fff
 #define A3XX_TEX_CONST_3_LAYERSZ1__SHIFT			0
 static inline uint32_t A3XX_TEX_CONST_3_LAYERSZ1(uint32_t val)
 {
