@@ -302,7 +302,7 @@ fd4_emit_vertex_bufs(struct fd_ringbuffer *ring, struct fd4_emit *emit)
 
 	for (i = 0; i < vp->inputs_count; i++) {
 		uint8_t semantic = sem2name(vp->inputs[i].semantic);
-		if (semantic == TGSI_SEMANTIC_VERTEXID)
+		if (semantic == TGSI_SEMANTIC_VERTEXID_NOBASE)
 			vertex_regid = vp->inputs[i].regid;
 		else if (semantic == TGSI_SEMANTIC_INSTANCEID)
 			instance_regid = vp->inputs[i].regid;
@@ -328,6 +328,7 @@ fd4_emit_vertex_bufs(struct fd_ringbuffer *ring, struct fd4_emit *emit)
 			bool switchnext = (i != last) ||
 					(vertex_regid != regid(63, 0)) ||
 					(instance_regid != regid(63, 0));
+			bool isint = util_format_is_pure_integer(pfmt);
 			uint32_t fs = util_format_get_blocksize(pfmt);
 			uint32_t off = vb->buffer_offset + elem->src_offset;
 			uint32_t size = fd_bo_size(rsc->bo) - off;
@@ -350,6 +351,7 @@ fd4_emit_vertex_bufs(struct fd_ringbuffer *ring, struct fd4_emit *emit)
 					A4XX_VFD_DECODE_INSTR_REGID(vp->inputs[i].regid) |
 					A4XX_VFD_DECODE_INSTR_SHIFTCNT(fs) |
 					A4XX_VFD_DECODE_INSTR_LASTCOMPVALID |
+					COND(isint, A4XX_VFD_DECODE_INSTR_INT) |
 					COND(switchnext, A4XX_VFD_DECODE_INSTR_SWITCHNEXT));
 
 			total_in += vp->inputs[i].ncomp;
@@ -464,10 +466,15 @@ fd4_emit_state(struct fd_context *ctx, struct fd_ringbuffer *ring,
 	 * when it changes.
 	 */
 	if (emit->info) {
+		const struct pipe_draw_info *info = emit->info;
 		uint32_t val = fd4_rasterizer_stateobj(ctx->rasterizer)
 				->pc_prim_vtx_cntl;
 
+		if (info->indexed && info->primitive_restart)
+			val |= A4XX_PC_PRIM_VTX_CNTL_PRIMITIVE_RESTART;
+
 		val |= COND(vp->writes_psize, A4XX_PC_PRIM_VTX_CNTL_PSIZE);
+
 		if (fp->total_in > 0) {
 			uint32_t varout = align(fp->total_in, 16) / 16;
 			if (varout > 1)
