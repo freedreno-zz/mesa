@@ -14,7 +14,7 @@ The rules-ng-ng source files this header was generated from are:
 - /home/robclark/src/freedreno/envytools/rnndb/adreno/adreno_common.xml (  10551 bytes, from 2014-11-13 22:44:30)
 - /home/robclark/src/freedreno/envytools/rnndb/adreno/adreno_pm4.xml    (  14748 bytes, from 2015-04-12 15:01:13)
 - /home/robclark/src/freedreno/envytools/rnndb/adreno/a3xx.xml          (  66709 bytes, from 2015-04-12 18:16:35)
-- /home/robclark/src/freedreno/envytools/rnndb/adreno/a4xx.xml          (  57486 bytes, from 2015-04-12 18:10:00)
+- /home/robclark/src/freedreno/envytools/rnndb/adreno/a4xx.xml          (  57619 bytes, from 2015-04-18 16:04:03)
 
 Copyright (C) 2013-2015 by the following authors:
 - Rob Clark <robdclark@gmail.com> (robclark)
@@ -2058,6 +2058,12 @@ static inline uint32_t A4XX_HLSQ_CONTROL_1_REG_COORDREGID(uint32_t val)
 	return ((val) << A4XX_HLSQ_CONTROL_1_REG_COORDREGID__SHIFT) & A4XX_HLSQ_CONTROL_1_REG_COORDREGID__MASK;
 }
 #define A4XX_HLSQ_CONTROL_1_REG_ZWCOORD				0x02000000
+#define A4XX_HLSQ_CONTROL_1_REG_COORD_REGID__MASK		0xff000000
+#define A4XX_HLSQ_CONTROL_1_REG_COORD_REGID__SHIFT		24
+static inline uint32_t A4XX_HLSQ_CONTROL_1_REG_COORD_REGID(uint32_t val)
+{
+	return ((val) << A4XX_HLSQ_CONTROL_1_REG_COORD_REGID__SHIFT) & A4XX_HLSQ_CONTROL_1_REG_COORD_REGID__MASK;
+}
 
 #define REG_A4XX_HLSQ_CONTROL_2_REG				0x000023c2
 #define A4XX_HLSQ_CONTROL_2_REG_PRIMALLOCTHRESHOLD__MASK	0xfc000000
@@ -2243,6 +2249,7 @@ static inline uint32_t A4XX_PC_PRIM_VTX_CNTL_VAROUT(uint32_t val)
 {
 	return ((val) << A4XX_PC_PRIM_VTX_CNTL_VAROUT__SHIFT) & A4XX_PC_PRIM_VTX_CNTL_VAROUT__MASK;
 }
+#define A4XX_PC_PRIM_VTX_CNTL_PRIMITIVE_RESTART			0x00100000
 #define A4XX_PC_PRIM_VTX_CNTL_PROVOKING_VTX_LAST		0x02000000
 #define A4XX_PC_PRIM_VTX_CNTL_PSIZE				0x04000000
 
