@@ -541,6 +541,15 @@ typedef struct {
 #define nir_foreach_def_safe(reg, dest) \
    list_for_each_entry_safe(nir_dest, dest, &(reg)->defs, reg.def_link)
 
+static inline unsigned
+nir_dest_num_components(nir_dest *dest)
+{
+   if (dest->is_ssa)
+      return dest->ssa.num_components;
+   else
+      return dest->reg.reg->num_components;
+}
+
 static inline nir_src
 nir_src_for_ssa(nir_ssa_def *def)
 {
