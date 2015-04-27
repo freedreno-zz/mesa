@@ -506,6 +506,15 @@ typedef struct {
    bool is_ssa;
 } nir_dest;
 
+static inline unsigned
+nir_dest_num_components(nir_dest *dest)
+{
+   if (dest->is_ssa)
+      return dest->ssa.num_components;
+   else
+      return dest->reg.reg->num_components;
+}
+
 static inline nir_src
 nir_src_for_ssa(nir_ssa_def *def)
 {
