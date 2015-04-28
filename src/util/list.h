@@ -141,6 +141,39 @@ static inline void list_delinit(struct list_head *item)
 #define LIST_FOR_EACH_ENTRY_FROM_REV(pos, start, head, member)		\
    for (pos = NULL, pos = container_of((start), pos, member);		\
 	&pos->member != (head);						\
+
+#define list_for_each_entry(type, pos, head, member)                    \
+   for (type *pos = container_of((head)->next, pos, member);            \
+	&pos->member != (head);                                         \
+	pos = container_of(pos->member.next, pos, member))
+
+#define list_for_each_entry_safe(type, pos, head, member)               \
+   for (type *pos = container_of((head)->next, pos, member),            \
+	     *__next = container_of(pos->member.next, pos, member);     \
+	&pos->member != (head);                                         \
+	pos = __next,                                                   \
+        __next = container_of(__next->member.next, __next, member))
+
+#define list_for_each_entry_rev(type, pos, head, member)                \
+   for (type *pos = container_of((head)->prev, pos, member);            \
+	&pos->member != (head);                                         \
+	pos = container_of(pos->member.prev, pos, member))
+
+#define list_for_each_entry_safe_rev(type, pos, head, member)           \
+   for (type *pos = container_of((head)->prev, pos, member),            \
+	     *__prev = container_of(pos->member.prev, pos, member);     \
+	&pos->member != (head);                                         \
+	pos = __prev,                                                   \
+        __prev = container_of(__prev->member.prev, __prev, member))
+
+#define list_for_each_entry_from(type, pos, start, head, member)        \
+   for (type *pos = container_of((start), pos, member);                 \
+	&pos->member != (head);                                         \
+	pos = container_of(pos->member.next, pos, member))
+
+#define list_for_each_entry_from_rev(type, pos, start, head, member)    \
+   for (type *pos = container_of((start), pos, member);                 \
+	&pos->member != (head);                                         \
 	pos = container_of(pos->member.prev, pos, member))
 
 #endif /*_UTIL_LIST_H_*/
