@@ -92,6 +92,19 @@ static inline void list_delinit(struct list_head *item)
     item->prev = item;
 }
 
+static inline bool list_empty(struct list_head *list)
+{
+   return list->next == list;
+}
+
+static inline unsigned list_length(struct list_head *list)
+{
+   unsigned length = 0;
+   for (struct list_head *node = list->next; node != list; node = node->next)
+      length++;
+   return length;
+}
+
 #define LIST_INITHEAD(__item) list_inithead(__item)
 #define LIST_ADD(__item, __list) list_add(__item, __list)
 #define LIST_ADDTAIL(__item, __list) list_addtail(__item, __list)
