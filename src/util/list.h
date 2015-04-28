@@ -105,6 +105,13 @@ static inline unsigned list_length(struct list_head *list)
    return length;
 }
 
+static inline void list_validate(struct list_head *list)
+{
+   assert(list->next->prev == list && list->prev->next == list);
+   for (struct list_head *node = list->next; node != list; node = node->next)
+      assert(node->next->prev == node && node->prev->next == node);
+}
+
 #define LIST_INITHEAD(__item) list_inithead(__item)
 #define LIST_ADD(__item, __list) list_add(__item, __list)
 #define LIST_ADDTAIL(__item, __list) list_addtail(__item, __list)
