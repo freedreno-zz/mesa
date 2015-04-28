@@ -34,8 +34,8 @@
  * be protected using an external mutex.
  */
 
-#ifndef _U_DOUBLE_LIST_H_
-#define _U_DOUBLE_LIST_H_
+#ifndef _UTIL_LIST_H_
+#define _UTIL_LIST_H_
 
 
 #include <stddef.h>
@@ -143,4 +143,4 @@ static inline void list_delinit(struct list_head *item)
 	&pos->member != (head);						\
 	pos = container_of(pos->member.prev, pos, member))
 
-#endif /*_U_DOUBLE_LIST_H_*/
+#endif /*_UTIL_LIST_H_*/
