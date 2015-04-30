@@ -34,22 +34,6 @@
  * Find/group instruction neighbors:
  */
 
-/* stop condition for iteration: */
-static bool check_stop(struct ir3_instruction *instr)
-{
-	if (ir3_instr_check_mark(instr))
-		return true;
-
-	/* stay within the block.. don't try to operate across
-	 * basic block boundaries or we'll have problems when
-	 * dealing with multiple basic blocks:
-	 */
-	if (is_meta(instr) && (instr->opc == OPC_META_INPUT))
-		return true;
-
-	return false;
-}
-
 /* bleh.. we need to do the same group_n() thing for both inputs/outputs
  * (where we have a simple instr[] array), and fanin nodes (where we have
  * an extra indirection via reg->instr).
@@ -174,7 +158,7 @@ static void instr_find_neighbors(struct ir3_instruction *instr)
 {
 	struct ir3_instruction *src;
 
-	if (check_stop(instr))
+	if (ir3_instr_check_mark(instr))
 		return;
 
 	if (is_meta(instr) && (instr->opc == OPC_META_FI))
@@ -214,7 +198,7 @@ static void pad_and_group_input(struct ir3_instruction **input, unsigned n)
 	}
 }
 
-static void block_find_neighbors(struct ir3_block *block)
+static void find_neighbors(struct ir3_block *block)
 {
 	unsigned i;
 
@@ -226,30 +210,26 @@ static void block_find_neighbors(struct ir3_block *block)
 	}
 
 	/* shader inputs/outputs themselves must be contiguous as well:
+	 * NOTE: group inputs first, since we only insert mov's
+	 * *before* the conflicted instr (and that would go badly
+	 * for inputs).  By doing inputs first, we should never
+	 * have a conflict on inputs.. pushing any conflict to
+	 * resolve to the outputs, for stuff like:
+	 *
+	 *     MOV OUT[n], IN[m].wzyx
+	 *
+	 * NOTE: we assume here inputs/outputs are grouped in vec4.
+	 * This logic won't quite cut it if we don't align smaller
+	 * on vec4 boundaries
 	 */
-	if (!block->parent) {
-		/* NOTE: group inputs first, since we only insert mov's
-		 * *before* the conflicted instr (and that would go badly
-		 * for inputs).  By doing inputs first, we should never
-		 * have a conflict on inputs.. pushing any conflict to
-		 * resolve to the outputs, for stuff like:
-		 *
-		 *     MOV OUT[n], IN[m].wzyx
-		 *
-		 * NOTE: we assume here inputs/outputs are grouped in vec4.
-		 * This logic won't quite cut it if we don't align smaller
-		 * on vec4 boundaries
-		 */
-		for (i = 0; i < block->ninputs; i += 4)
-			pad_and_group_input(&block->inputs[i], 4);
-		for (i = 0; i < block->noutputs; i += 4)
-			group_n(&arr_ops_out, &block->outputs[i], 4);
-
-	}
+	for (i = 0; i < block->ninputs; i += 4)
+		pad_and_group_input(&block->inputs[i], 4);
+	for (i = 0; i < block->noutputs; i += 4)
+		group_n(&arr_ops_out, &block->outputs[i], 4);
 }
 
 void ir3_block_group(struct ir3_block *block)
 {
 	ir3_clear_mark(block->shader);
-	block_find_neighbors(block);
+	find_neighbors(block);
 }

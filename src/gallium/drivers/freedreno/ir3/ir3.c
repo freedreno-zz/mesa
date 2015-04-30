@@ -81,7 +81,7 @@ void ir3_destroy(struct ir3 *shader)
 		shader->chunk = chunk->next;
 		free(chunk);
 	}
-	free(shader->instrs);
+	free(shader->indirects);
 	free(shader->baryfs);
 	free(shader);
 }
@@ -531,37 +531,73 @@ static int (*emit[])(struct ir3_instruction *instr, void *ptr,
 	emit_cat0, emit_cat1, emit_cat2, emit_cat3, emit_cat4, emit_cat5, emit_cat6,
 };
 
+struct assemble_ctx {
+	struct ir3_info *info;
+	uint32_t *dwords;
+};
+
+static bool
+assemble_block_cb(struct ir3_block *block, void *state)
+{
+	struct assemble_ctx *ctx = state;
+
+	list_for_each_entry (struct ir3_instruction, instr, &block->instr_list, node) {
+		int ret = emit[instr->category](instr, ctx->dwords, ctx->info);
+		if (ret)
+			return false;
+		ctx->info->instrs_count += 1 + instr->repeat;
+		ctx->dwords += 2;
+	}
+
+	return true;
+}
+
+/* This is slightly annoying, since we need to know number of
+ * actual instructions before the main assemble pass.  We should
+ * probably try to make sched or one of the other passes give us
+ * this info.
+ */
+static bool
+count_block_cb(struct ir3_block *block, void *state)
+{
+	struct assemble_ctx *ctx = state;
+
+	list_for_each_entry (struct ir3_instruction, instr, &block->instr_list, node) {
+		ctx->info->sizedwords += 2;
+	}
+
+	return true;
+}
+
 void * ir3_assemble(struct ir3 *shader, struct ir3_info *info,
 		uint32_t gpu_id)
 {
-	uint32_t *ptr, *dwords;
-	uint32_t i;
+	struct assemble_ctx ctx = {
+		.info = info,
+	};
+	uint32_t *ptr;
 
 	info->max_reg       = -1;
 	info->max_half_reg  = -1;
 	info->max_const     = -1;
 	info->instrs_count  = 0;
 
+	count_block_cb(shader->block, &ctx);
+
 	/* need a integer number of instruction "groups" (sets of 16
 	 * instructions on a4xx or sets of 4 instructions on a3xx),
 	 * so pad out w/ NOPs if needed: (NOTE each instruction is 64bits)
 	 */
 	if (gpu_id >= 400) {
-		info->sizedwords = 2 * align(shader->instrs_count, 16);
+		info->sizedwords = align(info->sizedwords, 16 * 2);
 	} else {
-		info->sizedwords = 2 * align(shader->instrs_count, 4);
+		info->sizedwords = align(info->sizedwords, 4 * 2);
 	}
 
-	ptr = dwords = calloc(4, info->sizedwords);
+	ptr = ctx.dwords = calloc(4, info->sizedwords);
 
-	for (i = 0; i < shader->instrs_count; i++) {
-		struct ir3_instruction *instr = shader->instrs[i];
-		int ret = emit[instr->category](instr, dwords, info);
-		if (ret)
-			goto fail;
-		info->instrs_count += 1 + instr->repeat;
-		dwords += 2;
-	}
+	if (! assemble_block_cb(shader->block, &ctx))
+		goto fail;
 
 	return ptr;
 
@@ -581,14 +617,15 @@ static struct ir3_register * reg_create(struct ir3 *shader,
 	return reg;
 }
 
-static void insert_instr(struct ir3 *shader,
+static void insert_instr(struct ir3_block *block,
 		struct ir3_instruction *instr)
 {
+	struct ir3 *shader = block->shader;
 #ifdef DEBUG
 	static uint32_t serialno = 0;
 	instr->serialno = ++serialno;
 #endif
-	array_insert(shader->instrs, instr);
+	list_addtail(&instr->node, &block->instr_list);
 
 	if (is_input(instr))
 		array_insert(shader->baryfs, instr);
@@ -625,6 +662,8 @@ struct ir3_block * ir3_block_create(struct ir3 *shader,
 
 	block->shader = shader;
 
+	list_inithead(&block->instr_list);
+
 	return block;
 }
 
@@ -652,7 +691,7 @@ struct ir3_instruction * ir3_instr_create2(struct ir3_block *block,
 	instr->block = block;
 	instr->category = category;
 	instr->opc = opc;
-	insert_instr(block->shader, instr);
+	insert_instr(block, instr);
 	return instr;
 }
 
@@ -677,7 +716,7 @@ struct ir3_instruction * ir3_instr_clone(struct ir3_instruction *instr)
 	*new_instr = *instr;
 	new_instr->regs = regs;
 
-	insert_instr(instr->block->shader, new_instr);
+	insert_instr(instr->block, new_instr);
 
 	/* clone registers: */
 	new_instr->regs_count = 0;
