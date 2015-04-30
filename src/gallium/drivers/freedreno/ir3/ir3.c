@@ -66,11 +66,20 @@ void * ir3_alloc(struct ir3 *shader, int sz)
 	return ptr;
 }
 
-struct ir3 * ir3_create(void)
+struct ir3 * ir3_create(unsigned nin, unsigned nout)
 {
 	struct ir3 *shader =
 			calloc(1, sizeof(struct ir3));
 	grow_heap(shader);
+
+	shader->ninputs = nin;
+	shader->inputs = ir3_alloc(shader, sizeof(shader->inputs[0]) * nin);
+
+	shader->noutputs = nout;
+	shader->outputs = ir3_alloc(shader, sizeof(shader->outputs[0]) * nout);
+
+	list_inithead(&shader->cf_list);
+
 	return shader;
 }
 
@@ -99,7 +108,7 @@ static uint32_t reg(struct ir3_register *reg, struct ir3_info *info,
 	reg_t val = { .dummy32 = 0 };
 
 	if (reg->flags & ~valid_flags) {
-		debug_printf("INVALID FLAGS: %x vs %x\n",
+		debug_printf("; INVALID FLAGS: %x vs %x\n",
 				reg->flags, valid_flags);
 	}
 
@@ -583,7 +592,7 @@ void * ir3_assemble(struct ir3 *shader, struct ir3_info *info,
 	info->max_const     = -1;
 	info->instrs_count  = 0;
 
-	count_block_cb(shader->block, &ctx);
+	ir3_foreach_block(shader, count_block_cb, &ctx);
 
 	/* need a integer number of instruction "groups" (sets of 16
 	 * instructions on a4xx or sets of 4 instructions on a3xx),
@@ -597,7 +606,7 @@ void * ir3_assemble(struct ir3 *shader, struct ir3_info *info,
 
 	ptr = ctx.dwords = calloc(4, info->sizedwords);
 
-	if (! assemble_block_cb(shader->block, &ctx))
+	if (! ir3_foreach_block(shader, assemble_block_cb, &ctx))
 		goto fail;
 
 	return ptr;
@@ -621,7 +630,7 @@ static struct ir3_register * reg_create(struct ir3 *shader,
 static void insert_instr(struct ir3_block *block,
 		struct ir3_instruction *instr)
 {
-	struct ir3 *shader = block->shader;
+	struct ir3 *shader = block->base.shader;
 #ifdef DEBUG
 	static uint32_t serialno = 0;
 	instr->serialno = ++serialno;
@@ -632,47 +641,50 @@ static void insert_instr(struct ir3_block *block,
 		array_insert(shader->baryfs, instr);
 }
 
-struct ir3_block * ir3_block_create(struct ir3 *shader,
-		unsigned ntmp, unsigned nin, unsigned nout)
+static void cf_init(struct ir3_cf *cf, struct ir3 *shader,
+		unsigned type)
 {
-	struct ir3_block *block;
-	unsigned size;
-	char *ptr;
+#ifdef DEBUG
+	static uint32_t serialno = 0;
+	cf->serialno = ++serialno;
+#endif
+	cf->type = type;
+	cf->shader = shader;
+	list_inithead(&cf->node);
+}
 
-	size = sizeof(*block);
-	size += sizeof(block->temporaries[0]) * ntmp;
-	size += sizeof(block->inputs[0]) * nin;
-	size += sizeof(block->outputs[0]) * nout;
-
-	ptr = ir3_alloc(shader, size);
-
-	block = (void *)ptr;
-	ptr += sizeof(*block);
-
-	block->temporaries = (void *)ptr;
-	block->ntemporaries = ntmp;
-	ptr += sizeof(block->temporaries[0]) * ntmp;
-
-	block->inputs = (void *)ptr;
-	block->ninputs = nin;
-	ptr += sizeof(block->inputs[0]) * nin;
-
-	block->outputs = (void *)ptr;
-	block->noutputs = nout;
-	ptr += sizeof(block->outputs[0]) * nout;
-
-	block->shader = shader;
-
+struct ir3_block * ir3_block_create(struct ir3 *shader)
+{
+	struct ir3_block *block = ir3_alloc(shader, sizeof(*block));
+	cf_init(&block->base, shader, IR3_CF_BLOCK);
 	list_inithead(&block->instr_list);
-
 	return block;
+}
+
+struct ir3_conditional *ir3_cond_create(struct ir3 *shader,
+		struct ir3_instruction *condition)
+{
+	struct ir3_conditional *cond = ir3_alloc(shader, sizeof(*cond));
+	cf_init(&cond->base, shader, IR3_CF_COND);
+	cond->condition = condition;
+	list_inithead(&cond->then_list);
+	list_inithead(&cond->else_list);
+	return cond;
+}
+
+struct ir3_loop *ir3_loop_create(struct ir3 *shader)
+{
+	struct ir3_loop *loop = ir3_alloc(shader, sizeof(*loop));
+	cf_init(&loop->base, shader, IR3_CF_LOOP);
+	list_inithead(&loop->body_list);
+	return loop;
 }
 
 static struct ir3_instruction *instr_create(struct ir3_block *block, int nreg)
 {
 	struct ir3_instruction *instr;
 	unsigned sz = sizeof(*instr) + (nreg * sizeof(instr->regs[0]));
-	char *ptr = ir3_alloc(block->shader, sz);
+	char *ptr = ir3_alloc(block->base.shader, sz);
 
 	instr = (struct ir3_instruction *)ptr;
 	ptr  += sizeof(*instr);
@@ -734,10 +746,96 @@ struct ir3_instruction * ir3_instr_clone(struct ir3_instruction *instr)
 struct ir3_register * ir3_reg_create(struct ir3_instruction *instr,
 		int num, int flags)
 {
-	struct ir3_register *reg = reg_create(instr->block->shader, num, flags);
+	struct ir3 *shader = instr->block->base.shader;
+	struct ir3_register *reg = reg_create(shader, num, flags);
 #ifdef DEBUG
 	debug_assert(instr->regs_count < instr->regs_max);
 #endif
 	instr->regs[instr->regs_count++] = reg;
 	return reg;
+}
+
+static bool foreach_cf_list(struct list_head *cf_list, ir3_foreach_cf_cb cb, void *state);
+
+static bool
+foreach_cond(struct ir3_conditional *cond, ir3_foreach_cf_cb cb, void *state)
+{
+	return cb(&cond->base, state) &&
+			foreach_cf_list(&cond->then_list, cb, state) &&
+			foreach_cf_list(&cond->else_list, cb, state);
+}
+
+static bool
+foreach_loop(struct ir3_loop *loop, ir3_foreach_cf_cb cb, void *state)
+{
+	return cb(&loop->base, state) &&
+			foreach_cf_list(&loop->body_list, cb, state);
+}
+
+static bool
+foreach_cf_node(struct ir3_cf *cf, ir3_foreach_cf_cb cb, void *state)
+{
+	switch (cf->type) {
+	case IR3_CF_BLOCK: return cb(cf, state);
+	case IR3_CF_COND:  return foreach_cond(ir3_conditional(cf), cb, state);
+	case IR3_CF_LOOP:  return foreach_loop(ir3_loop(cf), cb, state);
+	default:
+		unreachable("invalid CF node type");
+		return false;
+	}
+}
+
+static bool
+foreach_cf_list(struct list_head *cf_list, ir3_foreach_cf_cb cb, void *state)
+{
+	list_for_each_entry (struct ir3_cf, cf, cf_list, node)
+		if (!foreach_cf_node(cf, cb, state))
+			return false;
+	return true;
+}
+
+bool ir3_foreach_cf(struct ir3 *shader, ir3_foreach_cf_cb cb, void *state)
+{
+	return foreach_cf_list(&shader->cf_list, cb, state);
+}
+
+struct foreach_block_state {
+	void *state;
+	ir3_foreach_block_cb *cb;
+};
+
+static bool foreach_block_cf_cb(struct ir3_cf *cf, void *state)
+{
+	struct foreach_block_state *cbstate = state;
+	if (cf->type == IR3_CF_BLOCK)
+		return cbstate->cb(ir3_block(cf), cbstate->state);
+	return true;
+}
+
+bool
+ir3_foreach_block(struct ir3 *shader, ir3_foreach_block_cb cb, void *state)
+{
+	struct foreach_block_state cbstate = {
+		.state = state,
+		.cb = cb,
+	};
+	return ir3_foreach_cf(shader, foreach_block_cf_cb, &cbstate);
+}
+
+void ir3_block_clear_mark(struct ir3_block *block)
+{
+	list_for_each_entry (struct ir3_instruction, instr, &block->instr_list, node)
+		instr->flags &= ~IR3_INSTR_MARK;
+}
+
+static bool
+clear_mark_cb(struct ir3_block *block, void *state)
+{
+	ir3_block_clear_mark(block);
+	return true;
+}
+
+void ir3_clear_mark(struct ir3 *shader)
+{
+	ir3_foreach_block(shader, clear_mark_cb, NULL);
 }

@@ -60,7 +60,8 @@ struct ir3_compile {
 	/* bitmask of which samplers are integer: */
 	uint16_t integer_s;
 
-	struct ir3_block *block;
+	struct list_head *cf_list;    /* the current cf-list */
+	struct ir3_block *block;      /* the current block */
 
 	/* For fragment shaders, from the hw perspective the only
 	 * actual input is r0.xy position register passed to bary.f.
@@ -146,6 +147,7 @@ static struct nir_shader *to_nir(const struct tgsi_token *tokens)
 
 		nir_lower_vars_to_ssa(s);
 		nir_lower_alu_to_scalar(s);
+		nir_lower_phis_to_scalar(s);
 
 		progress |= nir_copy_prop(s);
 		progress |= nir_opt_dce(s);
@@ -238,7 +240,6 @@ compile_init(struct ir3_shader_variant *so,
 		break;
 	}
 
-	ctx->ir = so->ir;
 	ctx->so = so;
 	ctx->next_inloc = 8;
 	ctx->def_ht = _mesa_hash_table_create(ctx,
@@ -419,6 +420,21 @@ get_addr(struct ir3_compile *ctx, struct ir3_instruction *src)
 }
 
 static struct ir3_instruction *
+get_predicate(struct ir3_compile *ctx, struct ir3_instruction *src)
+{
+	struct ir3_instruction *pred;
+
+	/* possibly this should use a hashtable to share the move to
+	 * predicate register between multiple if/else cf's..
+	 */
+
+	pred = ir3_MOV(ctx->block, src, TYPE_S32);
+	pred->regs[0]->num = regid(REG_P0, 0);
+
+	return pred;
+}
+
+static struct ir3_instruction *
 create_uniform(struct ir3_compile *ctx, unsigned n)
 {
 	struct ir3_instruction *mov;
@@ -461,7 +477,7 @@ create_collect(struct ir3_block *block, struct ir3_instruction **arr,
 		return NULL;
 
 	collect = ir3_instr_create2(block, -1, OPC_META_FI, 1 + arrsz);
-	ir3_reg_create(collect, 0, 0);
+	ir3_reg_create(collect, 0, 0);     /* dst */
 	for (unsigned i = 0; i < arrsz; i++)
 		ir3_reg_create(collect, 0, IR3_REG_SSA)->instr = arr[i];
 
@@ -1140,8 +1156,8 @@ static void add_sysval_input(struct ir3_compile *ctx, unsigned name,
 	so->inputs[n].interpolate = TGSI_INTERPOLATE_CONSTANT;
 	so->total_in++;
 
-	ctx->block->ninputs = MAX2(ctx->block->ninputs, r + 1);
-	ctx->block->inputs[r] = instr;
+	ctx->ir->ninputs = MAX2(ctx->ir->ninputs, r + 1);
+	ctx->ir->inputs[r] = instr;
 }
 
 static void
@@ -1181,18 +1197,19 @@ emit_intrinisic(struct ir3_compile *ctx, nir_intrinsic_instr *intr)
 		compile_assert(ctx, intr->const_index[1] == 1);
 		for (int i = 0; i < intr->num_components; i++) {
 			unsigned n = idx * 4 + i;
-			dst[i] = b->inputs[n];
+			dst[i] = ctx->ir->inputs[n];
 		}
 		break;
 	case nir_intrinsic_load_input_indirect:
 		compile_assert(ctx, intr->const_index[1] == 1);
 		src = get_src(ctx, &intr->src[0]);
 		struct ir3_instruction *collect =
-				create_collect(b, b->inputs, b->ninputs);
+				create_collect(b, ctx->ir->inputs, ctx->ir->ninputs);
 		struct ir3_instruction *addr = get_addr(ctx, src[0]);
 		for (int i = 0; i < intr->num_components; i++) {
 			unsigned n = idx * 4 + i;
-			dst[i] = create_indirect_load(ctx, b->ninputs, n, addr, collect);
+			dst[i] = create_indirect_load(ctx, ctx->ir->ninputs,
+					n, addr, collect);
 		}
 		break;
 	case nir_intrinsic_load_var:
@@ -1206,7 +1223,7 @@ emit_intrinisic(struct ir3_compile *ctx, nir_intrinsic_instr *intr)
 		src = get_src(ctx, &intr->src[0]);
 		for (int i = 0; i < intr->num_components; i++) {
 			unsigned n = idx * 4 + i;
-			b->outputs[n] = src[i];
+			ctx->ir->outputs[n] = src[i];
 		}
 		break;
 	case nir_intrinsic_load_base_vertex:
@@ -1554,6 +1571,70 @@ emit_tex_txs(struct ir3_compile *ctx, nir_tex_instr *tex)
 }
 
 static void
+emit_phi(struct ir3_compile *ctx, nir_phi_instr *nphi)
+{
+	struct ir3_instruction *phi, **dst;
+
+	/* NOTE: phi's should be lowered to scalar at this point */
+	compile_assert(ctx, nir_dest_num_components(&nphi->dest) == 1);
+
+	dst = get_dst(ctx, &nphi->dest, 1);
+
+	phi = ir3_instr_create2(ctx->block, -1, OPC_META_PHI,
+			1 + exec_list_length(&nphi->srcs));
+	ir3_reg_create(phi, 0, 0);         /* dst */
+	phi->phi.nphi = nphi;
+
+	dst[0] = phi;
+}
+
+/* phi instructions are left partially constructed.  We don't resolve
+ * their srcs until the end of the block, since (eg. loops) one of
+ * the phi's srcs might be defined after the phi due to back edges in
+ * the CFG.
+ */
+static bool
+resolve_phis(struct ir3_block *block, void *state)
+{
+	struct ir3_compile *ctx = state;
+
+	list_for_each_entry (struct ir3_instruction, instr, &block->instr_list, node) {
+		nir_phi_instr *nphi;
+
+		/* phi's only come at start of block: */
+		if (!(is_meta(instr) && (instr->opc == OPC_META_PHI)))
+			break;
+
+		nphi = instr->phi.nphi;
+		instr->phi.nphi = NULL;
+
+		foreach_list_typed(nir_phi_src, nsrc, node, &nphi->srcs) {
+			struct ir3_instruction *src = get_src(ctx, &nsrc->src)[0];
+			ir3_reg_create(instr, 0, IR3_REG_SSA)->instr = src;
+		}
+	}
+
+	return true;
+}
+
+static void
+emit_jump(struct ir3_compile *ctx, nir_jump_instr *jump)
+{
+	switch (jump->type) {
+	case nir_jump_break:
+	case nir_jump_continue:
+		/* I *think* we can simply just ignore this, and use the
+		 * successor block link to figure out where we need to
+		 * jump to for break/continue
+		 */
+		break;
+	default:
+		compile_error(ctx, "Unhandled NIR jump type: %d\n", jump->type);
+		break;
+	}
+}
+
+static void
 emit_instr(struct ir3_compile *ctx, nir_instr *instr)
 {
 	switch (instr->type) {
@@ -1586,9 +1667,13 @@ emit_instr(struct ir3_compile *ctx, nir_instr *instr)
 		}
 		break;
 	}
-	case nir_instr_type_call:
-	case nir_instr_type_jump:
 	case nir_instr_type_phi:
+		emit_phi(ctx, nir_instr_as_phi(instr));
+		break;
+	case nir_instr_type_jump:
+		emit_jump(ctx, nir_instr_as_jump(instr));
+		break;
+	case nir_instr_type_call:
 	case nir_instr_type_parallel_copy:
 		compile_error(ctx, "Unhandled NIR instruction type: %d\n", instr->type);
 		break;
@@ -1596,10 +1681,82 @@ emit_instr(struct ir3_compile *ctx, nir_instr *instr)
 }
 
 static void
-emit_block(struct ir3_compile *ctx, nir_block *block)
+emit_block(struct ir3_compile *ctx, nir_block *nblock)
 {
-	nir_foreach_instr(block, instr) {
+	/* TODO probably a hashtable to map nir_block to ir3_block (and
+	 * then create new entries on demand) to give us a sane way to
+	 * handle blocks succ/pred links..
+	 */
+	struct ir3_block *block = ir3_block_create(ctx->ir);
+
+	ctx->block = block;
+	list_addtail(&block->base.node, ctx->cf_list);
+
+	nir_foreach_instr(nblock, instr) {
 		emit_instr(ctx, instr);
+		if (ctx->error)
+			return;
+	}
+}
+
+static void emit_cf_list(struct ir3_compile *ctx, struct exec_list *list);
+
+static void
+emit_if(struct ir3_compile *ctx, nir_if *nif)
+{
+	struct ir3_instruction *condition = get_src(ctx, &nif->condition)[0];
+	struct ir3_conditional *cond;
+	struct list_head *old_cf_list = ctx->cf_list;
+
+	cond = ir3_cond_create(ctx->ir,
+		get_predicate(ctx, ir3_b2n(condition->block, condition)));
+
+	list_addtail(&cond->base.node, ctx->cf_list);
+
+	/* emit "if" leg: */
+	ctx->cf_list = &cond->then_list;
+	emit_cf_list(ctx, &nif->then_list);
+
+	/* emit "else" leg: */
+	ctx->cf_list = &cond->else_list;
+	emit_cf_list(ctx, &nif->else_list);
+
+	ctx->cf_list = old_cf_list;
+}
+
+static void
+emit_loop(struct ir3_compile *ctx, nir_loop *nloop)
+{
+	struct ir3_loop *loop = ir3_loop_create(ctx->ir);
+	struct list_head *old_cf_list = ctx->cf_list;
+
+	list_addtail(&loop->base.node, ctx->cf_list);
+
+	/* emit loop body: */
+	ctx->cf_list = &loop->body_list;
+	emit_cf_list(ctx, &nloop->body);
+
+	ctx->cf_list = old_cf_list;
+}
+
+static void
+emit_cf_list(struct ir3_compile *ctx, struct exec_list *list)
+{
+	foreach_list_typed(nir_cf_node, node, node, list) {
+		switch (node->type) {
+		case nir_cf_node_block:
+			emit_block(ctx, nir_cf_node_as_block(node));
+			break;
+		case nir_cf_node_if:
+			emit_if(ctx, nir_cf_node_as_if(node));
+			break;
+		case nir_cf_node_loop:
+			emit_loop(ctx, nir_cf_node_as_loop(node));
+			break;
+		case nir_cf_node_function:
+			compile_error(ctx, "TODO\n");
+			break;
+		}
 		if (ctx->error)
 			return;
 	}
@@ -1608,20 +1765,7 @@ emit_block(struct ir3_compile *ctx, nir_block *block)
 static void
 emit_function(struct ir3_compile *ctx, nir_function_impl *impl)
 {
-	foreach_list_typed(nir_cf_node, node, node, &impl->body) {
-		switch (node->type) {
-		case nir_cf_node_block:
-			emit_block(ctx, nir_cf_node_as_block(node));
-			break;
-		case nir_cf_node_if:
-		case nir_cf_node_loop:
-		case nir_cf_node_function:
-			compile_error(ctx, "TODO\n");
-			break;
-		}
-		if (ctx->error)
-			return;
-	}
+	emit_cf_list(ctx, &impl->body);
 }
 
 static void
@@ -1709,7 +1853,7 @@ setup_input(struct ir3_compile *ctx, nir_variable *in)
 			instr = create_input(ctx->block, NULL, idx);
 		}
 
-		ctx->block->inputs[idx] = instr;
+		ctx->ir->inputs[idx] = instr;
 	}
 
 	if (so->inputs[n].bary || (ctx->so->type == SHADER_VERTEX)) {
@@ -1776,7 +1920,7 @@ setup_output(struct ir3_compile *ctx, nir_variable *out)
 	for (int i = 0; i < ncomp; i++) {
 		unsigned idx = (n * 4) + i;
 
-		ctx->block->outputs[idx] = create_immed(ctx->block, fui(0.0));
+		ctx->ir->outputs[idx] = create_immed(ctx->block, fui(0.0));
 	}
 }
 
@@ -1796,12 +1940,31 @@ emit_instructions(struct ir3_compile *ctx)
 		ninputs += 8;
 	}
 
-	ctx->block = ir3_block_create(ctx->ir, 0, ninputs, noutputs);
+	ctx->ir = ir3_create(ninputs, noutputs);
+	ctx->cf_list = &ctx->ir->cf_list;
+
+	/* Create a block for inputs.
+	 *
+	 * TODO get rid of this, we'd probably rather the instructions
+	 * are scheduled into the first block, rather than as a block of
+	 * their own.  So this is just a temporary hack.
+	 *
+	 * The one thing to think about a bit is the extra instructions
+	 * that get created for fragcoord/fragface/etc.. we'd rather not
+	 * create those instruction sequences in every block that uses
+	 * that input.  Otoh, we don't want to create them in the first
+	 * block if they are only later used in some if or else block.
+	 *
+	 * We'd also want the create_immed()'s for unwritten outputs to
+	 * happen in the last block.
+	 */
+	ctx->block = ir3_block_create(ctx->ir);
+	list_addtail(&ctx->block->base.node, ctx->cf_list);
 
 	if (ctx->so->type == SHADER_FRAGMENT) {
-		ctx->block->noutputs -= ARRAY_SIZE(ctx->kill);
+		ctx->ir->noutputs -= ARRAY_SIZE(ctx->kill);
 	} else if (ctx->so->type == SHADER_VERTEX) {
-		ctx->block->ninputs -= 8;
+		ctx->ir->ninputs -= 8;
 	}
 
 	/* for fragment shader, we have a single input register (usually
@@ -1840,6 +2003,8 @@ emit_instructions(struct ir3_compile *ctx)
 		if (ctx->error)
 			return;
 	}
+
+	ir3_foreach_block(ctx->ir, resolve_phis, ctx);
 }
 
 /* from NIR perspective, we actually have inputs.  But most of the "inputs"
@@ -1851,12 +2016,12 @@ static void
 fixup_frag_inputs(struct ir3_compile *ctx)
 {
 	struct ir3_shader_variant *so = ctx->so;
-	struct ir3_block *block = ctx->block;
+	struct ir3 *ir = ctx->ir;
 	struct ir3_instruction **inputs;
 	struct ir3_instruction *instr;
 	int n, regid = 0;
 
-	block->ninputs = 0;
+	ir->ninputs = 0;
 
 	n  = 4;  /* always have frag_pos */
 	n += COND(so->frag_face, 4);
@@ -1868,15 +2033,15 @@ fixup_frag_inputs(struct ir3_compile *ctx)
 		/* this ultimately gets assigned to hr0.x so doesn't conflict
 		 * with frag_coord/frag_pos..
 		 */
-		inputs[block->ninputs++] = ctx->frag_face;
+		inputs[ir->ninputs++] = ctx->frag_face;
 		ctx->frag_face->regs[0]->num = 0;
 
 		/* remaining channels not used, but let's avoid confusing
 		 * other parts that expect inputs to come in groups of vec4
 		 */
-		inputs[block->ninputs++] = NULL;
-		inputs[block->ninputs++] = NULL;
-		inputs[block->ninputs++] = NULL;
+		inputs[ir->ninputs++] = NULL;
+		inputs[ir->ninputs++] = NULL;
+		inputs[ir->ninputs++] = NULL;
 	}
 
 	/* since we don't know where to set the regid for frag_coord,
@@ -1890,28 +2055,28 @@ fixup_frag_inputs(struct ir3_compile *ctx)
 		ctx->frag_coord[2]->regs[0]->num = regid++;
 		ctx->frag_coord[3]->regs[0]->num = regid++;
 
-		inputs[block->ninputs++] = ctx->frag_coord[0];
-		inputs[block->ninputs++] = ctx->frag_coord[1];
-		inputs[block->ninputs++] = ctx->frag_coord[2];
-		inputs[block->ninputs++] = ctx->frag_coord[3];
+		inputs[ir->ninputs++] = ctx->frag_coord[0];
+		inputs[ir->ninputs++] = ctx->frag_coord[1];
+		inputs[ir->ninputs++] = ctx->frag_coord[2];
+		inputs[ir->ninputs++] = ctx->frag_coord[3];
 	}
 
 	/* we always have frag_pos: */
 	so->pos_regid = regid;
 
 	/* r0.x */
-	instr = create_input(block, NULL, block->ninputs);
+	instr = create_input(ctx->block, NULL, ir->ninputs);
 	instr->regs[0]->num = regid++;
-	inputs[block->ninputs++] = instr;
+	inputs[ir->ninputs++] = instr;
 	ctx->frag_pos->regs[1]->instr = instr;
 
 	/* r0.y */
-	instr = create_input(block, NULL, block->ninputs);
+	instr = create_input(ctx->block, NULL, ir->ninputs);
 	instr->regs[0]->num = regid++;
-	inputs[block->ninputs++] = instr;
+	inputs[ir->ninputs++] = instr;
 	ctx->frag_pos->regs[2]->instr = instr;
 
-	block->inputs = inputs;
+	ir->inputs = inputs;
 }
 
 int
@@ -1919,16 +2084,12 @@ ir3_compile_shader_nir(struct ir3_shader_variant *so,
 		const struct tgsi_token *tokens, struct ir3_shader_key key)
 {
 	struct ir3_compile *ctx;
-	struct ir3_block *block;
+	struct ir3 *ir;
 	struct ir3_instruction **inputs;
 	unsigned i, j, actual_in;
 	int ret = 0, max_bary;
 
 	assert(!so->ir);
-
-	so->ir = ir3_create();
-
-	assert(so->ir);
 
 	ctx = compile_init(so, tokens);
 	if (!ctx) {
@@ -1945,11 +2106,10 @@ ir3_compile_shader_nir(struct ir3_shader_variant *so,
 		goto out;
 	}
 
-	block = ctx->block;
-	so->ir->block = block;
+	ir = so->ir = ctx->ir;
 
 	/* keep track of the inputs from TGSI perspective.. */
-	inputs = block->inputs;
+	inputs = ir->inputs;
 
 	/* but fixup actual inputs for frag shader: */
 	if (so->type == SHADER_FRAGMENT)
@@ -1966,26 +2126,26 @@ ir3_compile_shader_nir(struct ir3_shader_variant *so,
 					(name == TGSI_SEMANTIC_PSIZE))) {
 				if (i != j) {
 					so->outputs[j] = so->outputs[i];
-					block->outputs[(j*4)+0] = block->outputs[(i*4)+0];
-					block->outputs[(j*4)+1] = block->outputs[(i*4)+1];
-					block->outputs[(j*4)+2] = block->outputs[(i*4)+2];
-					block->outputs[(j*4)+3] = block->outputs[(i*4)+3];
+					ir->outputs[(j*4)+0] = ir->outputs[(i*4)+0];
+					ir->outputs[(j*4)+1] = ir->outputs[(i*4)+1];
+					ir->outputs[(j*4)+2] = ir->outputs[(i*4)+2];
+					ir->outputs[(j*4)+3] = ir->outputs[(i*4)+3];
 				}
 				j++;
 			}
 		}
 		so->outputs_count = j;
-		block->noutputs = j * 4;
+		ir->noutputs = j * 4;
 	}
 
 	/* if we want half-precision outputs, mark the output registers
 	 * as half:
 	 */
 	if (key.half_precision) {
-		for (i = 0; i < block->noutputs; i++) {
-			if (!block->outputs[i])
+		for (i = 0; i < ir->noutputs; i++) {
+			if (!ir->outputs[i])
 				continue;
-			block->outputs[i]->regs[0]->flags |= IR3_REG_HALF;
+			ir->outputs[i]->regs[0]->flags |= IR3_REG_HALF;
 		}
 	}
 
@@ -1995,36 +2155,34 @@ ir3_compile_shader_nir(struct ir3_shader_variant *so,
 	 */
 	if (so->type == SHADER_FRAGMENT) {
 		for (i = 0; i < ctx->kill_count; i++)
-			block->outputs[block->noutputs++] = ctx->kill[i];
+			ir->outputs[ir->noutputs++] = ctx->kill[i];
 	}
 
 	if (fd_mesa_debug & FD_DBG_OPTMSGS) {
 		printf("BEFORE CP:\n");
-		ir3_print(so->ir);
+		ir3_print(ir);
 	}
 
-	ir3_block_depth(block);
-
-	ir3_block_cp(block);
+	ir3_cp(ir);
 
 	if (fd_mesa_debug & FD_DBG_OPTMSGS) {
 		printf("BEFORE GROUPING:\n");
-		ir3_print(so->ir);
+		ir3_print(ir);
 	}
 
 	/* Group left/right neighbors, inserting mov's where needed to
 	 * solve conflicts:
 	 */
-	ir3_block_group(block);
+	ir3_group(ir);
 
-	ir3_block_depth(block);
+	ir3_depth(ir);
 
 	if (fd_mesa_debug & FD_DBG_OPTMSGS) {
 		printf("AFTER DEPTH:\n");
-		ir3_print(so->ir);
+		ir3_print(ir);
 	}
 
-	ret = ir3_block_sched(block);
+	ret = ir3_sched(ir);
 	if (ret) {
 		DBG("SCHED failed!");
 		goto out;
@@ -2032,10 +2190,10 @@ ir3_compile_shader_nir(struct ir3_shader_variant *so,
 
 	if (fd_mesa_debug & FD_DBG_OPTMSGS) {
 		printf("AFTER SCHED:\n");
-		ir3_print(so->ir);
+		ir3_print(ir);
 	}
 
-	ret = ir3_block_ra(block, so->type, so->frag_coord, so->frag_face);
+	ret = ir3_ra(ir, so->type, so->frag_coord, so->frag_face);
 	if (ret) {
 		DBG("RA failed!");
 		goto out;
@@ -2043,14 +2201,14 @@ ir3_compile_shader_nir(struct ir3_shader_variant *so,
 
 	if (fd_mesa_debug & FD_DBG_OPTMSGS) {
 		printf("AFTER RA:\n");
-		ir3_print(so->ir);
+		ir3_print(ir);
 	}
 
-	ir3_block_legalize(block, &so->has_samp, &max_bary);
+	ir3_legalize(ir, &so->has_samp, &max_bary);
 
 	/* fixup input/outputs: */
 	for (i = 0; i < so->outputs_count; i++) {
-		so->outputs[i].regid = block->outputs[i*4]->regs[0]->num;
+		so->outputs[i].regid = ir->outputs[i*4]->regs[0]->num;
 		/* preserve hack for depth output.. tgsi writes depth to .z,
 		 * but what we give the hw is the scalar register:
 		 */

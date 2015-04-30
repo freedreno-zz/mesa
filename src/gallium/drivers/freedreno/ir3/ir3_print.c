@@ -139,6 +139,18 @@ tab(int lvl)
 		printf("\t");
 }
 
+static uint32_t
+cf_id(struct ir3_cf *cf)
+{
+#ifdef DEBUG
+	return cf->serialno;
+#else
+	return (uint32_t)(uint64_t)cf;
+#endif
+}
+
+static void print_cf_list(struct list_head *list, int lvl);
+
 static void
 print_instr(struct ir3_instruction *instr, int lvl)
 {
@@ -186,24 +198,60 @@ void ir3_print_instr(struct ir3_instruction *instr)
 static void
 print_block(struct ir3_block *block, int lvl)
 {
-	tab(lvl); printf("block {\n");
+	tab(lvl); printf("block%u {\n", cf_id(&block->base));
 	list_for_each_entry (struct ir3_instruction, instr, &block->instr_list, node) {
 		print_instr(instr, lvl+1);
 	}
 	tab(lvl); printf("}\n");
 }
 
+static void
+print_cond(struct ir3_conditional *cond, int lvl)
+{
+	tab(lvl); printf("if%u _[", cf_id(&cond->base));
+	print_instr_name(cond->condition);
+	printf("] {\n");
+	print_cf_list(&cond->then_list, lvl+1);
+	tab(lvl); printf("} else%u {\n", cf_id(&cond->base));
+	print_cf_list(&cond->else_list, lvl+1);
+	tab(lvl); printf("}\n");
+}
+
+static void
+print_loop(struct ir3_loop *loop, int lvl)
+{
+	tab(lvl); printf("loop%u {\n", cf_id(&loop->base));
+	print_cf_list(&loop->body_list, lvl+1);
+	tab(lvl); printf("}\n");
+}
+
+static void
+print_cf_list(struct list_head *list, int lvl)
+{
+	list_for_each_entry (struct ir3_cf, cf, list, node) {
+		switch (cf->type) {
+		case IR3_CF_BLOCK:
+			print_block(ir3_block(cf), lvl);
+			break;
+		case IR3_CF_COND:
+			print_cond(ir3_conditional(cf), lvl);
+			break;
+		case IR3_CF_LOOP:
+			print_loop(ir3_loop(cf), lvl);
+			break;
+		}
+	}
+}
+
 void
 ir3_print(struct ir3 *ir)
 {
-	struct ir3_block *block = ir->block;
+	print_cf_list(&ir->cf_list, 0);
 
-	print_block(block, 0);
-
-	for (unsigned i = 0; i < block->noutputs; i++) {
-		if (!block->outputs[i])
+	for (unsigned i = 0; i < ir->noutputs; i++) {
+		if (!ir->outputs[i])
 			continue;
 		printf("out%d: ", i);
-		print_instr(block->outputs[i], 0);
+		print_instr(ir->outputs[i], 0);
 	}
 }

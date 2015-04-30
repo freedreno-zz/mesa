@@ -38,6 +38,7 @@
 struct ir3;
 struct ir3_instruction;
 struct ir3_block;
+struct ir3_cf;
 
 struct ir3_info {
 	uint16_t sizedwords;
@@ -219,14 +220,14 @@ struct ir3_instruction {
 			int aid;
 		} fi;
 		struct {
-			struct ir3_block *if_block, *else_block;
-		} flow;
+			/* used to temporarily hold reference to nir_phi_instr
+			 * until we resolve the phi srcs
+			 */
+			void *nphi;
+		} phi;
 		struct {
 			struct ir3_block *block;
 		} inout;
-
-		/* XXX keep this as big as all other union members! */
-		uint32_t info[3];
 	};
 
 	/* transient values used during various algorithms: */
@@ -324,6 +325,9 @@ static inline int ir3_neighbor_count(struct ir3_instruction *instr)
 struct ir3_heap_chunk;
 
 struct ir3 {
+	unsigned ninputs, noutputs;
+	struct ir3_instruction **inputs;
+	struct ir3_instruction **outputs;
 
 	/* Track bary.f (and ldlv) instructions.. this is needed in
 	 * scheduling to ensure that all varying fetches happen before
@@ -350,32 +354,72 @@ struct ir3 {
 	unsigned predicates_count, predicates_sz;
 	struct ir3_instruction **predicates;
 
-	struct ir3_block *block;
+	/* List of toplevel CF nodes: */
+	struct list_head cf_list;
+
 	unsigned heap_idx;
 	struct ir3_heap_chunk *chunk;
 };
 
-struct ir3_block {
+struct ir3_cf {
+	enum {
+		IR3_CF_BLOCK,
+		IR3_CF_COND,
+		IR3_CF_LOOP,
+	} type;
+	struct list_head node;
 	struct ir3 *shader;
-	unsigned ntemporaries, ninputs, noutputs;
-	/* maps TGSI_FILE_TEMPORARY index back to the assigning instruction: */
-	struct ir3_instruction **temporaries;
-	struct ir3_instruction **inputs;
-	struct ir3_instruction **outputs;
-	/* only a single address register: */
-	struct ir3_instruction *address;
-	struct ir3_block *parent;
-	struct list_head instr_list;
+#ifdef DEBUG
+	uint32_t serialno;
+#endif
 };
 
-struct ir3 * ir3_create(void);
+struct ir3_block {
+	struct ir3_cf base;
+
+	struct list_head instr_list;  /* list of ir3_instruction */
+};
+
+static inline struct ir3_block *
+ir3_block(struct ir3_cf *cf)
+{
+	return (struct ir3_block *)cf;
+}
+
+struct ir3_conditional {
+	struct ir3_cf base;
+	struct ir3_instruction *condition;
+	struct list_head then_list;   /* list of ir3_cf */
+	struct list_head else_list;   /* list of ir3_cf */
+};
+
+static inline struct ir3_conditional *
+ir3_conditional(struct ir3_cf *cf)
+{
+	return (struct ir3_conditional *)cf;
+}
+
+struct ir3_loop {
+	struct ir3_cf base;
+	struct list_head body_list;   /* list of ir3_cf */
+};
+
+static inline struct ir3_loop *
+ir3_loop(struct ir3_cf *cf)
+{
+	return (struct ir3_loop *)cf;
+}
+
+struct ir3 * ir3_create(unsigned nin, unsigned nout);
 void ir3_destroy(struct ir3 *shader);
 void * ir3_assemble(struct ir3 *shader,
 		struct ir3_info *info, uint32_t gpu_id);
 void * ir3_alloc(struct ir3 *shader, int sz);
 
-struct ir3_block * ir3_block_create(struct ir3 *shader,
-		unsigned ntmp, unsigned nin, unsigned nout);
+struct ir3_block * ir3_block_create(struct ir3 *shader);
+struct ir3_conditional *ir3_cond_create(struct ir3 *shader,
+		struct ir3_instruction *condition);
+struct ir3_loop *ir3_loop_create(struct ir3 *shader);
 
 struct ir3_instruction * ir3_instr_create(struct ir3_block *block,
 		int category, opc_t opc);
@@ -387,6 +431,11 @@ const char *ir3_instr_name(struct ir3_instruction *instr);
 struct ir3_register * ir3_reg_create(struct ir3_instruction *instr,
 		int num, int flags);
 
+/* visit blocks/cfs in source-code order: */
+typedef bool (ir3_foreach_cf_cb)(struct ir3_cf *cf, void *state);
+bool ir3_foreach_cf(struct ir3 *shader, ir3_foreach_cf_cb cb, void *state);
+typedef bool (ir3_foreach_block_cb)(struct ir3_block *block, void *state);
+bool ir3_foreach_block(struct ir3 *shader, ir3_foreach_block_cb cb, void *state);
 
 static inline bool ir3_instr_check_mark(struct ir3_instruction *instr)
 {
@@ -396,19 +445,8 @@ static inline bool ir3_instr_check_mark(struct ir3_instruction *instr)
 	return false;
 }
 
-static inline void ir3_clear_mark(struct ir3 *shader)
-{
-	/* TODO would be nice to drop the instruction array.. for
-	 * new compiler, _clear_mark() is all we use it for, and
-	 * we could probably manage a linked list instead..
-	 *
-	 * Also, we'll probably want to mark instructions within
-	 * a block, so tracking the list of instrs globally is
-	 * unlikely to be what we want.
-	 */
-	list_for_each_entry (struct ir3_instruction, instr, &shader->block->instr_list, node)
-		instr->flags &= ~IR3_INSTR_MARK;
-}
+void ir3_block_clear_mark(struct ir3_block *block);
+void ir3_clear_mark(struct ir3 *shader);
 
 static inline int ir3_instr_regno(struct ir3_instruction *instr,
 		struct ir3_register *reg)
@@ -748,34 +786,32 @@ static inline struct ir3_instruction * __ssa_src_n(struct ir3_instruction *instr
 
 
 /* dump: */
-void ir3_print(struct ir3 *ir);
 void ir3_print_instr(struct ir3_instruction *instr);
-
-/* flatten if/else: */
-int ir3_block_flatten(struct ir3_block *block);
+void ir3_print(struct ir3 *ir);
 
 /* depth calculation: */
 int ir3_delayslots(struct ir3_instruction *assigner,
 		struct ir3_instruction *consumer, unsigned n);
 void ir3_insert_by_depth(struct ir3_instruction *instr, struct list_head *list);
-void ir3_block_depth(struct ir3_block *block);
+void ir3_depth(struct ir3 *ir);
 
 /* copy-propagate: */
-void ir3_block_cp(struct ir3_block *block);
+void ir3_cp(struct ir3 *ir);
 
 /* group neighbors and insert mov's to resolve conflicts: */
-void ir3_block_group(struct ir3_block *block);
+void ir3_group(struct ir3 *ir);
+
+/* find block outputs: */
+void ir3_find_outputs(struct ir3 *ir);
 
 /* scheduling: */
-int ir3_block_sched(struct ir3_block *block);
+int ir3_sched(struct ir3 *ir);
 
 /* register assignment: */
-int ir3_block_ra(struct ir3_block *block, enum shader_t type,
-		bool frag_coord, bool frag_face);
+int ir3_ra(struct ir3 *ir, enum shader_t type, bool frag_coord, bool frag_face);
 
 /* legalize: */
-void ir3_block_legalize(struct ir3_block *block,
-		bool *has_samp, int *max_bary);
+void ir3_legalize(struct ir3 *ir, bool *has_samp, int *max_bary);
 
 /* ************************************************************************* */
 /* instruction helpers */

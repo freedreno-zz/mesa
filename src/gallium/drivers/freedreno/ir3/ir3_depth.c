@@ -146,22 +146,33 @@ remove_unused_by_block(struct ir3_block *block, void *state)
 	return true;
 }
 
-void ir3_block_depth(struct ir3_block *block)
+/* We also need to account for if-condition: */
+static bool handle_conditional_cb(struct ir3_cf *cf, void *state)
+{
+	if (cf->type == IR3_CF_COND)
+		ir3_instr_depth(ir3_conditional(cf)->condition);
+	return true;
+}
+
+void
+ir3_depth(struct ir3 *ir)
 {
 	unsigned i;
 
-	ir3_clear_mark(block->shader);
-	for (i = 0; i < block->noutputs; i++)
-		if (block->outputs[i])
-			ir3_instr_depth(block->outputs[i]);
+	ir3_clear_mark(ir);
+	for (i = 0; i < ir->noutputs; i++)
+		if (ir->outputs[i])
+			ir3_instr_depth(ir->outputs[i]);
+
+	ir3_foreach_cf(ir, handle_conditional_cb, NULL);
 
 	/* mark un-used instructions: */
-	remove_unused_by_block(block, NULL);
+	ir3_foreach_block(ir, remove_unused_by_block, NULL);
 
 	/* cleanup unused inputs: */
-	for (i = 0; i < block->ninputs; i++) {
-		struct ir3_instruction *in = block->inputs[i];
+	for (i = 0; i < ir->ninputs; i++) {
+		struct ir3_instruction *in = ir->inputs[i];
 		if (in && (in->depth == DEPTH_UNUSED))
-			block->inputs[i] = NULL;
+			ir->inputs[i] = NULL;
 	}
 }

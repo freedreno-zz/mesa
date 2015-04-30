@@ -56,8 +56,8 @@
  */
 
 struct ir3_ra_ctx {
-	struct ir3_block *block;
 	enum shader_t type;
+	struct ir3 *ir;
 	bool frag_coord;
 	bool frag_face;
 	int cnt;
@@ -141,11 +141,11 @@ static bool instr_used_by(struct ir3_instruction *instr,
 
 static bool instr_is_output(struct ir3_instruction *instr)
 {
-	struct ir3_block *block = instr->block;
+	struct ir3 *ir = instr->block->base.shader;
 	unsigned i;
 
-	for (i = 0; i < block->noutputs; i++)
-		if (instr == block->outputs[i])
+	for (i = 0; i < ir->noutputs; i++)
+		if (instr == ir->outputs[i])
 			return true;
 
 	return false;
@@ -175,7 +175,6 @@ static void mark_sources(struct ir3_instruction *instr,
 static void compute_liveregs(struct ir3_ra_ctx *ctx,
 		struct ir3_instruction *instr, regmask_t *liveregs)
 {
-	struct ir3_block *block = ctx->block;
 	regmask_t written;
 	unsigned i;
 
@@ -215,11 +214,11 @@ static void compute_liveregs(struct ir3_ra_ctx *ctx,
 	}
 
 	/* be sure to account for output registers too: */
-	for (i = 0; i < block->noutputs; i++) {
+	for (i = 0; i < ctx->ir->noutputs; i++) {
 		struct ir3_register *r;
-		if (!block->outputs[i])
+		if (!ctx->ir->outputs[i])
 			continue;
-		r = reg_check(block->outputs[i], 0);
+		r = reg_check(ctx->ir->outputs[i], 0);
 		if (r)
 			regmask_set_if_not(liveregs, r, &written);
 	}
@@ -594,7 +593,7 @@ block_ra(struct ir3_block *block, void *state)
 {
 	struct ir3_ra_ctx *ctx = state;
 
-	ra_dump_list("-------\n", block->shader);
+	ra_dump_list("-------\n", block->base.shader);
 
 	/* first pass, assign arrays: */
 	list_for_each_entry (struct ir3_instruction, n, &block->instr_list, node) {
@@ -602,7 +601,7 @@ block_ra(struct ir3_block *block, void *state)
 			debug_assert(!n->cp.left);  /* don't think this should happen */
 			ra_dump_instr("ASSIGN ARRAY: ", n);
 			instr_assign_array(ctx, n);
-			ra_dump_list("-------\n", block->shader);
+			ra_dump_list("-------\n", block->base.shader);
 		}
 
 		if (ctx->error)
@@ -612,7 +611,7 @@ block_ra(struct ir3_block *block, void *state)
 	list_for_each_entry (struct ir3_instruction, n, &block->instr_list, node) {
 		ra_dump_instr("ASSIGN: ", n);
 		instr_alloc_and_assign(ctx, ir3_neighbor_first(n));
-		ra_dump_list("-------\n", block->shader);
+		ra_dump_list("-------\n", block->base.shader);
 
 		if (ctx->error)
 			return false;
@@ -622,24 +621,24 @@ block_ra(struct ir3_block *block, void *state)
 }
 
 static int
-shader_ra(struct ir3_ra_ctx *ctx, struct ir3_block *block)
+shader_ra(struct ir3_ra_ctx *ctx, struct ir3 *ir)
 {
 	/* frag shader inputs get pre-assigned, since we have some
 	 * constraints/unknowns about setup for some of these regs:
 	 */
 	if (ctx->type == SHADER_FRAGMENT) {
 		unsigned i = 0, j;
-		if (ctx->frag_face && (i < block->ninputs) && block->inputs[i]) {
+		if (ctx->frag_face && (i < ir->ninputs) && ir->inputs[i]) {
 			/* if we have frag_face, it gets hr0.x */
-			instr_assign(ctx, block->inputs[i], REG_HALF | 0);
+			instr_assign(ctx, ir->inputs[i], REG_HALF | 0);
 			i += 4;
 		}
-		for (j = 0; i < block->ninputs; i++, j++)
-			if (block->inputs[i])
-				instr_assign(ctx, block->inputs[i], j);
+		for (j = 0; i < ir->ninputs; i++, j++)
+			if (ir->inputs[i])
+				instr_assign(ctx, ir->inputs[i], j);
 	}
 
-	block_ra(block, ctx);
+	ir3_foreach_block(ir, block_ra, ctx);
 
 	return ctx->error ? -1 : 0;
 }
@@ -653,11 +652,11 @@ block_mark_dst(struct ir3_block *block, void *state)
 	return true;
 }
 
-int ir3_block_ra(struct ir3_block *block, enum shader_t type,
+int ir3_ra(struct ir3 *ir, enum shader_t type,
 		bool frag_coord, bool frag_face)
 {
 	struct ir3_ra_ctx ctx = {
-			.block = block,
+			.ir = ir,
 			.type = type,
 			.frag_coord = frag_coord,
 			.frag_face = frag_face,
@@ -671,10 +670,10 @@ int ir3_block_ra(struct ir3_block *block, enum shader_t type,
 	 * NOTE: we really should set SSA flag consistently on
 	 * every dst register in the frontend.
 	 */
-	block_mark_dst(block, &ctx);
+	ir3_foreach_block(ir, block_mark_dst, &ctx);
 
-	ir3_clear_mark(block->shader);
-	ret = shader_ra(&ctx, block);
+	ir3_clear_mark(ir);
+	ret = shader_ra(&ctx, ir);
 
 	return ret;
 }

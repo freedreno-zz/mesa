@@ -387,16 +387,28 @@ instr_cp(struct ir3_instruction *instr, unsigned *flags)
 	return instr;
 }
 
-void ir3_block_cp(struct ir3_block *block)
+/* We also need to account for if-condition: */
+static bool handle_conditional_cb(struct ir3_cf *cf, void *state)
 {
-	ir3_clear_mark(block->shader);
+	if (cf->type == IR3_CF_COND) {
+		struct ir3_conditional *cond = ir3_conditional(cf);
+		cond->condition = instr_cp(cond->condition, NULL);
+	}
+	return true;
+}
 
-	for (unsigned i = 0; i < block->noutputs; i++) {
-		if (block->outputs[i]) {
+void ir3_cp(struct ir3 *ir)
+{
+	ir3_clear_mark(ir);
+
+	for (unsigned i = 0; i < ir->noutputs; i++) {
+		if (ir->outputs[i]) {
 			struct ir3_instruction *out =
-					instr_cp(block->outputs[i], NULL);
+					instr_cp(ir->outputs[i], NULL);
 
-			block->outputs[i] = out;
+			ir->outputs[i] = out;
 		}
 	}
+
+	ir3_foreach_cf(ir, handle_conditional_cb, NULL);
 }

@@ -242,7 +242,7 @@ instr_eligibility(struct ir3_sched_ctx *ctx, struct ir3_sched_notes *notes,
 	 * was conditional that contained a kill.. I think..
 	 */
 	if (is_kill(instr)) {
-		struct ir3 *ir = instr->block->shader;
+		struct ir3 *ir = instr->block->base.shader;
 
 		for (unsigned i = 0; i < ir->baryfs_count; i++) {
 			struct ir3_instruction *baryf = ir->baryfs[i];
@@ -290,7 +290,7 @@ add_eligible_instrs(struct ir3_sched_ctx *ctx, struct ir3_sched_notes *notes,
 static void
 split_addr(struct ir3_sched_ctx *ctx)
 {
-	struct ir3 *ir = ctx->addr->block->shader;
+	struct ir3 *ir = ctx->addr->block->base.shader;
 	struct ir3_instruction *new_addr = NULL;
 	unsigned i;
 
@@ -327,7 +327,7 @@ split_addr(struct ir3_sched_ctx *ctx)
 static void
 split_pred(struct ir3_sched_ctx *ctx)
 {
-	struct ir3 *ir = ctx->pred->block->shader;
+	struct ir3 *ir = ctx->pred->block->base.shader;
 	struct ir3_instruction *new_pred = NULL;
 	unsigned i;
 
@@ -424,11 +424,28 @@ sched_block(struct ir3_block *block, void *state)
 	return true;
 }
 
-int ir3_block_sched(struct ir3_block *block)
+static bool
+sched_cf(struct ir3_cf *cf, void *state)
+{
+	switch (cf->type) {
+	case IR3_CF_BLOCK:
+		sched_block(ir3_block(cf), state);
+		return true;
+	case IR3_CF_COND:
+	case IR3_CF_LOOP:
+		// TODO
+		return true;
+	default:
+		unreachable("invalid CF node type");
+		return false;
+	}
+}
+
+int ir3_sched(struct ir3 *ir)
 {
 	struct ir3_sched_ctx ctx = {0};
-	ir3_clear_mark(block->shader);
-	sched_block(block, &ctx);
+	ir3_clear_mark(ir);
+	ir3_foreach_cf(ir, sched_cf, &ctx);
 	if (ctx.error)
 		return -1;
 	return 0;

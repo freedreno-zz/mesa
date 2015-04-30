@@ -198,13 +198,13 @@ static void pad_and_group_input(struct ir3_instruction **input, unsigned n)
 	}
 }
 
-static void find_neighbors(struct ir3_block *block)
+static void find_neighbors(struct ir3 *ir)
 {
 	unsigned i;
 
-	for (i = 0; i < block->noutputs; i++) {
-		if (block->outputs[i]) {
-			struct ir3_instruction *instr = block->outputs[i];
+	for (i = 0; i < ir->noutputs; i++) {
+		if (ir->outputs[i]) {
+			struct ir3_instruction *instr = ir->outputs[i];
 			instr_find_neighbors(instr);
 		}
 	}
@@ -222,14 +222,14 @@ static void find_neighbors(struct ir3_block *block)
 	 * This logic won't quite cut it if we don't align smaller
 	 * on vec4 boundaries
 	 */
-	for (i = 0; i < block->ninputs; i += 4)
-		pad_and_group_input(&block->inputs[i], 4);
-	for (i = 0; i < block->noutputs; i += 4)
-		group_n(&arr_ops_out, &block->outputs[i], 4);
+	for (i = 0; i < ir->ninputs; i += 4)
+		pad_and_group_input(&ir->inputs[i], 4);
+	for (i = 0; i < ir->noutputs; i += 4)
+		group_n(&arr_ops_out, &ir->outputs[i], 4);
 }
 
-void ir3_block_group(struct ir3_block *block)
+void ir3_group(struct ir3 *ir)
 {
-	ir3_clear_mark(block->shader);
-	find_neighbors(block);
+	ir3_clear_mark(ir);
+	find_neighbors(ir);
 }
