@@ -37,6 +37,7 @@
 #ifndef _UTIL_LIST_H_
 #define _UTIL_LIST_H_
 
+#include <assert.h>
 #include <stdbool.h>
 #include <stddef.h>
 
