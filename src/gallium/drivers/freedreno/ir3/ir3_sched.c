@@ -171,6 +171,29 @@ static bool is_scheduled(struct ir3_instruction *instr)
 	return !!(instr->flags & IR3_INSTR_MARK);
 }
 
+static bool
+check_conflict(struct ir3_sched_ctx *ctx, struct ir3_sched_notes *notes,
+		struct ir3_instruction *instr)
+{
+	/* if this is a write to address/predicate register, and that
+	 * register is currently in use, we need to defer until it is
+	 * free:
+	 */
+	if (writes_addr(instr) && ctx->addr) {
+		assert(ctx->addr != instr);
+		notes->addr_conflict = true;
+		return true;
+	}
+
+	if (writes_pred(instr) && ctx->pred) {
+		assert(ctx->pred != instr);
+		notes->pred_conflict = true;
+		return true;
+	}
+
+	return false;
+}
+
 /* is this instruction ready to be scheduled?  Return negative for not
  * ready (updating notes if needed), or >= 0 to indicate number of
  * delay slots needed.
@@ -232,20 +255,8 @@ instr_eligibility(struct ir3_sched_ctx *ctx, struct ir3_sched_notes *notes,
 		}
 	}
 
-	/* if this is a write to address/predicate register, and that
-	 * register is currently in use, we need to defer until it is
-	 * free:
-	 */
-	if (writes_addr(instr) && ctx->addr) {
-		assert(ctx->addr != instr);
-		notes->addr_conflict = true;
+	if (check_conflict(ctx, notes, instr))
 		return -1;
-	}
-	if (writes_pred(instr) && ctx->pred) {
-		assert(ctx->pred != instr);
-		notes->pred_conflict = true;
-		return -1;
-	}
 
 	return 0;
 }
@@ -309,6 +320,46 @@ split_addr(struct ir3_sched_ctx *ctx)
 	ctx->addr = NULL;
 }
 
+/* "spill" the predicate register by remapping any unscheduled
+ * instructions which depend on the current predicate register
+ * to a clone of the instruction which wrote the address reg.
+ */
+static void
+split_pred(struct ir3_sched_ctx *ctx)
+{
+	struct ir3 *ir = ctx->pred->block->shader;
+	struct ir3_instruction *new_pred = NULL;
+	unsigned i;
+
+	debug_assert(ctx->pred);
+
+	for (i = 0; i < ir->predicates_count; i++) {
+		struct ir3_instruction *predicated = ir->predicates[i];
+
+		/* skip instructions already scheduled: */
+		if (predicated->flags & IR3_INSTR_MARK)
+			continue;
+
+		/* remap remaining instructions using current pred
+		 * to new pred:
+		 *
+		 * TODO is there ever a case when pred isn't first
+		 * (and only) src?
+		 */
+		if (ssa(predicated->regs[1]) == ctx->pred) {
+			if (!new_pred) {
+				new_pred = ir3_instr_clone(ctx->pred);
+				/* original pred is scheduled, but new one isn't: */
+				new_pred->flags &= ~IR3_INSTR_MARK;
+			}
+			predicated->regs[1]->instr = new_pred;
+		}
+	}
+
+	/* all remaining predicated remapped to new pred: */
+	ctx->pred = NULL;
+}
+
 static bool
 sched_block(struct ir3_block *block, void *state)
 {
@@ -335,6 +386,16 @@ sched_block(struct ir3_block *block, void *state)
 		if (!LIST_IS_EMPTY(&prio_queue)) {
 			struct ir3_instruction *instr = list_last_entry(&prio_queue,
 					struct ir3_instruction, node);
+			/* ugg, this is a bit ugly, but between the time when
+			 * the instruction became eligible and now, a new
+			 * conflict may have arose..
+			 */
+			if (check_conflict(ctx, &notes, instr)) {
+				list_del(&instr->node);
+				list_addtail(&instr->node, &unscheduled_list);
+				continue;
+			}
+
 			schedule(ctx, instr);
 		} else if (delay == ~0) {
 			/* nothing available to schedule.. if we are blocked on
@@ -344,7 +405,7 @@ sched_block(struct ir3_block *block, void *state)
 			if (notes.addr_conflict) {
 				split_addr(ctx);
 			} else if (notes.pred_conflict) {
-				debug_assert(0);  // TODO
+				split_pred(ctx);
 			} else {
 				debug_assert(0);
 			}
