@@ -1216,6 +1216,9 @@ dri2CreateScreen(int screen, struct glx_display * priv)
       driverName = loader_driverName;
    }
 
+   // XXX hack:
+   asprintf(&driverName, "msm");
+
    psc->driver = driOpenDriver(driverName);
    if (psc->driver == NULL) {
       ErrorMessageF("driver pointer missing\n");

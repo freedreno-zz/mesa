@@ -336,6 +336,7 @@ inline struct pipe_screen *
 dd_create_screen(int fd)
 {
    driver_name = loader_get_driver_for_fd(fd, _LOADER_GALLIUM);
+   driver_name = "msm";
    if (!driver_name)
       return NULL;
 

@@ -317,8 +317,10 @@ pipe_loader_drm_create_screen(struct pipe_loader_device *dev,
       util_dl_get_proc_address(ddev->lib, "driver_descriptor");
 
    /* sanity check on the name */
-   if (!dd || strcmp(dd->name, ddev->base.driver_name) != 0)
+   if (!dd || strcmp(dd->name, ddev->base.driver_name) != 0) {
+      debug_printf("Arrg.., %s vs %s\n", dd->name, ddev->base.driver_name);
       return NULL;
+   }
 
    return dd->create_screen(ddev->fd);
 }
