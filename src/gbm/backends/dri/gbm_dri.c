@@ -508,6 +508,9 @@ dri_screen_create(struct gbm_dri_device *dri)
    if (!driver_name)
       return -1;
 
+   // XXX
+   driver_name = strdup("msm");
+
    return dri_screen_create_dri2(dri, driver_name);
 }
 
