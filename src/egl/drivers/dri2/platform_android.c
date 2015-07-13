@@ -64,6 +64,37 @@ get_format_bpp(int native)
    return bpp;
 }
 
+/* createImageFromFds requires fourcc format */
+static int get_fourcc(int format)
+{
+   switch(format) {
+   case __DRI_IMAGE_FORMAT_RGB565:
+      format = __DRI_IMAGE_FOURCC_RGB565;
+      break;
+   case __DRI_IMAGE_FORMAT_ARGB8888:
+      format = __DRI_IMAGE_FOURCC_ARGB8888;
+      break;
+   case __DRI_IMAGE_FORMAT_XRGB8888:
+      format = __DRI_IMAGE_FOURCC_XRGB8888;
+      break;
+   case __DRI_IMAGE_FORMAT_ABGR8888:
+      format = __DRI_IMAGE_FOURCC_ABGR8888;
+      break;
+   case __DRI_IMAGE_FORMAT_XBGR8888:
+      format = __DRI_IMAGE_FOURCC_XBGR8888;
+      break;
+   default:
+      return -1;
+   }
+   return format;
+}
+
+static int
+get_native_buffer_fd(struct ANativeWindowBuffer *buf)
+{
+   return gralloc_drm_get_prime_fd(buf->handle);
+}
+
 static int
 get_native_buffer_name(struct ANativeWindowBuffer *buf)
 {
@@ -330,7 +361,9 @@ dri2_create_image_android_native_buffer(_EGLDisplay *disp, _EGLContext *ctx,
 {
    struct dri2_egl_display *dri2_dpy = dri2_egl_display(disp);
    struct dri2_egl_image *dri2_img;
-   int name;
+   int name, fd;
+   int offset = 0;
+   int stride;
    EGLint format;
 
    if (ctx != NULL) {
@@ -351,11 +384,19 @@ dri2_create_image_android_native_buffer(_EGLDisplay *disp, _EGLContext *ctx,
       return NULL;
    }
 
+#ifdef DMABUF  // createImageFromFds()
+   fd = get_native_buffer_fd(buf);
+   if (fd < 0) {
+      _eglError(EGL_BAD_PARAMETER, "eglCreateEGLImageKHR");
+      return NULL;
+   }
+#else  // createImageFromName()
    name = get_native_buffer_name(buf);
    if (!name) {
       _eglError(EGL_BAD_PARAMETER, "eglCreateEGLImageKHR");
       return NULL;
    }
+#endif
 
    /* see the table in droid_add_configs_for_visuals */
    switch (buf->format) {
@@ -390,6 +431,20 @@ dri2_create_image_android_native_buffer(_EGLDisplay *disp, _EGLContext *ctx,
       return NULL;
    }
 
+#ifdef DMABUF
+   /* createImageFromFds requires stride in bytes instead of pixels */
+   stride = buf->stride * get_format_bpp(buf->format);
+   dri2_img->dri_image =
+       dri2_dpy->image->createImageFromFds(dri2_dpy->dri_screen,
+					   buf->width,
+					   buf->height,
+					   get_fourcc(format),
+					   &fd,
+					   1,
+					   &stride,
+					   &offset,
+					   dri2_img);
+#else
    dri2_img->dri_image =
       dri2_dpy->image->createImageFromName(dri2_dpy->dri_screen,
 					   buf->width,
@@ -398,6 +453,7 @@ dri2_create_image_android_native_buffer(_EGLDisplay *disp, _EGLContext *ctx,
 					   name,
 					   buf->stride,
 					   dri2_img);
+#endif
    if (!dri2_img->dri_image) {
       free(dri2_img);
       _eglError(EGL_BAD_ALLOC, "droid_create_image_mesa_drm");
