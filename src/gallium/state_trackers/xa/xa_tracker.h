@@ -177,6 +177,14 @@ extern struct xa_surface * xa_surface_from_handle(struct xa_tracker *xa,
 					    enum xa_formats pform,
 					    unsigned int flags,
 					    uint32_t handle, uint32_t stride);
+extern struct xa_surface * xa_surface_from_handle2(struct xa_tracker *xa,
+					    int width,
+					    int height,
+					    int depth,
+					    enum xa_surface_type stype,
+					    enum xa_formats xa_format, unsigned int flags,
+					    enum xa_handle_type type,
+					    uint32_t handle, uint32_t stride);
 
 enum xa_formats xa_surface_format(const struct xa_surface *srf);
 

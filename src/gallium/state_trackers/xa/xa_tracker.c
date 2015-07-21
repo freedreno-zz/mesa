@@ -298,6 +298,18 @@ xa_format_check_supported(struct xa_tracker *xa,
     return XA_ERR_NONE;
 }
 
+static unsigned
+handle_type(enum xa_handle_type type)
+{
+    switch (type) {
+    case xa_handle_type_kms:
+	return DRM_API_HANDLE_TYPE_KMS;
+    case xa_handle_type_shared:
+    default:
+	return DRM_API_HANDLE_TYPE_SHARED;
+    }
+}
+
 static struct xa_surface *
 surface_create(struct xa_tracker *xa,
 		  int width,
@@ -383,6 +395,24 @@ xa_surface_from_handle(struct xa_tracker *xa,
     struct winsys_handle whandle;
     memset(&whandle, 0, sizeof(whandle));
     whandle.type = DRM_API_HANDLE_TYPE_SHARED;
+    whandle.handle = handle;
+    whandle.stride = stride;
+    return surface_create(xa, width, height, depth, stype, xa_format, flags, &whandle);
+}
+
+XA_EXPORT struct xa_surface *
+xa_surface_from_handle2(struct xa_tracker *xa,
+		  int width,
+		  int height,
+		  int depth,
+		  enum xa_surface_type stype,
+		  enum xa_formats xa_format, unsigned int flags,
+		  enum xa_handle_type type,
+		  uint32_t handle, uint32_t stride)
+{
+    struct winsys_handle whandle;
+    memset(&whandle, 0, sizeof(whandle));
+    whandle.type = handle_type(type);
     whandle.handle = handle;
     whandle.stride = stride;
     return surface_create(xa, width, height, depth, stype, xa_format, flags, &whandle);
@@ -511,15 +541,7 @@ xa_surface_handle(struct xa_surface *srf,
     boolean res;
 
     memset(&whandle, 0, sizeof(whandle));
-    switch (type) {
-    case xa_handle_type_kms:
-	whandle.type = DRM_API_HANDLE_TYPE_KMS;
-	break;
-    case xa_handle_type_shared:
-    default:
-	whandle.type = DRM_API_HANDLE_TYPE_SHARED;
-	break;
-    }
+    whandle.type = handle_type(type);
     res = screen->resource_get_handle(screen, srf->tex, &whandle);
     if (!res)
 	return -XA_ERR_INVAL;
