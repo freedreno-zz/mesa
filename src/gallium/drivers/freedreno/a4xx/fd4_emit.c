@@ -200,7 +200,22 @@ void
 fd4_emit_gmem_restore_tex(struct fd_ringbuffer *ring, unsigned nr_bufs,
 		struct pipe_surface **bufs)
 {
+	unsigned char mrt_comp[A4XX_MAX_RENDER_TARGETS] = {0};
 	int i;
+
+	for (i = 0; i < A4XX_MAX_RENDER_TARGETS; i++) {
+		mrt_comp[i] = (i < nr_bufs) ? 0xf : 0;
+	}
+
+	OUT_PKT0(ring, REG_A4XX_RB_RENDER_COMPONENTS, 1);
+	OUT_RING(ring, A4XX_RB_RENDER_COMPONENTS_RT0(mrt_comp[0]) |
+			A4XX_RB_RENDER_COMPONENTS_RT1(mrt_comp[1]) |
+			A4XX_RB_RENDER_COMPONENTS_RT2(mrt_comp[2]) |
+			A4XX_RB_RENDER_COMPONENTS_RT3(mrt_comp[3]) |
+			A4XX_RB_RENDER_COMPONENTS_RT4(mrt_comp[4]) |
+			A4XX_RB_RENDER_COMPONENTS_RT5(mrt_comp[5]) |
+			A4XX_RB_RENDER_COMPONENTS_RT6(mrt_comp[6]) |
+			A4XX_RB_RENDER_COMPONENTS_RT7(mrt_comp[7]));
 
 	/* output sampler state: */
 	OUT_PKT3(ring, CP_LOAD_STATE, 2 + (2 * nr_bufs));

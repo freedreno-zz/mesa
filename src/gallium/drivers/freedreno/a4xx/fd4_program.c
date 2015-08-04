@@ -439,17 +439,13 @@ fd4_program_emit(struct fd_ringbuffer *ring, struct fd4_emit *emit,
 					A4XX_RB_RENDER_CONTROL2_WCOORD));
 
 	OUT_PKT0(ring, REG_A4XX_RB_FS_OUTPUT_REG, 1);
-	OUT_RING(ring, A4XX_RB_FS_OUTPUT_REG_MRT(nr) |
+	OUT_RING(ring, A4XX_RB_FS_OUTPUT_REG_MRT(MAX2(1, nr)) |
 			COND(s[FS].v->writes_pos, A4XX_RB_FS_OUTPUT_REG_FRAG_WRITES_Z));
 
 	OUT_PKT0(ring, REG_A4XX_SP_FS_OUTPUT_REG, 1);
-	if (s[FS].v->writes_pos) {
-		OUT_RING(ring, A4XX_SP_FS_OUTPUT_REG_MRT(nr) |
-				A4XX_SP_FS_OUTPUT_REG_DEPTH_ENABLE |
-				A4XX_SP_FS_OUTPUT_REG_DEPTH_REGID(posz_regid));
-	} else {
-		OUT_RING(ring, A4XX_SP_FS_OUTPUT_REG_MRT(nr));
-	}
+	OUT_RING(ring, A4XX_SP_FS_OUTPUT_REG_MRT(MAX2(1, nr)) |
+			COND(s[FS].v->writes_pos, A4XX_SP_FS_OUTPUT_REG_DEPTH_ENABLE) |
+			A4XX_SP_FS_OUTPUT_REG_DEPTH_REGID(posz_regid));
 
 	OUT_PKT0(ring, REG_A4XX_SP_FS_MRT_REG(0), 8);
 	for (i = 0; i < 8; i++) {
