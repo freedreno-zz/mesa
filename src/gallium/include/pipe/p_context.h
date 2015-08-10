@@ -617,6 +617,13 @@ struct pipe_context {
     * Return information about unexpected device resets.
     */
    enum pipe_reset_status (*get_device_reset_status)(struct pipe_context *ctx);
+
+   /**
+    * Emit string marker in cmdstream
+    */
+   void (*emit_string_marker)(struct pipe_context *ctx,
+                              const char *string,
+                              int len);
 };
 
 

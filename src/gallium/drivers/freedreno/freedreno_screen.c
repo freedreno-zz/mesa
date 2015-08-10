@@ -166,6 +166,7 @@ fd_screen_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
 	case PIPE_CAP_MAX_DUAL_SOURCE_RENDER_TARGETS:
 	case PIPE_CAP_START_INSTANCE:
 	case PIPE_CAP_COMPUTE:
+	case PIPE_CAP_STRING_MARKER:
 		return 0;
 
 	case PIPE_CAP_SM3:
