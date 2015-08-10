@@ -655,3 +655,17 @@ _mesa_print_texture(struct gl_context *ctx, struct gl_texture_image *img)
 
    ctx->Driver.UnmapTextureImage(ctx, img, slice);
 }
+
+void GLAPIENTRY
+_mesa_StringMarkerGREMEDY(GLsizei len, const GLvoid * string)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   if (ctx->Driver.EmitStringMarker) {
+      /* if length not specified, string will be null terminated: */
+      if (len == 0)
+         len = strlen(string);
+      ctx->Driver.EmitStringMarker(ctx, string, len);
+   } else {
+      _mesa_warning(ctx, "StringMarkerGREMEDY unsupported");
+   }
+}
