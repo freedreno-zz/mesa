@@ -636,6 +636,13 @@ struct pipe_context {
     */
    void (*dump_debug_state)(struct pipe_context *ctx, FILE *stream,
                             unsigned flags);
+
+   /**
+    * Emit string marker in cmdstream
+    */
+   void (*emit_string_marker)(struct pipe_context *ctx,
+                              const char *string,
+                              int len);
 };
 
 

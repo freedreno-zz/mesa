@@ -476,6 +476,7 @@ void st_init_extensions(struct pipe_screen *screen,
       { o(NV_conditional_render),            PIPE_CAP_CONDITIONAL_RENDER               },
       { o(NV_primitive_restart),             PIPE_CAP_PRIMITIVE_RESTART                },
       { o(NV_texture_barrier),               PIPE_CAP_TEXTURE_BARRIER                  },
+      { o(GREMEDY_string_marker),            PIPE_CAP_STRING_MARKER                    },
       /* GL_NV_point_sprite is not supported by gallium because we don't
        * support the GL_POINT_SPRITE_R_MODE_NV option. */
 

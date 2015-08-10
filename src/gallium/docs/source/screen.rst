@@ -268,6 +268,7 @@ The integer capabilities:
   bounds_max states of pipe_depth_stencil_alpha_state behave according
   to the GL_EXT_depth_bounds_test specification.
 * ``PIPE_CAP_TGSI_TXQS``: Whether the `TXQS` opcode is supported
+* ``PIPE_CAP_STRING_MARKER``: Whether pipe->emit_string_marker() is supported.
 
 
 .. _pipe_capf:
