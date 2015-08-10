@@ -74,4 +74,7 @@ _mesa_dump_image(const char *filename, const void *image, GLuint w, GLuint h,
 extern void
 _mesa_print_texture(struct gl_context *ctx, struct gl_texture_image *img);
 
+void GLAPIENTRY
+_mesa_StringMarkerGREMEDY(GLsizei len, const GLvoid * string);
+
 #endif

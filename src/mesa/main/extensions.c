@@ -364,6 +364,7 @@ static const struct extension extension_table[] = {
    { "GL_ATI_texture_env_combine3",                o(ATI_texture_env_combine3),                GLL,            2002 },
    { "GL_ATI_texture_float",                       o(ARB_texture_float),                       GL,             2002 },
    { "GL_ATI_texture_mirror_once",                 o(ATI_texture_mirror_once),                 GL,             2006 },
+   { "GL_GREMEDY_string_marker",                   o(GREMEDY_string_marker),                   GL,             2007 },
    { "GL_IBM_multimode_draw_arrays",               o(dummy_true),                              GL,             1998 },
    { "GL_IBM_rasterpos_clip",                      o(dummy_true),                              GLL,            1996 },
    { "GL_IBM_texture_mirrored_repeat",             o(dummy_true),                              GLL,            1998 },
