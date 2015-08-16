@@ -4208,8 +4208,21 @@ _mesa_DiscardFramebufferEXT(GLenum target, GLsizei numAttachments,
       }
    }
 
-   if (ctx->Driver.DiscardFramebuffer)
-      ctx->Driver.DiscardFramebuffer(ctx, target, numAttachments, attachments);
+   if (ctx->Driver.DiscardTexture) {
+      for (i = 0; i < numAttachments; i++) {
+         struct gl_renderbuffer_attachment *att;
+
+         if (_mesa_is_user_fbo(fb))
+            att = get_attachment(ctx, fb, attachments[i]);
+         else /* winsys_fbo */
+            att = _mesa_get_fb0_attachment(ctx, fb, attachments[i]);
+
+         if (!att)
+            continue;
+
+         ctx->Driver.DiscardTexture(ctx, fb, att);
+      }
+   }
 
    return;
 
