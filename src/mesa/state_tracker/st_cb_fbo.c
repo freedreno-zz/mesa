@@ -833,7 +833,17 @@ st_UnmapRenderbuffer(struct gl_context *ctx,
    strb->transfer = NULL;
 }
 
+static void
+st_DiscardTexture(struct gl_context *ctx,
+                  struct gl_framebuffer *fb,
+                  struct gl_renderbuffer_attachment *att)
+{
+   struct st_context *st = st_context(ctx);
+   struct pipe_resource *pt = st_get_texobj_resource(att->Texture);
 
+   if (st->pipe->invalidate_resource && pt)
+      st->pipe->invalidate_resource(st->pipe, pt);
+}
 
 void st_init_fbo_functions(struct dd_function_table *functions)
 {
@@ -850,6 +860,8 @@ void st_init_fbo_functions(struct dd_function_table *functions)
 
    functions->MapRenderbuffer = st_MapRenderbuffer;
    functions->UnmapRenderbuffer = st_UnmapRenderbuffer;
+
+   functions->DiscardTexture = st_DiscardTexture;
 }
 
 

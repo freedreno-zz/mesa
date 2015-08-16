@@ -3910,6 +3910,29 @@ _mesa_GetNamedFramebufferParameteriv(GLuint framebuffer, GLenum pname,
    }
 }
 
+static void
+discard_framebuffer(struct gl_context *ctx, struct gl_framebuffer *fb,
+                    GLsizei numAttachments, const GLenum *attachments)
+{
+   int i;
+
+   if (!ctx->Driver.DiscardTexture)
+      return;
+
+   for (i = 0; i < numAttachments; i++) {
+      struct gl_renderbuffer_attachment *att;
+
+      if (_mesa_is_user_fbo(fb))
+         att = get_attachment(ctx, fb, attachments[i]);
+      else /* winsys_fbo */
+         att = _mesa_get_fb0_attachment(ctx, fb, attachments[i]);
+
+      if (!att)
+         continue;
+
+      ctx->Driver.DiscardTexture(ctx, fb, att);
+   }
+}
 
 static void
 invalidate_framebuffer_storage(struct gl_context *ctx,
@@ -4032,24 +4055,10 @@ invalidate_framebuffer_storage(struct gl_context *ctx,
    if ((x != 0) || (y != 0))
       return;
 
-   if ((width != fb->Width) || (height != fb->Height))
+   if ((width < fb->Width) || (height < fb->Height))
       return;
 
-   if (ctx->Driver.DiscardTexture) {
-      for (i = 0; i < numAttachments; i++) {
-         struct gl_renderbuffer_attachment *att;
-
-         if (_mesa_is_user_fbo(fb))
-            att = get_attachment(ctx, fb, attachments[i]);
-         else /* winsys_fbo */
-            att = _mesa_get_fb0_attachment(ctx, fb, attachments[i]);
-
-         if (!att)
-            continue;
-
-         ctx->Driver.DiscardTexture(ctx, fb, att);
-      }
-   }
+   discard_framebuffer(ctx, fb, numAttachments, attachments);
 
    return;
 
@@ -4227,21 +4236,7 @@ _mesa_DiscardFramebufferEXT(GLenum target, GLsizei numAttachments,
       }
    }
 
-   if (ctx->Driver.DiscardTexture) {
-      for (i = 0; i < numAttachments; i++) {
-         struct gl_renderbuffer_attachment *att;
-
-         if (_mesa_is_user_fbo(fb))
-            att = get_attachment(ctx, fb, attachments[i]);
-         else /* winsys_fbo */
-            att = _mesa_get_fb0_attachment(ctx, fb, attachments[i]);
-
-         if (!att)
-            continue;
-
-         ctx->Driver.DiscardTexture(ctx, fb, att);
-      }
-   }
+   discard_framebuffer(ctx, fb, numAttachments, attachments);
 
    return;
 
