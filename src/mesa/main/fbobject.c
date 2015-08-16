@@ -4029,9 +4029,28 @@ invalidate_framebuffer_storage(struct gl_context *ctx,
       }
    }
 
-   /* We don't actually do anything for this yet.  Just return after
-    * validating the parameters and generating the required errors.
-    */
+   if ((x != 0) || (y != 0))
+      return;
+
+   if ((width != fb->Width) || (height != fb->Height))
+      return;
+
+   if (ctx->Driver.DiscardTexture) {
+      for (i = 0; i < numAttachments; i++) {
+         struct gl_renderbuffer_attachment *att;
+
+         if (_mesa_is_user_fbo(fb))
+            att = get_attachment(ctx, fb, attachments[i]);
+         else /* winsys_fbo */
+            att = _mesa_get_fb0_attachment(ctx, fb, attachments[i]);
+
+         if (!att)
+            continue;
+
+         ctx->Driver.DiscardTexture(ctx, fb, att);
+      }
+   }
+
    return;
 
 invalid_enum:
