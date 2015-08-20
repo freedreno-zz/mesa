@@ -328,6 +328,66 @@ droid_destroy_surface(_EGLDriver *drv, _EGLDisplay *disp, _EGLSurface *surf)
    return EGL_TRUE;
 }
 
+static int
+get_back_bo(struct dri2_egl_surface *dri2_surf)
+{
+   struct dri2_egl_display *dri2_dpy =
+      dri2_egl_display(dri2_surf->base.Resource.Display);
+   int fd, stride, offset = 0;
+   if (dri2_surf->base.Type == EGL_WINDOW_BIT) {
+      /* try to dequeue the next back buffer */
+      if (!dri2_surf->buffer && !droid_window_dequeue_buffer(dri2_surf))
+         return -1;
+
+      /* free outdated buffers and update the surface size */
+      if (dri2_surf->base.Width != dri2_surf->buffer->width ||
+          dri2_surf->base.Height != dri2_surf->buffer->height) {
+         droid_free_local_buffers(dri2_surf);
+         dri2_surf->base.Width = dri2_surf->buffer->width;
+         dri2_surf->base.Height = dri2_surf->buffer->height;
+      }
+   }
+
+   if(dri2_surf->buffer == NULL)
+      return -1;
+
+   fd = get_native_buffer_fd(dri2_surf->buffer);
+
+   stride = dri2_surf->buffer->stride * get_format_bpp(dri2_surf->buffer->format);
+
+   dri2_surf->dri_image =
+        dri2_dpy->image->createImageFromFds(dri2_dpy->dri_screen,
+                                      dri2_surf->base.Width,
+                                      dri2_surf->base.Height,
+                                      __DRI_IMAGE_FOURCC_ARGB8888,
+                                      &fd,
+                                      1,
+                                      &stride,
+                                      &offset,
+                                      dri2_surf);
+
+   return 0;
+}
+
+static int
+droid_image_get_buffers(__DRIdrawable *driDrawable,
+                  unsigned int format,
+                  uint32_t *stamp,
+                  void *loaderPrivate,
+                  uint32_t buffer_mask,
+                  struct __DRIimageList *images)
+{
+   struct dri2_egl_surface *dri2_surf = loaderPrivate;
+
+   if (get_back_bo(dri2_surf) < 0)
+      return 0;
+
+   images->image_mask = __DRI_IMAGE_BUFFER_BACK;
+   images->back = dri2_surf->dri_image;
+
+   return 1;
+}
+
 static EGLBoolean
 droid_swap_buffers(_EGLDriver *drv, _EGLDisplay *disp, _EGLSurface *draw)
 {
@@ -741,6 +801,7 @@ dri2_initialize_android(_EGLDriver *drv, _EGLDisplay *dpy)
       goto cleanup_driver_name;
    }
 
+#ifdef USE_DRI2_LOADER
    dri2_dpy->dri2_loader_extension.base.name = __DRI_DRI2_LOADER;
    dri2_dpy->dri2_loader_extension.base.version = 3;
    dri2_dpy->dri2_loader_extension.getBuffers = NULL;
@@ -749,6 +810,9 @@ dri2_initialize_android(_EGLDriver *drv, _EGLDisplay *dpy)
       droid_get_buffers_with_format;
 
    dri2_dpy->extensions[0] = &dri2_dpy->dri2_loader_extension.base;
+#else
+   dri2_dpy->extensions[0] = &droid_image_loader_extension.base;
+#endif
    dri2_dpy->extensions[1] = &image_lookup_extension.base;
    dri2_dpy->extensions[2] = &use_invalidate.base;
    dri2_dpy->extensions[3] = NULL;
