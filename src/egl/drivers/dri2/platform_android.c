@@ -260,6 +260,9 @@ droid_create_surface(_EGLDriver *drv, _EGLDisplay *disp, EGLint type,
 
       window->query(window, NATIVE_WINDOW_WIDTH, &dri2_surf->base.Width);
       window->query(window, NATIVE_WINDOW_HEIGHT, &dri2_surf->base.Height);
+
+      window->common.incRef(&window->common);
+      dri2_surf->window = window;
    }
 
    config = dri2_get_dri_config(dri2_conf, EGL_WINDOW_BIT,
@@ -271,11 +274,6 @@ droid_create_surface(_EGLDriver *drv, _EGLDisplay *disp, EGLint type,
    if (dri2_surf->dri_drawable == NULL) {
       _eglError(EGL_BAD_ALLOC, "dri2->createNewDrawable");
       goto cleanup_surface;
-   }
-
-   if (window) {
-      window->common.incRef(&window->common);
-      dri2_surf->window = window;
    }
 
    return &dri2_surf->base;
