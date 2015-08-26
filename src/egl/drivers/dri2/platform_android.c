@@ -89,6 +89,24 @@ static int get_fourcc(int format)
    return format;
 }
 
+static int get_format(int format)
+{
+   switch (format) {
+   case HAL_PIXEL_FORMAT_BGRA_8888:
+      return __DRI_IMAGE_FORMAT_ARGB8888;
+   case HAL_PIXEL_FORMAT_RGB_565:
+      return __DRI_IMAGE_FORMAT_RGB565;
+   case HAL_PIXEL_FORMAT_RGBA_8888:
+      return __DRI_IMAGE_FORMAT_ABGR8888;
+   case HAL_PIXEL_FORMAT_RGBX_8888:
+      return __DRI_IMAGE_FORMAT_XBGR8888;
+   case HAL_PIXEL_FORMAT_RGB_888:
+      /* unsupported */
+   default:
+      _eglLog(_EGL_WARNING, "unsupported native buffer format 0x%x", format);
+      return -1;
+   }
+}
 static int
 get_native_buffer_fd(struct ANativeWindowBuffer *buf)
 {
@@ -326,12 +344,19 @@ droid_destroy_surface(_EGLDriver *drv, _EGLDisplay *disp, _EGLSurface *surf)
    return EGL_TRUE;
 }
 
+
 static int
 get_back_bo(struct dri2_egl_surface *dri2_surf)
 {
    struct dri2_egl_display *dri2_dpy =
       dri2_egl_display(dri2_surf->base.Resource.Display);
-   int fd, stride, offset = 0;
+   int format;
+#ifdef DMABUF
+   int stride, offset = 0, fd;
+#else
+   int name;
+#endif
+
    if (dri2_surf->base.Type == EGL_WINDOW_BIT) {
       /* try to dequeue the next back buffer */
       if (!dri2_surf->buffer && !droid_window_dequeue_buffer(dri2_surf))
@@ -349,20 +374,36 @@ get_back_bo(struct dri2_egl_surface *dri2_surf)
    if(dri2_surf->buffer == NULL)
       return -1;
 
-   fd = get_native_buffer_fd(dri2_surf->buffer);
+   format = get_format(dri2_surf->buffer->format);
 
+#ifdef DMABUF
    stride = dri2_surf->buffer->stride * get_format_bpp(dri2_surf->buffer->format);
-
+   fd = get_native_buffer_fd(dri2_surf->buffer);
+   if (fd < 0)
+      return fd;
    dri2_surf->dri_image =
         dri2_dpy->image->createImageFromFds(dri2_dpy->dri_screen,
-                                      dri2_surf->base.Width,
-                                      dri2_surf->base.Height,
-                                      __DRI_IMAGE_FOURCC_ARGB8888,
-                                      &fd,
-                                      1,
-                                      &stride,
-                                      &offset,
-                                      dri2_surf);
+                                            dri2_surf->base.Width,
+                                            dri2_surf->base.Height,
+                                            get_fourcc(format),
+                                            &fd,
+                                            1,
+                                            &stride,
+                                            &offset,
+                                            dri2_surf);
+#else
+   name = get_native_buffer_name(dri2_surf->buffer);
+   if (name < 0)
+      return name;
+   dri2_surf->dri_image =
+      dri2_dpy->image->createImageFromName(dri2_dpy->dri_screen,
+                                           dri2_surf->base.Width,
+                                           dri2_surf->base.Height,
+                                           format,
+                                           name,
+                                           dri2_surf->buffer->stride,
+                                           dri2_surf);
+#endif
 
    return 0;
 }
@@ -457,26 +498,9 @@ dri2_create_image_android_native_buffer(_EGLDisplay *disp, _EGLContext *ctx,
 #endif
 
    /* see the table in droid_add_configs_for_visuals */
-   switch (buf->format) {
-   case HAL_PIXEL_FORMAT_BGRA_8888:
-      format = __DRI_IMAGE_FORMAT_ARGB8888;
-      break;
-   case HAL_PIXEL_FORMAT_RGB_565:
-      format = __DRI_IMAGE_FORMAT_RGB565;
-      break;
-   case HAL_PIXEL_FORMAT_RGBA_8888:
-      format = __DRI_IMAGE_FORMAT_ABGR8888;
-      break;
-   case HAL_PIXEL_FORMAT_RGBX_8888:
-      format = __DRI_IMAGE_FORMAT_XBGR8888;
-      break;
-   case HAL_PIXEL_FORMAT_RGB_888:
-      /* unsupported */
-   default:
-      _eglLog(_EGL_WARNING, "unsupported native buffer format 0x%x", buf->format);
+   format = get_format(buf->format);
+   if (format < 0)
       return NULL;
-      break;
-   }
 
    dri2_img = calloc(1, sizeof(*dri2_img));
    if (!dri2_img) {
@@ -764,6 +788,13 @@ static struct dri2_egl_display_vtbl droid_display_vtbl = {
    .query_buffer_age = dri2_fallback_query_buffer_age,
    .create_wayland_buffer_from_image = dri2_fallback_create_wayland_buffer_from_image,
    .get_sync_values = dri2_fallback_get_sync_values,
+};
+
+static const __DRIimageLoaderExtension droid_image_loader_extension = {
+   .base = { __DRI_IMAGE_LOADER, 1 },
+
+   .getBuffers          = droid_image_get_buffers,
+   .flushFrontBuffer    = droid_flush_front_buffer,
 };
 
 EGLBoolean
