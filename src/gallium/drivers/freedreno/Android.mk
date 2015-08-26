@@ -33,6 +33,7 @@ LOCAL_SRC_FILES := \
 	$(ir3_SOURCES)
 
 LOCAL_CFLAGS := \
+	-I$(top_builddir)/src/glsl/nir \
 	-Wno-packed-bitfield-compat
 
 LOCAL_C_INCLUDES := \
