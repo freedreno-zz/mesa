@@ -1430,6 +1430,21 @@ static const __DRIextension *dri_robust_screen_extensions[] = {
    NULL
 };
 
+/* this should possibly live somewhere else.. but ideally we only want
+ * a single copy of dd_create_screen()..
+ */
+PUBLIC struct pipe_screen *load_pipe_screen(struct pipe_loader_device **dev, int fd)
+{
+   struct pipe_screen *pscreen = NULL;
+#if GALLIUM_STATIC_TARGETS
+   pscreen = dd_create_screen(fd);
+#else
+   if (pipe_loader_drm_probe_fd(dev, fd)) {
+      pscreen = pipe_loader_create_screen(dev, PIPE_SEARCH_DIR);
+   }
+#endif // GALLIUM_STATIC_TARGETS
+   return pscreen;
+}
 /**
  * This is the driver specific part of the createNewScreen entry point.
  *
@@ -1454,15 +1469,12 @@ dri2_init_screen(__DRIscreen * sPriv)
 
    sPriv->driverPrivate = (void *)screen;
 
+   pscreen = load_pipe_screen(&screen->dev, screen->fd);
 #if GALLIUM_STATIC_TARGETS
-   pscreen = dd_create_screen(screen->fd);
-
    throttle_ret = dd_configuration(DRM_CONF_THROTTLE);
    dmabuf_ret = dd_configuration(DRM_CONF_SHARE_FD);
 #else
-   if (pipe_loader_drm_probe_fd(&screen->dev, screen->fd)) {
-      pscreen = pipe_loader_create_screen(screen->dev, PIPE_SEARCH_DIR);
-
+   if (pscreen) {
       throttle_ret = pipe_loader_configuration(screen->dev, DRM_CONF_THROTTLE);
       dmabuf_ret = pipe_loader_configuration(screen->dev, DRM_CONF_SHARE_FD);
    }
