@@ -1624,7 +1624,10 @@ emit_tex(struct ir3_compile *ctx, nir_tex_instr *tex)
 	for (i = 0; i < coords; i++)
 		src0[nsrc0++] = coord[i];
 
-	if (coords == 1) {
+	if (tex->sampler_dim == GLSL_SAMPLER_DIM_BUF) {
+		src0[0] = ir3_AND_B(b, coord[0], 0, create_immed(b, 0x1fff), 0);
+		src0[nsrc0++] = ir3_SHR_B(b, coord[0], 0, create_immed(b, 13), 0);
+	} else if (coords == 1) {
 		/* hw doesn't do 1d, so we treat it as 2d with
 		 * height of 1, and patch up the y coord.
 		 * TODO: y coord should be (int)0 in some cases..
