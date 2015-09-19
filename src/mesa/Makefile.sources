@@ -526,8 +526,8 @@ PROGRAM_FILES = \
 	program/string_to_uint_map.cpp \
 	program/symbol_table.c \
 	program/symbol_table.h \
-	../glsl/shader_enums.c \
-	../glsl/shader_enums.h
+	../../glsl/shader_enums.c \
+	../../glsl/shader_enums.h
 
 PROGRAM_NIR_FILES = \
 	program/prog_to_nir.c \
