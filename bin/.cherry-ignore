@@ -3,3 +3,6 @@ b8d2263c83d29f4626ac0fe0316978aa6262aefb i965/vec4_nir: Load constants as intege
 
 # The issue/commit it fixes has landed post 10.6 branchpoint
 afa1efdc8522d987e3af7c7a6272021caa33eb82 mesa: fix errors when reading depth with glReadPixels
+
+# The issue/commit is fixes has landed post 10.6 branchpoint
+7f8815bcb9af9b4b374ad7bd6e7cfa7529a6c980 i965: fix textureGrad for cubemaps
