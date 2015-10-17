@@ -221,6 +221,12 @@ struct pipe_stream_output_info
  *
  * TODO pipe_compute_state should probably get similar treatment to handle
  * multiple IR's in a cleaner way..
+ *
+ * NOTE: since the nir_shader is reference counted, the semantics are a bit
+ * different from create_xyz_state(ir=TGSI).  The driver takes ownership of
+ * the nir_shader (and must nir_shader_unref()) at some point.  If state
+ * trackers need to hang on to the IR (for example, variant management), it
+ * should increment the refcnt before calling create_xyz_shader(ir=NIR).
  */
 struct pipe_shader_state
 {
@@ -230,6 +236,7 @@ struct pipe_shader_state
       const struct tgsi_token *tokens;
       void *llvm;
       void *native;
+      void *nir;
    };
    struct pipe_stream_output_info stream_output;
 };
