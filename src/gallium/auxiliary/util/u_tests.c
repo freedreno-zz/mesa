@@ -422,7 +422,12 @@ null_constant_buffer(struct pipe_context *ctx)
             "MOV OUT[0], CONST[0]\n"
             "END\n";
       struct tgsi_token tokens[1000];
-      struct pipe_shader_state state = {tokens};
+      struct pipe_shader_state state;
+
+      memset(&state, 0, sizeof(state));
+
+      state.ir = PIPE_SHADER_IR_TGSI;
+      state.tokens = tokens;
 
       if (!tgsi_text_translate(text, tokens, Elements(tokens))) {
          puts("Can't compile a fragment shader.");

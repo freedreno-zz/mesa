@@ -1778,14 +1778,16 @@ void *ureg_create_shader( struct ureg_program *ureg,
 {
    struct pipe_shader_state state;
 
+   memset(&state, 0, sizeof(state));
+
+   state.ir = PIPE_SHADER_IR_TGSI;
+
    state.tokens = ureg_finalize(ureg);
    if(!state.tokens)
       return NULL;
 
    if (so)
       state.stream_output = *so;
-   else
-      memset(&state.stream_output, 0, sizeof(state.stream_output));
 
    switch (ureg->processor) {
    case TGSI_PROCESSOR_VERTEX:
