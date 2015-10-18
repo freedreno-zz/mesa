@@ -35,6 +35,9 @@
 #include "glsl_parser_extras.h"
 #include "ir_optimization.h"
 
+#include "nir.h"
+#include "glsl_to_nir.h"
+
 #include "main/errors.h"
 #include "main/shaderobj.h"
 #include "main/uniforms.h"
@@ -5486,9 +5489,9 @@ out:
  * generating Mesa IR.
  */
 static struct gl_program *
-get_mesa_program(struct gl_context *ctx,
-                 struct gl_shader_program *shader_program,
-                 struct gl_shader *shader)
+get_mesa_program_tgsi(struct gl_context *ctx,
+                      struct gl_shader_program *shader_program,
+                      struct gl_shader *shader)
 {
    glsl_to_tgsi_visitor* v;
    struct gl_program *prog;
@@ -5679,6 +5682,396 @@ get_mesa_program(struct gl_context *ctx,
 
    return prog;
 }
+
+/* TODO dup'd from brw_vec4_vistor.cpp..  what should we do? */
+static int
+type_size_vec4(const struct glsl_type *type)
+{
+   unsigned int i;
+   int size;
+
+   switch (type->base_type) {
+   case GLSL_TYPE_UINT:
+   case GLSL_TYPE_INT:
+   case GLSL_TYPE_FLOAT:
+   case GLSL_TYPE_BOOL:
+      if (type->is_matrix()) {
+	 return type->matrix_columns;
+      } else {
+	 /* Regardless of size of vector, it gets a vec4. This is bad
+	  * packing for things like floats, but otherwise arrays become a
+	  * mess.  Hopefully a later pass over the code can pack scalars
+	  * down if appropriate.
+	  */
+	 return 1;
+      }
+   case GLSL_TYPE_ARRAY:
+      assert(type->length > 0);
+      return type_size_vec4(type->fields.array) * type->length;
+   case GLSL_TYPE_STRUCT:
+      size = 0;
+      for (i = 0; i < type->length; i++) {
+	 size += type_size_vec4(type->fields.structure[i].type);
+      }
+      return size;
+   case GLSL_TYPE_SUBROUTINE:
+      return 1;
+
+   case GLSL_TYPE_SAMPLER:
+      /* Samplers take up no register space, since they're baked in at
+       * link time.
+       */
+      return 0;
+   case GLSL_TYPE_ATOMIC_UINT:
+      return 0;
+   case GLSL_TYPE_IMAGE:
+//      return DIV_ROUND_UP(BRW_IMAGE_PARAM_SIZE, 4);
+   case GLSL_TYPE_VOID:
+   case GLSL_TYPE_DOUBLE:
+   case GLSL_TYPE_ERROR:
+   case GLSL_TYPE_INTERFACE:
+      unreachable("not reached");
+   }
+
+   return 0;
+}
+
+/* Depending on PIPE_CAP_TGSI_TEXCOORD (st->needs_texcoord_semantic) we
+ * may need to fix up varying slots so the glsl->nir path is aligned
+ * with the anything->tgsi->nir path.
+ */
+static void
+st_nir_fixup_varying_slots(struct st_context *st, struct exec_list *var_list)
+{
+   if (st->needs_texcoord_semantic)
+      return;
+
+   nir_foreach_variable(var, var_list) {
+      if (var->data.location >= VARYING_SLOT_VAR0) {
+         var->data.location += 9;
+      } else if ((var->data.location >= VARYING_SLOT_TEX0) &&
+               (var->data.location <= VARYING_SLOT_TEX7)) {
+         var->data.location += VARYING_SLOT_VAR0 - VARYING_SLOT_TEX0;
+      }
+   }
+}
+
+/* input location assignment for VS inputs must be handled specially, so
+ * that it is aligned w/ st's vbo state.
+ * (This isn't the case with, for ex, FS inputs, which only need to agree
+ * on varying-slot w/ the VS outputs)
+ */
+static void
+st_nir_assign_vs_in_locations(struct gl_program *prog,
+                              struct exec_list *var_list, unsigned *size)
+{
+   unsigned attr, num_inputs = 0;
+   unsigned input_to_index[VERT_ATTRIB_MAX] = {0};
+
+   /* TODO de-duplicate w/ similar code in st_translate_vertex_program()? */
+   for (attr = 0; attr < VERT_ATTRIB_MAX; attr++) {
+      if ((prog->InputsRead & BITFIELD64_BIT(attr)) != 0) {
+         input_to_index[attr] = num_inputs;
+         num_inputs++;
+         if ((prog->DoubleInputsRead & BITFIELD64_BIT(attr)) != 0) {
+            /* add placeholder for second part of a double attribute */
+            num_inputs++;
+         }
+      }
+   }
+
+   *size = 0;
+   nir_foreach_variable(var, var_list) {
+      attr = var->data.location;
+      assert(attr < ARRAY_SIZE(input_to_index));
+      var->data.driver_location = input_to_index[attr];
+      (*size)++;
+   }
+}
+
+static void
+st_nir_assign_uniform_locations(struct gl_program *prog,
+                                struct exec_list *uniform_list, unsigned *size)
+{
+   int max = 0;
+   int shaderidx = 0;
+
+   nir_foreach_variable(uniform, uniform_list) {
+      int loc;
+
+      if (uniform->type->is_sampler()) {
+         loc = shaderidx++;
+         uniform->data.location = loc; /* this should match resulting sampler idx */
+      } else if (strncmp(uniform->name, "gl_", 3) == 0) {
+         const gl_state_index *const stateTokens = (gl_state_index *)uniform->state_slots[0].tokens;
+         /* This state reference has already been setup by ir_to_mesa, but we'll
+          * get the same index back here.
+          */
+         loc = _mesa_add_state_reference(prog->Parameters, stateTokens);
+      } else {
+         loc = _mesa_lookup_parameter_index(prog->Parameters, -1, uniform->name);
+      }
+
+      /* is there a better way to do this?  If we have something like:
+       *
+       *    struct S {
+       *           float f;
+       *           vec4 v;
+       *    };
+       *    uniform S color;
+       *
+       * Then what we get in prog->Parameters looks like:
+       *
+       *    0: Name=color.f, Type=6, DataType=1406, Size=1
+       *    1: Name=color.v, Type=6, DataType=8b52, Size=4
+       *
+       * So the name doesn't match up and _mesa_lookup_parameter_index()
+       * fails.  In this case just find the first matching "color.*"..
+       */
+      if (loc < 0) {
+         int namelen = strlen(uniform->name);
+         for (unsigned i = 0; i < prog->Parameters->NumParameters; i++) {
+            struct gl_program_parameter *p = &prog->Parameters->Parameters[i];
+            if ((strncmp(p->Name, uniform->name, namelen) == 0) &&
+                (p->Name[namelen] == '.')) {
+               loc = i;
+               break;
+            }
+         }
+      }
+
+      uniform->data.driver_location = loc;
+      if (!uniform->type->is_sampler())
+         max = MAX2(max, loc + type_size_vec4(uniform->type));
+   }
+   *size = max;
+}
+
+static struct gl_program *
+get_mesa_program_nir(struct gl_context *ctx,
+                     struct gl_shader_program *shader_program,
+                     struct gl_shader *shader)
+{
+   struct gl_program *prog;
+   GLenum target = _mesa_shader_stage_to_program(shader->Stage);
+
+   validate_ir_tree(shader->ir);
+
+   prog = ctx->Driver.NewProgram(ctx, target, shader_program->Name);
+   if (!prog)
+      return NULL;
+
+   prog->Parameters = _mesa_new_parameter_list();
+
+   _mesa_copy_linked_program_data(shader->Stage, shader_program, prog);
+   _mesa_generate_parameters_list_for_uniforms(shader_program, shader,
+                                               prog->Parameters);
+
+//   /* Remove reads from output registers. */
+//   lower_output_reads(shader->Stage, shader->ir);
+
+   /* Make a pass over the IR to add state references for any built-in
+    * uniforms that are used.  This has to be done now (during linking).
+    * Code generation doesn't happen until the first time this shader is
+    * used for rendering.  Waiting until then to generate the parameters is
+    * too late.  At that point, the values for the built-in uniforms won't
+    * get sent to the shader.
+    */
+   foreach_in_list(ir_instruction, node, shader->ir) {
+      ir_variable *var = node->as_variable();
+
+      if ((var == NULL) || (var->data.mode != ir_var_uniform) ||
+          (strncmp(var->name, "gl_", 3) != 0))
+         continue;
+
+      const ir_state_slot *const slots = var->get_state_slots();
+      assert(slots != NULL);
+
+      for (unsigned int i = 0; i < var->get_num_state_slots(); i++) {
+         _mesa_add_state_reference(prog->Parameters,
+                                   (gl_state_index *) slots[i].tokens);
+      }
+   }
+
+   if (ctx->_Shader->Flags & GLSL_DUMP) {
+      _mesa_log("\n");
+      _mesa_log("GLSL IR for linked %s program %d:\n",
+             _mesa_shader_stage_to_string(shader->Stage),
+             shader_program->Name);
+      _mesa_print_ir(_mesa_get_log_file(), shader->ir, NULL);
+      _mesa_log("\n\n");
+   }
+
+   prog->Instructions = NULL;
+   prog->NumInstructions = 0;
+
+   do_set_program_inouts(shader->ir, prog, shader->Stage);
+
+   prog->SamplersUsed = shader->active_samplers;
+   prog->ShadowSamplers = shader->shadow_samplers;
+   _mesa_update_shader_textures_used(shader_program, prog);
+
+   _mesa_reference_program(ctx, &shader->Program, prog);
+
+
+   /* This has to be done last.  Any operation the can cause
+    * prog->ParameterValues to get reallocated (e.g., anything that adds a
+    * program constant) has to happen before creating this linkage.
+    */
+   _mesa_associate_uniform_storage(ctx, shader_program, prog->Parameters);
+
+   struct st_vertex_program *stvp;
+   struct st_fragment_program *stfp;
+
+   switch (shader->Type) {
+   case GL_VERTEX_SHADER:
+      stvp = (struct st_vertex_program *)prog;
+      stvp->shader_program = shader_program;
+      break;
+   case GL_FRAGMENT_SHADER:
+      stfp = (struct st_fragment_program *)prog;
+      stfp->shader_program = shader_program;
+      break;
+   default:
+      assert(!"should not be reached");
+      return NULL;
+   }
+
+   return prog;
+}
+
+
+/* TODO probably get this from pipe_screen?
+ * NOTE we need this to not be on the stack, so it doesn't go away when
+ * get_mesa_program_nir() returns.. or just allow pipe driver to supply..
+ */
+static nir_shader_compiler_options nir_options;
+
+// XXX move this!
+extern "C" {
+nir_shader *
+st_glsl_to_nir(struct st_context *st, struct gl_program *prog,
+               struct gl_shader_program *shader_program,
+               gl_shader_stage stage)
+{
+   nir_shader *nir;
+
+   if (prog->nir)
+      return prog->nir;
+
+   // XXX get from pipe_screen?  Or just let pipe driver provide?
+   nir_options.lower_fpow = true;
+   nir_options.lower_fsat = true;
+   nir_options.lower_scmp = true;
+   nir_options.lower_flrp = true;
+   nir_options.lower_ffract = true;
+   nir_options.native_integers = true;
+
+   nir = glsl_to_nir(shader_program, stage, &nir_options);
+   prog->nir = nir;
+
+   nir_validate_shader(nir);
+
+   nir_print_shader(nir, _mesa_get_log_file());
+
+   nir_lower_global_vars_to_local(nir);
+   nir_validate_shader(nir);
+
+   nir_split_var_copies(nir);
+   nir_lower_var_copies(nir);
+   nir_validate_shader(nir);
+
+   /* fragment shaders may need : */
+   if (stage == MESA_SHADER_FRAGMENT) {
+      static const gl_state_index wposTransformState[STATE_LENGTH] = {
+         STATE_INTERNAL, STATE_FB_WPOS_Y_TRANSFORM
+      };
+      nir_lower_wpos_ytransform_options wpos_options = {0};
+      struct pipe_screen *pscreen = st->pipe->screen;
+
+      memcpy(wpos_options.state_tokens, wposTransformState,
+             sizeof(wpos_options.state_tokens));
+      wpos_options.fs_coord_origin_upper_left =
+         pscreen->get_param(pscreen, PIPE_CAP_TGSI_FS_COORD_ORIGIN_UPPER_LEFT);
+      wpos_options.fs_coord_origin_lower_left =
+         pscreen->get_param(pscreen, PIPE_CAP_TGSI_FS_COORD_ORIGIN_LOWER_LEFT);
+      wpos_options.fs_coord_pixel_center_integer =
+         pscreen->get_param(pscreen, PIPE_CAP_TGSI_FS_COORD_PIXEL_CENTER_INTEGER);
+      wpos_options.fs_coord_pixel_center_half_integer =
+         pscreen->get_param(pscreen, PIPE_CAP_TGSI_FS_COORD_PIXEL_CENTER_HALF_INTEGER);
+
+      if (nir_lower_wpos_ytransform(nir, &wpos_options)) {
+         _mesa_add_state_reference(prog->Parameters, wposTransformState);
+      }
+   }
+
+   if (stage == MESA_SHADER_VERTEX) {
+      /* Needs special handling so drvloc matches the vbo state: */
+      st_nir_assign_vs_in_locations(prog, &nir->inputs, &nir->num_inputs);
+      nir_assign_var_locations(&nir->outputs,
+                               &nir->num_outputs,
+                               type_size_vec4);
+      st_nir_fixup_varying_slots(st, &nir->outputs);
+   } else if (stage == MESA_SHADER_FRAGMENT) {
+      nir_assign_var_locations(&nir->inputs,
+                               &nir->num_inputs,
+                               type_size_vec4);
+      st_nir_fixup_varying_slots(st, &nir->inputs);
+      nir_assign_var_locations(&nir->outputs,
+                               &nir->num_outputs,
+                               type_size_vec4);
+   } else {
+      unreachable("invalid shader type for tgsi bypass\n");
+   }
+
+   st_nir_assign_uniform_locations(prog, &nir->uniforms, &nir->num_uniforms);
+
+   nir_lower_system_values(nir);
+   nir_lower_io(nir, nir_var_all, type_size_vec4);
+   nir_lower_samplers(nir, NULL);
+   nir_validate_shader(nir);
+
+   // XXX do we need anything else from brw_create_nir().. and what
+   // is best way to split up which things should be here vs driver?
+   // currently just trying to make the result here similar to what
+   // we get from tgsi_to_nir().. so lower_io, etc..
+
+   // XXX new flag, probably?
+   if (st->ctx->_Shader->Flags & GLSL_DUMP) {
+      _mesa_log("\n");
+      _mesa_log("NIR IR for linked %s program %d:\n",
+             _mesa_shader_stage_to_string(stage),
+             shader_program->Name);
+      nir_print_shader(nir, _mesa_get_log_file());
+      _mesa_log("\n\n");
+   }
+
+   return nir;
+}
+}
+
+static struct gl_program *
+get_mesa_program(struct gl_context *ctx,
+                 struct gl_shader_program *shader_program,
+                 struct gl_shader *shader)
+{
+   struct pipe_screen *pscreen = ctx->st->pipe->screen;
+   unsigned ptarget = st_shader_stage_to_ptarget(shader->Stage);
+   enum pipe_shader_ir preferred_ir = (enum pipe_shader_ir)
+      pscreen->get_shader_param(pscreen, ptarget, PIPE_SHADER_CAP_PREFERRED_IR);
+   if (preferred_ir == PIPE_SHADER_IR_NIR) {
+      /* TODO only for GLSL VS/FS for now: */
+      switch (shader->Type) {
+      case GL_VERTEX_SHADER:
+      case GL_FRAGMENT_SHADER:
+         return get_mesa_program_nir(ctx, shader_program, shader);
+      default:
+         break;
+      }
+   }
+   return get_mesa_program_tgsi(ctx, shader_program, shader);
+}
+
 
 extern "C" {
 
@@ -5880,9 +6273,18 @@ st_translate_stream_output_info(glsl_to_tgsi_visitor *glsl_to_tgsi,
                                 const GLuint outputMapping[],
                                 struct pipe_stream_output_info *so)
 {
-   unsigned i;
    struct gl_transform_feedback_info *info =
       &glsl_to_tgsi->shader_program->LinkedTransformFeedback;
+   st_translate_stream_output_info2(info, outputMapping, so);
+}
+
+/* TODO better name, and split out into own patch.. */
+void
+st_translate_stream_output_info2(struct gl_transform_feedback_info *info,
+                                const GLuint outputMapping[],
+                                struct pipe_stream_output_info *so)
+{
+   unsigned i;
 
    for (i = 0; i < info->NumOutputs; i++) {
       so->output[i].register_index =

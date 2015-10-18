@@ -101,6 +101,9 @@ struct st_fragment_program
    struct pipe_shader_state tgsi;
    struct glsl_to_tgsi_visitor* glsl_to_tgsi;
 
+   /* used when bypassing glsl_to_tgsi: */
+   struct gl_shader_program *shader_program;
+
    struct st_fp_variant *variants;
 };
 
@@ -156,6 +159,9 @@ struct st_vertex_program
    struct gl_vertex_program Base;  /**< The Mesa vertex program */
    struct pipe_shader_state tgsi;
    struct glsl_to_tgsi_visitor* glsl_to_tgsi;
+
+   /* used when bypassing glsl_to_tgsi: */
+   struct gl_shader_program *shader_program;
 
    /** maps a Mesa VERT_ATTRIB_x to a packed TGSI input index */
    /** maps a TGSI input index back to a Mesa VERT_ATTRIB_x */
