@@ -275,17 +275,25 @@ ir3_shader_create(struct pipe_context *pctx,
 	shader->id = ++shader->compiler->shader_count;
 	shader->pctx = pctx;
 	shader->type = type;
-	if (fd_mesa_debug & FD_DBG_DISASM) {
-		DBG("dump tgsi: type=%d", shader->type);
-		tgsi_dump(cso->tokens, 0);
+
+	nir_shader *nir;
+	if (cso->ir == PIPE_SHADER_IR_NIR) {
+		/* we take ownership of the reference: */
+		nir = cso->nir;
+	} else {
+		if (fd_mesa_debug & FD_DBG_DISASM) {
+			DBG("dump tgsi: type=%d", shader->type);
+			tgsi_dump(cso->tokens, 0);
+		}
+		nir = ir3_tgsi_to_nir(cso->tokens);
 	}
-	nir_shader *nir = ir3_tgsi_to_nir(cso->tokens);
 	/* do first pass optimization, ignoring the key: */
 	shader->nir = ir3_optimize_nir(shader, nir, NULL);
 	if (fd_mesa_debug & FD_DBG_DISASM) {
 		DBG("dump nir%d: type=%d", shader->id, shader->type);
 		nir_print_shader(shader->nir, stdout);
 	}
+
 	shader->stream_output = cso->stream_output;
 	if (fd_mesa_debug & FD_DBG_SHADERDB) {
 		/* if shader-db run, create a standard variant immediately
