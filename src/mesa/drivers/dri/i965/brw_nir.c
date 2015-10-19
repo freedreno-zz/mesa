@@ -270,7 +270,8 @@ brw_create_nir(struct brw_context *brw,
    nir_assign_var_locations(&nir->uniforms,
                             &nir->num_uniforms,
                             is_scalar ? type_size_scalar : type_size_vec4);
-   nir_lower_io(nir, -1, is_scalar ? type_size_scalar : type_size_vec4);
+   nir_lower_io(nir, nir_var_all,
+                is_scalar ? type_size_scalar : type_size_vec4);
    nir_validate_shader(nir);
 
    nir_remove_dead_variables(nir);
