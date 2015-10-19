@@ -1302,7 +1302,10 @@ emit_intrinisic(struct ir3_compile *ctx, nir_intrinsic_instr *intr)
 	const nir_intrinsic_info *info = &nir_intrinsic_infos[intr->intrinsic];
 	struct ir3_instruction **dst, **src;
 	struct ir3_block *b = ctx->block;
-	unsigned idx = intr->const_index[0];
+	unsigned idx = 0;
+
+	for (unsigned i = 0; i < nir_intrinsic_infos[intr->intrinsic].num_indices; i++)
+		idx += intr->const_index[i];
 
 	if (info->has_dest) {
 		dst = get_dst(ctx, &intr->dest, intr->num_components);
