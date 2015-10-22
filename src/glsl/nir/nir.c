@@ -728,11 +728,20 @@ add_reg_def_cb(nir_dest *dest, void *state)
    return true;
 }
 
-static void
-add_defs_uses(nir_instr *instr)
+/* TODO better name.. for nir_clone we want to do add_use_cb and
+ * add_reg_def_cb (as part of the 2nd pass), but not add_ssa_def_cb.
+ */
+void
+nir_add_defs_uses(nir_instr *instr)
 {
    nir_foreach_src(instr, add_use_cb, instr);
    nir_foreach_dest(instr, add_reg_def_cb, instr);
+}
+
+static void
+add_defs_uses(nir_instr *instr)
+{
+   nir_add_defs_uses(instr);
    nir_foreach_ssa_def(instr, add_ssa_def_cb, instr);
 }
 

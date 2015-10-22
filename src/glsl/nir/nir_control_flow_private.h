@@ -35,3 +35,4 @@
 
 void nir_handle_add_jump(nir_block *block);
 void nir_handle_remove_jump(nir_block *block, nir_jump_type type);
+void nir_update_if_uses(nir_cf_node *node);

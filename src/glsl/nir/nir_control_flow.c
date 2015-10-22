@@ -599,8 +599,8 @@ nir_handle_remove_jump(nir_block *block, nir_jump_type type)
    nir_metadata_preserve(impl, nir_metadata_none);
 }
 
-static void
-update_if_uses(nir_cf_node *node)
+void
+nir_update_if_uses(nir_cf_node *node)
 {
    if (node->type != nir_cf_node_if)
       return;
@@ -673,7 +673,7 @@ nir_cf_node_insert(nir_cursor cursor, nir_cf_node *node)
       stitch_blocks(block, after);
       stitch_blocks(before, block);
    } else {
-      update_if_uses(node);
+      nir_update_if_uses(node);
       insert_non_block(before, node, after);
    }
 }
