@@ -1763,6 +1763,8 @@ nir_after_cf_list(struct exec_list *cf_list)
    return nir_after_cf_node(last_node);
 }
 
+void nir_add_defs_uses(nir_instr *instr);
+
 /**
  * Insert a NIR instruction at the given cursor.
  *
