@@ -1723,7 +1723,7 @@ vc4_shader_ntq(struct vc4_context *vc4, enum qstage stage,
                         c->num_uniforms);
         }
 
-        ralloc_free(c->s);
+        nir_shader_unref(c->s);
 
         return c;
 }

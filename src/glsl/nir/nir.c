@@ -36,6 +36,8 @@ nir_shader_create(void *mem_ctx,
 {
    nir_shader *shader = ralloc(mem_ctx, nir_shader);
 
+   p_atomic_set(&shader->refcount, 1);
+
    exec_list_make_empty(&shader->uniforms);
    exec_list_make_empty(&shader->inputs);
    exec_list_make_empty(&shader->outputs);
