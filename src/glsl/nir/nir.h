@@ -1921,9 +1921,47 @@ nir_shader_mutable(nir_shader *shader)
 
 #ifdef DEBUG
 void nir_validate_shader(nir_shader *shader);
+static inline bool
+__nir_test_clone(void)
+{
+   static int enable = -1;
+   if (enable == -1) {
+      enable = (getenv("NIR_TEST_CLONE") == NULL) ? 0 : 1;
+   }
+   return enable == 1;
+}
 #else
 static inline void nir_validate_shader(nir_shader *shader) { (void) shader; }
+static inline bool __nir_test_clone(void) { return false; }
 #endif /* DEBUG */
+
+
+#define NIR_PASS(pass, nir, ...) do {                           \
+      assert(nir_shader_is_mutable(nir));                       \
+      pass((nir), ##__VA_ARGS__);                               \
+      nir_validate_shader(nir);                                 \
+      if (__nir_test_clone()) {                                 \
+         void *mem_ctx = ralloc_parent(nir);                    \
+         nir_shader *ns = nir_shader_clone(mem_ctx, (nir));     \
+         nir_shader_unref(nir);                                 \
+         nir_validate_shader(ns);                               \
+         (nir) = ns;                                            \
+      }                                                         \
+   } while (0)
+
+#define NIR_PASS_PROGRESS(progress, pass, nir, ...) do {        \
+      assert(nir_shader_is_mutable(nir));                       \
+      (progress) |= pass((nir), ##__VA_ARGS__);                 \
+      nir_validate_shader(nir);                                 \
+      if (__nir_test_clone()) {                                 \
+         void *mem_ctx = ralloc_parent(nir);                    \
+         nir_shader *ns = nir_shader_clone(mem_ctx, (nir));     \
+         nir_shader_unref(nir);                                 \
+         nir_validate_shader(ns);                               \
+         (nir) = ns;                                            \
+      }                                                         \
+   } while (0)
+
 
 void nir_calc_dominance_impl(nir_function_impl *impl);
 void nir_calc_dominance(nir_shader *shader);
