@@ -35,6 +35,8 @@ nir_shader_create(gl_shader_stage stage,
 {
    nir_shader *shader = ralloc(NULL, nir_shader);
 
+   p_atomic_set(&shader->refcount, 1);
+
    exec_list_make_empty(&shader->uniforms);
    exec_list_make_empty(&shader->inputs);
    exec_list_make_empty(&shader->outputs);

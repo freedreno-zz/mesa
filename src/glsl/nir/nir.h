@@ -34,6 +34,7 @@
 #include "util/ralloc.h"
 #include "util/set.h"
 #include "util/bitset.h"
+#include "util/u_atomic.h"
 #include "nir_types.h"
 #include "shader_enums.h"
 #include <stdio.h>
@@ -1547,6 +1548,8 @@ typedef struct nir_shader_info {
 } nir_shader_info;
 
 typedef struct nir_shader {
+   int refcount;
+
    /** list of uniforms (nir_variable) */
    struct exec_list uniforms;
 
@@ -1891,6 +1894,44 @@ void nir_print_shader(nir_shader *shader, FILE *fp);
 void nir_print_instr(const nir_instr *instr, FILE *fp);
 
 nir_shader * nir_shader_clone(const nir_shader *s);
+
+static inline nir_shader *
+nir_shader_ref(nir_shader *shader)
+{
+   p_atomic_inc(&shader->refcount);
+   return shader;
+}
+
+static inline void
+nir_shader_unref(nir_shader *shader)
+{
+   if (p_atomic_dec_zero(&shader->refcount)) {
+      ralloc_free(shader);
+   }
+}
+
+/* A shader with only a single reference is mutable: */
+static inline bool
+nir_shader_is_mutable(nir_shader *shader)
+{
+   return p_atomic_read(&shader->refcount) == 1;
+}
+
+/* Convert a shader reference into a mutable shader reference.  Ie. if
+ * there is only a single reference to the shader, then return that,
+ * otherwise clone and drop reference to existing shader.
+ */
+static inline nir_shader *
+nir_shader_mutable(nir_shader *shader)
+{
+   if (nir_shader_is_mutable(shader)) {
+      return shader;
+   } else {
+      nir_shader *ns = nir_shader_clone(shader);
+      nir_shader_unref(shader);
+      return ns;
+   }
+}
 
 #ifdef DEBUG
 void nir_validate_shader(nir_shader *shader);

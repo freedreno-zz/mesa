@@ -38,6 +38,7 @@
 #include "prog_parameter.h"
 #include "prog_instruction.h"
 #include "util/ralloc.h"
+#include "nir.h"
 
 
 /**
@@ -273,7 +274,7 @@ _mesa_delete_program(struct gl_context *ctx, struct gl_program *prog)
    }
 
    if (prog->nir) {
-      ralloc_free(prog->nir);
+      nir_shader_unref(prog->nir);
    }
 
    mtx_destroy(&prog->Mutex);
