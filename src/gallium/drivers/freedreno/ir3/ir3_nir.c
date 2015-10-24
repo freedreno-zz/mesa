@@ -99,39 +99,38 @@ ir3_optimize_nir(struct ir3_shader *shader, nir_shader *s,
 		debug_printf("----------------------\n");
 	}
 
-	nir_opt_global_to_local(s);
-	nir_convert_to_ssa(s);
+	NIR_PASS(nir_opt_global_to_local, s);
+	NIR_PASS(nir_convert_to_ssa, s);
 	if (key) {
 		if (s->stage == MESA_SHADER_VERTEX) {
-			nir_lower_clip_vs(s, key->ucp_enables);
+			NIR_PASS(nir_lower_clip_vs, s, key->ucp_enables);
 		} else if (s->stage == MESA_SHADER_FRAGMENT) {
-			nir_lower_clip_fs(s, key->ucp_enables);
+			NIR_PASS(nir_lower_clip_fs, s, key->ucp_enables);
 		}
 		if (key->color_two_side)
-			nir_lower_two_sided_color(s);
+			NIR_PASS(nir_lower_two_sided_color, s);
 	}
-	nir_lower_tex(s, &tex_options);
-	nir_lower_idiv(s);
-	nir_lower_load_const_to_scalar(s);
+	NIR_PASS(nir_lower_tex, s, &tex_options);
+	NIR_PASS(nir_lower_idiv, s);
+	NIR_PASS(nir_lower_load_const_to_scalar, s);
 
 	do {
 		progress = false;
 
-		nir_lower_vars_to_ssa(s);
-		nir_lower_alu_to_scalar(s);
-		nir_lower_phis_to_scalar(s);
+		NIR_PASS(nir_lower_vars_to_ssa, s);
+		NIR_PASS(nir_lower_alu_to_scalar, s);
+		NIR_PASS(nir_lower_phis_to_scalar, s);
 
-		progress |= nir_copy_prop(s);
-		progress |= nir_opt_dce(s);
-		progress |= nir_opt_cse(s);
-		progress |= ir3_nir_lower_if_else(s);
-		progress |= nir_opt_algebraic(s);
-		progress |= nir_opt_constant_folding(s);
+		NIR_PASS_PROGRESS(progress, nir_copy_prop, s);
+		NIR_PASS_PROGRESS(progress, nir_opt_dce, s);
+		NIR_PASS_PROGRESS(progress, nir_opt_cse, s);
+		NIR_PASS_PROGRESS(progress, ir3_nir_lower_if_else, s);
+		NIR_PASS_PROGRESS(progress, nir_opt_algebraic, s);
+		NIR_PASS_PROGRESS(progress, nir_opt_constant_folding, s);
 
 	} while (progress);
 
-	nir_remove_dead_variables(s);
-	nir_validate_shader(s);
+	NIR_PASS(nir_remove_dead_variables, s);
 
 	if (fd_mesa_debug & FD_DBG_OPTMSGS) {
 		debug_printf("----------------------\n");
