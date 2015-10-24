@@ -40,6 +40,7 @@
 #include "freedreno_util.h"
 
 #include "ir3_compiler.h"
+#include "ir3_nir.h"
 #include "instr-a3xx.h"
 #include "ir3.h"
 
@@ -230,7 +231,11 @@ int main(int argc, char **argv)
 	if (!tgsi_text_translate(ptr, toks, Elements(toks)))
 		errx(1, "could not parse `%s'", filename);
 
-	s.tokens = toks;
+	if (fd_mesa_debug & FD_DBG_OPTMSGS)
+		tgsi_dump(toks, 0);
+
+	nir_shader *nir = ir3_tgsi_to_nir(toks);
+	s.nir = ir3_optimize_nir(&s, nir, NULL);
 
 	v.key = key;
 	v.shader = &s;

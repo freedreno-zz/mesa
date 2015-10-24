@@ -222,6 +222,8 @@ struct ir3_shader_variant {
 	struct ir3_shader *shader;
 };
 
+typedef struct nir_shader nir_shader;
+
 struct ir3_shader {
 	enum shader_t type;
 
@@ -232,7 +234,7 @@ struct ir3_shader {
 	struct ir3_compiler *compiler;
 
 	struct pipe_context *pctx;    /* TODO replace w/ pipe_screen */
-	const struct tgsi_token *tokens;
+	nir_shader *nir;
 	struct pipe_stream_output_info stream_output;
 
 	struct ir3_shader_variant *variants;
