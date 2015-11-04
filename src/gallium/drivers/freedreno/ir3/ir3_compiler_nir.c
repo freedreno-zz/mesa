@@ -2069,13 +2069,11 @@ emit_function(struct ir3_compile *ctx, nir_function_impl *impl)
 }
 
 static void
-setup_input(struct ir3_compile *ctx, nir_variable *in)
+setup_input(struct ir3_compile *ctx, nir_variable *in,
+		unsigned ncomp, unsigned n, unsigned slot)
 {
 	struct ir3_shader_variant *so = ctx->so;
 	unsigned array_len = MAX2(glsl_get_length(in->type), 1);
-	unsigned ncomp = glsl_get_components(in->type);
-	unsigned n = in->data.driver_location;
-	unsigned slot = in->data.location;
 
 	DBG("; in: slot=%u, len=%ux%u, drvloc=%u",
 			slot, array_len, ncomp, n);
@@ -2083,7 +2081,6 @@ setup_input(struct ir3_compile *ctx, nir_variable *in)
 	so->inputs[n].slot = slot;
 	so->inputs[n].compmask = (1 << ncomp) - 1;
 	so->inputs[n].inloc = ctx->next_inloc;
-	so->inputs[n].interpolate = INTERP_QUALIFIER_NONE;
 	so->inputs_count = MAX2(so->inputs_count, n + 1);
 	so->inputs[n].interpolate = in->data.interpolation;
 
@@ -2150,13 +2147,11 @@ setup_input(struct ir3_compile *ctx, nir_variable *in)
 }
 
 static void
-setup_output(struct ir3_compile *ctx, nir_variable *out)
+setup_output(struct ir3_compile *ctx, nir_variable *out,
+		unsigned ncomp, unsigned n, unsigned slot)
 {
 	struct ir3_shader_variant *so = ctx->so;
 	unsigned array_len = MAX2(glsl_get_length(out->type), 1);
-	unsigned ncomp = glsl_get_components(out->type);
-	unsigned n = out->data.driver_location;
-	unsigned slot = out->data.location;
 	unsigned comp = 0;
 
 	DBG("; out: slot=%u, len=%ux%u, drvloc=%u",
@@ -2218,6 +2213,45 @@ setup_output(struct ir3_compile *ctx, nir_variable *out)
 	}
 }
 
+static unsigned
+get_components(const struct glsl_type *type)
+{
+	unsigned ncomp;
+
+	/* TODO how should this work.. how do arrays of float/vec2/etc get packed? */
+	if (glsl_get_base_type(type) == GLSL_TYPE_ARRAY)
+		ncomp = glsl_get_length(type) * 4;
+	else
+		ncomp = glsl_get_components(type);
+
+	debug_assert(ncomp > 0);
+
+	return ncomp;
+}
+
+/* split larger var's into vec4's since that is what the hw understands..
+ * maybe we should have a generic nir pass to do this rather than doing
+ * it in-place?
+ */
+static void
+setup_vars(struct ir3_compile *ctx, struct exec_list *vars,
+		void (*setup)(struct ir3_compile *ctx, nir_variable *,
+				unsigned ncomp, unsigned n, unsigned slot))
+{
+	nir_foreach_variable(var, vars) {
+		int ncomp = get_components(var->type);
+		unsigned n = var->data.driver_location;
+		unsigned slot = var->data.location;
+
+		while (ncomp > 0) {
+			setup(ctx, var, MAX2(ncomp, 4), n, slot);
+			ncomp -= 4;
+			n++;
+			slot++;
+		}
+	}
+}
+
 static void
 emit_instructions(struct ir3_compile *ctx)
 {
@@ -2232,8 +2266,8 @@ emit_instructions(struct ir3_compile *ctx)
 		break;
 	}
 
-	ninputs  = exec_list_length(&ctx->s->inputs) * 4;
-	noutputs = exec_list_length(&ctx->s->outputs) * 4;
+	ninputs  = ctx->s->num_inputs * 4;
+	noutputs = ctx->s->num_outputs * 4;
 
 	/* or vtx shaders, we need to leave room for sysvals:
 	 */
@@ -2265,15 +2299,8 @@ emit_instructions(struct ir3_compile *ctx)
 		ctx->frag_pos = instr;
 	}
 
-	/* Setup inputs: */
-	nir_foreach_variable(var, &ctx->s->inputs) {
-		setup_input(ctx, var);
-	}
-
-	/* Setup outputs: */
-	nir_foreach_variable(var, &ctx->s->outputs) {
-		setup_output(ctx, var);
-	}
+	setup_vars(ctx, &ctx->s->inputs, setup_input);
+	setup_vars(ctx, &ctx->s->outputs, setup_output);
 
 	/* Setup variables (which should only be arrays): */
 	nir_foreach_variable(var, &ctx->s->globals) {
