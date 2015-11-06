@@ -344,14 +344,14 @@ fd4_program_emit(struct fd_ringbuffer *ring, struct fd4_emit *emit,
 		if (j < s[FS].v->inputs_count) {
 			k = ir3_find_output(s[VS].v, s[FS].v->inputs[j].slot);
 			reg |= A4XX_SP_VS_OUT_REG_A_REGID(s[VS].v->outputs[k].regid);
-			reg |= A4XX_SP_VS_OUT_REG_A_COMPMASK(s[FS].v->inputs[j].compmask);
+			reg |= A4XX_SP_VS_OUT_REG_A_COMPMASK(0xf); //s[FS].v->inputs[j].compmask);
 		}
 
 		j = ir3_next_varying(s[FS].v, j);
 		if (j < s[FS].v->inputs_count) {
 			k = ir3_find_output(s[VS].v, s[FS].v->inputs[j].slot);
 			reg |= A4XX_SP_VS_OUT_REG_B_REGID(s[VS].v->outputs[k].regid);
-			reg |= A4XX_SP_VS_OUT_REG_B_COMPMASK(s[FS].v->inputs[j].compmask);
+			reg |= A4XX_SP_VS_OUT_REG_B_COMPMASK(0xf); //s[FS].v->inputs[j].compmask);
 		}
 
 		OUT_RING(ring, reg);
