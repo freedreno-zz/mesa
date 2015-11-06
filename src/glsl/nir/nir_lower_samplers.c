@@ -130,14 +130,18 @@ lower_sampler(nir_tex_instr *instr, const struct gl_shader_program *shader_progr
       instr->sampler_array_size = array_elements;
    }
 
-   if (location > shader_program->NumUniformStorage - 1 ||
-       !shader_program->UniformStorage[location].opaque[stage].active) {
-      assert(!"cannot return a sampler");
-      return;
-   }
+   if (!shader_program) {
+      instr->sampler_index = location;
+   } else {
+      if (location > shader_program->NumUniformStorage - 1 ||
+          !shader_program->UniformStorage[location].opaque[stage].active) {
+         assert(!"cannot return a sampler");
+         return;
+      }
 
-   instr->sampler_index +=
-      shader_program->UniformStorage[location].opaque[stage].index;
+      instr->sampler_index =
+         shader_program->UniformStorage[location].opaque[stage].index;
+   }
 
    instr->sampler = NULL;
 }
@@ -177,6 +181,11 @@ lower_impl(nir_function_impl *impl, const struct gl_shader_program *shader_progr
    nir_foreach_block(impl, lower_block_cb, &state);
 }
 
+/* Call with a null 'shader_program' if uniform locations are
+ * already local to the shader, ie. skipping the
+ * shader_program->UniformStorage[location].opaque[stage].index
+ * lookup
+ */
 void
 nir_lower_samplers(nir_shader *shader,
                    const struct gl_shader_program *shader_program)
