@@ -311,6 +311,8 @@ C_SOURCES := \
 	util/u_video.h
 
 NIR_SOURCES := \
+	nir/nir_emulate.c \
+	nir/nir_emulate.h \
 	nir/tgsi_to_nir.c \
 	nir/tgsi_to_nir.h
 
