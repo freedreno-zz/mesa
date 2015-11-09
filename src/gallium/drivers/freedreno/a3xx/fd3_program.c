@@ -133,7 +133,7 @@ fd3_program_emit(struct fd_ringbuffer *ring, struct fd3_emit *emit,
 	enum a3xx_instrbuffermode fpbuffer, vpbuffer;
 	uint32_t fpbuffersz, vpbuffersz, fsoff;
 	uint32_t pos_regid, posz_regid, psize_regid, color_regid[4] = {0};
-	int constmode;
+	int constmode, numvar;
 	int i, j, k;
 
 	debug_assert(nr <= ARRAY_SIZE(color_regid));
@@ -248,24 +248,7 @@ fd3_program_emit(struct fd_ringbuffer *ring, struct fd3_emit *emit,
 	OUT_PKT0(ring, REG_A3XX_SP_VS_LENGTH_REG, 1);
 	OUT_RING(ring, A3XX_SP_VS_LENGTH_REG_SHADERLENGTH(vp->instrlen));
 
-	OUT_PKT0(ring, REG_A3XX_SP_VS_CTRL_REG0, 3);
-	OUT_RING(ring, A3XX_SP_VS_CTRL_REG0_THREADMODE(MULTI) |
-			A3XX_SP_VS_CTRL_REG0_INSTRBUFFERMODE(vpbuffer) |
-			COND(vpbuffer == CACHE, A3XX_SP_VS_CTRL_REG0_CACHEINVALID) |
-			A3XX_SP_VS_CTRL_REG0_HALFREGFOOTPRINT(vsi->max_half_reg + 1) |
-			A3XX_SP_VS_CTRL_REG0_FULLREGFOOTPRINT(vsi->max_reg + 1) |
-			A3XX_SP_VS_CTRL_REG0_INOUTREGOVERLAP(0) |
-			A3XX_SP_VS_CTRL_REG0_THREADSIZE(TWO_QUADS) |
-			A3XX_SP_VS_CTRL_REG0_SUPERTHREADMODE |
-			COND(vp->has_samp, A3XX_SP_VS_CTRL_REG0_PIXLODENABLE) |
-			A3XX_SP_VS_CTRL_REG0_LENGTH(vpbuffersz));
-	OUT_RING(ring, A3XX_SP_VS_CTRL_REG1_CONSTLENGTH(vp->constlen) |
-			A3XX_SP_VS_CTRL_REG1_INITIALOUTSTANDING(vp->total_in) |
-			A3XX_SP_VS_CTRL_REG1_CONSTFOOTPRINT(MAX2(vp->constlen + 1, 0)));
-	OUT_RING(ring, A3XX_SP_VS_PARAM_REG_POSREGID(pos_regid) |
-			A3XX_SP_VS_PARAM_REG_PSIZEREGID(psize_regid) |
-			A3XX_SP_VS_PARAM_REG_TOTALVSOUTVAR(align(fp->total_in, 4) / 4));
-
+	numvar = 0;
 	for (i = 0, j = -1; (i < 8) && (j < (int)fp->inputs_count); i++) {
 		uint32_t reg = 0;
 
@@ -276,6 +259,7 @@ fd3_program_emit(struct fd_ringbuffer *ring, struct fd3_emit *emit,
 			k = ir3_find_output(vp, fp->inputs[j].slot);
 			reg |= A3XX_SP_VS_OUT_REG_A_REGID(vp->outputs[k].regid);
 			reg |= A3XX_SP_VS_OUT_REG_A_COMPMASK(fp->inputs[j].compmask);
+			numvar++;
 		}
 
 		j = ir3_next_varying(fp, j);
@@ -283,6 +267,7 @@ fd3_program_emit(struct fd_ringbuffer *ring, struct fd3_emit *emit,
 			k = ir3_find_output(vp, fp->inputs[j].slot);
 			reg |= A3XX_SP_VS_OUT_REG_B_REGID(vp->outputs[k].regid);
 			reg |= A3XX_SP_VS_OUT_REG_B_COMPMASK(fp->inputs[j].compmask);
+			numvar++;
 		}
 
 		OUT_RING(ring, reg);
@@ -308,6 +293,24 @@ fd3_program_emit(struct fd_ringbuffer *ring, struct fd3_emit *emit,
 
 		OUT_RING(ring, reg);
 	}
+
+	OUT_PKT0(ring, REG_A3XX_SP_VS_CTRL_REG0, 3);
+	OUT_RING(ring, A3XX_SP_VS_CTRL_REG0_THREADMODE(MULTI) |
+			A3XX_SP_VS_CTRL_REG0_INSTRBUFFERMODE(vpbuffer) |
+			COND(vpbuffer == CACHE, A3XX_SP_VS_CTRL_REG0_CACHEINVALID) |
+			A3XX_SP_VS_CTRL_REG0_HALFREGFOOTPRINT(vsi->max_half_reg + 1) |
+			A3XX_SP_VS_CTRL_REG0_FULLREGFOOTPRINT(vsi->max_reg + 1) |
+			A3XX_SP_VS_CTRL_REG0_INOUTREGOVERLAP(0) |
+			A3XX_SP_VS_CTRL_REG0_THREADSIZE(TWO_QUADS) |
+			A3XX_SP_VS_CTRL_REG0_SUPERTHREADMODE |
+			COND(vp->has_samp, A3XX_SP_VS_CTRL_REG0_PIXLODENABLE) |
+			A3XX_SP_VS_CTRL_REG0_LENGTH(vpbuffersz));
+	OUT_RING(ring, A3XX_SP_VS_CTRL_REG1_CONSTLENGTH(vp->constlen) |
+			A3XX_SP_VS_CTRL_REG1_INITIALOUTSTANDING(vp->total_in) |
+			A3XX_SP_VS_CTRL_REG1_CONSTFOOTPRINT(MAX2(vp->constlen + 1, 0)));
+	OUT_RING(ring, A3XX_SP_VS_PARAM_REG_POSREGID(pos_regid) |
+			A3XX_SP_VS_PARAM_REG_PSIZEREGID(psize_regid) |
+			A3XX_SP_VS_PARAM_REG_TOTALVSOUTVAR(numvar));
 
 	OUT_PKT0(ring, REG_A3XX_SP_VS_OBJ_OFFSET_REG, 2);
 	OUT_RING(ring, A3XX_SP_VS_OBJ_OFFSET_REG_CONSTOBJECTOFFSET(0) |
