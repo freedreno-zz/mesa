@@ -1291,7 +1291,6 @@ static void add_sysval_input(struct ir3_compile *ctx, gl_system_value slot,
 	so->inputs[n].compmask = 1;
 	so->inputs[n].regid = r;
 	so->inputs[n].interpolate = INTERP_QUALIFIER_FLAT;
-	so->total_in++;
 
 	ctx->ir->ninputs = MAX2(ctx->ir->ninputs, r + 1);
 	ctx->ir->inputs[r] = instr;
@@ -2165,10 +2164,6 @@ setup_input(struct ir3_compile *ctx, nir_variable *in,
 	} else {
 		compile_error(ctx, "unknown shader type: %d\n", ctx->so->type);
 	}
-
-	if (so->inputs[n].bary || (ctx->so->type == SHADER_VERTEX)) {
-		so->total_in += ncomp;
-	}
 }
 
 static void
@@ -2457,6 +2452,7 @@ ir3_compile_shader_nir(struct ir3_compiler *compiler,
 
 	/* at this point, for binning pass, throw away unneeded outputs: */
 	if (so->key.binning_pass) {
+		debug_assert(so->type == SHADER_VERTEX);
 		for (i = 0, j = 0; i < so->outputs_count; i++) {
 			unsigned slot = so->outputs[i].slot;
 
@@ -2561,16 +2557,15 @@ ir3_compile_shader_nir(struct ir3_compiler *compiler,
 	actual_in = 0;
 	inloc = 0;
 	for (i = 0; i < so->inputs_count; i++) {
-		unsigned j, regid = ~0, compmask = 0, maxcomp = 0;
+		unsigned j, regid = ~0, maxcomp = 0;
 		so->inputs[i].ncomp = 0;
 		for (j = 0; j < 4; j++) {
 			struct ir3_instruction *in = inputs[(i*4) + j];
 			if (in && !(in->flags & IR3_INSTR_UNUSED)) {
-				compmask |= (1 << j);
 				regid = in->regs[0]->num - j;
 				actual_in++;
-				so->inputs[i].ncomp++;
 				maxcomp = j + 1;
+				so->inputs[i].ncomp = maxcomp;
 				if (so->type == SHADER_FRAGMENT) {
 					/* assign inloc: */
 					assert(in->regs[1]->flags & IR3_REG_IMMED);
@@ -2580,10 +2575,10 @@ ir3_compile_shader_nir(struct ir3_compiler *compiler,
 		}
 		so->inputs[i].inloc = inloc + 8;
 		so->inputs[i].regid = regid;
-		so->inputs[i].compmask = compmask;
+		so->inputs[i].compmask = (1 << maxcomp) - 1;
 		inloc += maxcomp;
 
-		// TODO still too many assumptions about everything aligned to vec4:
+		/* TODO still too many assumptions about everything aligned to vec4: */
 		inloc = align(inloc, 4);
 	}
 
@@ -2597,16 +2592,10 @@ ir3_compile_shader_nir(struct ir3_compiler *compiler,
 		ir3_print(ir);
 	}
 
-	/* fragment shader always gets full vec4's even if it doesn't
-	 * fetch all components, but vertex shader we need to update
-	 * with the actual number of components fetch, otherwise thing
-	 * will hang due to mismaptch between VFD_DECODE's and
-	 * TOTALATTRTOVS
-	 */
 	if (so->type == SHADER_VERTEX)
 		so->total_in = actual_in;
 	else
-		so->total_in = align(max_bary + 1, 4);
+		so->total_in = max_bary + 1;
 
 out:
 	if (ret) {
