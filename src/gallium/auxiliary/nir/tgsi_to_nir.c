@@ -1946,7 +1946,7 @@ tgsi_to_nir(const void *tgsi_tokens,
    tgsi_scan_shader(tgsi_tokens, &scan);
    c->scan = &scan;
 
-   s = nir_shader_create(NULL, tgsi_processor_to_shader_stage(scan.processor),
+   s = nir_shader_create(tgsi_processor_to_shader_stage(scan.processor),
                          options);
 
    nir_function *func = nir_function_create(s, "main");

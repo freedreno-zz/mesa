@@ -137,7 +137,7 @@ glsl_to_nir(const struct gl_shader_program *shader_prog,
 {
    struct gl_shader *sh = shader_prog->_LinkedShaders[stage];
 
-   nir_shader *shader = nir_shader_create(NULL, stage, options);
+   nir_shader *shader = nir_shader_create(stage, options);
 
    nir_visitor v1(shader);
    nir_function_visitor v2(&v1);

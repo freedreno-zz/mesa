@@ -1080,7 +1080,7 @@ prog_to_nir(const struct gl_program *prog,
    c = rzalloc(NULL, struct ptn_compile);
    if (!c)
       return NULL;
-   s = nir_shader_create(NULL, stage, options);
+   s = nir_shader_create(stage, options);
    if (!s)
       goto fail;
    c->prog = prog;

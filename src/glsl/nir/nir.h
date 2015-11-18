@@ -1595,8 +1595,7 @@ typedef struct nir_shader {
       foreach_list_typed(nir_function_overload, overload, node, \
                          &(func)->overload_list)
 
-nir_shader *nir_shader_create(void *mem_ctx,
-                              gl_shader_stage stage,
+nir_shader *nir_shader_create(gl_shader_stage stage,
                               const nir_shader_compiler_options *options);
 
 /** creates a register, including assigning it an index and adding it to the list */
@@ -1891,7 +1890,7 @@ void nir_index_blocks(nir_function_impl *impl);
 void nir_print_shader(nir_shader *shader, FILE *fp);
 void nir_print_instr(const nir_instr *instr, FILE *fp);
 
-nir_shader * nir_shader_clone(void *mem_ctx, const nir_shader *s);
+nir_shader * nir_shader_clone(const nir_shader *s);
 
 #ifdef DEBUG
 void nir_validate_shader(nir_shader *shader);

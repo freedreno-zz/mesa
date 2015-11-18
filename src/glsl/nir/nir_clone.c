@@ -625,12 +625,12 @@ clone_function(clone_state *state, const nir_function *fxn, nir_shader *ns)
 }
 
 nir_shader *
-nir_shader_clone(void *mem_ctx, const nir_shader *s)
+nir_shader_clone(const nir_shader *s)
 {
    clone_state state;
    init_clone_state(&state);
 
-   nir_shader *ns = nir_shader_create(mem_ctx, s->stage, s->options);
+   nir_shader *ns = nir_shader_create(s->stage, s->options);
    state.ns = ns;
 
    clone_var_list(&state, &ns->uniforms, &s->uniforms);

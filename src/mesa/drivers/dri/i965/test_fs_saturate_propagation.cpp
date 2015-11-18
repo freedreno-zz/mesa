@@ -62,7 +62,7 @@ void saturate_propagation_test::SetUp()
 
    fp = ralloc(NULL, struct brw_fragment_program);
    prog_data = ralloc(NULL, struct brw_wm_prog_data);
-   nir_shader *shader = nir_shader_create(NULL, MESA_SHADER_FRAGMENT, NULL);
+   nir_shader *shader = nir_shader_create(MESA_SHADER_FRAGMENT, NULL);
 
    v = new saturate_propagation_fs_visitor(compiler, prog_data, shader);
 

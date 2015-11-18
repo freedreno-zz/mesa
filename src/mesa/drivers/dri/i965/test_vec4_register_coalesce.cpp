@@ -97,7 +97,7 @@ void register_coalesce_test::SetUp()
 
    vp = ralloc(NULL, struct brw_vertex_program);
 
-   nir_shader *shader = nir_shader_create(NULL, MESA_SHADER_VERTEX, NULL);
+   nir_shader *shader = nir_shader_create(MESA_SHADER_VERTEX, NULL);
 
    v = new register_coalesce_vec4_visitor(compiler, shader);
 

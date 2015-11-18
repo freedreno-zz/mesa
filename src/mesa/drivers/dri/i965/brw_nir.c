@@ -186,7 +186,7 @@ should_clone_nir()
    do_pass                                                           \
    nir_validate_shader(nir);                                         \
    if (should_clone_nir()) {                                         \
-      nir_shader *clone = nir_shader_clone(ralloc_parent(nir), nir); \
+      nir_shader *clone = nir_shader_clone(nir);                     \
       ralloc_free(nir);                                              \
       nir = clone;                                                   \
    }                                                                 \

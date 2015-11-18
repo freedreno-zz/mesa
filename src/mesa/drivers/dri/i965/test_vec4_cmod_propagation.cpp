@@ -100,7 +100,7 @@ void cmod_propagation_test::SetUp()
 
    vp = ralloc(NULL, struct brw_vertex_program);
 
-   nir_shader *shader = nir_shader_create(NULL, MESA_SHADER_VERTEX, NULL);
+   nir_shader *shader = nir_shader_create(MESA_SHADER_VERTEX, NULL);
 
    v = new cmod_propagation_vec4_visitor(compiler, shader);
 
