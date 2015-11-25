@@ -228,54 +228,50 @@ SYSTEM_VALUE(num_work_groups, 3, 0)
 SYSTEM_VALUE(helper_invocation, 1, 0)
 
 /*
- * The format of the indices depends on the type of the load.  For uniforms,
- * the first index is the base address and the second index is an offset that
- * should be added to the base address.  (This way you can determine in the
- * back-end which variable is being accessed even in an array.)  For inputs,
- * the one and only index corresponds to the attribute slot.  UBO loads also
- * have a single index which is the base address to load from.
+ * All load operations have a source specifying an offset which may or may
+ * not be constant.  If the shader is still in SSA or partial SSA form, then
+ * determining whether or not the offset is constant is trivial.  This is
+ * always the last source in the intrinsic.
  *
- * UBO loads have a (possibly constant) source which is the UBO buffer index.
- * For each type of load, the _indirect variant has one additional source
- * (the second in the case of UBO's) that is the is an indirect to be added to
- * the constant address or base offset to compute the final offset.
+ * Uniforms have a constant index that provides a secondary base offset that
+ * should be added to the offset from the source.  This allows back-ends to
+ * determine which uniform variable is being accessed.
  *
- * For vector backends, the address is in terms of one vec4, and so each array
- * element is +4 scalar components from the previous array element. For scalar
- * backends, the address is in terms of a single 4-byte float/int and arrays
- * elements begin immediately after the previous array element.
+ * UBO and SSBO loads have a (possibly constant) source which is the UBO
+ * buffer index.  The pervertex_input intrinsic has a source which specifies
+ * the (possibly constant) vertex id to load from.
+ *
+ * The exact address type depends on the lowering pass that generates the
+ * load/store intrinsics.  Typically, this is vec4 units for things such as
+ * varying slots and float units for fragment shader inputs.  UBO and SSBO
+ * offsets are always in bytes.
  */
 
 #define LOAD(name, extra_srcs, indices, flags) \
-   INTRINSIC(load_##name, extra_srcs, ARR(1), true, 0, 0, indices, flags) \
-   INTRINSIC(load_##name##_indirect, extra_srcs + 1, ARR(1, 1), \
-             true, 0, 0, indices, flags)
+   INTRINSIC(load_##name, extra_srcs + 1, ARR(1, 1), true, 0, 0, indices, flags)
 
-LOAD(uniform, 0, 2, NIR_INTRINSIC_CAN_ELIMINATE | NIR_INTRINSIC_CAN_REORDER)
-LOAD(ubo, 1, 1, NIR_INTRINSIC_CAN_ELIMINATE | NIR_INTRINSIC_CAN_REORDER)
-LOAD(input, 0, 1, NIR_INTRINSIC_CAN_ELIMINATE | NIR_INTRINSIC_CAN_REORDER)
-LOAD(per_vertex_input, 1, 1, NIR_INTRINSIC_CAN_ELIMINATE | NIR_INTRINSIC_CAN_REORDER)
-LOAD(ssbo, 1, 1, NIR_INTRINSIC_CAN_ELIMINATE)
-LOAD(output, 0, 1, NIR_INTRINSIC_CAN_ELIMINATE)
-LOAD(per_vertex_output, 1, 1, NIR_INTRINSIC_CAN_ELIMINATE)
+LOAD(uniform, 0, 1, NIR_INTRINSIC_CAN_ELIMINATE | NIR_INTRINSIC_CAN_REORDER)
+LOAD(ubo, 1, 0, NIR_INTRINSIC_CAN_ELIMINATE | NIR_INTRINSIC_CAN_REORDER)
+LOAD(input, 0, 0, NIR_INTRINSIC_CAN_ELIMINATE | NIR_INTRINSIC_CAN_REORDER)
+LOAD(per_vertex_input, 1, 0, NIR_INTRINSIC_CAN_ELIMINATE | NIR_INTRINSIC_CAN_REORDER)
+LOAD(ssbo, 1, 0, NIR_INTRINSIC_CAN_ELIMINATE)
+LOAD(output, 0, 0, NIR_INTRINSIC_CAN_ELIMINATE)
+LOAD(per_vertex_output, 1, 0, NIR_INTRINSIC_CAN_ELIMINATE)
 
 /*
- * Stores work the same way as loads, except now the first register input is
- * the value or array to store and the optional second input is the indirect
- * offset. SSBO stores are similar, but they accept an extra source for the
- * block index and an extra index with the writemask to use.
+ * Stores work the same way as loads, except now the first source is the value
+ * to store and the second input is the indirect offset. SSBO stores are
+ * similar, but they accept an extra source for the block index and an extra
+ * index with the writemask to use.
  */
 
 #define STORE(name, extra_srcs, extra_srcs_size, extra_indices, flags) \
-   INTRINSIC(store_##name, 1 + extra_srcs, \
-             ARR(0, extra_srcs_size, extra_srcs_size, extra_srcs_size), \
-             false, 0, 0, 1 + extra_indices, flags) \
-   INTRINSIC(store_##name##_indirect, 2 + extra_srcs, \
+   INTRINSIC(store_##name, 2 + extra_srcs, \
              ARR(0, 1, extra_srcs_size, extra_srcs_size), \
-             false, 0, 0, 1 + extra_indices, flags)
+             false, 0, 0, extra_indices, flags)
 
 STORE(output, 0, 0, 0, 0)
 STORE(per_vertex_output, 1, 1, 0, 0)
 STORE(ssbo, 1, 1, 1, 0)
 
-LAST_INTRINSIC(store_ssbo_indirect)
+LAST_INTRINSIC(store_ssbo)
