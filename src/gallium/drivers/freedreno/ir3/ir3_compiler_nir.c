@@ -1215,6 +1215,7 @@ emit_intrinsic_load_ubo(struct ir3_compile *ctx, nir_intrinsic_instr *intr,
 {
 	struct ir3_block *b = ctx->block;
 	struct ir3_instruction *addr, *src0, *src1;
+        nir_const_value *const_offset;
 	/* UBO addresses are the first driver params: */
 	unsigned ubo = regid(ctx->so->first_driver_param + IR3_UBOS_OFF, 0);
 	unsigned off = intr->const_index[0];
@@ -1228,13 +1229,16 @@ emit_intrinsic_load_ubo(struct ir3_compile *ctx, nir_intrinsic_instr *intr,
 		addr = create_uniform_indirect(ctx, ubo, get_addr(ctx, src0));
 	}
 
-	if (intr->intrinsic == nir_intrinsic_load_ubo_indirect) {
+        const_offset = nir_src_as_const_value(intr->src[1]);
+        if (const_offset) {
+		off += const_offset->u[0];
+	} else {
 		/* For load_ubo_indirect, second src is indirect offset: */
 		src1 = get_src(ctx, &intr->src[1])[0];
 
 		/* and add offset to addr: */
 		addr = ir3_ADD_S(b, addr, 0, src1, 0);
-	}
+        }
 
 	/* if offset is to large to encode in the ldg, split it out: */
 	if ((off + (intr->num_components * 4)) > 1024) {
@@ -1391,6 +1395,7 @@ emit_intrinisic(struct ir3_compile *ctx, nir_intrinsic_instr *intr)
 	struct ir3_instruction **dst, **src;
 	struct ir3_block *b = ctx->block;
 	unsigned idx = intr->const_index[0];
+	nir_const_value *const_offset;
 
 	if (info->has_dest) {
 		dst = get_dst(ctx, &intr->dest, intr->num_components);
@@ -1400,43 +1405,47 @@ emit_intrinisic(struct ir3_compile *ctx, nir_intrinsic_instr *intr)
 
 	switch (intr->intrinsic) {
 	case nir_intrinsic_load_uniform:
-		for (int i = 0; i < intr->num_components; i++) {
-			unsigned n = idx * 4 + i;
-			dst[i] = create_uniform(ctx, n);
+		const_offset = nir_src_as_const_value(intr->src[0]);
+		if (const_offset) {
+			idx += const_offset->u[0];
+			for (int i = 0; i < intr->num_components; i++) {
+				unsigned n = idx * 4 + i;
+				dst[i] = create_uniform(ctx, n);
+			}
+		} else {
+			src = get_src(ctx, &intr->src[0]);
+			for (int i = 0; i < intr->num_components; i++) {
+				unsigned n = idx * 4 + i;
+				dst[i] = create_uniform_indirect(ctx, n,
+						get_addr(ctx, src[0]));
+			}
+                        /* NOTE: if relative addressing is used, we set
+                         * constlen in the compiler (to worst-case value)
+                         * since we don't know in the assembler what the max
+                         * addr reg value can be:
+			 */
+			ctx->so->constlen = ctx->s->num_uniforms;
 		}
-		break;
-	case nir_intrinsic_load_uniform_indirect:
-		src = get_src(ctx, &intr->src[0]);
-		for (int i = 0; i < intr->num_components; i++) {
-			unsigned n = idx * 4 + i;
-			dst[i] = create_uniform_indirect(ctx, n,
-					get_addr(ctx, src[0]));
-		}
-		/* NOTE: if relative addressing is used, we set constlen in
-		 * the compiler (to worst-case value) since we don't know in
-		 * the assembler what the max addr reg value can be:
-		 */
-		ctx->so->constlen = ctx->s->num_uniforms;
 		break;
 	case nir_intrinsic_load_ubo:
-	case nir_intrinsic_load_ubo_indirect:
 		emit_intrinsic_load_ubo(ctx, intr, dst);
 		break;
 	case nir_intrinsic_load_input:
-		for (int i = 0; i < intr->num_components; i++) {
-			unsigned n = idx * 4 + i;
-			dst[i] = ctx->ir->inputs[n];
-		}
-		break;
-	case nir_intrinsic_load_input_indirect:
-		src = get_src(ctx, &intr->src[0]);
-		struct ir3_instruction *collect =
-				create_collect(b, ctx->ir->inputs, ctx->ir->ninputs);
-		struct ir3_instruction *addr = get_addr(ctx, src[0]);
-		for (int i = 0; i < intr->num_components; i++) {
-			unsigned n = idx * 4 + i;
-			dst[i] = create_indirect_load(ctx, ctx->ir->ninputs,
-					n, addr, collect);
+		const_offset = nir_src_as_const_value(intr->src[0]);
+		if (const_offset) {
+			for (int i = 0; i < intr->num_components; i++) {
+				unsigned n = const_offset->u[0] * 4 + i;
+				dst[i] = ctx->ir->inputs[n];
+			}
+		} else {
+			src = get_src(ctx, &intr->src[0]);
+			struct ir3_instruction *collect =
+					create_collect(b, ctx->ir->inputs, ctx->ir->ninputs);
+			struct ir3_instruction *addr = get_addr(ctx, src[0]);
+			for (int i = 0; i < intr->num_components; i++) {
+				dst[i] = create_indirect_load(ctx, ctx->ir->ninputs,
+						i, addr, collect);
+			}
 		}
 		break;
 	case nir_intrinsic_load_var:
