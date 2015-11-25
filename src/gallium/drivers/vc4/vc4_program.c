@@ -1433,6 +1433,7 @@ static void
 ntq_emit_intrinsic(struct vc4_compile *c, nir_intrinsic_instr *instr)
 {
         const nir_intrinsic_info *info = &nir_intrinsic_infos[instr->intrinsic];
+        nir_const_value *const_offset;
         struct qreg *dest = NULL;
 
         if (info->has_dest) {
@@ -1442,19 +1443,21 @@ ntq_emit_intrinsic(struct vc4_compile *c, nir_intrinsic_instr *instr)
         switch (instr->intrinsic) {
         case nir_intrinsic_load_uniform:
                 assert(instr->num_components == 1);
-                if (instr->const_index[0] < VC4_NIR_STATE_UNIFORM_OFFSET) {
-                        *dest = qir_uniform(c, QUNIFORM_UNIFORM,
-                                            instr->const_index[0]);
+                const_offset = nir_src_as_const_value(instr->src[0]);
+                if (const_offset) {
+                        unsigned offset = const_offset->u[0] +
+                                          instr->const_index[0];
+                        if (offset < VC4_NIR_STATE_UNIFORM_OFFSET) {
+                                *dest = qir_uniform(c, QUNIFORM_UNIFORM,
+                                                    offset);
+                        } else {
+                                *dest = qir_uniform(c, offset -
+                                                    VC4_NIR_STATE_UNIFORM_OFFSET,
+                                                    0);
+                        }
                 } else {
-                        *dest = qir_uniform(c, instr->const_index[0] -
-                                            VC4_NIR_STATE_UNIFORM_OFFSET,
-                                            0);
+                        *dest = indirect_uniform_load(c, instr);
                 }
-                break;
-
-        case nir_intrinsic_load_uniform_indirect:
-                *dest = indirect_uniform_load(c, instr);
-
                 break;
 
         case nir_intrinsic_load_user_clip_plane:

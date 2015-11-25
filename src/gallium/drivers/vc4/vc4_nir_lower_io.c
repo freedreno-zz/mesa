@@ -355,7 +355,18 @@ vc4_nir_lower_uniform(struct vc4_compile *c, nir_builder *b,
                 intr_comp->num_components = 1;
                 nir_ssa_dest_init(&intr_comp->instr, &intr_comp->dest, 1, NULL);
 
-                if (intr->intrinsic == nir_intrinsic_load_uniform_indirect) {
+                nir_const_value *const_offset = nir_src_as_const_value(intr->src[0]);
+                if (const_offset) {
+                        /* We want a dword index for non-indirect uniform
+                         * loads.
+                         */
+                        intr_comp->const_index[0] = (intr->const_index[0] * 4 +
+                                                     i);
+                        intr_comp->src[0] =
+                                nir_src_for_ssa(nir_ishl(b,
+                                                         intr->src[0].ssa,
+                                                         nir_imm_int(b, 2)));
+                } else {
                         /* Convert the variable TGSI register index to a byte
                          * offset.
                          */
@@ -367,12 +378,6 @@ vc4_nir_lower_uniform(struct vc4_compile *c, nir_builder *b,
                         /* Convert the offset to be a byte index, too. */
                         intr_comp->const_index[0] = (intr->const_index[0] * 16 +
                                                      i * 4);
-                } else {
-                        /* We want a dword index for non-indirect uniform
-                         * loads.
-                         */
-                        intr_comp->const_index[0] = (intr->const_index[0] * 4 +
-                                                     i);
                 }
 
                 dests[i] = &intr_comp->dest.ssa;
@@ -404,7 +409,6 @@ vc4_nir_lower_io_instr(struct vc4_compile *c, nir_builder *b,
                 break;
 
         case nir_intrinsic_load_uniform:
-        case nir_intrinsic_load_uniform_indirect:
         case nir_intrinsic_load_user_clip_plane:
                 vc4_nir_lower_uniform(c, b, intr);
                 break;
