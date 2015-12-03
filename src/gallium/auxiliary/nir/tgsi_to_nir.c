@@ -1925,9 +1925,9 @@ ttn_add_output_stores(struct ttn_compile *c)
             nir_intrinsic_instr_create(b->shader, nir_intrinsic_store_output);
          unsigned loc = var->data.driver_location + i;
          store->num_components = 4;
-         store->const_index[0] = loc;
          store->src[0].reg.reg = c->output_regs[loc].reg;
          store->src[0].reg.base_offset = c->output_regs[loc].offset;
+         store->src[1] = nir_src_for_ssa(nir_imm_int(b, loc));
          nir_builder_instr_insert(b, &store->instr);
       }
    }
