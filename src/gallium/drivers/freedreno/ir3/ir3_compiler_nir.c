@@ -1407,9 +1407,8 @@ emit_intrinisic(struct ir3_compile *ctx, nir_intrinsic_instr *intr)
 	case nir_intrinsic_load_uniform:
 		const_offset = nir_src_as_const_value(intr->src[0]);
 		if (const_offset) {
-			idx += const_offset->u[0];
 			for (int i = 0; i < intr->num_components; i++) {
-				unsigned n = idx * 4 + i;
+				unsigned n = (idx + const_offset->u[0]) * 4 + i;
 				dst[i] = create_uniform(ctx, n);
 			}
 		} else {
@@ -1434,7 +1433,7 @@ emit_intrinisic(struct ir3_compile *ctx, nir_intrinsic_instr *intr)
 		const_offset = nir_src_as_const_value(intr->src[0]);
 		if (const_offset) {
 			for (int i = 0; i < intr->num_components; i++) {
-				unsigned n = const_offset->u[0] * 4 + i;
+				unsigned n = (idx + const_offset->u[0]) * 4 + i;
 				dst[i] = ctx->ir->inputs[n];
 			}
 		} else {
@@ -1459,7 +1458,7 @@ emit_intrinisic(struct ir3_compile *ctx, nir_intrinsic_instr *intr)
 		compile_assert(ctx, const_offset);
 		src = get_src(ctx, &intr->src[0]);
 		for (int i = 0; i < intr->num_components; i++) {
-			unsigned n = const_offset->u[0] * 4 + i;
+			unsigned n = (idx + const_offset->u[0]) * 4 + i;
 			ctx->ir->outputs[n] = src[i];
 		}
 		break;
