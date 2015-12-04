@@ -1455,9 +1455,11 @@ emit_intrinisic(struct ir3_compile *ctx, nir_intrinsic_instr *intr)
 		emit_intrinisic_store_var(ctx, intr);
 		break;
 	case nir_intrinsic_store_output:
+		const_offset = nir_src_as_const_value(intr->src[1]);
+		compile_assert(ctx, const_offset);
 		src = get_src(ctx, &intr->src[0]);
 		for (int i = 0; i < intr->num_components; i++) {
-			unsigned n = idx * 4 + i;
+			unsigned n = const_offset->u[0] * 4 + i;
 			ctx->ir->outputs[n] = src[i];
 		}
 		break;
