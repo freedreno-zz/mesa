@@ -1215,7 +1215,7 @@ emit_intrinsic_load_ubo(struct ir3_compile *ctx, nir_intrinsic_instr *intr,
 {
 	struct ir3_block *b = ctx->block;
 	struct ir3_instruction *addr, *src0, *src1;
-        nir_const_value *const_offset;
+	nir_const_value *const_offset;
 	/* UBO addresses are the first driver params: */
 	unsigned ubo = regid(ctx->so->first_driver_param + IR3_UBOS_OFF, 0);
 	unsigned off = intr->const_index[0];
@@ -1229,8 +1229,8 @@ emit_intrinsic_load_ubo(struct ir3_compile *ctx, nir_intrinsic_instr *intr,
 		addr = create_uniform_indirect(ctx, ubo, get_addr(ctx, src0));
 	}
 
-        const_offset = nir_src_as_const_value(intr->src[1]);
-        if (const_offset) {
+	const_offset = nir_src_as_const_value(intr->src[1]);
+	if (const_offset) {
 		off += const_offset->u[0];
 	} else {
 		/* For load_ubo_indirect, second src is indirect offset: */
@@ -1238,7 +1238,7 @@ emit_intrinsic_load_ubo(struct ir3_compile *ctx, nir_intrinsic_instr *intr,
 
 		/* and add offset to addr: */
 		addr = ir3_ADD_S(b, addr, 0, src1, 0);
-        }
+	}
 
 	/* if offset is to large to encode in the ldg, split it out: */
 	if ((off + (intr->num_components * 4)) > 1024) {
@@ -1419,10 +1419,10 @@ emit_intrinisic(struct ir3_compile *ctx, nir_intrinsic_instr *intr)
 				dst[i] = create_uniform_indirect(ctx, n,
 						get_addr(ctx, src[0]));
 			}
-                        /* NOTE: if relative addressing is used, we set
-                         * constlen in the compiler (to worst-case value)
-                         * since we don't know in the assembler what the max
-                         * addr reg value can be:
+			/* NOTE: if relative addressing is used, we set
+			 * constlen in the compiler (to worst-case value)
+			 * since we don't know in the assembler what the max
+			 * addr reg value can be:
 			 */
 			ctx->so->constlen = ctx->s->num_uniforms;
 		}
