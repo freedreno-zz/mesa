@@ -622,11 +622,10 @@ ttn_src_for_file_and_index(struct ttn_compile *c, unsigned file, unsigned index,
          }
          load->src[srcn] = nir_src_for_ssa(offset);
       } else {
-         load->const_index[0] = index;
          if (indirect) {
             offset = ttn_src_for_indirect(c, indirect);
          } else {
-            offset = nir_imm_int(b, 0);
+            offset = nir_imm_int(b, index);
          }
       }
       load->src[srcn++] = nir_src_for_ssa(offset);
