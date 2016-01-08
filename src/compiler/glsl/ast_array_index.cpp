@@ -306,7 +306,7 @@ _mesa_ast_array_index_to_hir(void *mem_ctx,
              !state->EXT_gpu_shader5_enable &&
              !state->OES_gpu_shader5_enable) {
             if (state->is_version(130, 300))
-               _mesa_glsl_error(&loc, state,
+               _mesa_glsl_warning(&loc, state,
                                 "sampler arrays indexed with non-constant "
                                 "expressions are forbidden in GLSL %s "
                                 "and later",
