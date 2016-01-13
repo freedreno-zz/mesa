@@ -786,7 +786,7 @@ typedef struct {
 } nir_call_instr;
 
 #define INTRINSIC(name, num_srcs, src_components, has_dest, dest_components, \
-                  num_variables, num_indices, flags) \
+                  num_variables, num_indices, idx0, idx1, idx2, flags) \
    nir_intrinsic_##name,
 
 #define LAST_INTRINSIC(name) nir_last_intrinsic = nir_intrinsic_##name,
@@ -798,6 +798,8 @@ typedef enum {
 
 #undef INTRINSIC
 #undef LAST_INTRINSIC
+
+#define NIR_INTRINSIC_MAX_CONST_INDEX 3
 
 /** Represents an intrinsic
  *
@@ -842,7 +844,7 @@ typedef struct {
     */
    uint8_t num_components;
 
-   int const_index[3];
+   int const_index[NIR_INTRINSIC_MAX_CONST_INDEX];
 
    nir_deref_var *variables[2];
 
@@ -870,6 +872,29 @@ typedef enum {
     */
    NIR_INTRINSIC_CAN_REORDER = (1 << 1),
 } nir_intrinsic_semantic_flag;
+
+/**
+ * \name NIR intrinsics const-index flag
+ *
+ * Indicates the usage of a const_index slot.
+ *
+ * \sa nir_intrinsic_info::index_map
+ */
+typedef enum {
+   /**
+    * Generally instructions that take a offset src argument, can encode
+    * a constant 'base' value which is added to the offset.
+    */
+   NIR_INTRINSIC_BASE = 1,
+
+   /**
+    * For store instructions, a writemask for the store.
+    */
+   NIR_INTRINSIC_WRMASK = 2,
+
+   NIR_INTRINSIC_NUM_INDEX_FLAGS,
+
+} nir_intrinsic_index_flag;
 
 #define NIR_INTRINSIC_MAX_INPUTS 4
 
@@ -900,11 +925,30 @@ typedef struct {
    /** the number of constant indices used by the intrinsic */
    unsigned num_indices;
 
+   /** indicates the usage of intr->const_index[n] */
+   unsigned index_map[NIR_INTRINSIC_NUM_INDEX_FLAGS];
+
    /** semantic flags for calls to this intrinsic */
    nir_intrinsic_semantic_flag flags;
 } nir_intrinsic_info;
 
 extern const nir_intrinsic_info nir_intrinsic_infos[nir_num_intrinsics];
+
+static inline unsigned
+nir_intrinsic_write_mask(nir_intrinsic_instr *instr)
+{
+   const nir_intrinsic_info *info = &nir_intrinsic_infos[instr->intrinsic];
+   assert(info->index_map[NIR_INTRINSIC_WRMASK] > 0);
+   return instr->const_index[info->index_map[NIR_INTRINSIC_WRMASK] - 1];
+}
+
+static inline int
+nir_intrinsic_base(nir_intrinsic_instr *instr)
+{
+   const nir_intrinsic_info *info = &nir_intrinsic_infos[instr->intrinsic];
+   assert(info->index_map[NIR_INTRINSIC_BASE] > 0);
+   return instr->const_index[info->index_map[NIR_INTRINSIC_BASE] - 1];
+}
 
 /**
  * \group texture information
