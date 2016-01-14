@@ -9,3 +9,6 @@
 
 # already picked as commit 94ac4b3e84737b8c5faa371834670fd25502e024
 b5b87c4ed1dfd58aec8905e0514c9ba92ba83e1d r600g: write all MRTs only if there is exactly one output (fixes a hang)
+
+# patch not applicable on branch (null check already exists)
+f7b71451231c75c36771e8b7b0d78f05e0d50f65 glx/dri3: a drawable might not be bound at wait time
