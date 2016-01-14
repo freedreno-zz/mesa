@@ -6,3 +6,6 @@
 
 # causes regression in xwayland, kde/plasma, mpv, steam ... fdo#92759
 839793680f99b8387bee9489733d5071c10f3ace i965: Use MESA_FORMAT_B8G8R8X8_SRGB for RGB visuals
+
+# already picked as commit 94ac4b3e84737b8c5faa371834670fd25502e024
+b5b87c4ed1dfd58aec8905e0514c9ba92ba83e1d r600g: write all MRTs only if there is exactly one output (fixes a hang)
