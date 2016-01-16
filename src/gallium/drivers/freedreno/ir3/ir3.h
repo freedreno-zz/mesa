@@ -400,6 +400,7 @@ struct ir3_array {
 
 	/* extra stuff used in RA pass: */
 	unsigned base;
+	uint16_t start_ip, end_ip;
 };
 
 struct ir3_array * ir3_lookup_array(struct ir3 *ir, unsigned id);
