@@ -351,7 +351,7 @@ vec4_tcs_visitor::nir_emit_intrinsic(nir_intrinsic_instr *instr)
       break;
    case nir_intrinsic_load_per_vertex_input: {
       src_reg indirect_offset = get_indirect_offset(instr);
-      unsigned imm_offset = instr->const_index[0];
+      unsigned imm_offset = nir_intrinsic_base(instr);
 
       nir_const_value *vertex_const = nir_src_as_const_value(instr->src[0]);
       src_reg vertex_index =
@@ -370,7 +370,7 @@ vec4_tcs_visitor::nir_emit_intrinsic(nir_intrinsic_instr *instr)
    case nir_intrinsic_load_output:
    case nir_intrinsic_load_per_vertex_output: {
       src_reg indirect_offset = get_indirect_offset(instr);
-      unsigned imm_offset = instr->const_index[0];;
+      unsigned imm_offset = nir_intrinsic_base(instr);
 
       dst_reg dst = get_nir_dest(instr->dest, BRW_REGISTER_TYPE_D);
       dst.writemask = brw_writemask_for_size(instr->num_components);
@@ -431,11 +431,11 @@ vec4_tcs_visitor::nir_emit_intrinsic(nir_intrinsic_instr *instr)
    case nir_intrinsic_store_output:
    case nir_intrinsic_store_per_vertex_output: {
       src_reg value = get_nir_src(instr->src[0]);
-      unsigned mask = instr->const_index[1];
+      unsigned mask = nir_intrinsic_write_mask(instr);
       unsigned swiz = BRW_SWIZZLE_XYZW;
 
       src_reg indirect_offset = get_indirect_offset(instr);
-      unsigned imm_offset = instr->const_index[0];
+      unsigned imm_offset = nir_intrinsic_base(instr);
 
       if (imm_offset == 0 && indirect_offset.file == BAD_FILE) {
          value.type = BRW_REGISTER_TYPE_F;

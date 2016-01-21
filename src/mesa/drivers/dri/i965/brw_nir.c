@@ -77,7 +77,8 @@ add_const_offset_to_base_block(nir_block *block, void *closure)
          nir_const_value *const_offset = nir_src_as_const_value(*offset);
 
          if (const_offset) {
-            intrin->const_index[0] += const_offset->u[0];
+            int base = nir_intrinsic_base(intrin);
+            nir_intrinsic_set_base(intrin, base + const_offset->u[0]);
             b->cursor = nir_before_instr(&intrin->instr);
             nir_instr_rewrite_src(&intrin->instr, offset,
                                   nir_src_for_ssa(nir_imm_int(b, 0)));
@@ -117,10 +118,10 @@ remap_vs_attrs(nir_block *block, void *closure)
           * number for an attribute by masking out the enabled attributes
           * before it and counting the bits.
           */
-         int attr = intrin->const_index[0];
+         int attr = nir_intrinsic_base(intrin);
          int slot = _mesa_bitcount_64(inputs_read & BITFIELD64_MASK(attr));
 
-         intrin->const_index[0] = 4 * slot;
+         nir_intrinsic_set_base(intrin, 4 * slot);
       }
    }
    return true;
@@ -139,9 +140,10 @@ remap_inputs_with_vue_map(nir_block *block, void *closure)
 
       if (intrin->intrinsic == nir_intrinsic_load_input ||
           intrin->intrinsic == nir_intrinsic_load_per_vertex_input) {
-         int vue_slot = vue_map->varying_to_slot[intrin->const_index[0]];
+         int base = nir_intrinsic_base(intrin);
+         int vue_slot = vue_map->varying_to_slot[base];
          assert(vue_slot != -1);
-         intrin->const_index[0] = vue_slot;
+         nir_intrinsic_set_base(intrin, vue_slot);
       }
    }
    return true;
@@ -167,16 +169,16 @@ remap_patch_urb_offsets(nir_block *block, void *closure)
 
       if ((stage == MESA_SHADER_TESS_CTRL && is_output(intrin)) ||
           (stage == MESA_SHADER_TESS_EVAL && is_input(intrin))) {
-         int vue_slot = state->vue_map.varying_to_slot[intrin->const_index[0]];
+         int base = nir_intrinsic_base(intrin);
+         int vue_slot = state->vue_map.varying_to_slot[base];
          assert(vue_slot != -1);
-         intrin->const_index[0] = vue_slot;
+         base = vue_slot;
 
          nir_src *vertex = nir_get_io_vertex_index_src(intrin);
          if (vertex) {
             nir_const_value *const_vertex = nir_src_as_const_value(*vertex);
             if (const_vertex) {
-               intrin->const_index[0] += const_vertex->u[0] *
-                                         state->vue_map.num_per_vertex_slots;
+               base += const_vertex->u[0] * state->vue_map.num_per_vertex_slots;
             } else {
                state->b.cursor = nir_before_instr(&intrin->instr);
 
@@ -197,6 +199,8 @@ remap_patch_urb_offsets(nir_block *block, void *closure)
                                      nir_src_for_ssa(total_offset));
             }
          }
+
+         nir_intrinsic_set_base(intrin, base);
       }
    }
    return true;

@@ -409,7 +409,7 @@ vec4_visitor::nir_emit_intrinsic(nir_intrinsic_instr *instr)
       /* We set EmitNoIndirectInput for VS */
       assert(const_offset);
 
-      src = src_reg(ATTR, instr->const_index[0] + const_offset->u[0],
+      src = src_reg(ATTR, nir_intrinsic_base(instr) + const_offset->u[0],
                     glsl_type::uvec4_type);
 
       dest = get_nir_dest(instr->dest, src.type);
@@ -423,7 +423,7 @@ vec4_visitor::nir_emit_intrinsic(nir_intrinsic_instr *instr)
       nir_const_value *const_offset = nir_src_as_const_value(instr->src[1]);
       assert(const_offset);
 
-      int varying = instr->const_index[0] + const_offset->u[0];
+      int varying = nir_intrinsic_base(instr) + const_offset->u[0];
 
       src = get_nir_src(instr->src[0], BRW_REGISTER_TYPE_F,
                         instr->num_components);
@@ -494,7 +494,7 @@ vec4_visitor::nir_emit_intrinsic(nir_intrinsic_instr *instr)
       src_reg val_reg = get_nir_src(instr->src[0], 4);
 
       /* Writemask */
-      unsigned write_mask = instr->const_index[0];
+      unsigned write_mask = nir_intrinsic_write_mask(instr);
 
       /* IvyBridge does not have a native SIMD4x2 untyped write message so untyped
        * writes will use SIMD8 mode. In order to hide this and keep symmetry across
@@ -697,12 +697,14 @@ vec4_visitor::nir_emit_intrinsic(nir_intrinsic_instr *instr)
    }
 
    case nir_intrinsic_load_uniform: {
+      int base = nir_intrinsic_base(instr);
+
       /* Offsets are in bytes but they should always be multiples of 16 */
-      assert(instr->const_index[0] % 16 == 0);
+      assert(base % 16 == 0);
 
       dest = get_nir_dest(instr->dest);
 
-      src = src_reg(dst_reg(UNIFORM, instr->const_index[0] / 16));
+      src = src_reg(dst_reg(UNIFORM, base / 16));
       src.type = dest.type;
 
       nir_const_value *const_offset = nir_src_as_const_value(instr->src[0]);
@@ -723,7 +725,7 @@ vec4_visitor::nir_emit_intrinsic(nir_intrinsic_instr *instr)
    case nir_intrinsic_atomic_counter_inc:
    case nir_intrinsic_atomic_counter_dec: {
       unsigned surf_index = prog_data->base.binding_table.abo_start +
-         (unsigned) instr->const_index[0];
+         (unsigned) nir_intrinsic_base(instr);
       src_reg offset = get_nir_src(instr->src[0], nir_type_int,
                                    instr->num_components);
       dest = get_nir_dest(instr->dest);

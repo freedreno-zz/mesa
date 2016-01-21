@@ -71,7 +71,7 @@ vec4_gs_visitor::nir_emit_intrinsic(nir_intrinsic_instr *instr)
       const glsl_type *const type = glsl_type::ivec(instr->num_components);
 
       src = src_reg(ATTR, BRW_VARYING_SLOT_COUNT * vertex->u[0] +
-                          instr->const_index[0] + offset->u[0],
+                          nir_intrinsic_base(instr) + offset->u[0],
                     type);
       dest = get_nir_dest(instr->dest, src.type);
       dest.writemask = brw_writemask_for_size(instr->num_components);
@@ -85,8 +85,7 @@ vec4_gs_visitor::nir_emit_intrinsic(nir_intrinsic_instr *instr)
    case nir_intrinsic_emit_vertex_with_counter: {
       this->vertex_count =
          retype(get_nir_src(instr->src[0], 1), BRW_REGISTER_TYPE_UD);
-      int stream_id = instr->const_index[0];
-      gs_emit_vertex(stream_id);
+      gs_emit_vertex(nir_intrinsic_stream_id(instr));
       break;
    }
 

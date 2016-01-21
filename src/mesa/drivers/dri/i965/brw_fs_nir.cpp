@@ -1867,7 +1867,7 @@ fs_visitor::nir_emit_tes_intrinsic(const fs_builder &bld,
    case nir_intrinsic_load_input:
    case nir_intrinsic_load_per_vertex_input: {
       fs_reg indirect_offset = get_indirect_offset(instr);
-      unsigned imm_offset = instr->const_index[0];
+      unsigned imm_offset = nir_intrinsic_base(instr);
 
       fs_inst *inst;
       if (indirect_offset.file == BAD_FILE) {
@@ -1944,12 +1944,12 @@ fs_visitor::nir_emit_gs_intrinsic(const fs_builder &bld,
       unreachable("load_input intrinsics are invalid for the GS stage");
 
    case nir_intrinsic_load_per_vertex_input:
-      emit_gs_input_load(dest, instr->src[0], instr->const_index[0],
+      emit_gs_input_load(dest, instr->src[0], nir_intrinsic_base(instr),
                          instr->src[1], instr->num_components);
       break;
 
    case nir_intrinsic_emit_vertex_with_counter:
-      emit_gs_vertex(instr->src[0], instr->const_index[0]);
+      emit_gs_vertex(instr->src[0], nir_intrinsic_stream_id(instr));
       break;
 
    case nir_intrinsic_end_primitive_with_counter:
@@ -2318,7 +2318,7 @@ fs_visitor::nir_emit_intrinsic(const fs_builder &bld, nir_intrinsic_instr *instr
       /* Get the arguments of the atomic intrinsic. */
       const fs_reg offset = get_nir_src(instr->src[0]);
       const unsigned surface = (stage_prog_data->binding_table.abo_start +
-                                instr->const_index[0]);
+                                nir_intrinsic_base(instr));
       fs_reg tmp;
 
       /* Emit a surface read or atomic op. */
@@ -2498,10 +2498,12 @@ fs_visitor::nir_emit_intrinsic(const fs_builder &bld, nir_intrinsic_instr *instr
       break;
 
    case nir_intrinsic_load_uniform: {
-      /* Offsets are in bytes but they should always be multiples of 4 */
-      assert(instr->const_index[0] % 4 == 0);
+      int base = nir_intrinsic_base(instr);
 
-      fs_reg src(UNIFORM, instr->const_index[0] / 4, dest.type);
+      /* Offsets are in bytes but they should always be multiples of 4 */
+      assert(base % 4 == 0);
+
+      fs_reg src(UNIFORM, base / 4, dest.type);
 
       nir_const_value *const_offset = nir_src_as_const_value(instr->src[0]);
       if (const_offset) {
@@ -2622,6 +2624,8 @@ fs_visitor::nir_emit_intrinsic(const fs_builder &bld, nir_intrinsic_instr *instr
    }
 
    case nir_intrinsic_load_shared: {
+      int base = nir_intrinsic_base(instr);
+
       assert(devinfo->gen >= 7);
 
       fs_reg surf_index = brw_imm_ud(GEN7_BTI_SLM);
@@ -2630,12 +2634,12 @@ fs_visitor::nir_emit_intrinsic(const fs_builder &bld, nir_intrinsic_instr *instr
       fs_reg offset_reg;
       nir_const_value *const_offset = nir_src_as_const_value(instr->src[0]);
       if (const_offset) {
-         offset_reg = brw_imm_ud(instr->const_index[0] + const_offset->u[0]);
+         offset_reg = brw_imm_ud(base + const_offset->u[0]);
       } else {
          offset_reg = vgrf(glsl_type::uint_type);
          bld.ADD(offset_reg,
                  retype(get_nir_src(instr->src[0]), BRW_REGISTER_TYPE_UD),
-                 brw_imm_ud(instr->const_index[0]));
+                 brw_imm_ud(base));
       }
 
       /* Read the vector */
@@ -2660,7 +2664,7 @@ fs_visitor::nir_emit_intrinsic(const fs_builder &bld, nir_intrinsic_instr *instr
       fs_reg val_reg = get_nir_src(instr->src[0]);
 
       /* Writemask */
-      unsigned writemask = instr->const_index[1];
+      unsigned writemask = nir_intrinsic_write_mask(instr);
 
       /* Combine groups of consecutive enabled channels in one write
        * message. We use ffs to find the first enabled channel and then ffs on
@@ -2670,17 +2674,18 @@ fs_visitor::nir_emit_intrinsic(const fs_builder &bld, nir_intrinsic_instr *instr
       while (writemask) {
          unsigned first_component = ffs(writemask) - 1;
          unsigned length = ffs(~(writemask >> first_component)) - 1;
+         int base = nir_intrinsic_base(instr);
          fs_reg offset_reg;
 
          nir_const_value *const_offset = nir_src_as_const_value(instr->src[1]);
          if (const_offset) {
-            offset_reg = brw_imm_ud(instr->const_index[0] + const_offset->u[0] +
+            offset_reg = brw_imm_ud(base + const_offset->u[0] +
                                     4 * first_component);
          } else {
             offset_reg = vgrf(glsl_type::uint_type);
             bld.ADD(offset_reg,
                     retype(get_nir_src(instr->src[1]), BRW_REGISTER_TYPE_UD),
-                    brw_imm_ud(instr->const_index[0] + 4 * first_component));
+                    brw_imm_ud(base + 4 * first_component));
          }
 
          emit_untyped_write(bld, surf_index, offset_reg,
@@ -2698,12 +2703,13 @@ fs_visitor::nir_emit_intrinsic(const fs_builder &bld, nir_intrinsic_instr *instr
    }
 
    case nir_intrinsic_load_input: {
+      int base = nir_intrinsic_base(instr);
       fs_reg src;
+
       if (stage == MESA_SHADER_VERTEX) {
-         src = fs_reg(ATTR, instr->const_index[0], dest.type);
+         src = fs_reg(ATTR, base, dest.type);
       } else {
-         src = offset(retype(nir_inputs, dest.type), bld,
-                      instr->const_index[0]);
+         src = offset(retype(nir_inputs, dest.type), bld, base);
       }
 
       nir_const_value *const_offset = nir_src_as_const_value(instr->src[0]);
@@ -2742,7 +2748,7 @@ fs_visitor::nir_emit_intrinsic(const fs_builder &bld, nir_intrinsic_instr *instr
       fs_reg val_reg = get_nir_src(instr->src[0]);
 
       /* Writemask */
-      unsigned writemask = instr->const_index[0];
+      unsigned writemask = nir_intrinsic_write_mask(instr);
 
       /* Combine groups of consecutive enabled channels in one write
        * message. We use ffs to find the first enabled channel and then ffs on
@@ -2780,7 +2786,7 @@ fs_visitor::nir_emit_intrinsic(const fs_builder &bld, nir_intrinsic_instr *instr
    case nir_intrinsic_store_output: {
       fs_reg src = get_nir_src(instr->src[0]);
       fs_reg new_dest = offset(retype(nir_outputs, src.type), bld,
-                               instr->const_index[0]);
+                               nir_intrinsic_base(instr));
 
       nir_const_value *const_offset = nir_src_as_const_value(instr->src[1]);
       assert(const_offset && "Indirect output stores not allowed");
