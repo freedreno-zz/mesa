@@ -172,7 +172,7 @@ vc4_nir_lower_vertex_attr(struct vc4_compile *c, nir_builder *b,
 {
         b->cursor = nir_before_instr(&intr->instr);
 
-        int attr = intr->const_index[0];
+        int attr = nir_intrinsic_base(intr);
         enum pipe_format format = c->vs_key->attr_formats[attr];
         uint32_t attr_size = util_format_get_blocksize(format);
 
@@ -195,7 +195,7 @@ vc4_nir_lower_vertex_attr(struct vc4_compile *c, nir_builder *b,
                         nir_intrinsic_instr_create(c->s,
                                                    nir_intrinsic_load_input);
                 intr_comp->num_components = 1;
-                intr_comp->const_index[0] = intr->const_index[0] * 4 + i;
+                nir_intrinsic_set_base(intr_comp, nir_intrinsic_base(intr) * 4 + i);
                 intr_comp->src[0] = nir_src_for_ssa(nir_imm_int(b, 0));
                 nir_ssa_dest_init(&intr_comp->instr, &intr_comp->dest, 1, NULL);
                 nir_builder_instr_insert(b, &intr_comp->instr);
@@ -231,18 +231,19 @@ static void
 vc4_nir_lower_fs_input(struct vc4_compile *c, nir_builder *b,
                        nir_intrinsic_instr *intr)
 {
+        int base = nir_intrinsic_base(intr);
+
         b->cursor = nir_before_instr(&intr->instr);
 
-        if (intr->const_index[0] >= VC4_NIR_TLB_COLOR_READ_INPUT &&
-            intr->const_index[0] < (VC4_NIR_TLB_COLOR_READ_INPUT +
-                                    VC4_MAX_SAMPLES)) {
+        if (base >= VC4_NIR_TLB_COLOR_READ_INPUT &&
+            base < (VC4_NIR_TLB_COLOR_READ_INPUT + VC4_MAX_SAMPLES)) {
                 /* This doesn't need any lowering. */
                 return;
         }
 
         nir_variable *input_var = NULL;
         nir_foreach_variable(var, &c->s->inputs) {
-                if (var->data.driver_location == intr->const_index[0]) {
+                if (var->data.driver_location == base) {
                         input_var = var;
                         break;
                 }
@@ -264,7 +265,7 @@ vc4_nir_lower_fs_input(struct vc4_compile *c, nir_builder *b,
                 nir_intrinsic_instr *intr_comp =
                         nir_intrinsic_instr_create(c->s, nir_intrinsic_load_input);
                 intr_comp->num_components = 1;
-                intr_comp->const_index[0] = intr->const_index[0] * 4 + i;
+                nir_intrinsic_set_base(intr_comp, base * 4 + i);
                 intr_comp->src[0] = nir_src_for_ssa(nir_imm_int(b, 0));
 
                 nir_ssa_dest_init(&intr_comp->instr, &intr_comp->dest, 1, NULL);
@@ -308,8 +309,10 @@ vc4_nir_lower_output(struct vc4_compile *c, nir_builder *b,
                      nir_intrinsic_instr *intr)
 {
         nir_variable *output_var = NULL;
+        int base = nir_intrinsic_base(intr);
+
         nir_foreach_variable(var, &c->s->outputs) {
-                if (var->data.driver_location == intr->const_index[0]) {
+                if (var->data.driver_location == base) {
                         output_var = var;
                         break;
                 }
@@ -328,7 +331,7 @@ vc4_nir_lower_output(struct vc4_compile *c, nir_builder *b,
             (output_var->data.location == FRAG_RESULT_COLOR ||
              output_var->data.location == FRAG_RESULT_DATA0 ||
              output_var->data.location == FRAG_RESULT_SAMPLE_MASK)) {
-                intr->const_index[0] *= 4;
+                nir_intrinsic_set_base(intr, base * 4);
                 return;
         }
 
@@ -347,7 +350,7 @@ vc4_nir_lower_output(struct vc4_compile *c, nir_builder *b,
                 nir_intrinsic_instr *intr_comp =
                         nir_intrinsic_instr_create(c->s, nir_intrinsic_store_output);
                 intr_comp->num_components = 1;
-                intr_comp->const_index[0] = intr->const_index[0] * 4 + i;
+                nir_intrinsic_set_base(intr_comp, base * 4 + i);
 
                 assert(intr->src[0].is_ssa);
                 intr_comp->src[0] =
@@ -388,7 +391,8 @@ vc4_nir_lower_uniform(struct vc4_compile *c, nir_builder *b,
                         /* Convert the base offset to bytes and add the
                          * component
                          */
-                        intr_comp->const_index[0] = (intr->const_index[0] * 16 + i * 4);
+                        int base = nir_intrinsic_base(intr);
+                        nir_intrinsic_set_base(intr_comp, base * 16 + i * 4);
 
                         intr_comp->src[0] =
                                 nir_src_for_ssa(nir_ishl(b, intr->src[0].ssa,
@@ -396,7 +400,8 @@ vc4_nir_lower_uniform(struct vc4_compile *c, nir_builder *b,
                 } else {
                         assert(intr->intrinsic ==
                                nir_intrinsic_load_user_clip_plane);
-                        intr_comp->const_index[0] = intr->const_index[0] * 4 + i;
+                        unsigned ucp = nir_intrinsic_ucp_id(intr_comp);
+                        nir_intrinsic_set_ucp_id(intr_comp, ucp * 4 + i);
                 }
 
                 dests[i] = &intr_comp->dest.ssa;
