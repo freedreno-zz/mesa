@@ -281,6 +281,7 @@ VAStatus
 vlVaDestroyImage(VADriverContextP ctx, VAImageID image)
 {
    VAImage  *vaimage;
+   VAStatus status;
 
    if (!ctx)
       return VA_STATUS_ERROR_INVALID_CONTEXT;
@@ -290,8 +291,9 @@ vlVaDestroyImage(VADriverContextP ctx, VAImageID image)
       return VA_STATUS_ERROR_INVALID_IMAGE;
 
    handle_table_remove(VL_VA_DRIVER(ctx)->htab, image);
+   status = vlVaDestroyBuffer(ctx, vaimage->buf);
    FREE(vaimage);
-   return vlVaDestroyBuffer(ctx, vaimage->buf);
+   return status;
 }
 
 VAStatus
