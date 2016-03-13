@@ -134,6 +134,11 @@ static bool
 use_hw_binning(struct fd_context *ctx)
 {
 	struct fd_gmem_stateobj *gmem = &ctx->gmem;
+	struct pipe_framebuffer_state *pfb = &ctx->framebuffer;
+
+	/* this seems to be a hw bug.. but this hack fixes piglit fbo-maxsize: */
+	if ((pfb->width > 4096) && (pfb->height > 4096))
+		return false;
 
 	return fd_binning_enabled && ((gmem->nbins_x * gmem->nbins_y) > 2);
 }
