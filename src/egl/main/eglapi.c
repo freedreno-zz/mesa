@@ -474,6 +474,7 @@ _eglCreateExtensionsString(_EGLDisplay *dpy)
    /* Please keep these sorted alphabetically. */
    _EGL_CHECK_EXTENSION(ANDROID_framebuffer_target);
    _EGL_CHECK_EXTENSION(ANDROID_image_native_buffer);
+   _EGL_CHECK_EXTENSION(ANDROID_native_fence_sync);
    _EGL_CHECK_EXTENSION(ANDROID_recordable);
 
    _EGL_CHECK_EXTENSION(CHROMIUM_sync_control);
@@ -1630,6 +1631,10 @@ _eglCreateSync(_EGLDisplay *disp, EGLenum type, const EGLAttrib *attrib_list,
       if (!disp->Extensions.KHR_cl_event2)
          RETURN_EGL_ERROR(disp, invalid_type_error, EGL_NO_SYNC_KHR);
       break;
+   case EGL_SYNC_NATIVE_FENCE_ANDROID:
+      if (!disp->Extensions.ANDROID_native_fence_sync)
+         RETURN_EGL_ERROR(disp, invalid_type_error, EGL_NO_SYNC_KHR);
+      break;
    default:
       RETURN_EGL_ERROR(disp, invalid_type_error, EGL_NO_SYNC_KHR);
    }
@@ -1702,7 +1707,8 @@ eglDestroySync(EGLDisplay dpy, EGLSync sync)
 
    _EGL_CHECK_SYNC(disp, s, EGL_FALSE, drv);
    assert(disp->Extensions.KHR_reusable_sync ||
-          disp->Extensions.KHR_fence_sync);
+          disp->Extensions.KHR_fence_sync ||
+          disp->Extensions.ANDROID_native_fence_sync);
 
    _eglUnlinkSync(s);
    ret = drv->API.DestroySyncKHR(drv, disp, s);
@@ -1723,7 +1729,8 @@ eglClientWaitSync(EGLDisplay dpy, EGLSync sync, EGLint flags, EGLTime timeout)
 
    _EGL_CHECK_SYNC(disp, s, EGL_FALSE, drv);
    assert(disp->Extensions.KHR_reusable_sync ||
-          disp->Extensions.KHR_fence_sync);
+          disp->Extensions.KHR_fence_sync ||
+          disp->Extensions.ANDROID_native_fence_sync);
 
    if (s->SyncStatus == EGL_SIGNALED_KHR)
       RETURN_EGL_EVAL(disp, EGL_CONDITION_SATISFIED_KHR);
@@ -1822,7 +1829,8 @@ _eglGetSyncAttribCommon(_EGLDisplay *disp, _EGLSync *s, EGLint attribute, EGLAtt
 
    _EGL_CHECK_SYNC(disp, s, EGL_FALSE, drv);
    assert(disp->Extensions.KHR_reusable_sync ||
-          disp->Extensions.KHR_fence_sync);
+          disp->Extensions.KHR_fence_sync ||
+          disp->Extensions.ANDROID_native_fence_sync);
    ret = drv->API.GetSyncAttrib(drv, disp, s, attribute, value);
 
    RETURN_EGL_EVAL(disp, ret);
@@ -1865,6 +1873,29 @@ eglGetSyncAttribKHR(EGLDisplay dpy, EGLSync sync, EGLint attribute, EGLint *valu
    return result;
 }
 
+static EGLint EGLAPIENTRY
+eglDupNativeFenceFDANDROID(EGLDisplay dpy, EGLSync sync)
+{
+   _EGLDisplay *disp = _eglLockDisplay(dpy);
+   _EGLSync *s = _eglLookupSync(sync, disp);
+   _EGLDriver *drv;
+   EGLBoolean ret;
+
+   _EGL_FUNC_START(disp, EGL_OBJECT_SYNC_KHR, s, EGL_FALSE);
+
+   /* the spec doesn't seem to specify what happens if the fence
+    * type is not EGL_SYNC_NATIVE_FENCE_ANDROID, but this seems
+    * sensible:
+    */
+   if (!(s && (s->Type == EGL_SYNC_NATIVE_FENCE_ANDROID)))
+      RETURN_EGL_ERROR(disp, EGL_BAD_PARAMETER, EGL_NO_NATIVE_FENCE_FD_ANDROID);
+
+   _EGL_CHECK_SYNC(disp, s, EGL_NO_NATIVE_FENCE_FD_ANDROID, drv);
+   assert(disp->Extensions.ANDROID_native_fence_sync);
+   ret = drv->API.DupNativeFenceFDANDROID(drv, disp, s);
+
+   RETURN_EGL_EVAL(disp, ret);
+}
 
 static EGLBoolean EGLAPIENTRY
 eglSwapBuffersRegionNOK(EGLDisplay dpy, EGLSurface surface,
@@ -2340,6 +2371,7 @@ eglGetProcAddress(const char *procname)
       { "eglLabelObjectKHR", (_EGLProc) eglLabelObjectKHR },
       { "eglDebugMessageControlKHR", (_EGLProc) eglDebugMessageControlKHR },
       { "eglQueryDebugKHR", (_EGLProc) eglQueryDebugKHR },
+      { "eglDupNativeFenceFDANDROID", (_EGLProc) eglDupNativeFenceFDANDROID },
       { NULL, NULL }
    };
    EGLint i;
