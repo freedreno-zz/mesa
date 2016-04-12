@@ -174,7 +174,8 @@ fd_draw_vbo(struct pipe_context *pctx, const struct pipe_draw_info *info)
 	prims = u_reduced_prims_for_vertices(info->mode, info->count);
 
 	ctx->stats.draw_calls++;
-	ctx->stats.prims_emitted += prims;
+	if (ctx->streamout.num_targets > 0)
+		ctx->stats.prims_emitted += prims;
 
 	/* any buffers that haven't been cleared yet, we need to restore: */
 	ctx->restore |= buffers & (FD_BUFFER_ALL & ~ctx->cleared);
