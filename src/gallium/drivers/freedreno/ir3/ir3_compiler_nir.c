@@ -103,6 +103,11 @@ struct ir3_compile {
 	 */
 	bool unminify_coords;
 
+	/* bitmask of texture types that need to have 0.5 added to array
+	 * index coordinate:
+	 */
+	uint32_t array_index_add_half_mask;
+
 	/* for looking up which system value is which */
 	unsigned sysval_semantics[8];
 
@@ -128,11 +133,13 @@ compile_init(struct ir3_compiler *compiler,
 		ctx->flat_bypass = true;
 		ctx->levels_add_one = false;
 		ctx->unminify_coords = false;
+		ctx->array_index_add_half_mask = ~0;
 	} else {
 		/* no special handling for "flat" */
 		ctx->flat_bypass = false;
 		ctx->levels_add_one = true;
 		ctx->unminify_coords = true;
+		ctx->array_index_add_half_mask = (1 << GLSL_SAMPLER_DIM_CUBE);
 	}
 
 	ctx->compiler = compiler;
@@ -1447,9 +1454,10 @@ emit_tex(struct ir3_compile *ctx, nir_tex_instr *tex)
 	}
 
 	/* the array coord for cube arrays needs 0.5 added to it */
-	if (tex->sampler_dim == GLSL_SAMPLER_DIM_CUBE && tex->is_array &&
-		opc != OPC_ISAML)
-		coord[3] = ir3_ADD_F(b, coord[3], 0, create_immed(b, fui(0.5)), 0);
+	if (tex->is_array && (opc != OPC_ISAML) &&
+			((1 << tex->sampler_dim) & ctx->array_index_add_half_mask)) {
+		coord[coords] = ir3_ADD_F(b, coord[coords], 0, create_immed(b, fui(0.5)), 0);
+	}
 
 	/*
 	 * lay out the first argument in the proper order:
