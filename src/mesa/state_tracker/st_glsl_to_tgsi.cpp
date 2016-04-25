@@ -422,6 +422,8 @@ public:
    virtual void visit(ir_barrier *);
    /*@}*/
 
+   void visit_expression(ir_expression *, st_src_reg *) ATTRIBUTE_NOINLINE;
+
    st_src_reg result;
 
    /** List of variable_storage */
@@ -1425,10 +1427,7 @@ glsl_to_tgsi_visitor::reladdr_to_temp(ir_instruction *ir,
 void
 glsl_to_tgsi_visitor::visit(ir_expression *ir)
 {
-   unsigned int operand;
    st_src_reg op[ARRAY_SIZE(ir->operands)];
-   st_src_reg result_src;
-   st_dst_reg result_dst;
 
    /* Quick peephole: Emit MAD(a, b, c) instead of ADD(MUL(a, b), c)
     */
@@ -1451,7 +1450,7 @@ glsl_to_tgsi_visitor::visit(ir_expression *ir)
    if (ir->operation == ir_quadop_vector)
       assert(!"ir_quadop_vector should have been lowered");
 
-   for (operand = 0; operand < ir->get_num_operands(); operand++) {
+   for (unsigned int operand = 0; operand < ir->get_num_operands(); operand++) {
       this->result.file = PROGRAM_UNDEFINED;
       ir->operands[operand]->accept(this);
       if (this->result.file == PROGRAM_UNDEFINED) {
@@ -1467,6 +1466,19 @@ glsl_to_tgsi_visitor::visit(ir_expression *ir)
        */
       assert(!ir->operands[operand]->type->is_matrix());
    }
+
+   visit_expression(ir, op);
+}
+
+/* The non-recursive part of the expression visitor lives in a separate
+ * function and should be prevented from being inlined, to avoid a stack
+ * explosion when deeply nested expressions are visited.
+ */
+void
+glsl_to_tgsi_visitor::visit_expression(ir_expression* ir, st_src_reg *op)
+{
+   st_src_reg result_src;
+   st_dst_reg result_dst;
 
    int vector_elements = ir->operands[0]->type->vector_elements;
    if (ir->operands[1]) {
