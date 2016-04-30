@@ -46,6 +46,7 @@ LOCAL_CFLAGS := \
 LOCAL_C_INCLUDES := \
 	$(MESA_TOP)/src/egl/main \
 	$(MESA_TOP)/src/egl/drivers/dri2 \
+	external/drm_gralloc
 
 LOCAL_STATIC_LIBRARIES := \
 	libmesa_loader
@@ -55,7 +56,6 @@ LOCAL_SHARED_LIBRARIES := \
 	libhardware \
 	liblog \
 	libcutils \
-	libgralloc_drm \
 
 ifeq ($(shell echo "$(MESA_ANDROID_VERSION) >= 4.2" | bc),1)
 LOCAL_SHARED_LIBRARIES += libsync
