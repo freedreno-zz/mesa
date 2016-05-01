@@ -444,7 +444,8 @@ reg_cp(struct ir3_cp_ctx *ctx, struct ir3_instruction *instr,
 				src_reg->flags = new_flags;
 				src_reg->iim_val = iim_val;
 				instr->regs[n+1] = src_reg;
-			} else {
+			} else if (valid_flags(instr, n, (new_flags & ~IR3_REG_IMMED) | IR3_REG_CONST)) {
+				/* See if lowering an immediate to const would help. */
 				instr->regs[n+1] = lower_immed(ctx, src_reg, new_flags);
 			}
 
