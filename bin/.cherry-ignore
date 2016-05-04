@@ -16,3 +16,5 @@ f2c891353609b48459f27f205407d42823dd7d03 Add missing platform information for KB
 # st_DrawAtlasBitmaps was introduced after the 11.1-branchpoint
 aed975d5c510135c54252746b44d663d094ecb1e st/mesa: fix sampler view leak in st_DrawAtlasBitmaps()
 
+# Patch addresses CodeEmitterGK110::emitATOM which is missing in branch.
+17a37c78fc16505f717a44aa22551285d1cd8c9e gk110/ir: do not overwrite def value with zero for EXCH ops
