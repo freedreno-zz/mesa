@@ -12,3 +12,7 @@ f2c891353609b48459f27f205407d42823dd7d03 Add missing platform information for KB
 
 # The commit fixes a fix, the latter of which did not land in 11.1.
 4420f189b6d6dd68b517cd73dfdf3775d7d0f580 st/mesa: fix glReadBuffer() assertion failure
+
+# st_DrawAtlasBitmaps was introduced after the 11.1-branchpoint
+aed975d5c510135c54252746b44d663d094ecb1e st/mesa: fix sampler view leak in st_DrawAtlasBitmaps()
+
