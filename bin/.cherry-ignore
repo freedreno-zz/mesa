@@ -10,3 +10,5 @@ f2c891353609b48459f27f205407d42823dd7d03 Add missing platform information for KB
 # As requested by Ilia at https://lists.freedesktop.org/archives/mesa-stable/2016-April/003939.html
 6eeb284e4f74a2fe5ae6cba90f97f219935e24df nv50/ir: normalize cube coordinates after derivatives have been computed
 
+# The commit fixes a fix, the latter of which did not land in 11.1.
+4420f189b6d6dd68b517cd73dfdf3775d7d0f580 st/mesa: fix glReadBuffer() assertion failure
