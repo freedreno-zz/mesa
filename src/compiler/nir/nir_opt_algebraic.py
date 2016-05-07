@@ -62,6 +62,11 @@ d = 'd'
 # constructed value should have that bit-size.
 
 optimizations = [
+
+   (('imul', a, '#b@32(is_power_of_two)'), ('ishl', a, ('find_lsb', b))),
+   (('udiv', a, '#b@32(is_power_of_two)'), ('ushr', a, ('find_lsb', b))),
+   (('umod', a, '#b(is_power_of_two)'),    ('iand', a, ('isub', b, 1))),
+
    (('fneg', ('fneg', a)), a),
    (('ineg', ('ineg', a)), a),
    (('fabs', ('fabs', a)), ('fabs', a)),
