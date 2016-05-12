@@ -581,11 +581,13 @@ private:
    ir_variable *in_var(const glsl_type *type, const char *name);
    ir_variable *out_var(const glsl_type *type, const char *name);
    ir_constant *imm(float f, unsigned vector_elements=1);
+   ir_constant *himm(float f, unsigned vector_elements=1);
    ir_constant *imm(bool b, unsigned vector_elements=1);
    ir_constant *imm(int i, unsigned vector_elements=1);
    ir_constant *imm(unsigned u, unsigned vector_elements=1);
    ir_constant *imm(double d, unsigned vector_elements=1);
    ir_constant *imm(const glsl_type *type, const ir_constant_data &);
+   ir_constant *imm(const glsl_base_type type, double d, unsigned vector_elements=1);
    ir_dereference_variable *var_ref(ir_variable *var);
    ir_dereference_array *array_ref(ir_variable *var, int i);
    ir_swizzle *matrix_elt(ir_variable *var, int col, int row);
@@ -1082,6 +1084,10 @@ builtin_builder::create_builtins()
                 _##NAME(glsl_type::vec2_type),  \
                 _##NAME(glsl_type::vec3_type),  \
                 _##NAME(glsl_type::vec4_type),  \
+                _##NAME(glsl_type::hfloat_type), \
+                _##NAME(glsl_type::hvec2_type),  \
+                _##NAME(glsl_type::hvec3_type),  \
+                _##NAME(glsl_type::hvec4_type),  \
                 NULL);
 
 #define FD(NAME)                                 \
@@ -1090,6 +1096,10 @@ builtin_builder::create_builtins()
                 _##NAME(always_available, glsl_type::vec2_type),  \
                 _##NAME(always_available, glsl_type::vec3_type),  \
                 _##NAME(always_available, glsl_type::vec4_type),  \
+                _##NAME(always_available, glsl_type::hfloat_type), \
+                _##NAME(always_available, glsl_type::hvec2_type),  \
+                _##NAME(always_available, glsl_type::hvec3_type),  \
+                _##NAME(always_available, glsl_type::hvec4_type),  \
                 _##NAME(fp64, glsl_type::double_type),  \
                 _##NAME(fp64, glsl_type::dvec2_type),    \
                 _##NAME(fp64, glsl_type::dvec3_type),     \
@@ -1102,6 +1112,10 @@ builtin_builder::create_builtins()
                 _##NAME(v130, glsl_type::vec2_type),  \
                 _##NAME(v130, glsl_type::vec3_type),                  \
                 _##NAME(v130, glsl_type::vec4_type),  \
+                _##NAME(v130, glsl_type::hfloat_type), \
+                _##NAME(v130, glsl_type::hvec2_type),  \
+                _##NAME(v130, glsl_type::hvec3_type),  \
+                _##NAME(v130, glsl_type::hvec4_type),  \
                 _##NAME(fp64, glsl_type::double_type),  \
                 _##NAME(fp64, glsl_type::dvec2_type),    \
                 _##NAME(fp64, glsl_type::dvec3_type),     \
@@ -1114,6 +1128,10 @@ builtin_builder::create_builtins()
                 _##NAME(gpu_shader5_es, glsl_type::vec2_type),  \
                 _##NAME(gpu_shader5_es, glsl_type::vec3_type),                  \
                 _##NAME(gpu_shader5_es, glsl_type::vec4_type),  \
+                _##NAME(gpu_shader5_es, glsl_type::hfloat_type), \
+                _##NAME(gpu_shader5_es, glsl_type::hvec2_type),  \
+                _##NAME(gpu_shader5_es, glsl_type::hvec3_type),  \
+                _##NAME(gpu_shader5_es, glsl_type::hvec4_type),  \
                 _##NAME(fp64, glsl_type::double_type),  \
                 _##NAME(fp64, glsl_type::dvec2_type),    \
                 _##NAME(fp64, glsl_type::dvec3_type),     \
@@ -1126,10 +1144,18 @@ builtin_builder::create_builtins()
                 _##NAME(glsl_type::vec2_type),  \
                 _##NAME(glsl_type::vec3_type),  \
                 _##NAME(glsl_type::vec4_type),  \
+                _##NAME(glsl_type::hfloat_type), \
+                _##NAME(glsl_type::hvec2_type),  \
+                _##NAME(glsl_type::hvec3_type),  \
+                _##NAME(glsl_type::hvec4_type),  \
                 _##NAME(glsl_type::int_type),   \
                 _##NAME(glsl_type::ivec2_type), \
                 _##NAME(glsl_type::ivec3_type), \
                 _##NAME(glsl_type::ivec4_type), \
+                _##NAME(glsl_type::hint_type),   \
+                _##NAME(glsl_type::hivec2_type), \
+                _##NAME(glsl_type::hivec3_type), \
+                _##NAME(glsl_type::hivec4_type), \
                 NULL);
 
 #define FID(NAME)                                \
@@ -1138,10 +1164,18 @@ builtin_builder::create_builtins()
                 _##NAME(always_available, glsl_type::vec2_type),  \
                 _##NAME(always_available, glsl_type::vec3_type),  \
                 _##NAME(always_available, glsl_type::vec4_type),  \
+                _##NAME(always_available, glsl_type::hfloat_type), \
+                _##NAME(always_available, glsl_type::hvec2_type),  \
+                _##NAME(always_available, glsl_type::hvec3_type),  \
+                _##NAME(always_available, glsl_type::hvec4_type),  \
                 _##NAME(always_available, glsl_type::int_type),   \
                 _##NAME(always_available, glsl_type::ivec2_type), \
                 _##NAME(always_available, glsl_type::ivec3_type), \
                 _##NAME(always_available, glsl_type::ivec4_type), \
+                _##NAME(always_available, glsl_type::hint_type),   \
+                _##NAME(always_available, glsl_type::hivec2_type), \
+                _##NAME(always_available, glsl_type::hivec3_type), \
+                _##NAME(always_available, glsl_type::hivec4_type), \
                 _##NAME(fp64, glsl_type::double_type), \
                 _##NAME(fp64, glsl_type::dvec2_type),  \
                 _##NAME(fp64, glsl_type::dvec3_type),  \
@@ -1154,16 +1188,28 @@ builtin_builder::create_builtins()
                 _##NAME(always_available, glsl_type::vec2_type),  \
                 _##NAME(always_available, glsl_type::vec3_type),  \
                 _##NAME(always_available, glsl_type::vec4_type),  \
+                _##NAME(always_available, glsl_type::hfloat_type), \
+                _##NAME(always_available, glsl_type::hvec2_type),  \
+                _##NAME(always_available, glsl_type::hvec3_type),  \
+                _##NAME(always_available, glsl_type::hvec4_type),  \
                                                                   \
                 _##NAME(always_available, glsl_type::int_type),   \
                 _##NAME(always_available, glsl_type::ivec2_type), \
                 _##NAME(always_available, glsl_type::ivec3_type), \
                 _##NAME(always_available, glsl_type::ivec4_type), \
+                _##NAME(always_available, glsl_type::hint_type),   \
+                _##NAME(always_available, glsl_type::hivec2_type), \
+                _##NAME(always_available, glsl_type::hivec3_type), \
+                _##NAME(always_available, glsl_type::hivec4_type), \
                                                                   \
                 _##NAME(v130, glsl_type::uint_type),              \
                 _##NAME(v130, glsl_type::uvec2_type),             \
                 _##NAME(v130, glsl_type::uvec3_type),             \
                 _##NAME(v130, glsl_type::uvec4_type),             \
+                _##NAME(v130, glsl_type::huint_type),             \
+                _##NAME(v130, glsl_type::huvec2_type),            \
+                _##NAME(v130, glsl_type::huvec3_type),            \
+                _##NAME(v130, glsl_type::huvec4_type),            \
                 _##NAME(fp64, glsl_type::double_type), \
                 _##NAME(fp64, glsl_type::dvec2_type),  \
                 _##NAME(fp64, glsl_type::dvec3_type),  \
@@ -1176,11 +1222,19 @@ builtin_builder::create_builtins()
                 _##NAME(glsl_type::ivec2_type), \
                 _##NAME(glsl_type::ivec3_type), \
                 _##NAME(glsl_type::ivec4_type), \
+                _##NAME(glsl_type::hint_type),   \
+                _##NAME(glsl_type::hivec2_type), \
+                _##NAME(glsl_type::hivec3_type), \
+                _##NAME(glsl_type::hivec4_type), \
                                                 \
                 _##NAME(glsl_type::uint_type),  \
                 _##NAME(glsl_type::uvec2_type), \
                 _##NAME(glsl_type::uvec3_type), \
                 _##NAME(glsl_type::uvec4_type), \
+                _##NAME(glsl_type::huint_type),  \
+                _##NAME(glsl_type::huvec2_type), \
+                _##NAME(glsl_type::huvec3_type), \
+                _##NAME(glsl_type::huvec4_type), \
                 NULL);
 
 #define FIUBD(NAME)                                                \
@@ -1189,16 +1243,28 @@ builtin_builder::create_builtins()
                 _##NAME(always_available, glsl_type::vec2_type),  \
                 _##NAME(always_available, glsl_type::vec3_type),  \
                 _##NAME(always_available, glsl_type::vec4_type),  \
+                _##NAME(always_available, glsl_type::hfloat_type), \
+                _##NAME(always_available, glsl_type::hvec2_type),  \
+                _##NAME(always_available, glsl_type::hvec3_type),  \
+                _##NAME(always_available, glsl_type::hvec4_type),  \
                                                                   \
                 _##NAME(always_available, glsl_type::int_type),   \
                 _##NAME(always_available, glsl_type::ivec2_type), \
                 _##NAME(always_available, glsl_type::ivec3_type), \
                 _##NAME(always_available, glsl_type::ivec4_type), \
+                _##NAME(always_available, glsl_type::hint_type),   \
+                _##NAME(always_available, glsl_type::hivec2_type), \
+                _##NAME(always_available, glsl_type::hivec3_type), \
+                _##NAME(always_available, glsl_type::hivec4_type), \
                                                                   \
                 _##NAME(v130, glsl_type::uint_type),              \
                 _##NAME(v130, glsl_type::uvec2_type),             \
                 _##NAME(v130, glsl_type::uvec3_type),             \
                 _##NAME(v130, glsl_type::uvec4_type),             \
+                _##NAME(v130, glsl_type::huint_type),             \
+                _##NAME(v130, glsl_type::huvec2_type),            \
+                _##NAME(v130, glsl_type::huvec3_type),            \
+                _##NAME(v130, glsl_type::huvec4_type),            \
                                                                   \
                 _##NAME(always_available, glsl_type::bool_type),  \
                 _##NAME(always_available, glsl_type::bvec2_type), \
@@ -1211,34 +1277,56 @@ builtin_builder::create_builtins()
                 _##NAME(fp64, glsl_type::dvec4_type), \
                 NULL);
 
+// TODO permutations of half and full precision?
 #define FIUD2_MIXED(NAME)                                                                 \
    add_function(#NAME,                                                                   \
                 _##NAME(always_available, glsl_type::float_type, glsl_type::float_type), \
                 _##NAME(always_available, glsl_type::vec2_type,  glsl_type::float_type), \
                 _##NAME(always_available, glsl_type::vec3_type,  glsl_type::float_type), \
                 _##NAME(always_available, glsl_type::vec4_type,  glsl_type::float_type), \
+                _##NAME(always_available, glsl_type::hfloat_type, glsl_type::hfloat_type), \
+                _##NAME(always_available, glsl_type::hvec2_type,  glsl_type::hfloat_type), \
+                _##NAME(always_available, glsl_type::hvec3_type,  glsl_type::hfloat_type), \
+                _##NAME(always_available, glsl_type::hvec4_type,  glsl_type::hfloat_type), \
                                                                                          \
                 _##NAME(always_available, glsl_type::vec2_type,  glsl_type::vec2_type),  \
                 _##NAME(always_available, glsl_type::vec3_type,  glsl_type::vec3_type),  \
                 _##NAME(always_available, glsl_type::vec4_type,  glsl_type::vec4_type),  \
+                _##NAME(always_available, glsl_type::hvec2_type,  glsl_type::hvec2_type), \
+                _##NAME(always_available, glsl_type::hvec3_type,  glsl_type::hvec3_type), \
+                _##NAME(always_available, glsl_type::hvec4_type,  glsl_type::hvec4_type), \
                                                                                          \
                 _##NAME(always_available, glsl_type::int_type,   glsl_type::int_type),   \
                 _##NAME(always_available, glsl_type::ivec2_type, glsl_type::int_type),   \
                 _##NAME(always_available, glsl_type::ivec3_type, glsl_type::int_type),   \
                 _##NAME(always_available, glsl_type::ivec4_type, glsl_type::int_type),   \
+                _##NAME(always_available, glsl_type::hint_type,   glsl_type::hint_type), \
+                _##NAME(always_available, glsl_type::hivec2_type, glsl_type::hint_type), \
+                _##NAME(always_available, glsl_type::hivec3_type, glsl_type::hint_type), \
+                _##NAME(always_available, glsl_type::hivec4_type, glsl_type::hint_type), \
                                                                                          \
                 _##NAME(always_available, glsl_type::ivec2_type, glsl_type::ivec2_type), \
                 _##NAME(always_available, glsl_type::ivec3_type, glsl_type::ivec3_type), \
                 _##NAME(always_available, glsl_type::ivec4_type, glsl_type::ivec4_type), \
+                _##NAME(always_available, glsl_type::hivec2_type, glsl_type::hivec2_type), \
+                _##NAME(always_available, glsl_type::hivec3_type, glsl_type::hivec3_type), \
+                _##NAME(always_available, glsl_type::hivec4_type, glsl_type::hivec4_type), \
                                                                                          \
                 _##NAME(v130, glsl_type::uint_type,  glsl_type::uint_type),              \
                 _##NAME(v130, glsl_type::uvec2_type, glsl_type::uint_type),              \
                 _##NAME(v130, glsl_type::uvec3_type, glsl_type::uint_type),              \
                 _##NAME(v130, glsl_type::uvec4_type, glsl_type::uint_type),              \
+                _##NAME(v130, glsl_type::huint_type,  glsl_type::huint_type),            \
+                _##NAME(v130, glsl_type::huvec2_type, glsl_type::huint_type),            \
+                _##NAME(v130, glsl_type::huvec3_type, glsl_type::huint_type),            \
+                _##NAME(v130, glsl_type::huvec4_type, glsl_type::huint_type),            \
                                                                                          \
                 _##NAME(v130, glsl_type::uvec2_type, glsl_type::uvec2_type),             \
                 _##NAME(v130, glsl_type::uvec3_type, glsl_type::uvec3_type),             \
                 _##NAME(v130, glsl_type::uvec4_type, glsl_type::uvec4_type),             \
+                _##NAME(v130, glsl_type::huvec2_type, glsl_type::huvec2_type),           \
+                _##NAME(v130, glsl_type::huvec3_type, glsl_type::huvec3_type),           \
+                _##NAME(v130, glsl_type::huvec4_type, glsl_type::huvec4_type),           \
                                                                                          \
                 _##NAME(fp64, glsl_type::double_type, glsl_type::double_type),           \
                 _##NAME(fp64, glsl_type::dvec2_type, glsl_type::double_type),           \
@@ -1262,10 +1350,18 @@ builtin_builder::create_builtins()
                 _atan(glsl_type::vec2_type),
                 _atan(glsl_type::vec3_type),
                 _atan(glsl_type::vec4_type),
+                _atan(glsl_type::hfloat_type),
+                _atan(glsl_type::hvec2_type),
+                _atan(glsl_type::hvec3_type),
+                _atan(glsl_type::hvec4_type),
                 _atan2(glsl_type::float_type),
                 _atan2(glsl_type::vec2_type),
                 _atan2(glsl_type::vec3_type),
                 _atan2(glsl_type::vec4_type),
+                _atan2(glsl_type::hfloat_type),
+                _atan2(glsl_type::hvec2_type),
+                _atan2(glsl_type::hvec3_type),
+                _atan2(glsl_type::hvec4_type),
                 NULL);
 
    F(sinh)
@@ -1295,10 +1391,31 @@ builtin_builder::create_builtins()
                 _mod(always_available, glsl_type::vec2_type,  glsl_type::float_type),
                 _mod(always_available, glsl_type::vec3_type,  glsl_type::float_type),
                 _mod(always_available, glsl_type::vec4_type,  glsl_type::float_type),
+                _mod(always_available, glsl_type::hfloat_type, glsl_type::hfloat_type),
+                _mod(always_available, glsl_type::hvec2_type,  glsl_type::hfloat_type),
+                _mod(always_available, glsl_type::hvec3_type,  glsl_type::hfloat_type),
+                _mod(always_available, glsl_type::hvec4_type,  glsl_type::hfloat_type),
+                _mod(always_available, glsl_type::float_type, glsl_type::hfloat_type),
+                _mod(always_available, glsl_type::vec2_type,  glsl_type::hfloat_type),
+                _mod(always_available, glsl_type::vec3_type,  glsl_type::hfloat_type),
+                _mod(always_available, glsl_type::vec4_type,  glsl_type::hfloat_type),
+                _mod(always_available, glsl_type::hfloat_type, glsl_type::float_type),
+                _mod(always_available, glsl_type::hvec2_type,  glsl_type::float_type),
+                _mod(always_available, glsl_type::hvec3_type,  glsl_type::float_type),
+                _mod(always_available, glsl_type::hvec4_type,  glsl_type::float_type),
 
                 _mod(always_available, glsl_type::vec2_type,  glsl_type::vec2_type),
                 _mod(always_available, glsl_type::vec3_type,  glsl_type::vec3_type),
                 _mod(always_available, glsl_type::vec4_type,  glsl_type::vec4_type),
+                _mod(always_available, glsl_type::hvec2_type,  glsl_type::hvec2_type),
+                _mod(always_available, glsl_type::hvec3_type,  glsl_type::hvec3_type),
+                _mod(always_available, glsl_type::hvec4_type,  glsl_type::hvec4_type),
+                _mod(always_available, glsl_type::vec2_type,  glsl_type::hvec2_type),
+                _mod(always_available, glsl_type::vec3_type,  glsl_type::hvec3_type),
+                _mod(always_available, glsl_type::vec4_type,  glsl_type::hvec4_type),
+                _mod(always_available, glsl_type::hvec2_type,  glsl_type::vec2_type),
+                _mod(always_available, glsl_type::hvec3_type,  glsl_type::vec3_type),
+                _mod(always_available, glsl_type::hvec4_type,  glsl_type::vec4_type),
 
                 _mod(fp64, glsl_type::double_type, glsl_type::double_type),
                 _mod(fp64, glsl_type::dvec2_type,  glsl_type::double_type),
@@ -1321,10 +1438,17 @@ builtin_builder::create_builtins()
                 _mix_lrp(always_available, glsl_type::vec2_type,  glsl_type::float_type),
                 _mix_lrp(always_available, glsl_type::vec3_type,  glsl_type::float_type),
                 _mix_lrp(always_available, glsl_type::vec4_type,  glsl_type::float_type),
+                _mix_lrp(always_available, glsl_type::hfloat_type, glsl_type::hfloat_type),
+                _mix_lrp(always_available, glsl_type::hvec2_type,  glsl_type::hfloat_type),
+                _mix_lrp(always_available, glsl_type::hvec3_type,  glsl_type::hfloat_type),
+                _mix_lrp(always_available, glsl_type::hvec4_type,  glsl_type::hfloat_type),
 
                 _mix_lrp(always_available, glsl_type::vec2_type,  glsl_type::vec2_type),
                 _mix_lrp(always_available, glsl_type::vec3_type,  glsl_type::vec3_type),
                 _mix_lrp(always_available, glsl_type::vec4_type,  glsl_type::vec4_type),
+                _mix_lrp(always_available, glsl_type::hvec2_type,  glsl_type::hvec2_type),
+                _mix_lrp(always_available, glsl_type::hvec3_type,  glsl_type::hvec3_type),
+                _mix_lrp(always_available, glsl_type::hvec4_type,  glsl_type::hvec4_type),
 
                 _mix_lrp(fp64, glsl_type::double_type, glsl_type::double_type),
                 _mix_lrp(fp64, glsl_type::dvec2_type,  glsl_type::double_type),
@@ -1339,6 +1463,10 @@ builtin_builder::create_builtins()
                 _mix_sel(v130, glsl_type::vec2_type,  glsl_type::bvec2_type),
                 _mix_sel(v130, glsl_type::vec3_type,  glsl_type::bvec3_type),
                 _mix_sel(v130, glsl_type::vec4_type,  glsl_type::bvec4_type),
+                _mix_sel(v130, glsl_type::hfloat_type, glsl_type::bool_type),
+                _mix_sel(v130, glsl_type::hvec2_type,  glsl_type::bvec2_type),
+                _mix_sel(v130, glsl_type::hvec3_type,  glsl_type::bvec3_type),
+                _mix_sel(v130, glsl_type::hvec4_type,  glsl_type::bvec4_type),
 
                 _mix_sel(fp64, glsl_type::double_type, glsl_type::bool_type),
                 _mix_sel(fp64, glsl_type::dvec2_type,  glsl_type::bvec2_type),
@@ -1349,11 +1477,19 @@ builtin_builder::create_builtins()
                 _mix_sel(shader_integer_mix, glsl_type::ivec2_type, glsl_type::bvec2_type),
                 _mix_sel(shader_integer_mix, glsl_type::ivec3_type, glsl_type::bvec3_type),
                 _mix_sel(shader_integer_mix, glsl_type::ivec4_type, glsl_type::bvec4_type),
+                _mix_sel(shader_integer_mix, glsl_type::hint_type,   glsl_type::bool_type),
+                _mix_sel(shader_integer_mix, glsl_type::hivec2_type, glsl_type::bvec2_type),
+                _mix_sel(shader_integer_mix, glsl_type::hivec3_type, glsl_type::bvec3_type),
+                _mix_sel(shader_integer_mix, glsl_type::hivec4_type, glsl_type::bvec4_type),
 
                 _mix_sel(shader_integer_mix, glsl_type::uint_type,  glsl_type::bool_type),
                 _mix_sel(shader_integer_mix, glsl_type::uvec2_type, glsl_type::bvec2_type),
                 _mix_sel(shader_integer_mix, glsl_type::uvec3_type, glsl_type::bvec3_type),
                 _mix_sel(shader_integer_mix, glsl_type::uvec4_type, glsl_type::bvec4_type),
+                _mix_sel(shader_integer_mix, glsl_type::huint_type,  glsl_type::bool_type),
+                _mix_sel(shader_integer_mix, glsl_type::huvec2_type, glsl_type::bvec2_type),
+                _mix_sel(shader_integer_mix, glsl_type::huvec3_type, glsl_type::bvec3_type),
+                _mix_sel(shader_integer_mix, glsl_type::huvec4_type, glsl_type::bvec4_type),
 
                 _mix_sel(shader_integer_mix, glsl_type::bool_type,  glsl_type::bool_type),
                 _mix_sel(shader_integer_mix, glsl_type::bvec2_type, glsl_type::bvec2_type),
@@ -1366,10 +1502,17 @@ builtin_builder::create_builtins()
                 _step(always_available, glsl_type::float_type, glsl_type::vec2_type),
                 _step(always_available, glsl_type::float_type, glsl_type::vec3_type),
                 _step(always_available, glsl_type::float_type, glsl_type::vec4_type),
+                _step(always_available, glsl_type::hfloat_type, glsl_type::hfloat_type),
+                _step(always_available, glsl_type::hfloat_type, glsl_type::hvec2_type),
+                _step(always_available, glsl_type::hfloat_type, glsl_type::hvec3_type),
+                _step(always_available, glsl_type::hfloat_type, glsl_type::hvec4_type),
 
                 _step(always_available, glsl_type::vec2_type,  glsl_type::vec2_type),
                 _step(always_available, glsl_type::vec3_type,  glsl_type::vec3_type),
                 _step(always_available, glsl_type::vec4_type,  glsl_type::vec4_type),
+                _step(always_available, glsl_type::hvec2_type,  glsl_type::hvec2_type),
+                _step(always_available, glsl_type::hvec3_type,  glsl_type::hvec3_type),
+                _step(always_available, glsl_type::hvec4_type,  glsl_type::hvec4_type),
                 _step(fp64, glsl_type::double_type, glsl_type::double_type),
                 _step(fp64, glsl_type::double_type, glsl_type::dvec2_type),
                 _step(fp64, glsl_type::double_type, glsl_type::dvec3_type),
@@ -1385,10 +1528,17 @@ builtin_builder::create_builtins()
                 _smoothstep(always_available, glsl_type::float_type, glsl_type::vec2_type),
                 _smoothstep(always_available, glsl_type::float_type, glsl_type::vec3_type),
                 _smoothstep(always_available, glsl_type::float_type, glsl_type::vec4_type),
+                _smoothstep(always_available, glsl_type::hfloat_type, glsl_type::hfloat_type),
+                _smoothstep(always_available, glsl_type::hfloat_type, glsl_type::hvec2_type),
+                _smoothstep(always_available, glsl_type::hfloat_type, glsl_type::hvec3_type),
+                _smoothstep(always_available, glsl_type::hfloat_type, glsl_type::hvec4_type),
 
                 _smoothstep(always_available, glsl_type::vec2_type,  glsl_type::vec2_type),
                 _smoothstep(always_available, glsl_type::vec3_type,  glsl_type::vec3_type),
                 _smoothstep(always_available, glsl_type::vec4_type,  glsl_type::vec4_type),
+                _smoothstep(always_available, glsl_type::hvec2_type,  glsl_type::hvec2_type),
+                _smoothstep(always_available, glsl_type::hvec3_type,  glsl_type::hvec3_type),
+                _smoothstep(always_available, glsl_type::hvec4_type,  glsl_type::hvec4_type),
                 _smoothstep(fp64, glsl_type::double_type, glsl_type::double_type),
                 _smoothstep(fp64, glsl_type::double_type, glsl_type::dvec2_type),
                 _smoothstep(fp64, glsl_type::double_type, glsl_type::dvec3_type),
@@ -1435,8 +1585,11 @@ builtin_builder::create_builtins()
    FD(distance)
    FD(dot)
 
-   add_function("cross", _cross(always_available, glsl_type::vec3_type),
-                _cross(fp64, glsl_type::dvec3_type), NULL);
+   add_function("cross",
+                _cross(always_available, glsl_type::vec3_type),
+                _cross(always_available, glsl_type::hvec3_type),
+                _cross(fp64, glsl_type::dvec3_type),
+                NULL);
 
    FD(normalize)
    add_function("ftransform", _ftransform(), NULL);
@@ -1454,6 +1607,15 @@ builtin_builder::create_builtins()
                 _matrixCompMult(always_available, glsl_type::mat3x4_type),
                 _matrixCompMult(always_available, glsl_type::mat4x2_type),
                 _matrixCompMult(always_available, glsl_type::mat4x3_type),
+                _matrixCompMult(always_available, glsl_type::hmat2_type),
+                _matrixCompMult(always_available, glsl_type::hmat3_type),
+                _matrixCompMult(always_available, glsl_type::hmat4_type),
+                _matrixCompMult(always_available, glsl_type::hmat2x3_type),
+                _matrixCompMult(always_available, glsl_type::hmat2x4_type),
+                _matrixCompMult(always_available, glsl_type::hmat3x2_type),
+                _matrixCompMult(always_available, glsl_type::hmat3x4_type),
+                _matrixCompMult(always_available, glsl_type::hmat4x2_type),
+                _matrixCompMult(always_available, glsl_type::hmat4x3_type),
                 _matrixCompMult(fp64, glsl_type::dmat2_type),
                 _matrixCompMult(fp64, glsl_type::dmat3_type),
                 _matrixCompMult(fp64, glsl_type::dmat4_type),
@@ -1474,6 +1636,15 @@ builtin_builder::create_builtins()
                 _outerProduct(v120, glsl_type::mat3x4_type),
                 _outerProduct(v120, glsl_type::mat4x2_type),
                 _outerProduct(v120, glsl_type::mat4x3_type),
+                _outerProduct(v120, glsl_type::hmat2_type),
+                _outerProduct(v120, glsl_type::hmat3_type),
+                _outerProduct(v120, glsl_type::hmat4_type),
+                _outerProduct(v120, glsl_type::hmat2x3_type),
+                _outerProduct(v120, glsl_type::hmat2x4_type),
+                _outerProduct(v120, glsl_type::hmat3x2_type),
+                _outerProduct(v120, glsl_type::hmat3x4_type),
+                _outerProduct(v120, glsl_type::hmat4x2_type),
+                _outerProduct(v120, glsl_type::hmat4x3_type),
                 _outerProduct(fp64, glsl_type::dmat2_type),
                 _outerProduct(fp64, glsl_type::dmat3_type),
                 _outerProduct(fp64, glsl_type::dmat4_type),
@@ -1488,6 +1659,9 @@ builtin_builder::create_builtins()
                 _determinant_mat2(v120, glsl_type::mat2_type),
                 _determinant_mat3(v120, glsl_type::mat3_type),
                 _determinant_mat4(v120, glsl_type::mat4_type),
+                _determinant_mat2(v120, glsl_type::hmat2_type),
+                _determinant_mat3(v120, glsl_type::hmat3_type),
+                _determinant_mat4(v120, glsl_type::hmat4_type),
                 _determinant_mat2(fp64, glsl_type::dmat2_type),
                 _determinant_mat3(fp64, glsl_type::dmat3_type),
                 _determinant_mat4(fp64, glsl_type::dmat4_type),
@@ -1497,6 +1671,9 @@ builtin_builder::create_builtins()
                 _inverse_mat2(v140_or_es3, glsl_type::mat2_type),
                 _inverse_mat3(v140_or_es3, glsl_type::mat3_type),
                 _inverse_mat4(v140_or_es3, glsl_type::mat4_type),
+                _inverse_mat2(v140_or_es3, glsl_type::hmat2_type),
+                _inverse_mat3(v140_or_es3, glsl_type::hmat3_type),
+                _inverse_mat4(v140_or_es3, glsl_type::hmat4_type),
                 _inverse_mat2(fp64, glsl_type::dmat2_type),
                 _inverse_mat3(fp64, glsl_type::dmat3_type),
                 _inverse_mat4(fp64, glsl_type::dmat4_type),
@@ -1511,6 +1688,15 @@ builtin_builder::create_builtins()
                 _transpose(v120, glsl_type::mat3x4_type),
                 _transpose(v120, glsl_type::mat4x2_type),
                 _transpose(v120, glsl_type::mat4x3_type),
+                _transpose(v120, glsl_type::hmat2_type),
+                _transpose(v120, glsl_type::hmat3_type),
+                _transpose(v120, glsl_type::hmat4_type),
+                _transpose(v120, glsl_type::hmat2x3_type),
+                _transpose(v120, glsl_type::hmat2x4_type),
+                _transpose(v120, glsl_type::hmat3x2_type),
+                _transpose(v120, glsl_type::hmat3x4_type),
+                _transpose(v120, glsl_type::hmat4x2_type),
+                _transpose(v120, glsl_type::hmat4x3_type),
                 _transpose(fp64, glsl_type::dmat2_type),
                 _transpose(fp64, glsl_type::dmat3_type),
                 _transpose(fp64, glsl_type::dmat4_type),
@@ -1546,26 +1732,42 @@ builtin_builder::create_builtins()
                 _not(glsl_type::bvec4_type),
                 NULL);
 
+   // TODO combinations w/ mediump return type?
    add_function("textureSize",
                 _textureSize(v130, glsl_type::int_type,   glsl_type::sampler1D_type),
                 _textureSize(v130, glsl_type::int_type,   glsl_type::isampler1D_type),
                 _textureSize(v130, glsl_type::int_type,   glsl_type::usampler1D_type),
+                _textureSize(v130, glsl_type::int_type,   glsl_type::hsampler1D_type),
+                _textureSize(v130, glsl_type::int_type,   glsl_type::hisampler1D_type),
+                _textureSize(v130, glsl_type::int_type,   glsl_type::husampler1D_type),
 
                 _textureSize(v130, glsl_type::ivec2_type, glsl_type::sampler2D_type),
                 _textureSize(v130, glsl_type::ivec2_type, glsl_type::isampler2D_type),
                 _textureSize(v130, glsl_type::ivec2_type, glsl_type::usampler2D_type),
+                _textureSize(v130, glsl_type::ivec2_type, glsl_type::hsampler2D_type),
+                _textureSize(v130, glsl_type::ivec2_type, glsl_type::hisampler2D_type),
+                _textureSize(v130, glsl_type::ivec2_type, glsl_type::husampler2D_type),
 
                 _textureSize(v130, glsl_type::ivec3_type, glsl_type::sampler3D_type),
                 _textureSize(v130, glsl_type::ivec3_type, glsl_type::isampler3D_type),
                 _textureSize(v130, glsl_type::ivec3_type, glsl_type::usampler3D_type),
+                _textureSize(v130, glsl_type::ivec3_type, glsl_type::hsampler3D_type),
+                _textureSize(v130, glsl_type::ivec3_type, glsl_type::hisampler3D_type),
+                _textureSize(v130, glsl_type::ivec3_type, glsl_type::husampler3D_type),
 
                 _textureSize(v130, glsl_type::ivec2_type, glsl_type::samplerCube_type),
                 _textureSize(v130, glsl_type::ivec2_type, glsl_type::isamplerCube_type),
                 _textureSize(v130, glsl_type::ivec2_type, glsl_type::usamplerCube_type),
+                _textureSize(v130, glsl_type::ivec2_type, glsl_type::hsamplerCube_type),
+                _textureSize(v130, glsl_type::ivec2_type, glsl_type::hisamplerCube_type),
+                _textureSize(v130, glsl_type::ivec2_type, glsl_type::husamplerCube_type),
 
                 _textureSize(v130, glsl_type::int_type,   glsl_type::sampler1DShadow_type),
                 _textureSize(v130, glsl_type::ivec2_type, glsl_type::sampler2DShadow_type),
                 _textureSize(v130, glsl_type::ivec2_type, glsl_type::samplerCubeShadow_type),
+                _textureSize(v130, glsl_type::int_type,   glsl_type::hsampler1DShadow_type),
+                _textureSize(v130, glsl_type::ivec2_type, glsl_type::hsampler2DShadow_type),
+                _textureSize(v130, glsl_type::ivec2_type, glsl_type::hsamplerCubeShadow_type),
 
                 _textureSize(v130, glsl_type::ivec2_type, glsl_type::sampler1DArray_type),
                 _textureSize(v130, glsl_type::ivec2_type, glsl_type::isampler1DArray_type),
@@ -1573,19 +1775,35 @@ builtin_builder::create_builtins()
                 _textureSize(v130, glsl_type::ivec3_type, glsl_type::sampler2DArray_type),
                 _textureSize(v130, glsl_type::ivec3_type, glsl_type::isampler2DArray_type),
                 _textureSize(v130, glsl_type::ivec3_type, glsl_type::usampler2DArray_type),
+                _textureSize(v130, glsl_type::ivec2_type, glsl_type::isampler1DArray_type),
+                _textureSize(v130, glsl_type::ivec2_type, glsl_type::hisampler1DArray_type),
+                _textureSize(v130, glsl_type::ivec2_type, glsl_type::husampler1DArray_type),
+                _textureSize(v130, glsl_type::ivec3_type, glsl_type::hsampler2DArray_type),
+                _textureSize(v130, glsl_type::ivec3_type, glsl_type::hisampler2DArray_type),
+                _textureSize(v130, glsl_type::ivec3_type, glsl_type::husampler2DArray_type),
 
                 _textureSize(v130, glsl_type::ivec2_type, glsl_type::sampler1DArrayShadow_type),
                 _textureSize(v130, glsl_type::ivec3_type, glsl_type::sampler2DArrayShadow_type),
+                _textureSize(v130, glsl_type::ivec2_type, glsl_type::hsampler1DArrayShadow_type),
+                _textureSize(v130, glsl_type::ivec3_type, glsl_type::hsampler2DArrayShadow_type),
 
                 _textureSize(texture_cube_map_array, glsl_type::ivec3_type, glsl_type::samplerCubeArray_type),
                 _textureSize(texture_cube_map_array, glsl_type::ivec3_type, glsl_type::isamplerCubeArray_type),
                 _textureSize(texture_cube_map_array, glsl_type::ivec3_type, glsl_type::usamplerCubeArray_type),
                 _textureSize(texture_cube_map_array, glsl_type::ivec3_type, glsl_type::samplerCubeArrayShadow_type),
+                _textureSize(texture_cube_map_array, glsl_type::ivec3_type, glsl_type::hsamplerCubeArray_type),
+                _textureSize(texture_cube_map_array, glsl_type::ivec3_type, glsl_type::hisamplerCubeArray_type),
+                _textureSize(texture_cube_map_array, glsl_type::ivec3_type, glsl_type::husamplerCubeArray_type),
+                _textureSize(texture_cube_map_array, glsl_type::ivec3_type, glsl_type::hsamplerCubeArrayShadow_type),
 
                 _textureSize(v130, glsl_type::ivec2_type, glsl_type::sampler2DRect_type),
                 _textureSize(v130, glsl_type::ivec2_type, glsl_type::isampler2DRect_type),
                 _textureSize(v130, glsl_type::ivec2_type, glsl_type::usampler2DRect_type),
                 _textureSize(v130, glsl_type::ivec2_type, glsl_type::sampler2DRectShadow_type),
+                _textureSize(v130, glsl_type::ivec2_type, glsl_type::hsampler2DRect_type),
+                _textureSize(v130, glsl_type::ivec2_type, glsl_type::hisampler2DRect_type),
+                _textureSize(v130, glsl_type::ivec2_type, glsl_type::husampler2DRect_type),
+                _textureSize(v130, glsl_type::ivec2_type, glsl_type::hsampler2DRectShadow_type),
 
                 _textureSize(texture_buffer, glsl_type::int_type,   glsl_type::samplerBuffer_type),
                 _textureSize(texture_buffer, glsl_type::int_type,   glsl_type::isamplerBuffer_type),
@@ -1593,22 +1811,38 @@ builtin_builder::create_builtins()
                 _textureSize(texture_multisample, glsl_type::ivec2_type, glsl_type::sampler2DMS_type),
                 _textureSize(texture_multisample, glsl_type::ivec2_type, glsl_type::isampler2DMS_type),
                 _textureSize(texture_multisample, glsl_type::ivec2_type, glsl_type::usampler2DMS_type),
+                _textureSize(texture_buffer, glsl_type::int_type,   glsl_type::hsamplerBuffer_type),
+                _textureSize(texture_buffer, glsl_type::int_type,   glsl_type::hisamplerBuffer_type),
+                _textureSize(texture_buffer, glsl_type::int_type,   glsl_type::husamplerBuffer_type),
+                _textureSize(texture_multisample, glsl_type::ivec2_type, glsl_type::hsampler2DMS_type),
+                _textureSize(texture_multisample, glsl_type::ivec2_type, glsl_type::hisampler2DMS_type),
+                _textureSize(texture_multisample, glsl_type::ivec2_type, glsl_type::husampler2DMS_type),
 
                 _textureSize(texture_multisample_array, glsl_type::ivec3_type, glsl_type::sampler2DMSArray_type),
                 _textureSize(texture_multisample_array, glsl_type::ivec3_type, glsl_type::isampler2DMSArray_type),
                 _textureSize(texture_multisample_array, glsl_type::ivec3_type, glsl_type::usampler2DMSArray_type),
+                _textureSize(texture_multisample_array, glsl_type::ivec3_type, glsl_type::hsampler2DMSArray_type),
+                _textureSize(texture_multisample_array, glsl_type::ivec3_type, glsl_type::hisampler2DMSArray_type),
+                _textureSize(texture_multisample_array, glsl_type::ivec3_type, glsl_type::husampler2DMSArray_type),
                 NULL);
 
    add_function("textureSamples",
                 _textureSamples(glsl_type::sampler2DMS_type),
                 _textureSamples(glsl_type::isampler2DMS_type),
                 _textureSamples(glsl_type::usampler2DMS_type),
+                _textureSamples(glsl_type::hsampler2DMS_type),
+                _textureSamples(glsl_type::hisampler2DMS_type),
+                _textureSamples(glsl_type::husampler2DMS_type),
 
                 _textureSamples(glsl_type::sampler2DMSArray_type),
                 _textureSamples(glsl_type::isampler2DMSArray_type),
                 _textureSamples(glsl_type::usampler2DMSArray_type),
+                _textureSamples(glsl_type::hsampler2DMSArray_type),
+                _textureSamples(glsl_type::hisampler2DMSArray_type),
+                _textureSamples(glsl_type::husampler2DMSArray_type),
                 NULL);
 
+// XXX finish below here..
    add_function("texture",
                 _texture(ir_tex, v130, glsl_type::vec4_type,  glsl_type::sampler1D_type,  glsl_type::float_type),
                 _texture(ir_tex, v130, glsl_type::ivec4_type, glsl_type::isampler1D_type, glsl_type::float_type),
@@ -3120,6 +3354,12 @@ builtin_builder::imm(float f, unsigned vector_elements)
 }
 
 ir_constant *
+builtin_builder::himm(float f, unsigned vector_elements)
+{
+   return new(mem_ctx) ir_constant(f, vector_elements, true);
+}
+
+ir_constant *
 builtin_builder::imm(int i, unsigned vector_elements)
 {
    return new(mem_ctx) ir_constant(i, vector_elements);
@@ -3143,7 +3383,22 @@ builtin_builder::imm(const glsl_type *type, const ir_constant_data &data)
    return new(mem_ctx) ir_constant(type, &data);
 }
 
-#define IMM_FP(type, val) (type->base_type == GLSL_TYPE_DOUBLE) ? imm(val) : imm((float)val)
+ir_constant *
+builtin_builder::imm(const glsl_base_type type, double d, unsigned vector_elements)
+{
+   switch (type) {
+   case GLSL_TYPE_DOUBLE:
+      return imm(d, vector_elements);
+   case GLSL_TYPE_FLOAT:
+      return imm((float)d, vector_elements);
+   case GLSL_TYPE_HALF_FLOAT:
+      return himm((float)d, vector_elements);
+   default:
+      unreachable("unknown type");
+      return NULL;
+   }
+}
+#define IMM_FP(type, ...) imm(type->base_type, ##__VA_ARGS__)
 
 ir_dereference_variable *
 builtin_builder::var_ref(ir_variable *var)
@@ -3227,6 +3482,31 @@ builtin_builder::_##NAME(builtin_available_predicate avail, const glsl_type *typ
    return unop(avail, OPCODE, type, type);     \
 }
 
+/* given a base type, return conversion op to go from opposite precision
+ * into the specified base type.  So precision conversion for hfloat would
+ * be f2h (float->hfloat).
+ */
+static ir_expression_operation
+get_precision_conversion(enum glsl_base_type btype)
+{
+   switch (btype) {
+   case GLSL_TYPE_HALF_INT:
+      return ir_unop_i2h;
+   case GLSL_TYPE_HALF_UINT:
+      return ir_unop_u2h;
+   case GLSL_TYPE_HALF_FLOAT:
+      return ir_unop_f2h;
+   case GLSL_TYPE_INT:
+      return ir_unop_h2i;
+   case GLSL_TYPE_UINT:
+      return ir_unop_h2u;
+   case GLSL_TYPE_FLOAT:
+      return ir_unop_h2f;
+   default:
+      return ir_last_opcode;
+   }
+}
+
 ir_function_signature *
 builtin_builder::binop(builtin_available_predicate avail,
                        ir_expression_operation opcode,
@@ -3236,8 +3516,25 @@ builtin_builder::binop(builtin_available_predicate avail,
 {
    ir_variable *x = in_var(param0_type, "x");
    ir_variable *y = in_var(param1_type, "y");
+
    MAKE_SIG(return_type, avail, 2, x, y);
-   body.emit(ret(expr(opcode, x, y)));
+
+   operand opx = x;
+   operand opy = y;
+
+   /* deal with half/full type-mismatches by converting things, as needed,
+    * to the return type.
+    */
+   ir_expression_operation conv =
+         get_precision_conversion(return_type->base_type);
+   if (conv != ir_last_opcode) {
+      if (return_type->is_half() != param0_type->is_half())
+         opx = expr(conv, opx);
+      if (return_type->is_half() != param1_type->is_half())
+         opy = expr(conv, opy);
+   }
+
+   body.emit(ret(expr(opcode, opx, opy)));
    return sig;
 }
 
@@ -3335,7 +3632,7 @@ builtin_builder::_acos(const glsl_type *type)
    ir_variable *x = in_var(type, "x");
    MAKE_SIG(type, always_available, 1, x);
 
-   body.emit(ret(sub(imm(M_PI_2f), asin_expr(x, 0.08132463f, -0.02363318f))));
+   body.emit(ret(sub(IMM_FP(type, M_PI_2f), asin_expr(x, 0.08132463f, -0.02363318f))));
 
    return sig;
 }
@@ -3357,7 +3654,7 @@ builtin_builder::_atan2(const glsl_type *type)
 
       /* If |x| >= 1.0e-8 * |y|: */
       ir_if *outer_if =
-         new(mem_ctx) ir_if(greater(abs(x), mul(imm(1.0e-8f), abs(y))));
+         new(mem_ctx) ir_if(greater(abs(x), mul(IMM_FP(type, 1.0e-8f), abs(y))));
 
       ir_factory outer_then(&outer_if->then_instructions, mem_ctx);
 
@@ -3365,16 +3662,16 @@ builtin_builder::_atan2(const glsl_type *type)
       do_atan(outer_then, glsl_type::float_type, r, div(y, x));
 
       /*     ...and fix it up: */
-      ir_if *inner_if = new(mem_ctx) ir_if(less(x, imm(0.0f)));
+      ir_if *inner_if = new(mem_ctx) ir_if(less(x, IMM_FP(type, 0.0f)));
       inner_if->then_instructions.push_tail(
-         if_tree(gequal(y, imm(0.0f)),
-                 assign(r, add(r, imm(M_PIf))),
-                 assign(r, sub(r, imm(M_PIf)))));
+         if_tree(gequal(y, IMM_FP(type, 0.0f)),
+                 assign(r, add(r, IMM_FP(type, M_PIf))),
+                 assign(r, sub(r, IMM_FP(type, M_PIf)))));
       outer_then.emit(inner_if);
 
       /* Else... */
       outer_if->else_instructions.push_tail(
-         assign(r, mul(sign(y), imm(M_PI_2f))));
+         assign(r, mul(sign(y), IMM_FP(type, M_PI_2f))));
 
       body.emit(outer_if);
 
@@ -3397,9 +3694,9 @@ builtin_builder::do_atan(ir_factory &body, const glsl_type *type, ir_variable *r
     */
    ir_variable *x = body.make_temp(type, "atan_x");
    body.emit(assign(x, div(min2(abs(y_over_x),
-                                imm(1.0f)),
+                                IMM_FP(type, 1.0f)),
                            max2(abs(y_over_x),
-                                imm(1.0f)))));
+                                IMM_FP(type, 1.0f)))));
 
    /*
     * approximate atan by evaluating polynomial:
@@ -3410,26 +3707,26 @@ builtin_builder::do_atan(ir_factory &body, const glsl_type *type, ir_variable *r
     */
    ir_variable *tmp = body.make_temp(type, "atan_tmp");
    body.emit(assign(tmp, mul(x, x)));
-   body.emit(assign(tmp, mul(add(mul(sub(mul(add(mul(sub(mul(add(mul(imm(-0.0121323213173444f),
+   body.emit(assign(tmp, mul(add(mul(sub(mul(add(mul(sub(mul(add(mul(IMM_FP(type, -0.0121323213173444f),
                                                                      tmp),
-                                                                 imm(0.0536813784310406f)),
+                                                                 IMM_FP(type, 0.0536813784310406f)),
                                                              tmp),
-                                                         imm(0.1173503194786851f)),
+                                                         IMM_FP(type, 0.1173503194786851f)),
                                                      tmp),
-                                                 imm(0.1938924977115610f)),
+                                                 IMM_FP(type, 0.1938924977115610f)),
                                              tmp),
-                                         imm(0.3326756418091246f)),
+                                         IMM_FP(type, 0.3326756418091246f)),
                                      tmp),
-                                 imm(0.9999793128310355f)),
+                                 IMM_FP(type, 0.9999793128310355f)),
                              x)));
 
    /* range-reduction fixup */
    body.emit(assign(tmp, add(tmp,
                              mul(b2f(greater(abs(y_over_x),
-                                          imm(1.0f, type->components()))),
+                                          IMM_FP(type, 1.0f, type->components()))),
                                   add(mul(tmp,
-                                          imm(-2.0f)),
-                                      imm(M_PI_2f))))));
+                                          IMM_FP(type, -2.0f)),
+                                      IMM_FP(type, M_PI_2f))))));
 
    /* sign fixup */
    body.emit(assign(res, mul(tmp, sign(y_over_x))));
@@ -3455,7 +3752,7 @@ builtin_builder::_sinh(const glsl_type *type)
    MAKE_SIG(type, v130, 1, x);
 
    /* 0.5 * (e^x - e^(-x)) */
-   body.emit(ret(mul(imm(0.5f), sub(exp(x), exp(neg(x))))));
+   body.emit(ret(mul(IMM_FP(type, 0.5f), sub(exp(x), exp(neg(x))))));
 
    return sig;
 }
@@ -3467,7 +3764,7 @@ builtin_builder::_cosh(const glsl_type *type)
    MAKE_SIG(type, v130, 1, x);
 
    /* 0.5 * (e^x + e^(-x)) */
-   body.emit(ret(mul(imm(0.5f), add(exp(x), exp(neg(x))))));
+   body.emit(ret(mul(IMM_FP(type, 0.5f), add(exp(x), exp(neg(x))))));
 
    return sig;
 }
@@ -3492,7 +3789,7 @@ builtin_builder::_asinh(const glsl_type *type)
    MAKE_SIG(type, v130, 1, x);
 
    body.emit(ret(mul(sign(x), log(add(abs(x), sqrt(add(mul(x, x),
-                                                       imm(1.0f))))))));
+                                                       IMM_FP(type, 1.0f))))))));
    return sig;
 }
 
@@ -3502,7 +3799,7 @@ builtin_builder::_acosh(const glsl_type *type)
    ir_variable *x = in_var(type, "x");
    MAKE_SIG(type, v130, 1, x);
 
-   body.emit(ret(log(add(x, sqrt(sub(mul(x, x), imm(1.0f)))))));
+   body.emit(ret(log(add(x, sqrt(sub(mul(x, x), IMM_FP(type, 1.0f)))))));
    return sig;
 }
 
@@ -3512,8 +3809,8 @@ builtin_builder::_atanh(const glsl_type *type)
    ir_variable *x = in_var(type, "x");
    MAKE_SIG(type, v130, 1, x);
 
-   body.emit(ret(mul(imm(0.5f), log(div(add(imm(1.0f), x),
-                                        sub(imm(1.0f), x))))));
+   body.emit(ret(mul(IMM_FP(type, 0.5f), log(div(add(IMM_FP(type, 1.0f), x),
+                                        sub(IMM_FP(type, 1.0f), x))))));
    return sig;
 }
 /** @} */
@@ -3715,6 +4012,7 @@ builtin_builder::_isinf(builtin_available_predicate avail, const glsl_type *type
    for (int i = 0; i < type->vector_elements; i++) {
       switch (type->base_type) {
       case GLSL_TYPE_FLOAT:
+      case GLSL_TYPE_HALF_FLOAT:
          infinities.f[i] = INFINITY;
          break;
       case GLSL_TYPE_DOUBLE:
@@ -4168,7 +4466,16 @@ builtin_builder::_determinant_mat4(builtin_available_predicate avail, const glsl
    body.emit(assign(SubFactor17, sub(mul(matrix_elt(m, 1, 0), matrix_elt(m, 2, 2)), mul(matrix_elt(m, 2, 0), matrix_elt(m, 1, 2)))));
    body.emit(assign(SubFactor18, sub(mul(matrix_elt(m, 1, 0), matrix_elt(m, 2, 1)), mul(matrix_elt(m, 2, 0), matrix_elt(m, 1, 1)))));
 
-   ir_variable *adj_0 = body.make_temp(btype == glsl_type::float_type ? glsl_type::vec4_type : glsl_type::dvec4_type, "adj_0");
+   const glsl_type *adj_0_type;
+   if (btype == glsl_type::hfloat_type) {
+      adj_0_type = glsl_type::hvec4_type;
+   } else if (btype == glsl_type::float_type) {
+      adj_0_type = glsl_type::vec4_type;
+   } else {
+      adj_0_type = glsl_type::dvec4_type;
+      assert(btype == glsl_type::double_type);
+   }
+   ir_variable *adj_0 = body.make_temp(adj_0_type, "adj_0");
 
    body.emit(assign(adj_0,
                     add(sub(mul(matrix_elt(m, 1, 1), SubFactor00),
