@@ -622,7 +622,8 @@ glsl_type::get_instance(unsigned base_type, unsigned rows, unsigned columns)
          return error_type;
       }
    } else {
-      if ((base_type != GLSL_TYPE_FLOAT && base_type != GLSL_TYPE_DOUBLE) || (rows == 1))
+      if ((base_type != GLSL_TYPE_FLOAT && base_type != GLSL_TYPE_DOUBLE &&
+           base_type != GLSL_TYPE_HALF_FLOAT) || (rows == 1))
          return error_type;
 
       /* GLSL matrix types are named mat{COLUMNS}x{ROWS}.  Only the following
