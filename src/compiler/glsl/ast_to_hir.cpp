@@ -1080,8 +1080,11 @@ do_comparison(void *mem_ctx, int operation, ir_rvalue *op0, ir_rvalue *op1)
 
    switch (op0->type->base_type) {
    case GLSL_TYPE_FLOAT:
+   case GLSL_TYPE_HALF_FLOAT:
    case GLSL_TYPE_UINT:
+   case GLSL_TYPE_HALF_UINT:
    case GLSL_TYPE_INT:
+   case GLSL_TYPE_HALF_INT:
    case GLSL_TYPE_BOOL:
    case GLSL_TYPE_DOUBLE:
       return new(mem_ctx) ir_expression(operation, op0, op1);

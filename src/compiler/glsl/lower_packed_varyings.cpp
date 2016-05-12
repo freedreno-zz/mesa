@@ -607,10 +607,21 @@ lower_packed_varyings_visitor::get_packed_varying_deref(
    if (this->packed_varyings[slot] == NULL) {
       char *packed_name = ralloc_asprintf(this->mem_ctx, "packed:%s", name);
       const glsl_type *packed_type;
+      bool is_half;
+      switch (unpacked_var->type->base_type) {
+      case GLSL_TYPE_HALF_UINT:
+      case GLSL_TYPE_HALF_INT:
+      case GLSL_TYPE_HALF_FLOAT:
+         is_half = true;
+         break;
+      default:
+         is_half = false;
+         break;
+      }
       if (unpacked_var->data.interpolation == INTERP_QUALIFIER_FLAT)
-         packed_type = glsl_type::ivec4_type;
+         packed_type = is_half ? glsl_type::hivec4_type : glsl_type::ivec4_type;
       else
-         packed_type = glsl_type::vec4_type;
+         packed_type = is_half ? glsl_type::hvec4_type : glsl_type::vec4_type;
       if (this->gs_input_vertices != 0) {
          packed_type =
             glsl_type::get_array_instance(packed_type,

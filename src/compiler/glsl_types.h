@@ -48,8 +48,11 @@ _mesa_glsl_release_types(void);
 
 enum glsl_base_type {
    GLSL_TYPE_UINT = 0,
+   GLSL_TYPE_HALF_UINT,
    GLSL_TYPE_INT,
+   GLSL_TYPE_HALF_INT,
    GLSL_TYPE_FLOAT,
+   GLSL_TYPE_HALF_FLOAT,
    GLSL_TYPE_DOUBLE,
    GLSL_TYPE_BOOL,
    GLSL_TYPE_SAMPLER,
@@ -122,10 +125,11 @@ struct glsl_type {
    unsigned sampler_dimensionality:3; /**< \see glsl_sampler_dim */
    unsigned sampler_shadow:1;
    unsigned sampler_array:1;
-   unsigned sampled_type:2;    /**< Type of data returned using this
-				* sampler or image.  Only \c
-				* GLSL_TYPE_FLOAT, \c GLSL_TYPE_INT,
-				* and \c GLSL_TYPE_UINT are valid.
+   unsigned sampled_type:3;    /**< Type of data returned using this
+				* sampler or image.  Only \c GLSL_TYPE_FLOAT,
+				* \c GLSL_TYPE_HALF_FLOAT, \c GLSL_TYPE_INT,
+				* \c GLSL_TYPE_HALF_INT, \c GLSL_TYPE_UINT, and
+				* \c GLSL_TYPE_HALF_UINT are valid.
 				*/
    unsigned interface_packing:2;
 
@@ -210,9 +214,12 @@ struct glsl_type {
     * @{
     */
    static const glsl_type *vec(unsigned components);
+   static const glsl_type *hvec(unsigned components);
    static const glsl_type *dvec(unsigned components);
    static const glsl_type *ivec(unsigned components);
+   static const glsl_type *hivec(unsigned components);
    static const glsl_type *uvec(unsigned components);
+   static const glsl_type *huvec(unsigned components);
    static const glsl_type *bvec(unsigned components);
    /**@}*/
 
@@ -442,7 +449,7 @@ struct glsl_type {
    bool is_matrix() const
    {
       /* GLSL only has float matrices. */
-      return (matrix_columns > 1) && (base_type == GLSL_TYPE_FLOAT || base_type == GLSL_TYPE_DOUBLE);
+      return (matrix_columns > 1) && (is_float() || is_double());
    }
 
    /**
@@ -458,7 +465,8 @@ struct glsl_type {
     */
    bool is_integer() const
    {
-      return (base_type == GLSL_TYPE_UINT) || (base_type == GLSL_TYPE_INT);
+      return (base_type == GLSL_TYPE_UINT) || (base_type == GLSL_TYPE_INT) ||
+             (base_type == GLSL_TYPE_HALF_UINT) || (base_type == GLSL_TYPE_HALF_INT);
    }
 
    /**
@@ -478,7 +486,7 @@ struct glsl_type {
     */
    bool is_float() const
    {
-      return base_type == GLSL_TYPE_FLOAT;
+      return (base_type == GLSL_TYPE_FLOAT) || (base_type == GLSL_TYPE_HALF_FLOAT);
    }
 
    /**
@@ -487,6 +495,16 @@ struct glsl_type {
    bool is_double() const
    {
       return base_type == GLSL_TYPE_DOUBLE;
+   }
+
+   /**
+    * Query whether or not a type is half-precision
+    */
+   bool is_half() const
+   {
+      return (base_type == GLSL_TYPE_HALF_FLOAT) ||
+            (base_type == GLSL_TYPE_HALF_INT) ||
+            (base_type == GLSL_TYPE_HALF_UINT);
    }
 
    /**

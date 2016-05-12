@@ -370,10 +370,16 @@ const glsl_type *glsl_type::get_base_type() const
    switch (base_type) {
    case GLSL_TYPE_UINT:
       return uint_type;
+   case GLSL_TYPE_HALF_UINT:
+      return huint_type;
    case GLSL_TYPE_INT:
       return int_type;
+   case GLSL_TYPE_HALF_INT:
+      return hint_type;
    case GLSL_TYPE_FLOAT:
       return float_type;
+   case GLSL_TYPE_HALF_FLOAT:
+      return hfloat_type;
    case GLSL_TYPE_DOUBLE:
       return double_type;
    case GLSL_TYPE_BOOL:
@@ -396,10 +402,16 @@ const glsl_type *glsl_type::get_scalar_type() const
    switch (type->base_type) {
    case GLSL_TYPE_UINT:
       return uint_type;
+   case GLSL_TYPE_HALF_UINT:
+      return huint_type;
    case GLSL_TYPE_INT:
       return int_type;
+   case GLSL_TYPE_HALF_INT:
+      return hint_type;
    case GLSL_TYPE_FLOAT:
       return float_type;
+   case GLSL_TYPE_HALF_FLOAT:
+      return hfloat_type;
    case GLSL_TYPE_DOUBLE:
       return double_type;
    case GLSL_TYPE_BOOL:
@@ -493,6 +505,18 @@ glsl_type::vec(unsigned components)
 }
 
 const glsl_type *
+glsl_type::hvec(unsigned components)
+{
+   if (components == 0 || components > 4)
+      return error_type;
+
+   static const glsl_type *const ts[] = {
+      hfloat_type, hvec2_type, hvec3_type, hvec4_type
+   };
+   return ts[components - 1];
+}
+
+const glsl_type *
 glsl_type::dvec(unsigned components)
 {
    if (components == 0 || components > 4)
@@ -516,6 +540,17 @@ glsl_type::ivec(unsigned components)
    return ts[components - 1];
 }
 
+const glsl_type *
+glsl_type::hivec(unsigned components)
+{
+   if (components == 0 || components > 4)
+      return error_type;
+
+   static const glsl_type *const ts[] = {
+      hint_type, hivec2_type, hivec3_type, hivec4_type
+   };
+   return ts[components - 1];
+}
 
 const glsl_type *
 glsl_type::uvec(unsigned components)
@@ -529,6 +564,17 @@ glsl_type::uvec(unsigned components)
    return ts[components - 1];
 }
 
+const glsl_type *
+glsl_type::huvec(unsigned components)
+{
+   if (components == 0 || components > 4)
+      return error_type;
+
+   static const glsl_type *const ts[] = {
+      huint_type, huvec2_type, huvec3_type, huvec4_type
+   };
+   return ts[components - 1];
+}
 
 const glsl_type *
 glsl_type::bvec(unsigned components)
@@ -558,10 +604,16 @@ glsl_type::get_instance(unsigned base_type, unsigned rows, unsigned columns)
       switch (base_type) {
       case GLSL_TYPE_UINT:
          return uvec(rows);
+      case GLSL_TYPE_HALF_UINT:
+         return huvec(rows);
       case GLSL_TYPE_INT:
          return ivec(rows);
+      case GLSL_TYPE_HALF_INT:
+         return hivec(rows);
       case GLSL_TYPE_FLOAT:
          return vec(rows);
+      case GLSL_TYPE_HALF_FLOAT:
+         return hvec(rows);
       case GLSL_TYPE_DOUBLE:
          return dvec(rows);
       case GLSL_TYPE_BOOL:
@@ -595,6 +647,19 @@ glsl_type::get_instance(unsigned base_type, unsigned rows, unsigned columns)
          case IDX(4,2): return dmat4x2_type;
          case IDX(4,3): return dmat4x3_type;
          case IDX(4,4): return dmat4_type;
+         default: return error_type;
+         }
+      } else if (base_type == GLSL_TYPE_HALF_FLOAT){
+         switch (IDX(columns, rows)) {
+         case IDX(2,2): return hmat2_type;
+         case IDX(2,3): return hmat2x3_type;
+         case IDX(2,4): return hmat2x4_type;
+         case IDX(3,2): return hmat3x2_type;
+         case IDX(3,3): return hmat3_type;
+         case IDX(3,4): return hmat3x4_type;
+         case IDX(4,2): return hmat4x2_type;
+         case IDX(4,3): return hmat4x3_type;
+         case IDX(4,4): return hmat4_type;
          default: return error_type;
          }
       } else {
@@ -1244,8 +1309,11 @@ glsl_type::component_slots() const
 {
    switch (this->base_type) {
    case GLSL_TYPE_UINT:
+   case GLSL_TYPE_HALF_UINT:
    case GLSL_TYPE_INT:
+   case GLSL_TYPE_HALF_INT:
    case GLSL_TYPE_FLOAT:
+   case GLSL_TYPE_HALF_FLOAT:
    case GLSL_TYPE_BOOL:
       return this->components();
 
@@ -1329,8 +1397,11 @@ glsl_type::uniform_locations() const
 
    switch (this->base_type) {
    case GLSL_TYPE_UINT:
+   case GLSL_TYPE_HALF_UINT:
    case GLSL_TYPE_INT:
+   case GLSL_TYPE_HALF_INT:
    case GLSL_TYPE_FLOAT:
+   case GLSL_TYPE_HALF_FLOAT:
    case GLSL_TYPE_DOUBLE:
    case GLSL_TYPE_BOOL:
    case GLSL_TYPE_SAMPLER:
@@ -1357,8 +1428,11 @@ glsl_type::varying_count() const
 
    switch (this->base_type) {
    case GLSL_TYPE_UINT:
+   case GLSL_TYPE_HALF_UINT:
    case GLSL_TYPE_INT:
+   case GLSL_TYPE_HALF_INT:
    case GLSL_TYPE_FLOAT:
+   case GLSL_TYPE_HALF_FLOAT:
    case GLSL_TYPE_DOUBLE:
    case GLSL_TYPE_BOOL:
       return 1;
@@ -1389,13 +1463,6 @@ glsl_type::can_implicitly_convert_to(const glsl_type *desired,
    if (this == desired)
       return true;
 
-   /* ESSL does not allow implicit conversions. If there is no state, we're
-    * doing intra-stage function linking where these checks have already been
-    * done.
-    */
-   if (state && state->es_shader)
-      return false;
-
    /* There is no conversion among matrix types. */
    if (this->matrix_columns > 1 || desired->matrix_columns > 1)
       return false;
@@ -1403,6 +1470,27 @@ glsl_type::can_implicitly_convert_to(const glsl_type *desired,
    /* Vector size must match. */
    if (this->vector_elements != desired->vector_elements)
       return false;
+
+   /* ESSL does not allow implicit conversions. If there is no state, we're
+    * doing intra-stage function linking where these checks have already been
+    * done.
+    */
+   if (state && state->es_shader) {
+      /* allow implicit conversion between half and full types: */
+      if ((this->base_type == GLSL_TYPE_HALF_FLOAT) && (desired->base_type == GLSL_TYPE_FLOAT))
+         return true;
+      if ((this->base_type == GLSL_TYPE_FLOAT) && (desired->base_type == GLSL_TYPE_HALF_FLOAT))
+         return true;
+      if ((this->base_type == GLSL_TYPE_HALF_INT) && (desired->base_type == GLSL_TYPE_INT))
+         return true;
+      if ((this->base_type == GLSL_TYPE_INT) && (desired->base_type == GLSL_TYPE_HALF_INT))
+         return true;
+      if ((this->base_type == GLSL_TYPE_HALF_UINT) && (desired->base_type == GLSL_TYPE_UINT))
+         return true;
+      if ((this->base_type == GLSL_TYPE_UINT) && (desired->base_type == GLSL_TYPE_HALF_UINT))
+         return true;
+      return false;
+   }
 
    /* int and uint can be converted to float. */
    if (desired->is_float() && this->is_integer())
@@ -1926,8 +2014,11 @@ glsl_type::count_attribute_slots(bool is_vertex_input) const
     */
    switch (this->base_type) {
    case GLSL_TYPE_UINT:
+   case GLSL_TYPE_HALF_UINT:
    case GLSL_TYPE_INT:
+   case GLSL_TYPE_HALF_INT:
    case GLSL_TYPE_FLOAT:
+   case GLSL_TYPE_HALF_FLOAT:
    case GLSL_TYPE_BOOL:
       return this->matrix_columns;
    case GLSL_TYPE_DOUBLE:

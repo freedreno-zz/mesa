@@ -334,8 +334,11 @@ ir_constant::clone(void *mem_ctx, struct hash_table *ht) const
 
    switch (this->type->base_type) {
    case GLSL_TYPE_UINT:
+   case GLSL_TYPE_HALF_UINT:
    case GLSL_TYPE_INT:
+   case GLSL_TYPE_HALF_INT:
    case GLSL_TYPE_FLOAT:
+   case GLSL_TYPE_HALF_FLOAT:
    case GLSL_TYPE_DOUBLE:
    case GLSL_TYPE_BOOL:
       return new(mem_ctx) ir_constant(this->type, &this->value);

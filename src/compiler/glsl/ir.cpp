@@ -679,11 +679,12 @@ ir_constant::ir_constant(const struct glsl_type *type,
    memcpy(& this->value, data, sizeof(this->value));
 }
 
-ir_constant::ir_constant(float f, unsigned vector_elements)
+ir_constant::ir_constant(float f, unsigned vector_elements, bool half)
    : ir_rvalue(ir_type_constant)
 {
    assert(vector_elements <= 4);
-   this->type = glsl_type::get_instance(GLSL_TYPE_FLOAT, vector_elements, 1);
+   enum glsl_base_type t = half ? GLSL_TYPE_HALF_FLOAT : GLSL_TYPE_FLOAT;
+   this->type = glsl_type::get_instance(t, vector_elements, 1);
    for (unsigned i = 0; i < vector_elements; i++) {
       this->value.f[i] = f;
    }
@@ -705,11 +706,12 @@ ir_constant::ir_constant(double d, unsigned vector_elements)
    }
 }
 
-ir_constant::ir_constant(unsigned int u, unsigned vector_elements)
+ir_constant::ir_constant(unsigned int u, unsigned vector_elements, bool half)
    : ir_rvalue(ir_type_constant)
 {
    assert(vector_elements <= 4);
-   this->type = glsl_type::get_instance(GLSL_TYPE_UINT, vector_elements, 1);
+   enum glsl_base_type t = half ? GLSL_TYPE_HALF_UINT : GLSL_TYPE_UINT;
+   this->type = glsl_type::get_instance(t, vector_elements, 1);
    for (unsigned i = 0; i < vector_elements; i++) {
       this->value.u[i] = u;
    }
@@ -718,11 +720,12 @@ ir_constant::ir_constant(unsigned int u, unsigned vector_elements)
    }
 }
 
-ir_constant::ir_constant(int integer, unsigned vector_elements)
+ir_constant::ir_constant(int integer, unsigned vector_elements, bool half)
    : ir_rvalue(ir_type_constant)
 {
    assert(vector_elements <= 4);
-   this->type = glsl_type::get_instance(GLSL_TYPE_INT, vector_elements, 1);
+   enum glsl_base_type t = half ? GLSL_TYPE_HALF_INT : GLSL_TYPE_INT;
+   this->type = glsl_type::get_instance(t, vector_elements, 1);
    for (unsigned i = 0; i < vector_elements; i++) {
       this->value.i[i] = integer;
    }
@@ -1251,14 +1254,17 @@ ir_constant::is_value(float f, int i) const
    for (unsigned c = 0; c < this->type->vector_elements; c++) {
       switch (this->type->base_type) {
       case GLSL_TYPE_FLOAT:
+      case GLSL_TYPE_HALF_FLOAT:
 	 if (this->value.f[c] != f)
 	    return false;
 	 break;
       case GLSL_TYPE_INT:
+      case GLSL_TYPE_HALF_INT:
 	 if (this->value.i[c] != i)
 	    return false;
 	 break;
       case GLSL_TYPE_UINT:
+      case GLSL_TYPE_HALF_UINT:
 	 if (this->value.u[c] != unsigned(i))
 	    return false;
 	 break;

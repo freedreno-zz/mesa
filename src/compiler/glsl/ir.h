@@ -2284,9 +2284,9 @@ class ir_constant : public ir_rvalue {
 public:
    ir_constant(const struct glsl_type *type, const ir_constant_data *data);
    ir_constant(bool b, unsigned vector_elements=1);
-   ir_constant(unsigned int u, unsigned vector_elements=1);
-   ir_constant(int i, unsigned vector_elements=1);
-   ir_constant(float f, unsigned vector_elements=1);
+   ir_constant(unsigned int u, unsigned vector_elements=1, bool half=false);
+   ir_constant(int i, unsigned vector_elements=1, bool half=false);
+   ir_constant(float f, unsigned vector_elements=1, bool half=false);
    ir_constant(double d, unsigned vector_elements=1);
 
    /**

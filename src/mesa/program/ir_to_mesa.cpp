@@ -505,8 +505,11 @@ type_size(const struct glsl_type *type)
 
    switch (type->base_type) {
    case GLSL_TYPE_UINT:
+   case GLSL_TYPE_HALF_UINT:
    case GLSL_TYPE_INT:
+   case GLSL_TYPE_HALF_INT:
    case GLSL_TYPE_FLOAT:
+   case GLSL_TYPE_HALF_FLOAT:
    case GLSL_TYPE_BOOL:
       if (type->is_matrix()) {
 	 return type->matrix_columns;
@@ -2519,11 +2522,13 @@ _mesa_associate_uniform_storage(struct gl_context *ctx,
 	 int dmul = 4 * sizeof(float);
 	 switch (storage->type->base_type) {
 	 case GLSL_TYPE_UINT:
+	 case GLSL_TYPE_HALF_UINT:
 	    assert(ctx->Const.NativeIntegers);
 	    format = uniform_native;
 	    columns = 1;
 	    break;
 	 case GLSL_TYPE_INT:
+	 case GLSL_TYPE_HALF_INT:
 	    format =
 	       (ctx->Const.NativeIntegers) ? uniform_native : uniform_int_float;
 	    columns = 1;
@@ -2534,6 +2539,7 @@ _mesa_associate_uniform_storage(struct gl_context *ctx,
                dmul *= 2;
 	    /* fallthrough */
 	 case GLSL_TYPE_FLOAT:
+	 case GLSL_TYPE_HALF_FLOAT:
 	    format = uniform_native;
 	    columns = storage->type->matrix_columns;
 	    break;

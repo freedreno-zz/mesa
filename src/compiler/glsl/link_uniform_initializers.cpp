@@ -54,13 +54,16 @@ copy_constant_to_storage(union gl_constant_value *storage,
    for (unsigned int i = 0; i < elements; i++) {
       switch (base_type) {
       case GLSL_TYPE_UINT:
+      case GLSL_TYPE_HALF_UINT:
 	 storage[i].u = val->value.u[i];
 	 break;
       case GLSL_TYPE_INT:
+      case GLSL_TYPE_HALF_INT:
       case GLSL_TYPE_SAMPLER:
 	 storage[i].i = val->value.i[i];
 	 break;
       case GLSL_TYPE_FLOAT:
+      case GLSL_TYPE_HALF_FLOAT:
 	 storage[i].f = val->value.f[i];
 	 break;
       case GLSL_TYPE_DOUBLE:
