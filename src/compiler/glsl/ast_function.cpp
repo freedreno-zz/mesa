@@ -716,6 +716,9 @@ convert_component(ir_rvalue *src, const glsl_type *desired_type)
    switch (a) {
    case GLSL_TYPE_UINT:
       switch (b) {
+      case GLSL_TYPE_HALF_UINT:
+         result = new(ctx) ir_expression(ir_unop_h2u, src);
+         break;
       case GLSL_TYPE_INT:
 	 result = new(ctx) ir_expression(ir_unop_i2u, src);
 	 break;
@@ -731,8 +734,18 @@ convert_component(ir_rvalue *src, const glsl_type *desired_type)
 	 break;
       }
       break;
+   case GLSL_TYPE_HALF_UINT:
+      switch (b) {
+      case GLSL_TYPE_UINT:
+         result = new(ctx) ir_expression(ir_unop_u2h, src);
+         break;
+      }
+      break;
    case GLSL_TYPE_INT:
       switch (b) {
+      case GLSL_TYPE_HALF_INT:
+         result = new(ctx) ir_expression(ir_unop_h2i, src);
+         break;
       case GLSL_TYPE_UINT:
 	 result = new(ctx) ir_expression(ir_unop_u2i, src);
 	 break;
@@ -747,8 +760,18 @@ convert_component(ir_rvalue *src, const glsl_type *desired_type)
 	 break;
       }
       break;
+   case GLSL_TYPE_HALF_INT:
+      switch (b) {
+      case GLSL_TYPE_INT:
+         result = new(ctx) ir_expression(ir_unop_i2h, src);
+         break;
+      }
+      break;
    case GLSL_TYPE_FLOAT:
       switch (b) {
+      case GLSL_TYPE_HALF_FLOAT:
+         result = new(ctx) ir_expression(ir_unop_h2f, src);
+         break;
       case GLSL_TYPE_UINT:
 	 result = new(ctx) ir_expression(ir_unop_u2f, desired_type, src, NULL);
 	 break;
@@ -761,6 +784,13 @@ convert_component(ir_rvalue *src, const glsl_type *desired_type)
       case GLSL_TYPE_DOUBLE:
 	 result = new(ctx) ir_expression(ir_unop_d2f, desired_type, src, NULL);
 	 break;
+      }
+      break;
+   case GLSL_TYPE_HALF_FLOAT:
+      switch (b) {
+      case GLSL_TYPE_FLOAT:
+         result = new(ctx) ir_expression(ir_unop_f2h, src);
+         break;
       }
       break;
    case GLSL_TYPE_BOOL:

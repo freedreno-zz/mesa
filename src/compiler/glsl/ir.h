@@ -1371,6 +1371,12 @@ enum ir_expression_operation {
    ir_unop_d2u,         /**< Double-to-unsigned conversion. */
    ir_unop_u2d,         /**< Unsigned-to-double conversion. */
    ir_unop_d2b,         /**< Double-to-boolean conversion. */
+   ir_unop_f2h,         /**< Float to half-float conversion. */
+   ir_unop_h2f,         /**< Half-float to float conversion. */
+   ir_unop_i2h,         /**< Integer to half-integer conversion. */
+   ir_unop_h2i,         /**< Half-integer to integer conversion. */
+   ir_unop_u2h,         /**< Unsigned to half-unsigned conversion. */
+   ir_unop_h2u,         /**< Half-unsigned to unsigned conversion. */
    ir_unop_bitcast_i2f, /**< Bit-identical int-to-float "conversion" */
    ir_unop_bitcast_f2i, /**< Bit-identical float-to-int "conversion" */
    ir_unop_bitcast_u2f, /**< Bit-identical uint-to-float "conversion" */

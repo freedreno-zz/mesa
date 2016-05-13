@@ -256,6 +256,7 @@ ir_expression::ir_expression(int op, ir_rvalue *op0)
    case ir_unop_b2i:
    case ir_unop_u2i:
    case ir_unop_d2i:
+   case ir_unop_h2i:
    case ir_unop_bitcast_f2i:
    case ir_unop_bit_count:
    case ir_unop_find_msb:
@@ -269,6 +270,7 @@ ir_expression::ir_expression(int op, ir_rvalue *op0)
    case ir_unop_i2f:
    case ir_unop_u2f:
    case ir_unop_d2f:
+   case ir_unop_h2f:
    case ir_unop_bitcast_i2f:
    case ir_unop_bitcast_u2f:
       this->type = glsl_type::get_instance(GLSL_TYPE_FLOAT,
@@ -292,8 +294,24 @@ ir_expression::ir_expression(int op, ir_rvalue *op0)
    case ir_unop_i2u:
    case ir_unop_f2u:
    case ir_unop_d2u:
+   case ir_unop_h2u:
    case ir_unop_bitcast_f2u:
       this->type = glsl_type::get_instance(GLSL_TYPE_UINT,
+					   op0->type->vector_elements, 1);
+      break;
+
+   case ir_unop_f2h:
+      this->type = glsl_type::get_instance(GLSL_TYPE_HALF_FLOAT,
+					   op0->type->vector_elements, 1);
+      break;
+
+   case ir_unop_i2h:
+      this->type = glsl_type::get_instance(GLSL_TYPE_HALF_INT,
+					   op0->type->vector_elements, 1);
+      break;
+
+   case ir_unop_u2h:
+      this->type = glsl_type::get_instance(GLSL_TYPE_HALF_UINT,
 					   op0->type->vector_elements, 1);
       break;
 
@@ -522,6 +540,12 @@ static const char *const operator_strs[] = {
    "d2u",
    "u2d",
    "d2b",
+   "f2h",
+   "h2f",
+   "i2h",
+   "h2i",
+   "u2h",
+   "h2u",
    "bitcast_i2f",
    "bitcast_f2i",
    "bitcast_u2f",
