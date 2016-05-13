@@ -238,6 +238,7 @@ get_implicit_conversion_operation(const glsl_type *to, const glsl_type *from,
    switch (to->base_type) {
    case GLSL_TYPE_FLOAT:
       switch (from->base_type) {
+      case GLSL_TYPE_HALF_FLOAT: return ir_unop_h2f;
       case GLSL_TYPE_INT: return ir_unop_i2f;
       case GLSL_TYPE_UINT: return ir_unop_u2f;
       default: return (ir_expression_operation)0;
@@ -247,7 +248,32 @@ get_implicit_conversion_operation(const glsl_type *to, const glsl_type *from,
       if (!state->is_version(400, 0) && !state->ARB_gpu_shader5_enable)
          return (ir_expression_operation)0;
       switch (from->base_type) {
+         case GLSL_TYPE_HALF_UINT: return ir_unop_h2u;
          case GLSL_TYPE_INT: return ir_unop_i2u;
+         default: return (ir_expression_operation)0;
+      }
+
+   case GLSL_TYPE_INT:
+      switch (from->base_type) {
+         case GLSL_TYPE_HALF_INT: return ir_unop_h2i;
+         default: return (ir_expression_operation)0;
+      }
+
+   case GLSL_TYPE_HALF_FLOAT:
+      switch (from->base_type) {
+         case GLSL_TYPE_FLOAT: return ir_unop_f2h;
+         default: return (ir_expression_operation)0;
+      }
+
+   case GLSL_TYPE_HALF_UINT:
+      switch (from->base_type) {
+         case GLSL_TYPE_UINT: return ir_unop_u2h;
+         default: return (ir_expression_operation)0;
+      }
+
+   case GLSL_TYPE_HALF_INT:
+      switch (from->base_type) {
+         case GLSL_TYPE_INT: return ir_unop_i2h;
          default: return (ir_expression_operation)0;
       }
 
@@ -288,11 +314,7 @@ apply_implicit_conversion(const glsl_type *to, ir_rvalue * &from,
       return true;
 
    /* Prior to GLSL 1.20, there are no implicit conversions */
-   if (!state->is_version(120, 0))
-      return false;
-
-   /* ESSL does not allow implicit conversions */
-   if (state->es_shader)
+   if (!state->is_version(120, 0) && !state->es_shader)
       return false;
 
    /* From page 27 (page 33 of the PDF) of the GLSL 1.50 spec:
@@ -312,6 +334,26 @@ apply_implicit_conversion(const glsl_type *to, ir_rvalue * &from,
                                 from->type->matrix_columns);
 
    ir_expression_operation op = get_implicit_conversion_operation(to, from->type, state);
+
+   /* ESSL does not allow implicit conversions: */
+   if (state->es_shader) {
+      /* but allow internal precision conversions, since we model lower
+       * precision as different glsl_types:
+       */
+      switch (op) {
+      case ir_unop_f2h:
+      case ir_unop_h2f:
+      case ir_unop_u2h:
+      case ir_unop_h2u:
+      case ir_unop_i2h:
+      case ir_unop_h2i:
+         break;
+      default:
+         /* disallow anything else: */
+         return false;
+      }
+   }
+
    if (op) {
       from = new(ctx) ir_expression(op, to, from, NULL);
       return true;
@@ -2546,6 +2588,38 @@ select_gles_precision(unsigned qual_precision,
    return precision;
 }
 
+static glsl_base_type
+half_base_type(glsl_base_type btype)
+{
+   switch (btype) {
+   case GLSL_TYPE_UINT:
+      return GLSL_TYPE_HALF_UINT;
+   case GLSL_TYPE_INT:
+      return GLSL_TYPE_HALF_INT;
+   case GLSL_TYPE_FLOAT:
+      return GLSL_TYPE_HALF_FLOAT;
+   default:
+      unreachable("bad type");
+      return btype;
+   }
+}
+
+static const glsl_type *
+select_precise_type(const glsl_type *type, unsigned precision)
+{
+   if ((precision == GLSL_PRECISION_NONE) || (precision == GLSL_PRECISION_HIGH))
+      return type;
+
+   if (type->is_array()) {
+      const glsl_type *array_type = select_precise_type(type->without_array(), precision);
+      return glsl_type::get_array_instance(array_type, type->array_size());
+   } else {
+      return glsl_type::get_instance(half_base_type(type->base_type),
+                                     type->vector_elements,
+                                     type->matrix_columns);
+   }
+}
+
 const glsl_type *
 ast_fully_specified_type::glsl_type(const char **name,
                                     struct _mesa_glsl_parse_state *state) const
@@ -3632,6 +3706,7 @@ apply_type_qualifier_to_variable(const struct ast_type_qualifier *qual,
    if (state->es_shader) {
       var->data.precision =
          select_gles_precision(qual->precision, var->type, state, loc);
+      var->type = select_precise_type(var->type, var->data.precision);
    }
 
    if (qual->flags.q.patch)
@@ -3722,10 +3797,13 @@ apply_type_qualifier_to_variable(const struct ast_type_qualifier *qual,
        */
       switch (var->type->get_scalar_type()->base_type) {
       case GLSL_TYPE_FLOAT:
+      case GLSL_TYPE_HALF_FLOAT:
          /* Ok in all GLSL versions */
          break;
       case GLSL_TYPE_UINT:
+      case GLSL_TYPE_HALF_UINT:
       case GLSL_TYPE_INT:
+      case GLSL_TYPE_HALF_INT:
          if (state->is_version(130, 300))
             break;
          _mesa_glsl_error(loc, state,
@@ -7548,6 +7626,7 @@ ast_interface_block::hir(exec_list *instructions,
             var->data.precision =
                select_gles_precision(fields[i].precision, fields[i].type,
                                      state, &loc);
+            var->type = select_precise_type(var->type, var->data.precision);
          }
 
          if (fields[i].matrix_layout == GLSL_MATRIX_LAYOUT_INHERITED) {
