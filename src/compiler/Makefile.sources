@@ -136,9 +136,8 @@ LIBGLSL_FILES = \
 # glsl_compiler
 
 GLSL_COMPILER_CXX_FILES = \
-	glsl/standalone_scaffolding.cpp \
-	glsl/standalone_scaffolding.h \
-	glsl/main.cpp
+	glsl/standalone.cpp \
+	glsl/standalone.h
 
 # libglsl generated sources
 LIBGLSL_GENERATED_CXX_FILES = \
