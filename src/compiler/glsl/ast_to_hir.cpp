@@ -1984,15 +1984,15 @@ ast_expression::do_hir(exec_list *instructions,
    }
 
    case ast_int_constant:
-      result = new(ctx) ir_constant(this->primary_expression.int_constant);
+      result = new(ctx) ir_constant(this->primary_expression.int_constant, state->es_shader);
       break;
 
    case ast_uint_constant:
-      result = new(ctx) ir_constant(this->primary_expression.uint_constant);
+      result = new(ctx) ir_constant(this->primary_expression.uint_constant, state->es_shader);
       break;
 
    case ast_float_constant:
-      result = new(ctx) ir_constant(this->primary_expression.float_constant);
+      result = new(ctx) ir_constant(this->primary_expression.float_constant, state->es_shader);
       break;
 
    case ast_bool_constant:
@@ -5423,6 +5423,12 @@ ast_function::hir(exec_list *instructions,
                        "function `%s' has undeclared return type `%s'",
                        name, return_type_name);
       return_type = glsl_type::error_type;
+   }
+
+   if (state->es_shader) {
+      unsigned precision = select_gles_precision(this->return_type->qualifier.precision,
+                                                 return_type, state, &loc);
+      return_type = select_precise_type(return_type, precision);
    }
 
    /* ARB_shader_subroutine states:
