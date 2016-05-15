@@ -252,7 +252,7 @@ lower_fddy(lower_wpos_ytransform_state *state, nir_alu_instr *fddy)
                          nir_src_for_ssa(pt));
 }
 
-static bool
+static void
 lower_wpos_ytransform_block(lower_wpos_ytransform_state *state, nir_block *block)
 {
    nir_foreach_instr_safe(instr, block) {

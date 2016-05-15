@@ -21,9 +21,9 @@ def type_add_size(type_, size):
     return type_ + str(size)
 
 def get_const_field(type_):
-    if type_ == "int32":
+    if type_ == "int32" or type_ == "int16":
         return "i32"
-    if type_ == "uint32":
+    if type_ == "uint32" or type_ == "uint16":
         return "u32"
     if type_ == "int64":
         return "i64"
@@ -31,7 +31,7 @@ def get_const_field(type_):
         return "u64"
     if type_ == "bool32":
         return "u32"
-    if type_ == "float32":
+    if type_ == "float32" or type_ == "float16":
         return "f32"
     if type_ == "float64":
         return "f64"
@@ -244,11 +244,12 @@ unpack_half_1x16(uint16_t u)
 }
 
 /* Some typed vector structures to make things like src0.y work */
+typedef float float16_t;
 typedef float float32_t;
 typedef double float64_t;
 typedef bool bool32_t;
 % for type in ["float", "int", "uint"]:
-% for width in [32, 64]:
+% for width in [16, 32, 64]:
 struct ${type}${width}_vec {
    ${type}${width}_t x;
    ${type}${width}_t y;
@@ -273,7 +274,7 @@ evaluate_${name}(unsigned num_components, unsigned bit_size,
    nir_const_value _dst_val = { { {0, 0, 0, 0} } };
 
    switch (bit_size) {
-   % for bit_size in [32, 64]:
+   % for bit_size in [16, 32, 64]:
    case ${bit_size}: {
       <%
       output_type = type_add_size(op.output_type, bit_size)

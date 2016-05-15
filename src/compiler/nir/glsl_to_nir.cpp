@@ -242,16 +242,19 @@ constant_copy(ir_constant *ir, void *mem_ctx)
    ret->num_elements = 0;
    switch (ir->type->base_type) {
    case GLSL_TYPE_UINT:
+   case GLSL_TYPE_HALF_UINT:
       for (i = 0; i < total_elems; i++)
          ret->value.u[i] = ir->value.u[i];
       break;
 
    case GLSL_TYPE_INT:
+   case GLSL_TYPE_HALF_INT:
       for (i = 0; i < total_elems; i++)
          ret->value.i[i] = ir->value.i[i];
       break;
 
    case GLSL_TYPE_FLOAT:
+   case GLSL_TYPE_HALF_FLOAT:
       for (i = 0; i < total_elems; i++)
          ret->value.f[i] = ir->value.f[i];
       break;
@@ -1197,7 +1200,7 @@ nir_visitor::evaluate_rvalue(ir_rvalue* ir)
 static bool
 type_is_float(glsl_base_type type)
 {
-   return type == GLSL_TYPE_FLOAT || type == GLSL_TYPE_DOUBLE;
+   return type == GLSL_TYPE_FLOAT || type == GLSL_TYPE_HALF_FLOAT || type == GLSL_TYPE_DOUBLE;
 }
 
 void
@@ -1368,6 +1371,28 @@ nir_visitor::visit(ir_expression *ir)
       assert(supports_ints);
       result = nir_u2d(&b, srcs[0]);
       break;
+   case ir_unop_f2h:
+      result = nir_f2h(&b, srcs[0]);
+      break;
+   case ir_unop_h2f:
+      result = nir_h2f(&b, srcs[0]);
+      break;
+   case ir_unop_i2h:
+      assert(supports_ints);
+      result = nir_i2h(&b, srcs[0]);
+      break;
+   case ir_unop_h2i:
+      assert(supports_ints);
+      result = nir_h2i(&b, srcs[0]);
+      break;
+   case ir_unop_u2h:
+      assert(supports_ints);
+      result = nir_u2h(&b, srcs[0]);
+      break;
+   case ir_unop_h2u:
+      assert(supports_ints);
+      result = nir_h2u(&b, srcs[0]);
+      break;
    case ir_unop_i2u:
    case ir_unop_u2i:
    case ir_unop_bitcast_i2f:
@@ -1436,9 +1461,11 @@ nir_visitor::visit(ir_expression *ir)
    case ir_unop_find_msb:
       switch (types[0]) {
       case GLSL_TYPE_UINT:
+      case GLSL_TYPE_HALF_UINT:
          result = nir_ufind_msb(&b, srcs[0]);
          break;
       case GLSL_TYPE_INT:
+      case GLSL_TYPE_HALF_INT:
          result = nir_ifind_msb(&b, srcs[0]);
          break;
       default:

@@ -703,8 +703,11 @@ nir_deref_get_const_initializer_load(nir_shader *shader, nir_deref_var *deref)
    for (unsigned i = 0; i < load->def.num_components; i++) {
       switch (glsl_get_base_type(tail->type)) {
       case GLSL_TYPE_FLOAT:
+      case GLSL_TYPE_HALF_FLOAT:
       case GLSL_TYPE_INT:
+      case GLSL_TYPE_HALF_INT:
       case GLSL_TYPE_UINT:
+      case GLSL_TYPE_HALF_UINT:
          load->value.u32[i] = constant->value.u[matrix_offset + i];
          break;
       case GLSL_TYPE_DOUBLE:

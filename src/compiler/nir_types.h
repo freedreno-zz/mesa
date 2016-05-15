@@ -85,6 +85,11 @@ static inline unsigned
 glsl_get_bit_size(const struct glsl_type *type)
 {
    switch (glsl_get_base_type(type)) {
+   case GLSL_TYPE_HALF_INT:
+   case GLSL_TYPE_HALF_UINT:
+   case GLSL_TYPE_HALF_FLOAT:
+      return 16;
+
    case GLSL_TYPE_INT:
    case GLSL_TYPE_UINT:
    case GLSL_TYPE_BOOL:

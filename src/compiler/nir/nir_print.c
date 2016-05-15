@@ -290,7 +290,9 @@ print_constant(nir_constant *c, const struct glsl_type *type, print_state *state
 
    switch (glsl_get_base_type(type)) {
    case GLSL_TYPE_UINT:
+   case GLSL_TYPE_HALF_UINT:
    case GLSL_TYPE_INT:
+   case GLSL_TYPE_HALF_INT:
    case GLSL_TYPE_BOOL:
       for (i = 0; i < total_elems; i++) {
          if (i > 0) fprintf(fp, ", ");
@@ -299,6 +301,7 @@ print_constant(nir_constant *c, const struct glsl_type *type, print_state *state
       break;
 
    case GLSL_TYPE_FLOAT:
+   case GLSL_TYPE_HALF_FLOAT:
       for (i = 0; i < total_elems; i++) {
          if (i > 0) fprintf(fp, ", ");
          fprintf(fp, "%f", c->value.f[i]);

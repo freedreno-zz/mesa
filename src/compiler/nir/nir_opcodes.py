@@ -92,8 +92,11 @@ tfloat = "float"
 tint = "int"
 tbool = "bool32"
 tuint = "uint"
+tfloat16 = "float16"
 tfloat32 = "float32"
+tint16 = "int16"
 tint32 = "int32"
+tuint16 = "uint16"
 tuint32 = "uint32"
 tuint64 = "uint64"
 tfloat64 = "float64"
@@ -179,6 +182,14 @@ unop_convert("u2d", tfloat64, tuint32, "src0") # Unsigned-to-double conversion.
 # double-to-float conversion
 unop_convert("d2f", tfloat32, tfloat64, "src0") # Double to single precision
 unop_convert("f2d", tfloat64, tfloat32, "src0") # Single to double precision
+
+# half/full conversion:
+unop_convert("f2h", tfloat16, tfloat32, "src0")
+unop_convert("h2f", tfloat32, tfloat16, "src0")
+unop_convert("i2h", tint16, tint32, "src0")
+unop_convert("h2i", tint32, tint16, "src0")
+unop_convert("u2h", tuint16, tuint32, "src0")
+unop_convert("h2u", tuint32, tuint16, "src0")
 
 # Unary floating-point rounding operations.
 

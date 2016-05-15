@@ -177,6 +177,7 @@ match_value(const nir_search_value *value, nir_alu_instr *instr, unsigned src,
          for (unsigned i = 0; i < num_components; ++i) {
             double val;
             switch (load->def.bit_size) {
+            case 16:
             case 32:
                val = load->value.f32[new_swizzle[i]];
                break;
@@ -196,6 +197,7 @@ match_value(const nir_search_value *value, nir_alu_instr *instr, unsigned src,
          for (unsigned i = 0; i < num_components; ++i) {
             int64_t val;
             switch (load->def.bit_size) {
+            case 16:
             case 32:
                val = load->value.i32[new_swizzle[i]];
                break;
@@ -216,6 +218,7 @@ match_value(const nir_search_value *value, nir_alu_instr *instr, unsigned src,
          for (unsigned i = 0; i < num_components; ++i) {
             uint64_t val;
             switch (load->def.bit_size) {
+            case 16:
             case 32:
                val = load->value.u32[new_swizzle[i]];
                break;
@@ -501,6 +504,7 @@ construct_value(const nir_search_value *value,
       case nir_type_float:
          load->def.name = ralloc_asprintf(load, "%f", c->data.d);
          switch (bitsize->dest_size) {
+         case 16:
          case 32:
             load->value.f32[0] = c->data.d;
             break;
@@ -515,6 +519,7 @@ construct_value(const nir_search_value *value,
       case nir_type_int:
          load->def.name = ralloc_asprintf(load, "%" PRIi64, c->data.i);
          switch (bitsize->dest_size) {
+         case 16:
          case 32:
             load->value.i32[0] = c->data.i;
             break;
@@ -529,6 +534,7 @@ construct_value(const nir_search_value *value,
       case nir_type_uint:
          load->def.name = ralloc_asprintf(load, "%" PRIu64, c->data.u);
          switch (bitsize->dest_size) {
+         case 16:
          case 32:
             load->value.u32[0] = c->data.u;
             break;
