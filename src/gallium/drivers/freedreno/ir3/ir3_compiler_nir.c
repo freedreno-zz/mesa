@@ -283,6 +283,12 @@ static void
 put_dst(struct ir3_compile *ctx, struct ir3_instruction **dst)
 {
 	compile_assert(ctx, ctx->dst);
+	if (ctx->dst->bit_size == 16) {
+		// XXX probably need some special handling for fanout/etc?
+		for (unsigned i = 0; i < ctx->dst_size; i++) {
+			dst[i]->regs[0]->flags |= IR3_REG_HALF;
+		}
+	}
 	ctx->dst = NULL;
 }
 
@@ -726,6 +732,8 @@ emit_alu(struct ir3_compile *ctx, nir_alu_instr *alu)
 			dst[i] = ir3_MOV(b, src[i], TYPE_U32);
 		}
 
+		put_dst(ctx, dst);
+
 		return;
 	}
 
@@ -743,6 +751,12 @@ emit_alu(struct ir3_compile *ctx, nir_alu_instr *alu)
 	}
 
 	switch (alu->op) {
+	case nir_op_f2h:
+		dst[0] = ir3_COV(b, src[0], TYPE_F32, TYPE_F16);
+		break;
+	case nir_op_h2f:
+		dst[0] = ir3_COV(b, src[0], TYPE_F16, TYPE_F32);
+		break;
 	case nir_op_f2i:
 		dst[0] = ir3_COV(b, src[0], TYPE_F32, TYPE_S32);
 		break;

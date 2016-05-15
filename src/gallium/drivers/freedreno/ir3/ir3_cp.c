@@ -339,6 +339,11 @@ reg_cp(struct ir3_cp_ctx *ctx, struct ir3_instruction *instr,
 
 		combine_flags(&new_flags, src);
 
+		// XXX mostly to hack around load_immediate's which don't have
+		// proper src/dst type..
+		if ((new_flags & IR3_REG_IMMED) && (src->regs[0]->flags & IR3_REG_HALF))
+			new_flags |= IR3_REG_HALF;
+
 		if (!valid_flags(instr, n, new_flags)) {
 			/* See if lowering an immediate to const would help. */
 			if (valid_flags(instr, n, (new_flags & ~IR3_REG_IMMED) | IR3_REG_CONST)) {
