@@ -268,6 +268,12 @@ choose_best_inexact_overload(_mesa_glsl_parse_state *state,
    if (num_matches == 1)
       return *matches;
 
+   // XXX total hack..  we probably want the is_best_inexact_overload
+   // for picking between multiple inexact matches that only differ
+   // in precision??
+   if (num_matches > 0)
+      return *matches;
+
    /* Without GLSL 4.0 / ARB_gpu_shader5, there is no overload resolution
     * among multiple inexact matches. Note that state may be NULL here if
     * called from the linker; in that case we assume everything supported in

@@ -63,7 +63,7 @@ static nir_shader *
 load_glsl(const char *filename, gl_shader_stage stage)
 {
 	static const struct standalone_options options = {
-			.glsl_version = 140,
+			.glsl_version = 300,
 			.do_link = true,
 	};
 	struct gl_shader_program *prog;

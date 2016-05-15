@@ -225,6 +225,9 @@ cross_validate_types_and_qualifiers(struct gl_shader_program *prog,
        *     correspondence between the vertex language and the
        *     fragment language."
        */
+      // HACK.. need to allow conversion between half and full precision varyings
+      //if (!type_to_match->can_implicitly_convert_to(output->type, NULL))
+      if (0)
       if (!output->type->is_array() || !is_gl_identifier(output->name)) {
          linker_error(prog,
                       "%s shader output `%s' declared as type `%s', "

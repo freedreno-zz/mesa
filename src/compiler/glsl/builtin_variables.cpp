@@ -1116,6 +1116,9 @@ builtin_variable_generator::generate_fs_special_vars()
    /* gl_FragColor and gl_FragData were deprecated starting in desktop GLSL
     * 1.30, and were relegated to the compatibility profile in GLSL 4.20.
     * They were removed from GLSL ES 3.00.
+    *
+    * TODO presumably things like 'precision mediump float;' should control
+    * whether things like gl_FragColor are full or half precision?
     */
    if (compatibility || !state->is_version(420, 300)) {
       add_output(FRAG_RESULT_COLOR, vec4_t, "gl_FragColor");
