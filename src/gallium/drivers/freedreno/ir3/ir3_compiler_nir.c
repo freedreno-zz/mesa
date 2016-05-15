@@ -56,6 +56,10 @@ struct ir3_compile {
 
 	nir_function_impl *impl;
 
+	/* current instruction destination and size: */
+	nir_ssa_def *dst;
+	unsigned dst_size;
+
 	/* For fragment shaders, from the hw perspective the only
 	 * actual input is r0.xy position register passed to bary.f.
 	 * But TGSI doesn't know that, it still declares things as
@@ -257,11 +261,14 @@ get_var(struct ir3_compile *ctx, nir_variable *var)
  * insert in def_ht
  */
 static struct ir3_instruction **
-__get_dst(struct ir3_compile *ctx, void *key, unsigned n)
+get_dst_ssa(struct ir3_compile *ctx, nir_ssa_def *dst, unsigned n)
 {
 	struct ir3_instruction **value =
 		ralloc_array(ctx->def_ht, struct ir3_instruction *, n);
-	_mesa_hash_table_insert(ctx->def_ht, key, value);
+	_mesa_hash_table_insert(ctx->def_ht, dst, value);
+	compile_assert(ctx, !ctx->dst);
+	ctx->dst = dst;
+	ctx->dst_size = n;
 	return value;
 }
 
@@ -269,17 +276,14 @@ static struct ir3_instruction **
 get_dst(struct ir3_compile *ctx, nir_dest *dst, unsigned n)
 {
 	compile_assert(ctx, dst->is_ssa);
-	if (dst->is_ssa) {
-		return __get_dst(ctx, &dst->ssa, n);
-	} else {
-		return __get_dst(ctx, dst->reg.reg, n);
-	}
+	return get_dst_ssa(ctx, &dst->ssa, n);
 }
 
-static struct ir3_instruction **
-get_dst_ssa(struct ir3_compile *ctx, nir_ssa_def *dst, unsigned n)
+static void
+put_dst(struct ir3_compile *ctx, struct ir3_instruction **dst)
 {
-	return __get_dst(ctx, dst, n);
+	compile_assert(ctx, ctx->dst);
+	ctx->dst = NULL;
 }
 
 static struct ir3_instruction **
@@ -287,11 +291,7 @@ get_src(struct ir3_compile *ctx, nir_src *src)
 {
 	struct hash_entry *entry;
 	compile_assert(ctx, src->is_ssa);
-	if (src->is_ssa) {
-		entry = _mesa_hash_table_search(ctx->def_ht, src->ssa);
-	} else {
-		entry = _mesa_hash_table_search(ctx->def_ht, src->reg.reg);
-	}
+	entry = _mesa_hash_table_search(ctx->def_ht, src->ssa);
 	compile_assert(ctx, entry);
 	return entry->data;
 }
@@ -1006,6 +1006,8 @@ emit_alu(struct ir3_compile *ctx, nir_alu_instr *alu)
 				nir_op_infos[alu->op].name);
 		break;
 	}
+
+	put_dst(ctx, dst);
 }
 
 /* handles direct/indirect UBO reads: */
@@ -1314,6 +1316,9 @@ emit_intrinsic(struct ir3_compile *ctx, nir_intrinsic_instr *intr)
 				nir_intrinsic_infos[intr->intrinsic].name);
 		break;
 	}
+
+	if (dst)
+		put_dst(ctx, dst);
 }
 
 static void
@@ -1323,6 +1328,7 @@ emit_load_const(struct ir3_compile *ctx, nir_load_const_instr *instr)
 			instr->def.num_components);
 	for (int i = 0; i < instr->def.num_components; i++)
 		dst[i] = create_immed(ctx->block, instr->value.u32[i]);
+	put_dst(ctx, dst);
 }
 
 static void
@@ -1335,6 +1341,7 @@ emit_undef(struct ir3_compile *ctx, nir_ssa_undef_instr *undef)
 	 */
 	for (int i = 0; i < undef->def.num_components; i++)
 		dst[i] = create_immed(ctx->block, fui(0.0));
+	put_dst(ctx, dst);
 }
 
 /*
@@ -1591,6 +1598,8 @@ emit_tex(struct ir3_compile *ctx, nir_tex_instr *tex)
 							   factor, 0);
 		}
 	}
+
+	put_dst(ctx, dst);
 }
 
 static void
@@ -1614,6 +1623,8 @@ emit_tex_query_levels(struct ir3_compile *ctx, nir_tex_instr *tex)
 	 */
 	if (ctx->levels_add_one)
 		dst[0] = ir3_ADD_U(b, dst[0], 0, create_immed(b, 1), 0);
+
+	put_dst(ctx, dst);
 }
 
 static void
@@ -1655,6 +1666,8 @@ emit_tex_txs(struct ir3_compile *ctx, nir_tex_instr *tex)
 			dst[coords] = ir3_MOV(b, dst[3], TYPE_U32);
 		}
 	}
+
+	put_dst(ctx, dst);
 }
 
 static void
@@ -1673,6 +1686,8 @@ emit_phi(struct ir3_compile *ctx, nir_phi_instr *nphi)
 	phi->phi.nphi = nphi;
 
 	dst[0] = phi;
+
+	put_dst(ctx, dst);
 }
 
 /* phi instructions are left partially constructed.  We don't resolve
