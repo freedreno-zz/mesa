@@ -2195,7 +2195,7 @@ nir_block *nir_cf_node_cf_tree_next(nir_cf_node *node);
 
 #define nir_foreach_block_in_cf_node(block, node) \
    for (nir_block *block = nir_cf_node_cf_tree_first(node); \
-        block != nir_cf_node_cf_tree_next(node); \
+        block && (block != nir_cf_node_cf_tree_next(node)); \
         block = nir_block_cf_tree_next(block))
 
 /* If the following CF node is an if, this function returns that if.
