@@ -89,7 +89,7 @@ nir_array_grow(nir_array *arr, size_t additional)
 
 #define nir_array_foreach(arr, type, elem) \
    for (type *elem = (type *)(arr)->data; \
-        elem < (type *)((char *)(arr)->data + (arr)->size); elem++)
+        elem && (elem < (type *)((char *)(arr)->data + (arr)->size)); elem++)
 
 #ifdef __cplusplus
 } /* extern "C" */
