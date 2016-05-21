@@ -68,21 +68,38 @@ u_fifo_add(struct util_fifo *fifo, void *ptr)
 }
 
 static inline boolean
-u_fifo_pop(struct util_fifo *fifo, void **ptr)
+__u_fifo_peek(struct util_fifo *fifo, void **ptr, bool pop)
 {
    void **array = (void**)&fifo[1];
+   size_t tail = fifo->tail;
 
    if (!fifo->num)
       return FALSE;
 
-   if (++fifo->tail >= fifo->size)
-      fifo->tail = 0;
+   if (++tail >= fifo->size)
+      tail = 0;
 
-   *ptr = array[fifo->tail];
+   if (ptr)
+      *ptr = array[tail];
 
-   --fifo->num;
+   if (pop) {
+      --fifo->num;
+      fifo->tail = tail;
+   }
 
    return TRUE;
+}
+
+static inline boolean
+u_fifo_pop(struct util_fifo *fifo, void **ptr)
+{
+   return __u_fifo_peek(fifo, ptr, true);
+}
+
+static inline boolean
+u_fifo_peek(struct util_fifo *fifo, void **ptr)
+{
+   return __u_fifo_peek(fifo, ptr, false);
 }
 
 static inline void
