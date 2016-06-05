@@ -1,0 +1,23 @@
+C_SOURCES := \
+	rsq_batch.c \
+	rsq_batch.h \
+	rsq_context.c \
+	rsq_context.h \
+	rsq_draw.c \
+	rsq_draw.h \
+	rsq_fence.c \
+	rsq_fence.h \
+	rsq_public.h \
+	rsq_query.c \
+	rsq_query.h \
+	rsq_resource.c \
+	rsq_resource.h \
+	rsq_screen.c \
+	rsq_screen.h \
+	rsq_state.h \
+	rsq_surface.c \
+	rsq_surface.h
+
+C_GENERATED_SOURCES := \
+	rsq_state.c \
+	rsq_state.h
