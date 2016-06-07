@@ -1652,19 +1652,18 @@ trace_context_memory_barrier(struct pipe_context *_context,
 
 static void
 trace_context_set_tess_state(struct pipe_context *_context,
-                             const float default_outer_level[4],
-                             const float default_inner_level[2])
+                             const struct pipe_tess_state *state)
 {
    struct trace_context *tr_context = trace_context(_context);
    struct pipe_context *context = tr_context->pipe;
 
    trace_dump_call_begin("pipe_context", "set_tess_state");
    trace_dump_arg(ptr, context);
-   trace_dump_arg_array(float, default_outer_level, 4);
-   trace_dump_arg_array(float, default_inner_level, 2);
+   trace_dump_arg_array(float, state->default_outer_level, 4);
+   trace_dump_arg_array(float, state->default_inner_level, 2);
    trace_dump_call_end();
 
-   context->set_tess_state(context, default_outer_level, default_inner_level);
+   context->set_tess_state(context, state);
 }
 
 

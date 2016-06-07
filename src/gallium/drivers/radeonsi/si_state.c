@@ -3238,15 +3238,14 @@ static void si_set_index_buffer(struct pipe_context *ctx,
  */
 
 static void si_set_tess_state(struct pipe_context *ctx,
-			      const float default_outer_level[4],
-			      const float default_inner_level[2])
+			      const struct pipe_tess_state *state)
 {
 	struct si_context *sctx = (struct si_context *)ctx;
 	struct pipe_constant_buffer cb;
 	float array[8];
 
-	memcpy(array, default_outer_level, sizeof(float) * 4);
-	memcpy(array+4, default_inner_level, sizeof(float) * 2);
+	memcpy(array, state->default_outer_level, sizeof(float) * 4);
+	memcpy(array+4, state->default_inner_level, sizeof(float) * 2);
 
 	cb.buffer = NULL;
 	cb.user_buffer = NULL;

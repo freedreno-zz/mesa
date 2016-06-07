@@ -60,6 +60,7 @@ struct pipe_resolve_info;
 struct pipe_resource;
 struct pipe_sampler_state;
 struct pipe_sampler_view;
+struct pipe_tess_state;
 struct pipe_scissor_state;
 struct pipe_shader_buffer;
 struct pipe_shader_state;
@@ -284,8 +285,7 @@ struct pipe_context {
                              struct pipe_sampler_view **);
 
    void (*set_tess_state)(struct pipe_context *,
-                          const float default_outer_level[4],
-                          const float default_inner_level[2]);
+                          const struct pipe_tess_state *);
 
    /**
     * Sets the debug callback. If the pointer is null, then no callback is

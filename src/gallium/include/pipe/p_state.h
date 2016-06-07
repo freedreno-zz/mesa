@@ -453,6 +453,14 @@ struct pipe_image_view
    } u;
 };
 
+/**
+ * Tessellation state.
+ */
+struct pipe_tess_state
+{
+   float default_outer_level[4];
+   float default_inner_level[2];
+};
 
 /**
  * Subregion of 1D/2D/3D image resource.

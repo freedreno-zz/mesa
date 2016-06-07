@@ -1001,13 +1001,12 @@ nvc0_set_viewport_states(struct pipe_context *pipe,
 
 static void
 nvc0_set_tess_state(struct pipe_context *pipe,
-                    const float default_tess_outer[4],
-                    const float default_tess_inner[2])
+                    const struct pipe_tess_state *state)
 {
    struct nvc0_context *nvc0 = nvc0_context(pipe);
 
-   memcpy(nvc0->default_tess_outer, default_tess_outer, 4 * sizeof(float));
-   memcpy(nvc0->default_tess_inner, default_tess_inner, 2 * sizeof(float));
+   memcpy(nvc0->default_tess_outer, state->default_tess_outer, 4 * sizeof(float));
+   memcpy(nvc0->default_tess_inner, state->default_tess_inner, 2 * sizeof(float));
    nvc0->dirty_3d |= NVC0_NEW_3D_TESSFACTOR;
 }
 

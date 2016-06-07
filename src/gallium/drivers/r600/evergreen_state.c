@@ -3569,13 +3569,12 @@ fallback:
 }
 
 static void evergreen_set_tess_state(struct pipe_context *ctx,
-				     const float default_outer_level[4],
-				     const float default_inner_level[2])
+				     const struct pipe_tess_state *state)
 {
 	struct r600_context *rctx = (struct r600_context *)ctx;
 
-	memcpy(rctx->tess_state, default_outer_level, sizeof(float) * 4);
-	memcpy(rctx->tess_state+4, default_inner_level, sizeof(float) * 2);
+	memcpy(rctx->tess_state, state->default_outer_level, sizeof(float) * 4);
+	memcpy(rctx->tess_state+4, state->default_inner_level, sizeof(float) * 2);
 	rctx->tess_state_dirty = true;
 }
 

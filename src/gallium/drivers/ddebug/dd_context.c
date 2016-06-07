@@ -380,15 +380,14 @@ dd_context_set_viewport_states(struct pipe_context *_pipe,
 }
 
 static void dd_context_set_tess_state(struct pipe_context *_pipe,
-                                      const float default_outer_level[4],
-                                      const float default_inner_level[2])
+                                      const struct pipe_tess_state *state)
 {
    struct dd_context *dctx = dd_context(_pipe);
    struct pipe_context *pipe = dctx->pipe;
 
-   memcpy(dctx->tess_default_levels, default_outer_level, sizeof(float) * 4);
-   memcpy(dctx->tess_default_levels+4, default_inner_level, sizeof(float) * 2);
-   pipe->set_tess_state(pipe, default_outer_level, default_inner_level);
+   memcpy(dctx->tess_default_levels, state->default_outer_level, sizeof(float) * 4);
+   memcpy(dctx->tess_default_levels+4, state->default_inner_level, sizeof(float) * 2);
+   pipe->set_tess_state(pipe, state);
 }
 
 

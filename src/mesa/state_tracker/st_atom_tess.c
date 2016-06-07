@@ -34,6 +34,7 @@
 #include "main/macros.h"
 #include "st_context.h"
 #include "pipe/p_context.h"
+#include "pipe/p_state.h"
 #include "st_atom.h"
 
 
@@ -42,13 +43,19 @@ update_tess(struct st_context *st)
 {
    const struct gl_context *ctx = st->ctx;
    struct pipe_context *pipe = st->pipe;
+   struct pipe_tess_state state;
 
    if (!pipe->set_tess_state)
       return;
 
-   pipe->set_tess_state(pipe,
-                        ctx->TessCtrlProgram.patch_default_outer_level,
-                        ctx->TessCtrlProgram.patch_default_inner_level);
+   memcpy(state.default_outer_level,
+          ctx->TessCtrlProgram.patch_default_outer_level,
+          sizeof(state.default_outer_level));
+   memcpy(state.default_inner_level,
+          ctx->TessCtrlProgram.patch_default_inner_level,
+          sizeof(state.default_inner_level));
+
+   pipe->set_tess_state(pipe, &state);
 }
 
 
