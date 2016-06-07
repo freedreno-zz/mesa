@@ -671,6 +671,23 @@ util_copy_image_view(struct pipe_image_view *dst,
    }
 }
 
+static inline void
+util_copy_vertex_buffer(struct pipe_vertex_buffer *dst,
+                        const struct pipe_vertex_buffer *src)
+{
+   if (src) {
+      dst->stride = src->stride;
+      dst->buffer_offset = src->buffer_offset;
+      pipe_resource_reference(&dst->buffer, src->buffer);
+      dst->user_buffer = src->user_buffer;
+   } else {
+      dst->stride = 0;
+      dst->buffer_offset = 0;
+      pipe_resource_reference(&dst->buffer, NULL);
+      dst->user_buffer = NULL;
+   }
+}
+
 static inline unsigned
 util_max_layer(const struct pipe_resource *r, unsigned level)
 {
