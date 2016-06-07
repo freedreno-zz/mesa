@@ -98,11 +98,7 @@ llvmpipe_set_index_buffer(struct pipe_context *pipe,
                           const struct pipe_index_buffer *ib)
 {
    struct llvmpipe_context *llvmpipe = llvmpipe_context(pipe);
-
-   if (ib)
-      memcpy(&llvmpipe->index_buffer, ib, sizeof(llvmpipe->index_buffer));
-   else
-      memset(&llvmpipe->index_buffer, 0, sizeof(llvmpipe->index_buffer));
+   util_copy_index_buffer(&llvmpipe->index_buffer, ib);
 }
 
 void

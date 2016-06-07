@@ -529,12 +529,7 @@ swr_set_index_buffer(struct pipe_context *pipe,
                      const struct pipe_index_buffer *ib)
 {
    struct swr_context *ctx = swr_context(pipe);
-
-   if (ib)
-      memcpy(&ctx->index_buffer, ib, sizeof(ctx->index_buffer));
-   else
-      memset(&ctx->index_buffer, 0, sizeof(ctx->index_buffer));
-
+   util_copy_index_buffer(&ctx->index_buffer, ib);
    ctx->dirty |= SWR_NEW_VERTEX;
 }
 

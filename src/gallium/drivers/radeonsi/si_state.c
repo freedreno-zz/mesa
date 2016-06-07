@@ -3223,13 +3223,9 @@ static void si_set_index_buffer(struct pipe_context *ctx,
 				const struct pipe_index_buffer *ib)
 {
 	struct si_context *sctx = (struct si_context *)ctx;
-
+	util_copy_index_buffer(&sctx->index_buffer, ib);
 	if (ib) {
-		pipe_resource_reference(&sctx->index_buffer.buffer, ib->buffer);
-	        memcpy(&sctx->index_buffer, ib, sizeof(*ib));
 		r600_context_add_resource_size(ctx, ib->buffer);
-	} else {
-		pipe_resource_reference(&sctx->index_buffer.buffer, NULL);
 	}
 }
 

@@ -59,7 +59,7 @@ static void svga_set_index_buffer(struct pipe_context *pipe,
 {
    struct svga_context *svga = svga_context(pipe);
 
-   util_set_index_buffer(&svga->curr.ib, ib);
+   util_copy_index_buffer(&svga->curr.ib, ib);
 }
 
 

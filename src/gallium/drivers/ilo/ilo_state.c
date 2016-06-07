@@ -1910,15 +1910,7 @@ ilo_set_index_buffer(struct pipe_context *pipe,
                      const struct pipe_index_buffer *state)
 {
    struct ilo_state_vector *vec = &ilo_context(pipe)->state_vector;
-
-   if (state) {
-      pipe_resource_reference(&vec->ib.state.buffer, state->buffer);
-      vec->ib.state = *state;
-   } else {
-      pipe_resource_reference(&vec->ib.state.buffer, NULL);
-      memset(&vec->ib.state, 0, sizeof(vec->ib.state));
-   }
-
+   util_copy_index_buffer(&vec->ib.state, state);
    vec->dirty |= ILO_DIRTY_IB;
 }
 

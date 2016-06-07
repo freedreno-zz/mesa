@@ -407,13 +407,7 @@ static void virgl_set_index_buffer(struct pipe_context *ctx,
                                   const struct pipe_index_buffer *ib)
 {
    struct virgl_context *vctx = virgl_context(ctx);
-
-   if (ib) {
-      pipe_resource_reference(&vctx->index_buffer.buffer, ib->buffer);
-      memcpy(&vctx->index_buffer, ib, sizeof(*ib));
-   } else {
-      pipe_resource_reference(&vctx->index_buffer.buffer, NULL);
-   }
+   util_copy_index_buffer(&vctx->index_buffer, ib);
 }
 
 static void virgl_hw_set_index_buffer(struct pipe_context *ctx,

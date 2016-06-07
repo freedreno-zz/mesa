@@ -306,16 +306,7 @@ vc4_set_index_buffer(struct pipe_context *pctx,
                      const struct pipe_index_buffer *ib)
 {
         struct vc4_context *vc4 = vc4_context(pctx);
-
-        if (ib) {
-                pipe_resource_reference(&vc4->indexbuf.buffer, ib->buffer);
-                vc4->indexbuf.index_size = ib->index_size;
-                vc4->indexbuf.offset = ib->offset;
-                vc4->indexbuf.user_buffer = ib->user_buffer;
-        } else {
-                pipe_resource_reference(&vc4->indexbuf.buffer, NULL);
-        }
-
+        util_copy_index_buffer(&vc4->indexbuf, ib);
         vc4->dirty |= VC4_DIRTY_INDEXBUF;
 }
 

@@ -520,13 +520,10 @@ static void r600_set_index_buffer(struct pipe_context *ctx,
 			   const struct pipe_index_buffer *ib)
 {
 	struct r600_context *rctx = (struct r600_context *)ctx;
+	util_copy_index_buffer(&rctx->index_buffer, ib);
 
 	if (ib) {
-		pipe_resource_reference(&rctx->index_buffer.buffer, ib->buffer);
-		memcpy(&rctx->index_buffer, ib, sizeof(*ib));
 		r600_context_add_resource_size(ctx, ib->buffer);
-	} else {
-		pipe_resource_reference(&rctx->index_buffer.buffer, NULL);
 	}
 }
 

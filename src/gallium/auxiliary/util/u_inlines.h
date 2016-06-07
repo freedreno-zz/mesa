@@ -623,6 +623,23 @@ util_copy_constant_buffer(struct pipe_constant_buffer *dst,
 }
 
 static inline void
+util_copy_index_buffer(struct pipe_index_buffer *dst,
+                       const struct pipe_index_buffer *src)
+{
+   if (src) {
+      dst->index_size = src->index_size;
+      dst->offset = src->offset;
+      pipe_resource_reference(&dst->buffer, src->buffer);
+      dst->user_buffer = src->user_buffer;
+   } else {
+      dst->index_size = 0;
+      dst->offset = 0;
+      pipe_resource_reference(&dst->buffer, NULL);
+      dst->user_buffer = NULL;
+   }
+}
+
+static inline void
 util_copy_image_view(struct pipe_image_view *dst,
                      const struct pipe_image_view *src)
 {

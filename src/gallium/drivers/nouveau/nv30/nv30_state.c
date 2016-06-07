@@ -441,16 +441,7 @@ nv30_set_index_buffer(struct pipe_context *pipe,
                       const struct pipe_index_buffer *ib)
 {
     struct nv30_context *nv30 = nv30_context(pipe);
-
-    if (ib) {
-       pipe_resource_reference(&nv30->idxbuf.buffer, ib->buffer);
-       nv30->idxbuf.index_size = ib->index_size;
-       nv30->idxbuf.offset = ib->offset;
-       nv30->idxbuf.user_buffer = ib->user_buffer;
-    } else {
-       pipe_resource_reference(&nv30->idxbuf.buffer, NULL);
-       nv30->idxbuf.user_buffer = NULL;
-    }
+    util_copy_index_buffer(&nv30->idxbuf, ib);
 }
 
 void

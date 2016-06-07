@@ -102,11 +102,7 @@ softpipe_set_index_buffer(struct pipe_context *pipe,
                           const struct pipe_index_buffer *ib)
 {
    struct softpipe_context *softpipe = softpipe_context(pipe);
-
-   if (ib)
-      memcpy(&softpipe->index_buffer, ib, sizeof(softpipe->index_buffer));
-   else
-      memset(&softpipe->index_buffer, 0, sizeof(softpipe->index_buffer));
+   util_copy_index_buffer(&softpipe->index_buffer, ib);
 }
 
 

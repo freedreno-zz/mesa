@@ -1063,11 +1063,7 @@ static void i915_set_index_buffer(struct pipe_context *pipe,
                                   const struct pipe_index_buffer *ib)
 {
    struct i915_context *i915 = i915_context(pipe);
-
-   if (ib)
-      memcpy(&i915->index_buffer, ib, sizeof(i915->index_buffer));
-   else
-      memset(&i915->index_buffer, 0, sizeof(i915->index_buffer));
+   util_copy_index_buffer(&i915->index_buffer, ib);
 }
 
 static void

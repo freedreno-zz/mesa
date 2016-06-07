@@ -1786,13 +1786,7 @@ static void r300_set_index_buffer_hwtcl(struct pipe_context* pipe,
                                         const struct pipe_index_buffer *ib)
 {
     struct r300_context* r300 = r300_context(pipe);
-
-    if (ib) {
-        pipe_resource_reference(&r300->index_buffer.buffer, ib->buffer);
-        memcpy(&r300->index_buffer, ib, sizeof(*ib));
-    } else {
-        pipe_resource_reference(&r300->index_buffer.buffer, NULL);
-    }
+    util_copy_index_buffer(&r300->index_buffer, ib);
 }
 
 static void r300_set_index_buffer_swtcl(struct pipe_context* pipe,

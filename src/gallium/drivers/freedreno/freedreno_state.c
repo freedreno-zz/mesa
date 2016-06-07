@@ -207,16 +207,7 @@ fd_set_index_buffer(struct pipe_context *pctx,
 		const struct pipe_index_buffer *ib)
 {
 	struct fd_context *ctx = fd_context(pctx);
-
-	if (ib) {
-		pipe_resource_reference(&ctx->indexbuf.buffer, ib->buffer);
-		ctx->indexbuf.index_size = ib->index_size;
-		ctx->indexbuf.offset = ib->offset;
-		ctx->indexbuf.user_buffer = ib->user_buffer;
-	} else {
-		pipe_resource_reference(&ctx->indexbuf.buffer, NULL);
-	}
-
+	util_copy_index_buffer(&ctx->indexbuf, ib);
 	ctx->dirty |= FD_DIRTY_INDEXBUF;
 }
 
