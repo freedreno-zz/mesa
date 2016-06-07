@@ -68,12 +68,10 @@ static void softpipe_set_shader_buffers(struct pipe_context *pipe,
       int idx = start + i;
 
       if (buffers) {
-         pipe_resource_reference(&softpipe->tgsi.buffer[shader]->sp_bview[idx].buffer, buffers[i].buffer);
-         softpipe->tgsi.buffer[shader]->sp_bview[idx] = buffers[i];
+         util_copy_shader_buffer(&softpipe->tgsi.buffer[shader]->sp_bview[idx], &buffers[i]);
       }
       else {
-         pipe_resource_reference(&softpipe->tgsi.buffer[shader]->sp_bview[idx].buffer, NULL);
-         memset(&softpipe->tgsi.buffer[shader]->sp_bview[idx], 0, sizeof(struct pipe_shader_buffer));
+         util_copy_shader_buffer(&softpipe->tgsi.buffer[shader]->sp_bview[idx], NULL);
       }
    }
 }

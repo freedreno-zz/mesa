@@ -1338,9 +1338,7 @@ nvc0_bind_buffers_range(struct nvc0_context *nvc0, const unsigned t,
             nvc0->buffers_valid[t] |= (1 << i);
          else
             nvc0->buffers_valid[t] &= ~(1 << i);
-         buf->buffer_offset = pbuffers[p].buffer_offset;
-         buf->buffer_size = pbuffers[p].buffer_size;
-         pipe_resource_reference(&buf->buffer, pbuffers[p].buffer);
+         util_copy_shader_buffer(buf, &pbuffers[p]);
       }
       if (!mask)
          return false;
@@ -1349,7 +1347,7 @@ nvc0_bind_buffers_range(struct nvc0_context *nvc0, const unsigned t,
       if (!(nvc0->buffers_valid[t] & mask))
          return false;
       for (i = start; i < end; ++i)
-         pipe_resource_reference(&nvc0->buffers[t][i].buffer, NULL);
+         util_copy_shader_buffer(&nvc0->buffers[t][i], NULL);
       nvc0->buffers_valid[t] &= ~mask;
    }
    nvc0->buffers_dirty[t] |= mask;
