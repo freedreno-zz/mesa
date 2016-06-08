@@ -232,7 +232,7 @@ swr_begin_query(struct pipe_context *pipe, struct pipe_query *q)
    return true;
 }
 
-static bool
+static boolean
 swr_end_query(struct pipe_context *pipe, struct pipe_query *q)
 {
    struct swr_context *ctx = swr_context(pipe);

@@ -175,7 +175,7 @@ nv30_query_begin(struct pipe_context *pipe, struct pipe_query *pq)
    return true;
 }
 
-static bool
+static boolean
 nv30_query_end(struct pipe_context *pipe, struct pipe_query *pq)
 {
    struct nv30_context *nv30 = nv30_context(pipe);

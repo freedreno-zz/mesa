@@ -60,7 +60,7 @@ static boolean i915_begin_query(struct pipe_context *ctx,
    return true;
 }
 
-static bool i915_end_query(struct pipe_context *ctx, struct pipe_query *query)
+static boolean i915_end_query(struct pipe_context *ctx, struct pipe_query *query)
 {
    return true;
 }

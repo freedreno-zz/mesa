@@ -63,7 +63,7 @@ static boolean noop_begin_query(struct pipe_context *ctx, struct pipe_query *que
    return true;
 }
 
-static bool noop_end_query(struct pipe_context *ctx, struct pipe_query *query)
+static boolean noop_end_query(struct pipe_context *ctx, struct pipe_query *query)
 {
    return true;
 }

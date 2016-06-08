@@ -128,7 +128,7 @@ ilo_begin_query(struct pipe_context *pipe, struct pipe_query *query)
    return true;
 }
 
-static bool
+static boolean
 ilo_end_query(struct pipe_context *pipe, struct pipe_query *query)
 {
    struct ilo_query *q = ilo_query(query);

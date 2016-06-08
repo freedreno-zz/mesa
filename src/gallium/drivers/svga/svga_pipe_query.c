@@ -941,7 +941,7 @@ svga_begin_query(struct pipe_context *pipe, struct pipe_query *q)
 }
 
 
-static bool
+static boolean
 svga_end_query(struct pipe_context *pipe, struct pipe_query *q)
 {
    struct svga_context *svga = svga_context(pipe);

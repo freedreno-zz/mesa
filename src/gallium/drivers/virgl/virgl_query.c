@@ -107,8 +107,8 @@ static boolean virgl_begin_query(struct pipe_context *ctx,
    return true;
 }
 
-static bool virgl_end_query(struct pipe_context *ctx,
-                           struct pipe_query *q)
+static boolean virgl_end_query(struct pipe_context *ctx,
+                               struct pipe_query *q)
 {
    struct virgl_context *vctx = virgl_context(ctx);
    struct virgl_query *query = virgl_query(q);

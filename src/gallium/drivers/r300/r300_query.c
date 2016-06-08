@@ -112,8 +112,8 @@ void r300_stop_query(struct r300_context *r300)
     r300->query_current = NULL;
 }
 
-static bool r300_end_query(struct pipe_context* pipe,
-	                   struct pipe_query* query)
+static boolean r300_end_query(struct pipe_context* pipe,
+                              struct pipe_query* query)
 {
     struct r300_context* r300 = r300_context(pipe);
     struct r300_query *q = r300_query(query);

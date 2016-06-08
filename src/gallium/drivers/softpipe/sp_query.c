@@ -134,7 +134,7 @@ softpipe_begin_query(struct pipe_context *pipe, struct pipe_query *q)
 }
 
 
-static bool
+static boolean
 softpipe_end_query(struct pipe_context *pipe, struct pipe_query *q)
 {
    struct softpipe_context *softpipe = softpipe_context( pipe );
