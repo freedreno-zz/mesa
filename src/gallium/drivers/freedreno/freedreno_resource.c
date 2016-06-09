@@ -698,6 +698,7 @@ setup_slices(struct fd_resource *rsc, uint32_t alignment, enum pipe_format forma
 	struct pipe_resource *prsc = &rsc->base.b;
 	enum util_format_layout layout = util_format_description(format)->layout;
 	uint32_t level, size = 0;
+//	uint32_t ms_x = prsc->nr_samples > 1, ms_y = prsc->nr_samples > 2;
 	uint32_t width = prsc->width0;
 	uint32_t height = prsc->height0;
 	uint32_t depth = prsc->depth0;
@@ -706,6 +707,7 @@ setup_slices(struct fd_resource *rsc, uint32_t alignment, enum pipe_format forma
 	 */
 	uint32_t layers_in_level = rsc->layer_first ? 1 : prsc->array_size;
 
+	printf("w:%d h:%d\n", width, height);
 	for (level = 0; level <= prsc->last_level; level++) {
 		struct fd_resource_slice *slice = fd_resource_slice(rsc, level);
 		uint32_t blocks;
@@ -715,6 +717,7 @@ setup_slices(struct fd_resource *rsc, uint32_t alignment, enum pipe_format forma
 				util_align_npot(width, 32 * util_format_get_blockwidth(format));
 		else
 			slice->pitch = width = align(width, 32);
+		printf("pitch set:%d level:%d\n", slice->pitch, level);
 		slice->offset = size;
 		blocks = util_format_get_nblocks(format, width, height);
 		/* 1d array and 2d array textures must all have the same layer size
@@ -810,7 +813,7 @@ fd_resource_create(struct pipe_screen *pscreen,
 			 util_format_description(format)->layout == UTIL_FORMAT_LAYOUT_RGTC)
 		format = PIPE_FORMAT_R8G8B8A8_UNORM;
 	rsc->internal_format = format;
-	rsc->cpp = util_format_get_blocksize(format);
+	rsc->cpp = util_format_get_blocksize(format) * (tmpl->nr_samples > 0 ? tmpl->nr_samples : 1);
 
 	assert(rsc->cpp);
 
@@ -903,7 +906,7 @@ fd_resource_from_handle(struct pipe_screen *pscreen,
 		goto fail;
 
 	rsc->base.vtbl = &fd_resource_vtbl;
-	rsc->cpp = util_format_get_blocksize(tmpl->format);
+	rsc->cpp = util_format_get_blocksize(tmpl->format) * (tmpl->nr_samples > 0 ? tmpl->nr_samples : 1);
 	slice->pitch /= rsc->cpp;
 	slice->offset = handle->offset;
 
@@ -1008,13 +1011,15 @@ fd_blit(struct pipe_context *pctx, const struct pipe_blit_info *blit_info)
 	struct pipe_blit_info info = *blit_info;
 	bool discard = false;
 
-	if (info.src.resource->nr_samples > 1 &&
+	if (info.src.resource->nr_samples > 4 &&
 			info.dst.resource->nr_samples <= 1 &&
 			!util_format_is_depth_or_stencil(info.src.resource->format) &&
 			!util_format_is_pure_integer(info.src.resource->format)) {
 		DBG("color resolve unimplemented");
 		return;
 	}
+
+	printf("fd_blit %d to %d\n", info.src.resource->nr_samples, info.dst.resource->nr_samples);
 
 	if (info.render_condition_enable && !fd_render_condition_check(pctx))
 		return;

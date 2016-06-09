@@ -150,6 +150,8 @@ fd3_draw_vbo(struct fd_context *ctx, const struct pipe_draw_info *info)
 			.fsaturate_s = fd3_ctx->fsaturate_s,
 			.fsaturate_t = fd3_ctx->fsaturate_t,
 			.fsaturate_r = fd3_ctx->fsaturate_r,
+			.vsamples = fd3_ctx->vsamples,
+			.fsamples = fd3_ctx->fsamples
 		},
 		.rasterflat = ctx->rasterizer->flatshade,
 		.sprite_coord_enable = ctx->rasterizer->sprite_coord_enable,

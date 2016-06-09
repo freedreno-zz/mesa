@@ -341,4 +341,21 @@ pack_rgba(enum pipe_format format, const float *rgba)
 #define foreach_bit(b, mask) \
 	for (uint32_t _m = (mask); _m && ({(b) = u_bit_scan(&_m); 1;});)
 
+static inline enum a3xx_msaa_samples
+msaa_samples(int samples)
+{
+	switch (samples) {
+	case 0:
+	case 1:
+		return MSAA_ONE;
+	case 2:
+		return MSAA_TWO;
+	case 4:
+		return MSAA_FOUR;
+	default:
+		assert(!"Unexpected sample count");
+		return MSAA_ONE;
+	}
+}
+
 #endif /* FREEDRENO_UTIL_H_ */

@@ -76,7 +76,13 @@ static void
 fd_set_sample_mask(struct pipe_context *pctx, unsigned sample_mask)
 {
 	struct fd_context *ctx = fd_context(pctx);
-	ctx->sample_mask = (uint16_t)sample_mask;
+	int i;
+
+	/* hw applies sample mask to 2x2 pixels, so repeat sample_mask & 0xF
+	 * from gl for all four pixels.
+	 */
+	for (i = 0; i < 16; i += 4)
+		ctx->sample_mask |= (uint16_t) (sample_mask & 0xF) << i;
 	ctx->dirty |= FD_DIRTY_SAMPLE_MASK;
 }
 
@@ -151,6 +157,13 @@ fd_set_framebuffer_state(struct pipe_context *pctx,
 	cso = &ctx->batch->framebuffer;
 
 	util_copy_framebuffer_state(cso, framebuffer);
+
+	/* Do this once when fb state is set, so in our own private copy
+	 * of the framebuffer state, pfb->samples and pfb->layers is always
+	 * valid.  This way we don't have to use the helpers *everywhere*
+	 */
+	cso->samples = util_framebuffer_get_num_samples(framebuffer);
+	cso->layers = util_framebuffer_get_num_layers(framebuffer);
 
 	ctx->dirty |= FD_DIRTY_FRAMEBUFFER;
 

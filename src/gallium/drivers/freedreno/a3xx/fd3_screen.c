@@ -44,10 +44,10 @@ fd3_screen_is_format_supported(struct pipe_screen *pscreen,
 	unsigned retval = 0;
 
 	if ((target >= PIPE_MAX_TEXTURE_TYPES) ||
-			(sample_count > 1) || /* TODO add MSAA */
+			(sample_count > 4) || /* TODO add MSAA */
 			!util_format_is_supported(format, usage)) {
-		DBG("not supported: format=%s, target=%d, sample_count=%d, usage=%x",
-				util_format_name(format), target, sample_count, usage);
+// 		DBG("not supported: format=%s, target=%d, sample_count=%d, usage=%x",
+// 				util_format_name(format), target, sample_count, usage);
 		return FALSE;
 	}
 
@@ -93,9 +93,9 @@ fd3_screen_is_format_supported(struct pipe_screen *pscreen,
 		retval |= PIPE_BIND_TRANSFER_WRITE;
 
 	if (retval != usage) {
-		DBG("not supported: format=%s, target=%d, sample_count=%d, "
-				"usage=%x, retval=%x", util_format_name(format),
-				target, sample_count, usage, retval);
+// 		DBG("not supported: format=%s, target=%d, sample_count=%d, "
+// 				"usage=%x, retval=%x", util_format_name(format),
+// 				target, sample_count, usage, retval);
 	}
 
 	return retval == usage;

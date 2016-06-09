@@ -135,5 +135,11 @@ fd3_blend_state_create(struct pipe_context *pctx,
 	if (cso->rt[0].blend_enable && util_blend_state_is_dual(cso, 0))
 		so->rb_render_control = A3XX_RB_RENDER_CONTROL_DUAL_COLOR_IN_ENABLE;
 
+	if (cso->alpha_to_coverage)
+		so->rb_render_control |= A3XX_RB_RENDER_CONTROL_ALPHA_TO_COVERAGE;
+
+	if (cso->alpha_to_one)
+		so->rb_render_control |= A3XX_RB_RENDER_CONTROL_ALPHA_TO_ONE;
+
 	return so;
 }

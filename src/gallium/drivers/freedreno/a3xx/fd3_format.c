@@ -320,13 +320,13 @@ fd3_pipe2swap(enum pipe_format format)
 }
 
 enum a3xx_tex_fetchsize
-fd3_pipe2fetchsize(enum pipe_format format)
+fd3_pipe2fetchsize(enum pipe_format format, uint8_t nr_samples)
 {
 	if (format == PIPE_FORMAT_Z32_FLOAT_S8X24_UINT)
 		format = PIPE_FORMAT_Z32_FLOAT;
 	else if (util_format_description(format)->layout == UTIL_FORMAT_LAYOUT_RGTC)
 		format = PIPE_FORMAT_R8G8B8A8_UNORM;
-	switch (util_format_get_blocksizebits(format) / util_format_get_blockwidth(format)) {
+	switch (nr_samples * (util_format_get_blocksizebits(format) / util_format_get_blockwidth(format))) {
 	case 8: return TFETCH_1_BYTE;
 	case 16: return TFETCH_2_BYTE;
 	case 32: return TFETCH_4_BYTE;

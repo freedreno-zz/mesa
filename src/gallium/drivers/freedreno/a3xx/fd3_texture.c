@@ -218,6 +218,7 @@ fd3_sampler_view_create(struct pipe_context *pctx, struct pipe_resource *prsc,
 	struct fd_resource *rsc = fd_resource(prsc);
 	unsigned lvl;
 	uint32_t sz2 = 0;
+	uint8_t ms = prsc->nr_samples >> 1;
 
 	if (!so)
 		return NULL;
@@ -240,9 +241,9 @@ fd3_sampler_view_create(struct pipe_context *pctx, struct pipe_resource *prsc,
 	if (prsc->target == PIPE_BUFFER) {
 		lvl = 0;
 		so->texconst1 =
-			A3XX_TEX_CONST_1_FETCHSIZE(fd3_pipe2fetchsize(cso->format)) |
-			A3XX_TEX_CONST_1_WIDTH(cso->u.buf.last_element -
-								   cso->u.buf.first_element + 1) |
+			A3XX_TEX_CONST_1_FETCHSIZE(fd3_pipe2fetchsize(cso->format, prsc->nr_samples)) |
+			A3XX_TEX_CONST_1_WIDTH((cso->u.buf.last_element -
+								   cso->u.buf.first_element + 1) << ms) |
 			A3XX_TEX_CONST_1_HEIGHT(1);
 	} else {
 		unsigned miplevels;
@@ -252,8 +253,8 @@ fd3_sampler_view_create(struct pipe_context *pctx, struct pipe_resource *prsc,
 
 		so->texconst0 |= A3XX_TEX_CONST_0_MIPLVLS(miplevels);
 		so->texconst1 =
-			A3XX_TEX_CONST_1_FETCHSIZE(fd3_pipe2fetchsize(cso->format)) |
-			A3XX_TEX_CONST_1_WIDTH(u_minify(prsc->width0, lvl)) |
+			A3XX_TEX_CONST_1_FETCHSIZE(fd3_pipe2fetchsize(cso->format, prsc->nr_samples)) |
+			A3XX_TEX_CONST_1_WIDTH(u_minify(prsc->width0, lvl) << ms) |
 			A3XX_TEX_CONST_1_HEIGHT(u_minify(prsc->height0, lvl));
 	}
 	/* when emitted, A3XX_TEX_CONST_2_INDX() must be OR'd in: */
@@ -282,11 +283,45 @@ fd3_sampler_view_create(struct pipe_context *pctx, struct pipe_resource *prsc,
 	return &so->base;
 }
 
+static void
+fd3_set_sampler_views(struct pipe_context *pctx, unsigned shader,
+		unsigned start, unsigned nr,
+		struct pipe_sampler_view **views)
+{
+	struct fd_context *ctx = fd_context(pctx);
+	struct fd3_context *fd3_ctx = fd3_context(ctx);
+	struct fd_texture_stateobj *tex;
+	uint32_t samplemask = 0, *samples;
+	int i;
+
+	fd_set_sampler_views(pctx, shader, start, nr, views);
+
+	switch (shader) {
+	case PIPE_SHADER_FRAGMENT:
+		samples = &fd3_ctx->fsamples;
+		tex = &ctx->fragtex;
+		break;
+	case PIPE_SHADER_VERTEX:
+		samples = &fd3_ctx->vsamples;
+		tex = &ctx->verttex;
+		break;
+	default:
+		return;
+	}
+
+	for (i = 0; i < tex->num_textures; i++) {
+		uint nr_samples = tex->textures[i]->texture->nr_samples;
+		samplemask |= (nr_samples >> 1) << (i * 2);
+	}
+
+	*samples = samplemask;
+}
+
 void
 fd3_texture_init(struct pipe_context *pctx)
 {
 	pctx->create_sampler_state = fd3_sampler_state_create;
 	pctx->bind_sampler_states = fd3_sampler_states_bind;
 	pctx->create_sampler_view = fd3_sampler_view_create;
-	pctx->set_sampler_views = fd_set_sampler_views;
+	pctx->set_sampler_views = fd3_set_sampler_views;
 }

@@ -51,6 +51,8 @@ struct ir3_compile {
 	struct ir3 *ir;
 	struct ir3_shader_variant *so;
 
+	unsigned samples;             /* bitmask of x,y sample shifts */
+
 	struct ir3_block *block;      /* the current block */
 	struct ir3_block *in_block;   /* block created for shader inputs */
 
@@ -204,7 +206,11 @@ compile_init(struct ir3_compiler *compiler,
 		so->first_immediate += IR3_DP_COUNT/4;  /* convert to vec4 */
 		/* one (vec4) slot for stream-output base addresses: */
 		so->first_immediate++;
+
+		ctx->samples = so->key.vsamples;
 	}
+	else if (so->type == SHADER_FRAGMENT)
+		ctx->samples = so->key.fsamples;
 
 	return ctx;
 }
@@ -1388,7 +1394,7 @@ emit_tex(struct ir3_compile *ctx, nir_tex_instr *tex)
 	struct ir3_block *b = ctx->block;
 	struct ir3_instruction **dst, *sam, *src0[12], *src1[4];
 	struct ir3_instruction * const *coord, * const *off, * const *ddx, * const *ddy;
-	struct ir3_instruction *lod, *compare, *proj;
+	struct ir3_instruction *lod, *compare, *proj, *sample_index;
 	bool has_bias = false, has_lod = false, has_proj = false, has_off = false;
 	unsigned i, coords, flags;
 	unsigned nsrc0 = 0, nsrc1 = 0;
@@ -1396,7 +1402,7 @@ emit_tex(struct ir3_compile *ctx, nir_tex_instr *tex)
 	opc_t opc = 0;
 
 	coord = off = ddx = ddy = NULL;
-	lod = proj = compare = NULL;
+	lod = proj = compare = sample_index = NULL;
 
 	/* TODO: might just be one component for gathers? */
 	dst = get_dst(ctx, &tex->dest, 4);
@@ -1431,6 +1437,9 @@ emit_tex(struct ir3_compile *ctx, nir_tex_instr *tex)
 		case nir_tex_src_ddy:
 			ddy = get_src(ctx, &tex->src[i].src);
 			break;
+		case nir_tex_src_ms_index:
+			sample_index = get_src(ctx, &tex->src[i].src)[0];
+			break;
 		default:
 			compile_error(ctx, "Unhandled NIR tex src type: %d\n",
 					tex->src[i].src_type);
@@ -1445,7 +1454,7 @@ emit_tex(struct ir3_compile *ctx, nir_tex_instr *tex)
 	case nir_texop_txd:      opc = OPC_SAMGQ;    break;
 	case nir_texop_txf:      opc = OPC_ISAML;    break;
 	case nir_texop_lod:      opc = OPC_GETLOD;   break;
-	case nir_texop_txf_ms:
+	case nir_texop_txf_ms:   opc = OPC_ISAM;     break;
 	case nir_texop_txs:
 	case nir_texop_tg4:
 	case nir_texop_query_levels:
@@ -1474,6 +1483,19 @@ emit_tex(struct ir3_compile *ctx, nir_tex_instr *tex)
 		src0[i] = coord[i];
 
 	nsrc0 = i;
+
+	/* scale ms coords */
+	if (tex->op == nir_texop_txf_ms) {
+		/* the samples are laid out in x dimension as
+		 *     0 1 2 3
+		 * x_ms = (x << ms) + sample_index;
+		 */
+		struct ir3_instruction *ms;
+		ms = create_immed(b, (ctx->samples >> (2 * tex->texture_index)) & 3);
+
+		src0[0] = ir3_SHL_B(b, src0[0], 0, ms, 0);
+		src0[0] = ir3_ADD_U(b, src0[0], 0, sample_index, 0);
+	}
 
 	/* scale up integer coords for TXF based on the LOD */
 	if (ctx->unminify_coords && (opc == OPC_ISAML)) {

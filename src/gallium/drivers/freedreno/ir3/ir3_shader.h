@@ -107,6 +107,9 @@ struct ir3_shader_key {
 	 */
 	uint16_t fsaturate_s, fsaturate_t, fsaturate_r;
 
+	/* bitmask of ms shifts */
+	uint32_t vsamples, fsamples;
+
 	/* bitmask of samplers which need astc srgb workaround: */
 	uint16_t vastc_srgb, fastc_srgb;
 };
