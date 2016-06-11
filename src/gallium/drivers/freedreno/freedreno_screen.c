@@ -116,6 +116,9 @@ fd_screen_get_timestamp(struct pipe_screen *pscreen)
 	return cpu_time + fd_screen(pscreen)->cpu_gpu_time_delta;
 }
 
+// XXX hack
+void ir3_compiler_destroy(void *compiler);
+
 static void
 fd_screen_destroy(struct pipe_screen *pscreen)
 {
@@ -126,6 +129,9 @@ fd_screen_destroy(struct pipe_screen *pscreen)
 
 	if (screen->dev)
 		fd_device_del(screen->dev);
+
+	if (screen->compiler)
+		ir3_compiler_destroy(screen->compiler);
 
 	free(screen);
 }
