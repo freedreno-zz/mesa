@@ -64,6 +64,12 @@ fd4_emit_const(struct fd_ringbuffer *ring, enum shader_t type,
 	debug_assert((regid % 4) == 0);
 	debug_assert((sizedwords % 4) == 0);
 
+	// XXX hack:
+	if (prsc) {
+		dwords = fd_bo_map(fd_resource(prsc)->bo);
+		prsc = NULL;
+	}
+
 	if (prsc) {
 		sz = 0;
 		src = 0x2;  // TODO ??
