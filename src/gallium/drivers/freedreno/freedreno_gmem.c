@@ -173,7 +173,7 @@ calculate_tiles(struct fd_context *ctx)
 	/* then find a bin width/height that satisfies the memory
 	 * constraints:
 	 */
-	while (total_size(cbuf_cpp, zsbuf_cpp, bin_w, bin_h, gmem) > gmem_size) {
+	while (total_size(cbuf_cpp, zsbuf_cpp, bin_w * ctx->nr_samples, bin_h, gmem) > gmem_size) {
 		if (bin_w > bin_h) {
 			nbins_x++;
 			bin_w = align(width / nbins_x, 32);
@@ -196,6 +196,8 @@ calculate_tiles(struct fd_context *ctx)
 	gmem->miny = miny;
 	gmem->width = width;
 	gmem->height = height;
+	gmem->ms_x = ctx->nr_samples > 1;
+	gmem->ms_x = ctx->nr_samples > 2;
 
 	/*
 	 * Assign tiles and pipes:
