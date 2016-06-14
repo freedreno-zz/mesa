@@ -23,6 +23,9 @@ libfreedreno_la_SOURCES = \
 	$(ir3_SOURCES) \
 	$(ir3_GENERATED_FILES)
 
+libfreedreno_la_LIBADD = \
+	$(top_builddir)/src/gallium/drivers/resequencer/libresequencer.la
+
 BUILT_SOURCES := $(ir3_GENERATED_FILES)
 CLEANFILES := $(BUILT_SOURCES)
 EXTRA_DIST = ir3/ir3_nir_trig.py

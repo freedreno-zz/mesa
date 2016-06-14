@@ -38,6 +38,8 @@
 #include "util/u_string.h"
 #include "util/u_debug.h"
 
+#include "../drivers/resequencer/rsq_public.h"
+
 #include "os/os_time.h"
 
 #include <stdio.h>
@@ -75,6 +77,7 @@ static const struct debug_named_value debug_options[] = {
 		{"flush",     FD_DBG_FLUSH,  "Force flush after every draw"},
 		{"deqp",      FD_DBG_DEQP,   "Enable dEQP hacks"},
 		{"nir",       FD_DBG_NIR,    "Prefer NIR as native IR"},
+		{"rsq",       FD_DBG_RSQ,    "Enable resequencer layer"},
 		DEBUG_NAMED_VALUE_END
 };
 
@@ -664,6 +667,10 @@ fd_screen_create(struct fd_device *dev)
 	pscreen->fence_finish = fd_screen_fence_finish;
 
 	util_format_s3tc_init();
+
+	if (fd_mesa_debug & FD_DBG_RSQ) {
+		pscreen = rsq_wrap(pscreen, NULL);
+	}
 
 	return pscreen;
 

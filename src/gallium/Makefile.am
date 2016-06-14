@@ -19,6 +19,7 @@ SUBDIRS += \
 
 ## freedreno/msm/kgsl
 if HAVE_GALLIUM_FREEDRENO
+SUBDIRS += drivers/resequencer
 SUBDIRS += drivers/freedreno winsys/freedreno/drm
 endif
 
