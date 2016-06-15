@@ -104,6 +104,9 @@ emit_mrt(struct fd_ringbuffer *ring, unsigned nr_bufs,
 			} else {
 				stride = slice->pitch * rsc->cpp;
 			}
+
+			stride *= MAX2(1, psurf->texture->nr_samples);
+
 		} else if (i < nr_bufs && bases) {
 			base = bases[i];
 		}
