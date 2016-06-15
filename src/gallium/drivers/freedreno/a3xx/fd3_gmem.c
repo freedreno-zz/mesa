@@ -980,8 +980,7 @@ fd3_emit_tile_renderprep(struct fd_context *ctx, struct fd_tile *tile)
 	struct pipe_framebuffer_state *pfb = &ctx->framebuffer;
 	uint32_t ms = gmem->ms_x + gmem->ms_y;
 
-	// ZZZ check calculate_tiles to decide the shift factors below
-	uint32_t x1 = tile->xoff << ms; // ZZZ ms_x, ms_y?
+	uint32_t x1 = tile->xoff << ms;
 	uint32_t y1 = tile->yoff << ms;
 	uint32_t x2 = ((tile->xoff + tile->bin_w) << ms) - 1;
 	uint32_t y2 = ((tile->yoff + tile->bin_h) << ms) - 1;
@@ -996,11 +995,11 @@ fd3_emit_tile_renderprep(struct fd_context *ctx, struct fd_tile *tile)
 	OUT_RING(ring, reg);
 	if (pfb->zsbuf) {
 		struct fd_resource *rsc = fd_resource(pfb->zsbuf->texture);
-		OUT_RING(ring, A3XX_RB_DEPTH_PITCH(rsc->cpp * ctx->nr_samples * gmem->bin_w));
+		OUT_RING(ring, A3XX_RB_DEPTH_PITCH((rsc->cpp * gmem->bin_w) << ms));
 		if (rsc->stencil) {
 			OUT_PKT0(ring, REG_A3XX_RB_STENCIL_INFO, 2);
 			OUT_RING(ring, A3XX_RB_STENCIL_INFO_STENCIL_BASE(gmem->zsbuf_base[1]));
-			OUT_RING(ring, A3XX_RB_STENCIL_PITCH(rsc->stencil->cpp * ctx->nr_samples * gmem->bin_w));
+			OUT_RING(ring, A3XX_RB_STENCIL_PITCH((rsc->stencil->cpp * gmem->bin_w) << ms));
 		}
 	} else {
 		OUT_RING(ring, 0x00000000);
@@ -1015,7 +1014,6 @@ fd3_emit_tile_renderprep(struct fd_context *ctx, struct fd_tile *tile)
 		fd_wfi(ctx, ring);
 
 		OUT_PKT0(ring, REG_A3XX_PC_VSTREAM_CONTROL, 1);
-		// ZZZ vstream size msaa?
 		OUT_RING(ring, A3XX_PC_VSTREAM_CONTROL_SIZE(pipe->w * pipe->h) |
 				A3XX_PC_VSTREAM_CONTROL_N(tile->n));
 
@@ -1034,7 +1032,6 @@ fd3_emit_tile_renderprep(struct fd_context *ctx, struct fd_tile *tile)
 	OUT_RING(ring, CP_SET_BIN_1_X1(x1) | CP_SET_BIN_1_Y1(y1));
 	OUT_RING(ring, CP_SET_BIN_2_X2(x2) | CP_SET_BIN_2_Y2(y2));
 
-	// ZZZ emit_mrt
 	emit_mrt(ring, pfb->nr_cbufs, pfb->cbufs, gmem->cbuf_base, gmem->bin_w, true);
 
 	/* setup scissor/offset for current tile: */
