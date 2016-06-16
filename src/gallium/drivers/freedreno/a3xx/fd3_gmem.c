@@ -798,12 +798,13 @@ emit_binning_pass(struct fd_context *ctx)
 	struct fd_gmem_stateobj *gmem = &ctx->gmem;
 	struct pipe_framebuffer_state *pfb = &ctx->framebuffer;
 	struct fd_ringbuffer *ring = ctx->ring;
+	uint32_t ms = gmem->ms_x + gmem->ms_y;
 	int i;
 
-	uint32_t x1 = gmem->minx;
-	uint32_t y1 = gmem->miny;
-	uint32_t x2 = gmem->minx + gmem->width - 1;
-	uint32_t y2 = gmem->miny + gmem->height - 1;
+	uint32_t x1 = gmem->minx << ms;
+	uint32_t y1 = gmem->miny << ms;
+	uint32_t x2 = ((gmem->minx + gmem->width) << ms) - 1;
+	uint32_t y2 = ((gmem->miny + gmem->height) << ms) - 1;
 
 	if (ctx->screen->gpu_id == 320) {
 		emit_binning_workaround(ctx);
@@ -817,12 +818,12 @@ emit_binning_pass(struct fd_context *ctx)
 
 	OUT_PKT0(ring, REG_A3XX_GRAS_SC_CONTROL, 1);
 	OUT_RING(ring, A3XX_GRAS_SC_CONTROL_RENDER_MODE(RB_TILING_PASS) |
-			A3XX_GRAS_SC_CONTROL_MSAA_SAMPLES(MSAA_ONE) |
+			A3XX_GRAS_SC_CONTROL_MSAA_SAMPLES(msaa_samples(ctx->nr_samples)) |
 			A3XX_GRAS_SC_CONTROL_RASTER_MODE(0));
 
 	OUT_PKT0(ring, REG_A3XX_RB_FRAME_BUFFER_DIMENSION, 1);
-	OUT_RING(ring, A3XX_RB_FRAME_BUFFER_DIMENSION_WIDTH(pfb->width) |
-			A3XX_RB_FRAME_BUFFER_DIMENSION_HEIGHT(pfb->height));
+	OUT_RING(ring, A3XX_RB_FRAME_BUFFER_DIMENSION_WIDTH(pfb->width << gmem->ms_x) |
+			A3XX_RB_FRAME_BUFFER_DIMENSION_HEIGHT(pfb->height << gmem->ms_y));
 
 	OUT_PKT0(ring, REG_A3XX_RB_RENDER_CONTROL, 1);
 	OUT_RING(ring, A3XX_RB_RENDER_CONTROL_ALPHA_TEST_FUNC(FUNC_NEVER) |
@@ -831,8 +832,8 @@ emit_binning_pass(struct fd_context *ctx)
 
 	/* setup scissor/offset for whole screen: */
 	OUT_PKT0(ring, REG_A3XX_RB_WINDOW_OFFSET, 1);
-	OUT_RING(ring, A3XX_RB_WINDOW_OFFSET_X(x1) |
-			A3XX_RB_WINDOW_OFFSET_Y(y1));
+	OUT_RING(ring, A3XX_RB_WINDOW_OFFSET_X(gmem->minx << gmem->ms_x) |
+			A3XX_RB_WINDOW_OFFSET_Y(gmem->minx << gmem->ms_y));
 
 	OUT_PKT0(ring, REG_A3XX_RB_LRZ_VSC_CONTROL, 1);
 	OUT_RING(ring, A3XX_RB_LRZ_VSC_CONTROL_BINNING_ENABLE);
@@ -881,7 +882,7 @@ emit_binning_pass(struct fd_context *ctx)
 
 	OUT_PKT0(ring, REG_A3XX_GRAS_SC_CONTROL, 1);
 	OUT_RING(ring, A3XX_GRAS_SC_CONTROL_RENDER_MODE(RB_RENDERING_PASS) |
-			A3XX_GRAS_SC_CONTROL_MSAA_SAMPLES(MSAA_ONE) |
+			A3XX_GRAS_SC_CONTROL_MSAA_SAMPLES(msaa_samples(ctx->nr_samples)) |
 			A3XX_GRAS_SC_CONTROL_RASTER_MODE(0));
 
 	OUT_PKT0(ring, REG_A3XX_RB_MODE_CONTROL, 2);
