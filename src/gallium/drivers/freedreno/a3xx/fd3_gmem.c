@@ -181,7 +181,7 @@ emit_binning_workaround(struct fd_context *ctx)
 			A3XX_RB_RENDER_CONTROL_ALPHA_TEST_FUNC(FUNC_NEVER));
 
 	OUT_PKT0(ring, REG_A3XX_RB_COPY_CONTROL, 4);
-	OUT_RING(ring, A3XX_RB_COPY_CONTROL_MSAA_RESOLVE(MSAA_ONE) |
+	OUT_RING(ring, A3XX_RB_COPY_CONTROL_MSAA_RESOLVE(msaa_samples(ctx->nr_samples)) |
 			A3XX_RB_COPY_CONTROL_MODE(0) |
 			A3XX_RB_COPY_CONTROL_GMEM_BASE(0));
 	OUT_RELOCW(ring, fd_resource(fd3_ctx->solid_vbuf)->bo, 0x20, 0, -1);  /* RB_COPY_DEST_BASE */
@@ -194,7 +194,7 @@ emit_binning_workaround(struct fd_context *ctx)
 
 	OUT_PKT0(ring, REG_A3XX_GRAS_SC_CONTROL, 1);
 	OUT_RING(ring, A3XX_GRAS_SC_CONTROL_RENDER_MODE(RB_RESOLVE_PASS) |
-			A3XX_GRAS_SC_CONTROL_MSAA_SAMPLES(MSAA_ONE) |
+			A3XX_GRAS_SC_CONTROL_MSAA_SAMPLES(msaa_samples(ctx->nr_samples)) |
 			A3XX_GRAS_SC_CONTROL_RASTER_MODE(1));
 
 	fd3_program_emit(ring, &emit, 0, NULL);
@@ -215,8 +215,8 @@ emit_binning_workaround(struct fd_context *ctx)
 			A3XX_HLSQ_CONST_FSPRESV_RANGE_REG_ENDENTRY(0x20));
 
 	OUT_PKT0(ring, REG_A3XX_RB_MSAA_CONTROL, 1);
-	OUT_RING(ring, A3XX_RB_MSAA_CONTROL_DISABLE |
-			A3XX_RB_MSAA_CONTROL_SAMPLES(MSAA_ONE) |
+	OUT_RING(ring, COND(ctx->nr_samples < 2, A3XX_RB_MSAA_CONTROL_DISABLE) |
+			A3XX_RB_MSAA_CONTROL_SAMPLES(msaa_samples(ctx->nr_samples)) |
 			A3XX_RB_MSAA_CONTROL_SAMPLE_MASK(0xffff));
 
 	OUT_PKT0(ring, REG_A3XX_RB_DEPTH_CONTROL, 1);
@@ -301,7 +301,7 @@ emit_binning_workaround(struct fd_context *ctx)
 
 	OUT_PKT0(ring, REG_A3XX_GRAS_SC_CONTROL, 1);
 	OUT_RING(ring, A3XX_GRAS_SC_CONTROL_RENDER_MODE(RB_RENDERING_PASS) |
-			A3XX_GRAS_SC_CONTROL_MSAA_SAMPLES(MSAA_ONE) |
+			A3XX_GRAS_SC_CONTROL_MSAA_SAMPLES(msaa_samples(ctx->nr_samples)) |
 			A3XX_GRAS_SC_CONTROL_RASTER_MODE(0));
 
 	OUT_PKT0(ring, REG_A3XX_GRAS_CL_CLIP_CNTL, 1);
@@ -959,12 +959,13 @@ fd3_emit_tile_prep(struct fd_context *ctx, struct fd_tile *tile)
 {
 	struct fd_ringbuffer *ring = ctx->ring;
 	struct pipe_framebuffer_state *pfb = &ctx->framebuffer;
+	struct fd_gmem_stateobj *gmem = &ctx->gmem;
 
 	if (ctx->needs_rb_fbd) {
 		fd_wfi(ctx, ring);
 		OUT_PKT0(ring, REG_A3XX_RB_FRAME_BUFFER_DIMENSION, 1);
-		OUT_RING(ring, A3XX_RB_FRAME_BUFFER_DIMENSION_WIDTH(pfb->width) |
-				A3XX_RB_FRAME_BUFFER_DIMENSION_HEIGHT(pfb->height));
+		OUT_RING(ring, A3XX_RB_FRAME_BUFFER_DIMENSION_WIDTH(pfb->width << gmem->ms_x) |
+				A3XX_RB_FRAME_BUFFER_DIMENSION_HEIGHT(pfb->height << gmem->ms_y));
 		ctx->needs_rb_fbd = false;
 	}
 
