@@ -51,6 +51,8 @@ struct ir3_compile {
 	struct ir3 *ir;
 	struct ir3_shader_variant *so;
 
+	unsigned samples;             /* bitmask of x,y sample shifts */
+
 	struct ir3_block *block;      /* the current block */
 	struct ir3_block *in_block;   /* block created for shader inputs */
 
@@ -204,7 +206,11 @@ compile_init(struct ir3_compiler *compiler,
 		so->first_immediate += IR3_DP_COUNT/4;  /* convert to vec4 */
 		/* one (vec4) slot for stream-output base addresses: */
 		so->first_immediate++;
+
+		ctx->samples = so->key.vsamples;
 	}
+	else if (so->type == SHADER_FRAGMENT)
+		ctx->samples = so->key.fsamples;
 
 	return ctx;
 }
@@ -1385,7 +1391,7 @@ emit_tex(struct ir3_compile *ctx, nir_tex_instr *tex)
 {
 	struct ir3_block *b = ctx->block;
 	struct ir3_instruction **dst, *sam, *src0[12], *src1[4];
-	struct ir3_instruction **coord, *lod, *compare, *proj, **off, **ddx, **ddy;
+	struct ir3_instruction **coord, *lod, *compare, *proj, **off, **ddx, **ddy, *sample_index;
 	bool has_bias = false, has_lod = false, has_proj = false, has_off = false;
 	unsigned i, coords, flags;
 	unsigned nsrc0 = 0, nsrc1 = 0;
@@ -1428,11 +1434,36 @@ emit_tex(struct ir3_compile *ctx, nir_tex_instr *tex)
 		case nir_tex_src_ddy:
 			ddy = get_src(ctx, &tex->src[i].src);
 			break;
+		case nir_tex_src_ms_index:
+			sample_index = get_src(ctx, &tex->src[i].src);
+			break;
 		default:
 			compile_error(ctx, "Unhandled NIR tex src type: %d\n",
 					tex->src[i].src_type);
 			return;
 		}
+	}
+
+	/* scale ms coords */
+	if (tex->op == nir_texop_txf_ms) {
+		/* for samples laid out as
+		 *     0 1
+		 *     2 3
+		 * x = x_ms << ms_x | (sample_index & 1)
+		 * y = y_ms << ms_y | (sample_index >> 1)
+		 */
+		ir3_instruction *ms_x, *ms_y, *shift, *off_x, *off_y;
+		shift = create_immed(b, (ctx->samples >> (2 * tex->texture_index)) & 3);
+		ms_x = ir3_AND_B(b, shift, 0, 1, 0);
+		ms_y = ir3_SHR_B(b, shift, 0, 1, 0);
+
+		off_x = ir3_AND_B(b, sample_index, 0, 1, 0);
+		off_y = ir3_SHR_B(b, sample_index, 0, 1, 0);
+
+		coord[0] = ir3_SHL_B(b, coord[0], 0, ms_x, 0);
+		coord[0] = ir3_OR_B(b, coord[0], 0, off_x, 0);
+		coord[1] = ir3_SHL_B(b, coord[1], 0, ms_y, 0);
+		coord[1] = ir3_OR_B(b, coord[1], 0, off_y, 0);
 	}
 
 	switch (tex->op) {
@@ -1443,6 +1474,10 @@ emit_tex(struct ir3_compile *ctx, nir_tex_instr *tex)
 	case nir_texop_txf:      opc = OPC_ISAML;    break;
 	case nir_texop_lod:      opc = OPC_GETLOD;   break;
 	case nir_texop_txf_ms:
+		/* fixup op */
+		tex->op = nir_texop_txf;
+		opc = OPC_ISAML;
+		break;
 	case nir_texop_txs:
 	case nir_texop_tg4:
 	case nir_texop_query_levels:

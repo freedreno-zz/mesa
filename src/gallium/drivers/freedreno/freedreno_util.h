@@ -343,4 +343,23 @@ msaa_samples(int samples)
 	}
 }
 
+static inline enum a3xx_tex_msaa
+tex_msaa_samples(int samples)
+{
+	switch (samples) {
+	case 0:
+	case 1:
+		return A3XX_TPL1_MSAA1X;
+	case 2:
+		return A3XX_TPL1_MSAA2X = 1;
+	case 4:
+		return A3XX_TPL1_MSAA4X = 2;
+	case 8:
+		return A3XX_TPL1_MSAA8X = 3;
+	default:
+		assert(!"Unexpected sample count");
+		return A3XX_TPL1_MSAA1X;
+	}
+}
+
 #endif /* FREEDRENO_UTIL_H_ */
