@@ -583,7 +583,7 @@ fd_resource_create(struct pipe_screen *pscreen,
 			 util_format_description(format)->layout == UTIL_FORMAT_LAYOUT_RGTC)
 		format = PIPE_FORMAT_R8G8B8A8_UNORM;
 	rsc->internal_format = format;
-	rsc->cpp = util_format_get_blocksize(format);
+	rsc->cpp = util_format_get_blocksize(format) * tmpl->nr_samples;
 
 	assert(rsc->cpp);
 
@@ -667,7 +667,7 @@ fd_resource_from_handle(struct pipe_screen *pscreen,
 		goto fail;
 
 	rsc->base.vtbl = &fd_resource_vtbl;
-	rsc->cpp = util_format_get_blocksize(tmpl->format);
+	rsc->cpp = util_format_get_blocksize(tmpl->format) * tmpl->nr_samples;
 	slice->pitch /= rsc->cpp;
 	slice->offset = handle->offset;
 

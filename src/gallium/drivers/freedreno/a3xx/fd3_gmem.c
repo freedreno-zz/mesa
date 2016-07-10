@@ -104,9 +104,6 @@ emit_mrt(struct fd_ringbuffer *ring, unsigned nr_bufs,
 			} else {
 				stride = slice->pitch * rsc->cpp;
 			}
-
-			stride *= MAX2(1, psurf->texture->nr_samples);
-
 		} else if (i < nr_bufs && bases) {
 			base = bases[i];
 		}
@@ -1000,11 +997,11 @@ fd3_emit_tile_renderprep(struct fd_context *ctx, struct fd_tile *tile)
 	OUT_RING(ring, reg);
 	if (pfb->zsbuf) {
 		struct fd_resource *rsc = fd_resource(pfb->zsbuf->texture);
-		OUT_RING(ring, A3XX_RB_DEPTH_PITCH((rsc->cpp * gmem->bin_w) << ms));
+		OUT_RING(ring, A3XX_RB_DEPTH_PITCH(rsc->cpp * gmem->bin_w));
 		if (rsc->stencil) {
 			OUT_PKT0(ring, REG_A3XX_RB_STENCIL_INFO, 2);
 			OUT_RING(ring, A3XX_RB_STENCIL_INFO_STENCIL_BASE(gmem->zsbuf_base[1]));
-			OUT_RING(ring, A3XX_RB_STENCIL_PITCH((rsc->stencil->cpp * gmem->bin_w) << ms));
+			OUT_RING(ring, A3XX_RB_STENCIL_PITCH((rsc->stencil->cpp * gmem->bin_w)));
 		}
 	} else {
 		OUT_RING(ring, 0x00000000);

@@ -130,6 +130,8 @@ calculate_tiles(struct fd_context *ctx)
 			cbuf_cpp[i] = util_format_get_blocksize(pfb->cbufs[i]->format);
 		else
 			cbuf_cpp[i] = 4;
+
+		cbuf_cpp[i] *= pfb->cbufs[i]->texture->nr_samples;
 	}
 
 	if (!memcmp(gmem->zsbuf_cpp, zsbuf_cpp, sizeof(zsbuf_cpp)) &&
@@ -173,7 +175,7 @@ calculate_tiles(struct fd_context *ctx)
 	/* then find a bin width/height that satisfies the memory
 	 * constraints:
 	 */
-	while (total_size(cbuf_cpp, zsbuf_cpp, bin_w * ctx->nr_samples, bin_h, gmem) > gmem_size) {
+	while (total_size(cbuf_cpp, zsbuf_cpp, bin_w, bin_h, gmem) > gmem_size) {
 		if (bin_w > bin_h) {
 			nbins_x++;
 			bin_w = align(width / nbins_x, 32);
