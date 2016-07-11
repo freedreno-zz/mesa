@@ -32,6 +32,7 @@
 #include "freedreno_batch.h"
 #include "freedreno_context.h"
 #include "freedreno_resource.h"
+#include "freedreno_query_hw.h"
 
 static void
 batch_init(struct fd_batch *batch)
@@ -72,6 +73,8 @@ batch_init(struct fd_batch *batch)
 		util_dynarray_init(&batch->rbrc_patches);
 
 	assert(batch->resources->entries == 0);
+
+	util_dynarray_init(&batch->samples);
 }
 
 struct fd_batch *
@@ -108,6 +111,13 @@ batch_fini(struct fd_batch *batch)
 
 	if (is_a3xx(batch->ctx->screen))
 		util_dynarray_fini(&batch->rbrc_patches);
+
+	while (batch->samples.size > 0) {
+		struct fd_hw_sample *samp =
+			util_dynarray_pop(&batch->samples, struct fd_hw_sample *);
+		fd_hw_sample_reference(batch->ctx, &samp, NULL);
+	}
+	util_dynarray_fini(&batch->samples);
 }
 
 static void
@@ -166,6 +176,7 @@ __fd_batch_destroy(struct fd_batch *batch)
 	DBG("%p", batch);
 
 	util_copy_framebuffer_state(&batch->framebuffer, NULL);
+	pipe_resource_reference(&batch->query_buf, NULL);
 
 	batch_fini(batch);
 
