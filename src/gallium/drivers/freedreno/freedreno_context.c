@@ -276,6 +276,10 @@ fd_context_init(struct fd_context *ctx, struct pipe_screen *pscreen,
 	if (!ctx->blitter)
 		goto fail;
 
+	if (is_a3xx(screen)) {
+		util_blitter_set_texture_multisample(ctx->blitter, true);
+	}
+
 	ctx->primconvert = util_primconvert_create(pctx, ctx->primtype_mask);
 	if (!ctx->primconvert)
 		goto fail;
