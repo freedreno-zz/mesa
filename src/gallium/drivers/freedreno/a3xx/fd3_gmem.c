@@ -522,7 +522,7 @@ emit_mem2gmem_surf(struct fd_context *ctx, uint32_t bases[],
 		OUT_PKT0(ring, REG_A3XX_RB_DEPTH_INFO, 2);
 		OUT_RING(ring, A3XX_RB_DEPTH_INFO_DEPTH_BASE(bases[0]) |
 				 A3XX_RB_DEPTH_INFO_DEPTH_FORMAT(DEPTHX_32));
-		OUT_RING(ring, A3XX_RB_DEPTH_PITCH(4 * ctx->gmem.bin_w));
+		OUT_RING(ring, A3XX_RB_DEPTH_PITCH(4 * ctx->gmem.bin_w * ctx->nr_samples));
 
 		if (psurf[0]->format == PIPE_FORMAT_Z32_FLOAT) {
 			OUT_PKT0(ring, REG_A3XX_RB_MRT_CONTROL(0), 1);
@@ -567,6 +567,7 @@ fd3_emit_tile_mem2gmem(struct fd_context *ctx, struct fd_tile *tile)
 	float x0, y0, x1, y1;
 	unsigned bin_w = tile->bin_w;
 	unsigned bin_h = tile->bin_h;
+	uint32_t ms = ctx->gmem->ms_x + ctx->gmem->ms_y;
 	unsigned i;
 
 	/* write texture coordinates to vertexbuf: */
@@ -616,24 +617,24 @@ fd3_emit_tile_mem2gmem(struct fd_context *ctx, struct fd_tile *tile)
 
 	fd_wfi(ctx, ring);
 	OUT_PKT0(ring, REG_A3XX_GRAS_CL_VPORT_XOFFSET, 6);
-	OUT_RING(ring, A3XX_GRAS_CL_VPORT_XOFFSET((float)bin_w/2.0 - 0.5));
-	OUT_RING(ring, A3XX_GRAS_CL_VPORT_XSCALE((float)bin_w/2.0));
-	OUT_RING(ring, A3XX_GRAS_CL_VPORT_YOFFSET((float)bin_h/2.0 - 0.5));
-	OUT_RING(ring, A3XX_GRAS_CL_VPORT_YSCALE(-(float)bin_h/2.0));
+	OUT_RING(ring, A3XX_GRAS_CL_VPORT_XOFFSET((float)(bin_w << ms)/2.0 - 0.5));
+	OUT_RING(ring, A3XX_GRAS_CL_VPORT_XSCALE((float)(bin_w << ms)/2.0));
+	OUT_RING(ring, A3XX_GRAS_CL_VPORT_YOFFSET((float)(bin_h << ms)/2.0 - 0.5));
+	OUT_RING(ring, A3XX_GRAS_CL_VPORT_YSCALE(-(float)(bin_h << ms)/2.0));
 	OUT_RING(ring, A3XX_GRAS_CL_VPORT_ZOFFSET(0.0));
 	OUT_RING(ring, A3XX_GRAS_CL_VPORT_ZSCALE(1.0));
 
 	OUT_PKT0(ring, REG_A3XX_GRAS_SC_WINDOW_SCISSOR_TL, 2);
 	OUT_RING(ring, A3XX_GRAS_SC_WINDOW_SCISSOR_TL_X(0) |
 			A3XX_GRAS_SC_WINDOW_SCISSOR_TL_Y(0));
-	OUT_RING(ring, A3XX_GRAS_SC_WINDOW_SCISSOR_BR_X(bin_w - 1) |
-			A3XX_GRAS_SC_WINDOW_SCISSOR_BR_Y(bin_h - 1));
+	OUT_RING(ring, A3XX_GRAS_SC_WINDOW_SCISSOR_BR_X((bin_w << ms) - 1) |
+			A3XX_GRAS_SC_WINDOW_SCISSOR_BR_Y((bin_h << ms) - 1));
 
 	OUT_PKT0(ring, REG_A3XX_GRAS_SC_SCREEN_SCISSOR_TL, 2);
 	OUT_RING(ring, A3XX_GRAS_SC_SCREEN_SCISSOR_TL_X(0) |
 			A3XX_GRAS_SC_SCREEN_SCISSOR_TL_Y(0));
-	OUT_RING(ring, A3XX_GRAS_SC_SCREEN_SCISSOR_BR_X(bin_w - 1) |
-			A3XX_GRAS_SC_SCREEN_SCISSOR_BR_Y(bin_h - 1));
+	OUT_RING(ring, A3XX_GRAS_SC_SCREEN_SCISSOR_BR_X((bin_w << ms) - 1) |
+			A3XX_GRAS_SC_SCREEN_SCISSOR_BR_Y((bin_h << ms) - 1));
 
 	OUT_PKT0(ring, REG_A3XX_RB_STENCIL_CONTROL, 1);
 	OUT_RING(ring, 0x2 |
@@ -652,7 +653,7 @@ fd3_emit_tile_mem2gmem(struct fd_context *ctx, struct fd_tile *tile)
 
 	OUT_PKT0(ring, REG_A3XX_GRAS_SC_CONTROL, 1);
 	OUT_RING(ring, A3XX_GRAS_SC_CONTROL_RENDER_MODE(RB_RENDERING_PASS) |
-			A3XX_GRAS_SC_CONTROL_MSAA_SAMPLES(MSAA_ONE) |
+			A3XX_GRAS_SC_CONTROL_MSAA_SAMPLES(msaa_samples(ctx->nr_samples)) |
 			A3XX_GRAS_SC_CONTROL_RASTER_MODE(1));
 
 	OUT_PKT0(ring, REG_A3XX_PC_PRIM_VTX_CNTL, 1);
@@ -705,7 +706,7 @@ fd3_emit_tile_mem2gmem(struct fd_context *ctx, struct fd_tile *tile)
 
 	OUT_PKT0(ring, REG_A3XX_GRAS_SC_CONTROL, 1);
 	OUT_RING(ring, A3XX_GRAS_SC_CONTROL_RENDER_MODE(RB_RENDERING_PASS) |
-			A3XX_GRAS_SC_CONTROL_MSAA_SAMPLES(MSAA_ONE) |
+			A3XX_GRAS_SC_CONTROL_MSAA_SAMPLES(msaa_samples(ctx->nr_samples)) |
 			A3XX_GRAS_SC_CONTROL_RASTER_MODE(0));
 
 	OUT_PKT0(ring, REG_A3XX_RB_MODE_CONTROL, 1);
