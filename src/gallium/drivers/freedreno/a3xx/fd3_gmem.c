@@ -326,11 +326,29 @@ emit_gmem2mem_surf(struct fd_context *ctx,
 
 	debug_assert(psurf->u.tex.first_layer == psurf->u.tex.last_layer);
 
+	// ZZZ we need a way to track how an ms surface is used to be able to decide when to downsample. eg. if it is later to be restored for a sample-specific operation, we cannot downsample it right away. else, downsample here.
+	/* if (fd_mesa_debug & FD_DBG_MSAA) {
+		downsample = 0;
+	}
+	else {
+		// ZZZ this should be associted with the rsc/surf? instead
+		downsample = 1;
+		if (util_format_is_srgb(format)) downsample |= 0b10;
+	}
+
+	if (psurf target is ms) {
+		bit6 = 0;
+	}
+	else
+		bit6 = 1;
+	*/
+
+	// lets not downsample anything for now. the psurf is ms, copy all samples.
 	OUT_PKT0(ring, REG_A3XX_RB_COPY_CONTROL, 4);
-	OUT_RING(ring, A3XX_RB_COPY_CONTROL_MSAA_RESOLVE(MSAA_ONE) |
+	OUT_RING(ring, A3XX_RB_COPY_CONTROL_MSAA_RESOLVE(msaa_samples(psurf->texture->nr_samples)) |
 			A3XX_RB_COPY_CONTROL_MODE(mode) |
 			A3XX_RB_COPY_CONTROL_GMEM_BASE(base) |
-			COND(format == PIPE_FORMAT_Z32_FLOAT ||
+			COND(format == PIPE_FORMAT_Z32_FLOAT || // ZZZ this may conflict with downsample later. see hrd.
 				 format == PIPE_FORMAT_Z32_FLOAT_S8X24_UINT,
 				 A3XX_RB_COPY_CONTROL_UNK12));
 
@@ -360,6 +378,7 @@ fd3_emit_tile_gmem2mem(struct fd_context *ctx, struct fd_tile *tile)
 				.half_precision = true,
 			},
 	};
+	uint32_t ms = ctx->gmem->ms_x + ctx->gmem->ms_y;
 	int i;
 
 	OUT_PKT0(ring, REG_A3XX_RB_DEPTH_CONTROL, 1);
@@ -393,10 +412,10 @@ fd3_emit_tile_gmem2mem(struct fd_context *ctx, struct fd_tile *tile)
 
 	fd_wfi(ctx, ring);
 	OUT_PKT0(ring, REG_A3XX_GRAS_CL_VPORT_XOFFSET, 6);
-	OUT_RING(ring, A3XX_GRAS_CL_VPORT_XOFFSET((float)pfb->width/2.0 - 0.5));
-	OUT_RING(ring, A3XX_GRAS_CL_VPORT_XSCALE((float)pfb->width/2.0));
-	OUT_RING(ring, A3XX_GRAS_CL_VPORT_YOFFSET((float)pfb->height/2.0 - 0.5));
-	OUT_RING(ring, A3XX_GRAS_CL_VPORT_YSCALE(-(float)pfb->height/2.0));
+	OUT_RING(ring, A3XX_GRAS_CL_VPORT_XOFFSET((float)(pfb->width << ms)/2.0 - 0.5));
+	OUT_RING(ring, A3XX_GRAS_CL_VPORT_XSCALE((float)(pfb->width << ms)/2.0));
+	OUT_RING(ring, A3XX_GRAS_CL_VPORT_YOFFSET((float)(pfb->height << ms)/2.0 - 0.5));
+	OUT_RING(ring, A3XX_GRAS_CL_VPORT_YSCALE(-(float)(pfb->height << ms)/2.0));
 	OUT_RING(ring, A3XX_GRAS_CL_VPORT_ZOFFSET(0.0));
 	OUT_RING(ring, A3XX_GRAS_CL_VPORT_ZSCALE(1.0));
 
@@ -413,7 +432,7 @@ fd3_emit_tile_gmem2mem(struct fd_context *ctx, struct fd_tile *tile)
 
 	OUT_PKT0(ring, REG_A3XX_GRAS_SC_CONTROL, 1);
 	OUT_RING(ring, A3XX_GRAS_SC_CONTROL_RENDER_MODE(RB_RESOLVE_PASS) |
-			A3XX_GRAS_SC_CONTROL_MSAA_SAMPLES(MSAA_ONE) |
+			A3XX_GRAS_SC_CONTROL_MSAA_SAMPLES(msaa_samples(ctx->nr_samples)) |
 			A3XX_GRAS_SC_CONTROL_RASTER_MODE(1));
 
 	OUT_PKT0(ring, REG_A3XX_PC_PRIM_VTX_CNTL, 1);
@@ -425,8 +444,8 @@ fd3_emit_tile_gmem2mem(struct fd_context *ctx, struct fd_tile *tile)
 	OUT_PKT0(ring, REG_A3XX_GRAS_SC_WINDOW_SCISSOR_TL, 2);
 	OUT_RING(ring, A3XX_GRAS_SC_WINDOW_SCISSOR_TL_X(0) |
 			A3XX_GRAS_SC_WINDOW_SCISSOR_TL_Y(0));
-	OUT_RING(ring, A3XX_GRAS_SC_WINDOW_SCISSOR_BR_X(pfb->width - 1) |
-			A3XX_GRAS_SC_WINDOW_SCISSOR_BR_Y(pfb->height - 1));
+	OUT_RING(ring, A3XX_GRAS_SC_WINDOW_SCISSOR_BR_X((pfb->width << ms) - 1) |
+			A3XX_GRAS_SC_WINDOW_SCISSOR_BR_Y((pfb->height << ms) - 1));
 
 	OUT_PKT0(ring, REG_A3XX_VFD_INDEX_MIN, 4);
 	OUT_RING(ring, 0);            /* VFD_INDEX_MIN */
@@ -434,6 +453,7 @@ fd3_emit_tile_gmem2mem(struct fd_context *ctx, struct fd_tile *tile)
 	OUT_RING(ring, 0);            /* VFD_INSTANCEID_OFFSET */
 	OUT_RING(ring, 0);            /* VFD_INDEX_OFFSET */
 
+	// ZZZ solid_prog
 	fd3_program_emit(ring, &emit, 0, NULL);
 	fd3_emit_vertex_bufs(ring, &emit);
 
@@ -465,7 +485,7 @@ fd3_emit_tile_gmem2mem(struct fd_context *ctx, struct fd_tile *tile)
 
 	OUT_PKT0(ring, REG_A3XX_GRAS_SC_CONTROL, 1);
 	OUT_RING(ring, A3XX_GRAS_SC_CONTROL_RENDER_MODE(RB_RENDERING_PASS) |
-			A3XX_GRAS_SC_CONTROL_MSAA_SAMPLES(MSAA_ONE) |
+			A3XX_GRAS_SC_CONTROL_MSAA_SAMPLES(msaa_samples(ctx->nr_samples)) |
 			A3XX_GRAS_SC_CONTROL_RASTER_MODE(0));
 }
 
