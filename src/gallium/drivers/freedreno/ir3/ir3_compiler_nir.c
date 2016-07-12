@@ -1435,7 +1435,7 @@ emit_tex(struct ir3_compile *ctx, nir_tex_instr *tex)
 			ddy = get_src(ctx, &tex->src[i].src);
 			break;
 		case nir_tex_src_ms_index:
-			sample_index = get_src(ctx, &tex->src[i].src);
+			sample_index = get_src(ctx, &tex->src[i].src)[0];
 			break;
 		default:
 			compile_error(ctx, "Unhandled NIR tex src type: %d\n",
@@ -1452,13 +1452,13 @@ emit_tex(struct ir3_compile *ctx, nir_tex_instr *tex)
 		 * x = x_ms << ms_x | (sample_index & 1)
 		 * y = y_ms << ms_y | (sample_index >> 1)
 		 */
-		ir3_instruction *ms_x, *ms_y, *shift, *off_x, *off_y;
+		struct ir3_instruction *ms_x, *ms_y, *shift, *off_x, *off_y;
 		shift = create_immed(b, (ctx->samples >> (2 * tex->texture_index)) & 3);
-		ms_x = ir3_AND_B(b, shift, 0, 1, 0);
-		ms_y = ir3_SHR_B(b, shift, 0, 1, 0);
+		ms_x = ir3_AND_B(b, shift, 0, create_immed(b, 1), 0);
+		ms_y = ir3_SHR_B(b, shift, 0, create_immed(b, 1), 0);
 
-		off_x = ir3_AND_B(b, sample_index, 0, 1, 0);
-		off_y = ir3_SHR_B(b, sample_index, 0, 1, 0);
+		off_x = ir3_AND_B(b, sample_index, 0, create_immed(b, 1), 0);
+		off_y = ir3_SHR_B(b, sample_index, 0, create_immed(b, 1), 0);
 
 		coord[0] = ir3_SHL_B(b, coord[0], 0, ms_x, 0);
 		coord[0] = ir3_OR_B(b, coord[0], 0, off_x, 0);

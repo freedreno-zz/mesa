@@ -378,7 +378,7 @@ fd3_emit_tile_gmem2mem(struct fd_context *ctx, struct fd_tile *tile)
 				.half_precision = true,
 			},
 	};
-	uint32_t ms = ctx->gmem->ms_x + ctx->gmem->ms_y;
+	uint32_t ms = ctx->gmem.ms_x + ctx->gmem.ms_y;
 	int i;
 
 	OUT_PKT0(ring, REG_A3XX_RB_DEPTH_CONTROL, 1);
@@ -567,7 +567,7 @@ fd3_emit_tile_mem2gmem(struct fd_context *ctx, struct fd_tile *tile)
 	float x0, y0, x1, y1;
 	unsigned bin_w = tile->bin_w;
 	unsigned bin_h = tile->bin_h;
-	uint32_t ms = ctx->gmem->ms_x + ctx->gmem->ms_y;
+	uint32_t ms = ctx->gmem.ms_x + ctx->gmem.ms_y;
 	unsigned i;
 
 	/* write texture coordinates to vertexbuf: */

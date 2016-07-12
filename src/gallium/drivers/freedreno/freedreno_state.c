@@ -139,6 +139,8 @@ fd_set_framebuffer_state(struct pipe_context *pctx,
 	if (cso->zsbuf)
 		ctx->nr_samples = cso->zsbuf->texture->nr_samples;
 
+	ctx->nr_samples = ctx->nr_samples > 0 ? ctx->nr_samples : 1;
+
 	ctx->dirty |= FD_DIRTY_FRAMEBUFFER;
 
 	ctx->disabled_scissor.minx = 0;
