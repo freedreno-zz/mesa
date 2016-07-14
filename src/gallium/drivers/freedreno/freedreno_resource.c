@@ -773,7 +773,7 @@ fd_blit(struct pipe_context *pctx, const struct pipe_blit_info *blit_info)
 	struct fd_context *ctx = fd_context(pctx);
 	struct pipe_blit_info info = *blit_info;
 
-	if (info.src.resource->nr_samples > 1 &&
+	if (info.src.resource->nr_samples > 4 &&
 			info.dst.resource->nr_samples <= 1 &&
 			!util_format_is_depth_or_stencil(info.src.resource->format) &&
 			!util_format_is_pure_integer(info.src.resource->format)) {

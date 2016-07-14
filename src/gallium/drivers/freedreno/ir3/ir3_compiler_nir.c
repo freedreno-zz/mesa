@@ -1476,7 +1476,8 @@ emit_tex(struct ir3_compile *ctx, nir_tex_instr *tex)
 	case nir_texop_txf_ms:
 		/* fixup op */
 		tex->op = nir_texop_txf;
-		opc = OPC_ISAML;
+		tex->num_srcs--;
+		opc = OPC_ISAM;
 		break;
 	case nir_texop_txs:
 	case nir_texop_tg4:

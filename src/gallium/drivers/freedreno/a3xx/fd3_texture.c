@@ -312,7 +312,7 @@ fd3_set_sampler_views(struct pipe_context *pctx, unsigned shader,
 
 	for (i = 0; i < tex->num_textures; i++) {
 		uint nr_samples = tex->textures[i]->texture->nr_samples;
-		samplemask |= (((nr_samples > 1) << 1) | (nr_samples > 2)) << (i * 2);
+		samplemask |= ((nr_samples > 1) | (nr_samples > 2) << 1) << (i * 2);
 	}
 
 	*samples = samplemask;
