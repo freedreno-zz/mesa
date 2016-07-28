@@ -1403,7 +1403,7 @@ emit_tex(struct ir3_compile *ctx, nir_tex_instr *tex)
 
 	/* TODO: might just be one component for gathers? */
 	dst = get_dst(ctx, &tex->dest, 4);
-
+printf("emit tex\n");
 	for (unsigned i = 0; i < tex->num_srcs; i++) {
 		switch (tex->src[i].src_type) {
 		case nir_tex_src_coord:
@@ -1444,6 +1444,7 @@ emit_tex(struct ir3_compile *ctx, nir_tex_instr *tex)
 		}
 	}
 
+	struct ir3_instruction *tmp = NULL, *tmpY = NULL;
 	/* scale ms coords */
 	if (tex->op == nir_texop_txf_ms) {
 		/* for samples laid out as
@@ -1457,13 +1458,28 @@ emit_tex(struct ir3_compile *ctx, nir_tex_instr *tex)
 		ms_x = ir3_AND_B(b, shift, 0, create_immed(b, 1), 0);
 		ms_y = ir3_SHR_B(b, shift, 0, create_immed(b, 1), 0);
 
-		off_x = ir3_AND_B(b, sample_index, 0, create_immed(b, 1), 0);
-		off_y = ir3_SHR_B(b, sample_index, 0, create_immed(b, 1), 0);
+		//tmp = ir3_MUL_U(b, coord[0], 0, ir3_XOR_B(b, sample_index, 0, create_immed(b, 1), 0), 0);
+		//tmpY = ir3_MUL_U(b, coord[1], 0, ir3_XOR_B(b, sample_index, 0, create_immed(b, 1), 0), 0);
 
-		coord[0] = ir3_SHL_B(b, coord[0], 0, ms_x, 0);
-		coord[0] = ir3_OR_B(b, coord[0], 0, off_x, 0);
-		coord[1] = ir3_SHL_B(b, coord[1], 0, ms_y, 0);
-		coord[1] = ir3_OR_B(b, coord[1], 0, off_y, 0);
+		tmp = ir3_MOV(b, coord[0], TYPE_U32);
+		tmpY = ir3_MOV(b, coord[1], TYPE_U32);
+		tmp = ir3_MUL_U(b, tmp, 0, sample_index, 0);
+		//tmp = ir3_ADD_U(b, tmp, 0, create_immed(b, 800), 0);
+		//tmp = ir3_ADD_U(b, tmp, 0, ir3_MUL_U(b, create_immed(b, 800), 0, sample_index, 0), 0);
+
+		//tmp = ir3_SHL_B(b, tmp, 0, create_immed(b, 1), 0);
+		//tmp = ir3_ADD_U(b, tmp, 0, ir3_ADD_U(b, sample_index, 0, create_immed(b, 1), 0), 0);
+		//tmpY = ir3_ADD_U(b, tmpY, 0, sample_index, 0);
+	//	ir3_print_instr(coord[0]);
+	//	printf("coord^ tmpv\n");
+	//	ir3_print_instr(tmp);
+		//coord[0] = tmp;
+		//coord[0] = ir3_MOV(b, tmp, TYPE_U32);
+		//printf("assn v\n");
+		//ir3_print_instr(coord[0]);
+// 		coord[0] = ir3_ADD_U(b, coord[0], 0, create_immed(b, 800), 0);
+// 		//tmp = ir3_MUL_U(b, coord[0], 0, sample_index, 0);
+// 		ir3_print_instr(coord[0]);
 	}
 
 	switch (tex->op) {
@@ -1475,8 +1491,8 @@ emit_tex(struct ir3_compile *ctx, nir_tex_instr *tex)
 	case nir_texop_lod:      opc = OPC_GETLOD;   break;
 	case nir_texop_txf_ms:
 		/* fixup op */
-		tex->op = nir_texop_txf;
-		tex->num_srcs--;
+		//tex->op = nir_texop_txf;
+		//tex->num_srcs--;
 		opc = OPC_ISAM;
 		break;
 	case nir_texop_txs:
@@ -1514,8 +1530,16 @@ emit_tex(struct ir3_compile *ctx, nir_tex_instr *tex)
 	 */
 
 	/* insert tex coords: */
-	for (i = 0; i < coords; i++)
-		src0[nsrc0++] = coord[i];
+	if(tex->op == nir_texop_txf_ms && tmp) {
+		printf("ms coords\n");
+		src0[nsrc0++] = tmp;
+		src0[nsrc0++] = tmpY;
+	}
+	else {
+		printf("regular coords\n");
+		for (i = 0; i < coords; i++)
+			src0[nsrc0++] = coord[i];
+	}
 
 	if (coords == 1) {
 		/* hw doesn't do 1d, so we treat it as 2d with

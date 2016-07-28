@@ -131,7 +131,7 @@ calculate_tiles(struct fd_context *ctx)
 		else
 			cbuf_cpp[i] = 4;
 
-		cbuf_cpp[i] *= pfb->cbufs[i]->texture->nr_samples;
+		cbuf_cpp[i] *= pfb->cbufs[i]->texture->nr_samples > 0 ? pfb->cbufs[i]->texture->nr_samples : 1;
 	}
 
 	if (!memcmp(gmem->zsbuf_cpp, zsbuf_cpp, sizeof(zsbuf_cpp)) &&

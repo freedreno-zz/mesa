@@ -627,12 +627,13 @@ fd3_emit_state(struct fd_context *ctx, struct fd_ringbuffer *ring,
 
 	if (dirty & FD_DIRTY_SCISSOR) {
 		struct pipe_scissor_state *scissor = fd_context_get_scissor(ctx);
+		uint8_t ms = (ctx->nr_samples > 1) + (ctx->nr_samples > 2);
 
 		OUT_PKT0(ring, REG_A3XX_GRAS_SC_WINDOW_SCISSOR_TL, 2);
-		OUT_RING(ring, A3XX_GRAS_SC_WINDOW_SCISSOR_TL_X(scissor->minx) |
-				A3XX_GRAS_SC_WINDOW_SCISSOR_TL_Y(scissor->miny));
-		OUT_RING(ring, A3XX_GRAS_SC_WINDOW_SCISSOR_BR_X(scissor->maxx - 1) |
-				A3XX_GRAS_SC_WINDOW_SCISSOR_BR_Y(scissor->maxy - 1));
+		OUT_RING(ring, A3XX_GRAS_SC_WINDOW_SCISSOR_TL_X(scissor->minx << ms) |
+				A3XX_GRAS_SC_WINDOW_SCISSOR_TL_Y(scissor->miny << ms));
+		OUT_RING(ring, A3XX_GRAS_SC_WINDOW_SCISSOR_BR_X((scissor->maxx << ms) - 1) |
+				A3XX_GRAS_SC_WINDOW_SCISSOR_BR_Y((scissor->maxy << ms) - 1));
 
 		ctx->max_scissor.minx = MIN2(ctx->max_scissor.minx, scissor->minx);
 		ctx->max_scissor.miny = MIN2(ctx->max_scissor.miny, scissor->miny);
@@ -641,12 +642,13 @@ fd3_emit_state(struct fd_context *ctx, struct fd_ringbuffer *ring,
 	}
 
 	if (dirty & FD_DIRTY_VIEWPORT) {
+		uint8_t ms = (ctx->nr_samples > 1) + (ctx->nr_samples > 2);
 		fd_wfi(ctx, ring);
 		OUT_PKT0(ring, REG_A3XX_GRAS_CL_VPORT_XOFFSET, 6);
-		OUT_RING(ring, A3XX_GRAS_CL_VPORT_XOFFSET(ctx->viewport.translate[0] - 0.5));
-		OUT_RING(ring, A3XX_GRAS_CL_VPORT_XSCALE(ctx->viewport.scale[0]));
-		OUT_RING(ring, A3XX_GRAS_CL_VPORT_YOFFSET(ctx->viewport.translate[1] - 0.5));
-		OUT_RING(ring, A3XX_GRAS_CL_VPORT_YSCALE(ctx->viewport.scale[1]));
+		OUT_RING(ring, A3XX_GRAS_CL_VPORT_XOFFSET((ctx->viewport.translate[0] * ctx->nr_samples) - 0.5));
+		OUT_RING(ring, A3XX_GRAS_CL_VPORT_XSCALE((ctx->viewport.scale[0] * ctx->nr_samples)));
+		OUT_RING(ring, A3XX_GRAS_CL_VPORT_YOFFSET((ctx->viewport.translate[1] * ctx->nr_samples) - 0.5));
+		OUT_RING(ring, A3XX_GRAS_CL_VPORT_YSCALE((ctx->viewport.scale[1] * ctx->nr_samples)));
 		OUT_RING(ring, A3XX_GRAS_CL_VPORT_ZOFFSET(ctx->viewport.translate[2]));
 		OUT_RING(ring, A3XX_GRAS_CL_VPORT_ZSCALE(ctx->viewport.scale[2]));
 	}

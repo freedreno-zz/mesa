@@ -219,7 +219,7 @@ fd3_sampler_view_create(struct pipe_context *pctx, struct pipe_resource *prsc,
 	unsigned lvl;
 	uint32_t sz2 = 0;
 	uint8_t ms_x = prsc->nr_samples > 1, ms_y = prsc->nr_samples > 2;
-
+	//uint8_t ms_y = 0;
 	if (!so)
 		return NULL;
 
@@ -246,6 +246,8 @@ fd3_sampler_view_create(struct pipe_context *pctx, struct pipe_resource *prsc,
 			A3XX_TEX_CONST_1_WIDTH((cso->u.buf.last_element -
 								   cso->u.buf.first_element + 1) << ms_x) |
 			A3XX_TEX_CONST_1_HEIGHT(1 << ms_y);
+			printf("watchme: %d %d\n", (cso->u.buf.last_element -
+								   cso->u.buf.first_element + 1), ms_x);
 	} else {
 		unsigned miplevels;
 
@@ -257,6 +259,7 @@ fd3_sampler_view_create(struct pipe_context *pctx, struct pipe_resource *prsc,
 			A3XX_TEX_CONST_1_FETCHSIZE(fd3_pipe2fetchsize(cso->format)) |
 			A3XX_TEX_CONST_1_WIDTH(u_minify(prsc->width0, lvl) << ms_x) |
 			A3XX_TEX_CONST_1_HEIGHT(u_minify(prsc->height0, lvl) << ms_y);
+			printf("watchme2: minw:%d lvl:%d msx:%d tms:%d cpp:%d\n", u_minify(prsc->width0, lvl), lvl, ms_x, tex_msaa_samples(prsc->nr_samples), rsc->cpp);
 	}
 	/* when emitted, A3XX_TEX_CONST_2_INDX() must be OR'd in: */
 	so->texconst2 =
