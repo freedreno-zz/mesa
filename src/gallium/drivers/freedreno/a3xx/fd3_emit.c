@@ -675,19 +675,7 @@ fd3_emit_state(struct fd_context *ctx, struct fd_ringbuffer *ring,
 
 	if (dirty & (FD_DIRTY_BLEND | FD_DIRTY_FRAMEBUFFER)) {
 		struct fd3_blend_stateobj *blend = fd3_blend_stateobj(ctx->blend);
-		struct pipe_surface *surf = ctx->framebuffer.cbufs[0];
 		uint32_t i;
-
-		if ((!surf || !util_format_is_pure_integer(pipe_surface_format(surf))) && ctx->nr_samples > 1) {
-			uint32_t val = 0;
-			if (blend->base.alpha_to_coverage)
-				val |= A3XX_RB_RENDER_CONTROL_ALPHA_TO_COVERAGE;
-			if (blend->base.alpha_to_one)
-				val |= A3XX_RB_RENDER_CONTROL_ALPHA_TO_ONE;
-
-			OUT_PKT0(ring, REG_A3XX_RB_RENDER_CONTROL, 1);
-			OUT_RINGP(ring, val, &fd3_context(ctx)->rbrc_patches);
-		}
 
 		for (i = 0; i < ARRAY_SIZE(blend->rb_mrt); i++) {
 			enum pipe_format format = pipe_surface_format(ctx->framebuffer.cbufs[i]);
