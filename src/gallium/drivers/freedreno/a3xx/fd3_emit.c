@@ -627,7 +627,7 @@ fd3_emit_state(struct fd_context *ctx, struct fd_ringbuffer *ring,
 
 	if (dirty & FD_DIRTY_SCISSOR) {
 		struct pipe_scissor_state *scissor = fd_context_get_scissor(ctx);
-		uint8_t ms = (ctx->nr_samples > 1) + (ctx->nr_samples > 2);
+		uint8_t ms = ctx->nr_samples >> 1;
 
 		OUT_PKT0(ring, REG_A3XX_GRAS_SC_WINDOW_SCISSOR_TL, 2);
 		OUT_RING(ring, A3XX_GRAS_SC_WINDOW_SCISSOR_TL_X(scissor->minx << ms) |
@@ -642,7 +642,6 @@ fd3_emit_state(struct fd_context *ctx, struct fd_ringbuffer *ring,
 	}
 
 	if (dirty & FD_DIRTY_VIEWPORT) {
-		uint8_t ms = (ctx->nr_samples > 1) + (ctx->nr_samples > 2);
 		fd_wfi(ctx, ring);
 		OUT_PKT0(ring, REG_A3XX_GRAS_CL_VPORT_XOFFSET, 6);
 		OUT_RING(ring, A3XX_GRAS_CL_VPORT_XOFFSET((ctx->viewport.translate[0] * ctx->nr_samples) - 0.5));
