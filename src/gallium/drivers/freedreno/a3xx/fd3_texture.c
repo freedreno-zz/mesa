@@ -218,8 +218,8 @@ fd3_sampler_view_create(struct pipe_context *pctx, struct pipe_resource *prsc,
 	struct fd_resource *rsc = fd_resource(prsc);
 	unsigned lvl;
 	uint32_t sz2 = 0;
-	uint8_t ms_x = prsc->nr_samples > 1, ms_y = prsc->nr_samples > 2;
-	//uint8_t ms_y = 0;
+	uint8_t ms = prsc->nr_samples >> 1;
+
 	if (!so)
 		return NULL;
 
@@ -232,7 +232,6 @@ fd3_sampler_view_create(struct pipe_context *pctx, struct pipe_resource *prsc,
 	so->texconst0 =
 			A3XX_TEX_CONST_0_TYPE(tex_type(prsc->target)) |
 			A3XX_TEX_CONST_0_FMT(fd3_pipe2tex(cso->format)) |
-			A3XX_TEX_CONST_0_MSAATEX(tex_msaa_samples(prsc->nr_samples)) |
 			fd3_tex_swiz(cso->format, cso->swizzle_r, cso->swizzle_g,
 						cso->swizzle_b, cso->swizzle_a);
 
@@ -242,12 +241,10 @@ fd3_sampler_view_create(struct pipe_context *pctx, struct pipe_resource *prsc,
 	if (prsc->target == PIPE_BUFFER) {
 		lvl = 0;
 		so->texconst1 =
-			A3XX_TEX_CONST_1_FETCHSIZE(fd3_pipe2fetchsize(cso->format)) |
+			A3XX_TEX_CONST_1_FETCHSIZE(fd3_pipe2fetchsize(cso->format, prsc->nr_samples)) |
 			A3XX_TEX_CONST_1_WIDTH((cso->u.buf.last_element -
-								   cso->u.buf.first_element + 1) << ms_x) |
-			A3XX_TEX_CONST_1_HEIGHT(1 << ms_y);
-			printf("watchme: %d %d\n", (cso->u.buf.last_element -
-								   cso->u.buf.first_element + 1), ms_x);
+								   cso->u.buf.first_element + 1) << ms) |
+			A3XX_TEX_CONST_1_HEIGHT(1);
 	} else {
 		unsigned miplevels;
 
@@ -256,10 +253,9 @@ fd3_sampler_view_create(struct pipe_context *pctx, struct pipe_resource *prsc,
 
 		so->texconst0 |= A3XX_TEX_CONST_0_MIPLVLS(miplevels);
 		so->texconst1 =
-			A3XX_TEX_CONST_1_FETCHSIZE(fd3_pipe2fetchsize(cso->format)) |
-			A3XX_TEX_CONST_1_WIDTH(u_minify(prsc->width0, lvl) << ms_x) |
-			A3XX_TEX_CONST_1_HEIGHT(u_minify(prsc->height0, lvl) << ms_y);
-			printf("watchme2: minw:%d lvl:%d msx:%d tms:%d cpp:%d\n", u_minify(prsc->width0, lvl), lvl, ms_x, tex_msaa_samples(prsc->nr_samples), rsc->cpp);
+			A3XX_TEX_CONST_1_FETCHSIZE(fd3_pipe2fetchsize(cso->format, prsc->nr_samples)) |
+			A3XX_TEX_CONST_1_WIDTH(u_minify(prsc->width0, lvl) << ms) |
+			A3XX_TEX_CONST_1_HEIGHT(u_minify(prsc->height0, lvl));
 	}
 	/* when emitted, A3XX_TEX_CONST_2_INDX() must be OR'd in: */
 	so->texconst2 =
