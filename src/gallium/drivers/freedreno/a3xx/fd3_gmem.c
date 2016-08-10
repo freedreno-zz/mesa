@@ -178,7 +178,7 @@ emit_binning_workaround(struct fd_context *ctx)
 			A3XX_RB_RENDER_CONTROL_ALPHA_TEST_FUNC(FUNC_NEVER));
 
 	OUT_PKT0(ring, REG_A3XX_RB_COPY_CONTROL, 4);
-	OUT_RING(ring, A3XX_RB_COPY_CONTROL_MSAA_RESOLVE(msaa_samples(ctx->nr_samples)) |
+	OUT_RING(ring, A3XX_RB_COPY_CONTROL_MSAA_RESOLVE(MSAA_ONE) |
 			A3XX_RB_COPY_CONTROL_MODE(0) |
 			A3XX_RB_COPY_CONTROL_GMEM_BASE(0));
 	OUT_RELOCW(ring, fd_resource(fd3_ctx->solid_vbuf)->bo, 0x20, 0, -1);  /* RB_COPY_DEST_BASE */
@@ -191,7 +191,7 @@ emit_binning_workaround(struct fd_context *ctx)
 
 	OUT_PKT0(ring, REG_A3XX_GRAS_SC_CONTROL, 1);
 	OUT_RING(ring, A3XX_GRAS_SC_CONTROL_RENDER_MODE(RB_RESOLVE_PASS) |
-			A3XX_GRAS_SC_CONTROL_MSAA_SAMPLES(msaa_samples(ctx->nr_samples)) |
+			A3XX_GRAS_SC_CONTROL_MSAA_SAMPLES(MSAA_ONE) |
 			A3XX_GRAS_SC_CONTROL_RASTER_MODE(1));
 
 	fd3_program_emit(ring, &emit, 0, NULL);
@@ -212,8 +212,8 @@ emit_binning_workaround(struct fd_context *ctx)
 			A3XX_HLSQ_CONST_FSPRESV_RANGE_REG_ENDENTRY(0x20));
 
 	OUT_PKT0(ring, REG_A3XX_RB_MSAA_CONTROL, 1);
-	OUT_RING(ring, COND(ctx->nr_samples < 2, A3XX_RB_MSAA_CONTROL_DISABLE) |
-			A3XX_RB_MSAA_CONTROL_SAMPLES(msaa_samples(ctx->nr_samples)) |
+	OUT_RING(ring, A3XX_RB_MSAA_CONTROL_DISABLE |
+			A3XX_RB_MSAA_CONTROL_SAMPLES(MSAA_ONE) |
 			A3XX_RB_MSAA_CONTROL_SAMPLE_MASK(0xffff));
 
 	OUT_PKT0(ring, REG_A3XX_RB_DEPTH_CONTROL, 1);
@@ -295,11 +295,6 @@ emit_binning_workaround(struct fd_context *ctx)
 	OUT_PKT0(ring, REG_A3XX_VSC_BIN_SIZE, 1);
 	OUT_RING(ring, A3XX_VSC_BIN_SIZE_WIDTH(gmem->bin_w) |
 			A3XX_VSC_BIN_SIZE_HEIGHT(gmem->bin_h));
-
-	OUT_PKT0(ring, REG_A3XX_GRAS_SC_CONTROL, 1);
-	OUT_RING(ring, A3XX_GRAS_SC_CONTROL_RENDER_MODE(RB_RENDERING_PASS) |
-			A3XX_GRAS_SC_CONTROL_MSAA_SAMPLES(msaa_samples(ctx->nr_samples)) |
-			A3XX_GRAS_SC_CONTROL_RASTER_MODE(0));
 
 	OUT_PKT0(ring, REG_A3XX_GRAS_CL_CLIP_CNTL, 1);
 	OUT_RING(ring, 0x00000000);
@@ -750,10 +745,9 @@ fd3_emit_sysmem_prep(struct fd_context *ctx)
 {
 	struct pipe_framebuffer_state *pfb = &ctx->framebuffer;
 	struct fd_ringbuffer *ring = ctx->ring;
-	uint8_t ms_x = ctx->nr_samples >1;
-	uint8_t ms_y = ctx->nr_samples > 2;
-	uint8_t ms = ms_x + ms_y;
 	uint32_t i, pitch = 0;
+
+	debug_assert(pfb->samples == 1);
 
 	for (i = 0; i < pfb->nr_cbufs; i++) {
 		struct pipe_surface *psurf = pfb->cbufs[i];
@@ -765,8 +759,8 @@ fd3_emit_sysmem_prep(struct fd_context *ctx)
 	fd3_emit_restore(ctx);
 
 	OUT_PKT0(ring, REG_A3XX_RB_FRAME_BUFFER_DIMENSION, 1);
-	OUT_RING(ring, A3XX_RB_FRAME_BUFFER_DIMENSION_WIDTH(pfb->width << ms_x) |
-			A3XX_RB_FRAME_BUFFER_DIMENSION_HEIGHT(pfb->height << ms_y));
+	OUT_RING(ring, A3XX_RB_FRAME_BUFFER_DIMENSION_WIDTH(pfb->width) |
+			A3XX_RB_FRAME_BUFFER_DIMENSION_HEIGHT(pfb->height));
 
 	emit_mrt(ring, pfb->nr_cbufs, pfb->cbufs, NULL, 0, true);
 
@@ -778,8 +772,8 @@ fd3_emit_sysmem_prep(struct fd_context *ctx)
 	OUT_PKT0(ring, REG_A3XX_GRAS_SC_SCREEN_SCISSOR_TL, 2);
 	OUT_RING(ring, A3XX_GRAS_SC_SCREEN_SCISSOR_TL_X(0) |
 			A3XX_GRAS_SC_SCREEN_SCISSOR_TL_Y(0));
-	OUT_RING(ring, A3XX_GRAS_SC_SCREEN_SCISSOR_BR_X((pfb->width << ms) - 1) |
-			A3XX_GRAS_SC_SCREEN_SCISSOR_BR_Y((pfb->height << ms) - 1));
+	OUT_RING(ring, A3XX_GRAS_SC_SCREEN_SCISSOR_BR_X((pfb->width) - 1) |
+			A3XX_GRAS_SC_SCREEN_SCISSOR_BR_Y((pfb->height) - 1));
 
 	OUT_PKT0(ring, REG_A3XX_RB_MODE_CONTROL, 1);
 	OUT_RING(ring, A3XX_RB_MODE_CONTROL_RENDER_MODE(RB_RENDERING_PASS) |
@@ -973,6 +967,11 @@ fd3_emit_tile_init(struct fd_context *ctx)
 	} else {
 		patch_draws(ctx, IGNORE_VISIBILITY);
 	}
+
+	OUT_PKT0(ring, REG_A3XX_GRAS_SC_CONTROL, 1);
+	OUT_RING(ring, A3XX_GRAS_SC_CONTROL_RENDER_MODE(RB_RENDERING_PASS) |
+			A3XX_GRAS_SC_CONTROL_MSAA_SAMPLES(msaa_samples(ctx->nr_samples)) |
+			A3XX_GRAS_SC_CONTROL_RASTER_MODE(0));
 
 	rb_render_control = A3XX_RB_RENDER_CONTROL_ENABLE_GMEM |
 			A3XX_RB_RENDER_CONTROL_BIN_WIDTH(gmem->bin_w);
