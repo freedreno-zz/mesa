@@ -490,14 +490,15 @@ fd3_emit_state(struct fd_context *ctx, struct fd_ringbuffer *ring,
 {
 	const struct ir3_shader_variant *vp = fd3_emit_get_vp(emit);
 	const struct ir3_shader_variant *fp = fd3_emit_get_fp(emit);
+	struct pipe_framebuffer_state *pfb = &ctx->framebuffer;
 	uint32_t dirty = emit->dirty;
 
 	emit_marker(ring, 5);
 
-	if (dirty & FD_DIRTY_SAMPLE_MASK) {
+	if (dirty & (FD_DIRTY_SAMPLE_MASK | FD_DIRTY_FRAMEBUFFER)) {
 		OUT_PKT0(ring, REG_A3XX_RB_MSAA_CONTROL, 1);
-		OUT_RING(ring, COND(ctx->nr_samples < 2, A3XX_RB_MSAA_CONTROL_DISABLE) |
-				A3XX_RB_MSAA_CONTROL_SAMPLES(msaa_samples(ctx->nr_samples)) |
+		OUT_RING(ring, COND(pfb->samples < 2, A3XX_RB_MSAA_CONTROL_DISABLE) |
+				A3XX_RB_MSAA_CONTROL_SAMPLES(msaa_samples(pfb->samples)) |
 				A3XX_RB_MSAA_CONTROL_SAMPLE_MASK(ctx->sample_mask));
 	}
 
@@ -625,9 +626,9 @@ fd3_emit_state(struct fd_context *ctx, struct fd_ringbuffer *ring,
 		OUT_RING(ring, val);
 	}
 
-	if (dirty & FD_DIRTY_SCISSOR) {
+	if (dirty & (FD_DIRTY_SCISSOR | FD_DIRTY_FRAMEBUFFER)) {
 		struct pipe_scissor_state *scissor = fd_context_get_scissor(ctx);
-		uint8_t ms = ctx->nr_samples >> 1;
+		uint8_t ms = pfb->samples >> 1;
 
 		OUT_PKT0(ring, REG_A3XX_GRAS_SC_WINDOW_SCISSOR_TL, 2);
 		OUT_RING(ring, A3XX_GRAS_SC_WINDOW_SCISSOR_TL_X(scissor->minx << ms) |
@@ -641,19 +642,18 @@ fd3_emit_state(struct fd_context *ctx, struct fd_ringbuffer *ring,
 		ctx->max_scissor.maxy = MAX2(ctx->max_scissor.maxy, scissor->maxy);
 	}
 
-	if (dirty & FD_DIRTY_VIEWPORT) {
+	if (dirty & (FD_DIRTY_VIEWPORT | FD_DIRTY_FRAMEBUFFER)) {
 		fd_wfi(ctx, ring);
 		OUT_PKT0(ring, REG_A3XX_GRAS_CL_VPORT_XOFFSET, 6);
-		OUT_RING(ring, A3XX_GRAS_CL_VPORT_XOFFSET((ctx->viewport.translate[0] * ctx->nr_samples) - 0.5));
-		OUT_RING(ring, A3XX_GRAS_CL_VPORT_XSCALE((ctx->viewport.scale[0] * ctx->nr_samples)));
-		OUT_RING(ring, A3XX_GRAS_CL_VPORT_YOFFSET((ctx->viewport.translate[1] * ctx->nr_samples) - 0.5));
-		OUT_RING(ring, A3XX_GRAS_CL_VPORT_YSCALE((ctx->viewport.scale[1] * ctx->nr_samples)));
+		OUT_RING(ring, A3XX_GRAS_CL_VPORT_XOFFSET((ctx->viewport.translate[0] * pfb->samples) - 0.5));
+		OUT_RING(ring, A3XX_GRAS_CL_VPORT_XSCALE((ctx->viewport.scale[0] * pfb->samples)));
+		OUT_RING(ring, A3XX_GRAS_CL_VPORT_YOFFSET((ctx->viewport.translate[1] * pfb->samples) - 0.5));
+		OUT_RING(ring, A3XX_GRAS_CL_VPORT_YSCALE((ctx->viewport.scale[1] * pfb->samples)));
 		OUT_RING(ring, A3XX_GRAS_CL_VPORT_ZOFFSET(ctx->viewport.translate[2]));
 		OUT_RING(ring, A3XX_GRAS_CL_VPORT_ZSCALE(ctx->viewport.scale[2]));
 	}
 
 	if (dirty & (FD_DIRTY_PROG | FD_DIRTY_FRAMEBUFFER | FD_DIRTY_BLEND_DUAL)) {
-		struct pipe_framebuffer_state *pfb = &ctx->framebuffer;
 		int nr_cbufs = pfb->nr_cbufs;
 		if (fd3_blend_stateobj(ctx->blend)->rb_render_control &
 			A3XX_RB_RENDER_CONTROL_DUAL_COLOR_IN_ENABLE)
@@ -677,7 +677,7 @@ fd3_emit_state(struct fd_context *ctx, struct fd_ringbuffer *ring,
 		uint32_t i;
 
 		for (i = 0; i < ARRAY_SIZE(blend->rb_mrt); i++) {
-			enum pipe_format format = pipe_surface_format(ctx->framebuffer.cbufs[i]);
+			enum pipe_format format = pipe_surface_format(pfb->cbufs[i]);
 			const struct util_format_description *desc =
 				util_format_description(format);
 			bool is_float = util_format_is_float(format);

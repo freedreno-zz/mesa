@@ -427,7 +427,7 @@ fd3_emit_tile_gmem2mem(struct fd_context *ctx, struct fd_tile *tile)
 
 	OUT_PKT0(ring, REG_A3XX_GRAS_SC_CONTROL, 1);
 	OUT_RING(ring, A3XX_GRAS_SC_CONTROL_RENDER_MODE(RB_RESOLVE_PASS) |
-			A3XX_GRAS_SC_CONTROL_MSAA_SAMPLES(msaa_samples(ctx->nr_samples)) |
+			A3XX_GRAS_SC_CONTROL_MSAA_SAMPLES(msaa_samples(pfb->samples)) |
 			A3XX_GRAS_SC_CONTROL_RASTER_MODE(1));
 
 	OUT_PKT0(ring, REG_A3XX_PC_PRIM_VTX_CNTL, 1);
@@ -480,7 +480,7 @@ fd3_emit_tile_gmem2mem(struct fd_context *ctx, struct fd_tile *tile)
 
 	OUT_PKT0(ring, REG_A3XX_GRAS_SC_CONTROL, 1);
 	OUT_RING(ring, A3XX_GRAS_SC_CONTROL_RENDER_MODE(RB_RENDERING_PASS) |
-			A3XX_GRAS_SC_CONTROL_MSAA_SAMPLES(msaa_samples(ctx->nr_samples)) |
+			A3XX_GRAS_SC_CONTROL_MSAA_SAMPLES(msaa_samples(pfb->samples)) |
 			A3XX_GRAS_SC_CONTROL_RASTER_MODE(0));
 }
 
@@ -517,7 +517,8 @@ emit_mem2gmem_surf(struct fd_context *ctx, uint32_t bases[],
 		OUT_PKT0(ring, REG_A3XX_RB_DEPTH_INFO, 2);
 		OUT_RING(ring, A3XX_RB_DEPTH_INFO_DEPTH_BASE(bases[0]) |
 				 A3XX_RB_DEPTH_INFO_DEPTH_FORMAT(DEPTHX_32));
-		OUT_RING(ring, A3XX_RB_DEPTH_PITCH(4 * ctx->gmem.bin_w * ctx->nr_samples));
+		OUT_RING(ring, A3XX_RB_DEPTH_PITCH(4 * ctx->gmem.bin_w *
+				ctx->framebuffer.samples));
 
 		if (psurf[0]->format == PIPE_FORMAT_Z32_FLOAT) {
 			OUT_PKT0(ring, REG_A3XX_RB_MRT_CONTROL(0), 1);
@@ -654,7 +655,7 @@ fd3_emit_tile_mem2gmem(struct fd_context *ctx, struct fd_tile *tile)
 
 	OUT_PKT0(ring, REG_A3XX_GRAS_SC_CONTROL, 1);
 	OUT_RING(ring, A3XX_GRAS_SC_CONTROL_RENDER_MODE(RB_RENDERING_PASS) |
-			A3XX_GRAS_SC_CONTROL_MSAA_SAMPLES(msaa_samples(ctx->nr_samples)) |
+			A3XX_GRAS_SC_CONTROL_MSAA_SAMPLES(msaa_samples(pfb->samples)) |
 			A3XX_GRAS_SC_CONTROL_RASTER_MODE(1));
 
 	OUT_PKT0(ring, REG_A3XX_PC_PRIM_VTX_CNTL, 1);
@@ -707,7 +708,7 @@ fd3_emit_tile_mem2gmem(struct fd_context *ctx, struct fd_tile *tile)
 
 	OUT_PKT0(ring, REG_A3XX_GRAS_SC_CONTROL, 1);
 	OUT_RING(ring, A3XX_GRAS_SC_CONTROL_RENDER_MODE(RB_RENDERING_PASS) |
-			A3XX_GRAS_SC_CONTROL_MSAA_SAMPLES(msaa_samples(ctx->nr_samples)) |
+			A3XX_GRAS_SC_CONTROL_MSAA_SAMPLES(msaa_samples(pfb->samples)) |
 			A3XX_GRAS_SC_CONTROL_RASTER_MODE(0));
 
 	OUT_PKT0(ring, REG_A3XX_RB_MODE_CONTROL, 1);
@@ -839,7 +840,7 @@ emit_binning_pass(struct fd_context *ctx)
 
 	OUT_PKT0(ring, REG_A3XX_GRAS_SC_CONTROL, 1);
 	OUT_RING(ring, A3XX_GRAS_SC_CONTROL_RENDER_MODE(RB_TILING_PASS) |
-			A3XX_GRAS_SC_CONTROL_MSAA_SAMPLES(msaa_samples(ctx->nr_samples)) |
+			A3XX_GRAS_SC_CONTROL_MSAA_SAMPLES(msaa_samples(pfb->samples)) |
 			A3XX_GRAS_SC_CONTROL_RASTER_MODE(0));
 
 	OUT_PKT0(ring, REG_A3XX_RB_FRAME_BUFFER_DIMENSION, 1);
@@ -903,7 +904,7 @@ emit_binning_pass(struct fd_context *ctx)
 
 	OUT_PKT0(ring, REG_A3XX_GRAS_SC_CONTROL, 1);
 	OUT_RING(ring, A3XX_GRAS_SC_CONTROL_RENDER_MODE(RB_RENDERING_PASS) |
-			A3XX_GRAS_SC_CONTROL_MSAA_SAMPLES(msaa_samples(ctx->nr_samples)) |
+			A3XX_GRAS_SC_CONTROL_MSAA_SAMPLES(msaa_samples(pfb->samples)) |
 			A3XX_GRAS_SC_CONTROL_RASTER_MODE(0));
 
 	OUT_PKT0(ring, REG_A3XX_RB_MODE_CONTROL, 2);
@@ -945,6 +946,7 @@ static void
 fd3_emit_tile_init(struct fd_context *ctx)
 {
 	struct fd_ringbuffer *ring = ctx->ring;
+	struct pipe_framebuffer_state *pfb = &ctx->framebuffer;
 	struct fd_gmem_stateobj *gmem = &ctx->gmem;
 	uint32_t rb_render_control;
 
@@ -970,7 +972,7 @@ fd3_emit_tile_init(struct fd_context *ctx)
 
 	OUT_PKT0(ring, REG_A3XX_GRAS_SC_CONTROL, 1);
 	OUT_RING(ring, A3XX_GRAS_SC_CONTROL_RENDER_MODE(RB_RENDERING_PASS) |
-			A3XX_GRAS_SC_CONTROL_MSAA_SAMPLES(msaa_samples(ctx->nr_samples)) |
+			A3XX_GRAS_SC_CONTROL_MSAA_SAMPLES(msaa_samples(pfb->samples)) |
 			A3XX_GRAS_SC_CONTROL_RASTER_MODE(0));
 
 	rb_render_control = A3XX_RB_RENDER_CONTROL_ENABLE_GMEM |

@@ -198,8 +198,8 @@ calculate_tiles(struct fd_context *ctx)
 	gmem->miny = miny;
 	gmem->width = width;
 	gmem->height = height;
-	gmem->ms_x = ctx->nr_samples > 1;
-	gmem->ms_y = ctx->nr_samples > 2;
+	gmem->ms_x = pfb->samples > 1;
+	gmem->ms_y = pfb->samples > 2;
 
 	/*
 	 * Assign tiles and pipes:

@@ -485,7 +485,7 @@ setup_slices(struct fd_resource *rsc, uint32_t alignment, enum pipe_format forma
 	struct pipe_resource *prsc = &rsc->base.b;
 	enum util_format_layout layout = util_format_description(format)->layout;
 	uint32_t level, size = 0;
-	uint32_t ms_x = prsc->nr_samples > 1, ms_y = prsc->nr_samples > 2;
+//	uint32_t ms_x = prsc->nr_samples > 1, ms_y = prsc->nr_samples > 2;
 	uint32_t width = prsc->width0;
 	uint32_t height = prsc->height0;
 	uint32_t depth = prsc->depth0;

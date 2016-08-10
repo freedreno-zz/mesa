@@ -126,7 +126,6 @@ fd_set_framebuffer_state(struct pipe_context *pctx,
 {
 	struct fd_context *ctx = fd_context(pctx);
 	struct pipe_framebuffer_state *cso = &ctx->framebuffer;
-	int i = 0;
 
 	DBG("%d: cbufs[0]=%p, zsbuf=%p", ctx->needs_flush,
 			framebuffer->cbufs[0], framebuffer->zsbuf);
@@ -139,13 +138,12 @@ fd_set_framebuffer_state(struct pipe_context *pctx,
 
 	util_copy_framebuffer_state(cso, framebuffer);
 
-	for (i = 0; i < cso->nr_cbufs; i++)
-		if (cso->cbufs[i])
-			ctx->nr_samples = cso->cbufs[i]->texture->nr_samples;
-	if (cso->zsbuf)
-		ctx->nr_samples = cso->zsbuf->texture->nr_samples;
-
-	ctx->nr_samples = ctx->nr_samples > 0 ? ctx->nr_samples : 1;
+	/* Do this once when fb state is set, so in our own private copy
+	 * of the framebuffer state, pfb->samples and pfb->layers is always
+	 * valid.  This way we don't have to use the helpers *everywhere*
+	 */
+	cso->samples = util_framebuffer_get_num_samples(framebuffer);
+	cso->layers = util_framebuffer_get_num_layers(framebuffer);
 
 	ctx->dirty |= FD_DIRTY_FRAMEBUFFER;
 

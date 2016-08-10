@@ -359,7 +359,6 @@ struct fd_context {
 
 	struct pipe_blend_color blend_color;
 	struct pipe_stencil_ref stencil_ref;
-	unsigned nr_samples;
 	unsigned sample_mask;
 	struct pipe_framebuffer_state framebuffer;
 	struct pipe_poly_stipple stipple;

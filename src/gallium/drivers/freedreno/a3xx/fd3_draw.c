@@ -187,9 +187,9 @@ fd3_draw_vbo(struct fd_context *ctx, const struct pipe_draw_info *info)
  * based on framebuffer state:
  */
 static void
-reset_viewport(struct fd_ringbuffer *ring, struct pipe_framebuffer_state *pfb, unsigned nr_samples)
+reset_viewport(struct fd_ringbuffer *ring, struct pipe_framebuffer_state *pfb)
 {
-	uint8_t ms = (nr_samples > 1) + (nr_samples > 2);
+	uint8_t ms = (pfb->samples > 1) + (pfb->samples > 2);
 	float half_width = (pfb->width << ms) * 0.5f;
 	float half_height = (pfb->height << ms) * 0.5f;
 
@@ -226,7 +226,7 @@ fd3_clear_binning(struct fd_context *ctx, unsigned dirty)
 
 	fd3_emit_state(ctx, ring, &emit);
 	fd3_emit_vertex_bufs(ring, &emit);
-	reset_viewport(ring, &ctx->framebuffer, ctx->nr_samples);
+	reset_viewport(ring, &ctx->framebuffer);
 
 	OUT_PKT0(ring, REG_A3XX_PC_PRIM_VTX_CNTL, 1);
 	OUT_RING(ring, A3XX_PC_PRIM_VTX_CNTL_STRIDE_IN_VPC(0) |
@@ -273,7 +273,7 @@ fd3_clear(struct fd_context *ctx, unsigned buffers,
 
 	/* emit generic state now: */
 	fd3_emit_state(ctx, ring, &emit);
-	reset_viewport(ring, &ctx->framebuffer, ctx->nr_samples);
+	reset_viewport(ring, &ctx->framebuffer);
 
 	OUT_PKT0(ring, REG_A3XX_RB_BLEND_ALPHA, 1);
 	OUT_RING(ring, A3XX_RB_BLEND_ALPHA_UINT(0xff) |
