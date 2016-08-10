@@ -495,7 +495,15 @@ fd3_emit_state(struct fd_context *ctx, struct fd_ringbuffer *ring,
 
 	emit_marker(ring, 5);
 
-	if (dirty & (FD_DIRTY_SAMPLE_MASK | FD_DIRTY_FRAMEBUFFER)) {
+	/* NOTE: there are a few chunks of state which also depend on
+	 * MSAA settings from framebuffer state.  But we explicity don't
+	 * check for (dirty & (FD_DIRTY_foo | FD_DIRTY_FRAMEBUFFER))
+	 * because that would cause state we don't want emitted to be
+	 * emitted during a clear.  This is safe since the pfb state is
+	 * invariant over a batch.
+	 */
+
+	if (dirty & FD_DIRTY_SAMPLE_MASK) {
 		OUT_PKT0(ring, REG_A3XX_RB_MSAA_CONTROL, 1);
 		OUT_RING(ring, COND(pfb->samples < 2, A3XX_RB_MSAA_CONTROL_DISABLE) |
 				A3XX_RB_MSAA_CONTROL_SAMPLES(msaa_samples(pfb->samples)) |
@@ -626,7 +634,7 @@ fd3_emit_state(struct fd_context *ctx, struct fd_ringbuffer *ring,
 		OUT_RING(ring, val);
 	}
 
-	if (dirty & (FD_DIRTY_SCISSOR | FD_DIRTY_FRAMEBUFFER)) {
+	if (dirty & FD_DIRTY_SCISSOR) {
 		struct pipe_scissor_state *scissor = fd_context_get_scissor(ctx);
 		uint8_t ms = pfb->samples >> 1;
 
@@ -642,7 +650,7 @@ fd3_emit_state(struct fd_context *ctx, struct fd_ringbuffer *ring,
 		ctx->batch->max_scissor.maxy = MAX2(ctx->batch->max_scissor.maxy, scissor->maxy);
 	}
 
-	if (dirty & (FD_DIRTY_VIEWPORT | FD_DIRTY_FRAMEBUFFER)) {
+	if (dirty & FD_DIRTY_VIEWPORT) {
 		fd_wfi(ctx->batch, ring);
 		OUT_PKT0(ring, REG_A3XX_GRAS_CL_VPORT_XOFFSET, 6);
 		OUT_RING(ring, A3XX_GRAS_CL_VPORT_XOFFSET((ctx->viewport.translate[0] * pfb->samples) - 0.5));
@@ -789,6 +797,9 @@ fd3_emit_restore(struct fd_batch *batch, struct fd_ringbuffer *ring)
 
 	OUT_PKT0(ring, REG_A3XX_PC_VERTEX_REUSE_BLOCK_CNTL, 1);
 	OUT_RING(ring, 0x0000000b);                  /* PC_VERTEX_REUSE_BLOCK_CNTL */
+
+	OUT_PKT0(ring, REG_A3XX_RB_ALPHA_REF, 1);
+	OUT_RING(ring, 0x00000000);        /* RB_ALPHA_REF */
 
 	OUT_PKT0(ring, REG_A3XX_GRAS_CL_GB_CLIP_ADJ, 1);
 	OUT_RING(ring, A3XX_GRAS_CL_GB_CLIP_ADJ_HORZ(0) |
