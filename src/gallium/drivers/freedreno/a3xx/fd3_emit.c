@@ -300,7 +300,7 @@ fd3_emit_gmem_restore_tex(struct fd_ringbuffer *ring,
 
 		struct fd_resource *rsc = fd_resource(psurf[i]->texture);
 		enum pipe_format format = fd3_gmem_restore_format(psurf[i]->format);
-		uint8_t ms_x = psurf[i]->texture->nr_samples > 1, ms_y = psurf[i]->texture->nr_samples > 2;
+		uint8_t ms = psurf[i]->texture->nr_samples >> 1;
 
 		/* The restore blit_zs shader expects stencil in sampler 0, and depth
 		 * in sampler 1
@@ -322,8 +322,8 @@ fd3_emit_gmem_restore_tex(struct fd_ringbuffer *ring,
 				 fd3_tex_swiz(format,  PIPE_SWIZZLE_X, PIPE_SWIZZLE_Y,
 							  PIPE_SWIZZLE_Z, PIPE_SWIZZLE_W));
 		OUT_RING(ring, A3XX_TEX_CONST_1_FETCHSIZE(TFETCH_DISABLE) |
-				 A3XX_TEX_CONST_1_WIDTH(psurf[i]->width << ms_x) |
-				 A3XX_TEX_CONST_1_HEIGHT(psurf[i]->height << ms_y));
+				 A3XX_TEX_CONST_1_WIDTH(psurf[i]->width << ms) |
+				 A3XX_TEX_CONST_1_HEIGHT(psurf[i]->height));
 		OUT_RING(ring, A3XX_TEX_CONST_2_PITCH(slice->pitch * rsc->cpp) |
 				 A3XX_TEX_CONST_2_INDX(BASETABLE_SZ * i));
 		OUT_RING(ring, 0x00000000);
