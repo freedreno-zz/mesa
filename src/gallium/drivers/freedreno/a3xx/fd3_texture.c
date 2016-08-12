@@ -241,7 +241,7 @@ fd3_sampler_view_create(struct pipe_context *pctx, struct pipe_resource *prsc,
 	if (prsc->target == PIPE_BUFFER) {
 		lvl = 0;
 		so->texconst1 =
-			A3XX_TEX_CONST_1_FETCHSIZE(fd3_pipe2fetchsize(cso->format, prsc->nr_samples)) |
+			A3XX_TEX_CONST_1_FETCHSIZE(fd3_pipe2fetchsize(cso->format)) |
 			A3XX_TEX_CONST_1_WIDTH((cso->u.buf.last_element -
 								   cso->u.buf.first_element + 1) << ms) |
 			A3XX_TEX_CONST_1_HEIGHT(1);
@@ -253,7 +253,7 @@ fd3_sampler_view_create(struct pipe_context *pctx, struct pipe_resource *prsc,
 
 		so->texconst0 |= A3XX_TEX_CONST_0_MIPLVLS(miplevels);
 		so->texconst1 =
-			A3XX_TEX_CONST_1_FETCHSIZE(fd3_pipe2fetchsize(cso->format, prsc->nr_samples)) |
+			A3XX_TEX_CONST_1_FETCHSIZE(fd3_pipe2fetchsize(cso->format)) |
 			A3XX_TEX_CONST_1_WIDTH(u_minify(prsc->width0, lvl) << ms) |
 			A3XX_TEX_CONST_1_HEIGHT(u_minify(prsc->height0, lvl));
 	}
