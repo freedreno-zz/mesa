@@ -1281,6 +1281,12 @@ void util_blitter_common_clear_setup(struct blitter_context *blitter,
    blitter_check_saved_fragment_states(ctx);
    blitter_disable_render_cond(ctx);
 
+   /* this will end up getting set again in blitter_set_common_draw_rect_state()
+    * but needs to be here for drivers using util_blitter_common_clear_setup()
+    * but not util_blitter_clear_custom()
+    */
+   pipe->bind_rasterizer_state(pipe, ctx->rs_state);
+
    /* bind states */
    if (custom_blend) {
       pipe->bind_blend_state(pipe, custom_blend);
