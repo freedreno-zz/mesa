@@ -377,6 +377,8 @@ fd_screen_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
 		return 10;
 	case PIPE_CAP_UMA:
 		return 1;
+	case PIPE_CAP_NATIVE_FENCE_FD:
+		return fd_device_version(screen->dev) >= FD_VERSION_FENCE_FD;
 	}
 	debug_printf("unknown param %d\n", param);
 	return 0;
@@ -699,6 +701,7 @@ fd_screen_create(struct fd_device *dev)
 
 	pscreen->fence_reference = fd_fence_ref;
 	pscreen->fence_finish = fd_fence_finish;
+	pscreen->fence_get_fd = fd_fence_get_fd;
 
 	slab_create_parent(&screen->transfer_pool, sizeof(struct fd_transfer), 16);
 
