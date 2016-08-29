@@ -260,6 +260,8 @@ virgl_get_param(struct pipe_screen *screen, enum pipe_cap param)
    case PIPE_CAP_UMA:
    case PIPE_CAP_VIDEO_MEMORY:
       return 0;
+   case PIPE_CAP_NATIVE_FENCE_FD:
+      return vscreen->vws->driver_version(vscreen->vws) >= 1;
    }
    /* should only get here on unhandled cases */
    debug_printf("Unexpected PIPE_CAP %d query\n", param);
@@ -537,6 +539,15 @@ static boolean virgl_fence_finish(struct pipe_screen *screen,
    return vws->fence_wait(vws, fence, timeout);
 }
 
+static int virgl_fence_get_fd(struct pipe_screen *screen,
+            struct pipe_fence_handle *fence)
+{
+   struct virgl_screen *vscreen = virgl_screen(screen);
+   struct virgl_winsys *vws = vscreen->vws;
+
+   return vws->fence_get_fd(vws, fence);
+}
+
 static uint64_t
 virgl_get_timestamp(struct pipe_screen *_screen)
 {
@@ -578,6 +589,7 @@ virgl_create_screen(struct virgl_winsys *vws)
    screen->base.fence_reference = virgl_fence_reference;
    //screen->base.fence_signalled = virgl_fence_signalled;
    screen->base.fence_finish = virgl_fence_finish;
+   screen->base.fence_get_fd = virgl_fence_get_fd;
 
    virgl_init_screen_resource_functions(&screen->base);
 
