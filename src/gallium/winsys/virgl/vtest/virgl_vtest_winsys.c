@@ -474,7 +474,8 @@ static void virgl_vtest_add_res(struct virgl_vtest_winsys *vtws,
 }
 
 static int virgl_vtest_winsys_submit_cmd(struct virgl_winsys *vws,
-                                         struct virgl_cmd_buf *_cbuf)
+                                         struct virgl_cmd_buf *_cbuf,
+                                         int in_fence_fd, int *out_fence_fd)
 {
    struct virgl_vtest_winsys *vtws = virgl_vtest_winsys(vws);
    struct virgl_vtest_cmd_buf *cbuf = virgl_vtest_cmd_buf(_cbuf);
@@ -482,6 +483,9 @@ static int virgl_vtest_winsys_submit_cmd(struct virgl_winsys *vws,
 
    if (cbuf->base.cdw == 0)
       return 0;
+
+   assert(in_fence_fd == -1);
+   assert(out_fence_fd == NULL);
 
    ret = virgl_vtest_submit_cmd(vtws, cbuf);
 
@@ -523,7 +527,7 @@ static int virgl_vtest_get_caps(struct virgl_winsys *vws,
 }
 
 static struct pipe_fence_handle *
-virgl_cs_create_fence(struct virgl_winsys *vws)
+virgl_cs_create_fence(struct virgl_winsys *vws, int fd)
 {
    struct virgl_hw_res *res;
 
