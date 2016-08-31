@@ -498,6 +498,15 @@ struct pipe_resource
 
    unsigned bind;            /**< bitmask of PIPE_BIND_x */
    unsigned flags;           /**< bitmask of PIPE_RESOURCE_FLAG_x */
+
+   /**
+    * For planar images, ie. YUV EGLImage external, etc, pointer to the
+    * next plane.
+    *
+    * TODO might be useful for dealing w/ z32s8 too, since at least a
+    * couple drivers split these out into separate buffers internally.
+    */
+   struct pipe_resource *next;
 };
 
 
