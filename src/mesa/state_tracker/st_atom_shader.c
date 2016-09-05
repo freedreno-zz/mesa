@@ -322,7 +322,7 @@ update_cp( struct st_context *st )
    assert(stcp->Base.Base.Target == GL_COMPUTE_PROGRAM_NV);
 
    key = st_get_basic_variant_key(st, &stcp->Base.Base);
-   st->cp_variant = st_get_cp_variant(st, &stcp->tgsi, &stcp->variants, &key);
+   st->cp_variant = st_get_cp_variant(st, stcp, &key);
 
    st_reference_compprog(st, &st->cp, stcp);
 
