@@ -1685,15 +1685,15 @@ st_translate_compute_program(struct st_context *st,
  */
 struct st_basic_variant *
 st_get_cp_variant(struct st_context *st,
-                  struct pipe_compute_state *tgsi,
-                  struct st_basic_variant **variants,
+                  struct st_compute_program *stcp,
                   const struct st_basic_variant_key *key)
 {
    struct pipe_context *pipe = st->pipe;
+   struct pipe_compute_state *tgsi = &stcp->tgsi;
    struct st_basic_variant *v;
 
    /* Search for existing variant */
-   for (v = *variants; v; v = v->next) {
+   for (v = stcp->variants; v; v = v->next) {
       if (memcmp(&v->key, key, sizeof(*key)) == 0) {
          break;
       }
@@ -1708,8 +1708,8 @@ st_get_cp_variant(struct st_context *st,
          v->key = *key;
 
          /* insert into list */
-         v->next = *variants;
-         *variants = v;
+         v->next = stcp->variants;
+         stcp->variants = v;
       }
    }
 
@@ -1955,7 +1955,7 @@ st_precompile_shader_variant(struct st_context *st,
    case GL_COMPUTE_PROGRAM_NV: {
       struct st_compute_program *p = (struct st_compute_program *)prog;
       struct st_basic_variant_key key = st_get_basic_variant_key(st, prog);
-      st_get_cp_variant(st, &p->tgsi, &p->variants, &key);
+      st_get_cp_variant(st, p, &key);
       break;
    }
 

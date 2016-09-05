@@ -447,8 +447,7 @@ st_get_fp_variant(struct st_context *st,
 
 extern struct st_basic_variant *
 st_get_cp_variant(struct st_context *st,
-                  struct pipe_compute_state *tgsi,
-                  struct st_basic_variant **variants,
+                  struct st_compute_program *p,
                   const struct st_basic_variant_key *key);
 
 extern struct st_basic_variant *
