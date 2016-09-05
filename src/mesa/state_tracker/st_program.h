@@ -230,6 +230,16 @@ struct st_basic_variant_key
    struct st_context *st;          /**< variants are per-context */
 };
 
+static inline struct st_basic_variant_key
+st_get_basic_variant_key(struct st_context *st, struct gl_program *prog)
+{
+   struct st_basic_variant_key key;
+
+   memset(&key, 0, sizeof(key));
+   key.st = st->has_shareable_shaders ? NULL : st;
+
+   return key;
+}
 
 /**
  * Geometry program variant.
@@ -438,13 +448,15 @@ st_get_fp_variant(struct st_context *st,
 extern struct st_basic_variant *
 st_get_cp_variant(struct st_context *st,
                   struct pipe_compute_state *tgsi,
-                  struct st_basic_variant **variants);
+                  struct st_basic_variant **variants,
+                  const struct st_basic_variant_key *key);
 
 extern struct st_basic_variant *
 st_get_basic_variant(struct st_context *st,
                      unsigned pipe_shader,
                      struct pipe_shader_state *tgsi,
-                     struct st_basic_variant **variants);
+                     struct st_basic_variant **variants,
+                     const struct st_basic_variant_key *key);
 
 extern void
 st_release_vp_variants( struct st_context *st,

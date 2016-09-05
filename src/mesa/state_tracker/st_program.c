@@ -1533,18 +1533,15 @@ struct st_basic_variant *
 st_get_basic_variant(struct st_context *st,
                      unsigned pipe_shader,
                      struct pipe_shader_state *tgsi,
-                     struct st_basic_variant **variants)
+                     struct st_basic_variant **variants,
+                     const struct st_basic_variant_key *key)
 {
    struct pipe_context *pipe = st->pipe;
    struct st_basic_variant *v;
-   struct st_basic_variant_key key;
-
-   memset(&key, 0, sizeof(key));
-   key.st = st->has_shareable_shaders ? NULL : st;
 
    /* Search for existing variant */
    for (v = *variants; v; v = v->next) {
-      if (memcmp(&v->key, &key, sizeof(key)) == 0) {
+      if (memcmp(&v->key, key, sizeof(*key)) == 0) {
          break;
       }
    }
@@ -1570,7 +1567,7 @@ st_get_basic_variant(struct st_context *st,
             return NULL;
          }
 
-         v->key = key;
+         v->key = *key;
 
          /* insert into list */
          v->next = *variants;
@@ -1689,18 +1686,15 @@ st_translate_compute_program(struct st_context *st,
 struct st_basic_variant *
 st_get_cp_variant(struct st_context *st,
                   struct pipe_compute_state *tgsi,
-                  struct st_basic_variant **variants)
+                  struct st_basic_variant **variants,
+                  const struct st_basic_variant_key *key)
 {
    struct pipe_context *pipe = st->pipe;
    struct st_basic_variant *v;
-   struct st_basic_variant_key key;
-
-   memset(&key, 0, sizeof(key));
-   key.st = st->has_shareable_shaders ? NULL : st;
 
    /* Search for existing variant */
    for (v = *variants; v; v = v->next) {
-      if (memcmp(&v->key, &key, sizeof(key)) == 0) {
+      if (memcmp(&v->key, key, sizeof(*key)) == 0) {
          break;
       }
    }
@@ -1711,7 +1705,7 @@ st_get_cp_variant(struct st_context *st,
       if (v) {
          /* fill in new variant */
          v->driver_shader = pipe->create_compute_state(pipe, tgsi);
-         v->key = key;
+         v->key = *key;
 
          /* insert into list */
          v->next = *variants;
@@ -1929,19 +1923,22 @@ st_precompile_shader_variant(struct st_context *st,
 
    case GL_TESS_CONTROL_PROGRAM_NV: {
       struct st_tessctrl_program *p = (struct st_tessctrl_program *)prog;
-      st_get_basic_variant(st, PIPE_SHADER_TESS_CTRL, &p->tgsi, &p->variants);
+      struct st_basic_variant_key key = st_get_basic_variant_key(st, prog);
+      st_get_basic_variant(st, PIPE_SHADER_TESS_CTRL, &p->tgsi, &p->variants, &key);
       break;
    }
 
    case GL_TESS_EVALUATION_PROGRAM_NV: {
       struct st_tesseval_program *p = (struct st_tesseval_program *)prog;
-      st_get_basic_variant(st, PIPE_SHADER_TESS_EVAL, &p->tgsi, &p->variants);
+      struct st_basic_variant_key key = st_get_basic_variant_key(st, prog);
+      st_get_basic_variant(st, PIPE_SHADER_TESS_EVAL, &p->tgsi, &p->variants, &key);
       break;
    }
 
    case GL_GEOMETRY_PROGRAM_NV: {
       struct st_geometry_program *p = (struct st_geometry_program *)prog;
-      st_get_basic_variant(st, PIPE_SHADER_GEOMETRY, &p->tgsi, &p->variants);
+      struct st_basic_variant_key key = st_get_basic_variant_key(st, prog);
+      st_get_basic_variant(st, PIPE_SHADER_GEOMETRY, &p->tgsi, &p->variants, &key);
       break;
    }
 
@@ -1957,7 +1954,8 @@ st_precompile_shader_variant(struct st_context *st,
 
    case GL_COMPUTE_PROGRAM_NV: {
       struct st_compute_program *p = (struct st_compute_program *)prog;
-      st_get_cp_variant(st, &p->tgsi, &p->variants);
+      struct st_basic_variant_key key = st_get_basic_variant_key(st, prog);
+      st_get_cp_variant(st, &p->tgsi, &p->variants, &key);
       break;
    }
 
