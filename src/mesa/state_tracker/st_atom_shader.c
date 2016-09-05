@@ -229,7 +229,7 @@ update_gp( struct st_context *st )
    assert(stgp->Base.Base.Target == GL_GEOMETRY_PROGRAM_NV);
 
    key = st_get_basic_variant_key(st, &stgp->Base.Base);
-   st->gp_variant = st_get_basic_variant(st, PIPE_SHADER_GEOMETRY,
+   st->gp_variant = st_get_basic_variant(st, &stgp->Base.Base,
                                          &stgp->tgsi, &stgp->variants, &key);
 
    st_reference_geomprog(st, &st->gp, stgp);
@@ -260,7 +260,7 @@ update_tcp( struct st_context *st )
    assert(sttcp->Base.Base.Target == GL_TESS_CONTROL_PROGRAM_NV);
 
    key = st_get_basic_variant_key(st, &sttcp->Base.Base);
-   st->tcp_variant = st_get_basic_variant(st, PIPE_SHADER_TESS_CTRL,
+   st->tcp_variant = st_get_basic_variant(st, &sttcp->Base.Base,
                                           &sttcp->tgsi, &sttcp->variants, &key);
 
    st_reference_tesscprog(st, &st->tcp, sttcp);
@@ -291,7 +291,7 @@ update_tep( struct st_context *st )
    assert(sttep->Base.Base.Target == GL_TESS_EVALUATION_PROGRAM_NV);
 
    key = st_get_basic_variant_key(st, &sttep->Base.Base);
-   st->tep_variant = st_get_basic_variant(st, PIPE_SHADER_TESS_EVAL,
+   st->tep_variant = st_get_basic_variant(st, &sttep->Base.Base,
                                           &sttep->tgsi, &sttep->variants, &key);
 
    st_reference_tesseprog(st, &st->tep, sttep);

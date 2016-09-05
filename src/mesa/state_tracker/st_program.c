@@ -1531,7 +1531,7 @@ st_translate_geometry_program(struct st_context *st,
  */
 struct st_basic_variant *
 st_get_basic_variant(struct st_context *st,
-                     unsigned pipe_shader,
+                     struct gl_program *prog,
                      struct pipe_shader_state *tgsi,
                      struct st_basic_variant **variants,
                      const struct st_basic_variant_key *key)
@@ -1551,14 +1551,14 @@ st_get_basic_variant(struct st_context *st,
       v = CALLOC_STRUCT(st_basic_variant);
       if (v) {
          /* fill in new variant */
-         switch (pipe_shader) {
-         case PIPE_SHADER_TESS_CTRL:
+         switch (prog->Target) {
+         case GL_TESS_CONTROL_PROGRAM_NV:
             v->driver_shader = pipe->create_tcs_state(pipe, tgsi);
             break;
-         case PIPE_SHADER_TESS_EVAL:
+         case GL_TESS_EVALUATION_PROGRAM_NV:
             v->driver_shader = pipe->create_tes_state(pipe, tgsi);
             break;
-         case PIPE_SHADER_GEOMETRY:
+         case GL_GEOMETRY_PROGRAM_NV:
             v->driver_shader = pipe->create_gs_state(pipe, tgsi);
             break;
          default:
@@ -1924,21 +1924,21 @@ st_precompile_shader_variant(struct st_context *st,
    case GL_TESS_CONTROL_PROGRAM_NV: {
       struct st_tessctrl_program *p = (struct st_tessctrl_program *)prog;
       struct st_basic_variant_key key = st_get_basic_variant_key(st, prog);
-      st_get_basic_variant(st, PIPE_SHADER_TESS_CTRL, &p->tgsi, &p->variants, &key);
+      st_get_basic_variant(st, prog, &p->tgsi, &p->variants, &key);
       break;
    }
 
    case GL_TESS_EVALUATION_PROGRAM_NV: {
       struct st_tesseval_program *p = (struct st_tesseval_program *)prog;
       struct st_basic_variant_key key = st_get_basic_variant_key(st, prog);
-      st_get_basic_variant(st, PIPE_SHADER_TESS_EVAL, &p->tgsi, &p->variants, &key);
+      st_get_basic_variant(st, prog, &p->tgsi, &p->variants, &key);
       break;
    }
 
    case GL_GEOMETRY_PROGRAM_NV: {
       struct st_geometry_program *p = (struct st_geometry_program *)prog;
       struct st_basic_variant_key key = st_get_basic_variant_key(st, prog);
-      st_get_basic_variant(st, PIPE_SHADER_GEOMETRY, &p->tgsi, &p->variants, &key);
+      st_get_basic_variant(st, prog, &p->tgsi, &p->variants, &key);
       break;
    }
 

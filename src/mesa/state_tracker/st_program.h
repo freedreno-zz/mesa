@@ -452,7 +452,7 @@ st_get_cp_variant(struct st_context *st,
 
 extern struct st_basic_variant *
 st_get_basic_variant(struct st_context *st,
-                     unsigned pipe_shader,
+                     struct gl_program *prog,
                      struct pipe_shader_state *tgsi,
                      struct st_basic_variant **variants,
                      const struct st_basic_variant_key *key);
