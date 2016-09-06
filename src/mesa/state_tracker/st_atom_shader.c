@@ -196,6 +196,8 @@ update_vp( struct st_context *st )
                        VARYING_SLOT_BFC0 |
                        VARYING_SLOT_BFC1));
 
+   key.external = st_get_external_sampler_key(st, &stvp->Base.Base);
+
    st->vp_variant = st_get_vp_variant(st, stvp, &key);
 
    st_reference_vertprog(st, &st->vp, stvp);

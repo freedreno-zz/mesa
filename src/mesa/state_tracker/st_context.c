@@ -260,9 +260,29 @@ void st_invalidate_state(struct gl_context * ctx, GLbitfield new_state)
                    (ST_NEW_SAMPLER_VIEWS |
                     ST_NEW_SAMPLERS |
                     ST_NEW_IMAGE_UNITS);
+      if (ctx->VertexProgram._Current &&
+          ctx->VertexProgram._Current->Base.ExternalSamplersUsed) {
+         st->dirty |= ST_NEW_VS_STATE;
+      }
       if (ctx->FragmentProgram._Current &&
           ctx->FragmentProgram._Current->Base.ExternalSamplersUsed) {
          st->dirty |= ST_NEW_FS_STATE;
+      }
+      if (ctx->GeometryProgram._Current &&
+          ctx->GeometryProgram._Current->Base.ExternalSamplersUsed) {
+         st->dirty |= ST_NEW_GS_STATE;
+      }
+      if (ctx->ComputeProgram._Current &&
+          ctx->ComputeProgram._Current->Base.ExternalSamplersUsed) {
+         st->dirty |= ST_NEW_CS_STATE;
+      }
+      if (ctx->TessCtrlProgram._Current &&
+          ctx->TessCtrlProgram._Current->Base.ExternalSamplersUsed) {
+         st->dirty |= ST_NEW_TCS_STATE;
+      }
+      if (ctx->TessEvalProgram._Current &&
+          ctx->TessEvalProgram._Current->Base.ExternalSamplersUsed) {
+         st->dirty |= ST_NEW_TES_STATE;
       }
    }
 
