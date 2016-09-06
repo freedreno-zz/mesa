@@ -162,6 +162,8 @@ struct st_vp_variant_key
 
    /** for ARB_color_buffer_float */
    boolean clamp_color;
+
+   struct st_external_sampler_key external;
 };
 
 
@@ -228,6 +230,7 @@ struct st_vertex_program
 struct st_basic_variant_key
 {
    struct st_context *st;          /**< variants are per-context */
+   struct st_external_sampler_key external;
 };
 
 static inline struct st_basic_variant_key
@@ -237,6 +240,7 @@ st_get_basic_variant_key(struct st_context *st, struct gl_program *prog)
 
    memset(&key, 0, sizeof(key));
    key.st = st->has_shareable_shaders ? NULL : st;
+   key.external = st_get_external_sampler_key(st, prog);
 
    return key;
 }
