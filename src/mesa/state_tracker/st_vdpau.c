@@ -230,7 +230,7 @@ st_vdpau_map_surface(struct gl_context *ctx, GLenum target, GLenum access,
 
    pipe_resource_reference(&stObj->pt[0], res);
    st_texture_release_all_sampler_views(st, stObj);
-   pipe_resource_reference(&stImage->pt, res);
+   pipe_resource_reference(&stImage->pt[0], res);
 
    u_sampler_view_default_template(&templ, res, res->format);
    templ.u.tex.first_layer = index & 1;
@@ -263,7 +263,8 @@ st_vdpau_unmap_surface(struct gl_context *ctx, GLenum target, GLenum access,
    for (i = 0; i < ARRAY_SIZE(stObj->pt); i++)
       pipe_resource_reference(&stObj->pt[i], NULL);
    st_texture_release_all_sampler_views(st, stObj);
-   pipe_resource_reference(&stImage->pt, NULL);
+   for (i = 0; i < ARRAY_SIZE(stImage->pt); i++)
+      pipe_resource_reference(&stImage->pt[i], NULL);
 
    _mesa_dirty_texobj(ctx, texObj);
 

@@ -586,7 +586,7 @@ st_context_teximage(struct st_context_iface *stctxi,
       width = height = depth = 0;
    }
 
-   pipe_resource_reference(&stImage->pt, tex);
+   pipe_resource_reference(&stImage->pt[0], tex);
    stObj->surface_format = pipe_format;
 
    _mesa_dirty_texobj(ctx, texObj);

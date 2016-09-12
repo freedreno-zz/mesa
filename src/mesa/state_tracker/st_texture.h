@@ -58,7 +58,7 @@ struct st_texture_image
    /* If stImage->pt != NULL, image data is stored here.
     * Else there is no image data.
     */
-   struct pipe_resource *pt;
+   struct pipe_resource *pt[0];
 
    /* List of transfers, allocated on demand.
     * transfer[layer] is a mapping for that layer.

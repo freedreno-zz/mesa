@@ -638,7 +638,7 @@ st_CopyImageSubData(struct gl_context *ctx,
 
    if (src_image) {
       struct st_texture_image *src = st_texture_image(src_image);
-      src_res = src->pt;
+      src_res = src->pt[0];
       src_level = src_image->Level;
       src_z += src_image->Face;
       if (src_image->TexObject->Immutable) {
@@ -653,7 +653,7 @@ st_CopyImageSubData(struct gl_context *ctx,
 
    if (dst_image) {
       struct st_texture_image *dst = st_texture_image(dst_image);
-      dst_res = dst->pt;
+      dst_res = dst->pt[0];
       dst_level = dst_image->Level;
       dst_z += dst_image->Face;
       if (dst_image->TexObject->Immutable) {

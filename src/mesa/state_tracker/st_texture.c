@@ -255,10 +255,10 @@ st_texture_image_map(struct st_context *st, struct st_texture_image *stImage,
 
    DBG("%s \n", __func__);
 
-   if (!stImage->pt)
+   if (!stImage->pt[0])
       return NULL;
 
-   if (stObj->pt[0] != stImage->pt)
+   if (stObj->pt[0] != stImage->pt[0])
       level = 0;
    else
       level = stImage->base.Level;
@@ -272,7 +272,7 @@ st_texture_image_map(struct st_context *st, struct st_texture_image *stImage,
 
    z += stImage->base.Face;
 
-   map = pipe_transfer_map_3d(st->pipe, stImage->pt, level, usage,
+   map = pipe_transfer_map_3d(st->pipe, stImage->pt[0], level, usage,
                               x, y, z, w, h, d, transfer);
    if (map) {
       /* Enlarge the transfer array if it's not large enough. */
