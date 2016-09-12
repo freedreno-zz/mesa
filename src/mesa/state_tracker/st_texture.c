@@ -258,7 +258,7 @@ st_texture_image_map(struct st_context *st, struct st_texture_image *stImage,
    if (!stImage->pt)
       return NULL;
 
-   if (stObj->pt != stImage->pt)
+   if (stObj->pt[0] != stImage->pt)
       level = 0;
    else
       level = stImage->base.Level;
@@ -266,7 +266,7 @@ st_texture_image_map(struct st_context *st, struct st_texture_image *stImage,
    if (stObj->base.Immutable) {
       level += stObj->base.MinLevel;
       z += stObj->base.MinLayer;
-      if (stObj->pt->array_size > 1)
+      if (stObj->pt[0]->array_size > 1)
          d = MIN2(d, stObj->base.NumLayers);
    }
 

@@ -228,7 +228,7 @@ st_vdpau_map_surface(struct gl_context *ctx, GLenum target, GLenum access,
                               res->width0, res->height0, 1, 0, GL_RGBA,
                               texFormat);
 
-   pipe_resource_reference(&stObj->pt, res);
+   pipe_resource_reference(&stObj->pt[0], res);
    st_texture_release_all_sampler_views(st, stObj);
    pipe_resource_reference(&stImage->pt, res);
 
@@ -258,8 +258,10 @@ st_vdpau_unmap_surface(struct gl_context *ctx, GLenum target, GLenum access,
    struct st_context *st = st_context(ctx);
    struct st_texture_object *stObj = st_texture_object(texObj);
    struct st_texture_image *stImage = st_texture_image(texImage);
+   unsigned i;
 
-   pipe_resource_reference(&stObj->pt, NULL);
+   for (i = 0; i < ARRAY_SIZE(stObj->pt); i++)
+      pipe_resource_reference(&stObj->pt[i], NULL);
    st_texture_release_all_sampler_views(st, stObj);
    pipe_resource_reference(&stImage->pt, NULL);
 

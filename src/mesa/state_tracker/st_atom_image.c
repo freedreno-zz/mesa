@@ -64,12 +64,12 @@ st_bind_images(struct st_context *st, struct gl_linked_shader *shader,
 
       if (!_mesa_is_image_unit_valid(st->ctx, u) ||
           !st_finalize_texture(st->ctx, st->pipe, u->TexObj) ||
-          !stObj->pt) {
+          !stObj->pt[0]) {
          memset(img, 0, sizeof(*img));
          continue;
       }
 
-      img->resource = stObj->pt;
+      img->resource = stObj->pt[0];
       img->format = st_mesa_format_to_pipe_format(st, u->_ActualFormat);
 
       switch (u->Access) {
@@ -86,21 +86,21 @@ st_bind_images(struct st_context *st, struct gl_linked_shader *shader,
          unreachable("bad gl_image_unit::Access");
       }
 
-      if (stObj->pt->target == PIPE_BUFFER) {
+      if (stObj->pt[0]->target == PIPE_BUFFER) {
          unsigned base, size;
 
          base = stObj->base.BufferOffset;
-         assert(base < stObj->pt->width0);
-         size = MIN2(stObj->pt->width0 - base, (unsigned)stObj->base.BufferSize);
+         assert(base < stObj->pt[0]->width0);
+         size = MIN2(stObj->pt[0]->width0 - base, (unsigned)stObj->base.BufferSize);
 
          img->u.buf.offset = base;
          img->u.buf.size = size;
       } else {
          img->u.tex.level = u->Level + stObj->base.MinLevel;
-         if (stObj->pt->target == PIPE_TEXTURE_3D) {
+         if (stObj->pt[0]->target == PIPE_TEXTURE_3D) {
             if (u->Layered) {
                img->u.tex.first_layer = 0;
-               img->u.tex.last_layer = u_minify(stObj->pt->depth0, img->u.tex.level) - 1;
+               img->u.tex.last_layer = u_minify(stObj->pt[0]->depth0, img->u.tex.level) - 1;
             } else {
                img->u.tex.first_layer = u->_Layer;
                img->u.tex.last_layer = u->_Layer;

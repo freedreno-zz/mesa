@@ -142,9 +142,9 @@ st_bind_surface(struct gl_context *ctx, GLenum target,
                               texFormat);
 
    /* FIXME create a non-default sampler view from the pipe_surface? */
-   pipe_resource_reference(&stObj->pt, ps->texture);
+   pipe_resource_reference(&stObj->pt[0], ps->texture);
    st_texture_release_all_sampler_views(st, stObj);
-   pipe_resource_reference(&stImage->pt, stObj->pt);
+   pipe_resource_reference(&stImage->pt, stObj->pt[0]);
 
    stObj->surface_format = ps->format;
 

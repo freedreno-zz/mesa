@@ -205,7 +205,7 @@ get_texture_format_swizzle(const struct st_context *st,
        * with depth component data specified with a sized internal format.
        */
       if (_mesa_is_gles3(st->ctx) &&
-          util_format_is_depth_or_stencil(stObj->pt->format)) {
+          util_format_is_depth_or_stencil(stObj->pt[0]->format)) {
          const struct st_texture_image *firstImage =
             st_texture_image_const(_mesa_base_tex_image(&stObj->base));
          if (firstImage->base.InternalFormat != GL_DEPTH_COMPONENT &&
@@ -215,7 +215,7 @@ get_texture_format_swizzle(const struct st_context *st,
       }
       tex_swizzle = compute_texture_format_swizzle(baseFormat,
                                                    depth_mode,
-                                                   stObj->pt->format,
+                                                   stObj->pt[0]->format,
                                                    glsl_version);
    }
    else {
@@ -250,7 +250,7 @@ check_sampler_swizzle(const struct st_context *st,
 static unsigned last_level(struct st_texture_object *stObj)
 {
    unsigned ret = MIN2(stObj->base.MinLevel + stObj->base._MaxLevel,
-                       stObj->pt->last_level);
+                       stObj->pt[0]->last_level);
    if (stObj->base.Immutable)
       ret = MIN2(ret, stObj->base.MinLevel + stObj->base.NumLevels - 1);
    return ret;
@@ -258,10 +258,10 @@ static unsigned last_level(struct st_texture_object *stObj)
 
 static unsigned last_layer(struct st_texture_object *stObj)
 {
-   if (stObj->base.Immutable && stObj->pt->array_size > 1)
+   if (stObj->base.Immutable && stObj->pt[0]->array_size > 1)
       return MIN2(stObj->base.MinLayer + stObj->base.NumLayers - 1,
-                  stObj->pt->array_size - 1);
-   return stObj->pt->array_size - 1;
+                  stObj->pt[0]->array_size - 1);
+   return stObj->pt[0]->array_size - 1;
 }
 
 static struct pipe_sampler_view *
@@ -274,16 +274,16 @@ st_create_texture_sampler_view_from_stobj(struct st_context *st,
    unsigned swizzle = get_texture_format_swizzle(st, stObj, glsl_version);
 
    u_sampler_view_default_template(&templ,
-                                   stObj->pt,
+                                   stObj->pt[0],
                                    format);
 
-   if (stObj->pt->target == PIPE_BUFFER) {
+   if (stObj->pt[0]->target == PIPE_BUFFER) {
       unsigned base, size;
 
       base = stObj->base.BufferOffset;
-      if (base >= stObj->pt->width0)
+      if (base >= stObj->pt[0]->width0)
          return NULL;
-      size = MIN2(stObj->pt->width0 - base, (unsigned)stObj->base.BufferSize);
+      size = MIN2(stObj->pt[0]->width0 - base, (unsigned)stObj->base.BufferSize);
       if (!size)
          return NULL;
 
@@ -306,7 +306,7 @@ st_create_texture_sampler_view_from_stobj(struct st_context *st,
       templ.swizzle_a = GET_SWZ(swizzle, 3);
    }
 
-   return st->pipe->create_sampler_view(st->pipe, stObj->pt, &templ);
+   return st->pipe->create_sampler_view(st->pipe, stObj->pt[0], &templ);
 }
 
 
@@ -318,7 +318,7 @@ st_get_texture_sampler_view_from_stobj(struct st_context *st,
 {
    struct pipe_sampler_view **sv;
    const struct st_texture_image *firstImage;
-   if (!stObj || !stObj->pt) {
+   if (!stObj || !stObj->pt[0]) {
       return NULL;
    }
 
@@ -354,7 +354,7 @@ st_get_texture_sampler_view_from_stobj(struct st_context *st,
    } else if ((*sv)->context != st->pipe) {
       /* Recreate view in correct context, use existing view as template */
       struct pipe_sampler_view *new_sv =
-         st->pipe->create_sampler_view(st->pipe, stObj->pt, *sv);
+         st->pipe->create_sampler_view(st->pipe, stObj->pt[0], *sv);
       pipe_sampler_view_reference(sv, NULL);
       *sv = new_sv;
    }
@@ -397,7 +397,7 @@ update_single_texture(struct st_context *st,
    }
    else {
       view_format =
-         stObj->surface_based ? stObj->surface_format : stObj->pt->format;
+         stObj->surface_based ? stObj->surface_format : stObj->pt[0]->format;
 
       /* If sRGB decoding is off, use the linear format */
       if (samp->sRGBDecode == GL_SKIP_DECODE_EXT) {
@@ -496,17 +496,17 @@ update_textures(struct st_context *st,
          tmpl.swizzle_g = PIPE_SWIZZLE_Y;   /* tmpl from Y plane is R8 */
          extra = u_bit_scan(&free_slots);
          sampler_views[extra] =
-               st->pipe->create_sampler_view(st->pipe, stObj->pt->next, &tmpl);
+               st->pipe->create_sampler_view(st->pipe, stObj->pt[0]->next, &tmpl);
          break;
       case PIPE_FORMAT_IYUV:
          /* we need two additional R8 views: */
          tmpl.format = PIPE_FORMAT_R8_UNORM;
          extra = u_bit_scan(&free_slots);
          sampler_views[extra] =
-               st->pipe->create_sampler_view(st->pipe, stObj->pt->next, &tmpl);
+               st->pipe->create_sampler_view(st->pipe, stObj->pt[0]->next, &tmpl);
          extra = u_bit_scan(&free_slots);
          sampler_views[extra] =
-               st->pipe->create_sampler_view(st->pipe, stObj->pt->next->next, &tmpl);
+               st->pipe->create_sampler_view(st->pipe, stObj->pt[0]->next->next, &tmpl);
          break;
       default:
          break;

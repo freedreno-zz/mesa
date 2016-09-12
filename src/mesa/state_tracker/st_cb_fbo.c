@@ -573,10 +573,10 @@ st_validate_attachment(struct gl_context *ctx,
    if (att->Type != GL_TEXTURE)
       return GL_TRUE;
 
-   if (!stObj || !stObj->pt)
+   if (!stObj || !stObj->pt[0])
       return GL_FALSE;
 
-   format = stObj->pt->format;
+   format = stObj->pt[0]->format;
    texFormat = att->Renderbuffer->TexImage->TexFormat;
 
    /* If the encoding is sRGB and sRGB rendering cannot be enabled,
@@ -590,7 +590,7 @@ st_validate_attachment(struct gl_context *ctx,
 
    valid = screen->is_format_supported(screen, format,
                                       PIPE_TEXTURE_2D,
-                                      stObj->pt->nr_samples, bindings);
+                                      stObj->pt[0]->nr_samples, bindings);
    if (!valid) {
       st_fbo_invalid("Invalid format");
    }

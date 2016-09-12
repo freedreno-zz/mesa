@@ -128,7 +128,7 @@ st_generate_mipmap(struct gl_context *ctx, GLenum target,
       st_finalize_texture(ctx, st->pipe, texObj);
    }
 
-   pt = stObj->pt;
+   pt = stObj->pt[0];
    if (!pt) {
       _mesa_error(ctx, GL_OUT_OF_MEMORY, "mipmap generation");
       return;

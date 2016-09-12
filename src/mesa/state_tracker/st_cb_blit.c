@@ -181,7 +181,7 @@ st_BlitFramebuffer(struct gl_context *ctx,
          struct st_texture_object *srcObj = st_texture_object(srcAtt->Texture);
          GLuint i;
 
-         if (!srcObj || !srcObj->pt) {
+         if (!srcObj || !srcObj->pt[0]) {
             return;
          }
 
@@ -202,10 +202,10 @@ st_BlitFramebuffer(struct gl_context *ctx,
                   blit.dst.box.z = dstSurf->u.tex.first_layer;
                   blit.dst.format = dstSurf->format;
 
-                  blit.src.resource = srcObj->pt;
+                  blit.src.resource = srcObj->pt[0];
                   blit.src.level = srcAtt->TextureLevel;
                   blit.src.box.z = srcAtt->Zoffset + srcAtt->CubeMapFace;
-                  blit.src.format = srcObj->pt->format;
+                  blit.src.format = srcObj->pt[0]->format;
 
                   if (!ctx->Color.sRGBEnabled)
                      blit.src.format = util_format_linear(blit.src.format);

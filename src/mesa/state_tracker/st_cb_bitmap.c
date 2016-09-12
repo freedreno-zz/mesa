@@ -707,7 +707,7 @@ st_DrawAtlasBitmaps(struct gl_context *ctx,
    st_validate_state(st, ST_PIPELINE_RENDER);
    st_invalidate_readpix_cache(st);
 
-   sv = st_create_texture_sampler_view(pipe, stObj->pt);
+   sv = st_create_texture_sampler_view(pipe, stObj->pt[0]);
    if (!sv) {
       _mesa_error(ctx, GL_OUT_OF_MEMORY, "glCallLists(bitmap text)");
       return;

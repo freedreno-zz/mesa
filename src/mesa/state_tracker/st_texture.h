@@ -87,7 +87,7 @@ struct st_texture_object
    /* On validation any active images held in main memory or in other
     * textures will be copied to this texture and the old storage freed.
     */
-   struct pipe_resource *pt;
+   struct pipe_resource *pt[1];
 
    /* Number of views in sampler_views array */
    GLuint num_sampler_views;
@@ -139,14 +139,14 @@ static inline struct pipe_resource *
 st_get_texobj_resource(struct gl_texture_object *texObj)
 {
    struct st_texture_object *stObj = st_texture_object(texObj);
-   return stObj ? stObj->pt : NULL;
+   return stObj ? stObj->pt[0] : NULL;
 }
 
 
 static inline struct pipe_resource *
 st_get_stobj_resource(struct st_texture_object *stObj)
 {
-   return stObj ? stObj->pt : NULL;
+   return stObj ? stObj->pt[0] : NULL;
 }
 
 
@@ -189,7 +189,7 @@ st_get_view_format(struct st_texture_object *stObj)
 {
    if (!stObj)
       return PIPE_FORMAT_NONE;
-   return stObj->surface_based ? stObj->surface_format : stObj->pt->format;
+   return stObj->surface_based ? stObj->surface_format : stObj->pt[0]->format;
 }
 
 
