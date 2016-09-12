@@ -104,7 +104,7 @@ dri_screen(__DRIscreen * sPriv)
 }
 
 struct __DRIimageRec {
-   struct pipe_resource *texture;
+   struct pipe_resource *texture[1];
    unsigned level;
    unsigned layer;
    uint32_t dri_format;

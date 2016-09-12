@@ -543,7 +543,7 @@ dri2_allocate_textures(struct dri_context *ctx,
       if (images.image_mask & __DRI_IMAGE_BUFFER_FRONT) {
          struct pipe_resource **buf =
             &drawable->textures[ST_ATTACHMENT_FRONT_LEFT];
-         struct pipe_resource *texture = images.front->texture;
+         struct pipe_resource *texture = images.front->texture[0];
 
          dri_drawable->w = texture->width0;
          dri_drawable->h = texture->height0;
@@ -554,7 +554,7 @@ dri2_allocate_textures(struct dri_context *ctx,
       if (images.image_mask & __DRI_IMAGE_BUFFER_BACK) {
          struct pipe_resource **buf =
             &drawable->textures[ST_ATTACHMENT_BACK_LEFT];
-         struct pipe_resource *texture = images.back->texture;
+         struct pipe_resource *texture = images.back->texture[0];
 
          dri_drawable->w = texture->width0;
          dri_drawable->h = texture->height0;
@@ -839,13 +839,13 @@ dri2_create_image_from_winsys(__DRIscreen *_screen,
       tex = pscreen->resource_from_handle(pscreen,
             &templ, &whandle[i], PIPE_HANDLE_USAGE_READ_WRITE);
       if (!tex) {
-         pipe_resource_reference(&img->texture, NULL);
+         pipe_resource_reference(&img->texture[0], NULL);
          FREE(img);
          return NULL;
       }
 
-      tex->next = img->texture;
-      img->texture = tex;
+      tex->next = img->texture[0];
+      img->texture[0] = tex;
    }
 
    img->level = 0;
@@ -1005,8 +1005,8 @@ dri2_create_image(__DRIscreen *_screen,
    templ.depth0 = 1;
    templ.array_size = 1;
 
-   img->texture = screen->base.screen->resource_create(screen->base.screen, &templ);
-   if (!img->texture) {
+   img->texture[0] = screen->base.screen->resource_create(screen->base.screen, &templ);
+   if (!img->texture[0]) {
       FREE(img);
       return NULL;
    }
@@ -1037,36 +1037,36 @@ dri2_query_image(__DRIimage *image, int attrib, int *value)
    switch (attrib) {
    case __DRI_IMAGE_ATTRIB_STRIDE:
       whandle.type = DRM_API_HANDLE_TYPE_KMS;
-      image->texture->screen->resource_get_handle(image->texture->screen,
-            NULL, image->texture, &whandle, usage);
+      image->texture[0]->screen->resource_get_handle(image->texture[0]->screen,
+            NULL, image->texture[0], &whandle, usage);
       *value = whandle.stride;
       return GL_TRUE;
    case __DRI_IMAGE_ATTRIB_HANDLE:
       whandle.type = DRM_API_HANDLE_TYPE_KMS;
-      image->texture->screen->resource_get_handle(image->texture->screen,
-         NULL, image->texture, &whandle, usage);
+      image->texture[0]->screen->resource_get_handle(image->texture[0]->screen,
+         NULL, image->texture[0], &whandle, usage);
       *value = whandle.handle;
       return GL_TRUE;
    case __DRI_IMAGE_ATTRIB_NAME:
       whandle.type = DRM_API_HANDLE_TYPE_SHARED;
-      image->texture->screen->resource_get_handle(image->texture->screen,
-         NULL, image->texture, &whandle, usage);
+      image->texture[0]->screen->resource_get_handle(image->texture[0]->screen,
+         NULL, image->texture[0], &whandle, usage);
       *value = whandle.handle;
       return GL_TRUE;
    case __DRI_IMAGE_ATTRIB_FD:
       whandle.type= DRM_API_HANDLE_TYPE_FD;
-      image->texture->screen->resource_get_handle(image->texture->screen,
-         NULL, image->texture, &whandle, usage);
+      image->texture[0]->screen->resource_get_handle(image->texture[0]->screen,
+         NULL, image->texture[0], &whandle, usage);
       *value = whandle.handle;
       return GL_TRUE;
    case __DRI_IMAGE_ATTRIB_FORMAT:
       *value = image->dri_format;
       return GL_TRUE;
    case __DRI_IMAGE_ATTRIB_WIDTH:
-      *value = image->texture->width0;
+      *value = image->texture[0]->width0;
       return GL_TRUE;
    case __DRI_IMAGE_ATTRIB_HEIGHT:
-      *value = image->texture->height0;
+      *value = image->texture[0]->height0;
       return GL_TRUE;
    case __DRI_IMAGE_ATTRIB_COMPONENTS:
       if (image->dri_components == 0)
@@ -1088,13 +1088,14 @@ static __DRIimage *
 dri2_dup_image(__DRIimage *image, void *loaderPrivate)
 {
    __DRIimage *img;
+   unsigned i;
 
    img = CALLOC_STRUCT(__DRIimageRec);
    if (!img)
       return NULL;
 
-   img->texture = NULL;
-   pipe_resource_reference(&img->texture, image->texture);
+   for (i = 0; i < ARRAY_SIZE(img->texture); i++)
+      pipe_resource_reference(&img->texture[i], image->texture[i]);
    img->level = image->level;
    img->layer = image->layer;
    img->dri_format = image->dri_format;
@@ -1230,7 +1231,7 @@ dri2_create_from_texture(__DRIcontext *context, int target, unsigned texture,
       return NULL;
    }
 
-   pipe_resource_reference(&img->texture, tex);
+   pipe_resource_reference(&img->texture[0], tex);
 
    *error = __DRI_IMAGE_ERROR_SUCCESS;
    return img;
@@ -1301,31 +1302,31 @@ dri2_blit_image(__DRIcontext *context, __DRIimage *dst, __DRIimage *src,
       return;
 
    memset(&blit, 0, sizeof(blit));
-   blit.dst.resource = dst->texture;
+   blit.dst.resource = dst->texture[0];
    blit.dst.box.x = dstx0;
    blit.dst.box.y = dsty0;
    blit.dst.box.width = dstwidth;
    blit.dst.box.height = dstheight;
    blit.dst.box.depth = 1;
-   blit.dst.format = dst->texture->format;
-   blit.src.resource = src->texture;
+   blit.dst.format = dst->texture[0]->format;
+   blit.src.resource = src->texture[0];
    blit.src.box.x = srcx0;
    blit.src.box.y = srcy0;
    blit.src.box.width = srcwidth;
    blit.src.box.height = srcheight;
    blit.src.box.depth = 1;
-   blit.src.format = src->texture->format;
+   blit.src.format = src->texture[0]->format;
    blit.mask = PIPE_MASK_RGBA;
    blit.filter = PIPE_TEX_FILTER_NEAREST;
 
    pipe->blit(pipe, &blit);
 
    if (flush_flag == __BLIT_FLAG_FLUSH) {
-      pipe->flush_resource(pipe, dst->texture);
+      pipe->flush_resource(pipe, dst->texture[0]);
       ctx->st->flush(ctx->st, 0, NULL);
    } else if (flush_flag == __BLIT_FLAG_FINISH) {
       screen = dri_screen(ctx->sPriv)->base.screen;
-      pipe->flush_resource(pipe, dst->texture);
+      pipe->flush_resource(pipe, dst->texture[0]);
       ctx->st->flush(ctx->st, 0, &fence);
       (void) screen->fence_finish(screen, NULL, fence, PIPE_TIMEOUT_INFINITE);
       screen->fence_reference(screen, &fence, NULL);
@@ -1351,7 +1352,7 @@ dri2_map_image(__DRIcontext *context, __DRIimage *image,
    if (flags & __DRI_IMAGE_TRANSFER_WRITE)
          pipe_access |= PIPE_TRANSFER_WRITE;
 
-   map = pipe_transfer_map(pipe, image->texture,
+   map = pipe_transfer_map(pipe, image->texture[0],
                            0, 0, pipe_access, x0, y0, width, height,
                            &trans);
    if (map) {
@@ -1374,7 +1375,9 @@ dri2_unmap_image(__DRIcontext *context, __DRIimage *image, void *data)
 static void
 dri2_destroy_image(__DRIimage *img)
 {
-   pipe_resource_reference(&img->texture, NULL);
+   unsigned i;
+   for (i = 0; i < ARRAY_SIZE(img->texture); i++)
+      pipe_resource_reference(&img->texture[i], NULL);
    FREE(img);
 }
 
