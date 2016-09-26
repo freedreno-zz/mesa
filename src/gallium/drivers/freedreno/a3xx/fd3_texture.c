@@ -228,24 +228,9 @@ fd3_sampler_view_create(struct pipe_context *pctx, struct pipe_resource *prsc,
 	so->base.reference.count = 1;
 	so->base.context = pctx;
 
-	enum a3xx_tex_fmt fmt = fd3_pipe2tex(cso->format);
-
-	if (rsc->tiled) {
-		switch (cso->format) {
-		case PIPE_FORMAT_RG88_UNORM:
-			fmt = 0x10;   // TPL1_TEX_UV_64X32
-			break;
-		case PIPE_FORMAT_R8_UNORM:
-			fmt = 0x12;   // TPL1_TEX_Y64X32
-			break;
-		default:
-			break;
-		}
-	}
-
 	so->texconst0 =
 			A3XX_TEX_CONST_0_TYPE(tex_type(prsc->target)) |
-			A3XX_TEX_CONST_0_FMT(fmt) |
+			A3XX_TEX_CONST_0_FMT(fd3_pipe2tex(cso->format)) |
 			fd3_tex_swiz(cso->format, cso->swizzle_r, cso->swizzle_g,
 						cso->swizzle_b, cso->swizzle_a);
 

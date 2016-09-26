@@ -902,8 +902,6 @@ fd_resource_from_handle(struct pipe_screen *pscreen,
 	if (!rsc->bo)
 		goto fail;
 
-	rsc->tiled = true;
-
 	rsc->base.vtbl = &fd_resource_vtbl;
 	rsc->cpp = util_format_get_blocksize(tmpl->format);
 	slice->pitch = handle->stride / rsc->cpp;

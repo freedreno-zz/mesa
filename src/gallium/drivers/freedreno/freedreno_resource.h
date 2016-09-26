@@ -96,8 +96,6 @@ struct fd_resource {
 	 * shadowed.
 	 */
 	uint32_t bc_batch_mask;
-
-	bool tiled;
 };
 
 static inline struct fd_resource *
