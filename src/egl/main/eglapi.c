@@ -1881,6 +1881,8 @@ eglDupNativeFenceFDANDROID(EGLDisplay dpy, EGLSync sync)
    _EGLDriver *drv;
    EGLBoolean ret;
 
+   _EGL_FUNC_START(disp, EGL_OBJECT_SYNC_KHR, s, EGL_FALSE);
+
    /* the spec doesn't seem to specify what happens if the fence
     * type is not EGL_SYNC_NATIVE_FENCE_ANDROID, but this seems
     * sensible:
