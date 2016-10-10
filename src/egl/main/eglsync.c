@@ -100,7 +100,6 @@ _eglInitSync(_EGLSync *sync, _EGLDisplay *dpy, EGLenum type,
       sync->SyncCondition = EGL_SYNC_CL_EVENT_COMPLETE_KHR;
       break;
    case EGL_SYNC_NATIVE_FENCE_ANDROID:
-      sync->SyncCondition = EGL_SYNC_NATIVE_FENCE_SIGNALED_ANDROID;
       if (sync->SyncFd == EGL_NO_NATIVE_FENCE_FD_ANDROID)
          sync->SyncCondition = EGL_SYNC_PRIOR_COMMANDS_COMPLETE_KHR;
       else
