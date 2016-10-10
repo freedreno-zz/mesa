@@ -2516,8 +2516,17 @@ dri2_egl_unref_sync(struct dri2_egl_display *dri2_dpy,
                     struct dri2_egl_sync *dri2_sync)
 {
    if (p_atomic_dec_zero(&dri2_sync->refcount)) {
-      if (dri2_sync->base.Type == EGL_SYNC_REUSABLE_KHR)
+      switch (dri2_sync->base.Type) {
+      case EGL_SYNC_REUSABLE_KHR:
          cnd_destroy(&dri2_sync->cond);
+         break;
+      case EGL_SYNC_NATIVE_FENCE_ANDROID:
+         if (dri2_sync->base.SyncFd != EGL_NO_NATIVE_FENCE_FD_ANDROID)
+            close(dri2_sync->base.SyncFd);
+         break;
+      default:
+         break;
+      }
 
       if (dri2_sync->fence)
          dri2_dpy->fence->destroy_fence(dri2_dpy->dri_screen, dri2_sync->fence);
@@ -2650,9 +2659,6 @@ dri2_destroy_sync(_EGLDriver *drv, _EGLDisplay *dpy, _EGLSync *sync)
          ret = EGL_FALSE;
       }
    }
-
-   if (sync->SyncFd != EGL_NO_NATIVE_FENCE_FD_ANDROID)
-      close(sync->SyncFd);
 
    dri2_egl_unref_sync(dri2_dpy, dri2_sync);
 
