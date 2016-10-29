@@ -2720,6 +2720,7 @@ dri2_client_wait_sync(_EGLDriver *drv, _EGLDisplay *dpy, _EGLSync *sync,
 
    switch (sync->Type) {
    case EGL_SYNC_FENCE_KHR:
+   case EGL_SYNC_NATIVE_FENCE_ANDROID:
    case EGL_SYNC_CL_EVENT_KHR:
       if (dri2_dpy->fence->client_wait_sync(dri2_ctx ? dri2_ctx->dri_context : NULL,
                                          dri2_sync->fence, wait_flags,

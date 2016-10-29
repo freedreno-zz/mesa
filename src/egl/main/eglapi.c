@@ -1887,7 +1887,7 @@ eglDupNativeFenceFDANDROID(EGLDisplay dpy, EGLSync sync)
     * type is not EGL_SYNC_NATIVE_FENCE_ANDROID, but this seems
     * sensible:
     */
-   if (s->Type != EGL_SYNC_NATIVE_FENCE_ANDROID)
+   if (!(s && (s->Type == EGL_SYNC_NATIVE_FENCE_ANDROID)))
       RETURN_EGL_ERROR(disp, EGL_BAD_PARAMETER, EGL_NO_NATIVE_FENCE_FD_ANDROID);
 
    _EGL_CHECK_SYNC(disp, s, EGL_NO_NATIVE_FENCE_FD_ANDROID, drv);
