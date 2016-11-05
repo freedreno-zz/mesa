@@ -87,14 +87,8 @@ void fd_fence_server_sync(struct pipe_context *pctx,
 	struct fd_context *ctx = fd_context(pctx);
 	struct fd_batch *batch = ctx->batch;
 
-	assert(fence->fence_fd != -1);
-
-	if (batch->in_fence_fd == -1) {
-		batch->in_fence_fd = dup(fence->fence_fd);
-	} else {
-		int new_fd = sync_merge("foo", batch->in_fence_fd, fence->fence_fd);
-		close(batch->in_fence_fd);
-		batch->in_fence_fd = new_fd;
+	if (sync_accumulate("freedreno", &batch->in_fence_fd, fence->fence_fd)) {
+		/* error */
 	}
 }
 
