@@ -799,14 +799,8 @@ static void virgl_fence_server_sync(struct virgl_winsys *vws,
 {
    struct virgl_hw_res *hw_res = virgl_hw_res(fence);
 
-   assert(hw_res->fence_fd != -1);
-
-   if (cbuf->in_fence_fd == -1) {
-       cbuf->in_fence_fd = dup(hw_res->fence_fd);
-   } else {
-        int new_fd = sync_merge("virgl", cbuf->in_fence_fd, hw_res->fence_fd);
-        close(cbuf->in_fence_fd);
-        cbuf->in_fence_fd = new_fd;
+   if (sync_accumulate("virgl", &cbuf->in_fence_fd, hw_res->fence_fd)) {
+      /* error */
    }
 }
 
